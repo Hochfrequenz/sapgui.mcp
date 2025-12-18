@@ -34,7 +34,7 @@ tests = [
     "python-dotenv>=1.0.0",
 ]
 linting = [
-    "pylint==3.3.7",
+    "pylint==4.0.4",
 ]
 type_check = [
     "mypy[pydantic]==1.19.0",
@@ -76,6 +76,10 @@ profile = "black"
 [tool.pylint."MESSAGES CONTROL"]
 max-line-length = 120
 disable = "fixme,duplicate-code"
+
+[tool.pylint.BASIC]
+# Allow module-level mutable variables (singletons, caches, state)
+good-names = ["_browser_manager", "_settings", "_keepalive_task", "_keepalive_interval"]
 
 [mypy]
 truethy-bool = true
