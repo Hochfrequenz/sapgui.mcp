@@ -128,8 +128,7 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
 
     # Should indicate successful login or already logged in
     assert any(
-        phrase in response_text
-        for phrase in ["successfully logged", "already logged", "ready to run"]
+        phrase in response_text for phrase in ["successfully logged", "already logged", "ready to run"]
     ), f"Login failed or unexpected response: {response_text}"
 
     # Verify browser state: check that SAP Easy Access loaded
@@ -141,8 +140,7 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     # - The page title "SAP Easy Access"
     # - The OK-Code field (ToolbarOkCode)
     assert "sap easy access" in page_html or "toolbarokcode" in page_html, (
-        "Browser does not show SAP Easy Access screen. "
-        "Login may have failed or a dialog is blocking."
+        "Browser does not show SAP Easy Access screen. " "Login may have failed or a dialog is blocking."
     )
 
 
@@ -158,9 +156,7 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
     # Login (auto-login with credentials from environment, or skip if already logged in)
     login_result = await sap_mcp_client.call_tool("sap_login", {})
     login_text = login_result.content[0].text.lower()
-    assert "ready" in login_text or "already logged" in login_text, (
-        f"Login failed: {login_result.content[0].text}"
-    )
+    assert "ready" in login_text or "already logged" in login_text, f"Login failed: {login_result.content[0].text}"
 
     # Test the sap_transaction tool with SU3 (user profile)
     result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SU3"})
@@ -180,9 +176,7 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
     page_html = html_result.content[0].text.lower()
 
     # Check that we're no longer on the Easy Access menu (SMEN)
-    assert "sap easy access" not in page_html, (
-        "Still on SAP Easy Access menu. Transaction SU3 did not open."
-    )
+    assert "sap easy access" not in page_html, "Still on SAP Easy Access menu. Transaction SU3 did not open."
 
     # Check for SU3-specific content (user profile screen)
     # - German: "Pflege eigener Benutzervorgaben"
@@ -193,8 +187,7 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
         expected_phrases = ["user profile", "own data", "maintain user"]
 
     assert any(phrase in page_html for phrase in expected_phrases), (
-        f"SU3 transaction screen not detected for language '{sap_language}'. "
-        f"Expected one of: {expected_phrases}."
+        f"SU3 transaction screen not detected for language '{sap_language}'. " f"Expected one of: {expected_phrases}."
     )
 
 
@@ -248,9 +241,7 @@ async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) 
     response_text = result.content[0].text.lower()
 
     # Should indicate transaction executed (or error if not authorized)
-    assert "executed" in response_text or "error" in response_text, (
-        f"Unexpected response: {response_text}"
-    )
+    assert "executed" in response_text or "error" in response_text, f"Unexpected response: {response_text}"
 
 
 @pytest.mark.asyncio
@@ -273,9 +264,7 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     result1 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE11", "new_window": False})
     assert result1.content, "Expected response from sap_transaction"
     response1 = result1.content[0].text.lower()
-    assert "executed" in response1 and "current window" in response1, (
-        f"SE11 should open in current window: {response1}"
-    )
+    assert "executed" in response1 and "current window" in response1, f"SE11 should open in current window: {response1}"
 
     # Wait for SE11 to load
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -284,24 +273,20 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     html1 = await sap_mcp_client.call_tool("browser_get_html", {})
     page_html1 = html1.content[0].text.lower()
     if sap_language == "DE":
-        assert any(phrase in page_html1 for phrase in ["dictionary", "wörterbuch", "se11"]), (
-            "SE11 (ABAP Dictionary) should be displayed"
-        )
+        assert any(
+            phrase in page_html1 for phrase in ["dictionary", "wörterbuch", "se11"]
+        ), "SE11 (ABAP Dictionary) should be displayed"
     else:
-        assert any(phrase in page_html1 for phrase in ["dictionary", "se11"]), (
-            "SE11 (ABAP Dictionary) should be displayed"
-        )
+        assert any(
+            phrase in page_html1 for phrase in ["dictionary", "se11"]
+        ), "SE11 (ABAP Dictionary) should be displayed"
 
     # Step 2: Open SE16 (Data Browser) - this should REPLACE SE11
     result2 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16", "new_window": False})
     assert result2.content, "Expected response from sap_transaction"
     response2 = result2.content[0].text.lower()
-    assert "executed" in response2 and "current window" in response2, (
-        f"SE16 should open in current window: {response2}"
-    )
-    assert "cancelled" in response2, (
-        f"Response should mention previous transaction was cancelled: {response2}"
-    )
+    assert "executed" in response2 and "current window" in response2, f"SE16 should open in current window: {response2}"
+    assert "cancelled" in response2, f"Response should mention previous transaction was cancelled: {response2}"
 
     # Wait for SE16 to load
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -316,9 +301,7 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     else:
         se16_found = any(phrase in page_html2 for phrase in ["data browser", "table contents", "se16"])
 
-    assert se16_found, (
-        "SE16 (Data Browser) should be displayed after replacing SE11"
-    )
+    assert se16_found, "SE16 (Data Browser) should be displayed after replacing SE11"
 
 
 @pytest.mark.asyncio
@@ -351,14 +334,12 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
     response2 = result2.content[0].text.lower()
 
     # Should indicate new session was opened
-    assert "new session" in response2 or "new window" in response2, (
-        f"Response should mention new session/window: {response2}"
-    )
+    assert (
+        "new session" in response2 or "new window" in response2
+    ), f"Response should mention new session/window: {response2}"
 
     # Should report session count
-    assert "sessions open:" in response2, (
-        f"Response should report session count: {response2}"
-    )
+    assert "sessions open:" in response2, f"Response should report session count: {response2}"
 
     # Extract session count from response (e.g., "SAP sessions open: 2")
     session_match = re.search(r"sessions open:\s*(\d+)", response2)
@@ -366,6 +347,4 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
     session_count = int(session_match.group(1))
 
     # Should have at least 2 sessions (original + new)
-    assert session_count >= 2, (
-        f"Expected at least 2 SAP sessions after opening new window, got {session_count}"
-    )
+    assert session_count >= 2, f"Expected at least 2 SAP sessions after opening new window, got {session_count}"

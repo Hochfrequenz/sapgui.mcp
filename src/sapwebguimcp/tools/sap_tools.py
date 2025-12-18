@@ -66,10 +66,7 @@ async def _keepalive_loop(browser_manager: BrowserManager, interval: int) -> Non
 # Common selectors for SAP Web GUI elements
 SELECTORS: dict[str, str] = {
     "okcode_field": (
-        'input[id*="ToolbarOkCode"], '
-        'input[name*="okcode" i], '
-        'input[id*="okcd" i], '
-        'input[id*="OkCodeField" i]'
+        'input[id*="ToolbarOkCode"], ' 'input[name*="okcode" i], ' 'input[id*="okcd" i], ' 'input[id*="OkCodeField" i]'
     ),
     "settings_button": (
         '[id*="settingsButton"], '
@@ -78,16 +75,8 @@ SELECTORS: dict[str, str] = {
         'button[id*="gear" i], '
         '[aria-label*="Setting" i]'
     ),
-    "menu_expand": (
-        '[id*="shellMnuExp"], '
-        '[title*="Menu" i], '
-        '[title*="Menü" i], '
-        '[aria-label*="Menu" i]'
-    ),
-    "okcode_checkbox": (
-        'input[type="checkbox"][id*="okCode" i], '
-        'input[type="checkbox"][name*="okCode" i]'
-    ),
+    "menu_expand": ('[id*="shellMnuExp"], ' '[title*="Menu" i], ' '[title*="Menü" i], ' '[aria-label*="Menu" i]'),
+    "okcode_checkbox": ('input[type="checkbox"][id*="okCode" i], ' 'input[type="checkbox"][name*="okCode" i]'),
     "okcode_label": (
         'label:has-text("OK-Code"), '
         'label:has-text("OKCode"), '
@@ -133,9 +122,7 @@ async def _try_find_checkbox_by_label(page: Any) -> Optional[Any]:
 
 async def _try_find_checkbox_in_tabs(page: Any, steps_taken: list[str]) -> Optional[Any]:
     """Try to find OK-Code checkbox by searching through settings tabs."""
-    settings_tabs = await page.query_selector_all(
-        '[role="tab"], .sapMTabStrip button, [class*="tab" i] button'
-    )
+    settings_tabs = await page.query_selector_all('[role="tab"], .sapMTabStrip button, [class*="tab" i] button')
     for tab in settings_tabs:
         tab_text = await tab.text_content()
         if tab_text and any(
@@ -243,7 +230,7 @@ async def _enable_okcode_field(page: Any) -> tuple[bool, str]:
 # =============================================================================
 
 
-def register_sap_tools(mcp: FastMCP) -> None:
+def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements
     """Register all SAP-specific tools with the MCP server."""
 
     @mcp.tool(description="Start a background task that keeps the SAP session alive")
@@ -307,7 +294,9 @@ def register_sap_tools(mcp: FastMCP) -> None:
         return "Keepalive stopped."
 
     @mcp.tool(description="Log into SAP Web GUI")
-    async def sap_login(url: Optional[str] = None) -> str:
+    async def sap_login(  # pylint: disable=too-many-return-statements
+        url: Optional[str] = None,
+    ) -> str:
         """
         Log into SAP Web GUI.
 
@@ -391,11 +380,12 @@ def register_sap_tools(mcp: FastMCP) -> None:
                 if "already logged" in page_content.lower() or "bereits angemeldet" in page_content.lower():
                     # Try to click Continue/Weiter button
                     try:
-                        await page.click(
-                            'button:has-text("Continue"), button:has-text("Weiter"), '
-                            'button:has-text("Fortfahren")',
-                            timeout=5000,
+                        continue_btn_selector = (
+                            'button:has-text("Continue"), '
+                            'button:has-text("Weiter"), '
+                            'button:has-text("Fortfahren")'
                         )
+                        await page.click(continue_btn_selector, timeout=5000)
                         await page.wait_for_selector("#ToolbarOkCode", timeout=10000, state="visible")
                         return (
                             f"Successfully logged into SAP as {settings.sap_user} "
@@ -565,12 +555,12 @@ def register_sap_tools(mcp: FastMCP) -> None:
                     f"SAP sessions open: {session_count}. "
                     "The new transaction window should now be active."
                 )
-            else:
-                return (
-                    f"Transaction {tcode} executed in current window. "
-                    f"Current page: {title}. "
-                    "Any previous transaction was cancelled."
-                )
+
+            return (
+                f"Transaction {tcode} executed in current window. "
+                f"Current page: {title}. "
+                "Any previous transaction was cancelled."
+            )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error executing transaction")

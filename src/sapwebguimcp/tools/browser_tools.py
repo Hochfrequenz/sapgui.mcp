@@ -29,7 +29,7 @@ __all__ = ["register_browser_tools"]
 logger = logging.getLogger(__name__)
 
 
-def register_browser_tools(mcp: FastMCP) -> None:
+def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements
     """Register all browser automation tools with the MCP server."""
 
     @mcp.tool(description="Get accessibility tree snapshot of the current page")

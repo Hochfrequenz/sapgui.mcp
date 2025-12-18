@@ -37,4 +37,6 @@ class TestMcpServer:
             "browser_get_html",
             "browser_select_option",
         }
-        assert expected_browser_tools.issubset(tool_names), f"Missing browser tools: {expected_browser_tools - tool_names}"
+        assert expected_browser_tools.issubset(
+            tool_names
+        ), f"Missing browser tools: {expected_browser_tools - tool_names}"

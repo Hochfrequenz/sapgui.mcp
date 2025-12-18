@@ -5,7 +5,7 @@ All settings are loaded from environment variables using pydantic-settings.
 """
 
 from enum import StrEnum
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
