@@ -5,7 +5,7 @@ All settings are loaded from environment variables using pydantic-settings.
 """
 
 from enum import StrEnum
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -89,9 +89,10 @@ class SapWebGuiSettings(BaseSettings):
     sap_mandant: str = Field(
         default="",
         description="SAP client/mandant (3-digit string, e.g., '100')",
+        pattern=r"^\d{3}$",
         json_schema_extra={"env": "SAP_MANDANT"},
     )
-    sap_language: str = Field(
+    sap_language: Literal["DE", "EN"] = Field(
         default="EN",
         description="SAP login language ('DE' or 'EN')",
         json_schema_extra={"env": "SAP_LANGUAGE"},

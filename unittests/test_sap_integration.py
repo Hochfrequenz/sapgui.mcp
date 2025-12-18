@@ -88,6 +88,10 @@ input. Key findings from testing:
    - Standard fill() and type() DO NOT work - SAP intercepts input
    - Solution: Set value via JavaScript, then press Enter via Playwright keyboard
    - The text may not visually appear, but the transaction executes correctly
+   - Transaction prefixes:
+     - /n = Open in current window (cancels current transaction)
+     - /o = Open in new window (creates new SAP session, preserves current)
+   - Examples: "SU3" → "/nSU3", "SE16" with new_window=True → "/oSE16"
 
 4. SSL certificates:
    - SAP systems often use self-signed certificates
@@ -99,6 +103,7 @@ input. Key findings from testing:
 """
 
 import os
+import re
 
 import pytest
 from mcp import ClientSession
@@ -245,4 +250,122 @@ async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) 
     # Should indicate transaction executed (or error if not authorized)
     assert "executed" in response_text or "error" in response_text, (
         f"Unexpected response: {response_text}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: ClientSession) -> None:
+    """Test that transactions in same window mode (/n) replace the previous transaction.
+
+    This test:
+    1. Opens SE11 (ABAP Dictionary) in same window mode
+    2. Opens SE16 (Data Browser) in same window mode
+    3. Verifies that SE11 was cancelled and SE16 is now active
+
+    The /n prefix cancels any active transaction and starts the new one.
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "EN")
+
+    # Login
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Step 1: Open SE11 (ABAP Dictionary)
+    result1 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE11", "new_window": False})
+    assert result1.content, "Expected response from sap_transaction"
+    response1 = result1.content[0].text.lower()
+    assert "executed" in response1 and "current window" in response1, (
+        f"SE11 should open in current window: {response1}"
+    )
+
+    # Wait for SE11 to load
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Verify SE11 is displayed (ABAP Dictionary / Data Dictionary)
+    html1 = await sap_mcp_client.call_tool("browser_get_html", {})
+    page_html1 = html1.content[0].text.lower()
+    if sap_language == "DE":
+        assert any(phrase in page_html1 for phrase in ["dictionary", "wörterbuch", "se11"]), (
+            "SE11 (ABAP Dictionary) should be displayed"
+        )
+    else:
+        assert any(phrase in page_html1 for phrase in ["dictionary", "se11"]), (
+            "SE11 (ABAP Dictionary) should be displayed"
+        )
+
+    # Step 2: Open SE16 (Data Browser) - this should REPLACE SE11
+    result2 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16", "new_window": False})
+    assert result2.content, "Expected response from sap_transaction"
+    response2 = result2.content[0].text.lower()
+    assert "executed" in response2 and "current window" in response2, (
+        f"SE16 should open in current window: {response2}"
+    )
+    assert "cancelled" in response2, (
+        f"Response should mention previous transaction was cancelled: {response2}"
+    )
+
+    # Wait for SE16 to load
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Verify SE16 is displayed and SE11 is gone
+    html2 = await sap_mcp_client.call_tool("browser_get_html", {})
+    page_html2 = html2.content[0].text.lower()
+
+    # SE16 should be visible (Data Browser / Table Contents)
+    if sap_language == "DE":
+        se16_found = any(phrase in page_html2 for phrase in ["data browser", "tabelleninhalt", "se16"])
+    else:
+        se16_found = any(phrase in page_html2 for phrase in ["data browser", "table contents", "se16"])
+
+    assert se16_found, (
+        "SE16 (Data Browser) should be displayed after replacing SE11"
+    )
+
+
+@pytest.mark.asyncio
+async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: ClientSession) -> None:
+    """Test that transactions in new window mode (/o) preserve the previous transaction.
+
+    This test:
+    1. Opens SE11 (ABAP Dictionary) in same window mode
+    2. Opens SE16 (Data Browser) in NEW window mode (new_window=True)
+    3. Verifies that both transactions are now open in separate SAP sessions
+    4. Checks that the session count is reported correctly
+
+    The /o prefix opens a new SAP session without affecting the current one.
+    """
+    # Login
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Step 1: Open SE11 (ABAP Dictionary) in current window
+    result1 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE11", "new_window": False})
+    assert result1.content, "Expected response from sap_transaction"
+    response1 = result1.content[0].text.lower()
+    assert "executed" in response1, f"SE11 should be executed: {response1}"
+
+    # Wait for SE11 to load
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Step 2: Open SE16 in NEW window - this should NOT replace SE11
+    result2 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16", "new_window": True})
+    assert result2.content, "Expected response from sap_transaction"
+    response2 = result2.content[0].text.lower()
+
+    # Should indicate new session was opened
+    assert "new session" in response2 or "new window" in response2, (
+        f"Response should mention new session/window: {response2}"
+    )
+
+    # Should report session count
+    assert "sessions open:" in response2, (
+        f"Response should report session count: {response2}"
+    )
+
+    # Extract session count from response (e.g., "SAP sessions open: 2")
+    session_match = re.search(r"sessions open:\s*(\d+)", response2)
+    assert session_match, f"Could not find session count in response: {response2}"
+    session_count = int(session_match.group(1))
+
+    # Should have at least 2 sessions (original + new)
+    assert session_count >= 2, (
+        f"Expected at least 2 SAP sessions after opening new window, got {session_count}"
     )

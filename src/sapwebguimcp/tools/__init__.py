@@ -1,11 +1,15 @@
 """
 MCP tools for SAP Web GUI automation.
 
-This package previously contained tool definitions, but they have been
-consolidated into the main server module using FastMCP decorators.
-
-See: sapwebguimcp/server.py for all tool definitions.
+This package contains tool modules that are registered with the FastMCP server:
+- sap_tools: SAP-specific tools (login, transaction, keepalive)
+- browser_tools: Generic browser automation tools (click, fill, screenshot, etc.)
 """
 
-# Tools are now registered via FastMCP decorators in server.py
-# This module is kept for backwards compatibility with any imports
+from sapwebguimcp.tools.browser_tools import register_browser_tools
+from sapwebguimcp.tools.sap_tools import register_sap_tools
+
+__all__ = [
+    "register_browser_tools",
+    "register_sap_tools",
+]
