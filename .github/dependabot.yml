@@ -10,9 +10,12 @@ updates:
     schedule:
       interval: "weekly"
     reviewers:
-      - "@Hochfrequenz/python-developers-review-team"
-  # Maintain dependencies for GitHub Actions
+      - "@Hochfrequenz/python-developers-review-team"4
   - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"

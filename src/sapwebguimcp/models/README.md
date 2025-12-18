@@ -14,17 +14,18 @@ models/
 
 ## Configuration (`config.py`)
 
-The `SapWebGuiSettings` class uses [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) to load configuration from environment variables.
+The `SapWebGuiSettings` class uses [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) to
+load configuration from environment variables.
 
 ### Available Settings
 
-| Environment Variable | Type | Default | Description |
-|---------------------|------|---------|-------------|
-| `SAP_URL` | str | `""` | Default SAP Web GUI URL |
-| `BROWSER_MODE` | enum | `"launch"` | `"launch"` or `"connect"` |
-| `BROWSER_TYPE` | enum | `"chromium"` | `"chromium"`, `"firefox"`, or `"webkit"` |
-| `BROWSER_HEADLESS` | bool | `false` | Run browser without GUI |
-| `CDP_URL` | str | `"http://localhost:9222"` | CDP URL for connect mode |
+| Environment Variable | Type | Default                   | Description                              |
+|----------------------|------|---------------------------|------------------------------------------|
+| `SAP_URL`            | str  | `""`                      | Default SAP Web GUI URL                  |
+| `BROWSER_MODE`       | enum | `"launch"`                | `"launch"` or `"connect"`                |
+| `BROWSER_TYPE`       | enum | `"chromium"`              | `"chromium"`, `"firefox"`, or `"webkit"` |
+| `BROWSER_HEADLESS`   | bool | `false`                   | Run browser without GUI                  |
+| `CDP_URL`            | str  | `"http://localhost:9222"` | CDP URL for connect mode                 |
 
 ### Usage
 
@@ -43,7 +44,7 @@ print(settings.browser_mode)
 ```python
 class SapWebGuiSettings(BaseSettings):
     # ... existing fields ...
-    
+
     my_new_setting: str = Field(
         default="default_value",
         description="Description of the setting",
