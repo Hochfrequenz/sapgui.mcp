@@ -1,6 +1,32 @@
 """
 Integration tests for SAP Web GUI MCP Server against a real SAP system.
 
+Test Philosophy:
+----------------
+These tests verify that the MCP server tools work correctly WITH a real SAP system.
+They assume SAP is functioning correctly - if SAP is down or misbehaving, these
+tests will fail, which is the desired behavior: you need to know if SAP is broken.
+
+What these tests verify:
+- MCP server starts and accepts tool calls via stdio protocol
+- sap_login tool navigates to SAP and loads the login page
+- sap_transaction tool enters transaction codes correctly
+- Browser automation tools (fill, click, wait, etc.) work through MCP
+- The JavaScript + keyboard Enter approach works for SAP's custom input handling
+
+What these tests assume (and don't test):
+- SAP Web GUI is available and responding
+- SAP credentials are valid
+- SAP transactions (SU3, etc.) exist and are accessible to the test user
+
+If tests fail, check:
+1. Is SAP accessible? (network, VPN, firewall)
+2. Are credentials correct and not expired?
+3. Is the user locked or does it have required authorizations?
+4. Is there a "user already logged in" dialog blocking the flow?
+
+Test Environment:
+-----------------
 These tests only run on authorized machines with SAP access (see conftest.py).
 They are automatically skipped in CI environments.
 
@@ -26,7 +52,7 @@ input. Key findings from testing:
 
 3. OK-Code field (#ToolbarOkCode) for transaction codes:
    - Standard fill() and type() DO NOT work - SAP intercepts input
-   - Solution: Set value via JavaScript, then dispatch Enter keyboard events
+   - Solution: Set value via JavaScript, then press Enter via Playwright keyboard
    - The text may not visually appear, but the transaction executes correctly
 
 4. SSL certificates:
