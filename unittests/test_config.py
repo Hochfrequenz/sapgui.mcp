@@ -18,8 +18,10 @@ class TestSapWebGuiSettings:
 
     def test_default_values(self) -> None:
         """Test that default values are set correctly."""
+        # pydantic-settings reads from .env file directly, so we need to both
+        # clear os.environ AND tell SapWebGuiSettings not to read .env
         with patch.dict(os.environ, {}, clear=True):
-            settings = SapWebGuiSettings()
+            settings = SapWebGuiSettings(_env_file=None)
 
         assert settings.sap_url == ""
         assert settings.browser_mode == BrowserMode.LAUNCH
@@ -38,7 +40,7 @@ class TestSapWebGuiSettings:
         }
 
         with patch.dict(os.environ, env_vars, clear=True):
-            settings = SapWebGuiSettings()
+            settings = SapWebGuiSettings(_env_file=None)
 
         assert settings.sap_url == "https://sap.example.com/webgui"
         assert settings.browser_mode == BrowserMode.CONNECT
@@ -54,7 +56,7 @@ class TestSapWebGuiSettings:
         }
 
         with patch.dict(os.environ, env_vars, clear=True):
-            settings = SapWebGuiSettings()
+            settings = SapWebGuiSettings(_env_file=None)
 
         errors = settings.validate_for_browser()
         assert len(errors) == 1
@@ -63,7 +65,7 @@ class TestSapWebGuiSettings:
     def test_validate_for_browser_launch_mode(self) -> None:
         """Test validation passes in launch mode."""
         with patch.dict(os.environ, {"BROWSER_MODE": "launch"}, clear=True):
-            settings = SapWebGuiSettings()
+            settings = SapWebGuiSettings(_env_file=None)
 
         errors = settings.validate_for_browser()
         assert len(errors) == 0

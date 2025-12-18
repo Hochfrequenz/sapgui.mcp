@@ -89,7 +89,7 @@ class SapWebGuiSettings(BaseSettings):
     sap_mandant: str = Field(
         default="",
         description="SAP client/mandant (3-digit string, e.g., '100')",
-        pattern=r"^\d{3}$",
+        pattern=r"^(\d{3})?$",  # Allow empty string or exactly 3 digits
         json_schema_extra={"env": "SAP_MANDANT"},
     )
     sap_language: Literal["DE", "EN"] = Field(

@@ -66,11 +66,6 @@ register_sap_tools(mcp)
 register_browser_tools(mcp)
 
 
-# =============================================================================
-# Entry Point
-# =============================================================================
-
-
 def main() -> None:
     """Main entry point for the MCP server."""
     mcp.run()
