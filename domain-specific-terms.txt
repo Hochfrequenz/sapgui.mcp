@@ -1,1 +1,19 @@
-# contains 1 lower case word per line which are ignored in the spell_check
+# Domain-specific terms to ignore in spell checking
+# SAP terms
+tcode
+tcodes
+mandant
+okcode
+webgui
+sapgui
+
+# German terms (common in SAP)
+anmeld
+einstellung
+
+# Technical terms
+stdin
+stdout
+stderr
+asyncio
+pydantic

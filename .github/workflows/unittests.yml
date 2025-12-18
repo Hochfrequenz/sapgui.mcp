@@ -1,26 +1,33 @@
-name: "Unittests"
+name: Unittests
 
 on:
   push:
     branches: [main]
-  pull_request: {}
+  pull_request:
+    branches: [main]
+
 jobs:
-  pytest:
+  test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
+      fail-fast: false
+
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
+
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install Dependencies
+          allow-prereleases: true
+
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install tox
-      - name: Run the Unit Tests via Tox
-        run: |
-          tox -e tests
+
+      - name: Run tests
+        run: tox -e tests

@@ -1,65 +1,88 @@
-# This GitHub workflow is only needed for python package releases which are supposed to be published on pypi.
-# It requires the Github "environments" feature (see instructions below) it might not be available for private free accounts (but works for public or organization repos).
-# After creating the "release" environment in the Github repo settings, you need to enter your Github organization/user name + repo name + "python-publish.yml" workflow file name in the PyPI UI to make this work.
+name: Publish Python Package
 
-# This workflow uploads a Python Package using Twine when a release is created.
-# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
+on:
+  release:
+    types: [created]
 
-# name: Upload Python Package
+# Uncomment the following lines when ready to publish:
+# permissions:
+#   id-token: write  # Required for trusted publishing
 
-# on:
-#   release:
-#     types: [created, edited]
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-# jobs:
-#   tests:
-#     if: startsWith(github.ref, 'refs/tags/v')
-#     runs-on: ${{ matrix.os }}
-#     strategy:
-#       matrix:
-#         python-version: ["3.13"]
-#         os: [ubuntu-latest]
-#     steps:
-#       - uses: actions/checkout@v4
-#       - name: Set up Python ${{ matrix.python-version }}
-#         uses: actions/setup-python@v5
-#         with:
-#           python-version: ${{ matrix.python-version }}
-#       - name: Install tox
-#         run: |
-#           python -m pip install --upgrade pip
-#           pip install tox
-#       - name: Run tox
-#         run: |
-#           tox
+    steps:
+      - uses: actions/checkout@v4
 
-#   build-n-publish:
-#     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-#     runs-on: ${{ matrix.os }}
-#     strategy:
-#       matrix:
-#         python-version: [ "3.12" ]
-#         os: [ ubuntu-latest ]
-#     # Specifying a GitHub environment, # Specifying a GitHub environment, which is strongly recommended by PyPI: https://docs.pypi.org/trusted-publishers/adding-a-publisher/
-#     # you have to create an environment in your repository settings and add the environment name here
-#     environment: release
-#     permissions:
-#         # IMPORTANT: this permission is mandatory for trusted publishing
-#         id-token: write
-#     needs: tests
-#     steps:
-#       - uses: actions/checkout@v4
-#       - name: Set up Python ${{ matrix.python-version }}
-#         uses: actions/setup-python@v5
-#         with:
-#           python-version: ${{ matrix.python-version }}
-#       - name: Install dependencies
-#         run: |
-#           python -m pip install --upgrade pip
-#           pip install .[packaging]
-#       - name: Build wheel and source distributions
-#         run: |
-#           python -m build
-#       - name: Publish distribution 📦 to PyPI
-#         if: startsWith(github.ref, 'refs/tags/v')
-#         uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      - name: Build package
+        run: python -m build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  # Uncomment when ready to publish to PyPI:
+  # publish:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   environment: release
+  #
+  #   steps:
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: dist
+  #         path: dist/
+  #
+  #     - name: Publish to PyPI
+  #       uses: pypa/gh-action-pypi-publish@release/v1
+  #       # No password needed - uses trusted publishing
+
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
