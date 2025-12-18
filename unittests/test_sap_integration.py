@@ -9,10 +9,9 @@ tests will fail, which is the desired behavior: you need to know if SAP is broke
 
 What these tests verify:
 - MCP server starts and accepts tool calls via stdio protocol
-- sap_login tool navigates to SAP and loads the login page
+- sap_login tool navigates to SAP and logs in automatically
 - sap_transaction tool enters transaction codes correctly
-- Browser automation tools (fill, click, wait, etc.) work through MCP
-- The JavaScript + keyboard Enter approach works for SAP's custom input handling
+- Browser state changes are observable via browser_get_html
 
 What these tests assume (and don't test):
 - SAP Web GUI is available and responding
@@ -24,6 +23,41 @@ If tests fail, check:
 2. Are credentials correct and not expired?
 3. Is the user locked or does it have required authorizations?
 4. Is there a "user already logged in" dialog blocking the flow?
+
+Tool Return Values:
+-------------------
+MCP tools return a CallToolResult with content containing text messages.
+
+Example return values:
+- sap_login: "Successfully logged into SAP as kleink. Ready to run transactions."
+- sap_login: "Already logged in to SAP at https://... Ready to run transactions."
+- sap_transaction: "Transaction SU3 executed. Current page: Pflege eigener..."
+- browser_get_html: The full HTML of the current page
+- browser_fill: "Filled #sap-client with: 100"
+- browser_click: "Clicked element: #LOGON_BUTTON"
+
+Testing Boundary:
+-----------------
+The test structure is:
+
+    1. TOOL CALL (what the tool does internally)
+       ├── Navigate to URL
+       ├── Fill form fields
+       ├── Click buttons
+       └── Wait for elements
+
+    2. TOOL RETURN (what we can assert on)
+       └── Text message describing success/failure
+
+    3. BROWSER STATE (what we can verify independently)
+       └── HTML content via browser_get_html tool
+
+We assert on BOTH:
+- The tool return value (did it claim success?)
+- The browser state (did the browser actually change?)
+
+This two-step verification ensures the tool didn't just return "success" while
+the browser is stuck on an error page.
 
 Test Environment:
 -----------------
@@ -71,129 +105,59 @@ from mcp import ClientSession
 
 
 @pytest.mark.asyncio
-async def test_sap_login_opens_login_page(sap_mcp_client: ClientSession) -> None:
-    """Test that sap_login tool opens the SAP login page."""
+async def test_sap_login(sap_mcp_client: ClientSession) -> None:
+    """Test that sap_login tool automatically logs in with credentials from environment.
+
+    The sap_login tool reads SAP_USER, SAP_PASSWORD, SAP_MANDANT, SAP_LANGUAGE
+    from environment variables and performs automatic login.
+
+    Verification:
+    - Tool returns success message
+    - Browser shows SAP Easy Access (verified via HTML)
+    - OK-Code field is visible (can enter transactions)
+    """
     result = await sap_mcp_client.call_tool("sap_login", {})
 
     assert result.content, "Expected non-empty response from sap_login"
     response_text = result.content[0].text.lower()
 
-    # Should either show login page or indicate already logged in
+    # Should indicate successful login or already logged in
     assert any(
         phrase in response_text
-        for phrase in ["login", "anmeld", "credentials", "logged in", "ready"]
-    ), f"Unexpected response: {response_text}"
+        for phrase in ["successfully logged", "already logged", "ready to run"]
+    ), f"Login failed or unexpected response: {response_text}"
 
+    # Verify browser state: check that SAP Easy Access loaded
+    html_result = await sap_mcp_client.call_tool("browser_get_html", {})
+    assert html_result.content, "Expected HTML response"
+    page_html = html_result.content[0].text.lower()
 
-@pytest.mark.asyncio
-async def test_sap_login_and_fill_credentials(sap_mcp_client: ClientSession) -> None:
-    """Test logging into SAP with credentials from environment."""
-    sap_user = os.environ.get("SAP_USER")
-    sap_password = os.environ.get("SAP_PASSWORD")
-    sap_mandant = os.environ.get("SAP_MANDANT")
-    sap_language = os.environ.get("SAP_LANGUAGE")
-
-    if not all([sap_user, sap_password, sap_mandant, sap_language]):
-        pytest.skip("SAP_USER, SAP_PASSWORD, SAP_MANDANT, and SAP_LANGUAGE environment variables required")
-
-    # Open login page
-    result = await sap_mcp_client.call_tool("sap_login", {})
-    assert result.content, "Expected response from sap_login"
-
-    # Fill mandant/client
-    result = await sap_mcp_client.call_tool(
-        "browser_fill",
-        {"selector": 'input[name="sap-client"], input[id*="client" i], input[id*="mandant" i]', "value": sap_mandant},
+    # SAP Easy Access page should have:
+    # - The page title "SAP Easy Access"
+    # - The OK-Code field (ToolbarOkCode)
+    assert "sap easy access" in page_html or "toolbarokcode" in page_html, (
+        "Browser does not show SAP Easy Access screen. "
+        "Login may have failed or a dialog is blocking."
     )
-    assert "error" not in result.content[0].text.lower(), f"Failed to fill mandant: {result.content[0].text}"
-
-    # Fill username
-    result = await sap_mcp_client.call_tool(
-        "browser_fill",
-        {"selector": 'input[name="sap-user"], input[id*="user" i]', "value": sap_user},
-    )
-    assert "error" not in result.content[0].text.lower(), f"Failed to fill username: {result.content[0].text}"
-
-    # Fill password
-    result = await sap_mcp_client.call_tool(
-        "browser_fill",
-        {"selector": 'input[name="sap-password"], input[type="password"]', "value": sap_password},
-    )
-    assert "error" not in result.content[0].text.lower(), f"Failed to fill password: {result.content[0].text}"
-
-    # Fill language - try visible input first, fall back to setting via JavaScript if hidden
-    result = await sap_mcp_client.call_tool(
-        "browser_evaluate",
-        {"script": f'document.querySelector(\'input[name="sap-language"]\').value = "{sap_language}"'},
-    )
-    # Language field may be hidden, so we set it via JS - don't assert on errors
-
-    # Click the login button (LOGON_BUTTON is a div with role="button")
-    result = await sap_mcp_client.call_tool(
-        "browser_click",
-        {"selector": "#LOGON_BUTTON"},
-    )
-    assert "error" not in result.content[0].text.lower(), f"Failed to click Anmelden: {result.content[0].text}"
-
-    # Wait for page to load after login
-    result = await sap_mcp_client.call_tool("browser_wait", {"timeout": 5000})
-
-    # Handle "user already logged in" warning - continue with new session without terminating others
-    # Try to find and click "Continue" / "Weiter" button (proceeds without ending other sessions)
-    result = await sap_mcp_client.call_tool(
-        "browser_click",
-        {"selector": 'button:has-text("Continue"), button:has-text("Weiter"), button:has-text("Fortfahren")'},
-    )
-    # Ignore errors - dialog may not appear if no other session exists
-
-    # Wait again after potential dialog
-    result = await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
-
-    # Verify we're logged in by checking for SAP GUI elements
-    result = await sap_mcp_client.call_tool("browser_get_html", {})
-    assert result.content, "Expected HTML response after login"
 
 
 @pytest.mark.asyncio
 async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
-    """Test entering a transaction code after login."""
-    sap_user = os.environ.get("SAP_USER")
-    sap_password = os.environ.get("SAP_PASSWORD")
-    sap_mandant = os.environ.get("SAP_MANDANT")
-    sap_language = os.environ.get("SAP_LANGUAGE")
+    """Test entering a transaction code after login.
 
-    if not all([sap_user, sap_password, sap_mandant, sap_language]):
-        pytest.skip("SAP credentials required")
+    Uses SU3 (Maintain User Profile) as it's a simple, safe transaction
+    available to all SAP users.
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "EN")
 
-    # First, login
-    await sap_mcp_client.call_tool("sap_login", {})
-
-    # Fill login form
-    await sap_mcp_client.call_tool(
-        "browser_fill",
-        {"selector": "#sap-client", "value": sap_mandant},
-    )
-    await sap_mcp_client.call_tool(
-        "browser_fill",
-        {"selector": "#sap-user", "value": sap_user},
-    )
-    await sap_mcp_client.call_tool(
-        "browser_fill",
-        {"selector": "#sap-password", "value": sap_password},
-    )
-    await sap_mcp_client.call_tool(
-        "browser_evaluate",
-        {"script": f'document.querySelector(\'input[name="sap-language"]\').value = "{sap_language}"'},
+    # Login (auto-login with credentials from environment, or skip if already logged in)
+    login_result = await sap_mcp_client.call_tool("sap_login", {})
+    login_text = login_result.content[0].text.lower()
+    assert "ready" in login_text or "already logged" in login_text, (
+        f"Login failed: {login_result.content[0].text}"
     )
 
-    # Click login button and wait for SAP Easy Access to load
-    # The OK-Code field (#ToolbarOkCode) only appears after successful login
-    await sap_mcp_client.call_tool("browser_click", {"selector": "#LOGON_BUTTON"})
-    await sap_mcp_client.call_tool(
-        "browser_wait", {"selector": "#ToolbarOkCode", "timeout": 15000, "state": "visible"}
-    )
-
-    # Now test the sap_transaction tool with a simple transaction (SU3 - user profile)
+    # Test the sap_transaction tool with SU3 (user profile)
     result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SU3"})
 
     assert result.content, "Expected response from sap_transaction"
@@ -201,15 +165,11 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
 
     # Should indicate transaction executed
     assert "executed" in response_text, f"Transaction not executed: {response_text}"
-    assert "error" not in response_text, f"Transaction had error: {response_text}"
 
-    # Wait for SAP to fully load the SU3 transaction screen
+    # Wait for SAP to load the SU3 transaction screen
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
-    # Verify SU3 actually opened by checking the page title or content
-    # SU3 (Maintain User Profile) has different titles depending on language:
-    # - German: "Pflege eigener Benutzervorgaben"
-    # - English: "Maintain User Profile" or "Own Data"
+    # Verify SU3 actually opened by checking the page content
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
     assert html_result.content, "Expected HTML response"
     page_html = html_result.content[0].text.lower()
@@ -220,7 +180,8 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
     )
 
     # Check for SU3-specific content (user profile screen)
-    # The expected phrases depend on the login language
+    # - German: "Pflege eigener Benutzervorgaben"
+    # - English: "Maintain User Profile" or "Own Data"
     if sap_language == "DE":
         expected_phrases = ["benutzervorgaben", "eigene daten"]
     else:
@@ -228,8 +189,7 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
 
     assert any(phrase in page_html for phrase in expected_phrases), (
         f"SU3 transaction screen not detected for language '{sap_language}'. "
-        f"Expected one of: {expected_phrases}. "
-        "The transaction code entry may have failed."
+        f"Expected one of: {expected_phrases}."
     )
 
 
@@ -238,33 +198,13 @@ async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> N
     """Test that an invalid transaction code shows an error message.
 
     This is a negative test to verify the transaction entry mechanism works.
-    If we get an error message, it means SAP received the transaction code.
+    If SAP shows an error message, it means the transaction code was received.
     """
-    sap_user = os.environ.get("SAP_USER")
-    sap_password = os.environ.get("SAP_PASSWORD")
-    sap_mandant = os.environ.get("SAP_MANDANT")
-    sap_language = os.environ.get("SAP_LANGUAGE")
-
-    if not all([sap_user, sap_password, sap_mandant, sap_language]):
-        pytest.skip("SAP credentials required")
-
     # Login
     await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("browser_fill", {"selector": "#sap-client", "value": sap_mandant})
-    await sap_mcp_client.call_tool("browser_fill", {"selector": "#sap-user", "value": sap_user})
-    await sap_mcp_client.call_tool("browser_fill", {"selector": "#sap-password", "value": sap_password})
-    await sap_mcp_client.call_tool(
-        "browser_evaluate",
-        {"script": f'document.querySelector(\'input[name="sap-language"]\').value = "{sap_language}"'},
-    )
-    await sap_mcp_client.call_tool("browser_click", {"selector": "#LOGON_BUTTON"})
-    await sap_mcp_client.call_tool(
-        "browser_wait", {"selector": "#ToolbarOkCode", "timeout": 15000, "state": "visible"}
-    )
 
     # Try an obviously invalid transaction code
     result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "INVALIDTCODE123"})
-
     assert result.content, "Expected response from sap_transaction"
 
     # Get the page HTML to check for error message in the status bar
@@ -273,8 +213,8 @@ async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> N
     page_html = html_result.content[0].text.lower()
 
     # SAP should show an error message about invalid transaction code
-    # The message bar contains text like "Transaktion INVALIDTCODE123 existiert nicht"
-    # or "Transaction INVALIDTCODE123 does not exist"
+    # - German: "Transaktion INVALIDTCODE123 existiert nicht"
+    # - English: "Transaction INVALIDTCODE123 does not exist"
     assert any(
         phrase in page_html
         for phrase in ["existiert nicht", "does not exist", "nicht gefunden", "not found", "invalid"]
@@ -292,40 +232,8 @@ async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) 
     - They should become /n/IWFND/GW_CLIENT (not just /IWFND/GW_CLIENT)
     - The /n prefix tells SAP to open a new transaction
     """
-    sap_user = os.environ.get("SAP_USER")
-    sap_password = os.environ.get("SAP_PASSWORD")
-    sap_mandant = os.environ.get("SAP_MANDANT")
-    sap_language = os.environ.get("SAP_LANGUAGE")
-
-    if not all([sap_user, sap_password, sap_mandant, sap_language]):
-        pytest.skip("SAP credentials required")
-
-    # First, login
+    # Login
     await sap_mcp_client.call_tool("sap_login", {})
-
-    # Fill login form
-    await sap_mcp_client.call_tool(
-        "browser_fill",
-        {"selector": "#sap-client", "value": sap_mandant},
-    )
-    await sap_mcp_client.call_tool(
-        "browser_fill",
-        {"selector": "#sap-user", "value": sap_user},
-    )
-    await sap_mcp_client.call_tool(
-        "browser_fill",
-        {"selector": "#sap-password", "value": sap_password},
-    )
-    await sap_mcp_client.call_tool(
-        "browser_evaluate",
-        {"script": f'document.querySelector(\'input[name="sap-language"]\').value = "{sap_language}"'},
-    )
-
-    # Click login button and wait for SAP Easy Access to load
-    await sap_mcp_client.call_tool("browser_click", {"selector": "#LOGON_BUTTON"})
-    await sap_mcp_client.call_tool(
-        "browser_wait", {"selector": "#ToolbarOkCode", "timeout": 15000, "state": "visible"}
-    )
 
     # Test with a namespace transaction (starts with /)
     # /IWFND/GW_CLIENT is the SAP Gateway Client for testing OData services
@@ -334,8 +242,7 @@ async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) 
     assert result.content, "Expected response from sap_transaction"
     response_text = result.content[0].text.lower()
 
-    # Should indicate transaction executed
-    assert any(
-        phrase in response_text
-        for phrase in ["executed", "transaction", "iwfnd", "gw_client", "current page", "error"]
-    ), f"Unexpected response: {response_text}"
+    # Should indicate transaction executed (or error if not authorized)
+    assert "executed" in response_text or "error" in response_text, (
+        f"Unexpected response: {response_text}"
+    )

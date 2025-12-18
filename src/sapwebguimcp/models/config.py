@@ -75,6 +75,28 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "SAP_URL"},
     )
 
+    # SAP Credentials (for automatic login)
+    sap_user: str = Field(
+        default="",
+        description="SAP username for automatic login",
+        json_schema_extra={"env": "SAP_USER"},
+    )
+    sap_password: str = Field(
+        default="",
+        description="SAP password for automatic login",
+        json_schema_extra={"env": "SAP_PASSWORD"},
+    )
+    sap_mandant: str = Field(
+        default="",
+        description="SAP client/mandant (3-digit string, e.g., '100')",
+        json_schema_extra={"env": "SAP_MANDANT"},
+    )
+    sap_language: str = Field(
+        default="EN",
+        description="SAP login language ('DE' or 'EN')",
+        json_schema_extra={"env": "SAP_LANGUAGE"},
+    )
+
     # Browser Configuration
     browser_mode: BrowserMode = Field(
         default=BrowserMode.LAUNCH,

@@ -334,19 +334,21 @@ async def sap_keepalive_stop() -> str:
     return "Keepalive stopped."
 
 
-@mcp.tool(description="Open SAP Web GUI login page")
+@mcp.tool(description="Log into SAP Web GUI")
 async def sap_login(url: Optional[str] = None) -> str:
     """
-    Open SAP Web GUI login page.
+    Log into SAP Web GUI.
 
-    Opens the SAP Web GUI URL in the browser. The user should then
-    manually enter their login credentials.
+    Opens the SAP Web GUI URL and automatically logs in using credentials
+    from environment variables (SAP_USER, SAP_PASSWORD, SAP_MANDANT, SAP_LANGUAGE).
+
+    If credentials are not configured, opens the login page for manual entry.
 
     Args:
         url: SAP Web GUI URL. If not provided, uses SAP_URL from environment.
 
     Returns:
-        Status message indicating the login page is ready.
+        Status message indicating login success or what action is needed.
     """
     ctx = mcp.get_context()
     browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
@@ -363,7 +365,7 @@ async def sap_login(url: Optional[str] = None) -> str:
         await page.goto(effective_url)
         await page.wait_for_load_state("networkidle")
 
-        # Check if we're on a login page or already logged in
+        # Check if we're already logged in
         okcode_field = await _find_okcode_field(page)
         if okcode_field:
             return (
@@ -371,23 +373,76 @@ async def sap_login(url: Optional[str] = None) -> str:
                 "OK-Code field is available. Ready to run transactions."
             )
 
-        # Check for login form elements
-        login_elements = await page.query_selector(
-            'input[type="password"], '
-            'input[name*="user" i], '
-            'input[id*="user" i], '
-            'button:has-text("Log"), '
-            'button:has-text("Anmeld")'
+        # Check for login form
+        login_form = await page.query_selector('input[type="password"], input[id*="user" i]')
+        if not login_form:
+            return f"Navigated to {effective_url}. No login form detected - please check browser window."
+
+        # Check if we have credentials for auto-login
+        if not all([settings.sap_user, settings.sap_password, settings.sap_mandant]):
+            return (
+                f"SAP login page opened at {effective_url}. "
+                "Credentials not configured (SAP_USER, SAP_PASSWORD, SAP_MANDANT). "
+                "Please enter credentials manually in the browser window."
+            )
+
+        # Perform automatic login
+        logger.info("Performing automatic login for user: %s", settings.sap_user)
+
+        # Fill mandant/client
+        await page.fill('#sap-client, input[name="sap-client"]', settings.sap_mandant)
+
+        # Fill username
+        await page.fill('#sap-user, input[name="sap-user"]', settings.sap_user)
+
+        # Fill password
+        await page.fill('#sap-password, input[name="sap-password"]', settings.sap_password)
+
+        # Set language via JavaScript (field is often hidden)
+        await page.evaluate(
+            f'document.querySelector(\'input[name="sap-language"]\').value = "{settings.sap_language}"'
         )
 
-        if login_elements:
-            return f"SAP login page opened at {effective_url}. Please enter your credentials in the browser window."
+        # Click login button (it's a div with role="button", not a button element)
+        await page.click("#LOGON_BUTTON")
 
-        return f"Navigated to {effective_url}. Please check the browser window and complete any required login steps."
+        # Wait for SAP Easy Access to load (OK-Code field appears after login)
+        try:
+            await page.wait_for_selector("#ToolbarOkCode", timeout=15000, state="visible")
+            logger.info("Login successful - OK-Code field visible")
+            return (
+                f"Successfully logged into SAP as {settings.sap_user}. "
+                "Ready to run transactions."
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            # Login might have failed or there's a dialog
+            page_content = await page.content()
+
+            # Check for "user already logged in" dialog
+            if "already logged" in page_content.lower() or "bereits angemeldet" in page_content.lower():
+                # Try to click Continue/Weiter button
+                try:
+                    await page.click(
+                        'button:has-text("Continue"), button:has-text("Weiter"), '
+                        'button:has-text("Fortfahren")',
+                        timeout=5000,
+                    )
+                    await page.wait_for_selector("#ToolbarOkCode", timeout=10000, state="visible")
+                    return (
+                        f"Successfully logged into SAP as {settings.sap_user} "
+                        "(continued existing session). Ready to run transactions."
+                    )
+                except Exception:  # pylint: disable=broad-exception-caught
+                    pass
+
+            return (
+                f"Login attempted but SAP Easy Access not detected. "
+                "Please check browser window for errors or dialogs."
+            )
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error opening SAP login page")
-        return f"Error navigating to SAP: {e}"
+        logger.exception("Error during SAP login")
+        return f"Error during SAP login: {e}"
 
 
 @mcp.tool(description="Enter and execute an SAP transaction code")
