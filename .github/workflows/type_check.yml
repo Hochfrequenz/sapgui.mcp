@@ -1,4 +1,4 @@
-name: Formatting
+name: Type Check
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  formatting:
+  type_check:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,5 +23,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install tox
 
-      - name: Check formatting
-        run: tox -e formatting
+      - name: Run mypy
+        run: tox -e type_check

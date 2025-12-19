@@ -1,271 +1,549 @@
-# Python Template Repository including a `tox.ini`, Unittests&Coverage, Pylint & MyPy Linting Actions and a PyPI Publishing Workflow
+# SAP Web GUI MCP Server
 
-<!--- you need to replace the `organization/repo_name` in the status badge URLs --->
+[![Unittests](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Unittests/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
+[![Coverage](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Coverage/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
+[![Linting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Linting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
+[![Formatting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 
-![Unittests status badge](https://github.com/Hochfrequenz/python_template_repository/workflows/Unittests/badge.svg)
-![Coverage status badge](https://github.com/Hochfrequenz/python_template_repository/workflows/Coverage/badge.svg)
-![Linting status badge](https://github.com/Hochfrequenz/python_template_repository/workflows/Linting/badge.svg)
-![Black status badge](https://github.com/Hochfrequenz/python_template_repository/workflows/Formatting/badge.svg)
+An MCP (Model Context Protocol) server for SAP Web GUI browser automation.
+Built on the [dev-browser](https://github.com/anthropics/dev-browser) philosophy: persistent browser sessions with incremental exploration.
 
-This is a template repository.
-It doesn't contain any useful code but only a minimal working setup for a Python project including:
+## Features
 
-- a basic **project structure** with
-  - tox.ini
-  - `pyproject.toml` where the project metadata and dependencies are defined
-  - and a requirements.txt derived from it
-  - an example class
-  - an example unit test (using pytest)
-- ready to use **Github Actions** for
-  - [pytest](https://pytest.org)
-  - [code coverage measurement](https://coverage.readthedocs.io) (fails below 80% by default)
-  - [pylint](https://pylint.org/) (only accepts 10/10 code rating by default)
-  - [mypy](https://github.com/python/mypy) (static type checks where possible)
-  - [black](https://github.com/psf/black) code formatter check
-  - [isort](https://pycqa.github.io/isort/) import order check
-  - [codespell](https://github.com/codespell-project/codespell) spell check (including an ignore list)
-  - autoresolve dev-dependencies with `tox -e compile_requirements`
-  - ready-to-use publishing workflow for pypi (see readme section below)
+- **SAP Login**: Opens SAP Web GUI for user to enter credentials manually
+- **Smart Transaction Entry**: Automatically enables OK-Code field if not visible, then enters transaction
+- **Low-level browser tools**: Click, fill, snapshot for edge cases when SAP tools don't work
+- **Persistent sessions**: Login once, stay authenticated across tool calls
+- **Browser choice**: Use your own browser (VPN/Citrix) or let the server launch one
+- **Python 3.11-3.14 support**: Tested on latest Python versions
 
-By default, it uses Python version 3.13.
+## Installation
 
-This repository uses a [`src`-based layout](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/).
-This approach has many advantages and basically means for developers, that all business logic lives in the `src` directory.
-
-## How to use this Repository on Your Machine
-
-### Installation of Tox / Creating the tox base venv
-If you ever set up your toxbase virtual environment already, skip this first step and continue with the project-specific setup.
-
-<details>
-<summary>
- Creating the toxbase from scratch (windows)
-</summary>
-
-You can either follow the [installation instructions](https://tox.readthedocs.io/en/latest/installation.html)) and that a `.toxbase` environment has been created.
-Here we repeat the most important steps.
-
-#### Enure you are allowed to execute scripts in powershell (Windows only)
-On new Windows machines it is possible that the execution policy is set to restricted and you are not allowed execute scripts. You can find detailed information [here](https://learn.microsoft.com/de-de/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-7.3).
-
-The quickest way to solve this problem: Open an Administrator Powershell (e.g. Windows PowerShell App, right click: 'Run as Adminstrator')
-```ps
-Set-ExecutionPolicy -ExecutionPolicy AllSigned
-```
-Then close the admin powershell and continue in the regular shell.
-
-#### Create the `.toxbase` environment
-`.toxbase` is a project independent virtual environment-template for all the tox environments on your machine. If anything is weird during the tox installation or after the installation, try turning your computer off and on again before getting too frustrated.
-Ask your Hochfrequenz colleagues for help.
-
-```ps
-# Change to your user directory, create tools directory if it does not exist
-$ cd C:\Users\YourUserName
-# Create a virtual environment called .toxbase
-$ python -m venv .toxbase
-```
-
-then
-```ps
-# Windows Powershell
-$ .\.toxbase\Scripts\Activate.ps1
-# XOR Windows default (e.g. cmder)
-λ .toxbase\Scripts\activate.bat
-# the virtual environment is active
-# if you see the environment name at the beginning of the line
-(.toxbase) $ python -m pip install --upgrade pip
-(.toxbase) $ pip install tox
-(.toxbase) $ tox --version
-```
-
-#### Add the toxbase interpreter to the Path environment variable
-Finally, we need to make the tox command available in all future terminal sessions.
-There are ways to achieve this goal using only the powershell commands, but we just use the "regular" way:
-
-* Type systemvariable in the search field of your windows taskbar.
-* Click on Edit system variables, then on environment variables.
-* In the next window select Path in the upper part (User variables for YourUserName) and click on edit.
-* Add a new path with `C:\Users\YourUserName\.toxbase\Scripts\`
-  * ⚠️ You have to replace YourUserName with your actual username in the path!
-     the path up to .toxbase has already been printed to the CLI in the tox --version command above
-
-* Save the settings.
-* Now you have to sign out and in again to make the changes work.
-
-You should now be able to type the following and get a reasonable answer
-```
-tox --version
-```
-in every shell, no matter if you activated the toxbase again.
-
-#### Umlaute in Paths
-Tox has an issue if you have an umlaut in your username. [This issue](https://github.com/tox-dev/tox/issues/1550#issuecomment-727824763) is well known.
-
-To solve it you have to add another environment variable `PYTHONIOENCODING` with the value `utf-8` ([source](https://github.com/tox-dev/tox/issues/1550#issuecomment-1011952057)).
-
-Start a new PowerShell session and try to run tox -e dev in your repository again.
-
-</details>
-
-<details>
-<summary>
- Creating the toxbase from scratch (unix)
-</summary>
-Open a terminal and execute the following commands
-
-```sh
-# Change to your user directory
-$ cd ~
-# Create a virtual environment called .toxbase
-$ python -m venv .toxbase
-```
-Now we activate the virtual environment, update pip and install tox:
-
-```
-$ source .toxbase/bin/activate
-# the virtual environment is active
-# if you see the environment name at the beginning of the line
-(.toxbase) $ python -m pip install --upgrade pip
-(.toxbase) $ pip install tox
-(.toxbase) $ tox --version
-```
-Create a new folder bin in the home directory and add a symbolic link inside
-```
-cd
-# create a `bin` directory
-mkdir bin
-# set link to ~/bin/tox
-ln -s ~/.toxbase/bin/tox ~/bin/tox
-```
-Set the PATH variable
-
-```
-cd
-# open the config file .bashrc
-nano .bashrc
-# Go to the bottom of the file and insert
-# make tox accessible in each session from everywhere
-PATH = "${HOME}/bin:${PATH}"
-export PATH
-# save and close the file with CTRL+O and CTRL+X
-```
-#### fish
-```
-cd
-# open the config.fish file
-nano ~/.config/fish/config.fish
-# Go to the bottom of the file and insert
-# make tox accessible in each session from everywhere
-set PATH {$HOME}/bin $PATH
-# save and close the file with CTRL+O and CTRL+X
-```
-Check if everything works by opening a new terminal window and run
-```bash
-tox --version
-```
-
-</details>
-
-### Creating the project-specific dev environment.
-If tox is set up, you're ready to start:
-   1. clone the repository, you want to work in
-   2. create the `dev` environment on your machine. To do this:
-       a) Open a Powershell
-       b) change directory to your repository
-and finally type
+### Install as Python Package
 
 ```bash
-tox -e dev
+pip install sapwebguimcp
 ```
 
-You have now created the development environment (dev environment). It is the environment which contains both the usual requirements as well as the testing and linting tools.
+Or with uv:
 
-### How to use with PyCharm
+```bash
+uv pip install sapwebguimcp
+```
 
-1. You have cloned the repository, you want to work in, and have created the virtual environment, in which the repository should be executed (`your_repo/.tox/dev`). Now, to actually work inside the newly created environment, you need to tell PyCharm (your IDE) that it should use the virtual environment - to be more precise: the interpreter of this dev environment. How to do this:
-a) navigate to: File ➡ Settings (Strg + Alt + S) ➡ Project: your_project ➡ Python Interpreter ➡ Add interpreter ➡ Existing
-b) Choose as interpreter: `your_repo\.tox\dev\Scripts\python.exe` (under windows)
-2. Set the default test runner of your project to pytest. How to do it:
-a) navigate to Files ➡ Settings ➡ Tools ➡ Python integrated tools ➡ Testing: Default test runner
-b) Change to "pytest"
-If this doesn't work anymore, see [the PyCharm docs](https://www.jetbrains.com/help/pycharm/choosing-your-testing-framework.html)
-3. Set the `src` directory as sources root. How to do this:
-right click on 'src' ➡ "Mark directory as…" ➡ sources root
-If this doesn't work anymore, see: [PyCharm docs](https://www.jetbrains.com/help/pycharm/content-root.html).
-Setting the `src` directory right, allows PyCharm to effectively suggest import paths.
-If you ever see something like `from src.mypackage.mymodule import ...`, then you probably forgot this step.
-5. Set the working directory of the unit tests to the project root (instead of the unittest directory). How to do this:
-a) Open any test file whose name starts with `test_` in unit tests/tests
-b) Right click inside the code ➡ More Run/Debug ➡ Modify Run Configuration ➡ expand Environment collapsible ➡ Working directory
-c) Change to `your_repo` instead of `your_repo\unittests`
-By doing so, the import and other file paths in the tests are relative to the repo root.
-If this doesn't work anymore, see: [working directory of the unit tests](https://www.jetbrains.com/help/pycharm/creating-run-debug-configuration-for-tests.html)
+After installation, install Playwright browsers:
 
-### How to use with VS Code
-All paths mentioned in this section are relative to the repository root.
+```bash
+playwright install chromium
+```
 
-1. Open the folder with VS Code.
-2. **Select the python interpreter** ([official docs](https://code.visualstudio.com/docs/python/environments#_manually-specify-an-interpreter)) which is created by tox. Open the command pallett with `CTRL + P` and type `Python: Select Interpreter`. Select the interpreter which is placed in `.tox/dev/Scripts/python.exe` under Windows or `.tox/dev/bin/python` under Linux and macOS.
-3. **Set up pytest and pylint**. Therefore we open the file `.vscode/settings.json` which should be automatically generated during the interpreter setup. If it doesn't exist, create it. Insert the following lines into the settings:
+### Install as Docker Image
+
+```bash
+docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
+```
+
+## Configuration
+
+Configure via environment variables:
+
+| Variable           | Description                                          | Default                 |
+|--------------------|------------------------------------------------------|-------------------------|
+| `SAP_URL`          | Default SAP Web GUI URL (can be overridden per call) | (empty)                 |
+| `SAP_USER`         | SAP username for automatic login                     | (empty)                 |
+| `SAP_PASSWORD`     | SAP password for automatic login                     | (empty)                 |
+| `SAP_MANDANT`      | SAP client/mandant (3-digit, e.g., "100")            | (empty)                 |
+| `SAP_LANGUAGE`     | SAP login language (`DE` or `EN`)                    | `EN`                    |
+| `BROWSER_MODE`     | `launch` (start new) or `connect` (use existing)     | `launch`                |
+| `BROWSER_TYPE`     | `chromium`, `firefox`, or `webkit`                   | `chromium`              |
+| `BROWSER_HEADLESS` | Run headless (`true`/`false`)                        | `false`                 |
+| `CDP_URL`          | CDP URL for connecting to existing browser           | `http://localhost:9222` |
+
+If `SAP_USER`, `SAP_PASSWORD`, and `SAP_MANDANT` are set, the server will automatically fill in the login form.
+Otherwise, the login page opens for manual credential entry.
+
+## Quick Start (End Users)
+
+The easiest way to use this server is with **Claude Desktop**:
+
+### Step 1: Start Chrome with remote debugging
+
+Chrome needs to be started with special flags:
+- `--remote-debugging-port=9222` - Enables the Chrome DevTools Protocol
+- `--user-data-dir` - Uses a separate profile (required, otherwise Chrome joins an existing instance)
+- `--ignore-certificate-errors` - Skips SSL certificate warnings (useful for SAP systems with self-signed certs)
+
+**Windows** (run in PowerShell):
+```powershell
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
+```
+
+**macOS**:
+```bash
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
+```
+
+**Linux**:
+```bash
+google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
+```
+
+**Verify it's working** (the debugging port should respond):
+```bash
+# Windows (PowerShell)
+Invoke-WebRequest -Uri 'http://localhost:9222/json/version' -UseBasicParsing
+
+# macOS/Linux
+curl http://localhost:9222/json/version
+```
+
+If you get a connection error, Chrome isn't listening on port 9222. Make sure you used the `--user-data-dir` flag.
+
+### Step 2: Start the CDP proxy (Docker Desktop on Windows/macOS)
+
+When running in Docker Desktop on Windows or macOS, we need a proxy because:
+1. Chrome's DevTools Protocol rejects HTTP requests where the Host header isn't `localhost`
+2. Chrome returns WebSocket URLs pointing to `localhost`, which doesn't work inside Docker containers
+
+The proxy rewrites these headers/URLs so Docker containers can connect to Chrome.
+
+```bash
+# Clone the repository (if you haven't already)
+git clone https://github.com/Hochfrequenz/sapwebgui.mcp.git
+cd sapwebgui.mcp
+
+# Start the CDP proxy
+docker compose up -d cdp-proxy
+```
+
+> **Note**: On native Linux with Docker, you can skip this step and use `--network host` with `CDP_URL=http://localhost:9222` instead.
+
+### Step 3: Configure Claude Desktop
+
+Find your Claude Desktop config file:
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+Add this configuration (replace the SAP values with your own):
 
 ```json
 {
-  "python.testing.unittestEnabled": false,
-  "python.testing.nosetestsEnabled": false,
-  "python.testing.pytestEnabled": true,
-  "pythonTestExplorer.testFramework": "pytest",
-  "python.testing.pytestArgs": ["unittests"],
-  "python.linting.pylintEnabled": true
+  "mcpServers": {
+    "sap-webgui": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "BROWSER_MODE=connect",
+        "-e", "CDP_URL=http://host.docker.internal:9223",
+        "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+        "-e", "SAP_USER=your_username",
+        "-e", "SAP_PASSWORD=your_password",
+        "-e", "SAP_MANDANT=100",
+        "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+      ]
+    }
+  }
 }
 ```
 
-4. Create a `.env` file and insert the following line
+### Step 4: Restart Claude Desktop and start chatting
 
-For Windows:
+Ask Claude things like:
+- "Log me into SAP"
+- "Run transaction VA01"
+- "Take a screenshot of the current screen"
+
+### Optional: Auto-approve SAP tools
+
+By default, Claude Desktop asks for confirmation before running MCP tools. To auto-approve SAP tools, add an `alwaysAllow` section to your config:
+
+```json
+{
+  "mcpServers": {
+    "sap-webgui": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "BROWSER_MODE=connect",
+        "-e", "CDP_URL=http://host.docker.internal:9223",
+        "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+        "-e", "SAP_USER=your_username",
+        "-e", "SAP_PASSWORD=your_password",
+        "-e", "SAP_MANDANT=100",
+        "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+      ],
+      "alwaysAllow": [
+        "sap_login",
+        "sap_transaction",
+        "sap_keyboard",
+        "sap_session_status",
+        "sap_keepalive_start",
+        "sap_keepalive_stop",
+        "sap_get_screen_text",
+        "sap_read_table",
+        "sap_read_status_bar",
+        "sap_get_screen_info",
+        "browser_snapshot",
+        "browser_screenshot",
+        "browser_click",
+        "browser_fill",
+        "browser_keyboard",
+        "browser_navigate",
+        "browser_wait",
+        "browser_get_html",
+        "browser_select_option"
+      ]
+    }
+  }
+}
+```
+
+---
+
+## Start the Server (Advanced)
+
+### Python
+
+```bash
+run-sapwebgui-mcp-server
+```
+
+### Docker
+
+Docker requires `BROWSER_MODE=connect` to control a browser running on the host. The setup differs between native Linux and Docker Desktop (Windows/macOS).
+
+#### Native Linux (--network host works)
+
+```bash
+# 1. Start Chrome with remote debugging
+google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
+
+# 2. Run the MCP server with --network host
+docker run --network host -i --rm \
+  -e BROWSER_MODE=connect \
+  -e CDP_URL=http://localhost:9222 \
+  -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
+  -e SAP_USER=your_username \
+  -e SAP_PASSWORD=your_password \
+  -e SAP_MANDANT=100 \
+  ghcr.io/hochfrequenz/sapwebgui.mcp:latest
+```
+
+#### Docker Desktop on Windows/macOS (requires CDP proxy)
+
+On Docker Desktop, `--network host` doesn't work properly, and Chrome rejects connections from `host.docker.internal`. You need the CDP proxy:
+
+```bash
+# 1. Start Chrome with remote debugging
+# Windows:
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
+# macOS:
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
+
+# 2. Start the CDP proxy (from the repository root)
+docker compose up -d cdp-proxy
+
+# 3. Run the MCP server connecting via the proxy (port 9223)
+docker run -i --rm \
+  -e BROWSER_MODE=connect \
+  -e CDP_URL=http://host.docker.internal:9223 \
+  -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
+  -e SAP_USER=your_username \
+  -e SAP_PASSWORD=your_password \
+  -e SAP_MANDANT=100 \
+  ghcr.io/hochfrequenz/sapwebgui.mcp:latest
+```
+
+## Register in Claude Desktop / Claude Code
+
+### If installed via pip
+
+Modify your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "sap-webgui": {
+      "command": "/path/to/your/venv/bin/run-sapwebgui-mcp-server",
+      "args": [],
+      "env": {
+        "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui"
+      }
+    }
+  }
+}
+```
+
+### If installed via Docker
+
+First start Chrome with remote debugging and the CDP proxy (see Quick Start above), then configure Claude:
+
+**Docker Desktop (Windows/macOS)** - uses CDP proxy on port 9223:
+```json
+{
+  "mcpServers": {
+    "sap-webgui": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "BROWSER_MODE=connect",
+        "-e", "CDP_URL=http://host.docker.internal:9223",
+        "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+        "-e", "SAP_USER=your_username",
+        "-e", "SAP_PASSWORD=your_password",
+        "-e", "SAP_MANDANT=100",
+        "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+**Native Linux** - uses `--network host`:
+```json
+{
+  "mcpServers": {
+    "sap-webgui": {
+      "command": "docker",
+      "args": [
+        "run", "--network", "host", "-i", "--rm",
+        "-e", "BROWSER_MODE=connect",
+        "-e", "CDP_URL=http://localhost:9222",
+        "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+        "-e", "SAP_USER=your_username",
+        "-e", "SAP_PASSWORD=your_password",
+        "-e", "SAP_MANDANT=100",
+        "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+## Connecting to Your Own Browser (VPN/Citrix)
+
+If you need to use a browser that's already connected to VPN or Citrix:
+
+1. Launch your browser with remote debugging enabled:
+
+```bash
+# Chrome/Edge (Linux)
+google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
+
+# macOS
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
+
+# Windows (PowerShell)
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
+```
+
+2. If using Docker Desktop (Windows/macOS), start the CDP proxy:
+
+```bash
+cd sapwebgui.mcp
+docker compose up -d cdp-proxy
+```
+
+3. Configure the MCP server with the appropriate CDP URL:
+   - **Native Python or Linux Docker**: `CDP_URL=http://localhost:9222`
+   - **Docker Desktop (Windows/macOS)**: `CDP_URL=http://host.docker.internal:9223`
+
+The MCP server will connect to your existing browser instead of launching a new one.
+
+## Available Tools
+
+### SAP Tools
+
+| Tool | Description |
+|------|-------------|
+| `sap_login` | Opens SAP Web GUI login page. User enters credentials manually in the browser. |
+| `sap_transaction` | Enters and executes a transaction code. Automatically enables OK-Code field if not visible (via Settings → enable OK-Code Field). |
+| `sap_keepalive_start` | Starts background task to prevent session timeout (default: ping every 5 minutes). |
+| `sap_keepalive_stop` | Stops the keepalive background task. |
+
+### Low-Level Browser Tools (Escape Hatches)
+
+| Tool | Description |
+|------|-------------|
+| `browser_snapshot` | Get accessibility tree of current page |
+| `browser_screenshot` | Take a screenshot |
+| `browser_click` | Click an element by selector |
+| `browser_fill` | Fill an input field |
+| `browser_keyboard` | Send keyboard input |
+| `browser_navigate` | Navigate to URL |
+| `browser_evaluate` | Execute JavaScript |
+| `browser_wait` | Wait for element or timeout |
+| `browser_get_html` | Get HTML content |
+| `browser_select_option` | Select dropdown option |
+
+## Usage Example
 
 ```
-PYTHONPATH=src;${PYTHONPATH}
+User: Please log me in to SAP
+
+Claude: [calls sap_login(url="https://your-sap.com/webgui")]
+        SAP login page opened. Please enter your credentials in the browser window.
+
+User: Done, I'm logged in. Now run transaction VA01
+
+Claude: [calls sap_transaction(tcode="VA01")]
+        Transaction VA01 executed. Current page: Create Sales Order.
+        Check the browser window for the transaction screen.
 ```
 
-For Linux and Mac:
+### Preventing Session Timeout
+
+If you need to step away or have long pauses between actions, enable keepalive:
 
 ```
-PYTHONPATH=src:${PYTHONPATH}
+User: I need to take a break, keep my SAP session alive
+
+Claude: [calls sap_keepalive_start(interval_seconds=300)]
+        Keepalive started. Will ping every 300 seconds (5 minutes) to prevent session timeout.
+
+... (30 minutes later) ...
+
+User: I'm back, you can stop the keepalive
+
+Claude: [calls sap_keepalive_stop()]
+        Keepalive stopped.
 ```
 
-This makes sure, that the imports are working for the unittests.
-At the moment I am not totally sure that it is the best practise, but it's getting the job done.
+## How sap_transaction Works
 
-5. Enjoy 🤗
+The `sap_transaction` tool is smart about the OK-Code field:
 
-## Publishing on PyPI
+1. **Check**: First looks for the OK-Code input field
+2. **Enable if needed**: If not found, attempts to enable it:
+   - Expands menu (if collapsed)
+   - Clicks settings/gear button
+   - Finds and enables the "OK-Code Field" checkbox
+   - Saves settings
+3. **Verify**: Confirms the field is now visible
+4. **Execute**: Enters the transaction code and presses Enter
 
-This repository contains all necessary CI steps to publish any project created from it on PyPI.
-It uses the trusted publishers workflow as described in the [official Python documentation](https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/).
-It just requires some manual adjustments/settings depending on your project:
+This handles SAP Web GUI installations where the OK-Code field is hidden by default.
 
-1. Fill out the metadata in the [`pyproject.toml`](pyproject.toml); Namely the package name and the dependencies which should be in sync with your `requirements.in`.
-2. Uncomment the lines in [`.github/workflows/python-publish.yml`](.github/workflows/python-publish.yml)
-3. Create a [new environment in your GitHub repository](https://github.com/Hochfrequenz/python_template_repository/settings/environments) and call it `release`.
-4. Set up a new trusted publisher [in your PYPI account](https://pypi.org/manage/account/publishing/).
-   1. PyPI Project Name: The name which you defined in the `pyproject.toml` is the name of the project which you have to enter here.
-   2. Owner: The GitHub organization name or GitHub username that owns the repository
-   3. Repository name: The name of the GitHub repository that contains the publishing workflow
-   4. Workflow name: The filename of the publishing workflow. This file should exist in the .github/workflows/ directory in the repository configured above. Here in our case: `python-publish.yml`
-   5. Environment name: The name of the GitHub Actions environment that the above workflow uses for publishing. Here in our case: `release`
-5. Now create a release by clicking on "Create new release" in the right Github sidebar (or visit `github.com/your-username/your-reponame/releases/new`). This should trigger the workflow (see the "Actions" tab of your repo).
-6. Check if the action failed. If it succeeded your PyPI account should now show the new project. It might take some minutes until the package can be installed via `pip install packagename` because the index has to be updated.
-7. Now create another PyPI token with limited scope and update the Github repository secret accordingly.
+## Project Structure
 
-## Contribute
+```
+sap-webgui-mcp/
+├── src/sapwebguimcp/
+│   ├── __init__.py          # Package version and exports
+│   ├── server.py            # MCP server entry point
+│   ├── models/              # Data models
+│   │   ├── config.py        # Settings (pydantic-settings)
+│   │   ├── browser.py       # Browser manager
+│   │   └── README.md        # Models documentation
+│   ├── tools/               # MCP tools
+│   │   ├── __init__.py      # Tool registration exports
+│   │   ├── sap_tools.py     # SAP-specific tools
+│   │   ├── browser_tools.py # Browser escape hatches
+│   │   └── README.md        # Tools documentation
+│   └── skills/              # Reusable workflows
+│       └── README.md        # Skills documentation
+├── unittests/               # Test suite
+├── .github/workflows/       # CI/CD pipelines
+├── pyproject.toml           # Package metadata
+├── tox.ini                  # Test environments
+├── Dockerfile               # Container build
+├── docker-compose.yml       # Docker Compose for CDP proxy
+├── nginx-cdp-proxy.conf     # Nginx config for CDP proxy
+└── README.md                # This file
+```
 
-You are very welcome to contribute to this template repository by opening a pull request against the main branch.
+## Development
 
-### GitHub Actions
+This project uses [tox](https://tox.wiki/) for testing and development.
 
-- Dependabot auto-approve / -merge:
-  - If the actor is the Dependabot bot (i.e. on every commit by Dependabot)
-    the pull request is automatically approved and auto merge gets activated
-    (using squash merge).
-    Note that if you haven't enabled "auto merge" for your repository, the auto merge activation will fail.
-    If you want to use a merge type other than "squash merge" you have to edit the workflow.
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/Hochfrequenz/sapwebgui.mcp.git
+cd sapwebgui.mcp
+
+# Create development environment
+tox -e dev
+
+# Activate the environment
+source .tox/dev/bin/activate  # Linux/macOS
+# or
+.tox\dev\Scripts\activate  # Windows
+
+# Install Playwright browsers
+playwright install chromium
+```
+
+### Running Tests
+
+```bash
+tox -e tests        # Run unit tests
+tox -e coverage     # Run tests with coverage (80% minimum)
+tox -e linting      # Run pylint
+tox -e formatting   # Check black/isort
+tox -e type_check   # Run mypy
+tox -e spell_check  # Run codespell
+```
+
+### Code Style
+
+This project uses:
+- [Black](https://github.com/psf/black) for code formatting
+- [isort](https://pycqa.github.io/isort/) for import sorting
+- [pylint](https://pylint.org/) for linting
+- [mypy](https://mypy.readthedocs.io/) for type checking
+- [codespell](https://github.com/codespell-project/codespell) for spell checking
+
+## Extending the Server
+
+### Adding New Tools
+
+See [src/sapwebguimcp/tools/README.md](src/sapwebguimcp/tools/README.md) for detailed instructions on creating new tools.
+
+### Adding New Models
+
+See [src/sapwebguimcp/models/README.md](src/sapwebguimcp/models/README.md) for information about the data models.
+
+### Creating Skills
+
+See [src/sapwebguimcp/skills/README.md](src/sapwebguimcp/skills/README.md) for how to create reusable workflows.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Browser (Chromium/Firefox/Your Browser)                │
+│  - Persistent session                                   │
+│  - SAP Web GUI loaded                                   │
+│  - User logs in manually                                │
+└─────────────────────────────────────────────────────────┘
+            ↑
+            │ Playwright
+            ↓
+┌─────────────────────────────────────────────────────────┐
+│  MCP Server (sapwebguimcp)                              │
+│  - Manages browser connection                           │
+│  - SAP tools + browser escape hatches                   │
+└─────────────────────────────────────────────────────────┘
+            ↑
+            │ MCP (stdio)
+            ↓
+┌─────────────────────────────────────────────────────────┐
+│  Claude Desktop / Claude Code                           │
+│  - Calls tools to interact with SAP                     │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Publishing to PyPI
+
+This repository uses trusted publishing workflow:
+
+1. Create a release environment in GitHub repository settings
+2. Set up trusted publisher in PyPI account
+3. Uncomment the publish job in `.github/workflows/python-publish.yml`
+4. Create a GitHub release to trigger publishing
+
+## License
+
+MIT

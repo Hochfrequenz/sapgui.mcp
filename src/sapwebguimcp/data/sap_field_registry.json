@@ -1,0 +1,98 @@
+{
+  "_description": "Registry of known SAP Web GUI field selectors by transaction code. This helps Claude find fields faster without trial-and-error.",
+  "_usage": "Look up a transaction code to find known field selectors. Fields are organized by screen/purpose.",
+  "_contributions": "Add new transactions as you discover them. Use browser dev tools to find selectors.",
+
+  "SE16": {
+    "description": "Data Browser - Display table contents",
+    "screens": {
+      "initial": {
+        "table_name": "#DATABROWSE_TABLE, input[name='DATABROWSE-TABLENAME'], input[id*='TABLENAME']",
+        "max_hits": "input[name='DATABROWSE-MAX_SEL'], input[id*='MAX_SEL']"
+      },
+      "selection": {
+        "execute_button": "button[title*='Execute'], button[title*='Ausführen'], #EXECUTE_BTN"
+      }
+    }
+  },
+
+  "SE16N": {
+    "description": "General Table Display (New)",
+    "screens": {
+      "initial": {
+        "table_name": "input[id*='GD-TAB'], input[name*='GD-TAB']",
+        "max_hits": "input[id*='GD-MAX_LINES']"
+      }
+    }
+  },
+
+  "VA01": {
+    "description": "Create Sales Order",
+    "screens": {
+      "initial": {
+        "order_type": "input[id*='AUART'], input[name*='AUART']",
+        "sales_org": "input[id*='VKORG'], input[name*='VKORG']",
+        "distr_channel": "input[id*='VTWEG'], input[name*='VTWEG']",
+        "division": "input[id*='SPART'], input[name*='SPART']"
+      },
+      "header": {
+        "sold_to": "input[id*='KUNNR'], input[name*='KUNNR']",
+        "po_number": "input[id*='BSTKD'], input[name*='BSTKD']",
+        "po_date": "input[id*='BSTDK'], input[name*='BSTDK']"
+      },
+      "items": {
+        "material": "input[id*='MATNR'], input[name*='MATNR']",
+        "quantity": "input[id*='KWMENG'], input[name*='KWMENG']",
+        "plant": "input[id*='WERKS'], input[name*='WERKS']"
+      }
+    }
+  },
+
+  "VA03": {
+    "description": "Display Sales Order",
+    "screens": {
+      "initial": {
+        "order_number": "input[id*='VBELN'], input[name*='VBELN']"
+      }
+    }
+  },
+
+  "MM03": {
+    "description": "Display Material",
+    "screens": {
+      "initial": {
+        "material": "input[id*='MATNR'], input[name*='RMMG1-MATNR']",
+        "plant": "input[id*='WERKS'], input[name*='RMMG1-WERKS']"
+      }
+    }
+  },
+
+  "BP": {
+    "description": "Business Partner Maintenance",
+    "screens": {
+      "initial": {
+        "bp_number": "input[id*='PARTNER'], input[name*='BUS000FLDS-PARTNER']",
+        "bp_role": "input[id*='ROLE'], input[name*='BUS000FLDS-PARTNER_ROLE']"
+      },
+      "general": {
+        "name1": "input[id*='NAME1'], input[name*='BUT000-NAME1_TEXT']",
+        "name2": "input[id*='NAME2'], input[name*='BUT000-NAME2_TEXT']",
+        "search_term": "input[id*='BU_SORT1']"
+      }
+    }
+  },
+
+  "SU01": {
+    "description": "User Maintenance",
+    "screens": {
+      "initial": {
+        "username": "input[id*='BNAME'], input[name*='BNAME']"
+      }
+    }
+  },
+
+  "EUITRANS": {
+    "description": "EU-ITrans Table (Utility Industry)",
+    "note": "This is a table in SE16, use SE16 selectors with table name 'EUITRANS'"
+  }
+}
