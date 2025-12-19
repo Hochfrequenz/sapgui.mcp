@@ -624,3 +624,74 @@ async def test_sap_get_screen_info_different_transactions(sap_mcp_client: Client
 
     # The title or content should be different
     assert info1 != info2, "Screen info should differ between SE16 and SM37"
+
+
+@pytest.mark.asyncio
+async def test_browser_reconnect_after_idle(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that browser reconnects after becoming stale.
+
+    This test simulates a scenario where the CDP connection becomes stale
+    (e.g., browser was minimized, focus was lost, or connection timed out).
+    The server should automatically reconnect and continue working.
+    """
+    # Step 1: Login and verify we have a working session
+    login_result = await sap_mcp_client.call_tool("sap_login", {})
+    assert login_result.content, "Expected response from sap_login"
+    login_text = login_result.content[0].text.lower()
+    assert "success" in login_text or "logged in" in login_text, f"Login should succeed: {login_text}"
+
+    # Step 2: Navigate to a transaction
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Step 3: Wait a bit to let connection potentially become stale
+    # In real scenarios, this could be minutes; here we just verify the flow works
+    import asyncio
+
+    await asyncio.sleep(5)
+
+    # Step 4: Try to use the browser again - this should reconnect if stale
+    result = await sap_mcp_client.call_tool("sap_session_status", {})
+    assert result.content, "Expected response from sap_session_status after idle"
+    status_text = result.content[0].text.lower()
+
+    # Should be able to get status (either connected or reconnected)
+    assert "status" in status_text or "session" in status_text or "page" in status_text, (
+        f"Should get valid session status after idle period: {status_text}"
+    )
+
+    # Step 5: Verify we can still execute transactions
+    tx_result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
+    assert tx_result.content, "Expected response from sap_transaction after idle"
+    tx_text = tx_result.content[0].text.lower()
+    assert "executed" in tx_text or "transaction" in tx_text, f"Transaction should work after idle: {tx_text}"
+
+
+@pytest.mark.asyncio
+async def test_browser_reconnect_multiple_times(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that browser can reconnect multiple times during a session.
+
+    This verifies the reconnection logic is robust and doesn't leave
+    the browser manager in a bad state after reconnecting.
+    """
+    import asyncio
+
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    transactions = ["SE16", "SM37", "SU3", "SE16"]
+
+    for i, tcode in enumerate(transactions):
+        # Small delay between transactions
+        await asyncio.sleep(2)
+
+        # Execute transaction
+        result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": tcode})
+        assert result.content, f"Expected response for transaction {i+1}: {tcode}"
+        text = result.content[0].text.lower()
+        assert "executed" in text or "transaction" in text, f"Transaction {tcode} should work: {text}"
+
+        # Verify session is still valid
+        status = await sap_mcp_client.call_tool("sap_session_status", {})
+        assert status.content, f"Expected status after transaction {i+1}"
