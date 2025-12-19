@@ -135,6 +135,16 @@ class BrowserManager:
                 f"{chrome_commands}"
             ) from e
 
+    async def _reconnect(self) -> None:
+        """Force reconnection to the browser."""
+        logger.info("Reconnecting to browser...")
+        self._initialized = False
+        self._pages.clear()
+        self._context = None
+        self._browser = None
+        # Don't close playwright, just reconnect
+        await self.initialize()
+
     async def get_page(self, name: Optional[str] = None) -> Page:
         """
         Get or create a named page.
@@ -148,14 +158,30 @@ class BrowserManager:
         Returns:
             The requested Page instance.
         """
+        # Try up to 2 times (initial + 1 reconnect attempt)
+        for attempt in range(2):
+            try:
+                return await self._get_page_internal(name)
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                if attempt == 0 and "closed" in str(e).lower():
+                    logger.warning("Browser context appears closed, attempting reconnect...")
+                    await self._reconnect()
+                else:
+                    raise
+
+        raise RuntimeError("Failed to get page after reconnect attempt")
+
+    async def _get_page_internal(self, name: Optional[str] = None) -> Page:
+        """Internal method to get a page (may throw if context is stale)."""
         if not self._initialized:
             await self.initialize()
 
         page_name = name or self._default_page_name
 
-        # Check if we already have this page cached
+        # Check if we already have this page cached and it's still valid
         if page_name in self._pages:
             page = self._pages[page_name]
+            # Verify the page is still usable by checking a property
             if not page.is_closed():
                 return page
             del self._pages[page_name]
@@ -172,7 +198,16 @@ class BrowserManager:
             logger.info("Using existing page: %s (from %d available)", page_name, len(existing_pages))
             return page
 
-        # Only create new page if none exist
+        # Only create new page if none exist (should be rare with CDP)
+        settings = self._settings or get_settings()
+        if settings.browser_mode == BrowserMode.CONNECT:
+            # In connect mode, we should never need to create a page
+            # If we get here, the browser has no tabs - user needs to open one
+            raise RuntimeError(
+                "No browser tabs found. Please open at least one tab in Chrome, "
+                "then try again."
+            )
+
         page = await self._context.new_page()
         self._pages[page_name] = page
         logger.info("Created new page: %s", page_name)
