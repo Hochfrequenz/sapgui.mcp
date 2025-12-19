@@ -6,8 +6,7 @@ This directory contains MCP tool definitions for SAP Web GUI automation.
 
 ```
 tools/
-├── __init__.py         # Package exports
-├── registry.py         # Central tool registration
+├── __init__.py         # Package exports (register functions)
 ├── sap_tools.py        # High-level SAP tools
 ├── browser_tools.py    # Low-level browser escape hatches
 └── README.md           # This file
@@ -51,14 +50,11 @@ Create a new file in the `tools/` directory:
 
 ```python
 # src/sapwebguimcp/tools/my_custom_tools.py
-"""
-Custom tools for [your use case].
-"""
+"""Custom tools for [your use case]."""
 
 import logging
-from typing import Optional
 
-from mcp.server import Server
+from mcp.server.fastmcp import FastMCP
 
 from sapwebguimcp.models import get_browser_manager
 
@@ -67,11 +63,11 @@ __all__ = ["register_my_custom_tools"]
 logger = logging.getLogger(__name__)
 
 
-def register_my_custom_tools(server: Server) -> None:
+def register_my_custom_tools(mcp: FastMCP) -> None:
     """Register custom tools with the MCP server."""
 
-    @server.tool()
-    async def my_tool(param1: str, param2: Optional[int] = None) -> str:
+    @mcp.tool()
+    async def my_tool(param1: str, param2: int | None = None) -> str:
         """
         Description of what this tool does.
 
@@ -80,13 +76,12 @@ def register_my_custom_tools(server: Server) -> None:
             param2: Optional description of param2
 
         Returns:
-            Description of return value
+            Status message indicating success or describing any issues.
         """
         manager = await get_browser_manager()
         page = await manager.get_current_page()
 
         try:
-            # Your tool implementation here
             await page.click(f"#{param1}")
             return f"Success: {param1}"
         except Exception as e:
@@ -94,18 +89,17 @@ def register_my_custom_tools(server: Server) -> None:
             return f"Error: {e}"
 ```
 
-### 2. Register in the Registry
+### 2. Register in server.py
 
-Update `registry.py` to include your new tools:
+Update `server.py` to include your new tools:
 
 ```python
 from sapwebguimcp.tools.my_custom_tools import register_my_custom_tools
 
-
-def register_all_tools(server: Server) -> None:
-    register_sap_tools(server)
-    register_browser_tools(server)
-    register_my_custom_tools(server)  # Add this line
+# After creating the mcp instance:
+register_sap_tools(mcp)
+register_browser_tools(mcp)
+register_my_custom_tools(mcp)  # Add this line
 ```
 
 ### 3. Export in `__init__.py`
@@ -146,7 +140,7 @@ class TestMyCustomTools:
 ```python
 async def my_tool(
         required_param: str,
-        optional_param: Optional[int] = None,
+        optional_param: int | None = None,
         flag: bool = False,
 ) -> str:
 ```

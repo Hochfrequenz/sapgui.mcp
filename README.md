@@ -50,10 +50,17 @@ Configure via environment variables:
 | Variable           | Description                                          | Default                 |
 |--------------------|------------------------------------------------------|-------------------------|
 | `SAP_URL`          | Default SAP Web GUI URL (can be overridden per call) | (empty)                 |
+| `SAP_USER`         | SAP username for automatic login                     | (empty)                 |
+| `SAP_PASSWORD`     | SAP password for automatic login                     | (empty)                 |
+| `SAP_MANDANT`      | SAP client/mandant (3-digit, e.g., "100")            | (empty)                 |
+| `SAP_LANGUAGE`     | SAP login language (`DE` or `EN`)                    | `EN`                    |
 | `BROWSER_MODE`     | `launch` (start new) or `connect` (use existing)     | `launch`                |
 | `BROWSER_TYPE`     | `chromium`, `firefox`, or `webkit`                   | `chromium`              |
 | `BROWSER_HEADLESS` | Run headless (`true`/`false`)                        | `false`                 |
 | `CDP_URL`          | CDP URL for connecting to existing browser           | `http://localhost:9222` |
+
+If `SAP_USER`, `SAP_PASSWORD`, and `SAP_MANDANT` are set, the server will automatically fill in the login form.
+Otherwise, the login page opens for manual credential entry.
 
 ## Start the Server
 
@@ -65,9 +72,31 @@ run-sapwebgui-mcp-server
 
 ### Docker
 
+Docker is best used with `BROWSER_MODE=connect` to control a browser running outside the container:
+
+```bash
+# 1. Start Chrome with remote debugging on your host machine
+google-chrome --remote-debugging-port=9222
+
+# 2. Run the MCP server in Docker, connecting to your host's browser
+docker run --network host -i --rm \
+  -e BROWSER_MODE=connect \
+  -e CDP_URL=http://localhost:9222 \
+  -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
+  ghcr.io/hochfrequenz/sapwebgui.mcp:latest
+```
+
+For automatic login, add credentials:
+
 ```bash
 docker run --network host -i --rm \
+  -e BROWSER_MODE=connect \
+  -e CDP_URL=http://localhost:9222 \
   -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
+  -e SAP_USER=your_username \
+  -e SAP_PASSWORD=your_password \
+  -e SAP_MANDANT=100 \
+  -e SAP_LANGUAGE=EN \
   ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ```
 
@@ -93,6 +122,8 @@ Modify your `claude_desktop_config.json`:
 
 ### If installed via Docker
 
+First start Chrome with remote debugging, then configure Claude:
+
 ```json
 {
   "mcpServers": {
@@ -100,7 +131,12 @@ Modify your `claude_desktop_config.json`:
       "command": "docker",
       "args": [
         "run", "--network", "host", "-i", "--rm",
+        "-e", "BROWSER_MODE=connect",
+        "-e", "CDP_URL=http://localhost:9222",
         "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+        "-e", "SAP_USER=your_username",
+        "-e", "SAP_PASSWORD=your_password",
+        "-e", "SAP_MANDANT=100",
         "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
       ]
     }
@@ -217,9 +253,9 @@ sap-webgui-mcp/
 │   │   ├── browser.py       # Browser manager
 │   │   └── README.md        # Models documentation
 │   ├── tools/               # MCP tools
+│   │   ├── __init__.py      # Tool registration exports
 │   │   ├── sap_tools.py     # SAP-specific tools
 │   │   ├── browser_tools.py # Browser escape hatches
-│   │   ├── registry.py      # Tool registration
 │   │   └── README.md        # Tools documentation
 │   └── skills/              # Reusable workflows
 │       └── README.md        # Skills documentation
