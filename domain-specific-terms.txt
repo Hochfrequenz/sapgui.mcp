@@ -7,9 +7,14 @@ okcode
 webgui
 sapgui
 
-# German terms (common in SAP)
+# German terms (common in SAP documentation/examples)
 anmeld
 einstellung
+adresse
+ist
+als
+oder
+alle
 
 # Technical terms
 stdin

@@ -925,7 +925,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
             if "error" in table_data:
-                return table_data["error"]
+                return str(table_data["error"])
 
             return json.dumps(table_data, indent=2, ensure_ascii=False)
 

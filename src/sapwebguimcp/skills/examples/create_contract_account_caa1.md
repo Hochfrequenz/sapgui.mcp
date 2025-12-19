@@ -149,7 +149,7 @@ For German utilities with SEPA direct debit:
 ### MaKo Considerations
 For market communication (Marktkommunikation):
 - Contract account is referenced in INVOIC messages
-- REMADV payment advices reference contract account
+- REMADV payment advice references contract account
 - Balance group (Bilanzkreis) may be linked for balancing
 
 ## Related Transactions
