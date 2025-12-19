@@ -903,7 +903,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     // Get rows with limits
                     const rows = [];
                     const dataRows = table.querySelectorAll('tbody tr, tr[role="row"]');
-                    const actualEndRow = endRow ? Math.min(endRow, startRow + maxRows - 1) : Math.min(dataRows.length, startRow + maxRows - 1);
+                    const maxEnd = startRow + maxRows - 1;
+                    const actualEndRow = endRow ? Math.min(endRow, maxEnd) : Math.min(dataRows.length, maxEnd);
 
                     // Track which columns have data (to filter out empty columns)
                     const columnsWithData = new Set();

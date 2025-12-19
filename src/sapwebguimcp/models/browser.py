@@ -130,9 +130,7 @@ class BrowserManager:
                 "--ignore-certificate-errors"
             )
             raise RuntimeError(
-                f"Failed to connect to browser at {settings.cdp_url}. "
-                f"Error: {e}"
-                f"{chrome_commands}"
+                f"Failed to connect to browser at {settings.cdp_url}. " f"Error: {e}" f"{chrome_commands}"
             ) from e
 
     async def _reconnect(self) -> None:
@@ -203,10 +201,7 @@ class BrowserManager:
         if settings.browser_mode == BrowserMode.CONNECT:
             # In connect mode, we should never need to create a page
             # If we get here, the browser has no tabs - user needs to open one
-            raise RuntimeError(
-                "No browser tabs found. Please open at least one tab in Chrome, "
-                "then try again."
-            )
+            raise RuntimeError("No browser tabs found. Please open at least one tab in Chrome, then try again.")
 
         page = await self._context.new_page()
         self._pages[page_name] = page
