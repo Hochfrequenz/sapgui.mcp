@@ -1,0 +1,29 @@
+services:
+  # Nginx proxy that rewrites Host header for Chrome DevTools Protocol
+  # This is required because Chrome rejects CDP connections where Host != localhost
+  cdp-proxy:
+    image: nginx:alpine
+    ports:
+      - "9223:9222"
+    volumes:
+      - ./nginx-cdp-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+
+  # SAP WebGUI MCP Server (for manual testing, not used by Claude Desktop)
+  # Claude Desktop runs its own container via the config
+  sapwebgui-mcp:
+    build: .
+    image: sapwebgui-mcp:test
+    stdin_open: true
+    environment:
+      - BROWSER_MODE=connect
+      - CDP_URL=http://cdp-proxy:9222
+      - SAP_URL=${SAP_URL:-}
+      - SAP_USER=${SAP_USER:-}
+      - SAP_PASSWORD=${SAP_PASSWORD:-}
+      - SAP_MANDANT=${SAP_MANDANT:-}
+      - SAP_LANGUAGE=${SAP_LANGUAGE:-EN}
+    depends_on:
+      - cdp-proxy
+    profiles:
+      - test

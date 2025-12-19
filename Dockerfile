@@ -46,5 +46,5 @@ ENV BROWSER_MODE=connect
 ENV BROWSER_TYPE=chromium
 ENV CDP_URL=http://host.docker.internal:9222
 
-# The tail command keeps the container running after the server starts
-ENTRYPOINT ["sh", "-c", "run-sapwebgui-mcp-server && tail -f /dev/null"]
+# MCP servers communicate via stdin/stdout, so just run the server directly
+ENTRYPOINT ["run-sapwebgui-mcp-server"]

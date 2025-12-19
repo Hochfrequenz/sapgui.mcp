@@ -62,7 +62,100 @@ Configure via environment variables:
 If `SAP_USER`, `SAP_PASSWORD`, and `SAP_MANDANT` are set, the server will automatically fill in the login form.
 Otherwise, the login page opens for manual credential entry.
 
-## Start the Server
+## Quick Start (End Users)
+
+The easiest way to use this server is with **Claude Desktop**:
+
+### Step 1: Start Chrome with remote debugging
+
+Chrome needs to be started with special flags:
+- `--remote-debugging-port=9222` - Enables the Chrome DevTools Protocol
+- `--user-data-dir` - Uses a separate profile (required, otherwise Chrome joins an existing instance)
+- `--ignore-certificate-errors` - Skips SSL certificate warnings (useful for SAP systems with self-signed certs)
+
+**Windows** (run in PowerShell):
+```powershell
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
+```
+
+**macOS**:
+```bash
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
+```
+
+**Linux**:
+```bash
+google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
+```
+
+**Verify it's working** (the debugging port should respond):
+```bash
+# Windows (PowerShell)
+Invoke-WebRequest -Uri 'http://localhost:9222/json/version' -UseBasicParsing
+
+# macOS/Linux
+curl http://localhost:9222/json/version
+```
+
+If you get a connection error, Chrome isn't listening on port 9222. Make sure you used the `--user-data-dir` flag.
+
+### Step 2: Start the CDP proxy (Docker Desktop on Windows/macOS)
+
+When running in Docker Desktop on Windows or macOS, we need a proxy because:
+1. Chrome's DevTools Protocol rejects HTTP requests where the Host header isn't `localhost`
+2. Chrome returns WebSocket URLs pointing to `localhost`, which doesn't work inside Docker containers
+
+The proxy rewrites these headers/URLs so Docker containers can connect to Chrome.
+
+```bash
+# Clone the repository (if you haven't already)
+git clone https://github.com/Hochfrequenz/sapwebgui.mcp.git
+cd sapwebgui.mcp
+
+# Start the CDP proxy
+docker compose up -d cdp-proxy
+```
+
+> **Note**: On native Linux with Docker, you can skip this step and use `--network host` with `CDP_URL=http://localhost:9222` instead.
+
+### Step 3: Configure Claude Desktop
+
+Find your Claude Desktop config file:
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+Add this configuration (replace the SAP values with your own):
+
+```json
+{
+  "mcpServers": {
+    "sap-webgui": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "BROWSER_MODE=connect",
+        "-e", "CDP_URL=http://host.docker.internal:9223",
+        "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+        "-e", "SAP_USER=your_username",
+        "-e", "SAP_PASSWORD=your_password",
+        "-e", "SAP_MANDANT=100",
+        "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+### Step 4: Restart Claude Desktop and start chatting
+
+Ask Claude things like:
+- "Log me into SAP"
+- "Run transaction VA01"
+- "Take a screenshot of the current screen"
+
+---
+
+## Start the Server (Advanced)
 
 ### Python
 
@@ -72,23 +165,15 @@ run-sapwebgui-mcp-server
 
 ### Docker
 
-Docker is best used with `BROWSER_MODE=connect` to control a browser running outside the container:
+Docker requires `BROWSER_MODE=connect` to control a browser running on the host. The setup differs between native Linux and Docker Desktop (Windows/macOS).
+
+#### Native Linux (--network host works)
 
 ```bash
-# 1. Start Chrome with remote debugging on your host machine
-google-chrome --remote-debugging-port=9222
+# 1. Start Chrome with remote debugging
+google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
 
-# 2. Run the MCP server in Docker, connecting to your host's browser
-docker run --network host -i --rm \
-  -e BROWSER_MODE=connect \
-  -e CDP_URL=http://localhost:9222 \
-  -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
-  ghcr.io/hochfrequenz/sapwebgui.mcp:latest
-```
-
-For automatic login, add credentials:
-
-```bash
+# 2. Run the MCP server with --network host
 docker run --network host -i --rm \
   -e BROWSER_MODE=connect \
   -e CDP_URL=http://localhost:9222 \
@@ -96,7 +181,31 @@ docker run --network host -i --rm \
   -e SAP_USER=your_username \
   -e SAP_PASSWORD=your_password \
   -e SAP_MANDANT=100 \
-  -e SAP_LANGUAGE=EN \
+  ghcr.io/hochfrequenz/sapwebgui.mcp:latest
+```
+
+#### Docker Desktop on Windows/macOS (requires CDP proxy)
+
+On Docker Desktop, `--network host` doesn't work properly, and Chrome rejects connections from `host.docker.internal`. You need the CDP proxy:
+
+```bash
+# 1. Start Chrome with remote debugging
+# Windows:
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
+# macOS:
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
+
+# 2. Start the CDP proxy (from the repository root)
+docker compose up -d cdp-proxy
+
+# 3. Run the MCP server connecting via the proxy (port 9223)
+docker run -i --rm \
+  -e BROWSER_MODE=connect \
+  -e CDP_URL=http://host.docker.internal:9223 \
+  -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
+  -e SAP_USER=your_username \
+  -e SAP_PASSWORD=your_password \
+  -e SAP_MANDANT=100 \
   ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ```
 
@@ -122,8 +231,30 @@ Modify your `claude_desktop_config.json`:
 
 ### If installed via Docker
 
-First start Chrome with remote debugging, then configure Claude:
+First start Chrome with remote debugging and the CDP proxy (see Quick Start above), then configure Claude:
 
+**Docker Desktop (Windows/macOS)** - uses CDP proxy on port 9223:
+```json
+{
+  "mcpServers": {
+    "sap-webgui": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "BROWSER_MODE=connect",
+        "-e", "CDP_URL=http://host.docker.internal:9223",
+        "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+        "-e", "SAP_USER=your_username",
+        "-e", "SAP_PASSWORD=your_password",
+        "-e", "SAP_MANDANT=100",
+        "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+**Native Linux** - uses `--network host`:
 ```json
 {
   "mcpServers": {
@@ -151,19 +282,26 @@ If you need to use a browser that's already connected to VPN or Citrix:
 1. Launch your browser with remote debugging enabled:
 
 ```bash
-# Chrome/Edge
-google-chrome --remote-debugging-port=9222
+# Chrome/Edge (Linux)
+google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
 
 # macOS
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
+
+# Windows (PowerShell)
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
 ```
 
-2. Set environment variables:
+2. If using Docker Desktop (Windows/macOS), start the CDP proxy:
 
 ```bash
-export BROWSER_MODE=connect
-export CDP_URL=http://localhost:9222
+cd sapwebgui.mcp
+docker compose up -d cdp-proxy
 ```
+
+3. Configure the MCP server with the appropriate CDP URL:
+   - **Native Python or Linux Docker**: `CDP_URL=http://localhost:9222`
+   - **Docker Desktop (Windows/macOS)**: `CDP_URL=http://host.docker.internal:9223`
 
 The MCP server will connect to your existing browser instead of launching a new one.
 
@@ -264,6 +402,8 @@ sap-webgui-mcp/
 ├── pyproject.toml           # Package metadata
 ├── tox.ini                  # Test environments
 ├── Dockerfile               # Container build
+├── docker-compose.yml       # Docker Compose for CDP proxy
+├── nginx-cdp-proxy.conf     # Nginx config for CDP proxy
 └── README.md                # This file
 ```
 
