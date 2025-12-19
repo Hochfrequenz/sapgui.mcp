@@ -45,6 +45,8 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[AppContext]:
     browser_manager = BrowserManager(settings)
 
     logger.info("SAP Web GUI MCP Server starting...")
+    logger.info("Server ready - waiting for MCP client connection on stdin.")
+    logger.info("(JSON parse errors on empty input are normal when testing manually)")
 
     try:
         yield AppContext(browser_manager=browser_manager)
