@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 SAP-specific MCP tools for SAP Web GUI automation.
 
@@ -5,9 +6,16 @@ This module contains tools for:
 - sap_login: Log into SAP Web GUI
 - sap_transaction: Enter and execute SAP transaction codes
 - sap_keepalive_start/stop: Keep SAP session alive
+- sap_session_status: Check SAP session status
+- sap_keyboard: Send keyboard shortcuts (F-keys, Ctrl+S, etc.)
+- sap_get_screen_text: Get all readable text from current screen
+- sap_read_table: Read data from ALV grids and tables
+- sap_read_status_bar: Read status bar messages
+- sap_get_screen_info: Get technical screen information
 """
 
 import asyncio
+import json
 import logging
 from typing import Any, Optional
 
@@ -565,3 +573,536 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error executing transaction")
             return f"Error executing transaction {tcode}: {e}"
+
+    @mcp.tool(description="Check the current SAP session status")
+    async def sap_session_status() -> str:
+        """
+        Check the current SAP session status.
+
+        Useful to verify the session is still active before performing actions,
+        especially after long pauses or agent questions.
+
+        Returns:
+            Status message containing one of:
+            - "active": Session is alive and responsive
+            - "timed_out": Session has timed out
+            - "logged_off": User has been logged off
+            - "no_page": No browser page available
+            - "unknown": Cannot determine status
+        """
+        ctx = mcp.get_context()
+        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            if page.is_closed():
+                return "Status: no_page - Browser page is closed."
+
+            # Check for OK-Code field (indicates active SAP session)
+            okcode_field = await _find_okcode_field(page)
+            if okcode_field:
+                return "Status: active - SAP session is alive and responsive."
+
+            # Check for login form (indicates logged off)
+            login_form = await page.query_selector('input[type="password"], input[id*="sap-user" i], #sap-user')
+            if login_form:
+                return "Status: logged_off - Login page detected. Please use sap_login to log in again."
+
+            # Check for timeout message
+            page_content = await page.content()
+            timeout_indicators = [
+                "session timeout",
+                "sitzung abgelaufen",
+                "session expired",
+                "zeitüberschreitung",
+                "logged off",
+                "abgemeldet",
+            ]
+            if any(indicator in page_content.lower() for indicator in timeout_indicators):
+                return "Status: timed_out - Session has timed out. Please use sap_login to reconnect."
+
+            return "Status: unknown - Cannot determine session status. Please check browser window."
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error checking session status")
+            return f"Status: unknown - Error checking status: {e}"
+
+    @mcp.tool(description="Send a keyboard shortcut to SAP Web GUI")
+    async def sap_keyboard(key: str) -> str:
+        """
+        Send a keyboard shortcut to SAP Web GUI.
+
+        Common SAP shortcuts:
+        - "F3" - Back (Zurück)
+        - "F4" - Search Help (F4-Hilfe)
+        - "F5" - Refresh / Create Person (context dependent)
+        - "F6" - Create Organization (in BP)
+        - "F8" - Execute (Ausführen)
+        - "Ctrl+S" - Save (Sichern)
+        - "Ctrl+Y" - Select text mode (Markieren)
+        - "Shift+F3" - Exit (Beenden)
+        - "Enter" - Confirm
+        - "Escape" - Cancel dialog
+
+        Args:
+            key: Keyboard shortcut. Use "Ctrl+", "Shift+", "Alt+" prefixes for modifiers.
+
+        Returns:
+            Confirmation message or error description.
+        """
+        ctx = mcp.get_context()
+        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Ensure page is in front
+            await page.bring_to_front()
+            await page.wait_for_timeout(100)
+
+            # Send the keystroke
+            await page.keyboard.press(key)
+
+            # Wait for SAP to respond
+            await page.wait_for_timeout(500)
+            await page.wait_for_load_state("networkidle")
+
+            title = await page.title()
+            return f"Sent keyboard shortcut: {key}. Current page: {title}"
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error sending keyboard shortcut")
+            return f"Error sending keyboard shortcut {key}: {e}"
+
+    @mcp.tool(description="Get all readable text from the current SAP screen")
+    async def sap_get_screen_text() -> str:
+        """
+        Get all readable text from the current SAP screen.
+
+        This tool extracts text content for adaptive field discovery.
+        Use it to identify field labels, button texts, and screen content
+        when you need to work with screens that vary by system configuration.
+
+        Returns:
+            Structured text content including:
+            - Screen title
+            - Field labels and values
+            - Button labels
+            - Tab labels
+            - Status messages
+            - Table headers
+        """
+        ctx = mcp.get_context()
+        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Extract text using JavaScript for comprehensive coverage
+            screen_text = await page.evaluate(
+                """
+                () => {
+                    const result = {
+                        title: document.title,
+                        statusBar: '',
+                        mainContent: [],
+                        labels: [],
+                        buttons: [],
+                        tabs: [],
+                        tableHeaders: []
+                    };
+
+                    // Get status bar message
+                    const statusBar = document.querySelector(
+                        '.urMsgBarTxt, .sapMSGtext, [class*="message" i], [id*="StatusBar" i]'
+                    );
+                    if (statusBar) {
+                        result.statusBar = statusBar.textContent.trim();
+                    }
+
+                    // Get all labels (for adaptive field discovery)
+                    document.querySelectorAll('label, .urLbl, [class*="label" i]').forEach(el => {
+                        const text = el.textContent.trim();
+                        if (text && text.length < 100) {
+                            result.labels.push(text);
+                        }
+                    });
+
+                    // Get all buttons
+                    document.querySelectorAll(
+                        'button, [role="button"], input[type="button"], input[type="submit"]'
+                    ).forEach(el => {
+                        const text = el.textContent.trim() || el.value || el.getAttribute('title') || '';
+                        if (text && text.length < 50) {
+                            result.buttons.push(text);
+                        }
+                    });
+
+                    // Get tab labels
+                    document.querySelectorAll('[role="tab"], .sapMTabStrip button').forEach(el => {
+                        const text = el.textContent.trim();
+                        if (text) {
+                            result.tabs.push(text);
+                        }
+                    });
+
+                    // Get table headers
+                    document.querySelectorAll('th, [role="columnheader"]').forEach(el => {
+                        const text = el.textContent.trim();
+                        if (text) {
+                            result.tableHeaders.push(text);
+                        }
+                    });
+
+                    // Get main content text (limited to avoid too much noise)
+                    const mainArea = document.querySelector(
+                        '#content, #MAIN_CONTENT, [role="main"], .sapMPage, body'
+                    );
+                    if (mainArea) {
+                        // Get visible text, excluding scripts and styles
+                        const walker = document.createTreeWalker(
+                            mainArea,
+                            NodeFilter.SHOW_TEXT,
+                            {
+                                acceptNode: function(node) {
+                                    const parent = node.parentElement;
+                                    if (!parent) return NodeFilter.FILTER_REJECT;
+                                    const tag = parent.tagName.toLowerCase();
+                                    if (tag === 'script' || tag === 'style' || tag === 'noscript') {
+                                        return NodeFilter.FILTER_REJECT;
+                                    }
+                                    const text = node.textContent.trim();
+                                    if (text.length > 0 && text.length < 200) {
+                                        return NodeFilter.FILTER_ACCEPT;
+                                    }
+                                    return NodeFilter.FILTER_REJECT;
+                                }
+                            }
+                        );
+                        let count = 0;
+                        while (walker.nextNode() && count < 200) {
+                            const text = walker.currentNode.textContent.trim();
+                            if (text && !result.mainContent.includes(text)) {
+                                result.mainContent.push(text);
+                                count++;
+                            }
+                        }
+                    }
+
+                    return result;
+                }
+                """
+            )
+
+            # Format output
+            output_parts = []
+            output_parts.append(f"=== Screen: {screen_text['title']} ===")
+
+            if screen_text["statusBar"]:
+                output_parts.append(f"\nStatus Bar: {screen_text['statusBar']}")
+
+            if screen_text["tabs"]:
+                output_parts.append("\nTabs: " + ", ".join(screen_text["tabs"]))
+
+            if screen_text["labels"]:
+                # Deduplicate and limit
+                unique_labels = list(dict.fromkeys(screen_text["labels"]))[:50]
+                output_parts.append("\nLabels/Fields:\n  " + "\n  ".join(unique_labels))
+
+            if screen_text["buttons"]:
+                unique_buttons = list(dict.fromkeys(screen_text["buttons"]))[:20]
+                output_parts.append("\nButtons: " + ", ".join(unique_buttons))
+
+            if screen_text["tableHeaders"]:
+                unique_headers = list(dict.fromkeys(screen_text["tableHeaders"]))[:20]
+                output_parts.append("\nTable Headers: " + ", ".join(unique_headers))
+
+            if screen_text["mainContent"]:
+                # Show first 30 content items
+                content_sample = screen_text["mainContent"][:30]
+                output_parts.append("\nContent:\n  " + "\n  ".join(content_sample))
+
+            return "\n".join(output_parts)
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error getting screen text")
+            return f"Error getting screen text: {e}"
+
+    @mcp.tool(description="Read data from an ALV grid or table on the current screen")
+    async def sap_read_table(start_row: int = 1, end_row: Optional[int] = None) -> str:
+        """
+        Read rows from an ALV grid or table on the current screen.
+
+        Works with SAP ALV grids, step loops, and list displays.
+
+        Args:
+            start_row: First row to read (1-indexed, default: 1)
+            end_row: Last row to read (None = all visible rows)
+
+        Returns:
+            JSON-formatted table data with column headers and row values.
+            Returns error message if no table found.
+        """
+        ctx = mcp.get_context()
+        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Extract table data using JavaScript
+            table_data = await page.evaluate(
+                """
+                (params) => {
+                    const { startRow, endRow } = params;
+
+                    // Find table elements (various SAP table implementations)
+                    const tableSelectors = [
+                        'table[role="grid"]',           // ALV Grid
+                        '.sapMList table',              // SAPUI5 List
+                        'table.urTbl',                  // Classic SAP table
+                        '[role="treegrid"]',            // Tree grid
+                        'table',                        // Fallback to any table
+                    ];
+
+                    let table = null;
+                    for (const selector of tableSelectors) {
+                        table = document.querySelector(selector);
+                        if (table) break;
+                    }
+
+                    if (!table) {
+                        return { error: 'No table found on current screen' };
+                    }
+
+                    // Get headers
+                    const headers = [];
+                    const headerCells = table.querySelectorAll('th, [role="columnheader"]');
+                    headerCells.forEach(cell => {
+                        headers.push(cell.textContent.trim());
+                    });
+
+                    // If no headers found in th, try first row
+                    if (headers.length === 0) {
+                        const firstRow = table.querySelector('tr');
+                        if (firstRow) {
+                            firstRow.querySelectorAll('td').forEach(cell => {
+                                headers.push(cell.textContent.trim());
+                            });
+                        }
+                    }
+
+                    // Get rows
+                    const rows = [];
+                    const dataRows = table.querySelectorAll('tbody tr, tr[role="row"]');
+                    const actualEndRow = endRow || dataRows.length;
+
+                    for (let i = startRow - 1; i < Math.min(actualEndRow, dataRows.length); i++) {
+                        const row = dataRows[i];
+                        if (!row) continue;
+
+                        const cells = row.querySelectorAll('td, [role="gridcell"]');
+                        const rowData = {};
+
+                        cells.forEach((cell, idx) => {
+                            const headerName = headers[idx] || `column_${idx + 1}`;
+                            rowData[headerName] = cell.textContent.trim();
+                        });
+
+                        if (Object.keys(rowData).length > 0) {
+                            rows.push({ row: i + 1, data: rowData });
+                        }
+                    }
+
+                    return {
+                        headers: headers,
+                        rowCount: dataRows.length,
+                        rows: rows
+                    };
+                }
+                """,
+                {"startRow": start_row, "endRow": end_row},
+            )
+
+            if "error" in table_data:
+                return table_data["error"]
+
+            return json.dumps(table_data, indent=2, ensure_ascii=False)
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error reading table")
+            return f"Error reading table: {e}"
+
+    @mcp.tool(description="Read the current message from SAP's status bar")
+    async def sap_read_status_bar() -> str:
+        """
+        Read the current message from SAP's status bar.
+
+        SAP displays success, error, warning, and info messages in the status bar.
+        This tool extracts that message for programmatic checking.
+
+        Returns:
+            JSON with:
+            - type: "S" (success), "E" (error), "W" (warning), "I" (info), or "none"
+            - message: The status bar text
+        """
+        ctx = mcp.get_context()
+        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Extract status bar content using JavaScript
+            status_info = await page.evaluate(
+                """
+                () => {
+                    // Various SAP Web GUI status bar selectors
+                    const statusSelectors = [
+                        '#LSMSG_AREA',                  // Classic status area
+                        '.urMsgBarTxt',                 // SAP message bar
+                        '.sapMSGtext',                  // SAPUI5 message
+                        '[id*="StatusBar" i]',          // Status bar variations
+                        '[class*="msgbar" i]',          // Message bar variations
+                        '[id*="msgarea" i]',            // Message area
+                    ];
+
+                    let statusElement = null;
+                    for (const selector of statusSelectors) {
+                        statusElement = document.querySelector(selector);
+                        if (statusElement && statusElement.textContent.trim()) {
+                            break;
+                        }
+                    }
+
+                    if (!statusElement || !statusElement.textContent.trim()) {
+                        return { type: 'none', message: '' };
+                    }
+
+                    const message = statusElement.textContent.trim();
+
+                    // Determine message type based on CSS classes or icons
+                    let type = 'I';  // Default to info
+
+                    const parentClasses = (statusElement.className + ' ' +
+                        (statusElement.parentElement?.className || '')).toLowerCase();
+
+                    // Check for error indicators
+                    if (parentClasses.includes('error') ||
+                        parentClasses.includes('fehler') ||
+                        statusElement.querySelector('[class*="error" i], .sapMsgError')) {
+                        type = 'E';
+                    }
+                    // Check for warning indicators
+                    else if (parentClasses.includes('warning') ||
+                             parentClasses.includes('warnung') ||
+                             statusElement.querySelector('[class*="warning" i], .sapMsgWarning')) {
+                        type = 'W';
+                    }
+                    // Check for success indicators
+                    else if (parentClasses.includes('success') ||
+                             parentClasses.includes('erfolg') ||
+                             statusElement.querySelector('[class*="success" i], .sapMsgSuccess')) {
+                        type = 'S';
+                    }
+
+                    // Also check message content for common patterns
+                    const msgLower = message.toLowerCase();
+                    if (type === 'I') {  // Only override if not already detected
+                        if (msgLower.includes('fehler') || msgLower.includes('error') ||
+                            msgLower.includes('nicht gefunden') || msgLower.includes('not found') ||
+                            msgLower.includes('ungültig') || msgLower.includes('invalid')) {
+                            type = 'E';
+                        } else if (msgLower.includes('warnung') || msgLower.includes('warning')) {
+                            type = 'W';
+                        } else if (msgLower.includes('gesichert') || msgLower.includes('saved') ||
+                                   msgLower.includes('angelegt') || msgLower.includes('created') ||
+                                   msgLower.includes('erfolgreich') || msgLower.includes('successful')) {
+                            type = 'S';
+                        }
+                    }
+
+                    return { type: type, message: message };
+                }
+                """
+            )
+
+            return json.dumps(status_info, ensure_ascii=False)
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error reading status bar")
+            return f"Error reading status bar: {e}"
+
+    @mcp.tool(description="Get technical information about the current SAP screen")
+    async def sap_get_screen_info() -> str:
+        """
+        Get technical information about the current SAP screen.
+
+        Returns:
+            JSON with:
+            - transaction: Current transaction code (if detectable)
+            - title: Window/page title
+            - url: Current URL
+            - program: ABAP program name (if available in page)
+            - dynpro: Screen number (if available)
+        """
+        ctx = mcp.get_context()
+        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Extract screen info using JavaScript
+            screen_info = await page.evaluate(
+                """
+                () => {
+                    const info = {
+                        transaction: '',
+                        title: document.title,
+                        url: window.location.href,
+                        program: '',
+                        dynpro: ''
+                    };
+
+                    // Try to find transaction code from various locations
+                    // OK-Code field might contain current transaction
+                    const okCodeField = document.querySelector(
+                        '#ToolbarOkCode, input[id*="okcode" i]'
+                    );
+                    if (okCodeField && okCodeField.value) {
+                        info.transaction = okCodeField.value.replace(/^\\/[no]/, '');
+                    }
+
+                    // Check title bar for transaction info
+                    // SAP often shows "Transaction - Description" or similar
+                    const titleMatch = document.title.match(/^([A-Z0-9_\\/]+)\\s*[-:]|\\(([A-Z0-9_]+)\\)/);
+                    if (titleMatch) {
+                        info.transaction = info.transaction || (titleMatch[1] || titleMatch[2] || '').trim();
+                    }
+
+                    // Look for technical info in hidden fields or data attributes
+                    const techInfo = document.querySelector(
+                        '[data-program], [data-dynpro], [data-tcode], ' +
+                        'input[name*="program" i], input[name*="dynpro" i]'
+                    );
+                    if (techInfo) {
+                        info.program = techInfo.getAttribute('data-program') ||
+                                      techInfo.getAttribute('name') || '';
+                        info.dynpro = techInfo.getAttribute('data-dynpro') || '';
+                    }
+
+                    // Try to extract from URL if it contains transaction info
+                    const urlMatch = window.location.href.match(/[?&](?:tcode|transaction)=([^&]+)/i);
+                    if (urlMatch) {
+                        info.transaction = info.transaction || urlMatch[1];
+                    }
+
+                    return info;
+                }
+                """
+            )
+
+            return json.dumps(screen_info, indent=2, ensure_ascii=False)
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error getting screen info")
+            return f"Error getting screen info: {e}"

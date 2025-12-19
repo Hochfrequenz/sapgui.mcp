@@ -348,3 +348,279 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
 
     # Should have at least 2 sessions (original + new)
     assert session_count >= 2, f"Expected at least 2 SAP sessions after opening new window, got {session_count}"
+
+
+# =============================================================================
+# Tests for new SAP tools (sap_session_status, sap_keyboard, sap_get_screen_text,
+# sap_read_table, sap_read_status_bar, sap_get_screen_info)
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_sap_session_status_after_login(sap_mcp_client: ClientSession) -> None:
+    """Test that session status is 'active' after successful login."""
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    result = await sap_mcp_client.call_tool("sap_session_status", {})
+    assert result.content, "Expected response from sap_session_status"
+    response_text = result.content[0].text.lower()
+
+    assert "active" in response_text, f"Expected active session after login: {response_text}"
+
+
+@pytest.mark.asyncio
+async def test_sap_session_status_returns_valid_state(sap_mcp_client: ClientSession) -> None:
+    """Test that session status returns a recognized state."""
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    result = await sap_mcp_client.call_tool("sap_session_status", {})
+    response_text = result.content[0].text.lower()
+
+    valid_states = ["active", "timed_out", "logged_off", "no_page", "unknown"]
+    assert any(
+        state in response_text for state in valid_states
+    ), f"Expected one of {valid_states}, got: {response_text}"
+
+
+@pytest.mark.asyncio
+async def test_sap_keyboard_f3_navigates_back(sap_mcp_client: ClientSession) -> None:
+    """Test F3 (Back) returns from transaction to previous screen."""
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Press F3 to go back
+    result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
+    assert result.content, "Expected response from sap_keyboard"
+    response_text = result.content[0].text.lower()
+
+    assert "sent keyboard shortcut" in response_text, f"Unexpected response: {response_text}"
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Should be back on Easy Access or previous screen
+    html_result = await sap_mcp_client.call_tool("browser_get_html", {})
+    page_html = html_result.content[0].text.lower()
+
+    # SE16 specific content should be gone or we should be on Easy Access
+    se16_gone = "data browser" not in page_html and "tabelleninhalt" not in page_html
+    on_easy_access = "sap easy access" in page_html or "toolbarokcode" in page_html
+
+    assert se16_gone or on_easy_access, "F3 should have navigated away from SE16"
+
+
+@pytest.mark.asyncio
+async def test_sap_keyboard_f8_triggers_execution(sap_mcp_client: ClientSession) -> None:
+    """Test F8 (Execute) triggers action in SE16.
+
+    When F8 is pressed in SE16 without a table name, SAP should show an error
+    message about missing table name - this proves F8 was received.
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "EN")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Try to execute without entering a table name - should trigger error
+    result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    assert result.content, "Expected response from sap_keyboard"
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Check for error message in page or status bar
+    html_result = await sap_mcp_client.call_tool("browser_get_html", {})
+    page_html = html_result.content[0].text.lower()
+
+    # SAP should show error about missing table name
+    if sap_language == "DE":
+        expected_phrases = ["eingabe", "tabelle", "fehler", "pflichtfeld", "füllen"]
+    else:
+        expected_phrases = ["enter", "table", "error", "required", "specify", "fill"]
+
+    assert any(
+        phrase in page_html for phrase in expected_phrases
+    ), f"F8 without input should trigger error or prompt. Language: {sap_language}"
+
+
+@pytest.mark.asyncio
+async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> None:
+    """Test reading screen text from SE16 initial screen."""
+    sap_language = os.environ.get("SAP_LANGUAGE", "EN")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    result = await sap_mcp_client.call_tool("sap_get_screen_text", {})
+    assert result.content, "Expected response from sap_get_screen_text"
+    response_text = result.content[0].text.lower()
+
+    # SE16 should show table name prompt
+    if sap_language == "DE":
+        expected_phrases = ["tabellenname", "tabelle", "data browser"]
+    else:
+        expected_phrases = ["table name", "table", "data browser"]
+
+    assert any(
+        phrase in response_text for phrase in expected_phrases
+    ), f"SE16 screen text should contain table-related labels. Language: {sap_language}. Got: {response_text[:500]}"
+
+
+@pytest.mark.asyncio
+async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> None:
+    """Test that sap_get_screen_text returns structured output."""
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SU3"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    result = await sap_mcp_client.call_tool("sap_get_screen_text", {})
+    response_text = result.content[0].text
+
+    # Check for expected structure markers
+    assert "=== Screen:" in response_text, "Should contain screen header"
+
+    # Should have some labels or content
+    has_labels = "Labels/Fields:" in response_text
+    has_content = "Content:" in response_text
+    has_buttons = "Buttons:" in response_text
+
+    assert (
+        has_labels or has_content or has_buttons
+    ), f"Screen text should contain labels, content, or buttons. Got: {response_text[:500]}"
+
+
+@pytest.mark.asyncio
+async def test_sap_read_table_from_sm37(sap_mcp_client: ClientSession) -> None:
+    """Test reading table data from SM37 (Job Overview).
+
+    SM37 exists on every SAP system and shows background jobs.
+    We search for all jobs to ensure we get some data.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Fill job selection with wildcards to get any jobs
+    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='JOBNAME' i]", "value": "*"})
+    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='USERNAME' i]", "value": "*"})
+
+    # Execute search
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    result = await sap_mcp_client.call_tool("sap_read_table", {"start_row": 1, "end_row": 5})
+    assert result.content, "Expected response from sap_read_table"
+    response_text = result.content[0].text
+
+    # Should return JSON data or indicate no data/no table
+    # Even if no jobs exist, we should get a valid response
+    has_data = "rows" in response_text.lower() or "headers" in response_text.lower()
+    no_data = (
+        "no table" in response_text.lower() or "no data" in response_text.lower() or "error" in response_text.lower()
+    )
+
+    assert has_data or no_data, f"Expected table data or clear indication of no data: {response_text}"
+
+
+@pytest.mark.asyncio
+async def test_sap_read_table_from_se93(sap_mcp_client: ClientSession) -> None:
+    """Test reading transaction codes from SE93.
+
+    SE93 with wildcard 'SE*' will always return results (SE11, SE16, etc.).
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE93"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Search for transactions starting with SE
+    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='TCODE' i]", "value": "SE*"})
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    result = await sap_mcp_client.call_tool("sap_read_table", {})
+    assert result.content, "Expected response from sap_read_table"
+    response_text = result.content[0].text.lower()
+
+    # Should find standard SE* transactions
+    # Check for either transaction codes in data or valid table structure
+    has_se_transactions = "se11" in response_text or "se16" in response_text or "se80" in response_text
+    has_table_structure = "rows" in response_text or "headers" in response_text
+
+    assert (
+        has_se_transactions or has_table_structure
+    ), f"Expected to find standard SE* transactions or table structure: {response_text[:500]}"
+
+
+@pytest.mark.asyncio
+async def test_sap_read_status_bar_after_navigation(sap_mcp_client: ClientSession) -> None:
+    """Test reading status bar after successful navigation."""
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SU3"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
+    assert result.content, "Expected response from sap_read_status_bar"
+    response_text = result.content[0].text
+
+    # Should return JSON with type and message fields
+    assert (
+        "type" in response_text.lower() or "message" in response_text.lower()
+    ), f"Status bar should return type/message info: {response_text}"
+
+
+@pytest.mark.asyncio
+async def test_sap_read_status_bar_after_error(sap_mcp_client: ClientSession) -> None:
+    """Test reading status bar after triggering an error."""
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Try invalid transaction to trigger error
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "ZZZZINVALID999"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
+    assert result.content, "Expected response from sap_read_status_bar"
+    response_text = result.content[0].text.lower()
+
+    # Should indicate error type or contain error message
+    error_indicators = ['"e"', '"type": "e"', "error", "fehler", "existiert nicht", "does not exist"]
+    assert any(
+        indicator in response_text for indicator in error_indicators
+    ), f"Status bar should indicate error after invalid transaction: {response_text}"
+
+
+@pytest.mark.asyncio
+async def test_sap_get_screen_info_from_se16(sap_mcp_client: ClientSession) -> None:
+    """Test getting screen info from SE16."""
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    result = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+    assert result.content, "Expected response from sap_get_screen_info"
+    response_text = result.content[0].text.lower()
+
+    # Should contain basic screen info
+    assert "title" in response_text, "Screen info should contain title"
+    assert "url" in response_text, "Screen info should contain url"
+
+
+@pytest.mark.asyncio
+async def test_sap_get_screen_info_different_transactions(sap_mcp_client: ClientSession) -> None:
+    """Test that screen info changes between transactions."""
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Get info from SE16
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+    result1 = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+    info1 = result1.content[0].text.lower()
+
+    # Get info from SM37
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+    result2 = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+    info2 = result2.content[0].text.lower()
+
+    # The title or content should be different
+    assert info1 != info2, "Screen info should differ between SE16 and SM37"
