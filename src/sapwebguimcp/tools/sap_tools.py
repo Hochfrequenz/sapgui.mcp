@@ -458,8 +458,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 if not success:
                     return (
                         f"Could not find or enable OK-Code field. {message} "
-                        "You may need to enable it manually: "
-                        "Menu → Settings → Enable 'OK-Code Field' or 'Transaction Field'"
+                        "Possible causes: (1) A popup/dialog may be blocking the screen - "
+                        "close any open dialogs first. (2) The OK-Code field may need to be "
+                        "enabled manually: Menu → Settings → Enable 'OK-Code Field' or "
+                        "'Transaction Field'."
                     )
 
                 await page.wait_for_timeout(500)
@@ -468,7 +470,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 if not okcode_field:
                     return (
                         f"OK-Code field still not visible after enabling. {message} "
-                        "Please try enabling it manually in SAP settings."
+                        "Possible causes: (1) A popup/dialog may be blocking the screen - "
+                        "close any open dialogs first. (2) Please try enabling it manually "
+                        "in SAP settings."
                     )
 
             # Step 3: Enter the transaction code
