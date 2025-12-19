@@ -12,11 +12,14 @@ This module contains tools for:
 - sap_read_table: Read data from ALV grids and tables
 - sap_read_status_bar: Read status bar messages
 - sap_get_screen_info: Get technical screen information
+- sap_lookup_fields: Look up known field selectors for a transaction
+- sap_discover_fields: Discover input fields on current screen
 """
 
 import asyncio
 import json
 import logging
+from importlib import resources
 from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -830,7 +833,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return f"Error getting screen text: {e}"
 
     @mcp.tool(description="Read data from an ALV grid or table on the current screen")
-    async def sap_read_table(start_row: int = 1, end_row: Optional[int] = None) -> str:
+    async def sap_read_table(start_row: int = 1, end_row: Optional[int] = None, max_rows: int = 100) -> str:
         """
         Read rows from an ALV grid or table on the current screen.
 
@@ -838,10 +841,12 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         Args:
             start_row: First row to read (1-indexed, default: 1)
-            end_row: Last row to read (None = all visible rows)
+            end_row: Last row to read (None = up to max_rows visible rows)
+            max_rows: Maximum rows to return (default: 100, prevents huge responses)
 
         Returns:
             JSON-formatted table data with column headers and row values.
+            Empty columns are excluded to reduce response size.
             Returns error message if no table found.
         """
         ctx = mcp.get_context()
@@ -854,7 +859,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             table_data = await page.evaluate(
                 """
                 (params) => {
-                    const { startRow, endRow } = params;
+                    const { startRow, endRow, maxRows } = params;
 
                     // Find table elements (various SAP table implementations)
                     const tableSelectors = [
@@ -879,7 +884,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     const headers = [];
                     const headerCells = table.querySelectorAll('th, [role="columnheader"]');
                     headerCells.forEach(cell => {
-                        headers.push(cell.textContent.trim());
+                        // Limit header text length and clean whitespace
+                        let text = cell.textContent.trim().substring(0, 50);
+                        headers.push(text);
                     });
 
                     // If no headers found in th, try first row
@@ -887,15 +894,19 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         const firstRow = table.querySelector('tr');
                         if (firstRow) {
                             firstRow.querySelectorAll('td').forEach(cell => {
-                                headers.push(cell.textContent.trim());
+                                let text = cell.textContent.trim().substring(0, 50);
+                                headers.push(text);
                             });
                         }
                     }
 
-                    // Get rows
+                    // Get rows with limits
                     const rows = [];
                     const dataRows = table.querySelectorAll('tbody tr, tr[role="row"]');
-                    const actualEndRow = endRow || dataRows.length;
+                    const actualEndRow = endRow ? Math.min(endRow, startRow + maxRows - 1) : Math.min(dataRows.length, startRow + maxRows - 1);
+
+                    // Track which columns have data (to filter out empty columns)
+                    const columnsWithData = new Set();
 
                     for (let i = startRow - 1; i < Math.min(actualEndRow, dataRows.length); i++) {
                         const row = dataRows[i];
@@ -905,8 +916,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         const rowData = {};
 
                         cells.forEach((cell, idx) => {
-                            const headerName = headers[idx] || `column_${idx + 1}`;
-                            rowData[headerName] = cell.textContent.trim();
+                            // Limit cell text to 200 chars to prevent huge values
+                            let cellText = cell.textContent.trim().substring(0, 200);
+                            if (cellText) {
+                                const headerName = headers[idx] || `col_${idx + 1}`;
+                                rowData[headerName] = cellText;
+                                columnsWithData.add(headerName);
+                            }
                         });
 
                         if (Object.keys(rowData).length > 0) {
@@ -914,14 +930,21 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         }
                     }
 
+                    // Filter headers to only include columns that have data
+                    const usedHeaders = headers.filter((h, idx) =>
+                        columnsWithData.has(h) || columnsWithData.has(`col_${idx + 1}`)
+                    );
+
                     return {
-                        headers: headers,
-                        rowCount: dataRows.length,
+                        headers: usedHeaders,
+                        totalRows: dataRows.length,
+                        returnedRows: rows.length,
+                        truncated: dataRows.length > actualEndRow,
                         rows: rows
                     };
                 }
                 """,
-                {"startRow": start_row, "endRow": end_row},
+                {"startRow": start_row, "endRow": end_row, "maxRows": max_rows},
             )
 
             if "error" in table_data:
@@ -1106,3 +1129,155 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error getting screen info")
             return f"Error getting screen info: {e}"
+
+    @mcp.tool(description="Look up known field selectors for an SAP transaction")
+    async def sap_lookup_fields(transaction: str) -> str:
+        """
+        Look up known field selectors for an SAP transaction.
+
+        This tool returns pre-discovered CSS selectors for input fields
+        in common SAP transactions. Use this BEFORE trying to interact
+        with a transaction to find the correct field selectors.
+
+        Args:
+            transaction: Transaction code (e.g., SE16, VA01, BP)
+
+        Returns:
+            JSON with known field selectors for the transaction,
+            or a message if the transaction is not in the registry.
+        """
+        try:
+            # Load the field registry
+            try:
+                registry_file = resources.files("sapwebguimcp.data").joinpath("sap_field_registry.json")
+                registry_data = json.loads(registry_file.read_text(encoding="utf-8"))
+            except Exception:  # pylint: disable=broad-exception-caught
+                return "Field registry not available. Use sap_discover_fields to find fields on current screen."
+
+            # Look up the transaction (case-insensitive)
+            tcode_upper = transaction.upper().strip()
+            if tcode_upper in registry_data:
+                result = {
+                    "transaction": tcode_upper,
+                    "fields": registry_data[tcode_upper],
+                }
+                return json.dumps(result, indent=2, ensure_ascii=False)
+
+            # Check if it's a partial match
+            matches = [k for k in registry_data.keys() if not k.startswith("_") and tcode_upper in k]
+            if matches:
+                return f"Transaction '{tcode_upper}' not found. Similar: {', '.join(matches)}"
+
+            return (
+                f"Transaction '{tcode_upper}' not in field registry. "
+                "Use sap_discover_fields to discover fields on the current screen."
+            )
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error looking up fields")
+            return f"Error looking up fields: {e}"
+
+    @mcp.tool(description="Discover input fields on the current SAP screen")
+    async def sap_discover_fields() -> str:
+        """
+        Discover all input fields on the current SAP screen.
+
+        This tool analyzes the current page and returns information about
+        all visible input fields, including their IDs, names, labels, and
+        suggested CSS selectors.
+
+        Use this when sap_lookup_fields doesn't have information for
+        the current transaction.
+
+        Returns:
+            JSON with discovered fields including:
+            - id: Element ID
+            - name: Element name attribute
+            - label: Associated label text (if found)
+            - type: Input type
+            - selector: Suggested CSS selector to use
+            - value: Current value (if any)
+        """
+        ctx = mcp.get_context()
+        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Discover fields using JavaScript
+            fields = await page.evaluate(
+                """
+                () => {
+                    const fields = [];
+
+                    // Find all input elements
+                    document.querySelectorAll('input, select, textarea').forEach(el => {
+                        // Skip hidden and submit buttons
+                        if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button') {
+                            return;
+                        }
+
+                        // Skip if not visible
+                        const rect = el.getBoundingClientRect();
+                        if (rect.width === 0 || rect.height === 0) {
+                            return;
+                        }
+
+                        const field = {
+                            id: el.id || '',
+                            name: el.name || '',
+                            type: el.type || el.tagName.toLowerCase(),
+                            value: el.value ? el.value.substring(0, 50) : '',
+                            label: '',
+                            selector: ''
+                        };
+
+                        // Find associated label
+                        if (el.id) {
+                            const label = document.querySelector(`label[for="${el.id}"]`);
+                            if (label) {
+                                field.label = label.textContent.trim().substring(0, 50);
+                            }
+                        }
+
+                        // If no label found, look for nearby text
+                        if (!field.label) {
+                            const parent = el.parentElement;
+                            if (parent) {
+                                const prevSibling = el.previousElementSibling;
+                                if (prevSibling && prevSibling.tagName !== 'INPUT') {
+                                    field.label = prevSibling.textContent.trim().substring(0, 50);
+                                }
+                            }
+                        }
+
+                        // Generate best selector
+                        if (el.id) {
+                            field.selector = `#${el.id}`;
+                        } else if (el.name) {
+                            field.selector = `input[name="${el.name}"]`;
+                        } else if (field.label) {
+                            field.selector = `input:near(:text("${field.label}"))`;
+                        }
+
+                        fields.push(field);
+                    });
+
+                    return fields;
+                }
+                """
+            )
+
+            return json.dumps(
+                {
+                    "fieldCount": len(fields),
+                    "fields": fields,
+                    "hint": "Use the 'selector' values with browser_fill or browser_click tools",
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error discovering fields")
+            return f"Error discovering fields: {e}"

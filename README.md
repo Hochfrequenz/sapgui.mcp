@@ -153,6 +153,51 @@ Ask Claude things like:
 - "Run transaction VA01"
 - "Take a screenshot of the current screen"
 
+### Optional: Auto-approve SAP tools
+
+By default, Claude Desktop asks for confirmation before running MCP tools. To auto-approve SAP tools, add an `alwaysAllow` section to your config:
+
+```json
+{
+  "mcpServers": {
+    "sap-webgui": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "BROWSER_MODE=connect",
+        "-e", "CDP_URL=http://host.docker.internal:9223",
+        "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+        "-e", "SAP_USER=your_username",
+        "-e", "SAP_PASSWORD=your_password",
+        "-e", "SAP_MANDANT=100",
+        "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+      ],
+      "alwaysAllow": [
+        "sap_login",
+        "sap_transaction",
+        "sap_keyboard",
+        "sap_session_status",
+        "sap_keepalive_start",
+        "sap_keepalive_stop",
+        "sap_get_screen_text",
+        "sap_read_table",
+        "sap_read_status_bar",
+        "sap_get_screen_info",
+        "browser_snapshot",
+        "browser_screenshot",
+        "browser_click",
+        "browser_fill",
+        "browser_keyboard",
+        "browser_navigate",
+        "browser_wait",
+        "browser_get_html",
+        "browser_select_option"
+      ]
+    }
+  }
+}
+```
+
 ---
 
 ## Start the Server (Advanced)

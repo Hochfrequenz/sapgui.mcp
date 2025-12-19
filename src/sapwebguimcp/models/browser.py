@@ -122,6 +122,7 @@ class BrowserManager:
         Get or create a named page.
 
         Pages persist across tool calls, allowing for stateful interactions.
+        When connecting to an existing browser, reuses existing pages.
 
         Args:
             name: Page name. If None, uses the default SAP page.
@@ -134,6 +135,7 @@ class BrowserManager:
 
         page_name = name or self._default_page_name
 
+        # Check if we already have this page cached
         if page_name in self._pages:
             page = self._pages[page_name]
             if not page.is_closed():
@@ -143,6 +145,16 @@ class BrowserManager:
         if self._context is None:
             raise RuntimeError("Browser context not initialized")
 
+        # When connected via CDP, try to use existing pages first
+        existing_pages = self._context.pages
+        if existing_pages:
+            # Use the first existing page (usually the active tab)
+            page = existing_pages[0]
+            self._pages[page_name] = page
+            logger.info("Using existing page: %s (from %d available)", page_name, len(existing_pages))
+            return page
+
+        # Only create new page if none exist
         page = await self._context.new_page()
         self._pages[page_name] = page
         logger.info("Created new page: %s", page_name)
