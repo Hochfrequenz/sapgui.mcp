@@ -34,15 +34,17 @@ COPY pyproject.toml .
 COPY README.md .
 
 # Install the package (must be done as root before switching user)
-RUN pip install --no-cache-dir .
+# Set fake version only if not provided - Docker build has no git metadata for hatch-vcs
+RUN SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION:-0.0.0.dev0+docker} \
+    pip install --no-cache-dir .
 
 USER appuser
 
-# Set environment variables
-ENV BROWSER_MODE=launch
-ENV BROWSER_HEADLESS=false
+# Default to connect mode since Docker containers don't have displays.
+# Users should run a browser with --remote-debugging-port=9222 on the host.
+ENV BROWSER_MODE=connect
 ENV BROWSER_TYPE=chromium
+ENV CDP_URL=http://host.docker.internal:9222
 
-# the tail command is to not directly exit after starting the server
-# feel free to remove it, but please manually test your changes ;)
-ENTRYPOINT ["sh", "-c", "mcp run src/sapwebguimcp/server.py && tail -f /dev/null"]
+# The tail command keeps the container running after the server starts
+ENTRYPOINT ["sh", "-c", "run-sapwebgui-mcp-server && tail -f /dev/null"]
