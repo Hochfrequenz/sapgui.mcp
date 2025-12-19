@@ -111,10 +111,28 @@ class BrowserManager:
                 logger.info("Created new context in connected browser")
 
         except Exception as e:
+            # Provide helpful platform-specific commands
+            chrome_commands = (
+                "\n\nStart Chrome with remote debugging:\n"
+                "  Windows (PowerShell):\n"
+                '    & "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" '
+                "--remote-debugging-port=9222 "
+                '--user-data-dir="C:\\temp\\chrome-debug" '
+                "--ignore-certificate-errors\n"
+                "  macOS:\n"
+                "    /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome "
+                "--remote-debugging-port=9222 "
+                '--user-data-dir="/tmp/chrome-debug" '
+                "--ignore-certificate-errors\n"
+                "  Linux:\n"
+                "    google-chrome --remote-debugging-port=9222 "
+                '--user-data-dir="/tmp/chrome-debug" '
+                "--ignore-certificate-errors"
+            )
             raise RuntimeError(
                 f"Failed to connect to browser at {settings.cdp_url}. "
-                f"Make sure browser is running with --remote-debugging-port=9222. "
                 f"Error: {e}"
+                f"{chrome_commands}"
             ) from e
 
     async def get_page(self, name: Optional[str] = None) -> Page:
