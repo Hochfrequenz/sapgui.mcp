@@ -105,7 +105,7 @@ starlette==0.50.0
     # via
     #   mcp
     #   sse-starlette
-typer==0.20.0
+typer==0.21.0
     # via mcp
 typing-extensions==4.15.0
     # via
