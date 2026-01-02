@@ -708,9 +708,9 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
     )
     await assert_fill_success(result, f"TO_DATE={to_date}")
 
-    # Execute (F8) and wait for list output to complete
+    # Execute (F8) and wait for list output to complete (can take a while with many jobs)
     await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
-    await sap_mcp_client.call_tool("browser_wait", {"timeout": 10000})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 30000})
 
     # Capture table results HTML for unit tests
     await capture_html_snapshot(sap_mcp_client, "sm37_results")
@@ -719,14 +719,15 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
     assert result.content, "Expected response from sap_read_table"
     response_text = result.content[0].text
 
-    # Should return JSON data or indicate no data/no table
-    # Even if no jobs exist, we should get a valid response
-    has_data = "rows" in response_text.lower() or "headers" in response_text.lower()
-    no_data = (
-        "no table" in response_text.lower() or "no data" in response_text.lower() or "error" in response_text.lower()
-    )
+    # Assert that we got actual table data with rows
+    assert '"rows"' in response_text, f"Expected table with 'rows', got: {response_text[:500]}"
+    assert '"totalRows"' in response_text, f"Expected 'totalRows' in response, got: {response_text[:500]}"
 
-    assert has_data or no_data, f"Expected table data or clear indication of no data: {response_text}"
+    # Parse and verify we got some jobs
+    import json
+    table_data = json.loads(response_text)
+    assert table_data.get("totalRows", 0) > 0, f"Expected some jobs in SM37, got totalRows=0"
+    assert len(table_data.get("rows", [])) > 0, "Expected at least one row in SM37 results"
 
 
 @pytest.mark.anyio
