@@ -200,7 +200,7 @@ async def test_login_page_fields_findable_by_playwright(mcp_client: ClientSessio
     result = await mcp_client.call_tool(
         "browser_evaluate",
         {
-            "expression": """
+            "script": """
             (function() {
                 var fields = {
                     'sap-client': document.querySelector('#sap-client, input[name="sap-client"]'),
@@ -224,7 +224,12 @@ async def test_login_page_fields_findable_by_playwright(mcp_client: ClientSessio
     )
 
     assert result.content, "Expected response from browser_evaluate"
-    fields_info = json.loads(result.content[0].text)
+    # browser_evaluate returns the JS result as a JSON string, need to parse it
+    raw_text = result.content[0].text
+    # The result might be double-quoted (JSON string of JSON string)
+    fields_info = json.loads(raw_text)
+    if isinstance(fields_info, str):
+        fields_info = json.loads(fields_info)
 
     # Verify ALL login form fields were found by the browser
     assert fields_info["sap-client"]["found"], "Browser should find #sap-client (client/mandant field)"

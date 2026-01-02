@@ -80,6 +80,29 @@ def clean_environment() -> Generator[None, None, None]:
 
 
 @pytest.fixture
+async def mcp_client() -> AsyncGenerator[ClientSession, None]:
+    """
+    Fixture that provides an MCP client for tests that don't need SAP access.
+
+    This fixture starts the sapwebguimcp server but doesn't require SAP credentials.
+    Useful for testing browser tools with local HTML files (like HTML snapshots).
+
+    Note: SAP-specific tools (sap_login, sap_transaction) will fail without SAP_URL,
+    but browser tools (browser_navigate, browser_evaluate) work fine with file:// URLs.
+    """
+    server_params = StdioServerParameters(
+        command=sys.executable,
+        args=["-m", "sapwebguimcp.server"],
+        env={**os.environ},
+    )
+
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            yield session
+
+
+@pytest.fixture
 async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     """
     Fixture that provides an MCP client connected to a real SAP Web GUI server.
