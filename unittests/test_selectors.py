@@ -470,12 +470,12 @@ class TestTableContentExtraction:
             len(object_fields) >= 1 or len(visible_inputs) >= 1
         ), "SE11 initial screen should have an object name input field"
 
-    def test_se11_t000_definition_shows_fields(self, html_snapshots_path: Path) -> None:
-        """Verify SE11 T000 definition shows table field names.
+    def test_se11_t000_content_shows_fields(self, html_snapshots_path: Path) -> None:
+        """Verify SE11 T000 content shows table field names.
 
-        The table definition view should show field names like MANDT, CCCATEGORY.
+        The table structure view should show field names like MANDT, CCCATEGORY.
         """
-        snapshot = get_snapshot_path(html_snapshots_path, "se11_t000_definition")
+        snapshot = get_snapshot_path(html_snapshots_path, "se11_t000_content")
         if snapshot is None:
             pytest.skip("se11_t000_definition snapshot not available - run integration tests first")
         soup = load_snapshot(snapshot)

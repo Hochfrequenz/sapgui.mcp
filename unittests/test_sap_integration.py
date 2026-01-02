@@ -763,17 +763,18 @@ async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None
     # Capture SE11 initial screen
     await capture_html_snapshot(sap_mcp_client, "se11_initial")
 
-    # Enter table name T000
-    await sap_mcp_client.call_tool(
-        "browser_fill", {"selector": "input[id*='RSRD1-TBMA_VAL' i], input[id*='TBMA' i]", "value": "T000"}
-    )
+    # "Datenbanktabelle" is a radio button, click it then Tab to the text field
+    await sap_mcp_client.call_tool("browser_click", {"selector": "text=Datenbanktabelle"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 300})
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "Tab"})
+    await sap_mcp_client.call_tool("browser_keyboard", {"text": "T000"})
 
-    # Click Display button (F7) to view table definition
+    # Press F7 (Anzeigen/Display) to view table definition
     await sap_mcp_client.call_tool("sap_keyboard", {"key": "F7"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
-    # Capture table definition HTML
-    await capture_html_snapshot(sap_mcp_client, "se11_t000_definition")
+    # Capture table structure HTML
+    await capture_html_snapshot(sap_mcp_client, "se11_t000_content")
 
     # Verify we're on the table definition screen
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
