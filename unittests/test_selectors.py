@@ -90,7 +90,7 @@ def load_snapshot(snapshot_path: Path) -> BeautifulSoup | None:
     # IMPORTANT: This is ONLY a problem for our offline unit tests that parse raw HTML.
     # Real browsers (Chrome, Firefox) and Playwright handle this gracefully because their
     # HTML parsers are more lenient. The actual SAP Web GUI works perfectly for users.
-    # See test_sap_integration.py::test_login_page_fields_findable_by_playwright for proof.
+    # The sap_login integration test (when run locally with SAP access) proves this works.
     #
     # Fix: Remove the problematic lsHtmlTextView span opening tags.
     # Yes, using regex on HTML is generally a bad idea, but the HTML is already broken
