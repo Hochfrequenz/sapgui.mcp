@@ -633,11 +633,11 @@ async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> N
 
 
 @pytest.mark.anyio
-async def test_sap_read_table_from_sm37(sap_mcp_client: ClientSession) -> None:
-    """Test reading table data from SM37 (Job Overview).
+async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -> None:
+    """Test SM37 when no jobs match selection criteria.
 
-    SM37 exists on every SAP system and shows background jobs.
-    We search for all jobs to ensure we get some data.
+    Uses current user (default) which typically has no scheduled jobs,
+    resulting in "Kein Job entspricht den Selektionsbedingungen" message.
     """
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
@@ -646,9 +646,42 @@ async def test_sap_read_table_from_sm37(sap_mcp_client: ClientSession) -> None:
     # Capture HTML snapshot for offline selector testing (before filling form)
     await capture_html_snapshot(sap_mcp_client, "sm37_initial")
 
-    # Fill job selection with wildcards to get any jobs
+    # Use defaults (current user) - typically no jobs
+    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='JOBNAME' i]", "value": "*"})
+
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Check status bar for "no jobs" message
+    status_result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
+    status_text = status_result.content[0].text.lower() if status_result.content else ""
+
+    # German: "Kein Job entspricht den Selektionsbedingungen"
+    # English: "No job meets the selection conditions"
+    no_jobs_de = "kein job" in status_text
+    no_jobs_en = "no job" in status_text
+
+    assert no_jobs_de or no_jobs_en, f"Expected 'no jobs' status message, got: {status_text}"
+
+
+@pytest.mark.anyio
+async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) -> None:
+    """Test reading table data from SM37 (Job Overview) with broad criteria.
+
+    SM37 exists on every SAP system and shows background jobs.
+    Uses wildcards for username and broad date range to find jobs.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Fill job selection with wildcards and clear username restriction
     await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='JOBNAME' i]", "value": "*"})
     await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='USERNAME' i]", "value": "*"})
+
+    # Set broad date range (last 30 days) to find jobs
+    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='FROMDATE' i]", "value": ""})
+    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='TODATE' i]", "value": ""})
 
     await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
