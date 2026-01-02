@@ -29,6 +29,7 @@ from pathlib import Path
 
 import pytest
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 
 # Import the selectors we want to test
 from sapwebguimcp.tools.sap_tools import SELECTORS
@@ -40,20 +41,23 @@ def html_snapshots_path() -> Path:
     return Path(__file__).parent / "testdata" / "html_snapshots"
 
 
-def load_snapshot(snapshots_path: Path, filename: str) -> BeautifulSoup | None:
+def load_snapshot(snapshot_path: Path) -> BeautifulSoup | None:
     """
     Load an HTML snapshot and parse it with BeautifulSoup.
 
-    Returns None if the snapshot doesn't exist (test will be skipped).
+    Args:
+        snapshot_path: Full path to the HTML snapshot file.
+
+    Returns:
+        BeautifulSoup object or None if the snapshot doesn't exist (test will be skipped).
     """
-    filepath = snapshots_path / filename
-    if not filepath.exists():
+    if not snapshot_path.exists():
         return None
-    html = filepath.read_text(encoding="utf-8")
+    html = snapshot_path.read_text(encoding="utf-8")
     return BeautifulSoup(html, "lxml")
 
 
-def css_select(soup: BeautifulSoup, selector: str) -> list:
+def css_select(soup: BeautifulSoup, selector: str) -> list[Tag]:
     """
     Select elements using a CSS selector, handling comma-separated selectors.
 
@@ -82,7 +86,7 @@ class TestOkCodeFieldSelector:
 
     def test_okcode_field_in_easy_access(self, html_snapshots_path: Path) -> None:
         """Verify OK-Code field selector finds the field in SAP Easy Access screen."""
-        soup = load_snapshot(html_snapshots_path, "easy_access.html")
+        soup = load_snapshot(html_snapshots_path / "easy_access.html")
         if soup is None:
             pytest.skip("easy_access.html snapshot not available - run integration tests first")
 
@@ -98,7 +102,7 @@ class TestOkCodeFieldSelector:
 
     def test_okcode_field_in_su3(self, html_snapshots_path: Path) -> None:
         """Verify OK-Code field is present in SU3 transaction screen."""
-        soup = load_snapshot(html_snapshots_path, "su3_screen.html")
+        soup = load_snapshot(html_snapshots_path / "su3_screen.html")
         if soup is None:
             pytest.skip("su3_screen.html snapshot not available - run integration tests first")
 
@@ -110,7 +114,7 @@ class TestOkCodeFieldSelector:
 
     def test_okcode_field_in_se16(self, html_snapshots_path: Path) -> None:
         """Verify OK-Code field is present in SE16 Data Browser screen."""
-        soup = load_snapshot(html_snapshots_path, "se16_initial.html")
+        soup = load_snapshot(html_snapshots_path / "se16_initial.html")
         if soup is None:
             pytest.skip("se16_initial.html snapshot not available - run integration tests first")
 
@@ -126,7 +130,7 @@ class TestStatusBarSelector:
 
     def test_status_bar_error_detection(self, html_snapshots_path: Path) -> None:
         """Verify error message is detectable in status bar HTML."""
-        soup = load_snapshot(html_snapshots_path, "status_bar_error.html")
+        soup = load_snapshot(html_snapshots_path / "status_bar_error.html")
         if soup is None:
             pytest.skip("status_bar_error.html snapshot not available - run integration tests first")
 
@@ -148,7 +152,7 @@ class TestStatusBarSelector:
         )
 
 
-def find_sap_field_by_sid(soup: BeautifulSoup, sid_pattern: str) -> list:
+def find_sap_field_by_sid(soup: BeautifulSoup, sid_pattern: str) -> list[Tag]:
     """
     Find SAP fields by their SID pattern in the lsdata attribute.
 
@@ -180,7 +184,7 @@ class TestTransactionFieldSelectors:
         SAP Web GUI generates dynamic IDs like 'M0:46:::2:21' but the stable
         identifier is in the lsdata attribute: "SID":"wnd[0]/usr/ctxtDATABROWSE-TABLENAME"
         """
-        soup = load_snapshot(html_snapshots_path, "se16_initial.html")
+        soup = load_snapshot(html_snapshots_path / "se16_initial.html")
         if soup is None:
             pytest.skip("se16_initial.html snapshot not available - run integration tests first")
 
@@ -201,7 +205,7 @@ class TestTransactionFieldSelectors:
 
         SM37 has multiple input fields. The job name field has 'JOBNAME' in its SID.
         """
-        soup = load_snapshot(html_snapshots_path, "sm37_initial.html")
+        soup = load_snapshot(html_snapshots_path / "sm37_initial.html")
         if soup is None:
             pytest.skip("sm37_initial.html snapshot not available - run integration tests first")
 
@@ -219,7 +223,7 @@ class TestInputFieldDiscovery:
 
     def test_discover_inputs_in_se16(self, html_snapshots_path: Path) -> None:
         """Verify we can discover input fields in SE16 screen."""
-        soup = load_snapshot(html_snapshots_path, "se16_initial.html")
+        soup = load_snapshot(html_snapshots_path / "se16_initial.html")
         if soup is None:
             pytest.skip("se16_initial.html snapshot not available - run integration tests first")
 
@@ -231,7 +235,7 @@ class TestInputFieldDiscovery:
 
     def test_discover_inputs_in_sm37(self, html_snapshots_path: Path) -> None:
         """Verify we can discover input fields in SM37 screen."""
-        soup = load_snapshot(html_snapshots_path, "sm37_initial.html")
+        soup = load_snapshot(html_snapshots_path / "sm37_initial.html")
         if soup is None:
             pytest.skip("sm37_initial.html snapshot not available - run integration tests first")
 
@@ -246,7 +250,7 @@ class TestLoginPageSelectors:
 
     def test_login_form_elements(self, html_snapshots_path: Path) -> None:
         """Verify login form elements can be found (if login page snapshot exists)."""
-        soup = load_snapshot(html_snapshots_path, "login_page.html")
+        soup = load_snapshot(html_snapshots_path / "login_page.html")
         if soup is None:
             pytest.skip("login_page.html snapshot not available")
 
