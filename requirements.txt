@@ -52,7 +52,7 @@ jsonschema-specifications==2025.9.1
     # via jsonschema
 markdown-it-py==4.0.0
     # via rich
-mcp[cli]==1.24.0
+mcp[cli]==1.25.0
     # via sapwebguimcp (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
@@ -105,7 +105,7 @@ starlette==0.50.0
     # via
     #   mcp
     #   sse-starlette
-typer==0.20.0
+typer==0.21.0
     # via mcp
 typing-extensions==4.15.0
     # via
@@ -123,5 +123,5 @@ typing-inspection==0.4.2
     #   mcp
     #   pydantic
     #   pydantic-settings
-uvicorn==0.38.0
+uvicorn==0.40.0
     # via mcp
