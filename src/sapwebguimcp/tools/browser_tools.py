@@ -48,28 +48,29 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     @mcp.tool(description="Get accessibility tree snapshot of the current page")
     async def browser_snapshot(selector: Optional[str] = None) -> SnapshotResult:
         """
-        Get accessibility tree snapshot of the current page.
+        Get ARIA snapshot of the current page.
 
+        Returns a YAML representation of the accessibility tree.
         Useful for understanding page structure when other tools fail.
 
         Args:
             selector: Optional CSS selector to scope the snapshot
 
         Returns:
-            SnapshotResult with accessibility tree as dict
+            SnapshotResult with ARIA snapshot in YAML format
         """
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
         try:
             if selector:
-                element = await page.query_selector(selector)
-                if element:
-                    snapshot = await page.accessibility.snapshot(root=element)  # type: ignore[attr-defined]
+                locator = page.locator(selector)
+                if await locator.count() > 0:
+                    snapshot = await locator.first.aria_snapshot()
                 else:
                     return SnapshotResult.failure(f"Element not found: {selector}", selector=selector)
             else:
-                snapshot = await page.accessibility.snapshot()  # type: ignore[attr-defined]
+                snapshot = await page.locator("body").aria_snapshot()
 
             return SnapshotResult(snapshot=snapshot, selector=selector)
         except Exception as e:  # pylint: disable=broad-exception-caught

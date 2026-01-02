@@ -1,7 +1,7 @@
 """Browser tool result models."""
 
 from datetime import timedelta
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import Field
 
@@ -11,7 +11,7 @@ from sapwebguimcp.models.base import ToolResult
 class SnapshotResult(ToolResult):
     """Result from browser_snapshot tool."""
 
-    snapshot: dict[str, Any] | None = Field(default=None, description="Accessibility tree as dict")
+    snapshot: str | None = Field(default=None, description="ARIA snapshot in YAML format")
     selector: str | None = Field(default=None, description="Scoped selector if provided")
 
 
