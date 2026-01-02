@@ -48,7 +48,7 @@ docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 Configure via environment variables:
 
 | Variable           | Description                                          | Default                 |
-|--------------------|------------------------------------------------------|-------------------------|
+| ------------------ | ---------------------------------------------------- | ----------------------- |
 | `SAP_URL`          | Default SAP Web GUI URL (can be overridden per call) | (empty)                 |
 | `SAP_USER`         | SAP username for automatic login                     | (empty)                 |
 | `SAP_PASSWORD`     | SAP password for automatic login                     | (empty)                 |
@@ -69,26 +69,31 @@ The easiest way to use this server is with **Claude Desktop**:
 ### Step 1: Start Chrome with remote debugging
 
 Chrome needs to be started with special flags:
+
 - `--remote-debugging-port=9222` - Enables the Chrome DevTools Protocol
 - `--user-data-dir` - Uses a separate profile (required, otherwise Chrome joins an existing instance)
 - `--ignore-certificate-errors` - Skips SSL certificate warnings (useful for SAP systems with self-signed certs)
 
 **Windows** (run in PowerShell):
+
 ```powershell
 & "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
 ```
 
 **macOS**:
+
 ```bash
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
 ```
 
 **Linux**:
+
 ```bash
 google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
 ```
 
 **Verify it's working** (the debugging port should respond):
+
 ```bash
 # Windows (PowerShell)
 Invoke-WebRequest -Uri 'http://localhost:9222/json/version' -UseBasicParsing
@@ -102,6 +107,7 @@ If you get a connection error, Chrome isn't listening on port 9222. Make sure yo
 ### Step 2: Start the CDP proxy (Docker Desktop on Windows/macOS)
 
 When running in Docker Desktop on Windows or macOS, we need a proxy because:
+
 1. Chrome's DevTools Protocol rejects HTTP requests where the Host header isn't `localhost`
 2. Chrome returns WebSocket URLs pointing to `localhost`, which doesn't work inside Docker containers
 
@@ -121,6 +127,7 @@ docker compose up -d cdp-proxy
 ### Step 3: Configure Claude Desktop
 
 Find your Claude Desktop config file:
+
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
@@ -128,27 +135,36 @@ Add this configuration (replace the SAP values with your own):
 
 ```json
 {
-  "mcpServers": {
-    "sap-webgui": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "BROWSER_MODE=connect",
-        "-e", "CDP_URL=http://host.docker.internal:9223",
-        "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
-        "-e", "SAP_USER=your_username",
-        "-e", "SAP_PASSWORD=your_password",
-        "-e", "SAP_MANDANT=100",
-        "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
-      ]
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "-e",
+                "BROWSER_MODE=connect",
+                "-e",
+                "CDP_URL=http://host.docker.internal:9223",
+                "-e",
+                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "-e",
+                "SAP_USER=your_username",
+                "-e",
+                "SAP_PASSWORD=your_password",
+                "-e",
+                "SAP_MANDANT=100",
+                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+            ]
+        }
     }
-  }
 }
 ```
 
 ### Step 4: Restart Claude Desktop and start chatting
 
 Ask Claude things like:
+
 - "Log me into SAP"
 - "Run transaction VA01"
 - "Take a screenshot of the current screen"
@@ -159,42 +175,50 @@ By default, Claude Desktop asks for confirmation before running MCP tools. To au
 
 ```json
 {
-  "mcpServers": {
-    "sap-webgui": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "BROWSER_MODE=connect",
-        "-e", "CDP_URL=http://host.docker.internal:9223",
-        "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
-        "-e", "SAP_USER=your_username",
-        "-e", "SAP_PASSWORD=your_password",
-        "-e", "SAP_MANDANT=100",
-        "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
-      ],
-      "alwaysAllow": [
-        "sap_login",
-        "sap_transaction",
-        "sap_keyboard",
-        "sap_session_status",
-        "sap_keepalive_start",
-        "sap_keepalive_stop",
-        "sap_get_screen_text",
-        "sap_read_table",
-        "sap_read_status_bar",
-        "sap_get_screen_info",
-        "browser_snapshot",
-        "browser_screenshot",
-        "browser_click",
-        "browser_fill",
-        "browser_keyboard",
-        "browser_navigate",
-        "browser_wait",
-        "browser_get_html",
-        "browser_select_option"
-      ]
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "-e",
+                "BROWSER_MODE=connect",
+                "-e",
+                "CDP_URL=http://host.docker.internal:9223",
+                "-e",
+                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "-e",
+                "SAP_USER=your_username",
+                "-e",
+                "SAP_PASSWORD=your_password",
+                "-e",
+                "SAP_MANDANT=100",
+                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+            ],
+            "alwaysAllow": [
+                "sap_login",
+                "sap_transaction",
+                "sap_keyboard",
+                "sap_session_status",
+                "sap_keepalive_start",
+                "sap_keepalive_stop",
+                "sap_get_screen_text",
+                "sap_read_table",
+                "sap_read_status_bar",
+                "sap_get_screen_info",
+                "browser_snapshot",
+                "browser_screenshot",
+                "browser_click",
+                "browser_fill",
+                "browser_keyboard",
+                "browser_navigate",
+                "browser_wait",
+                "browser_get_html",
+                "browser_select_option"
+            ]
+        }
     }
-  }
 }
 ```
 
@@ -262,15 +286,15 @@ Modify your `claude_desktop_config.json`:
 
 ```json
 {
-  "mcpServers": {
-    "sap-webgui": {
-      "command": "/path/to/your/venv/bin/run-sapwebgui-mcp-server",
-      "args": [],
-      "env": {
-        "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui"
-      }
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "/path/to/your/venv/bin/run-sapwebgui-mcp-server",
+            "args": [],
+            "env": {
+                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -279,44 +303,64 @@ Modify your `claude_desktop_config.json`:
 First start Chrome with remote debugging and the CDP proxy (see Quick Start above), then configure Claude:
 
 **Docker Desktop (Windows/macOS)** - uses CDP proxy on port 9223:
+
 ```json
 {
-  "mcpServers": {
-    "sap-webgui": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "BROWSER_MODE=connect",
-        "-e", "CDP_URL=http://host.docker.internal:9223",
-        "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
-        "-e", "SAP_USER=your_username",
-        "-e", "SAP_PASSWORD=your_password",
-        "-e", "SAP_MANDANT=100",
-        "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
-      ]
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "-e",
+                "BROWSER_MODE=connect",
+                "-e",
+                "CDP_URL=http://host.docker.internal:9223",
+                "-e",
+                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "-e",
+                "SAP_USER=your_username",
+                "-e",
+                "SAP_PASSWORD=your_password",
+                "-e",
+                "SAP_MANDANT=100",
+                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+            ]
+        }
     }
-  }
 }
 ```
 
 **Native Linux** - uses `--network host`:
+
 ```json
 {
-  "mcpServers": {
-    "sap-webgui": {
-      "command": "docker",
-      "args": [
-        "run", "--network", "host", "-i", "--rm",
-        "-e", "BROWSER_MODE=connect",
-        "-e", "CDP_URL=http://localhost:9222",
-        "-e", "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
-        "-e", "SAP_USER=your_username",
-        "-e", "SAP_PASSWORD=your_password",
-        "-e", "SAP_MANDANT=100",
-        "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
-      ]
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "docker",
+            "args": [
+                "run",
+                "--network",
+                "host",
+                "-i",
+                "--rm",
+                "-e",
+                "BROWSER_MODE=connect",
+                "-e",
+                "CDP_URL=http://localhost:9222",
+                "-e",
+                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "-e",
+                "SAP_USER=your_username",
+                "-e",
+                "SAP_PASSWORD=your_password",
+                "-e",
+                "SAP_MANDANT=100",
+                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+            ]
+        }
     }
-  }
 }
 ```
 
@@ -345,8 +389,8 @@ docker compose up -d cdp-proxy
 ```
 
 3. Configure the MCP server with the appropriate CDP URL:
-   - **Native Python or Linux Docker**: `CDP_URL=http://localhost:9222`
-   - **Docker Desktop (Windows/macOS)**: `CDP_URL=http://host.docker.internal:9223`
+    - **Native Python or Linux Docker**: `CDP_URL=http://localhost:9222`
+    - **Docker Desktop (Windows/macOS)**: `CDP_URL=http://host.docker.internal:9223`
 
 The MCP server will connect to your existing browser instead of launching a new one.
 
@@ -354,27 +398,27 @@ The MCP server will connect to your existing browser instead of launching a new 
 
 ### SAP Tools
 
-| Tool | Description |
-|------|-------------|
-| `sap_login` | Opens SAP Web GUI login page. User enters credentials manually in the browser. |
-| `sap_transaction` | Enters and executes a transaction code. Automatically enables OK-Code field if not visible (via Settings → enable OK-Code Field). |
-| `sap_keepalive_start` | Starts background task to prevent session timeout (default: ping every 5 minutes). |
-| `sap_keepalive_stop` | Stops the keepalive background task. |
+| Tool                  | Description                                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `sap_login`           | Opens SAP Web GUI login page. User enters credentials manually in the browser.                                                    |
+| `sap_transaction`     | Enters and executes a transaction code. Automatically enables OK-Code field if not visible (via Settings → enable OK-Code Field). |
+| `sap_keepalive_start` | Starts background task to prevent session timeout (default: ping every 5 minutes).                                                |
+| `sap_keepalive_stop`  | Stops the keepalive background task.                                                                                              |
 
 ### Low-Level Browser Tools (Escape Hatches)
 
-| Tool | Description |
-|------|-------------|
-| `browser_snapshot` | Get accessibility tree of current page |
-| `browser_screenshot` | Take a screenshot |
-| `browser_click` | Click an element by selector |
-| `browser_fill` | Fill an input field |
-| `browser_keyboard` | Send keyboard input |
-| `browser_navigate` | Navigate to URL |
-| `browser_evaluate` | Execute JavaScript |
-| `browser_wait` | Wait for element or timeout |
-| `browser_get_html` | Get HTML content |
-| `browser_select_option` | Select dropdown option |
+| Tool                    | Description                            |
+| ----------------------- | -------------------------------------- |
+| `browser_snapshot`      | Get accessibility tree of current page |
+| `browser_screenshot`    | Take a screenshot                      |
+| `browser_click`         | Click an element by selector           |
+| `browser_fill`          | Fill an input field                    |
+| `browser_keyboard`      | Send keyboard input                    |
+| `browser_navigate`      | Navigate to URL                        |
+| `browser_evaluate`      | Execute JavaScript                     |
+| `browser_wait`          | Wait for element or timeout            |
+| `browser_get_html`      | Get HTML content                       |
+| `browser_select_option` | Select dropdown option                 |
 
 ## Usage Example
 
@@ -415,10 +459,10 @@ The `sap_transaction` tool is smart about the OK-Code field:
 
 1. **Check**: First looks for the OK-Code input field
 2. **Enable if needed**: If not found, attempts to enable it:
-   - Expands menu (if collapsed)
-   - Clicks settings/gear button
-   - Finds and enables the "OK-Code Field" checkbox
-   - Saves settings
+    - Expands menu (if collapsed)
+    - Clicks settings/gear button
+    - Finds and enables the "OK-Code Field" checkbox
+    - Saves settings
 3. **Verify**: Confirms the field is now visible
 4. **Execute**: Enters the transaction code and presses Enter
 
@@ -551,6 +595,7 @@ Our approach: capture HTML once, then write focused assertions about selector be
 ### Code Style
 
 This project uses:
+
 - [Black](https://github.com/psf/black) for code formatting
 - [isort](https://pycqa.github.io/isort/) for import sorting
 - [pylint](https://pylint.org/) for linting

@@ -19,17 +19,17 @@ load configuration from environment variables.
 
 ### Available Settings
 
-| Environment Variable | Type   | Default                   | Description                              |
-|----------------------|--------|---------------------------|------------------------------------------|
-| `SAP_URL`            | str    | `""`                      | Default SAP Web GUI URL                  |
-| `SAP_USER`           | str    | `""`                      | SAP username for automatic login         |
-| `SAP_PASSWORD`       | str    | `""`                      | SAP password for automatic login         |
-| `SAP_MANDANT`        | str    | `""`                      | SAP client/mandant (3-digit, e.g., "100")|
-| `SAP_LANGUAGE`       | enum   | `"EN"`                    | SAP login language (`"DE"` or `"EN"`)    |
-| `BROWSER_MODE`       | enum   | `"launch"`                | `"launch"` or `"connect"`                |
-| `BROWSER_TYPE`       | enum   | `"chromium"`              | `"chromium"`, `"firefox"`, or `"webkit"` |
-| `BROWSER_HEADLESS`   | bool   | `false`                   | Run browser without GUI                  |
-| `CDP_URL`            | str    | `"http://localhost:9222"` | CDP URL for connect mode                 |
+| Environment Variable | Type | Default                   | Description                               |
+| -------------------- | ---- | ------------------------- | ----------------------------------------- |
+| `SAP_URL`            | str  | `""`                      | Default SAP Web GUI URL                   |
+| `SAP_USER`           | str  | `""`                      | SAP username for automatic login          |
+| `SAP_PASSWORD`       | str  | `""`                      | SAP password for automatic login          |
+| `SAP_MANDANT`        | str  | `""`                      | SAP client/mandant (3-digit, e.g., "100") |
+| `SAP_LANGUAGE`       | enum | `"EN"`                    | SAP login language (`"DE"` or `"EN"`)     |
+| `BROWSER_MODE`       | enum | `"launch"`                | `"launch"` or `"connect"`                 |
+| `BROWSER_TYPE`       | enum | `"chromium"`              | `"chromium"`, `"firefox"`, or `"webkit"`  |
+| `BROWSER_HEADLESS`   | bool | `false`                   | Run browser without GUI                   |
+| `CDP_URL`            | str  | `"http://localhost:9222"` | CDP URL for connect mode                  |
 
 ### Usage
 
