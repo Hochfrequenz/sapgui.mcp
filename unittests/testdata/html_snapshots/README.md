@@ -33,7 +33,13 @@ authorized machine (HF-KKLEIN3). The `capture_html_snapshot` helper in
 `test_sap_integration.py` saves the current page HTML with a language suffix
 based on the `SAP_LANGUAGE` environment variable.
 
-To capture snapshots in a specific language:
+To recapture all snapshots in both languages:
+
+```powershell
+.\scripts\recapture-snapshots.ps1
+```
+
+To capture snapshots in a specific language only:
 
 ```bash
 # Set language in .env file
