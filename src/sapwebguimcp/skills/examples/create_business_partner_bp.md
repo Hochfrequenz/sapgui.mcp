@@ -120,7 +120,7 @@ sap_get_screen_text()  # Look for role section
 ### Step 7: Save
 
 ```
-sap_keyboard("Ctrl+S")
+sap_keyboard("Control+S")
 sap_read_status_bar()  # Should show "Geschäftspartner XXXXXXXXXX angelegt"
                        # or "Business Partner XXXXXXXXXX created"
 ```
@@ -180,7 +180,7 @@ Ich sehe die Eingabefelder für die Personendaten.
 [fills: Anrede=Herr, Vorname=Max, Nachname=Mustermann]
 [fills address: Straße=Hauptstraße 1, PLZ=10115, Ort=Berlin, Land=DE]
 
-[calls sap_keyboard("Ctrl+S")]
+[calls sap_keyboard("Control+S")]
 [calls sap_read_status_bar()]
 
 Der Geschäftspartner wurde erfolgreich angelegt.
