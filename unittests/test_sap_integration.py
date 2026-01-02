@@ -703,9 +703,7 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
     )
     await assert_fill_success(result, f"FROM_DATE={from_date}")
 
-    result = await sap_mcp_client.call_tool(
-        "browser_fill", {"selector": "input[lsdata*='TO_DATE']", "value": to_date}
-    )
+    result = await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='TO_DATE']", "value": to_date})
     await assert_fill_success(result, f"TO_DATE={to_date}")
 
     # Execute (F8) and wait for list output to complete (can take a while with many jobs)
@@ -725,6 +723,7 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
 
     # Parse and verify we got some jobs
     import json
+
     table_data = json.loads(response_text)
     assert table_data.get("totalRows", 0) > 0, f"Expected some jobs in SM37, got totalRows=0"
     assert len(table_data.get("rows", [])) > 0, "Expected at least one row in SM37 results"
