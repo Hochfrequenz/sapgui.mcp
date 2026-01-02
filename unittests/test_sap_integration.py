@@ -152,6 +152,73 @@ async def capture_html_snapshot(
     return html_content
 
 
+# Transaction-specific selectors for wait conditions
+# These selectors identify unique elements on each transaction's initial screen
+_TRANSACTION_WAIT_SELECTORS: dict[str, str] = {
+    "SE11": "[lsdata*='RSRD1-TBMA']",  # Database table radio button
+    "SE16": "input[lsdata*='TABLENAME']",  # Table name input field
+    "SM37": "input[lsdata*='JOBNAME']",  # Job name input field
+    "SU3": "[lsdata*='SUID_ST_NODE']",  # User profile (SU3) fields - SUID_ST_NODE_PERSON_NAME etc.
+}
+
+
+async def _wait_for_transaction_screen(
+    client: ClientSession,
+    tcode: str,
+    timeout: int = 5000,
+) -> None:
+    """
+    Wait for a transaction's initial screen to load.
+
+    Uses transaction-specific selectors to detect when the screen is ready.
+    This is faster than fixed timeouts because it returns as soon as the
+    expected element is found.
+
+    Args:
+        client: MCP ClientSession connected to the SAP Web GUI server
+        tcode: Transaction code (e.g., "SE16", "SM37")
+        timeout: Maximum wait time in milliseconds (default 5000)
+
+    Raises:
+        NotImplementedError: If the transaction code is not in _TRANSACTION_WAIT_SELECTORS
+        RuntimeError: If the wait times out or fails
+    """
+    tcode_upper = tcode.upper()
+    if tcode_upper not in _TRANSACTION_WAIT_SELECTORS:
+        raise NotImplementedError(
+            f"No wait selector defined for transaction '{tcode}'. "
+            f"Known transactions: {', '.join(sorted(_TRANSACTION_WAIT_SELECTORS.keys()))}. "
+            f"Add a selector to _TRANSACTION_WAIT_SELECTORS or use browser_wait directly."
+        )
+
+    selector = _TRANSACTION_WAIT_SELECTORS[tcode_upper]
+    result = await client.call_tool("browser_wait", {"selector": selector, "timeout": timeout})
+    if result.content:
+        text = result.content[0].text
+        if text.startswith("Error") or ("Timeout" in text and "exceeded" in text):
+            raise RuntimeError(f"Wait for {tcode} failed: {text}")
+
+
+async def _wait_for_easy_access(client: ClientSession, timeout: int = 5000) -> None:
+    """
+    Wait for SAP Easy Access screen (main menu) to load.
+
+    Used after pressing F3 (Back) or when returning from a transaction.
+
+    Args:
+        client: MCP ClientSession connected to the SAP Web GUI server
+        timeout: Maximum wait time in milliseconds (default 5000)
+
+    Raises:
+        RuntimeError: If the wait times out or fails
+    """
+    result = await client.call_tool("browser_wait", {"selector": "#ToolbarOkCode", "timeout": timeout})
+    if result.content:
+        text = result.content[0].text
+        if text.startswith("Error") or ("Timeout" in text and "exceeded" in text):
+            raise RuntimeError(f"Wait for Easy Access failed: {text}")
+
+
 @pytest.mark.anyio
 async def test_sap_login_page_capture(sap_mcp_client: ClientSession) -> None:
     """Capture the login page HTML before login for debugging."""
@@ -307,7 +374,7 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
     assert "executed" in response_text, f"Transaction not executed: {response_text}"
 
     # Wait for SU3 screen to load (user profile has address-related fields)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='ADDRESS']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SU3")
 
     # Verify SU3 actually opened by checking the page content
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
@@ -408,7 +475,7 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     assert "executed" in response1 and "current window" in response1, f"SE11 should open in current window: {response1}"
 
     # Wait for SE11 to load (has "Database table" radio button)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "[lsdata*='RSRD1-TBMA']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE11")
 
     # Verify SE11 is displayed (ABAP Dictionary / Data Dictionary)
     html1 = await sap_mcp_client.call_tool("browser_get_html", {})
@@ -430,7 +497,7 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     assert "cancelled" in response2, f"Response should mention previous transaction was cancelled: {response2}"
 
     # Wait for SE16 to load (has table name input field)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='TABLENAME']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Verify SE16 is displayed and SE11 is gone
     html2 = await sap_mcp_client.call_tool("browser_get_html", {})
@@ -466,7 +533,7 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
     assert "executed" in response1, f"SE11 should be executed: {response1}"
 
     # Wait for SE11 to load (has "Database table" radio button)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "[lsdata*='RSRD1-TBMA']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE11")
 
     # Step 2: Open SE16 in NEW window - this should NOT replace SE11
     result2 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16", "new_window": True})
@@ -528,7 +595,7 @@ async def test_sap_keyboard_f3_navigates_back(sap_mcp_client: ClientSession) -> 
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     # Wait for SE16 to load (has table name input field)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='TABLENAME']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Press F3 to go back
     result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
@@ -538,7 +605,7 @@ async def test_sap_keyboard_f3_navigates_back(sap_mcp_client: ClientSession) -> 
     assert "sent keyboard shortcut" in response_text, f"Unexpected response: {response_text}"
 
     # Wait for Easy Access (OK-Code field visible means we're back on main menu)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "#ToolbarOkCode", "timeout": 5000})
+    await _wait_for_easy_access(sap_mcp_client)
 
     # Should be back on Easy Access or previous screen
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
@@ -563,7 +630,7 @@ async def test_sap_keyboard_f8_triggers_execution(sap_mcp_client: ClientSession)
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     # Wait for SE16 to load (has table name input field)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='TABLENAME']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Try to execute without entering a table name - should trigger error
     result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
@@ -594,7 +661,7 @@ async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> N
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     # Wait for SE16 to load (has table name input field)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='TABLENAME']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     result = await sap_mcp_client.call_tool("sap_get_screen_text", {})
     assert result.content, "Expected response from sap_get_screen_text"
@@ -620,7 +687,7 @@ async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> N
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SU3"})
     # Wait for SU3 screen to load (user profile has address-related fields)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='ADDRESS']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SU3")
 
     result = await sap_mcp_client.call_tool("sap_get_screen_text", {})
     response_text = result.content[0].text
@@ -648,7 +715,7 @@ async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
     # Wait for SM37 to load (has job name input field)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='JOBNAME']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SM37")
 
     # Capture HTML snapshot for offline selector testing (before filling form)
     await capture_html_snapshot(sap_mcp_client, "sm37_initial")
@@ -689,7 +756,7 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
     # Wait for SM37 to load (has job name input field)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='JOBNAME']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SM37")
 
     # Fill job selection with wildcards and clear username restriction
     # SM37 fields use SID in lsdata: BTCH2170-JOBNAME, BTCH2170-USERNAME
@@ -781,7 +848,7 @@ async def test_se16_table_content_t000(sap_mcp_client: ClientSession) -> None:
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     # Wait for SE16 to load (has table name input field)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='TABLENAME']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Enter table name T000 (Clients table - always exists, always small)
     table_field = await sap_mcp_client.call_tool(
@@ -826,7 +893,7 @@ async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE11"})
     # Wait for SE11 to load (has "Database table" radio button)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "[lsdata*='RSRD1-TBMA']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE11")
 
     # Capture SE11 initial screen
     await capture_html_snapshot(sap_mcp_client, "se11_initial")
@@ -864,7 +931,7 @@ async def test_sap_read_status_bar_after_navigation(sap_mcp_client: ClientSessio
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SU3"})
     # Wait for SU3 screen to load (user profile has address-related fields)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='ADDRESS']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SU3")
 
     result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
     assert result.content, "Expected response from sap_read_status_bar"
@@ -902,7 +969,7 @@ async def test_sap_get_screen_info_from_se16(sap_mcp_client: ClientSession) -> N
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     # Wait for SE16 to load (has table name input field)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='TABLENAME']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     result = await sap_mcp_client.call_tool("sap_get_screen_info", {})
     assert result.content, "Expected response from sap_get_screen_info"
@@ -921,14 +988,14 @@ async def test_sap_get_screen_info_different_transactions(sap_mcp_client: Client
     # Get info from SE16
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     # Wait for SE16 to load (has table name input field)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='TABLENAME']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
     result1 = await sap_mcp_client.call_tool("sap_get_screen_info", {})
     info1 = result1.content[0].text.lower()
 
     # Get info from SM37
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
     # Wait for SM37 to load (has job name input field)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='JOBNAME']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SM37")
     result2 = await sap_mcp_client.call_tool("sap_get_screen_info", {})
     info2 = result2.content[0].text.lower()
 
@@ -954,7 +1021,7 @@ async def test_browser_reconnect_after_idle(sap_mcp_client: ClientSession) -> No
     # Step 2: Navigate to a transaction
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     # Wait for SE16 to load (has table name input field)
-    await sap_mcp_client.call_tool("browser_wait", {"selector": "input[lsdata*='TABLENAME']", "timeout": 5000})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Step 3: Wait a bit to let connection potentially become stale
     # In real scenarios, this could be minutes; here we just verify the flow works
