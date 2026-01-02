@@ -57,6 +57,8 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[AppContext]:
 
 
 # Create the FastMCP server instance
+# Note: strict_input_validation requires the standalone fastmcp package.
+# The mcp package's built-in FastMCP doesn't support it yet.
 mcp = FastMCP(
     "sap-webgui-mcp",
     dependencies=["playwright", "pydantic-settings"],

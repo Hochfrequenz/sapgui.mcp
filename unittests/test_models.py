@@ -1,0 +1,235 @@
+"""Unit tests for Pydantic result models."""
+
+from datetime import timedelta
+
+import pytest
+from pydantic import ValidationError
+
+from sapwebguimcp.models import (
+    ClickResult,
+    DiscoveredFields,
+    FieldInfo,
+    KeepaliveResult,
+    LoginResult,
+    ScreenInfo,
+    SessionStatus,
+    TableData,
+    ToolResult,
+    TransactionResult,
+    WaitResult,
+)
+
+
+class TestToolResultBase:
+    """Tests for ToolResult base class validation."""
+
+    def test_success_default(self) -> None:
+        """Test that success defaults to True with no error."""
+        result = ToolResult()
+        assert result.success is True
+        assert result.error is None
+        assert result.is_error is False
+
+    def test_success_with_error_fails(self) -> None:
+        """Test that success=True with error raises ValidationError."""
+        with pytest.raises(ValidationError, match="success=True requires error=None"):
+            ToolResult(success=True, error="Some error")
+
+    def test_failure_without_error_fails(self) -> None:
+        """Test that success=False without error raises ValidationError."""
+        with pytest.raises(ValidationError, match="success=False requires non-empty error"):
+            ToolResult(success=False)
+
+    def test_failure_with_empty_error_fails(self) -> None:
+        """Test that success=False with empty error raises ValidationError."""
+        with pytest.raises(ValidationError, match="success=False requires non-empty error"):
+            ToolResult(success=False, error="")
+
+    def test_failure_factory_method(self) -> None:
+        """Test the failure() class method."""
+        result = ToolResult.failure("Something went wrong")
+        assert result.success is False
+        assert result.error == "Something went wrong"
+        assert result.is_error is True
+
+    def test_extra_fields_allowed(self) -> None:
+        """Test that extra fields are allowed by ConfigDict."""
+        result = ToolResult(extra_field="extra_value", another=123)
+        assert result.success is True
+        assert result.extra_field == "extra_value"  # type: ignore[attr-defined]
+        assert result.another == 123  # type: ignore[attr-defined]
+
+
+class TestTimedeltaSerialization:
+    """Tests for ISO 8601 timedelta serialization."""
+
+    def test_timedelta_seconds(self) -> None:
+        """Test timedelta serializes to ISO 8601 format (seconds)."""
+        result = WaitResult(timeout=timedelta(seconds=30))
+        json_data = result.model_dump_json()
+        assert '"timeout":"PT30S"' in json_data
+
+    def test_timedelta_minutes(self) -> None:
+        """Test timedelta serializes to ISO 8601 format (minutes)."""
+        result = WaitResult(timeout=timedelta(minutes=2))
+        json_data = result.model_dump_json()
+        assert '"timeout":"PT2M"' in json_data or '"timeout":"PT120S"' in json_data
+
+    def test_timedelta_complex(self) -> None:
+        """Test timedelta serializes complex durations."""
+        result = WaitResult(timeout=timedelta(minutes=2, seconds=30))
+        json_data = result.model_dump_json()
+        # Could be PT2M30S or PT150S depending on implementation
+        assert "PT" in json_data
+        assert "timeout" in json_data
+
+    def test_timedelta_milliseconds(self) -> None:
+        """Test timedelta with milliseconds."""
+        result = WaitResult(timeout=timedelta(milliseconds=500))
+        json_data = result.model_dump_json()
+        assert "PT" in json_data
+
+
+class TestTransactionCodeValidation:
+    """Tests for transaction code pattern validation."""
+
+    def test_valid_tcode_uppercase(self) -> None:
+        """Test valid uppercase transaction code."""
+        result = TransactionResult(tcode="SE16")
+        assert result.tcode == "SE16"
+
+    def test_valid_tcode_with_numbers(self) -> None:
+        """Test valid transaction code with numbers."""
+        result = TransactionResult(tcode="VA01")
+        assert result.tcode == "VA01"
+
+    def test_valid_tcode_with_underscore(self) -> None:
+        """Test valid transaction code with underscore."""
+        result = TransactionResult(tcode="SM_WORKCENTER")
+        assert result.tcode == "SM_WORKCENTER"
+
+    def test_valid_tcode_with_slash(self) -> None:
+        """Test valid transaction code with slash (namespace)."""
+        result = TransactionResult(tcode="/IWFND/GW_CLIENT")
+        assert result.tcode == "/IWFND/GW_CLIENT"
+
+    def test_tcode_normalized_to_uppercase(self) -> None:
+        """Test transaction code is normalized to uppercase."""
+        result = TransactionResult(tcode="se16")
+        assert result.tcode == "SE16"
+
+    def test_invalid_tcode_with_spaces(self) -> None:
+        """Test invalid transaction code with spaces."""
+        with pytest.raises(ValidationError, match="string_pattern_mismatch"):
+            TransactionResult(tcode="SE 16")
+
+    def test_invalid_tcode_with_special_chars(self) -> None:
+        """Test invalid transaction code with special characters."""
+        with pytest.raises(ValidationError, match="string_pattern_mismatch"):
+            TransactionResult(tcode="SE16#")
+
+
+class TestIntegerConstraints:
+    """Tests for integer field constraints (ge=0, ge=1)."""
+
+    def test_keepalive_interval_positive(self) -> None:
+        """Test interval_seconds must be >= 1."""
+        result = KeepaliveResult(running=True, interval_seconds=1)
+        assert result.interval_seconds == 1
+
+    def test_keepalive_interval_zero_fails(self) -> None:
+        """Test interval_seconds=0 fails validation."""
+        with pytest.raises(ValidationError):
+            KeepaliveResult(running=True, interval_seconds=0)
+
+    def test_table_total_rows_zero(self) -> None:
+        """Test total_rows can be 0."""
+        result = TableData(total_rows=0)
+        assert result.total_rows == 0
+
+    def test_table_total_rows_negative_fails(self) -> None:
+        """Test total_rows cannot be negative."""
+        with pytest.raises(ValidationError):
+            TableData(total_rows=-1)
+
+    def test_table_start_row_minimum(self) -> None:
+        """Test start_row must be >= 1."""
+        result = TableData(start_row=1)
+        assert result.start_row == 1
+
+    def test_table_start_row_zero_fails(self) -> None:
+        """Test start_row=0 fails validation."""
+        with pytest.raises(ValidationError):
+            TableData(start_row=0)
+
+    def test_discovered_fields_count_zero(self) -> None:
+        """Test field_count can be 0."""
+        result = DiscoveredFields(field_count=0)
+        assert result.field_count == 0
+
+
+class TestSubclassFailureMethod:
+    """Tests for failure() factory method on subclasses."""
+
+    def test_login_result_failure(self) -> None:
+        """Test LoginResult.failure() preserves additional fields."""
+        result = LoginResult.failure("Login failed", url="https://sap.example.com")
+        assert result.success is False
+        assert result.error == "Login failed"
+        assert result.url == "https://sap.example.com"
+
+    def test_transaction_result_failure(self) -> None:
+        """Test TransactionResult.failure() preserves tcode."""
+        result = TransactionResult.failure("Transaction failed", tcode="SE16")
+        assert result.success is False
+        assert result.error == "Transaction failed"
+        assert result.tcode == "SE16"
+
+    def test_click_result_failure(self) -> None:
+        """Test ClickResult.failure() preserves selector."""
+        result = ClickResult.failure("Element not found", selector="#button1")
+        assert result.success is False
+        assert result.error == "Element not found"
+        assert result.selector == "#button1"
+
+
+class TestModelSerialization:
+    """Tests for JSON serialization of models."""
+
+    def test_session_status_json(self) -> None:
+        """Test SessionStatus serializes correctly."""
+        result = SessionStatus(status="active", message="Session is alive")
+        json_str = result.model_dump_json()
+        assert '"status":"active"' in json_str
+        assert '"message":"Session is alive"' in json_str
+        assert '"success":true' in json_str
+
+    def test_screen_info_json(self) -> None:
+        """Test ScreenInfo with optional fields serializes correctly."""
+        result = ScreenInfo(
+            transaction="SE16",
+            title="Data Browser",
+            url="https://sap.example.com/sap/bc/gui",
+            program="SAPLSETB",
+            dynpro="0100",
+        )
+        data = result.model_dump()
+        assert data["transaction"] == "SE16"
+        assert data["title"] == "Data Browser"
+        assert data["program"] == "SAPLSETB"
+        assert data["dynpro"] == "0100"
+
+    def test_field_info_json(self) -> None:
+        """Test FieldInfo serializes correctly."""
+        field = FieldInfo(
+            id="field1",
+            name="TABLENAME",
+            label="Table Name",
+            type="text",
+            selector='input[lsdata*="TABLENAME"]',
+            value="T000",
+        )
+        data = field.model_dump()
+        assert data["id"] == "field1"
+        assert data["selector"] == 'input[lsdata*="TABLENAME"]'
+        assert data["value"] == "T000"

@@ -4,10 +4,23 @@ Data models for SAP Web GUI MCP Server.
 This module contains Pydantic models and configuration classes.
 """
 
+from sapwebguimcp.models.base import TCODE_PATTERN, TCode, ToolResult
 from sapwebguimcp.models.browser import (
     BrowserManager,
     close_browser_manager,
     get_browser_manager,
+)
+from sapwebguimcp.models.browser_results import (
+    BrowserKeyboardResult,
+    ClickResult,
+    EvaluateResult,
+    FillResult,
+    HtmlResult,
+    NavigateResult,
+    ScreenshotResult,
+    SelectOptionResult,
+    SnapshotResult,
+    WaitResult,
 )
 from sapwebguimcp.models.config import (
     BrowserMode,
@@ -15,8 +28,27 @@ from sapwebguimcp.models.config import (
     SapWebGuiSettings,
     get_settings,
 )
+from sapwebguimcp.models.sap_results import (
+    DiscoveredFields,
+    FieldInfo,
+    FieldLookupResult,
+    KeepaliveResult,
+    KeyboardResult,
+    LoginResult,
+    ScreenInfo,
+    ScreenText,
+    SessionStatus,
+    StatusBarInfo,
+    TableData,
+    TableRow,
+    TransactionResult,
+)
 
 __all__ = [
+    # Base
+    "TCODE_PATTERN",
+    "TCode",
+    "ToolResult",
     # Config models
     "BrowserMode",
     "BrowserType",
@@ -26,4 +58,29 @@ __all__ = [
     "BrowserManager",
     "get_browser_manager",
     "close_browser_manager",
+    # SAP results
+    "DiscoveredFields",
+    "FieldInfo",
+    "FieldLookupResult",
+    "KeepaliveResult",
+    "KeyboardResult",
+    "LoginResult",
+    "ScreenInfo",
+    "ScreenText",
+    "SessionStatus",
+    "StatusBarInfo",
+    "TableData",
+    "TableRow",
+    "TransactionResult",
+    # Browser results
+    "BrowserKeyboardResult",
+    "ClickResult",
+    "EvaluateResult",
+    "FillResult",
+    "HtmlResult",
+    "NavigateResult",
+    "ScreenshotResult",
+    "SelectOptionResult",
+    "SnapshotResult",
+    "WaitResult",
 ]

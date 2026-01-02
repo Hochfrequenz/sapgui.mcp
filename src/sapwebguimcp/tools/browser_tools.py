@@ -18,11 +18,24 @@ when SAP-specific tools are insufficient:
 import base64
 import json
 import logging
+from datetime import timedelta
 from typing import Literal, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from sapwebguimcp.models import BrowserManager
+from sapwebguimcp.models import (
+    BrowserKeyboardResult,
+    BrowserManager,
+    ClickResult,
+    EvaluateResult,
+    FillResult,
+    HtmlResult,
+    NavigateResult,
+    ScreenshotResult,
+    SelectOptionResult,
+    SnapshotResult,
+    WaitResult,
+)
 
 __all__ = ["register_browser_tools"]
 
@@ -33,7 +46,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     """Register all browser automation tools with the MCP server."""
 
     @mcp.tool(description="Get accessibility tree snapshot of the current page")
-    async def browser_snapshot(selector: Optional[str] = None) -> str:
+    async def browser_snapshot(selector: Optional[str] = None) -> SnapshotResult:
         """
         Get accessibility tree snapshot of the current page.
 
@@ -43,7 +56,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             selector: Optional CSS selector to scope the snapshot
 
         Returns:
-            Accessibility tree as text
+            SnapshotResult with accessibility tree as dict
         """
         ctx = mcp.get_context()
         browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
@@ -55,17 +68,17 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                 if element:
                     snapshot = await page.accessibility.snapshot(root=element)  # type: ignore[attr-defined]
                 else:
-                    return f"Element not found: {selector}"
+                    return SnapshotResult.failure(f"Element not found: {selector}", selector=selector)
             else:
                 snapshot = await page.accessibility.snapshot()  # type: ignore[attr-defined]
 
-            return json.dumps(snapshot, indent=2)
+            return SnapshotResult(snapshot=snapshot, selector=selector)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error getting snapshot")
-            return f"Error getting snapshot: {e}"
+            return SnapshotResult.failure(f"Error getting snapshot: {e}", selector=selector)
 
     @mcp.tool(description="Take a screenshot of the current page")
-    async def browser_screenshot(full_page: bool = False, selector: Optional[str] = None) -> str:
+    async def browser_screenshot(full_page: bool = False, selector: Optional[str] = None) -> ScreenshotResult:
         """
         Take a screenshot of the current page.
 
@@ -74,7 +87,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             selector: Optional CSS selector to capture specific element
 
         Returns:
-            Base64 encoded PNG image
+            ScreenshotResult with base64 encoded PNG image
         """
         ctx = mcp.get_context()
         browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
@@ -86,17 +99,29 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                 if element:
                     screenshot = await element.screenshot()
                 else:
-                    return f"Element not found: {selector}"
+                    return ScreenshotResult.failure(
+                        f"Element not found: {selector}",
+                        full_page=full_page,
+                        selector=selector,
+                    )
             else:
                 screenshot = await page.screenshot(full_page=full_page)
 
-            return base64.b64encode(screenshot).decode("utf-8")
+            return ScreenshotResult(
+                image_base64=base64.b64encode(screenshot).decode("utf-8"),
+                full_page=full_page,
+                selector=selector,
+            )
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error taking screenshot")
-            return f"Error taking screenshot: {e}"
+            return ScreenshotResult.failure(
+                f"Error taking screenshot: {e}",
+                full_page=full_page,
+                selector=selector,
+            )
 
     @mcp.tool(description="Click an element by CSS selector")
-    async def browser_click(selector: str) -> str:
+    async def browser_click(selector: str) -> ClickResult:
         """
         Click an element by CSS selector.
 
@@ -104,7 +129,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             selector: CSS selector for the element to click
 
         Returns:
-            Status message
+            ClickResult with the selector that was clicked
         """
         ctx = mcp.get_context()
         browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
@@ -113,13 +138,13 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         try:
             await page.click(selector)
             await page.wait_for_load_state("networkidle")
-            return f"Clicked element: {selector}"
+            return ClickResult(selector=selector)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error clicking element")
-            return f"Error clicking {selector}: {e}"
+            return ClickResult.failure(f"Error clicking {selector}: {e}", selector=selector)
 
     @mcp.tool(description="Fill an input field by CSS selector")
-    async def browser_fill(selector: str, value: str) -> str:
+    async def browser_fill(selector: str, value: str) -> FillResult:
         """
         Fill an input field by CSS selector.
 
@@ -128,7 +153,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             value: Value to fill
 
         Returns:
-            Status message
+            FillResult with selector and value
         """
         ctx = mcp.get_context()
         browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
@@ -136,13 +161,13 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
         try:
             await page.fill(selector, value)
-            return f"Filled {selector} with: {value}"
+            return FillResult(selector=selector, value=value)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error filling element")
-            return f"Error filling {selector}: {e}"
+            return FillResult.failure(f"Error filling {selector}: {e}", selector=selector, value=value)
 
     @mcp.tool(description="Send keyboard input")
-    async def browser_keyboard(key: Optional[str] = None, text: Optional[str] = None) -> str:
+    async def browser_keyboard(key: Optional[str] = None, text: Optional[str] = None) -> BrowserKeyboardResult:
         """
         Send keyboard input.
 
@@ -151,7 +176,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             text: Text to type character by character
 
         Returns:
-            Status message
+            BrowserKeyboardResult with key or text that was sent
         """
         ctx = mcp.get_context()
         browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
@@ -160,17 +185,17 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         try:
             if key:
                 await page.keyboard.press(key)
-                return f"Pressed key: {key}"
+                return BrowserKeyboardResult(key=key)
             if text:
                 await page.keyboard.type(text)
-                return f"Typed text: {text}"
-            return "Either 'key' or 'text' parameter required"
+                return BrowserKeyboardResult(text=text)
+            return BrowserKeyboardResult.failure("Either 'key' or 'text' parameter required")
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error sending keyboard input")
-            return f"Error with keyboard input: {e}"
+            return BrowserKeyboardResult.failure(f"Error with keyboard input: {e}", key=key, text=text)
 
     @mcp.tool(description="Navigate to a URL")
-    async def browser_navigate(url: str) -> str:
+    async def browser_navigate(url: str) -> NavigateResult:
         """
         Navigate to a URL.
 
@@ -178,7 +203,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             url: URL to navigate to
 
         Returns:
-            Status message
+            NavigateResult with URL and page title
         """
         ctx = mcp.get_context()
         browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
@@ -188,13 +213,13 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             await page.goto(url)
             await page.wait_for_load_state("networkidle")
             title = await page.title()
-            return f"Navigated to: {url} (Title: {title})"
+            return NavigateResult(url=url, title=title)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error navigating")
-            return f"Error navigating to {url}: {e}"
+            return NavigateResult.failure(f"Error navigating to {url}: {e}", url=url)
 
     @mcp.tool(description="Execute JavaScript in the browser")
-    async def browser_evaluate(script: str) -> str:
+    async def browser_evaluate(script: str) -> EvaluateResult:
         """
         Execute JavaScript in the browser.
 
@@ -204,25 +229,30 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             script: JavaScript code to execute
 
         Returns:
-            Result of the script execution
+            EvaluateResult with JSON-serialized result
         """
         ctx = mcp.get_context()
         browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
         page = await browser_manager.get_current_page()
 
+        script_snippet = script[:100] if len(script) > 100 else script
+
         try:
             result = await page.evaluate(script)
-            return json.dumps(result, indent=2, default=str)
+            return EvaluateResult(
+                result=json.dumps(result, indent=2, default=str),
+                script_snippet=script_snippet,
+            )
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error evaluating script")
-            return f"Error executing script: {e}"
+            return EvaluateResult.failure(f"Error executing script: {e}", script_snippet=script_snippet)
 
     @mcp.tool(description="Wait for an element or timeout")
     async def browser_wait(
         selector: Optional[str] = None,
         timeout: int = 30000,
         state: Literal["attached", "detached", "hidden", "visible"] = "visible",
-    ) -> str:
+    ) -> WaitResult:
         """
         Wait for an element or timeout.
 
@@ -232,24 +262,26 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             state: Element state to wait for ('visible', 'hidden', 'attached', 'detached')
 
         Returns:
-            Status message
+            WaitResult with selector, state, and timeout
         """
         ctx = mcp.get_context()
         browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
         page = await browser_manager.get_current_page()
 
+        timeout_td = timedelta(milliseconds=timeout)
+
         try:
             if selector:
                 await page.wait_for_selector(selector, timeout=timeout, state=state)
-                return f"Element {selector} is now {state}"
+                return WaitResult(selector=selector, state=state, timeout=timeout_td)
             await page.wait_for_timeout(timeout)
-            return f"Waited {timeout}ms"
+            return WaitResult(timeout=timeout_td)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error waiting")
-            return f"Error waiting: {e}"
+            return WaitResult.failure(f"Error waiting: {e}", selector=selector, state=state, timeout=timeout_td)
 
     @mcp.tool(description="Get HTML content of an element or the full page")
-    async def browser_get_html(selector: Optional[str] = None, outer: bool = True) -> str:
+    async def browser_get_html(selector: Optional[str] = None, outer: bool = True) -> HtmlResult:
         """
         Get HTML content of an element or the full page.
 
@@ -258,7 +290,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             outer: Include the element itself (outerHTML) or just children (innerHTML)
 
         Returns:
-            HTML content
+            HtmlResult with HTML content
         """
         ctx = mcp.get_context()
         browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
@@ -269,22 +301,23 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                 element = await page.query_selector(selector)
                 if element:
                     if outer:
-                        result: str = await element.evaluate("el => el.outerHTML")
+                        html: str = await element.evaluate("el => el.outerHTML")
                     else:
-                        result = await element.evaluate("el => el.innerHTML")
-                    return result
-                return f"Element not found: {selector}"
-            return await page.content()
+                        html = await element.evaluate("el => el.innerHTML")
+                    return HtmlResult(html=html, selector=selector, outer=outer)
+                return HtmlResult.failure(f"Element not found: {selector}", selector=selector, outer=outer)
+            html = await page.content()
+            return HtmlResult(html=html, outer=outer)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error getting HTML")
-            return f"Error getting HTML: {e}"
+            return HtmlResult.failure(f"Error getting HTML: {e}", selector=selector, outer=outer)
 
     @mcp.tool(description="Select an option from a dropdown/select element")
     async def browser_select_option(
         selector: str,
         value: Optional[str] = None,
         label: Optional[str] = None,
-    ) -> str:
+    ) -> SelectOptionResult:
         """
         Select an option from a dropdown/select element.
 
@@ -294,7 +327,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             label: Option label/text to select (alternative to value)
 
         Returns:
-            Status message
+            SelectOptionResult with selector and selected value/label
         """
         ctx = mcp.get_context()
         browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
@@ -303,11 +336,19 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         try:
             if value:
                 await page.select_option(selector, value=value)
-                return f"Selected option with value: {value}"
+                return SelectOptionResult(selector=selector, selected_value=value)
             if label:
                 await page.select_option(selector, label=label)
-                return f"Selected option with label: {label}"
-            return "Either 'value' or 'label' parameter required"
+                return SelectOptionResult(selector=selector, selected_label=label)
+            return SelectOptionResult.failure(
+                "Either 'value' or 'label' parameter required",
+                selector=selector,
+            )
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error selecting option")
-            return f"Error selecting option: {e}"
+            return SelectOptionResult.failure(
+                f"Error selecting option: {e}",
+                selector=selector,
+                selected_value=value,
+                selected_label=label,
+            )
