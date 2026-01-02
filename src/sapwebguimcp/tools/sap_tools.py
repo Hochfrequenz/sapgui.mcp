@@ -538,7 +538,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # IMPORTANT: We must click on the OK-Code field first to ensure it has focus.
             await okcode_field.click()
             await page.wait_for_timeout(200)
-            logger.info("Clicked OK-Code field to ensure focus")
+            logger.debug("Clicked OK-Code field to ensure focus")
 
             await page.evaluate(
                 _load_js("set_okcode_field.js"),
@@ -546,11 +546,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
             await page.wait_for_timeout(300)
-            logger.info("Set transaction code via JavaScript: %s", transaction_input)
+            logger.debug("Set transaction code via JavaScript: %s", transaction_input)
 
             # Now use Playwright's keyboard to press Enter - this triggers SAP's navigation
             await page.keyboard.press("Enter")
-            logger.info("Pressed Enter to execute transaction")
+            logger.debug("Pressed Enter to execute transaction")
 
             await page.wait_for_load_state("networkidle")
             await page.wait_for_timeout(500)
