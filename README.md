@@ -510,6 +510,29 @@ tox -e type_check   # Run mypy type checking
 tox -e spell_check  # Run codespell
 ```
 
+### Running Tests in PyCharm
+
+You can also run tests directly in PyCharm without tox:
+
+1. **Unit tests**: Right-click `unittests/test_selectors.py` → Run. No configuration needed.
+
+2. **Integration tests**: Create run configurations with language settings:
+   - Run → Edit Configurations → + → pytest
+   - Script path: `unittests/test_sap_integration.py`
+   - Environment variables: `SAP_LANGUAGE=EN` (or `DE`)
+
+To run both languages, create two configurations and use a Compound configuration.
+
+**Tox vs PyCharm:**
+
+| Aspect | Tox | PyCharm |
+|--------|-----|---------|
+| Speed | Slower (creates virtualenv) | Faster (uses current interpreter) |
+| Isolation | Full isolation | Uses your dev environment |
+| Use case | CI, reproducibility | Quick local iteration |
+
+Both approaches work. Use PyCharm for fast feedback during development, tox for CI-like validation.
+
 ### HTML Snapshot Testing
 
 We use HTML snapshots captured from real SAP Web GUI sessions to test CSS selectors offline. This approach:
