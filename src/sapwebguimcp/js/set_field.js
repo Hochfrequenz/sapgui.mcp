@@ -116,7 +116,17 @@
 
         // Check if it's a CSS selector
         if (label.startsWith('#') || label.startsWith('.') || label.includes('[')) {
-            el = document.querySelector(label);
+            const matches = document.querySelectorAll(label);
+            if (matches.length === 0) {
+                return { success: false, error: `Field not found: ${label}` };
+            }
+            if (matches.length > 1) {
+                return {
+                    success: false,
+                    error: `Selector matches ${matches.length} elements, expected 1: ${label}`,
+                };
+            }
+            el = matches[0];
             selectorUsed = label;
         } else {
             // Treat as label text

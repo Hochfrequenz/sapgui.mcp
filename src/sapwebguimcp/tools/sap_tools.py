@@ -956,9 +956,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 FieldInfo(
                     id=f.get("id"),
                     name=f.get("name"),
+                    field_id=f.get("fieldId"),
                     label=f.get("label"),
                     type=f.get("type"),
                     selector=f.get("selector", ""),
+                    alternative_selectors=f.get("alternativeSelectors", []),
                     value=f.get("value"),
                 )
                 for f in fields_data

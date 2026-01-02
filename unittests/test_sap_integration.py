@@ -221,6 +221,7 @@ _TRANSACTION_WAIT_SELECTORS: dict[str, str] = {
     "SM37": "input[lsdata*='JOBNAME']",  # Job name input field
     "SU3": "[lsdata*='SUID_ST_NODE']",  # User profile (SU3) fields - SUID_ST_NODE_PERSON_NAME etc.
     "BP": "span:has-text('Person'), span:has-text('Organisation')",  # BP category buttons
+    "EMMACL": "input[type='text']",  # EMMACL has many input fields
 }
 
 
@@ -1292,3 +1293,218 @@ async def test_sap_fill_form_strict_mode(sap_mcp_client: ClientSession) -> None:
     assert "NONEXISTENT_FIELD_12345" in fill_data.get(
         "not_found", []
     ), f"Field should be in not_found list: {fill_data}"
+
+
+# =============================================================================
+# Tests for EMMACL transaction (field discovery and batch fill)
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_emmacl_discover_fields(sap_mcp_client: ClientSession) -> None:
+    """
+    Test field discovery in EMMACL transaction.
+
+    EMMACL is an energy market clearing transaction with many input fields,
+    making it ideal for testing field discovery and batch fill capabilities.
+
+    This test:
+    1. Opens EMMACL transaction
+    2. Captures HTML snapshot
+    3. Uses sap_discover_fields to find all fields
+    4. Verifies fields are discovered with proper structure
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    assert_tool_success(result, "sap_transaction EMMACL")
+
+    # Wait for the screen to load
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture HTML snapshot of EMMACL initial screen
+    await capture_html_snapshot(sap_mcp_client, "emmacl_initial")
+
+    # Discover all fields on the screen
+    discover_result = await sap_mcp_client.call_tool("sap_discover_fields", {})
+    discover_data = assert_tool_success(discover_result, "sap_discover_fields")
+
+    # Verify we found some fields
+    field_count = discover_data.get("field_count", 0)
+    fields = discover_data.get("fields", [])
+
+    assert field_count > 0, f"EMMACL should have input fields. Got: {discover_data}"
+    assert len(fields) > 0, f"Fields list should not be empty. Got: {discover_data}"
+
+    # Print discovered fields for debugging (visible in test output)
+    print(f"\nDiscovered {field_count} fields in EMMACL:")
+    for field in fields[:20]:  # Show first 20
+        print(f"  - {field.get('label', 'no-label')}: {field.get('selector', 'no-selector')}")
+
+
+@pytest.mark.anyio
+async def test_emmacl_fill_form_with_discovered_fields(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_fill_form in EMMACL using discovered field selectors.
+
+    This test:
+    1. Opens EMMACL transaction
+    2. Discovers fields using sap_discover_fields
+    3. Uses sap_fill_form to fill some of the discovered fields
+    4. Verifies all specified fields were filled
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    assert_tool_success(result, "sap_transaction EMMACL")
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # First discover fields to find valid selectors
+    discover_result = await sap_mcp_client.call_tool("sap_discover_fields", {})
+    discover_data = assert_tool_success(discover_result, "sap_discover_fields")
+
+    fields = discover_data.get("fields", [])
+
+    # Find text input fields (not readonly, not checkboxes)
+    fillable_fields = [f for f in fields if f.get("type") in ("text", None) and f.get("selector")]
+
+    if len(fillable_fields) < 2:
+        pytest.skip("Not enough fillable fields found in EMMACL")
+
+    # Pick first 2 fillable fields and try to fill them
+    fields_to_fill = {}
+    for i, field in enumerate(fillable_fields[:2]):
+        selector = field.get("selector")
+        if selector:
+            fields_to_fill[selector] = f"TEST{i}"
+
+    print(f"\nTrying to fill {len(fields_to_fill)} fields: {list(fields_to_fill.keys())}")
+
+    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": fields_to_fill})
+    fill_data = parse_tool_response(fill_result)
+
+    # Log results
+    print(f"Filled: {fill_data.get('filled', [])}")
+    print(f"Not found: {fill_data.get('not_found', [])}")
+    print(f"Errors: {fill_data.get('errors', [])}")
+
+    # At least some fields should have been filled
+    filled = fill_data.get("filled", [])
+    assert len(filled) > 0, f"Expected at least one field to be filled. Result: {fill_data}"
+
+
+@pytest.mark.anyio
+async def test_emmacl_execute_without_filter(sap_mcp_client: ClientSession) -> None:
+    """
+    Test executing EMMACL without any filter (F8 on initial screen).
+
+    This test:
+    1. Opens EMMACL transaction
+    2. Presses F8 to execute without filters
+    3. Captures result table
+    4. Saves HTML snapshot of results
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    assert_tool_success(result, "sap_transaction EMMACL")
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Execute without any filters (F8)
+    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    assert_tool_success(kb_result, "sap_keyboard F8")
+
+    # Wait for results to load
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture HTML snapshot of results
+    await capture_html_snapshot(sap_mcp_client, "emmacl_results_no_filter")
+
+    # Read result table
+    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 20})
+    table_data = parse_tool_response(table_result)
+
+    # Print results for debugging
+    print(f"\nEMMACL results without filter:")
+    print(f"Headers: {table_data.get('headers', [])}")
+    print(f"Total rows: {table_data.get('total_rows', 0)}")
+    for row in table_data.get("rows", [])[:5]:
+        print(f"  Row {row.get('row')}: {row.get('data')}")
+
+    # Verify we got some results (or at least the table was read)
+    assert table_data.get("success", True), f"Table read failed: {table_data}"
+
+
+@pytest.mark.anyio
+async def test_emmacl_execute_with_filter(sap_mcp_client: ClientSession) -> None:
+    """
+    Test executing EMMACL with filter fields.
+
+    This test:
+    1. Opens EMMACL transaction
+    2. Fills a filter field (Business Process Code)
+    3. Presses F8 to execute
+    4. Verifies the search was executed (got results or "no data" message)
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    assert_tool_success(result, "sap_transaction EMMACL")
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Fill filter field using discovered selector
+    # Using a filter value that likely won't match many rows to test filtering works
+    filter_values = {
+        "input[lsdata*='BPCODE-LOW']": "ZTEST",  # Business Process Code (likely no matches)
+    }
+
+    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": filter_values})
+    fill_data = assert_tool_success(fill_result, "sap_fill_form")
+
+    print(f"\nFilled filter fields: {fill_data.get('filled', [])}")
+
+    # Verify filter field was filled
+    assert len(fill_data.get("filled", [])) == len(
+        filter_values
+    ), f"Expected {len(filter_values)} fields filled, got: {fill_data}"
+
+    # Execute with filter (F8)
+    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    assert_tool_success(kb_result, "sap_keyboard F8")
+
+    # Wait for results to load
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture HTML snapshot of filtered results
+    await capture_html_snapshot(sap_mcp_client, "emmacl_results_filtered")
+
+    # Check status bar for result message (works in DE and EN)
+    status_result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
+    status_data = parse_tool_response(status_result)
+
+    print(f"\nStatus bar after F8: {status_data.get('message', '')}")
+
+    # Also try reading table (may show 0 rows if filter matched nothing)
+    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 5})
+    table_data = parse_tool_response(table_result)
+
+    print(f"Table rows: {table_data.get('total_rows', 0)}")
+
+    # The test passes if:
+    # 1. Filter was filled successfully (already verified above)
+    # 2. F8 was executed (already verified)
+    # 3. We got either results or a "no data" status message
+    status_msg = status_data.get("message", "").lower()
+    total_rows = table_data.get("total_rows", 0)
+
+    # Either we got some rows, or we got a status message about no data
+    assert (
+        total_rows > 0 or "keine" in status_msg or "no " in status_msg or status_msg == ""
+    ), f"Expected either results or 'no data' message. Got rows={total_rows}, status='{status_msg}'"

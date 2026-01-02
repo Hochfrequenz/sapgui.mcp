@@ -102,10 +102,14 @@ class FieldInfo(BaseModel):
     """Single field discovered on screen."""
 
     id: str | None = Field(default=None, description="Element ID attribute")
-    name: str | None = Field(default=None, description="Field name from SAP lsdata attribute")
+    name: str | None = Field(default=None, description="Element name attribute")
+    field_id: str | None = Field(
+        default=None, description="SAP field ID extracted from lsdata (e.g., 'NAME_FIRST', 'STREET')"
+    )
     label: str | None = Field(default=None, description="Associated label text")
     type: str | None = Field(default=None, description="Input type (text, checkbox, etc.)")
-    selector: str = Field(description="CSS selector for targeting this field")
+    selector: str = Field(description="Best CSS selector for targeting this field")
+    alternative_selectors: list[str] = Field(default_factory=list, description="Other valid CSS selectors")
     value: str | None = Field(default=None, description="Current field value if readable")
 
 
