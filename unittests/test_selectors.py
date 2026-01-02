@@ -80,8 +80,26 @@ def load_snapshot(snapshot_path: Path) -> BeautifulSoup | None:
 
     # SAP Web GUI generates invalid HTML with <table> inside <span> (role="textbox").
     # Python 3.13+ html.parser auto-closes spans when encountering block elements.
-    # Fix by removing the problematic lsHtmlTextView spans entirely (they're just wrappers).
+    #
+    # Platform findings:
+    # - Python 3.11/3.12: html.parser works correctly on both Windows and Linux
+    # - Python 3.13/3.14 on Windows: html.parser works (somehow more lenient)
+    # - Python 3.13/3.14 on Linux: html.parser FAILS (stricter nesting rules)
+    # - lxml also fails on Linux with Python 3.14
+    #
+    # IMPORTANT: This is ONLY a problem for our offline unit tests that parse raw HTML.
+    # Real browsers (Chrome, Firefox) and Playwright handle this gracefully because their
+    # HTML parsers are more lenient. The actual SAP Web GUI works perfectly for users.
+    # See test_sap_integration.py::test_login_page_fields_findable_by_playwright for proof.
+    #
+    # Fix: Remove the problematic lsHtmlTextView spans (they're just wrappers).
+    # Yes, using regex on HTML is generally a bad idea, but the HTML is already broken
+    # and we're just removing a known wrapper element to help the parser.
+    original_len = len(html)
     html = re.sub(r'<span[^>]*class="[^"]*lsHtmlTextView[^"]*"[^>]*>', "", html)
+    # Debug: print how much was removed (only visible in test output if parsing fails)
+    if len(html) == original_len:
+        print(f"WARNING: No lsHtmlTextView spans were removed! HTML length: {original_len}")
 
     return BeautifulSoup(html, "html.parser")
 
