@@ -399,30 +399,30 @@ async def browser_screenshot(...) -> ImageContent:
 
 Each tool changes from `-> str` to its specific result model:
 
-| Tool                   | Return Type           |
-| ---------------------- | --------------------- |
-| `sap_login`            | `LoginResult`         |
-| `sap_transaction`      | `TransactionResult`   |
-| `sap_session_status`   | `SessionStatus`       |
-| `sap_keyboard`         | `KeyboardResult`      |
-| `sap_keepalive_start`  | `KeepaliveResult`     |
-| `sap_keepalive_stop`   | `KeepaliveResult`     |
-| `sap_read_status_bar`  | `StatusBarInfo`       |
-| `sap_get_screen_info`  | `ScreenInfo`          |
-| `sap_get_screen_text`  | `ScreenText`          |
-| `sap_read_table`       | `TableData`           |
-| `sap_discover_fields`  | `DiscoveredFields`    |
-| `sap_lookup_fields`    | `FieldLookupResult`   |
-| `browser_snapshot`     | `SnapshotResult`      |
-| `browser_screenshot`   | `ImageContent`        |
-| `browser_click`        | `ClickResult`         |
-| `browser_fill`         | `FillResult`          |
-| `browser_keyboard`     | `BrowserKeyboardResult` |
-| `browser_navigate`     | `NavigateResult`      |
-| `browser_evaluate`     | `EvaluateResult`      |
-| `browser_wait`         | `WaitResult`          |
-| `browser_get_html`     | `HtmlResult`          |
-| `browser_select_option`| `SelectOptionResult`  |
+| Tool                    | Return Type             |
+| ----------------------- | ----------------------- |
+| `sap_login`             | `LoginResult`           |
+| `sap_transaction`       | `TransactionResult`     |
+| `sap_session_status`    | `SessionStatus`         |
+| `sap_keyboard`          | `KeyboardResult`        |
+| `sap_keepalive_start`   | `KeepaliveResult`       |
+| `sap_keepalive_stop`    | `KeepaliveResult`       |
+| `sap_read_status_bar`   | `StatusBarInfo`         |
+| `sap_get_screen_info`   | `ScreenInfo`            |
+| `sap_get_screen_text`   | `ScreenText`            |
+| `sap_read_table`        | `TableData`             |
+| `sap_discover_fields`   | `DiscoveredFields`      |
+| `sap_lookup_fields`     | `FieldLookupResult`     |
+| `browser_snapshot`      | `SnapshotResult`        |
+| `browser_screenshot`    | `ImageContent`          |
+| `browser_click`         | `ClickResult`           |
+| `browser_fill`          | `FillResult`            |
+| `browser_keyboard`      | `BrowserKeyboardResult` |
+| `browser_navigate`      | `NavigateResult`        |
+| `browser_evaluate`      | `EvaluateResult`        |
+| `browser_wait`          | `WaitResult`            |
+| `browser_get_html`      | `HtmlResult`            |
+| `browser_select_option` | `SelectOptionResult`    |
 
 ## Implementation Order
 
