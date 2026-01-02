@@ -708,9 +708,9 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
     )
     await assert_fill_success(result, f"TO_DATE={to_date}")
 
-    # Execute (F8)
+    # Execute (F8) and wait for list output to complete
     await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
-    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 10000})
 
     # Capture table results HTML for unit tests
     await capture_html_snapshot(sap_mcp_client, "sm37_results")
