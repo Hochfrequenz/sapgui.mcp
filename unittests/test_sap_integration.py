@@ -1082,8 +1082,8 @@ async def test_browser_reconnect_after_idle(sap_mcp_client: ClientSession) -> No
     status_data = parse_tool_response(result)
 
     # Should be able to get status (either connected or reconnected)
-    assert (
-        "status" in status_data or status_data.get("success", True)
+    assert "status" in status_data or status_data.get(
+        "success", True
     ), f"Should get valid session status after idle period: {status_data}"
 
     # Step 5: Verify we can still execute transactions

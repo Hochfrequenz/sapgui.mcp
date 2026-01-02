@@ -11,9 +11,7 @@ from sapwebguimcp.models.base import ToolResult
 class SnapshotResult(ToolResult):
     """Result from browser_snapshot tool."""
 
-    snapshot: dict[str, Any] | None = Field(
-        default=None, description="Accessibility tree as dict"
-    )
+    snapshot: dict[str, Any] | None = Field(default=None, description="Accessibility tree as dict")
     selector: str | None = Field(default=None, description="Scoped selector if provided")
 
 
@@ -56,9 +54,7 @@ class EvaluateResult(ToolResult):
     """Result from browser_evaluate tool."""
 
     result: str | None = Field(default=None, description="JSON-serialized result")
-    script_snippet: str | None = Field(
-        default=None, description="First 100 chars of script"
-    )
+    script_snippet: str | None = Field(default=None, description="First 100 chars of script")
 
 
 class WaitResult(ToolResult):

@@ -21,11 +21,10 @@ import logging
 from datetime import timedelta
 from typing import Literal, Optional
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 from sapwebguimcp.models import (
     BrowserKeyboardResult,
-    BrowserManager,
     ClickResult,
     EvaluateResult,
     FillResult,
@@ -35,6 +34,7 @@ from sapwebguimcp.models import (
     SelectOptionResult,
     SnapshotResult,
     WaitResult,
+    get_browser_manager,
 )
 
 __all__ = ["register_browser_tools"]
@@ -58,8 +58,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         Returns:
             SnapshotResult with accessibility tree as dict
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
         try:
@@ -89,8 +88,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         Returns:
             ScreenshotResult with base64 encoded PNG image
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
         try:
@@ -131,8 +129,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         Returns:
             ClickResult with the selector that was clicked
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
         try:
@@ -155,8 +152,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         Returns:
             FillResult with selector and value
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
         try:
@@ -178,8 +174,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         Returns:
             BrowserKeyboardResult with key or text that was sent
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
         try:
@@ -205,8 +200,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         Returns:
             NavigateResult with URL and page title
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
         try:
@@ -231,8 +225,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         Returns:
             EvaluateResult with JSON-serialized result
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
         script_snippet = script[:100] if len(script) > 100 else script
@@ -264,8 +257,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         Returns:
             WaitResult with selector, state, and timeout
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
         timeout_td = timedelta(milliseconds=timeout)
@@ -292,8 +284,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         Returns:
             HtmlResult with HTML content
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
         try:
@@ -329,8 +320,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         Returns:
             SelectOptionResult with selector and selected value/label
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
         try:

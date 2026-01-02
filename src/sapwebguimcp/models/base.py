@@ -1,6 +1,6 @@
 """Base model for MCP tool results with standardized error handling."""
 
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
@@ -44,6 +44,6 @@ class ToolResult(BaseModel):
         return not self.success
 
     @classmethod
-    def failure(cls, error: str, **kwargs):
+    def failure(cls, error: str, **kwargs: Any) -> Self:
         """Factory method to create a failed result."""
         return cls(success=False, error=error, **kwargs)

@@ -23,7 +23,7 @@ from functools import lru_cache
 from importlib import resources
 from typing import Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 from sapwebguimcp.models import (
     BrowserManager,
@@ -39,6 +39,7 @@ from sapwebguimcp.models import (
     StatusBarInfo,
     TableData,
     TransactionResult,
+    get_browser_manager,
     get_settings,
 )
 
@@ -284,8 +285,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         """
         global _keepalive_task, _keepalive_interval  # pylint: disable=global-statement
 
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
 
         # Stop existing task if running
         if _keepalive_task is not None and not _keepalive_task.done():
@@ -345,8 +345,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             LoginResult indicating login success or what action is needed.
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
+
         settings = get_settings()
 
         page = await browser_manager.get_current_page()
@@ -477,8 +477,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             TransactionResult indicating success or describing any issues.
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
 
         page = await browser_manager.get_current_page()
 
@@ -623,8 +622,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - "no_page": No browser page available
             - "unknown": Cannot determine status
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
 
         try:
             page = await browser_manager.get_current_page()
@@ -693,8 +691,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             KeyboardResult with the key sent and current page title.
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
 
         try:
             page = await browser_manager.get_current_page()
@@ -735,8 +732,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - Status messages
             - Table headers
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
 
         try:
             page = await browser_manager.get_current_page()
@@ -780,8 +776,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             TableData with column headers and row values.
             Empty columns are excluded to reduce response size.
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
 
         try:
             page = await browser_manager.get_current_page()
@@ -820,8 +815,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - type: "S" (success), "E" (error), "W" (warning), "I" (info), or "none"
             - message: The status bar text
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
 
         try:
             page = await browser_manager.get_current_page()
@@ -851,8 +845,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - program: ABAP program name (if available in page)
             - dynpro: Screen number (if available)
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
 
         try:
             page = await browser_manager.get_current_page()
@@ -947,8 +940,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - selector: Suggested CSS selector to use
             - value: Current value (if any)
         """
-        ctx = mcp.get_context()
-        browser_manager: BrowserManager = ctx.request_context.lifespan_context.browser_manager
+        browser_manager = await get_browser_manager()
 
         try:
             page = await browser_manager.get_current_page()

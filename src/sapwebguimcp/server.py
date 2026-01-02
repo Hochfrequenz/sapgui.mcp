@@ -8,11 +8,10 @@ Tools are organized in separate modules under sapwebguimcp.tools.
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
-from sapwebguimcp.models import BrowserManager, get_settings
+from sapwebguimcp.models import close_browser_manager
 from sapwebguimcp.tools import register_browser_tools, register_sap_tools
 
 __all__ = ["main", "mcp"]
@@ -25,44 +24,31 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class AppContext:
-    """Application context available to all tools via lifespan."""
-
-    browser_manager: BrowserManager
-
-
 @asynccontextmanager
-async def app_lifespan(_server: FastMCP) -> AsyncIterator[AppContext]:
+async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     """
-    Manage application lifecycle with type-safe context.
+    Manage application lifecycle.
 
-    This context manager:
-    1. Creates and yields the browser manager for tools to use
-    2. Cleans up browser resources on shutdown
+    This context manager handles cleanup of browser resources on shutdown.
+    The browser manager is initialized lazily on first use via get_browser_manager().
     """
-    settings = get_settings()
-    browser_manager = BrowserManager(settings)
-
     logger.info("SAP Web GUI MCP Server starting...")
     logger.info("Server ready - waiting for MCP client connection on stdin.")
     logger.info("(JSON parse errors on empty input are normal when testing manually)")
 
     try:
-        yield AppContext(browser_manager=browser_manager)
+        yield
     finally:
         logger.info("Cleaning up browser resources...")
-        await browser_manager.close()
+        await close_browser_manager()
         logger.info("Server shutdown complete")
 
 
-# Create the FastMCP server instance
-# Note: strict_input_validation requires the standalone fastmcp package.
-# The mcp package's built-in FastMCP doesn't support it yet.
+# Create the FastMCP server instance with strict input validation
 mcp = FastMCP(
     "sap-webgui-mcp",
-    dependencies=["playwright", "pydantic-settings"],
     lifespan=app_lifespan,
+    strict_input_validation=True,
 )
 
 # Register all tools

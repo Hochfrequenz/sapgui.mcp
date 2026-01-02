@@ -44,9 +44,7 @@ class KeepaliveResult(ToolResult):
     """Result from sap_keepalive_start/stop tools."""
 
     running: bool = Field(description="Whether keepalive is now running")
-    interval_seconds: int | None = Field(
-        default=None, ge=1, description="Ping interval if running"
-    )
+    interval_seconds: int | None = Field(default=None, ge=1, description="Ping interval if running")
 
 
 class StatusBarInfo(ToolResult):
@@ -122,9 +120,5 @@ class FieldLookupResult(ToolResult):
     """Result from sap_lookup_fields tool."""
 
     transaction: TCode = Field(description="Transaction code looked up")
-    fields: dict[str, str] = Field(
-        default_factory=dict, description="Field name → selector"
-    )
-    similar_transactions: list[str] | None = Field(
-        default=None, description="Similar tcodes if not found"
-    )
+    fields: dict[str, str] = Field(default_factory=dict, description="Field name → selector")
+    similar_transactions: list[str] | None = Field(default=None, description="Similar tcodes if not found")

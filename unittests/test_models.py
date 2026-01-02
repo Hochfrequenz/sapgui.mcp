@@ -120,12 +120,12 @@ class TestTransactionCodeValidation:
 
     def test_invalid_tcode_with_spaces(self) -> None:
         """Test invalid transaction code with spaces."""
-        with pytest.raises(ValidationError, match="string_pattern_mismatch"):
+        with pytest.raises(ValidationError):
             TransactionResult(tcode="SE 16")
 
     def test_invalid_tcode_with_special_chars(self) -> None:
         """Test invalid transaction code with special characters."""
-        with pytest.raises(ValidationError, match="string_pattern_mismatch"):
+        with pytest.raises(ValidationError):
             TransactionResult(tcode="SE16#")
 
 

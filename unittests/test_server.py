@@ -1,6 +1,6 @@
 """Tests for the server module."""
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 from sapwebguimcp.server import mcp
 
