@@ -93,3 +93,5 @@ Thumbs.db
 .claude/
 
 src/_your_package_version.py
+
+src/_sapwebguimcp_version.py
