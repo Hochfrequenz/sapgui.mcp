@@ -459,9 +459,7 @@ class TestFKeyExtraction:
         mappings = self.extract_fkey_mappings(soup)
 
         # SE11 should have at least F3 (Back), F7 (Display), etc.
-        assert len(mappings) >= 3, (
-            f"SE11 should have multiple F-key mappings. Found: {list(mappings.keys())}"
-        )
+        assert len(mappings) >= 3, f"SE11 should have multiple F-key mappings. Found: {list(mappings.keys())}"
 
         # Verify F3 is mapped (Back is always available)
         assert "F3" in mappings, "F3 (Back/Zurück) should be mapped"
@@ -476,9 +474,7 @@ class TestFKeyExtraction:
         mappings = self.extract_fkey_mappings(soup)
 
         # SE11 should have at least F3 (Back), F7 (Display), etc.
-        assert len(mappings) >= 3, (
-            f"SE11 (EN) should have multiple F-key mappings. Found: {list(mappings.keys())}"
-        )
+        assert len(mappings) >= 3, f"SE11 (EN) should have multiple F-key mappings. Found: {list(mappings.keys())}"
 
         # Verify F3 is mapped (Back is always available)
         assert "F3" in mappings, "F3 (Back) should be mapped in English SE11"
@@ -492,9 +488,7 @@ class TestFKeyExtraction:
 
         mappings = self.extract_fkey_mappings(soup)
 
-        assert len(mappings) >= 2, (
-            f"Easy Access should have F-key mappings. Found: {list(mappings.keys())}"
-        )
+        assert len(mappings) >= 2, f"Easy Access should have F-key mappings. Found: {list(mappings.keys())}"
 
 
 class TestLoginPageSelectors:
