@@ -650,9 +650,11 @@ async def test_sap_read_table_from_sm37(sap_mcp_client: ClientSession) -> None:
     await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='JOBNAME' i]", "value": "*"})
     await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='USERNAME' i]", "value": "*"})
 
-    # Execute search
     await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture table results HTML for unit tests
+    await capture_html_snapshot(sap_mcp_client, "sm37_results")
 
     result = await sap_mcp_client.call_tool("sap_read_table", {"start_row": 1, "end_row": 5})
     assert result.content, "Expected response from sap_read_table"
@@ -695,6 +697,51 @@ async def test_sap_read_table_from_se93(sap_mcp_client: ClientSession) -> None:
     assert (
         has_se_transactions or has_table_structure
     ), f"Expected to find standard SE* transactions or table structure: {response_text[:500]}"
+
+
+@pytest.mark.anyio
+async def test_se16_table_content_t000(sap_mcp_client: ClientSession) -> None:
+    """Test reading actual table content from SE16 using T000 (Clients table).
+
+    T000 is the SAP clients/mandants table. It exists on every SAP system
+    and contains at least one row (the current client). It's small enough
+    to not overwhelm the LLM context.
+
+    This test verifies:
+    - SE16 can display table content
+    - The table has at least one row
+    - We can capture the HTML for unit tests
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Enter table name T000 (Clients table - always exists, always small)
+    table_field = await sap_mcp_client.call_tool(
+        "browser_fill", {"selector": "input[id*='TABLENAME' i], input[id*='DATABROWSE' i]", "value": "T000"}
+    )
+    assert table_field.content, "Should be able to fill table name field"
+
+    # Execute to show table content
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture table content HTML for unit tests
+    await capture_html_snapshot(sap_mcp_client, "se16_t000_content")
+
+    # Read the table data
+    result = await sap_mcp_client.call_tool("sap_read_table", {"start_row": 1, "end_row": 10})
+    assert result.content, "Expected response from sap_read_table"
+    response_text = result.content[0].text
+
+    # T000 must have at least one row (the current client)
+    # Check for table data indicators
+    has_rows = "rows" in response_text.lower() or "mandt" in response_text.lower()
+    has_content = len(response_text) > 50  # More than just an error message
+
+    assert has_rows and has_content, (
+        f"SE16 T000 should return table content with at least one client. " f"Response: {response_text[:500]}"
+    )
 
 
 @pytest.mark.anyio

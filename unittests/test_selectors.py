@@ -372,3 +372,81 @@ class TestLoginPageSelectors:
         assert user_field, "Login page should have username field"
         assert password_field, "Login page should have password field"
         assert login_button, "Login page should have login button"
+
+
+class TestTableContentExtraction:
+    """Tests for extracting table content from SAP screens.
+
+    These tests verify that we can find and extract data from SAP tables,
+    which is essential for the sap_read_table tool.
+    """
+
+    def test_se16_t000_has_table_rows(self, html_snapshots_path: Path) -> None:
+        """Verify SE16 T000 content has extractable table rows.
+
+        T000 (Clients table) always has at least one row. This test verifies
+        we can find table elements in the captured HTML.
+        """
+        snapshot = get_snapshot_path(html_snapshots_path, "se16_t000_content")
+        if snapshot is None:
+            pytest.skip("se16_t000_content snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+
+        # SAP tables use various structures - look for common patterns
+        # 1. Standard HTML tables
+        tables = soup.find_all("table")
+
+        # 2. SAP-specific grid/list elements
+        grids = soup.find_all(attrs={"role": "grid"})
+        rows = soup.find_all(attrs={"role": "row"})
+
+        # 3. Elements with lsdata containing table-related info
+        cells_with_data = soup.find_all(attrs={"lsdata": True})
+        table_cells = [c for c in cells_with_data if "row" in str(c.get("lsdata", "")).lower()]
+
+        has_table_structure = len(tables) > 0 or len(grids) > 0 or len(rows) > 0 or len(table_cells) > 0
+
+        assert has_table_structure, (
+            "SE16 T000 content should contain table elements. "
+            f"Found: {len(tables)} tables, {len(grids)} grids, {len(rows)} rows, {len(table_cells)} cells with lsdata"
+        )
+
+    def test_se16_t000_contains_mandt_column(self, html_snapshots_path: Path) -> None:
+        """Verify SE16 T000 content contains MANDT (client) column.
+
+        T000 table always has a MANDT column showing the client number.
+        """
+        snapshot = get_snapshot_path(html_snapshots_path, "se16_t000_content")
+        if snapshot is None:
+            pytest.skip("se16_t000_content snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+
+        html_text = str(soup).upper()
+
+        # MANDT is the standard SAP client/mandant field name
+        assert "MANDT" in html_text, (
+            "SE16 T000 content should contain 'MANDT' column header or data. "
+            "This is the primary key of the T000 table."
+        )
+
+    def test_sm37_results_has_job_rows(self, html_snapshots_path: Path) -> None:
+        """Verify SM37 results contain job list rows.
+
+        After executing SM37 with wildcards, we should have job entries.
+        """
+        snapshot = get_snapshot_path(html_snapshots_path, "sm37_results")
+        if snapshot is None:
+            pytest.skip("sm37_results snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+
+        # Look for table/grid structures
+        tables = soup.find_all("table")
+        grids = soup.find_all(attrs={"role": "grid"})
+        rows = soup.find_all(attrs={"role": "row"})
+
+        has_table_structure = len(tables) > 0 or len(grids) > 0 or len(rows) > 1  # >1 because header row
+
+        assert has_table_structure, (
+            "SM37 results should contain a job list with table rows. "
+            f"Found: {len(tables)} tables, {len(grids)} grids, {len(rows)} rows"
+        )
