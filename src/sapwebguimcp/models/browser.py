@@ -161,8 +161,13 @@ class BrowserManager:
             try:
                 return await self._get_page_internal(name)
             except Exception as e:  # pylint: disable=broad-exception-caught
-                if attempt == 0 and "closed" in str(e).lower():
-                    logger.warning("Browser context appears closed, attempting reconnect...")
+                error_msg = str(e).lower()
+                # Reconnect on connection issues: closed context, no tabs, or target closed
+                is_connection_error = any(
+                    phrase in error_msg for phrase in ["closed", "no browser tabs", "target closed", "not connected"]
+                )
+                if attempt == 0 and is_connection_error:
+                    logger.warning("Browser connection issue (%s), attempting reconnect...", e)
                     await self._reconnect()
                 else:
                     raise
@@ -200,8 +205,11 @@ class BrowserManager:
         settings = self._settings or get_settings()
         if settings.browser_mode == BrowserMode.CONNECT:
             # In connect mode, we should never need to create a page
-            # If we get here, the browser has no tabs - user needs to open one
-            raise RuntimeError("No browser tabs found. Please open at least one tab in Chrome, then try again.")
+            # If we get here, the CDP connection may be stale - trigger reconnect
+            raise RuntimeError(
+                "No browser tabs found - CDP connection may be stale. "
+                "Will attempt reconnect. If this persists, ensure Chrome has at least one tab open."
+            )
 
         page = await self._context.new_page()
         self._pages[page_name] = page
