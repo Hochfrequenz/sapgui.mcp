@@ -115,15 +115,18 @@ HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
 
 async def capture_html_snapshot(
     client: ClientSession,
-    filename: str,
+    base_name: str,
     overwrite: bool = False,
 ) -> str:
     """
     Capture the current browser HTML and save it as a snapshot for unit tests.
 
+    The filename will include the current SAP_LANGUAGE setting (e.g., "easy_access_en.html").
+    This allows capturing snapshots in multiple languages for testing.
+
     Args:
         client: MCP ClientSession connected to the SAP Web GUI server
-        filename: Name of the snapshot file (e.g., "se16_initial.html")
+        base_name: Base name of the snapshot file without extension (e.g., "easy_access")
         overwrite: If True, overwrite existing snapshot. If False, skip if exists.
 
     Returns:
@@ -134,6 +137,10 @@ async def capture_html_snapshot(
         raise RuntimeError("browser_get_html returned empty content")
 
     html_content = result.content[0].text
+
+    # Include language in filename for multi-language snapshots
+    language = os.environ.get("SAP_LANGUAGE", "EN").lower()
+    filename = f"{base_name}_{language}.html"
 
     HTML_SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
     snapshot_path = HTML_SNAPSHOTS_DIR / filename
@@ -179,7 +186,7 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     )
 
     # Capture HTML snapshot for offline selector testing
-    await capture_html_snapshot(sap_mcp_client, "easy_access.html")
+    await capture_html_snapshot(sap_mcp_client, "easy_access")
 
 
 @pytest.mark.anyio
@@ -229,7 +236,7 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
     )
 
     # Capture HTML snapshot for offline selector testing
-    await capture_html_snapshot(sap_mcp_client, "su3_screen.html")
+    await capture_html_snapshot(sap_mcp_client, "su3_screen")
 
 
 @pytest.mark.anyio
@@ -263,7 +270,7 @@ async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> N
     )
 
     # Capture HTML snapshot with error status bar for offline testing
-    await capture_html_snapshot(sap_mcp_client, "status_bar_error.html")
+    await capture_html_snapshot(sap_mcp_client, "status_bar_error")
 
 
 @pytest.mark.anyio
@@ -511,7 +518,7 @@ async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> N
     ), f"SE16 screen text should contain table-related labels. Language: {sap_language}. Got: {response_text[:500]}"
 
     # Capture HTML snapshot for offline selector testing
-    await capture_html_snapshot(sap_mcp_client, "se16_initial.html")
+    await capture_html_snapshot(sap_mcp_client, "se16_initial")
 
 
 @pytest.mark.anyio
@@ -549,7 +556,7 @@ async def test_sap_read_table_from_sm37(sap_mcp_client: ClientSession) -> None:
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Capture HTML snapshot for offline selector testing (before filling form)
-    await capture_html_snapshot(sap_mcp_client, "sm37_initial.html")
+    await capture_html_snapshot(sap_mcp_client, "sm37_initial")
 
     # Fill job selection with wildcards to get any jobs
     await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='JOBNAME' i]", "value": "*"})
