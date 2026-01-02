@@ -3,7 +3,7 @@
   "private": true,
   "description": "JavaScript formatting for SAP Web GUI MCP Server",
   "devDependencies": {
-    "prettier": "3.4.2"
+    "prettier": "3.7.4"
   },
   "scripts": {
     "format": "prettier --write src/**/*.js",
