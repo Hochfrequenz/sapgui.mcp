@@ -210,8 +210,76 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
         # Check for German menu items like "System" or "Hilfe"
         pass  # German is the fallback, no strict assertion needed
 
-    # Capture HTML snapshot for offline selector testing
     await capture_html_snapshot(sap_mcp_client, "easy_access")
+
+
+@pytest.mark.anyio
+async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
+    """Capture the settings dialog HTML for selector testing.
+
+    Opens the SAP settings dialog to capture its HTML structure.
+    This allows unit tests to verify selectors for settings_button,
+    okcode_checkbox, save_settings, and close_dialog.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Try to find and click the settings button using browser_evaluate
+    # This mirrors the logic in _enable_okcode_field
+    settings_clicked = await sap_mcp_client.call_tool(
+        "browser_evaluate",
+        {
+            "expression": """
+            (function() {
+                // Try various settings button selectors
+                var selectors = [
+                    '[id*="settingsButton"]',
+                    '[title*="Setting" i]',
+                    '[title*="Einstellung" i]',
+                    'button[id*="gear" i]',
+                    '[aria-label*="Setting" i]'
+                ];
+                for (var i = 0; i < selectors.length; i++) {
+                    var btn = document.querySelector(selectors[i]);
+                    if (btn) {
+                        btn.click();
+                        return 'clicked: ' + selectors[i];
+                    }
+                }
+                return 'not found';
+            })()
+            """
+        },
+    )
+
+    if settings_clicked.content and "clicked" in settings_clicked.content[0].text:
+        await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+        await capture_html_snapshot(sap_mcp_client, "settings_dialog")
+
+        # Close the dialog
+        await sap_mcp_client.call_tool(
+            "browser_evaluate",
+            {
+                "expression": """
+                (function() {
+                    var selectors = [
+                        'button:contains("Close")',
+                        'button:contains("Schließen")',
+                        '[id*="closeButton"]',
+                        'button[aria-label*="Close" i]'
+                    ];
+                    for (var i = 0; i < selectors.length; i++) {
+                        try {
+                            var btn = document.querySelector(selectors[i]);
+                            if (btn) { btn.click(); return 'closed'; }
+                        } catch(e) {}
+                    }
+                    // Try pressing Escape
+                    return 'escape';
+                })()
+                """
+            },
+        )
+        await sap_mcp_client.call_tool("sap_keyboard", {"key": "Escape"})
 
 
 @pytest.mark.anyio
@@ -271,10 +339,8 @@ async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> N
     This is a negative test to verify the transaction entry mechanism works.
     If SAP shows an error message, it means the transaction code was received.
     """
-    # Login
     await sap_mcp_client.call_tool("sap_login", {})
 
-    # Try an obviously invalid transaction code
     result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "INVALIDTCODE123"})
     assert result.content, "Expected response from sap_transaction"
 
@@ -306,7 +372,6 @@ async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) 
     - They should become /n/IWFND/GW_CLIENT (not just /IWFND/GW_CLIENT)
     - The /n prefix tells SAP to open a new transaction
     """
-    # Login
     await sap_mcp_client.call_tool("sap_login", {})
 
     # Test with a namespace transaction (starts with /)
@@ -333,7 +398,6 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "EN")
 
-    # Login
     await sap_mcp_client.call_tool("sap_login", {})
 
     # Step 1: Open SE11 (ABAP Dictionary)
@@ -392,7 +456,6 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
 
     The /o prefix opens a new SAP session without affecting the current one.
     """
-    # Login
     await sap_mcp_client.call_tool("sap_login", {})
 
     # Step 1: Open SE11 (ABAP Dictionary) in current window

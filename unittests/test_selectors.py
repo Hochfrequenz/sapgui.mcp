@@ -201,47 +201,76 @@ def find_sap_field_by_sid(soup: BeautifulSoup, sid_pattern: str) -> list[Tag]:
 
 
 class TestTransactionFieldSelectors:
-    """Tests for transaction-specific field selectors."""
+    """Tests for transaction-specific field selectors.
 
-    def test_se16_table_name_field(self, html_snapshots_path: Path) -> None:
-        """Verify SE16 table name input field can be found.
+    These tests verify that our field discovery logic finds ALL expected
+    input fields on transaction screens, not just "some" inputs.
+    """
 
-        SAP Web GUI generates dynamic IDs like 'M0:46:::2:21' but the stable
-        identifier is in the lsdata attribute: "SID":"wnd[0]/usr/ctxtDATABROWSE-TABLENAME"
+    def test_se16_finds_table_name_field(self, html_snapshots_path: Path) -> None:
+        """SE16 must find the table name input field.
+
+        The table name field is the primary input on SE16 (Data Browser).
+        SAP Web GUI stores stable identifiers in the lsdata attribute.
         """
         snapshot = get_snapshot_path(html_snapshots_path, "se16_initial")
         if snapshot is None:
             pytest.skip("se16_initial snapshot not available - run integration tests first")
         soup = load_snapshot(snapshot)
 
-        # Find by SID pattern in lsdata (most reliable for SAP Web GUI)
         elements = find_sap_field_by_sid(soup, "DATABROWSE-TABLENAME")
 
         assert len(elements) >= 1, (
-            "SE16 table name field should be found via lsdata SID containing 'DATABROWSE-TABLENAME'. "
-            "SAP Web GUI uses dynamic IDs but stores stable identifiers in lsdata."
+            "SE16 MUST find the table name field (DATABROWSE-TABLENAME). "
+            "This is the primary input field for specifying which table to browse."
         )
 
-        # Verify it's a text input
         field = elements[0]
         assert field.get("type", "text") == "text", "Table name field should be a text input"
 
-    def test_sm37_job_name_field(self, html_snapshots_path: Path) -> None:
-        """Verify SM37 job name input field can be found.
-
-        SM37 has multiple input fields. The job name field has 'JOBNAME' in its SID.
-        """
+    def test_sm37_finds_job_name_field(self, html_snapshots_path: Path) -> None:
+        """SM37 must find the job name input field."""
         snapshot = get_snapshot_path(html_snapshots_path, "sm37_initial")
         if snapshot is None:
             pytest.skip("sm37_initial snapshot not available - run integration tests first")
         soup = load_snapshot(snapshot)
 
-        # Find by SID pattern in lsdata
         elements = find_sap_field_by_sid(soup, "JOBNAME")
 
         assert len(elements) >= 1, (
-            "SM37 job name field should be found via lsdata SID containing 'JOBNAME'. "
-            "SAP Web GUI uses dynamic IDs but stores stable identifiers in lsdata."
+            "SM37 MUST find the job name field. " "This field is used to filter background jobs by name."
+        )
+
+    def test_sm37_finds_username_field(self, html_snapshots_path: Path) -> None:
+        """SM37 must find the username input field."""
+        snapshot = get_snapshot_path(html_snapshots_path, "sm37_initial")
+        if snapshot is None:
+            pytest.skip("sm37_initial snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+
+        elements = find_sap_field_by_sid(soup, "USERNAME")
+
+        assert len(elements) >= 1, (
+            "SM37 MUST find the username field. " "This field filters background jobs by the user who scheduled them."
+        )
+
+    def test_sm37_finds_date_fields(self, html_snapshots_path: Path) -> None:
+        """SM37 must find date range input fields."""
+        snapshot = get_snapshot_path(html_snapshots_path, "sm37_initial")
+        if snapshot is None:
+            pytest.skip("sm37_initial snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+
+        # SM37 has FROM and TO date fields for filtering job execution dates
+        from_date = find_sap_field_by_sid(soup, "FROMDATE") or find_sap_field_by_sid(soup, "FROM_DATE")
+        to_date = find_sap_field_by_sid(soup, "TODATE") or find_sap_field_by_sid(soup, "TO_DATE")
+
+        # At least one date field should be present
+        has_date_fields = len(from_date) >= 1 or len(to_date) >= 1
+
+        assert has_date_fields, (
+            "SM37 MUST find at least one date field for filtering job execution dates. "
+            "Looked for FROMDATE, FROM_DATE, TODATE, TO_DATE in lsdata SIDs."
         )
 
 
@@ -272,6 +301,55 @@ class TestInputFieldDiscovery:
         visible_inputs = [inp for inp in inputs if inp.get("type", "text") not in ("hidden", "submit", "button")]
 
         assert len(visible_inputs) >= 1, "SM37 screen should have at least one visible input field"
+
+
+class TestSettingsDialogSelectors:
+    """Tests for settings dialog selectors.
+
+    These test the selectors used in _enable_okcode_field() to find and enable
+    the OK-Code field through SAP settings.
+    """
+
+    def test_settings_button_selector(self, html_snapshots_path: Path) -> None:
+        """Verify settings button can be found in Easy Access screen."""
+        snapshot = get_snapshot_path(html_snapshots_path, "easy_access")
+        if snapshot is None:
+            pytest.skip("easy_access snapshot not available")
+        soup = load_snapshot(snapshot)
+
+        elements = css_select(soup, SELECTORS["settings_button"])
+
+        # Settings button should be findable on main SAP screen
+        assert len(elements) >= 1, (
+            f"Settings button should be found on Easy Access screen. " f"Selector: {SELECTORS['settings_button']}"
+        )
+
+    def test_settings_dialog_has_checkboxes(self, html_snapshots_path: Path) -> None:
+        """Verify settings dialog contains checkbox elements."""
+        snapshot = get_snapshot_path(html_snapshots_path, "settings_dialog")
+        if snapshot is None:
+            pytest.skip("settings_dialog snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+
+        checkboxes = soup.find_all("input", {"type": "checkbox"})
+
+        assert len(checkboxes) >= 1, (
+            "Settings dialog should contain at least one checkbox. " "The OK-Code field setting is a checkbox."
+        )
+
+    def test_settings_dialog_has_save_or_close(self, html_snapshots_path: Path) -> None:
+        """Verify settings dialog has save/close buttons."""
+        snapshot = get_snapshot_path(html_snapshots_path, "settings_dialog")
+        if snapshot is None:
+            pytest.skip("settings_dialog snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+
+        # Look for any button-like elements
+        buttons = soup.find_all("button")
+        divs_with_role = soup.find_all(attrs={"role": "button"})
+        all_buttons = buttons + divs_with_role
+
+        assert len(all_buttons) >= 1, "Settings dialog should have at least one button (Save, Close, OK, etc.)"
 
 
 class TestLoginPageSelectors:
