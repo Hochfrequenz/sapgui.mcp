@@ -32,8 +32,7 @@ tests = [
     "pytest==9.0.2",
     "anyio==4.12.0",  # includes pytest-anyio plugin for proper async fixture teardown
     "python-dotenv>=1.0.0",
-    "beautifulsoup4==4.14.3",  # HTML parsing for selector unit tests
-    "lxml==6.0.2",  # Fast HTML parser backend for BeautifulSoup
+    "beautifulsoup4==4.14.3",  # HTML parsing for selector unit tests (uses html.parser backend)
 ]
 linting = [
     "pylint==4.0.4",

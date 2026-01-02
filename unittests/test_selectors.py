@@ -76,7 +76,9 @@ def load_snapshot(snapshot_path: Path) -> BeautifulSoup | None:
     if not snapshot_path.exists():
         return None
     html = snapshot_path.read_text(encoding="utf-8")
-    return BeautifulSoup(html, "lxml")
+    # Use html.parser instead of lxml for cross-platform compatibility
+    # (lxml may behave differently on Linux vs Windows with minified HTML)
+    return BeautifulSoup(html, "html.parser")
 
 
 def css_select(soup: BeautifulSoup, selector: str) -> list[Tag]:
