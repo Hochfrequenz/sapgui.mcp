@@ -90,23 +90,21 @@ Use `sap_fill_form` to fill all fields in a single call. This is ~10x faster
 than filling fields one by one because it executes everything in one browser round-trip.
 
 ```
-# Fill all visible fields at once using labels or CSS selectors
+# Fill person fields using CSS selectors that target SAP field IDs
 sap_fill_form({
-    "Anrede": "Herr",
-    "Vorname": "Max",
-    "Nachname": "Mustermann",
-    "Straße": "Hauptstraße",
-    "Hausnummer": "123",
-    "PLZ": "12345",
-    "Ort": "Berlin",
-    "Land": "DE"
+    "input[lsdata*='NAME_FIRST']": "Max",
+    "input[lsdata*='NAME_LAST']": "Mustermann",
+    "input[lsdata*='STREET']": "Hauptstraße",
+    "input[lsdata*='HOUSE_NUM1']": "123",
+    "input[lsdata*='POST_CODE1']": "12345",
+    "input[lsdata*='CITY1']": "Berlin"
 })
 ```
 
 Keys can be:
 
-- Visible label text (e.g., "Vorname", "Straße")
-- CSS selectors (e.g., "#M0:46:1:1:2:2:1:2B256:1:3::0:21")
+- CSS selectors using lsdata attribute (reliable, works across systems)
+- Example patterns: `input[lsdata*='NAME_FIRST']`, `input[lsdata*='STREET']`
 
 #### Option B: One-by-One Fill (Slower, More Control)
 
@@ -114,17 +112,14 @@ Fill fields individually when you need to wait between fields or handle
 dynamic field behavior:
 
 ```
-sap_get_screen_text()  # Identify field positions
-
-# Fill fields one by one
-browser_fill("#field1", "Herr")
-browser_fill("#field2", "Max")
-browser_fill("#field3", "Mustermann")
+# Use sap_set_field for single fields (returns matched selector for debugging)
+sap_set_field(label="input[lsdata*='NAME_FIRST']", value="Max")
+sap_set_field(label="input[lsdata*='NAME_LAST']", value="Mustermann")
 # ... etc
 ```
 
-This approach is slower (2 tool calls per field) but gives more control
-when fields have dependencies or trigger UI updates.
+This approach is slower but gives more control when fields have
+dependencies or trigger UI updates. It also returns the matched selector.
 
 ### Step 5: Add Business Partner Role (for IS-U)
 

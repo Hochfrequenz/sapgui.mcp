@@ -38,6 +38,7 @@ from sapwebguimcp.models import (
     ScreenInfo,
     ScreenText,
     SessionStatus,
+    SetFieldResult,
     StatusBarInfo,
     TableData,
     TransactionResult,
@@ -1039,3 +1040,61 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error filling form fields")
             return FillFormResult.failure(f"Error filling form fields: {e}")
+
+    @mcp.tool(
+        description=(
+            "Set a single SAP form field by label or CSS selector. "
+            "Finds the field dynamically and fills it with the given value.\n\n"
+            "The label parameter can be:\n"
+            "- Visible label text (e.g., 'Last Name', 'Nachname')\n"
+            "- CSS selector (e.g., '#M0:46:1:1::0:21', '[lsdata*=\"NAME_LAST\"]')\n\n"
+            "This is simpler than sap_fill_form for single fields, and returns "
+            "the CSS selector that was matched (useful for debugging)."
+        )
+    )
+    async def sap_set_field(label: str, value: str) -> SetFieldResult:
+        """
+        Set a single SAP form field by label or CSS selector.
+
+        This tool finds the field dynamically using label text or CSS selector,
+        and returns information about what was matched. Useful for:
+        - Single field updates
+        - Debugging field discovery (returns the matched selector)
+
+        Args:
+            label: Field label text (e.g., 'Last Name') or CSS selector
+            value: Value to set in the field
+
+        Returns:
+            SetFieldResult with label, value, and the CSS selector that was used.
+        """
+        if not label:
+            return SetFieldResult.failure("label cannot be empty", label="", value=value)
+
+        browser_manager = await get_browser_manager()
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Execute JavaScript to set the field
+            result = await page.evaluate(
+                _load_js("set_field.js"),
+                {"label": label, "value": value},
+            )
+
+            if not result.get("success", False):
+                return SetFieldResult.failure(
+                    result.get("error", "Unknown error"),
+                    label=label,
+                    value=value,
+                )
+
+            return SetFieldResult(
+                label=label,
+                value=value,
+                selector_used=result.get("selectorUsed"),
+            )
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error setting field")
+            return SetFieldResult.failure(f"Error setting field: {e}", label=label, value=value)

@@ -1229,10 +1229,14 @@ async def test_bp_fill_form_with_css_selectors(sap_mcp_client: ClientSession) ->
 
     # Use CSS selectors that match SAP lsdata attributes for BP person form
     # These selectors target the actual SAP field IDs embedded in lsdata
-    # Based on actual BP form HTML: lsdata contains "BUT000-NAME_FIRST" and "BUT000-NAME_LAST"
+    # Based on actual BP form HTML snapshots (bp_person_form_de.html)
     fields_to_fill = {
         "input[lsdata*='NAME_FIRST']": "Max",
         "input[lsdata*='NAME_LAST']": "Mustermann",
+        "input[lsdata*='STREET']": "Hauptstraße",
+        "input[lsdata*='HOUSE_NUM1']": "123",
+        "input[lsdata*='POST_CODE1']": "12345",
+        "input[lsdata*='CITY1']": "Berlin",
     }
 
     fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": fields_to_fill})
