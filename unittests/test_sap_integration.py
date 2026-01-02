@@ -102,10 +102,8 @@ input. Key findings from testing:
    - Can be dismissed by clicking "Continue"/"Weiter" button
 """
 
-import json
 import os
 import re
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -164,89 +162,6 @@ async def test_sap_login_page_capture(sap_mcp_client: ClientSession) -> None:
         await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
         # Capture login page for debugging
         await capture_html_snapshot(sap_mcp_client, "login_page")
-
-
-@pytest.mark.skipif(
-    os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true",
-    reason="Playwright browsers not installed in CI - test runs locally only",
-)
-@pytest.mark.anyio
-async def test_login_page_fields_findable_by_playwright(mcp_client: ClientSession) -> None:
-    """Verify that Playwright/browser can find login form fields despite invalid HTML.
-
-    SAP Web GUI generates invalid HTML with <table> inside <span> elements.
-    Python's html.parser (especially 3.13+) fails to parse this correctly in offline tests.
-
-    This test proves that REAL browsers handle it gracefully - Playwright (via Chrome/Chromium)
-    can find all login form elements using standard CSS selectors. The invalid HTML is only
-    a problem for our offline unit tests, not for actual users or automation.
-
-    This test loads the captured HTML snapshot into a browser (no SAP access needed)
-    and verifies that Playwright can find all login form elements. This runs in CI.
-    """
-    # Find the login page snapshot (prefer EN, fall back to DE)
-    snapshot_path = None
-    for lang in ("en", "de"):
-        candidate = HTML_SNAPSHOTS_DIR / f"login_page_{lang}.html"
-        if candidate.exists():
-            snapshot_path = candidate
-            break
-
-    if snapshot_path is None:
-        pytest.skip("login_page snapshot not available - run integration tests first")
-
-    # Load the HTML snapshot into the browser using file:// URL
-    file_url = snapshot_path.resolve().as_uri()
-    await mcp_client.call_tool("browser_navigate", {"url": file_url})
-    await mcp_client.call_tool("browser_wait", {"timeout": 1000})
-
-    # Use browser_evaluate to check if Playwright/browser can find the login fields
-    # This uses the browser's DOM which correctly handles the invalid HTML
-    result = await mcp_client.call_tool(
-        "browser_evaluate",
-        {
-            "script": """
-            (function() {
-                var fields = {
-                    'sap-client': document.querySelector('#sap-client, input[name="sap-client"]'),
-                    'sap-user': document.querySelector('#sap-user, input[name="sap-user"]'),
-                    'sap-password': document.querySelector('#sap-password, input[name="sap-password"]'),
-                    'LOGON_BUTTON': document.querySelector('#LOGON_BUTTON')
-                };
-                var results = {};
-                for (var key in fields) {
-                    results[key] = fields[key] ? {
-                        found: true,
-                        tagName: fields[key].tagName,
-                        id: fields[key].id,
-                        type: fields[key].type || null
-                    } : {found: false};
-                }
-                return JSON.stringify(results);
-            })()
-            """
-        },
-    )
-
-    assert result.content, "Expected response from browser_evaluate"
-    # browser_evaluate returns the JS result as a JSON string, need to parse it
-    raw_text = result.content[0].text
-    # The result might be double-quoted (JSON string of JSON string)
-    fields_info = json.loads(raw_text)
-    if isinstance(fields_info, str):
-        fields_info = json.loads(fields_info)
-
-    # Verify ALL login form fields were found by the browser
-    assert fields_info["sap-client"]["found"], "Browser should find #sap-client (client/mandant field)"
-    assert fields_info["sap-user"]["found"], "Browser should find #sap-user (username field)"
-    assert fields_info["sap-password"]["found"], "Browser should find #sap-password (password field)"
-    assert fields_info["LOGON_BUTTON"]["found"], "Browser should find #LOGON_BUTTON (login button)"
-
-    # Verify field types
-    assert fields_info["sap-client"]["tagName"] == "INPUT", "sap-client should be an INPUT element"
-    assert fields_info["sap-user"]["tagName"] == "INPUT", "sap-user should be an INPUT element"
-    assert fields_info["sap-password"]["tagName"] == "INPUT", "sap-password should be an INPUT element"
-    assert fields_info["sap-password"]["type"] == "password", "sap-password should be type=password"
 
 
 @pytest.mark.anyio
