@@ -386,8 +386,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         // Also try to update the visible dropdown display if it exists
                         var dropdown = document.querySelector('#sap-language-dropdown');
                         if (dropdown) {{
-                            var langDisplay = "{settings.sap_language}" === "EN" ? "English" :
-                                              "{settings.sap_language}" === "DE" ? "Deutsch" : "{settings.sap_language}";
+                            var lang = "{settings.sap_language}";
+                            var langDisplay = lang === "EN" ? "English" :
+                                              lang === "DE" ? "Deutsch" : lang;
                             dropdown.value = langDisplay;
                         }}
                     }})()

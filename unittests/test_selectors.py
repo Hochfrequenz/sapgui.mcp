@@ -25,6 +25,7 @@ Selector Sources:
 - Field registry in sap_field_registry.json (SE16, VA01, etc.)
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -350,6 +351,150 @@ class TestSettingsDialogSelectors:
         all_buttons = buttons + divs_with_role
 
         assert len(all_buttons) >= 1, "Settings dialog should have at least one button (Save, Close, OK, etc.)"
+
+
+class TestFKeyExtraction:
+    """Tests for extracting F-key mappings from SAP pages.
+
+    SAP Web GUI stores F-key mappings in button tooltips (title) and lsdata attributes.
+    This helps LLMs discover which F-keys trigger which actions.
+    """
+
+    # Key name translations: German -> English (normalized)
+    KEY_TRANSLATIONS = {
+        "strg": "Ctrl",
+        "ctrl": "Ctrl",
+        "steuerung": "Ctrl",
+        "umschalt": "Shift",
+        "shift": "Shift",
+        "umsch": "Shift",
+        "alt": "Alt",
+        "eingabe": "Enter",
+        "enter": "Enter",
+        "esc": "Escape",
+        "escape": "Escape",
+    }
+
+    def normalize_key_combo(self, key_combo: str) -> str:
+        """Normalize key combination to English format.
+
+        Converts German key names to English:
+        - Strg+F3 -> Ctrl+F3
+        - Umschalt+F2 -> Shift+F2
+        - Strg+Umschalt+F4 -> Ctrl+Shift+F4
+        """
+        parts = key_combo.split("+")
+        normalized_parts = []
+        for part in parts:
+            part_lower = part.lower().strip()
+            if part_lower in self.KEY_TRANSLATIONS:
+                normalized_parts.append(self.KEY_TRANSLATIONS[part_lower])
+            else:
+                normalized_parts.append(part.strip())
+        return "+".join(normalized_parts)
+
+    def extract_fkey_mappings(self, soup: BeautifulSoup) -> dict[str, list[str]]:
+        """Extract F-key to action mappings from SAP HTML.
+
+        Returns dict like:
+        - {"F7": ["Anzeigen/Display"], "Ctrl+F3": ["Aktivieren/Activate"]}
+
+        Key combinations are normalized to English (Strg->Ctrl, Umschalt->Shift).
+        """
+        mappings: dict[str, list[str]] = {}
+
+        # Method 1: Extract from button titles like "Anzeigen (F7)" or "Aktivieren (Strg+F3)"
+        # Pattern matches "(F7)", "(Strg+F3)", "(Umschalt+F2)", "(Ctrl+Shift+F4)"
+        title_pattern = re.compile(r"\((?P<key_combo>[^)]*F\d+[^)]*)\)")
+        for elem in soup.find_all(attrs={"title": True}):
+            title = elem.get("title", "")
+            match = title_pattern.search(title)
+            if match:
+                raw_key = match.group("key_combo")
+                normalized_key = self.normalize_key_combo(raw_key)
+                action = title.replace(f"({raw_key})", "").strip()
+                if normalized_key not in mappings:
+                    mappings[normalized_key] = []
+                if action and action not in mappings[normalized_key]:
+                    mappings[normalized_key].append(action)
+
+        # Method 2: Extract from lsdata with hotkey info like "18":"F7" or "18":"CTRL_F3"
+        # SAP stores hotkey info in field "18" of lsdata JSON
+        sap_hotkey_pattern = re.compile(r'"18":"(?P<hotkey>(?:CTRL_|SHIFT_|ALT_)*F\d+)"')
+        simple_fkey_pattern = re.compile(r'"(?P<fkey>F\d+)"')
+
+        for elem in soup.find_all(attrs={"lsdata": True}):
+            lsdata = elem.get("lsdata", "")
+
+            # Try SAP lsdata format first (more specific)
+            for match in sap_hotkey_pattern.finditer(lsdata):
+                raw_key = match.group("hotkey")
+                # Convert CTRL_F3 to Ctrl+F3
+                normalized_key = raw_key.replace("_", "+").replace("CTRL", "Ctrl").replace("SHIFT", "Shift")
+
+                button_text = elem.get("title", "") or elem.get_text(strip=True)[:50]
+                if normalized_key not in mappings:
+                    mappings[normalized_key] = []
+                if button_text and button_text not in mappings[normalized_key]:
+                    mappings[normalized_key].append(button_text)
+
+            # Also try simple F-key pattern
+            for match in simple_fkey_pattern.finditer(lsdata):
+                fkey = match.group("fkey")
+                button_text = elem.get("title", "") or elem.get_text(strip=True)[:50]
+                if fkey not in mappings:
+                    mappings[fkey] = []
+                if button_text and button_text not in mappings[fkey]:
+                    mappings[fkey].append(button_text)
+
+        return mappings
+
+    def test_se11_initial_has_fkey_mappings(self, html_snapshots_path: Path) -> None:
+        """Verify SE11 initial screen has extractable F-key mappings."""
+        snapshot = get_snapshot_path(html_snapshots_path, "se11_initial")
+        if snapshot is None:
+            pytest.skip("se11_initial snapshot not available")
+        soup = load_snapshot(snapshot)
+
+        mappings = self.extract_fkey_mappings(soup)
+
+        # SE11 should have at least F3 (Back), F7 (Display), etc.
+        assert len(mappings) >= 3, (
+            f"SE11 should have multiple F-key mappings. Found: {list(mappings.keys())}"
+        )
+
+        # Verify F3 is mapped (Back is always available)
+        assert "F3" in mappings, "F3 (Back/Zurück) should be mapped"
+
+    def test_se11_initial_en_has_fkey_mappings(self, html_snapshots_path: Path) -> None:
+        """Verify SE11 initial screen (English) has extractable F-key mappings."""
+        snapshot = html_snapshots_path / "se11_initial_en.html"
+        if not snapshot.exists():
+            pytest.skip("se11_initial_en snapshot not available")
+        soup = load_snapshot(snapshot)
+
+        mappings = self.extract_fkey_mappings(soup)
+
+        # SE11 should have at least F3 (Back), F7 (Display), etc.
+        assert len(mappings) >= 3, (
+            f"SE11 (EN) should have multiple F-key mappings. Found: {list(mappings.keys())}"
+        )
+
+        # Verify F3 is mapped (Back is always available)
+        assert "F3" in mappings, "F3 (Back) should be mapped in English SE11"
+
+    def test_easy_access_has_fkey_mappings(self, html_snapshots_path: Path) -> None:
+        """Verify Easy Access screen has extractable F-key mappings."""
+        snapshot = get_snapshot_path(html_snapshots_path, "easy_access")
+        if snapshot is None:
+            pytest.skip("easy_access snapshot not available")
+        soup = load_snapshot(snapshot)
+
+        mappings = self.extract_fkey_mappings(soup)
+
+        assert len(mappings) >= 2, (
+            f"Easy Access should have F-key mappings. Found: {list(mappings.keys())}"
+        )
 
 
 class TestLoginPageSelectors:
