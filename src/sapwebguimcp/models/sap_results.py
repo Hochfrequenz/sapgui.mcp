@@ -102,10 +102,14 @@ class FieldInfo(BaseModel):
     """Single field discovered on screen."""
 
     id: str | None = Field(default=None, description="Element ID attribute")
-    name: str | None = Field(default=None, description="Field name from SAP lsdata attribute")
+    name: str | None = Field(default=None, description="Element name attribute")
+    field_id: str | None = Field(
+        default=None, description="SAP field ID extracted from lsdata (e.g., 'NAME_FIRST', 'STREET')"
+    )
     label: str | None = Field(default=None, description="Associated label text")
     type: str | None = Field(default=None, description="Input type (text, checkbox, etc.)")
-    selector: str = Field(description="CSS selector for targeting this field")
+    selector: str = Field(description="Best CSS selector for targeting this field")
+    alternative_selectors: list[str] = Field(default_factory=list, description="Other valid CSS selectors")
     value: str | None = Field(default=None, description="Current field value if readable")
 
 
@@ -137,3 +141,11 @@ class FillFormResult(ToolResult):
     filled: list[str] = Field(default_factory=list, description="Fields successfully filled")
     not_found: list[str] = Field(default_factory=list, description="Fields not found on page")
     errors: list[FieldFillError] = Field(default_factory=list, description="Fields that errored during fill")
+
+
+class SetFieldResult(ToolResult):
+    """Result from sap_set_field tool."""
+
+    label: str = Field(default="", description="Label or selector used to find the field")
+    value: str = Field(default="", description="Value that was set")
+    selector_used: str | None = Field(default=None, description="CSS selector that matched the field")
