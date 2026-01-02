@@ -19,7 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "mcp[cli]",
+    "fastmcp>=2.14.0,<3.0.0",  # Standalone FastMCP v2.14+, replaces mcp[cli]
     "playwright>=1.40.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",

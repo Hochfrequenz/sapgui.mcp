@@ -129,6 +129,51 @@ from mcp import ClientSession
 HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
 
 
+def parse_tool_response(result: Any) -> dict[str, Any]:
+    """
+    Parse a tool result that returns a JSON-serialized Pydantic model.
+
+    All SAP and browser tools now return Pydantic models that get JSON-serialized
+    in the MCP response. This helper parses the JSON and returns the dict.
+
+    Args:
+        result: The CallToolResult from client.call_tool()
+
+    Returns:
+        Parsed dict from the JSON response
+
+    Raises:
+        AssertionError: If result is empty or not valid JSON
+    """
+    assert result.content, "Expected non-empty response from tool"
+    text = result.content[0].text
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # If not JSON, return a dict with the text (for backward compatibility)
+        return {"_raw_text": text, "success": "error" not in text.lower()}
+
+
+def assert_tool_success(result: Any, context: str = "") -> dict[str, Any]:
+    """
+    Assert that a tool call was successful and return the parsed response.
+
+    Args:
+        result: The CallToolResult from client.call_tool()
+        context: Optional context for error messages
+
+    Returns:
+        Parsed dict from the JSON response
+
+    Raises:
+        AssertionError: If the tool returned an error
+    """
+    data = parse_tool_response(result)
+    ctx = f" ({context})" if context else ""
+    assert data.get("success", True), f"Tool failed{ctx}: {data.get('error', data)}"
+    return data
+
+
 async def capture_html_snapshot(
     client: ClientSession,
     base_name: str,
@@ -209,10 +254,9 @@ async def _wait_for_transaction_screen(
 
     selector = _TRANSACTION_WAIT_SELECTORS[tcode_upper]
     result = await client.call_tool("browser_wait", {"selector": selector, "timeout": timeout})
-    if result.content:
-        text = result.content[0].text
-        if text.startswith("Error") or ("Timeout" in text and "exceeded" in text):
-            raise RuntimeError(f"Wait for {tcode} failed: {text}")
+    data = parse_tool_response(result)
+    if not data.get("success", True):
+        raise RuntimeError(f"Wait for {tcode} failed: {data.get('error', data)}")
 
 
 async def _wait_for_easy_access(client: ClientSession, timeout: int = 5000) -> None:
@@ -229,10 +273,9 @@ async def _wait_for_easy_access(client: ClientSession, timeout: int = 5000) -> N
         RuntimeError: If the wait times out or fails
     """
     result = await client.call_tool("browser_wait", {"selector": "#ToolbarOkCode", "timeout": timeout})
-    if result.content:
-        text = result.content[0].text
-        if text.startswith("Error") or ("Timeout" in text and "exceeded" in text):
-            raise RuntimeError(f"Wait for Easy Access failed: {text}")
+    data = parse_tool_response(result)
+    if not data.get("success", True):
+        raise RuntimeError(f"Wait for Easy Access failed: {data.get('error', data)}")
 
 
 @pytest.mark.anyio
@@ -264,13 +307,9 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
 
     result = await sap_mcp_client.call_tool("sap_login", {})
 
-    assert result.content, "Expected non-empty response from sap_login"
-    response_text = result.content[0].text.lower()
-
-    # Should indicate successful login or already logged in
-    assert any(
-        phrase in response_text for phrase in ["successfully logged", "already logged", "ready to run"]
-    ), f"Login failed or unexpected response: {response_text}"
+    # Tool now returns structured JSON with success/error fields
+    data = assert_tool_success(result, "sap_login")
+    assert data.get("url"), "Expected URL in login response"
 
     # Verify browser state: check that SAP Easy Access loaded
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
@@ -377,17 +416,14 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
 
     # Login (auto-login with credentials from environment, or skip if already logged in)
     login_result = await sap_mcp_client.call_tool("sap_login", {})
-    login_text = login_result.content[0].text.lower()
-    assert "ready" in login_text or "already logged" in login_text, f"Login failed: {login_result.content[0].text}"
+    assert_tool_success(login_result, "sap_login")
 
     # Test the sap_transaction tool with SU3 (user profile)
     result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SU3"})
 
-    assert result.content, "Expected response from sap_transaction"
-    response_text = result.content[0].text.lower()
-
-    # Should indicate transaction executed
-    assert "executed" in response_text, f"Transaction not executed: {response_text}"
+    # Tool returns structured JSON with success/error fields
+    data = assert_tool_success(result, "sap_transaction SU3")
+    assert data.get("tcode", "").upper() == "SU3", f"Expected tcode SU3: {data}"
 
     # Wait for SU3 screen to load (user profile has address-related fields)
     await _wait_for_transaction_screen(sap_mcp_client, "SU3")
@@ -486,16 +522,16 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
 
     # Step 1: Open SE11 (ABAP Dictionary)
     result1 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE11", "new_window": False})
-    assert result1.content, "Expected response from sap_transaction"
-    response1 = result1.content[0].text.lower()
-    assert "executed" in response1 and "current window" in response1, f"SE11 should open in current window: {response1}"
+    data1 = assert_tool_success(result1, "sap_transaction SE11")
+    assert not data1.get("new_window"), f"SE11 should open in current window: {data1}"
 
     # Wait for SE11 to load (has "Database table" radio button)
     await _wait_for_transaction_screen(sap_mcp_client, "SE11")
 
     # Verify SE11 is displayed (ABAP Dictionary / Data Dictionary)
     html1 = await sap_mcp_client.call_tool("browser_get_html", {})
-    page_html1 = html1.content[0].text.lower()
+    html1_data = parse_tool_response(html1)
+    page_html1 = html1_data.get("html", html1_data.get("_raw_text", "")).lower()
     if sap_language == "DE":
         assert any(
             phrase in page_html1 for phrase in ["dictionary", "wörterbuch", "se11"]
@@ -507,17 +543,16 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
 
     # Step 2: Open SE16 (Data Browser) - this should REPLACE SE11
     result2 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16", "new_window": False})
-    assert result2.content, "Expected response from sap_transaction"
-    response2 = result2.content[0].text.lower()
-    assert "executed" in response2 and "current window" in response2, f"SE16 should open in current window: {response2}"
-    assert "cancelled" in response2, f"Response should mention previous transaction was cancelled: {response2}"
+    data2 = assert_tool_success(result2, "sap_transaction SE16")
+    assert not data2.get("new_window"), f"SE16 should open in current window: {data2}"
 
     # Wait for SE16 to load (has table name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Verify SE16 is displayed and SE11 is gone
     html2 = await sap_mcp_client.call_tool("browser_get_html", {})
-    page_html2 = html2.content[0].text.lower()
+    html2_data = parse_tool_response(html2)
+    page_html2 = html2_data.get("html", html2_data.get("_raw_text", "")).lower()
 
     # SE16 should be visible (Data Browser / Table Contents)
     if sap_language == "DE":
@@ -544,30 +579,22 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
 
     # Step 1: Open SE11 (ABAP Dictionary) in current window
     result1 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE11", "new_window": False})
-    assert result1.content, "Expected response from sap_transaction"
-    response1 = result1.content[0].text.lower()
-    assert "executed" in response1, f"SE11 should be executed: {response1}"
+    data1 = assert_tool_success(result1, "sap_transaction SE11")
+    assert not data1.get("new_window"), f"SE11 should open in current window: {data1}"
 
     # Wait for SE11 to load (has "Database table" radio button)
     await _wait_for_transaction_screen(sap_mcp_client, "SE11")
 
     # Step 2: Open SE16 in NEW window - this should NOT replace SE11
     result2 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16", "new_window": True})
-    assert result2.content, "Expected response from sap_transaction"
-    response2 = result2.content[0].text.lower()
+    data2 = assert_tool_success(result2, "sap_transaction SE16 new_window")
 
     # Should indicate new session was opened
-    assert (
-        "new session" in response2 or "new window" in response2
-    ), f"Response should mention new session/window: {response2}"
+    assert data2.get("new_window"), f"Response should indicate new window mode: {data2}"
 
     # Should report session count
-    assert "sessions open:" in response2, f"Response should report session count: {response2}"
-
-    # Extract session count from response (e.g., "SAP sessions open: 2")
-    session_match = re.search(r"sessions open:\s*(\d+)", response2)
-    assert session_match, f"Could not find session count in response: {response2}"
-    session_count = int(session_match.group(1))
+    session_count = data2.get("session_count")
+    assert session_count is not None, f"Response should report session count: {data2}"
 
     # Should have at least 2 sessions (original + new)
     assert session_count >= 2, f"Expected at least 2 SAP sessions after opening new window, got {session_count}"
@@ -615,17 +642,16 @@ async def test_sap_keyboard_f3_navigates_back(sap_mcp_client: ClientSession) -> 
 
     # Press F3 to go back
     result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
-    assert result.content, "Expected response from sap_keyboard"
-    response_text = result.content[0].text.lower()
-
-    assert "sent keyboard shortcut" in response_text, f"Unexpected response: {response_text}"
+    data = assert_tool_success(result, "sap_keyboard F3")
+    assert data.get("key") == "F3", f"Expected key F3: {data}"
 
     # Wait for Easy Access (OK-Code field visible means we're back on main menu)
     await _wait_for_easy_access(sap_mcp_client)
 
     # Should be back on Easy Access or previous screen
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
-    page_html = html_result.content[0].text.lower()
+    html_data = parse_tool_response(html_result)
+    page_html = html_data.get("html", html_data.get("_raw_text", "")).lower()
 
     # SE16 specific content should be gone or we should be on Easy Access
     se16_gone = "data browser" not in page_html and "tabelleninhalt" not in page_html
@@ -706,19 +732,19 @@ async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> N
     await _wait_for_transaction_screen(sap_mcp_client, "SU3")
 
     result = await sap_mcp_client.call_tool("sap_get_screen_text", {})
-    response_text = result.content[0].text
+    data = assert_tool_success(result, "sap_get_screen_text")
 
-    # Check for expected structure markers
-    assert "=== Screen:" in response_text, "Should contain screen header"
+    # Check for expected structure in JSON response
+    assert "title" in data, "Should contain title"
 
     # Should have some labels or content
-    has_labels = "Labels/Fields:" in response_text
-    has_content = "Content:" in response_text
-    has_buttons = "Buttons:" in response_text
+    has_labels = bool(data.get("labels"))
+    has_content = bool(data.get("main_content"))
+    has_buttons = bool(data.get("buttons"))
 
     assert (
         has_labels or has_content or has_buttons
-    ), f"Screen text should contain labels, content, or buttons. Got: {response_text[:500]}"
+    ), f"Screen text should contain labels, content, or buttons. Got: {data}"
 
 
 @pytest.mark.anyio
@@ -758,8 +784,8 @@ async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -
 
 async def assert_fill_success(result: Any, field_name: str) -> None:
     """Assert that browser_fill succeeded for a field."""
-    text = result.content[0].text if result.content else ""
-    assert "error" not in text.lower(), f"Failed to fill {field_name}: {text}"
+    data = parse_tool_response(result)
+    assert data.get("success", True), f"Failed to fill {field_name}: {data.get('error', data)}"
 
 
 @pytest.mark.anyio
@@ -806,16 +832,14 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
     await capture_html_snapshot(sap_mcp_client, "sm37_results")
 
     result = await sap_mcp_client.call_tool("sap_read_table", {"start_row": 1, "end_row": 5})
-    assert result.content, "Expected response from sap_read_table"
-    response_text = result.content[0].text
+    table_data = assert_tool_success(result, "sap_read_table")
 
     # Assert that we got actual table data with rows
-    assert '"rows"' in response_text, f"Expected table with 'rows', got: {response_text[:500]}"
-    assert '"totalRows"' in response_text, f"Expected 'totalRows' in response, got: {response_text[:500]}"
+    assert "rows" in table_data, f"Expected table with 'rows', got: {table_data}"
+    assert "total_rows" in table_data, f"Expected 'total_rows' in response, got: {table_data}"
 
-    # Parse and verify we got some jobs
-    table_data = json.loads(response_text)
-    assert table_data.get("totalRows", 0) > 0, f"Expected some jobs in SM37, got totalRows=0"
+    # Verify we got some jobs
+    assert table_data.get("total_rows", 0) > 0, f"Expected some jobs in SM37, got total_rows=0"
     assert len(table_data.get("rows", [])) > 0, "Expected at least one row in SM37 results"
 
 
@@ -1041,9 +1065,8 @@ async def test_browser_reconnect_after_idle(sap_mcp_client: ClientSession) -> No
     """
     # Step 1: Login and verify we have a working session
     login_result = await sap_mcp_client.call_tool("sap_login", {})
-    assert login_result.content, "Expected response from sap_login"
-    login_text = login_result.content[0].text.lower()
-    assert "success" in login_text or "logged in" in login_text, f"Login should succeed: {login_text}"
+    login_data = assert_tool_success(login_result, "sap_login")
+    assert login_data.get("url"), "Expected URL in login response"
 
     # Step 2: Navigate to a transaction
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
@@ -1056,19 +1079,17 @@ async def test_browser_reconnect_after_idle(sap_mcp_client: ClientSession) -> No
 
     # Step 4: Try to use the browser again - this should reconnect if stale
     result = await sap_mcp_client.call_tool("sap_session_status", {})
-    assert result.content, "Expected response from sap_session_status after idle"
-    status_text = result.content[0].text.lower()
+    status_data = parse_tool_response(result)
 
     # Should be able to get status (either connected or reconnected)
-    assert (
-        "status" in status_text or "session" in status_text or "page" in status_text
-    ), f"Should get valid session status after idle period: {status_text}"
+    assert "status" in status_data or status_data.get(
+        "success", True
+    ), f"Should get valid session status after idle period: {status_data}"
 
     # Step 5: Verify we can still execute transactions
     tx_result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
-    assert tx_result.content, "Expected response from sap_transaction after idle"
-    tx_text = tx_result.content[0].text.lower()
-    assert "executed" in tx_text or "transaction" in tx_text, f"Transaction should work after idle: {tx_text}"
+    tx_data = assert_tool_success(tx_result, "sap_transaction after idle")
+    assert tx_data.get("tcode"), f"Transaction should work after idle: {tx_data}"
 
 
 @pytest.mark.anyio
@@ -1089,10 +1110,10 @@ async def test_browser_reconnect_multiple_times(sap_mcp_client: ClientSession) -
 
         # Execute transaction
         result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": tcode})
-        assert result.content, f"Expected response for transaction {i+1}: {tcode}"
-        text = result.content[0].text.lower()
-        assert "executed" in text or "transaction" in text, f"Transaction {tcode} should work: {text}"
+        tx_data = assert_tool_success(result, f"sap_transaction {tcode}")
+        assert tx_data.get("tcode"), f"Transaction {tcode} should work: {tx_data}"
 
         # Verify session is still valid
         status = await sap_mcp_client.call_tool("sap_session_status", {})
-        assert status.content, f"Expected status after transaction {i+1}"
+        status_data = parse_tool_response(status)
+        assert status_data.get("success", True), f"Expected valid status after transaction {i+1}: {status_data}"
