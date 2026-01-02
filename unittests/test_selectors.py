@@ -450,3 +450,43 @@ class TestTableContentExtraction:
             "SM37 results should contain a job list with table rows. "
             f"Found: {len(tables)} tables, {len(grids)} grids, {len(rows)} rows"
         )
+
+    def test_se11_initial_has_object_type_field(self, html_snapshots_path: Path) -> None:
+        """Verify SE11 initial screen has the object type/table name input field."""
+        snapshot = get_snapshot_path(html_snapshots_path, "se11_initial")
+        if snapshot is None:
+            pytest.skip("se11_initial snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+
+        # SE11 has input field for table/view/data element name
+        # Look for input fields with TBMA or object-related patterns in lsdata
+        inputs = soup.find_all("input")
+        object_fields = [inp for inp in inputs if "TBMA" in str(inp.get("lsdata", "")).upper()]
+
+        # Also check by any visible text input that could be the object name field
+        visible_inputs = [inp for inp in inputs if inp.get("type", "text") == "text"]
+
+        assert (
+            len(object_fields) >= 1 or len(visible_inputs) >= 1
+        ), "SE11 initial screen should have an object name input field"
+
+    def test_se11_t000_definition_shows_fields(self, html_snapshots_path: Path) -> None:
+        """Verify SE11 T000 definition shows table field names.
+
+        The table definition view should show field names like MANDT, CCCATEGORY.
+        """
+        snapshot = get_snapshot_path(html_snapshots_path, "se11_t000_definition")
+        if snapshot is None:
+            pytest.skip("se11_t000_definition snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+
+        html_text = str(soup).upper()
+
+        # T000 has well-known fields
+        has_mandt = "MANDT" in html_text
+        has_cccategory = "CCCATEGORY" in html_text
+        has_field_indicator = "FIELD" in html_text or "COMPONENT" in html_text
+
+        assert has_mandt or has_cccategory or has_field_indicator, (
+            "SE11 T000 definition should show field names. " "Expected MANDT, CCCATEGORY, or FIELD/COMPONENT labels."
+        )

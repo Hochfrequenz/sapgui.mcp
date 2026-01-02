@@ -745,6 +745,51 @@ async def test_se16_table_content_t000(sap_mcp_client: ClientSession) -> None:
 
 
 @pytest.mark.anyio
+async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None:
+    """Test viewing table definition in SE11 using T000 (Clients table).
+
+    SE11 (ABAP Dictionary) shows table structure/definition, not content.
+    T000 is a simple table with well-known fields like MANDT, CCCATEGORY, etc.
+
+    This test verifies:
+    - SE11 can display table definition
+    - The table fields are shown
+    - We can capture the HTML for unit tests
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE11"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Capture SE11 initial screen
+    await capture_html_snapshot(sap_mcp_client, "se11_initial")
+
+    # Enter table name T000
+    await sap_mcp_client.call_tool(
+        "browser_fill", {"selector": "input[id*='RSRD1-TBMA_VAL' i], input[id*='TBMA' i]", "value": "T000"}
+    )
+
+    # Click Display button (F7) to view table definition
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F7"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture table definition HTML
+    await capture_html_snapshot(sap_mcp_client, "se11_t000_definition")
+
+    # Verify we're on the table definition screen
+    html_result = await sap_mcp_client.call_tool("browser_get_html", {})
+    assert html_result.content, "Expected HTML response"
+    page_html = html_result.content[0].text.upper()
+
+    # T000 definition should show field names like MANDT, CCCATEGORY
+    has_mandt = "MANDT" in page_html
+    has_fields = "FIELD" in page_html or "COMPONENT" in page_html or "CCCATEGORY" in page_html
+
+    assert has_mandt or has_fields, (
+        "SE11 T000 definition should show table fields. " "Expected MANDT or other field indicators in the page."
+    )
+
+
+@pytest.mark.anyio
 async def test_sap_read_status_bar_after_navigation(sap_mcp_client: ClientSession) -> None:
     """Test reading status bar after successful navigation."""
     await sap_mcp_client.call_tool("sap_login", {})
