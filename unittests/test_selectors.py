@@ -509,6 +509,19 @@ class TestLoginPageSelectors:
         password_field = soup.select("#sap-password, input[name='sap-password']")
         login_button = soup.select("#LOGON_BUTTON")
 
+        # Debug: print info if client_field not found
+        if not client_field:
+            html_content = snapshot.read_text(encoding="utf-8")
+            print(f"DEBUG: Snapshot path: {snapshot}")
+            print(f"DEBUG: HTML length: {len(html_content)}")
+            print(f"DEBUG: 'sap-client' in HTML: {'sap-client' in html_content}")
+            print(f"DEBUG: 'id=\"sap-client\"' in HTML: {'id=\"sap-client\"' in html_content}")
+            # Find all input elements
+            all_inputs = soup.find_all("input")
+            print(f"DEBUG: Total input elements found: {len(all_inputs)}")
+            for inp in all_inputs[:5]:
+                print(f"DEBUG: Input: id={inp.get('id')}, name={inp.get('name')}")
+
         assert client_field, "Login page should have client/mandant field"
         assert user_field, "Login page should have username field"
         assert password_field, "Login page should have password field"
