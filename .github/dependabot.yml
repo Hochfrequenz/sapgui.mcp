@@ -10,12 +10,16 @@ updates:
     schedule:
       interval: "weekly"
     reviewers:
-      - "@Hochfrequenz/python-developers-review-team"4
+      - "@Hochfrequenz/python-developers-review-team"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
   - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
