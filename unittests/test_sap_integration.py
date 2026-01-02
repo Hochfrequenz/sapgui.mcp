@@ -105,6 +105,7 @@ input. Key findings from testing:
 import os
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
 from mcp import ClientSession
@@ -647,7 +648,7 @@ async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -
     await capture_html_snapshot(sap_mcp_client, "sm37_initial")
 
     # Use defaults (current user) - typically no jobs
-    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='JOBNAME' i]", "value": "*"})
+    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='JOBNAME']", "value": "*"})
 
     await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
@@ -664,6 +665,12 @@ async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -
     assert no_jobs_de or no_jobs_en, f"Expected 'no jobs' status message, got: {status_text}"
 
 
+async def assert_fill_success(result: Any, field_name: str) -> None:
+    """Assert that browser_fill succeeded for a field."""
+    text = result.content[0].text if result.content else ""
+    assert "error" not in text.lower(), f"Failed to fill {field_name}: {text}"
+
+
 @pytest.mark.anyio
 async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) -> None:
     """Test reading table data from SM37 (Job Overview) with broad criteria.
@@ -671,18 +678,37 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
     SM37 exists on every SAP system and shows background jobs.
     Uses wildcards for username and broad date range to find jobs.
     """
+    from datetime import datetime, timedelta
+
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Fill job selection with wildcards and clear username restriction
-    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='JOBNAME' i]", "value": "*"})
-    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='USERNAME' i]", "value": "*"})
+    # SM37 fields use SID in lsdata: BTCH2170-JOBNAME, BTCH2170-USERNAME
+    result = await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='JOBNAME']", "value": "*"})
+    await assert_fill_success(result, "JOBNAME")
 
-    # Set broad date range (last 30 days) to find jobs
-    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='FROMDATE' i]", "value": ""})
-    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='TODATE' i]", "value": ""})
+    result = await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='USERNAME']", "value": "*"})
+    await assert_fill_success(result, "USERNAME")
 
+    # Set broad date range (last 365 days) to find jobs
+    # Date fields have SID in lsdata: BTCH2170-FROM_DATE, BTCH2170-TO_DATE
+    today = datetime.now()
+    from_date = (today - timedelta(days=365)).strftime("%d.%m.%Y")
+    to_date = today.strftime("%d.%m.%Y")
+
+    result = await sap_mcp_client.call_tool(
+        "browser_fill", {"selector": "input[lsdata*='FROM_DATE']", "value": from_date}
+    )
+    await assert_fill_success(result, f"FROM_DATE={from_date}")
+
+    result = await sap_mcp_client.call_tool(
+        "browser_fill", {"selector": "input[lsdata*='TO_DATE']", "value": to_date}
+    )
+    await assert_fill_success(result, f"TO_DATE={to_date}")
+
+    # Execute (F8)
     await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
