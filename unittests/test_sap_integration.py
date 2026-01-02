@@ -109,7 +109,7 @@ import pytest
 from mcp import ClientSession
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     """Test that sap_login tool automatically logs in with credentials from environment.
 
@@ -144,7 +144,7 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
     """Test entering a transaction code after login.
 
@@ -191,7 +191,7 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> None:
     """Test that an invalid transaction code shows an error message.
 
@@ -222,7 +222,7 @@ async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> N
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) -> None:
     """Test entering a transaction code that starts with / (namespace transaction).
 
@@ -244,7 +244,7 @@ async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) 
     assert "executed" in response_text or "error" in response_text, f"Unexpected response: {response_text}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: ClientSession) -> None:
     """Test that transactions in same window mode (/n) replace the previous transaction.
 
@@ -304,7 +304,7 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     assert se16_found, "SE16 (Data Browser) should be displayed after replacing SE11"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: ClientSession) -> None:
     """Test that transactions in new window mode (/o) preserve the previous transaction.
 
@@ -356,7 +356,7 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
 # =============================================================================
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_session_status_after_login(sap_mcp_client: ClientSession) -> None:
     """Test that session status is 'active' after successful login."""
     await sap_mcp_client.call_tool("sap_login", {})
@@ -368,7 +368,7 @@ async def test_sap_session_status_after_login(sap_mcp_client: ClientSession) -> 
     assert "active" in response_text, f"Expected active session after login: {response_text}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_session_status_returns_valid_state(sap_mcp_client: ClientSession) -> None:
     """Test that session status returns a recognized state."""
     await sap_mcp_client.call_tool("sap_login", {})
@@ -382,7 +382,7 @@ async def test_sap_session_status_returns_valid_state(sap_mcp_client: ClientSess
     ), f"Expected one of {valid_states}, got: {response_text}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_keyboard_f3_navigates_back(sap_mcp_client: ClientSession) -> None:
     """Test F3 (Back) returns from transaction to previous screen."""
     await sap_mcp_client.call_tool("sap_login", {})
@@ -409,7 +409,7 @@ async def test_sap_keyboard_f3_navigates_back(sap_mcp_client: ClientSession) -> 
     assert se16_gone or on_easy_access, "F3 should have navigated away from SE16"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_keyboard_f8_triggers_execution(sap_mcp_client: ClientSession) -> None:
     """Test F8 (Execute) triggers action in SE16.
 
@@ -443,7 +443,7 @@ async def test_sap_keyboard_f8_triggers_execution(sap_mcp_client: ClientSession)
     ), f"F8 without input should trigger error or prompt. Language: {sap_language}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> None:
     """Test reading screen text from SE16 initial screen."""
     sap_language = os.environ.get("SAP_LANGUAGE", "EN")
@@ -467,7 +467,7 @@ async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> N
     ), f"SE16 screen text should contain table-related labels. Language: {sap_language}. Got: {response_text[:500]}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> None:
     """Test that sap_get_screen_text returns structured output."""
     await sap_mcp_client.call_tool("sap_login", {})
@@ -490,7 +490,7 @@ async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> N
     ), f"Screen text should contain labels, content, or buttons. Got: {response_text[:500]}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_read_table_from_sm37(sap_mcp_client: ClientSession) -> None:
     """Test reading table data from SM37 (Job Overview).
 
@@ -523,7 +523,7 @@ async def test_sap_read_table_from_sm37(sap_mcp_client: ClientSession) -> None:
     assert has_data or no_data, f"Expected table data or clear indication of no data: {response_text}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_read_table_from_se93(sap_mcp_client: ClientSession) -> None:
     """Test reading transaction codes from SE93.
 
@@ -552,7 +552,7 @@ async def test_sap_read_table_from_se93(sap_mcp_client: ClientSession) -> None:
     ), f"Expected to find standard SE* transactions or table structure: {response_text[:500]}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_read_status_bar_after_navigation(sap_mcp_client: ClientSession) -> None:
     """Test reading status bar after successful navigation."""
     await sap_mcp_client.call_tool("sap_login", {})
@@ -569,7 +569,7 @@ async def test_sap_read_status_bar_after_navigation(sap_mcp_client: ClientSessio
     ), f"Status bar should return type/message info: {response_text}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_read_status_bar_after_error(sap_mcp_client: ClientSession) -> None:
     """Test reading status bar after triggering an error."""
     await sap_mcp_client.call_tool("sap_login", {})
@@ -589,7 +589,7 @@ async def test_sap_read_status_bar_after_error(sap_mcp_client: ClientSession) ->
     ), f"Status bar should indicate error after invalid transaction: {response_text}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_get_screen_info_from_se16(sap_mcp_client: ClientSession) -> None:
     """Test getting screen info from SE16."""
     await sap_mcp_client.call_tool("sap_login", {})
@@ -605,7 +605,7 @@ async def test_sap_get_screen_info_from_se16(sap_mcp_client: ClientSession) -> N
     assert "url" in response_text, "Screen info should contain url"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_sap_get_screen_info_different_transactions(sap_mcp_client: ClientSession) -> None:
     """Test that screen info changes between transactions."""
     await sap_mcp_client.call_tool("sap_login", {})
@@ -626,7 +626,7 @@ async def test_sap_get_screen_info_different_transactions(sap_mcp_client: Client
     assert info1 != info2, "Screen info should differ between SE16 and SM37"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_browser_reconnect_after_idle(sap_mcp_client: ClientSession) -> None:
     """
     Test that browser reconnects after becoming stale.
@@ -668,7 +668,7 @@ async def test_browser_reconnect_after_idle(sap_mcp_client: ClientSession) -> No
     assert "executed" in tx_text or "transaction" in tx_text, f"Transaction should work after idle: {tx_text}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_browser_reconnect_multiple_times(sap_mcp_client: ClientSession) -> None:
     """
     Test that browser can reconnect multiple times during a session.

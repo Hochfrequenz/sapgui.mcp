@@ -4,7 +4,6 @@ import os
 import socket
 import sys
 from collections.abc import AsyncGenerator, Generator
-from typing import Literal
 
 import pytest
 from dotenv import load_dotenv
@@ -13,12 +12,6 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 
 # Load .env file if it exists (for local development and integration tests)
 load_dotenv()
-
-
-@pytest.fixture
-def anyio_backend() -> Literal["asyncio"]:
-    """Specify asyncio as the anyio backend for pytest."""
-    return "asyncio"
 
 
 _AUTHORIZED_SAP_TEST_MACHINE = "HF-KKLEIN3"
@@ -77,9 +70,7 @@ def clean_environment() -> Generator[None, None, None]:
 
 
 @pytest.fixture
-async def sap_mcp_client(
-    anyio_backend: Literal["asyncio"],
-) -> AsyncGenerator[ClientSession, None]:
+async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     """
     Fixture that provides an MCP client connected to a real SAP Web GUI server.
 
@@ -91,20 +82,11 @@ async def sap_mcp_client(
     5. Yields the client session for tests to call tools
     6. Cleans up on teardown
 
-    Known Issue - Teardown Error (can be ignored):
-    pytest-asyncio runs fixture teardown in a different task than setup, which
-    causes anyio's cancel scope to fail with "Attempted to exit cancel scope in
-    a different task". This is a known limitation when using anyio-based context
-    managers (stdio_client) with pytest-asyncio async generator fixtures.
-
-    The tests still PASS and cleanup completes correctly - the browser shuts down
-    and the server terminates properly. The error only appears in the teardown
-    phase and does not affect test results.
-
-    See: https://github.com/agronholm/anyio/issues/648
+    Note: We use pytest-anyio (bundled with anyio) instead of pytest-asyncio
+    because MCP's stdio_client uses anyio task groups internally. pytest-anyio
+    runs fixture setup and teardown in the same task, which is required for
+    proper cancel scope handling.
     """
-    _ = anyio_backend  # Required for anyio
-
     current_host = socket.gethostname()
     if not is_sap_integration_test_machine():
         pytest.skip(
