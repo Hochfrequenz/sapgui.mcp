@@ -483,8 +483,7 @@ This project uses [tox](https://tox.wiki/) to run all tests and checks. The test
 - **Integration tests**: Tests against real SAP Web GUI (auto-skipped on non-SAP machines)
 
 ```bash
-# Run all tests (recommended for CI and local development)
-# Integration tests are auto-skipped if SAP is not accessible
+# Run all tests (integration tests auto-skip if SAP not accessible)
 tox -e tests
 
 # Run only unit tests (fast, no SAP needed)
@@ -493,12 +492,11 @@ tox -e unit_tests
 # Run only SAP integration tests (requires SAP access)
 tox -e integration_tests
 
-# Run with specific language (for integration tests)
-SAP_LANGUAGE=EN tox -e integration_tests
-
 # Run all checks (tests, linting, formatting, type checking)
 tox
 ```
+
+Language and credentials are loaded from your `.env` file.
 
 **Other tox environments:**
 
@@ -512,26 +510,14 @@ tox -e spell_check  # Run codespell
 
 ### Running Tests in PyCharm
 
-You can also run tests directly in PyCharm without tox:
+You can run tests directly in PyCharm. Settings are loaded from your `.env` file automatically.
 
-1. **Unit tests**: Right-click `unittests/test_selectors.py` → Run. No configuration needed.
+1. **Unit tests**: Right-click `unittests/test_selectors.py` → Run
+2. **Integration tests**: Right-click `unittests/test_sap_integration.py` → Run
 
-2. **Integration tests**: Create run configurations with language settings:
-   - Run → Edit Configurations → + → pytest
-   - Script path: `unittests/test_sap_integration.py`
-   - Environment variables: `SAP_LANGUAGE=EN` (or `DE`)
+To change language, edit `SAP_LANGUAGE` in your `.env` file.
 
-To run both languages, create two configurations and use a Compound configuration.
-
-**Tox vs PyCharm:**
-
-| Aspect | Tox | PyCharm |
-|--------|-----|---------|
-| Speed | Slower (creates virtualenv) | Faster (uses current interpreter) |
-| Isolation | Full isolation | Uses your dev environment |
-| Use case | CI, reproducibility | Quick local iteration |
-
-Both approaches work. Use PyCharm for fast feedback during development, tox for CI-like validation.
+**Tox vs PyCharm**: Tox creates isolated virtualenvs (good for CI), PyCharm uses your current interpreter (faster for development).
 
 ### HTML Snapshot Testing
 
@@ -541,15 +527,11 @@ We use HTML snapshots captured from real SAP Web GUI sessions to test CSS select
 2. **Validates selectors** against snapshots in fast unit tests (no SAP needed)
 3. **Supports multiple languages** (snapshots named `*_en.html`, `*_de.html`)
 
+To capture new snapshots, set `SAP_LANGUAGE` in your `.env` file and run integration tests:
+
 ```bash
-# Capture English snapshots (requires SAP access)
-SAP_LANGUAGE=EN tox -e integration_tests
-
-# Capture German snapshots (requires SAP access)
-SAP_LANGUAGE=DE tox -e integration_tests
-
-# Run offline selector tests (no SAP needed)
-tox -e unit_tests
+tox -e integration_tests   # Captures snapshots in configured language
+tox -e unit_tests          # Run offline selector tests (no SAP needed)
 ```
 
 Snapshots are stored in `unittests/testdata/html_snapshots/`.
