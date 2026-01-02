@@ -31,6 +31,7 @@ sap_fill_form({
 ### Key Resolution
 
 Keys can be:
+
 - **Label text** - Visible text on screen (e.g., "First Name", "Straße")
 - **CSS selector** - Starting with `#` (e.g., "#M0:46:1:1::0:21")
 
@@ -76,60 +77,58 @@ class FillFormResult(ToolResult):
 
 ```javascript
 function findInputByLabel(labelText) {
-  // Try exact label match with 'for' attribute
-  const labels = document.querySelectorAll('label');
-  for (const label of labels) {
-    if (label.textContent.trim() === labelText && label.htmlFor) {
-      return document.getElementById(label.htmlFor);
+    // Try exact label match with 'for' attribute
+    const labels = document.querySelectorAll('label');
+    for (const label of labels) {
+        if (label.textContent.trim() === labelText && label.htmlFor) {
+            return document.getElementById(label.htmlFor);
+        }
     }
-  }
 
-  // Find text node, then nearest input (SAP uses spans/divs as labels)
-  const walker = document.createTreeWalker(
-    document.body, NodeFilter.SHOW_TEXT, null, false
-  );
-  while (walker.nextNode()) {
-    if (walker.currentNode.textContent.trim() === labelText) {
-      const parent = walker.currentNode.parentElement;
-      const container = parent.closest('tr, div, td');
-      if (container) {
-        const input = container.querySelector('input, textarea, select');
-        if (input) return input;
-      }
+    // Find text node, then nearest input (SAP uses spans/divs as labels)
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    while (walker.nextNode()) {
+        if (walker.currentNode.textContent.trim() === labelText) {
+            const parent = walker.currentNode.parentElement;
+            const container = parent.closest('tr, div, td');
+            if (container) {
+                const input = container.querySelector('input, textarea, select');
+                if (input) return input;
+            }
+        }
     }
-  }
-  return null;
+    return null;
 }
 
 function fillFields(fieldsJson) {
-  const fields = JSON.parse(fieldsJson);
-  const results = { filled: [], notFound: [], errors: [] };
+    const fields = JSON.parse(fieldsJson);
+    const results = { filled: [], notFound: [], errors: [] };
 
-  for (const [key, value] of Object.entries(fields)) {
-    try {
-      let el;
-      if (key.startsWith('#')) {
-        el = document.querySelector(key);
-      } else {
-        el = findInputByLabel(key);
-      }
+    for (const [key, value] of Object.entries(fields)) {
+        try {
+            let el;
+            if (key.startsWith('#')) {
+                el = document.querySelector(key);
+            } else {
+                el = findInputByLabel(key);
+            }
 
-      if (!el) {
-        results.notFound.push(key);
-        continue;
-      }
+            if (!el) {
+                results.notFound.push(key);
+                continue;
+            }
 
-      el.focus();
-      el.value = value;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-      el.blur();
-      results.filled.push(key);
-    } catch (e) {
-      results.errors.push({ field: key, error: e.message });
+            el.focus();
+            el.value = value;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            el.blur();
+            results.filled.push(key);
+        } catch (e) {
+            results.errors.push({ field: key, error: e.message });
+        }
     }
-  }
-  return results;
+    return results;
 }
 ```
 
@@ -159,11 +158,13 @@ function fillFields(fieldsJson) {
 ### 5. Update Existing Tool Descriptions
 
 **browser_fill:**
+
 ```
 "Fill a single input field by CSS selector. For filling multiple fields on the same screen, use sap_fill_form instead - it's faster."
 ```
 
 **browser_keyboard:**
+
 ```
 "Send keyboard input. For filling multiple form fields, use sap_fill_form instead - it's faster than repeated focus+type calls."
 ```
