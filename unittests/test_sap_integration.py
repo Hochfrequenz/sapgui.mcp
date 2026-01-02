@@ -167,8 +167,8 @@ async def test_sap_login_page_capture(sap_mcp_client: ClientSession) -> None:
 
 
 @pytest.mark.skipif(
-    sys.version_info >= (3, 13),
-    reason="Python 3.13+ has asyncio cleanup issues with MCP client in CI",
+    os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true",
+    reason="Playwright browsers not installed in CI - test runs locally only",
 )
 @pytest.mark.anyio
 async def test_login_page_fields_findable_by_playwright(mcp_client: ClientSession) -> None:
