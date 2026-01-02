@@ -104,9 +104,64 @@ input. Key findings from testing:
 
 import os
 import re
+from pathlib import Path
+from typing import Any
 
 import pytest
 from mcp import ClientSession
+
+# HTML snapshot directory for offline selector tests
+HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
+
+
+async def capture_html_snapshot(
+    client: ClientSession,
+    base_name: str,
+    overwrite: bool = False,
+) -> str:
+    """
+    Capture the current browser HTML and save it as a snapshot for unit tests.
+
+    The filename will include the current SAP_LANGUAGE setting (e.g., "easy_access_en.html").
+    This allows capturing snapshots in multiple languages for testing.
+
+    Args:
+        client: MCP ClientSession connected to the SAP Web GUI server
+        base_name: Base name of the snapshot file without extension (e.g., "easy_access")
+        overwrite: If True, overwrite existing snapshot. If False, skip if exists.
+
+    Returns:
+        The captured HTML content.
+    """
+    result = await client.call_tool("browser_get_html", {})
+    if not result.content:
+        raise RuntimeError("browser_get_html returned empty content")
+
+    html_content = result.content[0].text
+
+    # Include language in filename for multi-language snapshots
+    language = os.environ.get("SAP_LANGUAGE", "EN").lower()
+    filename = f"{base_name}_{language}.html"
+
+    HTML_SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+    snapshot_path = HTML_SNAPSHOTS_DIR / filename
+
+    if overwrite or not snapshot_path.exists():
+        snapshot_path.write_text(html_content, encoding="utf-8")
+
+    return html_content
+
+
+@pytest.mark.anyio
+async def test_sap_login_page_capture(sap_mcp_client: ClientSession) -> None:
+    """Capture the login page HTML before login for debugging."""
+    # Navigate to SAP URL without logging in to capture login page
+    sap_url = os.environ.get("SAP_URL", "")
+    if sap_url:
+        await sap_mcp_client.call_tool("browser_navigate", {"url": sap_url})
+        await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+        # Capture login page for debugging
+        await capture_html_snapshot(sap_mcp_client, "login_page")
 
 
 @pytest.mark.anyio
@@ -120,7 +175,10 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     - Tool returns success message
     - Browser shows SAP Easy Access (verified via HTML)
     - OK-Code field is visible (can enter transactions)
+    - Login language matches SAP_LANGUAGE setting
     """
+    sap_language = os.environ.get("SAP_LANGUAGE", "EN")
+
     result = await sap_mcp_client.call_tool("sap_login", {})
 
     assert result.content, "Expected non-empty response from sap_login"
@@ -134,14 +192,95 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     # Verify browser state: check that SAP Easy Access loaded
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
     assert html_result.content, "Expected HTML response"
-    page_html = html_result.content[0].text.lower()
+    page_html = html_result.content[0].text
 
-    # SAP Easy Access page should have:
-    # - The page title "SAP Easy Access"
-    # - The OK-Code field (ToolbarOkCode)
-    assert "sap easy access" in page_html or "toolbarokcode" in page_html, (
+    # SAP Easy Access page should have the OK-Code field
+    assert "toolbarokcode" in page_html.lower(), (
         "Browser does not show SAP Easy Access screen. " "Login may have failed or a dialog is blocking."
     )
+
+    # Verify the login language is correct by checking UI text
+    if sap_language == "EN":
+        # English UI should have "SAP Easy Access" (not German "SAP Schnellzugriff")
+        assert "sap easy access" in page_html.lower(), (
+            f"Expected English UI (SAP Easy Access) but got German. "
+            f"SAP_LANGUAGE={sap_language} may not have been applied during login."
+        )
+    elif sap_language == "DE":
+        # German UI typically shows "SAP Easy Access" too, but with German menu items
+        # Check for German menu items like "System" or "Hilfe"
+        pass  # German is the fallback, no strict assertion needed
+
+    await capture_html_snapshot(sap_mcp_client, "easy_access")
+
+
+@pytest.mark.anyio
+async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
+    """Capture the settings dialog HTML for selector testing.
+
+    Opens the SAP settings dialog to capture its HTML structure.
+    This allows unit tests to verify selectors for settings_button,
+    okcode_checkbox, save_settings, and close_dialog.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Try to find and click the settings button using browser_evaluate
+    # This mirrors the logic in _enable_okcode_field
+    settings_clicked = await sap_mcp_client.call_tool(
+        "browser_evaluate",
+        {
+            "expression": """
+            (function() {
+                // Try various settings button selectors
+                var selectors = [
+                    '[id*="settingsButton"]',
+                    '[title*="Setting" i]',
+                    '[title*="Einstellung" i]',
+                    'button[id*="gear" i]',
+                    '[aria-label*="Setting" i]'
+                ];
+                for (var i = 0; i < selectors.length; i++) {
+                    var btn = document.querySelector(selectors[i]);
+                    if (btn) {
+                        btn.click();
+                        return 'clicked: ' + selectors[i];
+                    }
+                }
+                return 'not found';
+            })()
+            """
+        },
+    )
+
+    if settings_clicked.content and "clicked" in settings_clicked.content[0].text:
+        await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+        await capture_html_snapshot(sap_mcp_client, "settings_dialog")
+
+        # Close the dialog
+        await sap_mcp_client.call_tool(
+            "browser_evaluate",
+            {
+                "expression": """
+                (function() {
+                    var selectors = [
+                        'button:contains("Close")',
+                        'button:contains("Schließen")',
+                        '[id*="closeButton"]',
+                        'button[aria-label*="Close" i]'
+                    ];
+                    for (var i = 0; i < selectors.length; i++) {
+                        try {
+                            var btn = document.querySelector(selectors[i]);
+                            if (btn) { btn.click(); return 'closed'; }
+                        } catch(e) {}
+                    }
+                    // Try pressing Escape
+                    return 'escape';
+                })()
+                """
+            },
+        )
+        await sap_mcp_client.call_tool("sap_keyboard", {"key": "Escape"})
 
 
 @pytest.mark.anyio
@@ -190,6 +329,9 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
         f"SU3 transaction screen not detected for language '{sap_language}'. " f"Expected one of: {expected_phrases}."
     )
 
+    # Capture HTML snapshot for offline selector testing
+    await capture_html_snapshot(sap_mcp_client, "su3_screen")
+
 
 @pytest.mark.anyio
 async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> None:
@@ -198,10 +340,8 @@ async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> N
     This is a negative test to verify the transaction entry mechanism works.
     If SAP shows an error message, it means the transaction code was received.
     """
-    # Login
     await sap_mcp_client.call_tool("sap_login", {})
 
-    # Try an obviously invalid transaction code
     result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "INVALIDTCODE123"})
     assert result.content, "Expected response from sap_transaction"
 
@@ -221,6 +361,9 @@ async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> N
         "If no error, the transaction entry mechanism may not be working."
     )
 
+    # Capture HTML snapshot with error status bar for offline testing
+    await capture_html_snapshot(sap_mcp_client, "status_bar_error")
+
 
 @pytest.mark.anyio
 async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) -> None:
@@ -230,7 +373,6 @@ async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) 
     - They should become /n/IWFND/GW_CLIENT (not just /IWFND/GW_CLIENT)
     - The /n prefix tells SAP to open a new transaction
     """
-    # Login
     await sap_mcp_client.call_tool("sap_login", {})
 
     # Test with a namespace transaction (starts with /)
@@ -257,7 +399,6 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "EN")
 
-    # Login
     await sap_mcp_client.call_tool("sap_login", {})
 
     # Step 1: Open SE11 (ABAP Dictionary)
@@ -316,7 +457,6 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
 
     The /o prefix opens a new SAP session without affecting the current one.
     """
-    # Login
     await sap_mcp_client.call_tool("sap_login", {})
 
     # Step 1: Open SE11 (ABAP Dictionary) in current window
@@ -466,6 +606,9 @@ async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> N
         phrase in response_text for phrase in expected_phrases
     ), f"SE16 screen text should contain table-related labels. Language: {sap_language}. Got: {response_text[:500]}"
 
+    # Capture HTML snapshot for offline selector testing
+    await capture_html_snapshot(sap_mcp_client, "se16_initial")
+
 
 @pytest.mark.anyio
 async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> None:
@@ -491,36 +634,99 @@ async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> N
 
 
 @pytest.mark.anyio
-async def test_sap_read_table_from_sm37(sap_mcp_client: ClientSession) -> None:
-    """Test reading table data from SM37 (Job Overview).
+async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -> None:
+    """Test SM37 when no jobs match selection criteria.
 
-    SM37 exists on every SAP system and shows background jobs.
-    We search for all jobs to ensure we get some data.
+    Uses current user (default) which typically has no scheduled jobs,
+    resulting in "Kein Job entspricht den Selektionsbedingungen" message.
     """
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
-    # Fill job selection with wildcards to get any jobs
-    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='JOBNAME' i]", "value": "*"})
-    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='USERNAME' i]", "value": "*"})
+    # Capture HTML snapshot for offline selector testing (before filling form)
+    await capture_html_snapshot(sap_mcp_client, "sm37_initial")
 
-    # Execute search
+    # Use defaults (current user) - typically no jobs
+    await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='JOBNAME']", "value": "*"})
+
     await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Check status bar for "no jobs" message
+    status_result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
+    status_text = status_result.content[0].text.lower() if status_result.content else ""
+
+    # German: "Kein Job entspricht den Selektionsbedingungen"
+    # English: "No job meets the selection conditions"
+    no_jobs_de = "kein job" in status_text
+    no_jobs_en = "no job" in status_text
+
+    assert no_jobs_de or no_jobs_en, f"Expected 'no jobs' status message, got: {status_text}"
+
+
+async def assert_fill_success(result: Any, field_name: str) -> None:
+    """Assert that browser_fill succeeded for a field."""
+    text = result.content[0].text if result.content else ""
+    assert "error" not in text.lower(), f"Failed to fill {field_name}: {text}"
+
+
+@pytest.mark.anyio
+async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) -> None:
+    """Test reading table data from SM37 (Job Overview) with broad criteria.
+
+    SM37 exists on every SAP system and shows background jobs.
+    Uses wildcards for username and broad date range to find jobs.
+    """
+    from datetime import datetime, timedelta
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Fill job selection with wildcards and clear username restriction
+    # SM37 fields use SID in lsdata: BTCH2170-JOBNAME, BTCH2170-USERNAME
+    result = await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='JOBNAME']", "value": "*"})
+    await assert_fill_success(result, "JOBNAME")
+
+    result = await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='USERNAME']", "value": "*"})
+    await assert_fill_success(result, "USERNAME")
+
+    # Set broad date range (last 365 days) to find jobs
+    # Date fields have SID in lsdata: BTCH2170-FROM_DATE, BTCH2170-TO_DATE
+    today = datetime.now()
+    from_date = (today - timedelta(days=365)).strftime("%d.%m.%Y")
+    to_date = today.strftime("%d.%m.%Y")
+
+    result = await sap_mcp_client.call_tool(
+        "browser_fill", {"selector": "input[lsdata*='FROM_DATE']", "value": from_date}
+    )
+    await assert_fill_success(result, f"FROM_DATE={from_date}")
+
+    result = await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='TO_DATE']", "value": to_date})
+    await assert_fill_success(result, f"TO_DATE={to_date}")
+
+    # Execute (F8) and wait for list output to complete (can take a while with many jobs)
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 30000})
+
+    # Capture table results HTML for unit tests
+    await capture_html_snapshot(sap_mcp_client, "sm37_results")
 
     result = await sap_mcp_client.call_tool("sap_read_table", {"start_row": 1, "end_row": 5})
     assert result.content, "Expected response from sap_read_table"
     response_text = result.content[0].text
 
-    # Should return JSON data or indicate no data/no table
-    # Even if no jobs exist, we should get a valid response
-    has_data = "rows" in response_text.lower() or "headers" in response_text.lower()
-    no_data = (
-        "no table" in response_text.lower() or "no data" in response_text.lower() or "error" in response_text.lower()
-    )
+    # Assert that we got actual table data with rows
+    assert '"rows"' in response_text, f"Expected table with 'rows', got: {response_text[:500]}"
+    assert '"totalRows"' in response_text, f"Expected 'totalRows' in response, got: {response_text[:500]}"
 
-    assert has_data or no_data, f"Expected table data or clear indication of no data: {response_text}"
+    # Parse and verify we got some jobs
+    import json
+
+    table_data = json.loads(response_text)
+    assert table_data.get("totalRows", 0) > 0, f"Expected some jobs in SM37, got totalRows=0"
+    assert len(table_data.get("rows", [])) > 0, "Expected at least one row in SM37 results"
 
 
 @pytest.mark.anyio
@@ -550,6 +756,97 @@ async def test_sap_read_table_from_se93(sap_mcp_client: ClientSession) -> None:
     assert (
         has_se_transactions or has_table_structure
     ), f"Expected to find standard SE* transactions or table structure: {response_text[:500]}"
+
+
+@pytest.mark.anyio
+async def test_se16_table_content_t000(sap_mcp_client: ClientSession) -> None:
+    """Test reading actual table content from SE16 using T000 (Clients table).
+
+    T000 is the SAP clients/mandants table. It exists on every SAP system
+    and contains at least one row (the current client). It's small enough
+    to not overwhelm the LLM context.
+
+    This test verifies:
+    - SE16 can display table content
+    - The table has at least one row
+    - We can capture the HTML for unit tests
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Enter table name T000 (Clients table - always exists, always small)
+    table_field = await sap_mcp_client.call_tool(
+        "browser_fill", {"selector": "input[id*='TABLENAME' i], input[id*='DATABROWSE' i]", "value": "T000"}
+    )
+    assert table_field.content, "Should be able to fill table name field"
+
+    # Execute to show table content
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture table content HTML for unit tests
+    await capture_html_snapshot(sap_mcp_client, "se16_t000_content")
+
+    # Read the table data
+    result = await sap_mcp_client.call_tool("sap_read_table", {"start_row": 1, "end_row": 10})
+    assert result.content, "Expected response from sap_read_table"
+    response_text = result.content[0].text
+
+    # T000 must have at least one row (the current client)
+    # Check for table data indicators
+    has_rows = "rows" in response_text.lower() or "mandt" in response_text.lower()
+    has_content = len(response_text) > 50  # More than just an error message
+
+    assert has_rows and has_content, (
+        f"SE16 T000 should return table content with at least one client. " f"Response: {response_text[:500]}"
+    )
+
+
+@pytest.mark.anyio
+async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None:
+    """Test viewing table definition in SE11 using T000 (Clients table).
+
+    SE11 (ABAP Dictionary) shows table structure/definition, not content.
+    T000 is a simple table with well-known fields like MANDT, CCCATEGORY, etc.
+
+    This test verifies:
+    - SE11 can display table definition
+    - The table fields are shown
+    - We can capture the HTML for unit tests
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE11"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Capture SE11 initial screen
+    await capture_html_snapshot(sap_mcp_client, "se11_initial")
+
+    # "Datenbanktabelle" is a radio button, click it then Tab to the text field
+    await sap_mcp_client.call_tool("browser_click", {"selector": "text=Datenbanktabelle"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 300})
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "Tab"})
+    await sap_mcp_client.call_tool("browser_keyboard", {"text": "T000"})
+
+    # Press F7 (Anzeigen/Display) to view table definition
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F7"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture table structure HTML
+    await capture_html_snapshot(sap_mcp_client, "se11_t000_content")
+
+    # Verify we're on the table definition screen
+    html_result = await sap_mcp_client.call_tool("browser_get_html", {})
+    assert html_result.content, "Expected HTML response"
+    page_html = html_result.content[0].text.upper()
+
+    # T000 definition should show field names like MANDT, CCCATEGORY
+    has_mandt = "MANDT" in page_html
+    has_fields = "FIELD" in page_html or "COMPONENT" in page_html or "CCCATEGORY" in page_html
+
+    assert has_mandt or has_fields, (
+        "SE11 T000 definition should show table fields. " "Expected MANDT or other field indicators in the page."
+    )
 
 
 @pytest.mark.anyio

@@ -4,6 +4,7 @@ import os
 import socket
 import sys
 from collections.abc import AsyncGenerator, Generator
+from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
@@ -12,6 +13,15 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 
 # Load .env file if it exists (for local development and integration tests)
 load_dotenv()
+
+# Path to HTML snapshots directory for selector unit tests
+HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
+
+
+@pytest.fixture
+def html_snapshots_path() -> Path:
+    """Return the path to the HTML snapshots directory."""
+    return HTML_SNAPSHOTS_DIR
 
 
 _AUTHORIZED_SAP_TEST_MACHINE = "HF-KKLEIN3"
@@ -95,7 +105,8 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
         )
 
     # Reload .env after clean_environment fixture has cleared env vars
-    load_dotenv(override=True)
+    # Use override=False so command-line env vars (like SAP_LANGUAGE=EN) take precedence
+    load_dotenv(override=False)
 
     sap_url = os.environ.get("SAP_URL")
     if not sap_url:

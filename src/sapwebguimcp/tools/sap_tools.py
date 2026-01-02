@@ -370,10 +370,33 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Fill password
             await page.fill('#sap-password, input[name="sap-password"]', settings.sap_password)
 
-            # Set language via JavaScript (field is often hidden)
-            await page.evaluate(
-                f'document.querySelector(\'input[name="sap-language"]\').value = "{settings.sap_language}"'
-            )
+            # Set language - SAP login has a hidden #sap-language input and visible dropdown
+            # We need to set the hidden input value via JavaScript since fill() won't work
+            try:
+                await page.evaluate(
+                    f"""
+                    (function() {{
+                        // Set hidden language input
+                        var hiddenField = document.querySelector('#sap-language, input[name="sap-language"]');
+                        if (hiddenField) {{
+                            hiddenField.value = "{settings.sap_language}";
+                            hiddenField.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                            hiddenField.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                        }}
+                        // Also try to update the visible dropdown display if it exists
+                        var dropdown = document.querySelector('#sap-language-dropdown');
+                        if (dropdown) {{
+                            var lang = "{settings.sap_language}";
+                            var langDisplay = lang === "EN" ? "English" :
+                                              lang === "DE" ? "Deutsch" : lang;
+                            dropdown.value = langDisplay;
+                        }}
+                    }})()
+                    """
+                )
+                logger.debug("Set language field to: %s", settings.sap_language)
+            except Exception as lang_err:  # pylint: disable=broad-exception-caught
+                logger.warning("Could not set language field: %s", lang_err)
 
             # Click login button (it's a div with role="button", not a button element)
             await page.click("#LOGON_BUTTON")
