@@ -99,7 +99,7 @@ rpds-py==0.30.0
     #   referencing
 shellingham==1.5.4
     # via typer
-sse-starlette==3.0.4
+sse-starlette==3.1.2
     # via mcp
 starlette==0.50.0
     # via
