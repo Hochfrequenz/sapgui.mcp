@@ -26,6 +26,7 @@ Selector Sources:
 """
 
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -76,9 +77,10 @@ def load_snapshot(snapshot_path: Path) -> BeautifulSoup | None:
     if not snapshot_path.exists():
         return None
     html = snapshot_path.read_text(encoding="utf-8")
-    # Use html.parser instead of lxml for cross-platform compatibility
-    # (lxml may behave differently on Linux vs Windows with minified HTML)
-    return BeautifulSoup(html, "html.parser")
+    # Python 3.13+ html.parser has stricter nesting rules that break on SAP's
+    # invalid HTML (<table> inside <span>). Use lxml on 3.13+ as it's more lenient.
+    parser = "lxml" if sys.version_info >= (3, 13) else "html.parser"
+    return BeautifulSoup(html, parser)
 
 
 def css_select(soup: BeautifulSoup, selector: str) -> list[Tag]:
@@ -512,10 +514,11 @@ class TestLoginPageSelectors:
         # Debug: print info if client_field not found
         if not client_field:
             html_content = snapshot.read_text(encoding="utf-8")
+            id_attr = 'id="sap-client"'
             print(f"DEBUG: Snapshot path: {snapshot}")
             print(f"DEBUG: HTML length: {len(html_content)}")
             print(f"DEBUG: 'sap-client' in HTML: {'sap-client' in html_content}")
-            print(f"DEBUG: 'id=\"sap-client\"' in HTML: {'id=\"sap-client\"' in html_content}")
+            print(f"DEBUG: {id_attr!r} in HTML: {id_attr in html_content}")
             # Find all input elements
             all_inputs = soup.find_all("input")
             print(f"DEBUG: Total input elements found: {len(all_inputs)}")
