@@ -77,10 +77,13 @@ def load_snapshot(snapshot_path: Path) -> BeautifulSoup | None:
     if not snapshot_path.exists():
         return None
     html = snapshot_path.read_text(encoding="utf-8")
-    # Python 3.13+ html.parser has stricter nesting rules that break on SAP's
-    # invalid HTML (<table> inside <span>). Use lxml on 3.13+ as it's more lenient.
-    parser = "lxml" if sys.version_info >= (3, 13) else "html.parser"
-    return BeautifulSoup(html, parser)
+
+    # SAP Web GUI generates invalid HTML with <table> inside <span> (role="textbox").
+    # Python 3.13+ html.parser auto-closes spans when encountering block elements.
+    # Fix by removing the problematic lsHtmlTextView spans entirely (they're just wrappers).
+    html = re.sub(r'<span[^>]*class="[^"]*lsHtmlTextView[^"]*"[^>]*>', "", html)
+
+    return BeautifulSoup(html, "html.parser")
 
 
 def css_select(soup: BeautifulSoup, selector: str) -> list[Tag]:
