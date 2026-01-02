@@ -104,9 +104,44 @@ input. Key findings from testing:
 
 import os
 import re
+from pathlib import Path
 
 import pytest
 from mcp import ClientSession
+
+# HTML snapshot directory for offline selector tests
+HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
+
+
+async def capture_html_snapshot(
+    client: ClientSession,
+    filename: str,
+    overwrite: bool = False,
+) -> str:
+    """
+    Capture the current browser HTML and save it as a snapshot for unit tests.
+
+    Args:
+        client: MCP ClientSession connected to the SAP Web GUI server
+        filename: Name of the snapshot file (e.g., "se16_initial.html")
+        overwrite: If True, overwrite existing snapshot. If False, skip if exists.
+
+    Returns:
+        The captured HTML content.
+    """
+    result = await client.call_tool("browser_get_html", {})
+    if not result.content:
+        raise RuntimeError("browser_get_html returned empty content")
+
+    html_content = result.content[0].text
+
+    HTML_SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+    snapshot_path = HTML_SNAPSHOTS_DIR / filename
+
+    if overwrite or not snapshot_path.exists():
+        snapshot_path.write_text(html_content, encoding="utf-8")
+
+    return html_content
 
 
 @pytest.mark.anyio
@@ -142,6 +177,9 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     assert "sap easy access" in page_html or "toolbarokcode" in page_html, (
         "Browser does not show SAP Easy Access screen. " "Login may have failed or a dialog is blocking."
     )
+
+    # Capture HTML snapshot for offline selector testing
+    await capture_html_snapshot(sap_mcp_client, "easy_access.html")
 
 
 @pytest.mark.anyio
@@ -190,6 +228,9 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
         f"SU3 transaction screen not detected for language '{sap_language}'. " f"Expected one of: {expected_phrases}."
     )
 
+    # Capture HTML snapshot for offline selector testing
+    await capture_html_snapshot(sap_mcp_client, "su3_screen.html")
+
 
 @pytest.mark.anyio
 async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> None:
@@ -220,6 +261,9 @@ async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> N
         "Expected error message for invalid transaction code. "
         "If no error, the transaction entry mechanism may not be working."
     )
+
+    # Capture HTML snapshot with error status bar for offline testing
+    await capture_html_snapshot(sap_mcp_client, "status_bar_error.html")
 
 
 @pytest.mark.anyio
@@ -466,6 +510,9 @@ async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> N
         phrase in response_text for phrase in expected_phrases
     ), f"SE16 screen text should contain table-related labels. Language: {sap_language}. Got: {response_text[:500]}"
 
+    # Capture HTML snapshot for offline selector testing
+    await capture_html_snapshot(sap_mcp_client, "se16_initial.html")
+
 
 @pytest.mark.anyio
 async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> None:
@@ -500,6 +547,9 @@ async def test_sap_read_table_from_sm37(sap_mcp_client: ClientSession) -> None:
     await sap_mcp_client.call_tool("sap_login", {})
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Capture HTML snapshot for offline selector testing (before filling form)
+    await capture_html_snapshot(sap_mcp_client, "sm37_initial.html")
 
     # Fill job selection with wildcards to get any jobs
     await sap_mcp_client.call_tool("browser_fill", {"selector": "input[id*='JOBNAME' i]", "value": "*"})

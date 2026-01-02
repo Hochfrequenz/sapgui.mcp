@@ -370,10 +370,32 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Fill password
             await page.fill('#sap-password, input[name="sap-password"]', settings.sap_password)
 
-            # Set language via JavaScript (field is often hidden)
-            await page.evaluate(
-                f'document.querySelector(\'input[name="sap-language"]\').value = "{settings.sap_language}"'
-            )
+            # Set language - try multiple approaches as SAP login forms vary
+            try:
+                # First try: Look for a visible language dropdown/select
+                lang_select = await page.query_selector('select[name="sap-language"], #sap-language')
+                if lang_select:
+                    tag_name = await lang_select.evaluate("el => el.tagName.toLowerCase()")
+                    if tag_name == "select":
+                        await page.select_option('select[name="sap-language"]', settings.sap_language)
+                    else:
+                        await page.fill("#sap-language", settings.sap_language)
+                else:
+                    # Second try: Hidden input field - set value and dispatch events
+                    await page.evaluate(
+                        f"""
+                        (function() {{
+                            var field = document.querySelector('input[name="sap-language"]');
+                            if (field) {{
+                                field.value = "{settings.sap_language}";
+                                field.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                                field.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                            }}
+                        }})()
+                        """
+                    )
+            except Exception as lang_err:  # pylint: disable=broad-exception-caught
+                logger.warning("Could not set language field: %s", lang_err)
 
             # Click login button (it's a div with role="button", not a button element)
             await page.click("#LOGON_BUTTON")
