@@ -18,7 +18,7 @@ This skill covers basic navigation patterns in SAP Web GUI, including:
 SAP Web GUI supports these standard keyboard shortcuts:
 
 | Shortcut | Action                        |
-|----------|-------------------------------|
+| -------- | ----------------------------- |
 | Enter    | Execute/Confirm               |
 | F3       | Back                          |
 | Shift+F3 | Exit                          |

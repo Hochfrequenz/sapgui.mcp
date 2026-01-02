@@ -33,6 +33,7 @@ adaptive discovery patterns:
 ### German Utilities Focus
 
 Primary focus on German energy market requirements:
+
 - IDEX/IDXGC framework for market communication
 - GPKE, MaBiS, WiM, GeLi Gas processes
 - Market partner roles (LF, NB, MSB, BKV)
@@ -240,29 +241,32 @@ Each skill follows this structure:
 ### Planned Skills
 
 #### Test Data Creation
-| Skill | Transaction | Priority |
-|-------|-------------|----------|
-| Create Business Partner | BP | Done |
-| Create Contract Account | CAA1 | Done |
-| Create Contract | EC50N/EC50E | High |
-| Create Installation | ES30 | High |
-| Create Device | EG30 | High |
-| Install Device | EG35 | Medium |
-| Create Meter Reading | EL28 | Medium |
+
+| Skill                   | Transaction | Priority |
+| ----------------------- | ----------- | -------- |
+| Create Business Partner | BP          | Done     |
+| Create Contract Account | CAA1        | Done     |
+| Create Contract         | EC50N/EC50E | High     |
+| Create Installation     | ES30        | High     |
+| Create Device           | EG30        | High     |
+| Install Device          | EG35        | Medium   |
+| Create Meter Reading    | EL28        | Medium   |
 
 #### Configuration Verification
-| Skill | Transaction | Priority |
-|-------|-------------|----------|
-| Display Table Contents | SE16/SE16N | High |
-| Check Rate Category | EC90 | Medium |
-| Display Customizing | SPRO | Medium |
+
+| Skill                  | Transaction | Priority |
+| ---------------------- | ----------- | -------- |
+| Display Table Contents | SE16/SE16N  | High     |
+| Check Rate Category    | EC90        | Medium   |
+| Display Customizing    | SPRO        | Medium   |
 
 #### German Market Communication
-| Skill | Transaction | Priority |
-|-------|-------------|----------|
-| Monitor Process Documents | /IDXGC/PDOCMON01 | Done |
-| Display Market Partner | /IDXGC/BPM | Medium |
-| Message Monitoring | /IDXGC/MSG_MON | Medium |
+
+| Skill                     | Transaction      | Priority |
+| ------------------------- | ---------------- | -------- |
+| Monitor Process Documents | /IDXGC/PDOCMON01 | Done     |
+| Display Market Partner    | /IDXGC/BPM       | Medium   |
+| Message Monitoring        | /IDXGC/MSG_MON   | Medium   |
 
 ## Testing Strategy
 
@@ -276,42 +280,51 @@ Each skill follows this structure:
 ### Test Cases per Tool
 
 #### `sap_session_status`
+
 - Test 1: Status is "active" after login
 - Test 2: Returns valid state value
 
 #### `sap_keyboard`
+
 - Test 1: F3 navigates back from SE16
 - Test 2: F8 triggers execution (error expected without input)
 
 #### `sap_read_table`
+
 - Test 1: Read jobs from SM37 (always has system jobs)
-- Test 2: Read transaction codes from SE93 with "SE*" filter
+- Test 2: Read transaction codes from SE93 with "SE\*" filter
 
 #### `sap_get_screen_text`
+
 - Test 1: SE16 screen contains "Table" / "Tabelle" labels
 - Test 2: Error message captured after invalid input
 
 #### `sap_read_status_bar`
+
 - Test 1: Returns structured message after navigation
 - Test 2: Captures error type for invalid transaction
 
 #### `sap_get_screen_info`
+
 - Test 1: Returns transaction code for SE16
 - Test 2: Returns different transaction code for SM37
 
 ## Implementation Plan
 
 ### Phase 1: Core Tools
+
 1. `sap_keyboard` - Extend navigation capabilities
 2. `sap_get_screen_text` - Enable adaptive field discovery
 3. `sap_read_status_bar` - Capture operation results
 
 ### Phase 2: Data Access
+
 4. `sap_read_table` - Extract tabular data
 5. `sap_get_screen_info` - Technical screen info
 6. `sap_session_status` - Session health checks
 
 ### Phase 3: Skills & Testing
+
 7. Integration tests for all tools
 8. Additional skills for IS-U workflows
 9. Documentation updates
@@ -319,19 +332,25 @@ Each skill follows this structure:
 ## Consulting Use Cases
 
 ### Supervised Automation
+
 Agent proposes actions, consultant reviews:
+
 - Agent: "I'll create BP with these values: [shows data]"
 - Consultant: "Approved" / "Change X to Y"
 - Agent: Executes with tools, reports result
 
 ### Task Delegation
+
 Consultant gives task, agent executes:
+
 - Consultant: "Create 10 test customers in mandant 100"
 - Agent: Uses skills to create BP, CA, Contract for each
 - Agent: Reports summary of created objects
 
 ### Configuration Documentation
+
 Agent extracts and documents:
+
 - Consultant: "Document the billing schema configuration"
 - Agent: Navigates SPRO, reads tables, captures screens
 - Agent: Generates markdown documentation
@@ -339,24 +358,31 @@ Agent extracts and documents:
 ## Future Considerations
 
 ### Scenario-Level Tools
+
 Once domain tools are stable, consider higher-level tools:
+
 ```python
 create_test_customer_scenario(
     scenario_type="residential_single_meter",
     customer_data={...}
 )
 ```
+
 These would compose multiple skill executions.
 
 ### SAP Help Portal Integration
+
 Enrich skills with official documentation:
+
 - Exact field technical names
 - Screen numbers (dynpros)
 - Required field indicators
 - Field validation rules
 
 ### S/4HANA Cloud Adaptation
+
 Current design targets on-premise SAP GUI. For S/4HANA Cloud:
+
 - Fiori app navigation patterns
 - OData service integration where available
 - Different screen structures

@@ -19,7 +19,7 @@ tools/
 High-level, SAP-specific operations:
 
 | Tool                  | Description                                                         |
-|-----------------------|---------------------------------------------------------------------|
+| --------------------- | ------------------------------------------------------------------- |
 | `sap_login`           | Opens SAP Web GUI for user to enter credentials                     |
 | `sap_transaction`     | Enters and executes a transaction code (auto-enables OK-Code field) |
 | `sap_keepalive_start` | Starts background task to prevent session timeout                   |
@@ -30,7 +30,7 @@ High-level, SAP-specific operations:
 Low-level escape hatches when SAP tools don't work:
 
 | Tool                    | Description                          |
-|-------------------------|--------------------------------------|
+| ----------------------- | ------------------------------------ |
 | `browser_snapshot`      | Get accessibility tree of page       |
 | `browser_screenshot`    | Take screenshot (returns base64 PNG) |
 | `browser_click`         | Click element by selector            |

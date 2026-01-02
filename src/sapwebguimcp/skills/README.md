@@ -115,7 +115,7 @@ Use descriptive names with transaction codes where applicable:
 Every skill should include:
 
 | Section              | Purpose                           |
-|----------------------|-----------------------------------|
+| -------------------- | --------------------------------- |
 | **Overview**         | What the skill accomplishes       |
 | **Prerequisites**    | What must be true before starting |
 | **Workflow**         | Step-by-step instructions         |
@@ -136,7 +136,7 @@ useful when:
 ### Transaction-Specific Skills
 
 | Skill                 | Transaction | Description                   |
-|-----------------------|-------------|-------------------------------|
+| --------------------- | ----------- | ----------------------------- |
 | Create Sales Order    | VA01        | Standard sales order creation |
 | Display Material      | MM03        | View material master data     |
 | Create Purchase Order | ME21N       | Purchase order creation       |
@@ -146,7 +146,7 @@ useful when:
 ### Cross-Transaction Skills
 
 | Skill             | Description                        |
-|-------------------|------------------------------------|
+| ----------------- | ---------------------------------- |
 | Navigation Basics | How to navigate SAP Web GUI        |
 | Table Handling    | Working with ALV grids and tables  |
 | Search Help       | Using F4 search help               |
@@ -239,10 +239,10 @@ Example index:
 
 ## Keywords
 
-| Keyword | Skills |
-|---------|--------|
+| Keyword  | Skills                              |
+| -------- | ----------------------------------- |
 | customer | create_sales_order, customer_master |
-| material | display_material, create_material |
+| material | display_material, create_material   |
 ```
 
 ## Contributing Skills

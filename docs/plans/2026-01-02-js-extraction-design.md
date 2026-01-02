@@ -7,6 +7,7 @@ Extract embedded JavaScript from Python source code (`sap_tools.py`) into dedica
 ## Problem
 
 Currently, `sap_tools.py` contains 7 significant JavaScript blocks (ranging from 15-90 lines each) embedded as Python string literals. This makes the code harder to:
+
 - Read and maintain (no JS syntax highlighting in Python strings)
 - Test independently
 - Reuse across different tools
@@ -85,15 +86,15 @@ result = await page.evaluate(
 
 ## File Mapping
 
-| JS File | Python Function | Has Params | Param Names |
-|---------|-----------------|------------|-------------|
-| `set_language_field.js` | `sap_login` | Yes | `language` |
-| `set_okcode_field.js` | `sap_transaction` | Yes | `transactionInput` |
-| `extract_screen_text.js` | `sap_get_screen_text` | No | - |
-| `extract_table_data.js` | `sap_read_table` | Yes | `startRow`, `endRow`, `maxRows` |
-| `extract_status_bar.js` | `sap_read_status_bar` | No | - |
-| `extract_screen_info.js` | `sap_get_screen_info` | No | - |
-| `discover_fields.js` | `sap_discover_fields` | No | - |
+| JS File                  | Python Function       | Has Params | Param Names                     |
+| ------------------------ | --------------------- | ---------- | ------------------------------- |
+| `set_language_field.js`  | `sap_login`           | Yes        | `language`                      |
+| `set_okcode_field.js`    | `sap_transaction`     | Yes        | `transactionInput`              |
+| `extract_screen_text.js` | `sap_get_screen_text` | No         | -                               |
+| `extract_table_data.js`  | `sap_read_table`      | Yes        | `startRow`, `endRow`, `maxRows` |
+| `extract_status_bar.js`  | `sap_read_status_bar` | No         | -                               |
+| `extract_screen_info.js` | `sap_get_screen_info` | No         | -                               |
+| `discover_fields.js`     | `sap_discover_fields` | No         | -                               |
 
 ## Not Extracted
 

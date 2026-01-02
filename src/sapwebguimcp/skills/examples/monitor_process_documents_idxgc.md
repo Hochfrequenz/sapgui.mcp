@@ -4,6 +4,7 @@
 
 Monitor market communication process documents (PDOC) in SAP IS-U / S/4HANA Utilities.
 Process documents track the status of German market communication processes like:
+
 - GPKE (Lieferantenwechsel Strom / Supplier switch electricity)
 - MaBiS (Bilanzkreisabrechnung / Balance group settlement)
 - WiM (Wechselprozesse Messwesen / Meter operator switch)
@@ -19,6 +20,7 @@ Process documents track the status of German market communication processes like
 ## When to Use
 
 Use this skill for:
+
 - Monitoring incoming/outgoing market messages
 - Troubleshooting failed process documents
 - Checking status of supplier switches (Lieferantenwechsel)
@@ -29,31 +31,32 @@ Use this skill for:
 
 ### Label Reference (DE/EN)
 
-| Purpose | German Label | English Label |
-|---------|--------------|---------------|
-| Process Document | Prozessdokument, PDOC | Process Document |
-| Process Type | Prozessart | Process Type |
-| Status | Status | Status |
-| Message Type | Nachrichtentyp | Message Type |
-| Market Partner | Marktpartner | Market Partner |
-| MeLo/MaLo | Messlokation, Marktlokation | Metering Location, Market Location |
-| Creation Date | Erstellungsdatum | Creation Date |
-| Direction | Richtung | Direction |
-| Error | Fehler | Error |
+| Purpose          | German Label                | English Label                      |
+| ---------------- | --------------------------- | ---------------------------------- |
+| Process Document | Prozessdokument, PDOC       | Process Document                   |
+| Process Type     | Prozessart                  | Process Type                       |
+| Status           | Status                      | Status                             |
+| Message Type     | Nachrichtentyp              | Message Type                       |
+| Market Partner   | Marktpartner                | Market Partner                     |
+| MeLo/MaLo        | Messlokation, Marktlokation | Metering Location, Market Location |
+| Creation Date    | Erstellungsdatum            | Creation Date                      |
+| Direction        | Richtung                    | Direction                          |
+| Error            | Fehler                      | Error                              |
 
 ### Process Status Values
 
-| Status Code | German | English | Meaning |
-|-------------|--------|---------|---------|
-| 01 | Neu | New | Just created |
-| 02 | In Bearbeitung | In Progress | Being processed |
-| 03 | Erfolgreich | Successful | Completed OK |
-| 04 | Fehlerhaft | Error | Failed |
-| 05 | Storniert | Cancelled | Cancelled |
+| Status Code | German         | English     | Meaning         |
+| ----------- | -------------- | ----------- | --------------- |
+| 01          | Neu            | New         | Just created    |
+| 02          | In Bearbeitung | In Progress | Being processed |
+| 03          | Erfolgreich    | Successful  | Completed OK    |
+| 04          | Fehlerhaft     | Error       | Failed          |
+| 05          | Storniert      | Cancelled   | Cancelled       |
 
 ## Workflow
 
 ### Step 1: Start Transaction
+
 ```
 sap_transaction("/IDXGC/PDOCMON01")  # Inbound process monitoring
 # or
@@ -63,6 +66,7 @@ sap_get_screen_text()  # Verify selection screen loaded
 ```
 
 ### Step 2: Set Selection Criteria
+
 ```
 sap_get_screen_text()  # Identify filter fields
 
@@ -84,12 +88,14 @@ sap_fill(field_near_label="Marktlokation", value="DE000...")
 ```
 
 ### Step 3: Execute Search
+
 ```
 sap_keyboard("F8")  # Execute
 sap_get_screen_text()  # Check results or error
 ```
 
 ### Step 4: Analyze Results
+
 ```
 # Read the ALV table with results
 sap_read_table()
@@ -105,6 +111,7 @@ sap_read_table()
 ```
 
 ### Step 5: View Process Document Details
+
 ```
 # Double-click or select a row and press Enter to see details
 sap_click(row=N)  # Select specific row
@@ -120,6 +127,7 @@ sap_get_screen_text()  # Read detail screen
 ```
 
 ### Step 6: View Linked Messages
+
 ```
 # From detail screen, navigate to messages
 sap_get_screen_text()  # Look for "Nachrichten" / "Messages" section
@@ -134,66 +142,68 @@ sap_get_screen_text()  # Look for "Nachrichten" / "Messages" section
 ## Error Handling
 
 ### "Keine Daten gefunden" / "No data found"
+
 - Broaden search criteria (larger date range)
 - Remove specific filters
 - Check if process documents exist at all
 
 ### "Keine Berechtigung" / "No authorization"
+
 - User needs authorization for `/IDXGC/` transactions
 - Check authorization object `IDEX_PDOC`
 
 ### Common PDOC Errors
 
-| Error Pattern | Cause | Resolution |
-|--------------|-------|------------|
-| MaLo nicht gefunden | Market location unknown | Check MaLo master data |
-| Partner ungültig | Invalid market partner | Verify partner in /IDXGC/BPM |
-| Doppelte Nachricht | Duplicate message | Check for existing process |
-| Zeitfenster | Timing conflict | Check process dates |
+| Error Pattern       | Cause                   | Resolution                   |
+| ------------------- | ----------------------- | ---------------------------- |
+| MaLo nicht gefunden | Market location unknown | Check MaLo master data       |
+| Partner ungültig    | Invalid market partner  | Verify partner in /IDXGC/BPM |
+| Doppelte Nachricht  | Duplicate message       | Check for existing process   |
+| Zeitfenster         | Timing conflict         | Check process dates          |
 
 ## German Market Communication Specifics
 
 ### GPKE Process Types (Electricity Supply)
 
-| Process | Description |
-|---------|-------------|
-| ZMCPD_GPKE_LIEFBEG | Lieferbeginn (Start of Supply) |
-| ZMCPD_GPKE_LIEFEND | Lieferende (End of Supply) |
-| ZMCPD_GPKE_KUNDW | Kundenwechsel (Customer Switch) |
+| Process            | Description                     |
+| ------------------ | ------------------------------- |
+| ZMCPD_GPKE_LIEFBEG | Lieferbeginn (Start of Supply)  |
+| ZMCPD_GPKE_LIEFEND | Lieferende (End of Supply)      |
+| ZMCPD_GPKE_KUNDW   | Kundenwechsel (Customer Switch) |
 
 ### MaBiS Process Types (Balancing)
 
-| Process | Description |
-|---------|-------------|
+| Process         | Description                              |
+| --------------- | ---------------------------------------- |
 | ZMCPD_MABIS_SLP | SLP-Bilanzierung (Standard Load Profile) |
-| ZMCPD_MABIS_RLM | RLM-Bilanzierung (Interval Metering) |
+| ZMCPD_MABIS_RLM | RLM-Bilanzierung (Interval Metering)     |
 
 ### WiM Process Types (Meter Operation)
 
-| Process | Description |
-|---------|-------------|
+| Process          | Description                       |
+| ---------------- | --------------------------------- |
 | ZMCPD_WIM_MSBBEG | MSB-Beginn (Meter Operator Start) |
-| ZMCPD_WIM_MSBEND | MSB-Ende (Meter Operator End) |
+| ZMCPD_WIM_MSBEND | MSB-Ende (Meter Operator End)     |
 
 ### Market Partner Roles
 
-| Role | German | Description |
-|------|--------|-------------|
-| LF | Lieferant | Supplier |
-| NB | Netzbetreiber | Distribution System Operator |
-| MSB | Messstellenbetreiber | Meter Operator |
-| BKV | Bilanzkreisverantwortlicher | Balance Responsible Party |
-| ÜNB | Übertragungsnetzbetreiber | Transmission System Operator |
+| Role | German                      | Description                  |
+| ---- | --------------------------- | ---------------------------- |
+| LF   | Lieferant                   | Supplier                     |
+| NB   | Netzbetreiber               | Distribution System Operator |
+| MSB  | Messstellenbetreiber        | Meter Operator               |
+| BKV  | Bilanzkreisverantwortlicher | Balance Responsible Party    |
+| ÜNB  | Übertragungsnetzbetreiber   | Transmission System Operator |
 
 ## Related Transactions
 
-| Transaction | Purpose |
-|-------------|---------|
-| /IDXGC/PDOCMON01 | Monitor inbound process documents |
+| Transaction      | Purpose                            |
+| ---------------- | ---------------------------------- |
+| /IDXGC/PDOCMON01 | Monitor inbound process documents  |
 | /IDXGC/PDOCMON02 | Monitor outbound process documents |
-| /IDXGC/BPM | Market partner maintenance |
-| /IDXGC/DISP_CUST | Display customizing |
-| /IDXGC/MSG_MON | Message monitoring |
+| /IDXGC/BPM       | Market partner maintenance         |
+| /IDXGC/DISP_CUST | Display customizing                |
+| /IDXGC/MSG_MON   | Message monitoring                 |
 
 ## Example Dialogue
 
