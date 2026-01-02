@@ -142,10 +142,12 @@ Add this configuration (replace the SAP values with your own):
                 "run",
                 "-i",
                 "--rm",
+                "--network",
+                "sapwebguimcp_default",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
-                "CDP_URL=http://host.docker.internal:9223",
+                "CDP_URL=http://cdp-proxy:9222",
                 "-e",
                 "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-e",
@@ -160,6 +162,8 @@ Add this configuration (replace the SAP values with your own):
     }
 }
 ```
+
+> **Note**: The `--network sapwebguimcp_default` connects the container to the same Docker network as the CDP proxy, allowing it to reach Chrome via `cdp-proxy:9222`.
 
 ### Step 4: Restart Claude Desktop and start chatting
 
@@ -182,10 +186,12 @@ By default, Claude Desktop asks for confirmation before running MCP tools. To au
                 "run",
                 "-i",
                 "--rm",
+                "--network",
+                "sapwebguimcp_default",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
-                "CDP_URL=http://host.docker.internal:9223",
+                "CDP_URL=http://cdp-proxy:9222",
                 "-e",
                 "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-e",
@@ -267,16 +273,19 @@ On Docker Desktop, `--network host` doesn't work properly, and Chrome rejects co
 # 2. Start the CDP proxy (from the repository root)
 docker compose up -d cdp-proxy
 
-# 3. Run the MCP server connecting via the proxy (port 9223)
+# 3. Run the MCP server on the same Docker network as the proxy
 docker run -i --rm \
+  --network sapwebguimcp_default \
   -e BROWSER_MODE=connect \
-  -e CDP_URL=http://host.docker.internal:9223 \
+  -e CDP_URL=http://cdp-proxy:9222 \
   -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
   -e SAP_USER=your_username \
   -e SAP_PASSWORD=your_password \
   -e SAP_MANDANT=100 \
   ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ```
+
+The `--network sapwebguimcp_default` flag connects the container to the same Docker network as the CDP proxy, so it can reach the proxy via `cdp-proxy:9222`.
 
 ## Register in Claude Desktop / Claude Code
 
@@ -302,7 +311,7 @@ Modify your `claude_desktop_config.json`:
 
 First start Chrome with remote debugging and the CDP proxy (see Quick Start above), then configure Claude:
 
-**Docker Desktop (Windows/macOS)** - uses CDP proxy on port 9223:
+**Docker Desktop (Windows/macOS)** - connects via Docker network to CDP proxy:
 
 ```json
 {
@@ -313,10 +322,12 @@ First start Chrome with remote debugging and the CDP proxy (see Quick Start abov
                 "run",
                 "-i",
                 "--rm",
+                "--network",
+                "sapwebguimcp_default",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
-                "CDP_URL=http://host.docker.internal:9223",
+                "CDP_URL=http://cdp-proxy:9222",
                 "-e",
                 "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-e",
@@ -388,9 +399,9 @@ cd sapwebgui.mcp
 docker compose up -d cdp-proxy
 ```
 
-3. Configure the MCP server with the appropriate CDP URL:
+3. Configure the MCP server with the appropriate settings:
     - **Native Python or Linux Docker**: `CDP_URL=http://localhost:9222`
-    - **Docker Desktop (Windows/macOS)**: `CDP_URL=http://host.docker.internal:9223`
+    - **Docker Desktop (Windows/macOS)**: Use `--network sapwebguimcp_default` with `CDP_URL=http://cdp-proxy:9222`
 
 The MCP server will connect to your existing browser instead of launching a new one.
 

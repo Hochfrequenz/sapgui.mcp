@@ -9,8 +9,8 @@ services:
       - ./nginx-cdp-proxy.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
 
-  # SAP WebGUI MCP Server (for manual testing, not used by Claude Desktop)
-  # Claude Desktop runs its own container via the config
+  # SAP WebGUI MCP Server (for manual testing only)
+  # Claude Desktop runs its own container with --network sapwebguimcp_default
   sapwebgui-mcp:
     build: .
     image: sapwebgui-mcp:test
