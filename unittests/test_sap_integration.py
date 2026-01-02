@@ -105,6 +105,7 @@ input. Key findings from testing:
 import json
 import os
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -165,6 +166,10 @@ async def test_sap_login_page_capture(sap_mcp_client: ClientSession) -> None:
         await capture_html_snapshot(sap_mcp_client, "login_page")
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 13),
+    reason="Python 3.13+ has asyncio cleanup issues with MCP client in CI",
+)
 @pytest.mark.anyio
 async def test_login_page_fields_findable_by_playwright(mcp_client: ClientSession) -> None:
     """Verify that Playwright/browser can find login form fields despite invalid HTML.
