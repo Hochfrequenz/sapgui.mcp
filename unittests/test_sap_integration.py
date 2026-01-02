@@ -220,6 +220,7 @@ _TRANSACTION_WAIT_SELECTORS: dict[str, str] = {
     "SE93": "input[lsdata*='TSTC-TCODE']",  # Transaction code input field
     "SM37": "input[lsdata*='JOBNAME']",  # Job name input field
     "SU3": "[lsdata*='SUID_ST_NODE']",  # User profile (SU3) fields - SUID_ST_NODE_PERSON_NAME etc.
+    "BP": "span:has-text('Person'), span:has-text('Organisation')",  # BP category buttons
 }
 
 
@@ -1117,3 +1118,173 @@ async def test_browser_reconnect_multiple_times(sap_mcp_client: ClientSession) -
         status = await sap_mcp_client.call_tool("sap_session_status", {})
         status_data = parse_tool_response(status)
         assert status_data.get("success", True), f"Expected valid status after transaction {i+1}: {status_data}"
+
+
+# =============================================================================
+# Tests for sap_fill_form (batch form filling)
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_bp_fill_form_batch_fill(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_fill_form batch filling in BP (Business Partner) transaction.
+
+    This test verifies that sap_fill_form can fill multiple form fields
+    in a single call, which is much faster than individual browser_fill calls.
+
+    The test:
+    1. Opens BP transaction
+    2. Captures HTML snapshot of initial screen (shows Person/Organisation buttons)
+    3. Clicks "Person" button to create a new person BP
+    4. Captures HTML snapshot of person form
+    5. Uses sap_fill_form to batch fill name and address fields
+    6. Verifies all fields were reported as filled
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Step 1: Open BP transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    assert_tool_success(result, "sap_transaction BP")
+
+    # Wait for BP initial screen (has Person/Organisation buttons)
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Capture HTML snapshot of BP initial screen
+    await capture_html_snapshot(sap_mcp_client, "bp_initial")
+
+    # Step 2: Click on "Person" button to create a new person
+    # The button text depends on language (Person in both DE and EN)
+    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "span:has-text('Person')"})
+    click_data = parse_tool_response(click_result)
+    assert click_data.get("success", True), f"Failed to click Person button: {click_data}"
+
+    # Wait for form to load - look for typical BP person form fields
+    # Use a short wait for the form to render
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Capture HTML snapshot after clicking Person (shows the form fields)
+    await capture_html_snapshot(sap_mcp_client, "bp_person_form")
+
+    # Step 3: Use sap_fill_form to batch fill multiple fields
+    # Field labels depend on language setting
+    if sap_language == "DE":
+        fields_to_fill = {
+            "Vorname": "Max",
+            "Nachname": "Mustermann",
+        }
+    else:
+        fields_to_fill = {
+            "First Name": "Max",
+            "Last Name": "Mustermann",
+        }
+
+    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": fields_to_fill})
+    fill_data = assert_tool_success(fill_result, "sap_fill_form")
+
+    # Verify ALL fields were filled successfully
+    filled_fields = set(fill_data.get("filled", []))
+    not_found_fields = fill_data.get("not_found", [])
+    error_fields = fill_data.get("errors", [])
+    expected_fields = set(fields_to_fill.keys())
+
+    # No fields should be missing or have errors
+    assert len(not_found_fields) == 0, (
+        f"All fields must be found. Not found: {not_found_fields}. "
+        f"Check if labels match SAP_LANGUAGE={sap_language} setting."
+    )
+    assert len(error_fields) == 0, f"All fields must fill without errors. Errors: {error_fields}"
+
+    # All requested fields must be in the filled list
+    assert (
+        filled_fields == expected_fields
+    ), f"All fields must be filled. Expected: {expected_fields}, Filled: {filled_fields}"
+
+
+@pytest.mark.anyio
+async def test_bp_fill_form_with_css_selectors(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_fill_form using CSS selectors instead of labels.
+
+    This test verifies that sap_fill_form can fill fields using direct
+    CSS selectors (e.g., [attribute*='value'] selectors) that match SAP lsdata attributes.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open BP transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    assert_tool_success(result, "sap_transaction BP")
+
+    # Wait for BP initial screen
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Click on "Person" button
+    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "span:has-text('Person')"})
+    click_data = parse_tool_response(click_result)
+    assert click_data.get("success", True), f"Failed to click Person button: {click_data}"
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Use CSS selectors that match SAP lsdata attributes for BP person form
+    # These selectors target the actual SAP field IDs embedded in lsdata
+    # Based on actual BP form HTML: lsdata contains "BUT000-NAME_FIRST" and "BUT000-NAME_LAST"
+    fields_to_fill = {
+        "input[lsdata*='NAME_FIRST']": "Max",
+        "input[lsdata*='NAME_LAST']": "Mustermann",
+    }
+
+    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": fields_to_fill})
+    fill_data = assert_tool_success(fill_result, "sap_fill_form with CSS selectors")
+
+    # Verify ALL fields were filled successfully
+    filled_fields = set(fill_data.get("filled", []))
+    not_found_fields = fill_data.get("not_found", [])
+    error_fields = fill_data.get("errors", [])
+    expected_fields = set(fields_to_fill.keys())
+
+    # No fields should be missing or have errors
+    assert len(not_found_fields) == 0, (
+        f"All CSS selector fields must be found. Not found: {not_found_fields}. "
+        f"Selectors may need adjustment based on actual BP form HTML."
+    )
+    assert len(error_fields) == 0, f"All fields must fill without errors. Errors: {error_fields}"
+
+    # All requested fields must be in the filled list
+    assert (
+        filled_fields == expected_fields
+    ), f"All fields must be filled. Expected: {expected_fields}, Filled: {filled_fields}"
+
+
+@pytest.mark.anyio
+async def test_sap_fill_form_strict_mode(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_fill_form strict mode - should fail if any field is not found.
+
+    In strict mode (strict=True), the tool should return success=False
+    if any field cannot be found or filled.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open a simple transaction
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+
+    # Try to fill with an invalid field label in strict mode
+    fill_result = await sap_mcp_client.call_tool(
+        "sap_fill_form",
+        {
+            "fields": {
+                "NONEXISTENT_FIELD_12345": "test value",
+            },
+            "strict": True,
+        },
+    )
+    fill_data = parse_tool_response(fill_result)
+
+    # Strict mode should report failure when field not found
+    assert not fill_data.get("success", True), f"Strict mode should fail when field not found. Response: {fill_data}"
+    assert "NONEXISTENT_FIELD_12345" in fill_data.get(
+        "not_found", []
+    ), f"Field should be in not_found list: {fill_data}"

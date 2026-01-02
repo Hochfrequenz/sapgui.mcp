@@ -30,8 +30,10 @@ from sapwebguimcp.models.config import (
 )
 from sapwebguimcp.models.sap_results import (
     DiscoveredFields,
+    FieldFillError,
     FieldInfo,
     FieldLookupResult,
+    FillFormResult,
     KeepaliveResult,
     KeyboardResult,
     LoginResult,
@@ -60,8 +62,10 @@ __all__ = [
     "close_browser_manager",
     # SAP results
     "DiscoveredFields",
+    "FieldFillError",
     "FieldInfo",
     "FieldLookupResult",
+    "FillFormResult",
     "KeepaliveResult",
     "KeyboardResult",
     "LoginResult",

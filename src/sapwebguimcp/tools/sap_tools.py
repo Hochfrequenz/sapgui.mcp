@@ -28,8 +28,10 @@ from fastmcp import FastMCP
 from sapwebguimcp.models import (
     BrowserManager,
     DiscoveredFields,
+    FieldFillError,
     FieldInfo,
     FieldLookupResult,
+    FillFormResult,
     KeepaliveResult,
     KeyboardResult,
     LoginResult,
@@ -808,6 +810,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Read the current message from SAP's status bar.
 
         SAP displays success, error, warning, and info messages in the status bar.
+        Whenever you're stuck, maybe check the status bar for hints what to do.
         This tool extracts that message for programmatic checking.
 
         Returns:
@@ -968,3 +971,71 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error discovering fields")
             return DiscoveredFields.failure(f"Error discovering fields: {e}", field_count=0)
+
+    @mcp.tool(
+        description=(
+            "Fill multiple SAP form fields in a single call. "
+            "Use this when filling 2+ fields on the SAME screen without UI navigation between them. "
+            "Much faster than multiple browser_fill/browser_keyboard calls.\n\n"
+            "Keys can be:\n"
+            "- Visible label text (e.g., 'First Name', 'Straße')\n"
+            "- CSS selectors starting with '#' (e.g., '#M0:46:1:1::0:21')\n\n"
+            "When to use:\n"
+            "- Filling a form with multiple input fields\n"
+            "- All fields visible on current screen\n"
+            "- No button clicks or navigation needed between fields\n\n"
+            "When NOT to use:\n"
+            "- Single field only (use browser_fill)\n"
+            "- Fields on different screens/tabs\n"
+            "- Need to click buttons between fills"
+        )
+    )
+    async def sap_fill_form(fields: dict[str, str], strict: bool = False) -> FillFormResult:
+        """
+        Fill multiple SAP form fields in a single call.
+
+        This is much faster than filling fields one by one, as it executes
+        all fills in a single browser round-trip.
+
+        Args:
+            fields: Dictionary mapping field identifiers to values.
+                    Keys can be visible label text (e.g., 'First Name')
+                    or CSS selectors (e.g., '#M0:46:1:1::0:21').
+            strict: If True, fail if any field is not found.
+                    If False, skip missing fields and report them.
+
+        Returns:
+            FillFormResult with lists of filled, not_found, and errored fields.
+        """
+        if not fields:
+            return FillFormResult.failure("fields cannot be empty")
+
+        browser_manager = await get_browser_manager()
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Execute JavaScript to fill all fields
+            result = await page.evaluate(
+                _load_js("fill_form_fields.js"),
+                {"fields": fields},
+            )
+
+            filled = result.get("filled", [])
+            not_found = result.get("notFound", [])
+            errors = [FieldFillError(field=e["field"], error=e["error"]) for e in result.get("errors", [])]
+
+            # In strict mode, fail if any field was not found
+            if strict and not_found:
+                return FillFormResult.failure(
+                    f"Fields not found: {', '.join(not_found)}",
+                    filled=filled,
+                    not_found=not_found,
+                    errors=errors,
+                )
+
+            return FillFormResult(filled=filled, not_found=not_found, errors=errors)
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error filling form fields")
+            return FillFormResult.failure(f"Error filling form fields: {e}")
