@@ -105,7 +105,8 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
         )
 
     # Reload .env after clean_environment fixture has cleared env vars
-    load_dotenv(override=True)
+    # Use override=False so command-line env vars (like SAP_LANGUAGE=EN) take precedence
+    load_dotenv(override=False)
 
     sap_url = os.environ.get("SAP_URL")
     if not sap_url:

@@ -475,16 +475,73 @@ source .tox/dev/bin/activate  # Linux/macOS
 playwright install chromium
 ```
 
-### Running Tests
+### Running Tests with Tox
+
+This project uses [tox](https://tox.wiki/) to run all tests and checks. The test suite includes:
+
+- **Unit tests**: Offline tests using HTML snapshots (no SAP required)
+- **Integration tests**: Tests against real SAP Web GUI (auto-skipped on non-SAP machines)
 
 ```bash
-tox -e tests        # Run unit tests
-tox -e coverage     # Run tests with coverage (80% minimum)
+# Run all tests (recommended for CI and local development)
+# Integration tests are auto-skipped if SAP is not accessible
+tox -e tests
+
+# Run only unit tests (fast, no SAP needed)
+tox -e unit_tests
+
+# Run only SAP integration tests (requires SAP access)
+tox -e integration_tests
+
+# Run with specific language (for integration tests)
+SAP_LANGUAGE=EN tox -e integration_tests
+
+# Run all checks (tests, linting, formatting, type checking)
+tox
+```
+
+**Other tox environments:**
+
+```bash
+tox -e coverage     # Run tests with coverage report
 tox -e linting      # Run pylint
-tox -e formatting   # Check black/isort
-tox -e type_check   # Run mypy
+tox -e formatting   # Check black/isort formatting
+tox -e type_check   # Run mypy type checking
 tox -e spell_check  # Run codespell
 ```
+
+### HTML Snapshot Testing
+
+We use HTML snapshots captured from real SAP Web GUI sessions to test CSS selectors offline. This approach:
+
+1. **Captures real HTML** during integration tests (when SAP is available)
+2. **Validates selectors** against snapshots in fast unit tests (no SAP needed)
+3. **Supports multiple languages** (snapshots named `*_en.html`, `*_de.html`)
+
+```bash
+# Capture English snapshots (requires SAP access)
+SAP_LANGUAGE=EN tox -e integration_tests
+
+# Capture German snapshots (requires SAP access)
+SAP_LANGUAGE=DE tox -e integration_tests
+
+# Run offline selector tests (no SAP needed)
+tox -e unit_tests
+```
+
+Snapshots are stored in `unittests/testdata/html_snapshots/`.
+
+#### Why Not Syrupy?
+
+We considered [syrupy](https://github.com/tophat/syrupy) (a pytest snapshot testing library) but chose a simpler approach because:
+
+1. **SAP HTML is huge** (~300KB per page) - syrupy's diff output would be unreadable
+2. **We don't compare full HTML** - we only validate that specific selectors find elements
+3. **Selector validation is the goal** - not detecting HTML changes
+4. **BeautifulSoup is sufficient** - we parse HTML and test CSS selectors, no need for snapshot diffing
+5. **Multi-language support** - we capture EN/DE variants; syrupy would create separate snapshot dirs
+
+Our approach: capture HTML once, then write focused assertions about selector behavior. If SAP's HTML structure changes, the selector tests fail with clear messages about which selector broke.
 
 ### Code Style
 

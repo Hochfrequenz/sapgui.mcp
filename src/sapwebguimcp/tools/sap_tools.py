@@ -370,30 +370,30 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Fill password
             await page.fill('#sap-password, input[name="sap-password"]', settings.sap_password)
 
-            # Set language - try multiple approaches as SAP login forms vary
+            # Set language - SAP login has a hidden #sap-language input and visible dropdown
+            # We need to set the hidden input value via JavaScript since fill() won't work
             try:
-                # First try: Look for a visible language dropdown/select
-                lang_select = await page.query_selector('select[name="sap-language"], #sap-language')
-                if lang_select:
-                    tag_name = await lang_select.evaluate("el => el.tagName.toLowerCase()")
-                    if tag_name == "select":
-                        await page.select_option('select[name="sap-language"]', settings.sap_language)
-                    else:
-                        await page.fill("#sap-language", settings.sap_language)
-                else:
-                    # Second try: Hidden input field - set value and dispatch events
-                    await page.evaluate(
-                        f"""
-                        (function() {{
-                            var field = document.querySelector('input[name="sap-language"]');
-                            if (field) {{
-                                field.value = "{settings.sap_language}";
-                                field.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                                field.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                            }}
-                        }})()
-                        """
-                    )
+                await page.evaluate(
+                    f"""
+                    (function() {{
+                        // Set hidden language input
+                        var hiddenField = document.querySelector('#sap-language, input[name="sap-language"]');
+                        if (hiddenField) {{
+                            hiddenField.value = "{settings.sap_language}";
+                            hiddenField.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                            hiddenField.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                        }}
+                        // Also try to update the visible dropdown display if it exists
+                        var dropdown = document.querySelector('#sap-language-dropdown');
+                        if (dropdown) {{
+                            var langDisplay = "{settings.sap_language}" === "EN" ? "English" :
+                                              "{settings.sap_language}" === "DE" ? "Deutsch" : "{settings.sap_language}";
+                            dropdown.value = langDisplay;
+                        }}
+                    }})()
+                    """
+                )
+                logger.debug("Set language field to: %s", settings.sap_language)
             except Exception as lang_err:  # pylint: disable=broad-exception-caught
                 logger.warning("Could not set language field: %s", lang_err)
 

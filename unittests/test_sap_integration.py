@@ -152,6 +152,18 @@ async def capture_html_snapshot(
 
 
 @pytest.mark.anyio
+async def test_sap_login_page_capture(sap_mcp_client: ClientSession) -> None:
+    """Capture the login page HTML before login for debugging."""
+    # Navigate to SAP URL without logging in to capture login page
+    sap_url = os.environ.get("SAP_URL", "")
+    if sap_url:
+        await sap_mcp_client.call_tool("browser_navigate", {"url": sap_url})
+        await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+        # Capture login page for debugging
+        await capture_html_snapshot(sap_mcp_client, "login_page")
+
+
+@pytest.mark.anyio
 async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     """Test that sap_login tool automatically logs in with credentials from environment.
 
@@ -162,7 +174,10 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     - Tool returns success message
     - Browser shows SAP Easy Access (verified via HTML)
     - OK-Code field is visible (can enter transactions)
+    - Login language matches SAP_LANGUAGE setting
     """
+    sap_language = os.environ.get("SAP_LANGUAGE", "EN")
+
     result = await sap_mcp_client.call_tool("sap_login", {})
 
     assert result.content, "Expected non-empty response from sap_login"
@@ -176,14 +191,24 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     # Verify browser state: check that SAP Easy Access loaded
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
     assert html_result.content, "Expected HTML response"
-    page_html = html_result.content[0].text.lower()
+    page_html = html_result.content[0].text
 
-    # SAP Easy Access page should have:
-    # - The page title "SAP Easy Access"
-    # - The OK-Code field (ToolbarOkCode)
-    assert "sap easy access" in page_html or "toolbarokcode" in page_html, (
+    # SAP Easy Access page should have the OK-Code field
+    assert "toolbarokcode" in page_html.lower(), (
         "Browser does not show SAP Easy Access screen. " "Login may have failed or a dialog is blocking."
     )
+
+    # Verify the login language is correct by checking UI text
+    if sap_language == "EN":
+        # English UI should have "SAP Easy Access" (not German "SAP Schnellzugriff")
+        assert "sap easy access" in page_html.lower(), (
+            f"Expected English UI (SAP Easy Access) but got German. "
+            f"SAP_LANGUAGE={sap_language} may not have been applied during login."
+        )
+    elif sap_language == "DE":
+        # German UI typically shows "SAP Easy Access" too, but with German menu items
+        # Check for German menu items like "System" or "Hilfe"
+        pass  # German is the fallback, no strict assertion needed
 
     # Capture HTML snapshot for offline selector testing
     await capture_html_snapshot(sap_mcp_client, "easy_access")
