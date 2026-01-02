@@ -19,6 +19,7 @@ This module contains tools for:
 import asyncio
 import json
 import logging
+from functools import lru_cache
 from importlib import resources
 from typing import Any, Optional
 
@@ -29,6 +30,13 @@ from sapwebguimcp.models import BrowserManager, get_settings
 __all__ = ["register_sap_tools"]
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=16)
+def _load_js(filename: str) -> str:
+    """Load a JavaScript file from the sapwebguimcp.js package."""
+    return resources.files("sapwebguimcp.js").joinpath(filename).read_text(encoding="utf-8")
+
 
 # =============================================================================
 # Keepalive Management
@@ -374,25 +382,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # We need to set the hidden input value via JavaScript since fill() won't work
             try:
                 await page.evaluate(
-                    f"""
-                    (function() {{
-                        // Set hidden language input
-                        var hiddenField = document.querySelector('#sap-language, input[name="sap-language"]');
-                        if (hiddenField) {{
-                            hiddenField.value = "{settings.sap_language}";
-                            hiddenField.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                            hiddenField.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                        }}
-                        // Also try to update the visible dropdown display if it exists
-                        var dropdown = document.querySelector('#sap-language-dropdown');
-                        if (dropdown) {{
-                            var lang = "{settings.sap_language}";
-                            var langDisplay = lang === "EN" ? "English" :
-                                              lang === "DE" ? "Deutsch" : lang;
-                            dropdown.value = langDisplay;
-                        }}
-                    }})()
-                    """
+                    _load_js("set_language_field.js"),
+                    {"language": settings.sap_language},
                 )
                 logger.debug("Set language field to: %s", settings.sap_language)
             except Exception as lang_err:  # pylint: disable=broad-exception-caught
@@ -550,22 +541,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.info("Clicked OK-Code field to ensure focus")
 
             await page.evaluate(
-                f"""
-                (function() {{
-                    var field = document.getElementById('ToolbarOkCode');
-                    if (field) {{
-                        // Focus the field first
-                        field.focus();
-
-                        // Set the value directly
-                        field.value = '{transaction_input}';
-
-                        // Trigger input/change events so SAP knows the value changed
-                        field.dispatchEvent(new Event('input', {{ bubbles: true, cancelable: true }}));
-                        field.dispatchEvent(new Event('change', {{ bubbles: true, cancelable: true }}));
-                    }}
-                }})()
-                """
+                _load_js("set_okcode_field.js"),
+                {"transactionInput": transaction_input},
             )
 
             await page.wait_for_timeout(300)
@@ -730,100 +707,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             page = await browser_manager.get_current_page()
 
             # Extract text using JavaScript for comprehensive coverage
-            screen_text = await page.evaluate(
-                """
-                () => {
-                    const result = {
-                        title: document.title,
-                        statusBar: '',
-                        mainContent: [],
-                        labels: [],
-                        buttons: [],
-                        tabs: [],
-                        tableHeaders: []
-                    };
-
-                    // Get status bar message
-                    const statusBar = document.querySelector(
-                        '.urMsgBarTxt, .sapMSGtext, [class*="message" i], [id*="StatusBar" i]'
-                    );
-                    if (statusBar) {
-                        result.statusBar = statusBar.textContent.trim();
-                    }
-
-                    // Get all labels (for adaptive field discovery)
-                    document.querySelectorAll('label, .urLbl, [class*="label" i]').forEach(el => {
-                        const text = el.textContent.trim();
-                        if (text && text.length < 100) {
-                            result.labels.push(text);
-                        }
-                    });
-
-                    // Get all buttons
-                    document.querySelectorAll(
-                        'button, [role="button"], input[type="button"], input[type="submit"]'
-                    ).forEach(el => {
-                        const text = el.textContent.trim() || el.value || el.getAttribute('title') || '';
-                        if (text && text.length < 50) {
-                            result.buttons.push(text);
-                        }
-                    });
-
-                    // Get tab labels
-                    document.querySelectorAll('[role="tab"], .sapMTabStrip button').forEach(el => {
-                        const text = el.textContent.trim();
-                        if (text) {
-                            result.tabs.push(text);
-                        }
-                    });
-
-                    // Get table headers
-                    document.querySelectorAll('th, [role="columnheader"]').forEach(el => {
-                        const text = el.textContent.trim();
-                        if (text) {
-                            result.tableHeaders.push(text);
-                        }
-                    });
-
-                    // Get main content text (limited to avoid too much noise)
-                    const mainArea = document.querySelector(
-                        '#content, #MAIN_CONTENT, [role="main"], .sapMPage, body'
-                    );
-                    if (mainArea) {
-                        // Get visible text, excluding scripts and styles
-                        const walker = document.createTreeWalker(
-                            mainArea,
-                            NodeFilter.SHOW_TEXT,
-                            {
-                                acceptNode: function(node) {
-                                    const parent = node.parentElement;
-                                    if (!parent) return NodeFilter.FILTER_REJECT;
-                                    const tag = parent.tagName.toLowerCase();
-                                    if (tag === 'script' || tag === 'style' || tag === 'noscript') {
-                                        return NodeFilter.FILTER_REJECT;
-                                    }
-                                    const text = node.textContent.trim();
-                                    if (text.length > 0 && text.length < 200) {
-                                        return NodeFilter.FILTER_ACCEPT;
-                                    }
-                                    return NodeFilter.FILTER_REJECT;
-                                }
-                            }
-                        );
-                        let count = 0;
-                        while (walker.nextNode() && count < 200) {
-                            const text = walker.currentNode.textContent.trim();
-                            if (text && !result.mainContent.includes(text)) {
-                                result.mainContent.push(text);
-                                count++;
-                            }
-                        }
-                    }
-
-                    return result;
-                }
-                """
-            )
+            screen_text = await page.evaluate(_load_js("extract_screen_text.js"))
 
             # Format output
             output_parts = []
@@ -884,94 +768,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             # Extract table data using JavaScript
             table_data = await page.evaluate(
-                """
-                (params) => {
-                    const { startRow, endRow, maxRows } = params;
-
-                    // Find table elements (various SAP table implementations)
-                    const tableSelectors = [
-                        'table[role="grid"]',           // ALV Grid
-                        '.sapMList table',              // SAPUI5 List
-                        'table.urTbl',                  // Classic SAP table
-                        '[role="treegrid"]',            // Tree grid
-                        'table',                        // Fallback to any table
-                    ];
-
-                    let table = null;
-                    for (const selector of tableSelectors) {
-                        table = document.querySelector(selector);
-                        if (table) break;
-                    }
-
-                    if (!table) {
-                        return { error: 'No table found on current screen' };
-                    }
-
-                    // Get headers
-                    const headers = [];
-                    const headerCells = table.querySelectorAll('th, [role="columnheader"]');
-                    headerCells.forEach(cell => {
-                        // Limit header text length and clean whitespace
-                        let text = cell.textContent.trim().substring(0, 50);
-                        headers.push(text);
-                    });
-
-                    // If no headers found in th, try first row
-                    if (headers.length === 0) {
-                        const firstRow = table.querySelector('tr');
-                        if (firstRow) {
-                            firstRow.querySelectorAll('td').forEach(cell => {
-                                let text = cell.textContent.trim().substring(0, 50);
-                                headers.push(text);
-                            });
-                        }
-                    }
-
-                    // Get rows with limits
-                    const rows = [];
-                    const dataRows = table.querySelectorAll('tbody tr, tr[role="row"]');
-                    const maxEnd = startRow + maxRows - 1;
-                    const actualEndRow = endRow ? Math.min(endRow, maxEnd) : Math.min(dataRows.length, maxEnd);
-
-                    // Track which columns have data (to filter out empty columns)
-                    const columnsWithData = new Set();
-
-                    for (let i = startRow - 1; i < Math.min(actualEndRow, dataRows.length); i++) {
-                        const row = dataRows[i];
-                        if (!row) continue;
-
-                        const cells = row.querySelectorAll('td, [role="gridcell"]');
-                        const rowData = {};
-
-                        cells.forEach((cell, idx) => {
-                            // Limit cell text to 200 chars to prevent huge values
-                            let cellText = cell.textContent.trim().substring(0, 200);
-                            if (cellText) {
-                                const headerName = headers[idx] || `col_${idx + 1}`;
-                                rowData[headerName] = cellText;
-                                columnsWithData.add(headerName);
-                            }
-                        });
-
-                        if (Object.keys(rowData).length > 0) {
-                            rows.push({ row: i + 1, data: rowData });
-                        }
-                    }
-
-                    // Filter headers to only include columns that have data
-                    const usedHeaders = headers.filter((h, idx) =>
-                        columnsWithData.has(h) || columnsWithData.has(`col_${idx + 1}`)
-                    );
-
-                    return {
-                        headers: usedHeaders,
-                        totalRows: dataRows.length,
-                        returnedRows: rows.length,
-                        truncated: dataRows.length > actualEndRow,
-                        rows: rows
-                    };
-                }
-                """,
+                _load_js("extract_table_data.js"),
                 {"startRow": start_row, "endRow": end_row, "maxRows": max_rows},
             )
 
@@ -1004,78 +801,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             page = await browser_manager.get_current_page()
 
             # Extract status bar content using JavaScript
-            status_info = await page.evaluate(
-                """
-                () => {
-                    // Various SAP Web GUI status bar selectors
-                    const statusSelectors = [
-                        '#LSMSG_AREA',                  // Classic status area
-                        '.urMsgBarTxt',                 // SAP message bar
-                        '.sapMSGtext',                  // SAPUI5 message
-                        '[id*="StatusBar" i]',          // Status bar variations
-                        '[class*="msgbar" i]',          // Message bar variations
-                        '[id*="msgarea" i]',            // Message area
-                    ];
-
-                    let statusElement = null;
-                    for (const selector of statusSelectors) {
-                        statusElement = document.querySelector(selector);
-                        if (statusElement && statusElement.textContent.trim()) {
-                            break;
-                        }
-                    }
-
-                    if (!statusElement || !statusElement.textContent.trim()) {
-                        return { type: 'none', message: '' };
-                    }
-
-                    const message = statusElement.textContent.trim();
-
-                    // Determine message type based on CSS classes or icons
-                    let type = 'I';  // Default to info
-
-                    const parentClasses = (statusElement.className + ' ' +
-                        (statusElement.parentElement?.className || '')).toLowerCase();
-
-                    // Check for error indicators
-                    if (parentClasses.includes('error') ||
-                        parentClasses.includes('fehler') ||
-                        statusElement.querySelector('[class*="error" i], .sapMsgError')) {
-                        type = 'E';
-                    }
-                    // Check for warning indicators
-                    else if (parentClasses.includes('warning') ||
-                             parentClasses.includes('warnung') ||
-                             statusElement.querySelector('[class*="warning" i], .sapMsgWarning')) {
-                        type = 'W';
-                    }
-                    // Check for success indicators
-                    else if (parentClasses.includes('success') ||
-                             parentClasses.includes('erfolg') ||
-                             statusElement.querySelector('[class*="success" i], .sapMsgSuccess')) {
-                        type = 'S';
-                    }
-
-                    // Also check message content for common patterns
-                    const msgLower = message.toLowerCase();
-                    if (type === 'I') {  // Only override if not already detected
-                        if (msgLower.includes('fehler') || msgLower.includes('error') ||
-                            msgLower.includes('nicht gefunden') || msgLower.includes('not found') ||
-                            msgLower.includes('ungültig') || msgLower.includes('invalid')) {
-                            type = 'E';
-                        } else if (msgLower.includes('warnung') || msgLower.includes('warning')) {
-                            type = 'W';
-                        } else if (msgLower.includes('gesichert') || msgLower.includes('saved') ||
-                                   msgLower.includes('angelegt') || msgLower.includes('created') ||
-                                   msgLower.includes('erfolgreich') || msgLower.includes('successful')) {
-                            type = 'S';
-                        }
-                    }
-
-                    return { type: type, message: message };
-                }
-                """
-            )
+            status_info = await page.evaluate(_load_js("extract_status_bar.js"))
 
             return json.dumps(status_info, ensure_ascii=False)
 
@@ -1103,54 +829,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             page = await browser_manager.get_current_page()
 
             # Extract screen info using JavaScript
-            screen_info = await page.evaluate(
-                """
-                () => {
-                    const info = {
-                        transaction: '',
-                        title: document.title,
-                        url: window.location.href,
-                        program: '',
-                        dynpro: ''
-                    };
-
-                    // Try to find transaction code from various locations
-                    // OK-Code field might contain current transaction
-                    const okCodeField = document.querySelector(
-                        '#ToolbarOkCode, input[id*="okcode" i]'
-                    );
-                    if (okCodeField && okCodeField.value) {
-                        info.transaction = okCodeField.value.replace(/^\\/[no]/, '');
-                    }
-
-                    // Check title bar for transaction info
-                    // SAP often shows "Transaction - Description" or similar
-                    const titleMatch = document.title.match(/^([A-Z0-9_\\/]+)\\s*[-:]|\\(([A-Z0-9_]+)\\)/);
-                    if (titleMatch) {
-                        info.transaction = info.transaction || (titleMatch[1] || titleMatch[2] || '').trim();
-                    }
-
-                    // Look for technical info in hidden fields or data attributes
-                    const techInfo = document.querySelector(
-                        '[data-program], [data-dynpro], [data-tcode], ' +
-                        'input[name*="program" i], input[name*="dynpro" i]'
-                    );
-                    if (techInfo) {
-                        info.program = techInfo.getAttribute('data-program') ||
-                                      techInfo.getAttribute('name') || '';
-                        info.dynpro = techInfo.getAttribute('data-dynpro') || '';
-                    }
-
-                    // Try to extract from URL if it contains transaction info
-                    const urlMatch = window.location.href.match(/[?&](?:tcode|transaction)=([^&]+)/i);
-                    if (urlMatch) {
-                        info.transaction = info.transaction || urlMatch[1];
-                    }
-
-                    return info;
-                }
-                """
-            )
+            screen_info = await page.evaluate(_load_js("extract_screen_info.js"))
 
             return json.dumps(screen_info, indent=2, ensure_ascii=False)
 
@@ -1233,68 +912,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             page = await browser_manager.get_current_page()
 
             # Discover fields using JavaScript
-            fields = await page.evaluate(
-                """
-                () => {
-                    const fields = [];
-
-                    // Find all input elements
-                    document.querySelectorAll('input, select, textarea').forEach(el => {
-                        // Skip hidden and submit buttons
-                        if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button') {
-                            return;
-                        }
-
-                        // Skip if not visible
-                        const rect = el.getBoundingClientRect();
-                        if (rect.width === 0 || rect.height === 0) {
-                            return;
-                        }
-
-                        const field = {
-                            id: el.id || '',
-                            name: el.name || '',
-                            type: el.type || el.tagName.toLowerCase(),
-                            value: el.value ? el.value.substring(0, 50) : '',
-                            label: '',
-                            selector: ''
-                        };
-
-                        // Find associated label
-                        if (el.id) {
-                            const label = document.querySelector(`label[for="${el.id}"]`);
-                            if (label) {
-                                field.label = label.textContent.trim().substring(0, 50);
-                            }
-                        }
-
-                        // If no label found, look for nearby text
-                        if (!field.label) {
-                            const parent = el.parentElement;
-                            if (parent) {
-                                const prevSibling = el.previousElementSibling;
-                                if (prevSibling && prevSibling.tagName !== 'INPUT') {
-                                    field.label = prevSibling.textContent.trim().substring(0, 50);
-                                }
-                            }
-                        }
-
-                        // Generate best selector
-                        if (el.id) {
-                            field.selector = `#${el.id}`;
-                        } else if (el.name) {
-                            field.selector = `input[name="${el.name}"]`;
-                        } else if (field.label) {
-                            field.selector = `input:near(:text("${field.label}"))`;
-                        }
-
-                        fields.push(field);
-                    });
-
-                    return fields;
-                }
-                """
-            )
+            fields = await page.evaluate(_load_js("discover_fields.js"))
 
             return json.dumps(
                 {

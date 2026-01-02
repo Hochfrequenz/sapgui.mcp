@@ -95,3 +95,6 @@ Thumbs.db
 src/_your_package_version.py
 
 src/_sapwebguimcp_version.py
+
+# Node.js (for prettier)
+node_modules/
