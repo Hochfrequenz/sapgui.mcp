@@ -505,8 +505,6 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         tcode=tcode,
                     )
 
-                await page.wait_for_timeout(500)
-
                 okcode_field = await _find_okcode_field(page)
                 if not okcode_field:
                     return TransactionResult.failure(
@@ -581,7 +579,6 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.debug("Pressed Enter to execute transaction")
 
             await page.wait_for_load_state("networkidle")
-            await page.wait_for_timeout(500)
 
             title = await page.title()
 
@@ -707,7 +704,6 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             await page.keyboard.press(key)
 
             # Wait for SAP to respond
-            await page.wait_for_timeout(500)
             await page.wait_for_load_state("networkidle")
 
             title = await page.title()
