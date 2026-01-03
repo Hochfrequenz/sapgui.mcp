@@ -77,10 +77,21 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             logger.exception("Error getting snapshot")
             return SnapshotResult.failure(f"Error getting snapshot: {e}", selector=selector)
 
-    @mcp.tool(description="Take a screenshot of the current page")
+    @mcp.tool(
+        description=(
+            "Take a screenshot of the current page. "
+            "WARNING: Screenshots are large and consume significant context. "
+            "Prefer sap_get_screen_text when you only need to read text/labels. "
+            "Use screenshots sparingly - only when visual layout matters."
+        )
+    )
     async def browser_screenshot(full_page: bool = False, selector: Optional[str] = None) -> ScreenshotResult:
         """
         Take a screenshot of the current page.
+
+        WARNING: Screenshots are large base64 images that consume significant
+        conversation context. Prefer sap_get_screen_text when you only need
+        to read text, labels, or field names. Use screenshots sparingly.
 
         Args:
             full_page: Capture entire scrollable page

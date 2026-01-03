@@ -505,8 +505,6 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         tcode=tcode,
                     )
 
-                await page.wait_for_timeout(500)
-
                 okcode_field = await _find_okcode_field(page)
                 if not okcode_field:
                     return TransactionResult.failure(
@@ -581,7 +579,6 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.debug("Pressed Enter to execute transaction")
 
             await page.wait_for_load_state("networkidle")
-            await page.wait_for_timeout(500)
 
             title = await page.title()
 
@@ -707,7 +704,6 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             await page.keyboard.press(key)
 
             # Wait for SAP to respond
-            await page.wait_for_timeout(500)
             await page.wait_for_load_state("networkidle")
 
             title = await page.title()
@@ -899,9 +895,22 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             # Look up the transaction (case-insensitive)
             if tcode_upper in registry_data:
+                tcode_data = registry_data[tcode_upper]
+
+                # Flatten nested screens structure into a single dict
+                # Registry format: {"screens": {"initial": {"field": "selector"}, ...}}
+                fields: dict[str, str] = {}
+                screens = tcode_data.get("screens", {})
+                for screen_name, screen_fields in screens.items():
+                    if isinstance(screen_fields, dict):
+                        for field_name, selector in screen_fields.items():
+                            # Prefix with screen name if field name would collide
+                            key = f"{screen_name}.{field_name}" if field_name in fields else field_name
+                            fields[key] = selector
+
                 return FieldLookupResult(
                     transaction=tcode_upper,
-                    fields=registry_data[tcode_upper],
+                    fields=fields,
                 )
 
             # Check if it's a partial match
@@ -923,25 +932,31 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Error looking up fields")
             return FieldLookupResult.failure(f"Error looking up fields: {e}", transaction=tcode_upper)
 
-    @mcp.tool(description="Discover input fields on the current SAP screen")
+    @mcp.tool(
+        description=(
+            "Discover input fields on the current SAP screen. "
+            "Returns fields with reliable CSS selectors (use the 'selector' field). "
+            "Call once per screen, not repeatedly - results are consistent."
+        )
+    )
     async def sap_discover_fields() -> DiscoveredFields:
         """
         Discover all input fields on the current SAP screen.
 
         This tool analyzes the current page and returns information about
-        all visible input fields, including their IDs, names, labels, and
-        suggested CSS selectors.
+        all visible input fields with reliable CSS selectors.
 
-        Use this when sap_lookup_fields doesn't have information for
-        the current transaction.
+        IMPORTANT: Use the 'selector' field directly with sap_fill_form or
+        sap_set_field - it is designed to work reliably. Avoid using raw
+        element IDs which may contain special characters.
 
         Returns:
             DiscoveredFields with list of fields including:
-            - id: Element ID
-            - name: Element name attribute
-            - label: Associated label text (if found)
-            - type: Input type
-            - selector: Suggested CSS selector to use
+            - field_id: SAP field ID (e.g., 'NAME_FIRST', 'STREET')
+            - label: Associated label text (for display)
+            - selector: Reliable CSS selector to use with sap_fill_form
+            - alternative_selectors: Other valid selectors (fallbacks)
+            - type: Input type (text, checkbox, etc.)
             - value: Current value (if any)
         """
         browser_manager = await get_browser_manager()
