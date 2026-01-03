@@ -20,6 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "fastmcp>=2.14.0,<3.0.0",  # Standalone FastMCP v2.14+, replaces mcp[cli]
+    "httpx>=0.27.0",  # HTTP client for GitHub API (feedback issue handler)
     "playwright>=1.40.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
@@ -34,6 +35,7 @@ tests = [
     "python-dotenv>=1.0.0",
     "beautifulsoup4==4.14.3",  # HTML parsing for selector unit tests
     "lxml==6.0.2",  # Fallback parser for Python 3.13+ (html.parser has stricter nesting rules)
+    "respx==0.22.0",  # Mock httpx requests in tests
 ]
 linting = [
     "pylint==4.0.4",

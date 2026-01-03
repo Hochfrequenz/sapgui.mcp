@@ -6,7 +6,6 @@ Tools are organized in separate modules under sapwebguimcp.tools.
 """
 
 import logging
-import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -17,9 +16,11 @@ from fastmcp.server.middleware.logging import LoggingMiddleware
 from sapwebguimcp.loghandlers import IntentFileHandler
 from sapwebguimcp.middleware import ToolCallLoggingMiddleware
 from sapwebguimcp.models import close_browser_manager
-from sapwebguimcp.resources import register_intent_resources
+from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.resources import register_feedback_resources, register_intent_resources
 from sapwebguimcp.tools import (
     register_browser_tools,
+    register_feedback_tools,
     register_intent_tools,
     register_sap_tools,
 )
@@ -33,12 +34,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Get settings for handler configuration
+_settings = get_settings()
+
 # Configure intent file handler if AUDIT_LOG_DIR is set
-_audit_log_dir = os.environ.get("AUDIT_LOG_DIR", "").strip()
-if _audit_log_dir:
-    _intent_handler = IntentFileHandler(Path(_audit_log_dir))
+if _settings.audit_log_dir:
+    _intent_handler = IntentFileHandler(Path(_settings.audit_log_dir))
     logging.getLogger().addHandler(_intent_handler)
-    logger.info("Intent audit logging enabled: %s", _audit_log_dir)
+    logger.info("Intent audit logging enabled: %s", _settings.audit_log_dir)
+
+# Note: GitHub issue creation is handled directly in log_feedback tool (async)
 
 
 @asynccontextmanager
@@ -78,9 +83,11 @@ mcp.add_middleware(LoggingMiddleware(include_payloads=True, max_payload_length=1
 register_sap_tools(mcp)
 register_browser_tools(mcp)
 register_intent_tools(mcp)
+register_feedback_tools(mcp)
 
 # Register resources
 register_intent_resources(mcp)
+register_feedback_resources(mcp)
 
 
 def main() -> None:
