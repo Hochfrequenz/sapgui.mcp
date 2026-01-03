@@ -674,6 +674,90 @@ class TestTableContentExtraction:
         )
 
 
+class TestAlvGridDetection:
+    """Tests for ALV grid detection and cell selector generation.
+
+    These tests verify that our JavaScript extraction logic correctly:
+    1. Detects ALV grids (table[ct="STCS"])
+    2. Finds cell elements with grid# pattern IDs
+    3. Identifies hotspot cells (UNDERLINE_HOTSPOT in lsdata)
+    4. Generates correctly escaped CSS selectors
+    """
+
+    def test_emmacl_results_has_alv_table(self, html_snapshots_path: Path) -> None:
+        """Verify EMMACL results contain an ALV grid table."""
+        snapshot = get_snapshot_path(html_snapshots_path, "emmacl_results_no_filter")
+        if snapshot is None:
+            pytest.skip("emmacl_results_no_filter snapshot not available")
+
+        # Read raw HTML since BeautifulSoup may alter attributes
+        html_content = snapshot.read_text(encoding="utf-8")
+
+        # ALV grids have ct="STCS" attribute (escaped in the HTML snapshot)
+        has_stcs = 'ct=\\"STCS\\"' in html_content or 'ct="STCS"' in html_content
+
+        assert has_stcs, (
+            "EMMACL results should contain at least one ALV grid table. " "ALV tables have ct='STCS' attribute."
+        )
+
+        # Verify the table has an ID (look for id="C followed by digits)
+        import re
+
+        table_ids = re.findall(r'id=\\"(C\d+)\\"', html_content)
+        assert len(table_ids) >= 1, "ALV table should have an ID attribute (e.g., C120)"
+
+    def test_emmacl_results_has_grid_cell_ids(self, html_snapshots_path: Path) -> None:
+        """Verify EMMACL results contain grid# pattern cell IDs."""
+        snapshot = get_snapshot_path(html_snapshots_path, "emmacl_results_no_filter")
+        if snapshot is None:
+            pytest.skip("emmacl_results_no_filter snapshot not available")
+
+        # Read raw HTML since BeautifulSoup may alter escaped content
+        html_content = snapshot.read_text(encoding="utf-8")
+
+        # Look for grid# pattern IDs
+        import re
+
+        grid_ids = re.findall(r'id=\\"(grid#[^\\"]+)\\"', html_content)
+
+        assert len(grid_ids) >= 1, (
+            "EMMACL results should contain grid# pattern cell IDs. " "Pattern: grid#<table_id>#<row>,<col>"
+        )
+
+    def test_emmacl_results_has_hotspot_cells(self, html_snapshots_path: Path) -> None:
+        """Verify EMMACL results contain hotspot cells (navigable links)."""
+        snapshot = get_snapshot_path(html_snapshots_path, "emmacl_results_no_filter")
+        if snapshot is None:
+            pytest.skip("emmacl_results_no_filter snapshot not available")
+
+        html_content = snapshot.read_text(encoding="utf-8")
+
+        # Hotspot cells have UNDERLINE_HOTSPOT in lsdata
+        hotspot_count = html_content.count("UNDERLINE_HOTSPOT")
+
+        assert hotspot_count >= 1, (
+            "EMMACL results should contain at least one hotspot cell. "
+            "Hotspots have 'UNDERLINE_HOTSPOT' in their lsdata attribute."
+        )
+
+    def test_emmacl_results_has_clickable_case_column(self, html_snapshots_path: Path) -> None:
+        """Verify EMMACL results have a clickable 'Fall' (case) column."""
+        snapshot = get_snapshot_path(html_snapshots_path, "emmacl_results_no_filter")
+        if snapshot is None:
+            pytest.skip("emmacl_results_no_filter snapshot not available")
+
+        html_content = snapshot.read_text(encoding="utf-8")
+
+        # The "Fall" column should exist and have hotspot cells
+        # Look for elements with both "Fall" text nearby and hotspot attribute
+        has_fall_column = "Fall" in html_content or "Case" in html_content
+        has_hotspots = "UNDERLINE_HOTSPOT" in html_content
+
+        assert has_fall_column and has_hotspots, (
+            "EMMACL results should have a clickable 'Fall' (case) column " "with hotspot cells for navigation."
+        )
+
+
 class TestCssSelectorEscaping:
     """Tests for CSS selector escaping utility.
 
@@ -690,6 +774,11 @@ class TestCssSelectorEscaping:
             pytest.param(".some-class:hover", ".some-class:hover", id="class_selector"),
             pytest.param("[data-id='test:value']", "[data-id='test:value']", id="attribute_selector"),
             pytest.param("", "", id="empty_string"),
+            # ALV grid cell selectors with # and , characters
+            pytest.param("#grid#C120#1,2#if", r"#grid\#C120\#1\,2\#if", id="alv_cell_hotspot"),
+            pytest.param("#grid#C120#0,0", r"#grid\#C120\#0\,0", id="alv_header_cell"),
+            pytest.param("#grid#C120#1,2#if-r", r"#grid\#C120\#1\,2\#if-r", id="alv_cell_wrapper"),
+            pytest.param("#C120-mrss-cont-left-Row-0", r"#C120-mrss-cont-left-Row-0", id="alv_row_no_special"),
         ],
     )
     def test_escape_css_selector(self, selector: str, expected: str) -> None:

@@ -1511,6 +1511,193 @@ async def test_emmacl_execute_with_filter(sap_mcp_client: ClientSession) -> None
 
 
 @pytest.mark.anyio
+async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None:
+    """
+    Test clicking on an ALV grid cell in EMMACL to navigate to detail view.
+
+    This test verifies the full ALV grid click workflow:
+    1. Opens EMMACL transaction
+    2. Presses F8 to execute (shows ALV grid with results)
+    3. Reads table with sap_read_table (should get ALV metadata + cell selectors)
+    4. Clicks on a case number (hotspot cell) using sap_click_table_cell
+    5. Verifies navigation to the detail screen
+
+    This is a critical test for the ALV grid click support feature.
+    The test MUST succeed with an actual click + navigation for the feature to work.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Step 1: Open EMMACL transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    assert_tool_success(result, "sap_transaction EMMACL")
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Step 2: Execute without filters (F8) to get the results table
+    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    assert_tool_success(kb_result, "sap_keyboard F8")
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Step 3: Read the table - should get ALV metadata with cell selectors
+    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 10})
+    table_data = assert_tool_success(table_result, "sap_read_table")
+
+    print(f"\nTable data structure:")
+    print(f"  Headers: {table_data.get('headers', [])}")
+    print(f"  Total rows: {table_data.get('total_rows', 0)}")
+    print(f"  ALV metadata: {table_data.get('alv', 'NOT PRESENT')}")
+
+    # Verify we have ALV metadata (proves ALV grid detection worked)
+    assert "alv" in table_data, (
+        "sap_read_table should return ALV metadata for EMMACL results. " f"Got: {list(table_data.keys())}"
+    )
+
+    alv_meta = table_data.get("alv", {})
+    assert alv_meta.get("table_id"), f"ALV metadata should have table_id: {alv_meta}"
+
+    # Verify we have at least one row
+    rows = table_data.get("rows", [])
+    assert len(rows) >= 1, f"Expected at least one row in EMMACL results: {table_data}"
+
+    # Verify first row has cell metadata with selectors
+    first_row = rows[0]
+    cells = first_row.get("cells", {})
+    print(f"  First row cells metadata: {cells}")
+
+    assert cells, "First row should have cells metadata with click selectors. " f"Got row: {first_row}"
+
+    # Find a hotspot cell (one that can be clicked to navigate)
+    hotspot_cell = None
+    hotspot_column = None
+    for col_name, cell_info in cells.items():
+        if cell_info.get("hotspot"):
+            hotspot_cell = cell_info
+            hotspot_column = col_name
+            break
+
+    assert hotspot_cell, (
+        "EMMACL results should have at least one hotspot cell (e.g., 'Fall' column). " f"Cells: {cells}"
+    )
+
+    print(f"\n  Found hotspot in column '{hotspot_column}': {hotspot_cell}")
+
+    # Get the page title before clicking
+    screen_info_before = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+    info_before = parse_tool_response(screen_info_before)
+    title_before = info_before.get("title", "")
+    print(f"  Title before click: {title_before}")
+
+    # Step 4: Click on the hotspot cell using sap_click_table_cell
+    # This should navigate to the detail view
+    click_result = await sap_mcp_client.call_tool(
+        "sap_click_table_cell",
+        {"row": first_row.get("row", 1), "column": hotspot_column},
+    )
+    click_data = assert_tool_success(click_result, "sap_click_table_cell")
+
+    print(f"\n  Click result:")
+    print(f"    Selector used: {click_data.get('selector_used')}")
+    print(f"    Was hotspot: {click_data.get('was_hotspot')}")
+    print(f"    Page title after: {click_data.get('page_title')}")
+
+    # Verify the click was on a hotspot
+    assert click_data.get("was_hotspot"), f"Click should have been on a hotspot cell. Result: {click_data}"
+
+    # Step 5: Verify navigation happened (title should change)
+    title_after = click_data.get("page_title", "")
+
+    # The title should change to show the detail view
+    # German: "Klärungsfall XXXXXXXXX anzeigen" (Show case XXXXXXXXX)
+    # English: "Display Case XXXXXXXXX"
+    assert title_before != title_after, (
+        f"Page title should change after clicking hotspot cell. " f"Before: '{title_before}', After: '{title_after}'"
+    )
+
+    # Verify we're on a detail screen (not still on the list)
+    detail_indicators = ["anzeigen", "display", "case", "fall", "klärungsfall"]
+    assert any(
+        ind in title_after.lower() for ind in detail_indicators
+    ), f"Should navigate to detail view. Got title: '{title_after}'"
+
+    print(f"\n  SUCCESS: Navigated from '{title_before}' to '{title_after}'")
+
+    # Capture the detail screen HTML for reference
+    await capture_html_snapshot(sap_mcp_client, "emmacl_case_detail")
+
+    # Press F3 to go back to the list
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+
+@pytest.mark.anyio
+async def test_emmacl_alv_click_with_browser_click(sap_mcp_client: ClientSession) -> None:
+    """
+    Test clicking on an ALV grid cell using browser_click with the selector from sap_read_table.
+
+    This is an alternative approach to sap_click_table_cell - using the
+    pre-escaped CSS selector directly with browser_click.
+
+    This test verifies:
+    1. sap_read_table returns properly escaped CSS selectors
+    2. browser_click can use these selectors directly
+    3. Navigation works when clicking hotspot cells
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL and get results
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Read table with ALV metadata
+    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 5})
+    table_data = assert_tool_success(table_result, "sap_read_table")
+
+    rows = table_data.get("rows", [])
+    assert len(rows) >= 1, "Expected at least one row"
+
+    # Find a hotspot cell selector
+    first_row = rows[0]
+    cells = first_row.get("cells", {})
+
+    hotspot_selector = None
+    for col_name, cell_info in cells.items():
+        if cell_info.get("hotspot"):
+            hotspot_selector = cell_info.get("selector")
+            print(f"Found hotspot selector for '{col_name}': {hotspot_selector}")
+            break
+
+    assert hotspot_selector, "Expected a hotspot cell with selector"
+
+    # Get title before click
+    screen_info = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+    title_before = parse_tool_response(screen_info).get("title", "")
+
+    # Use browser_click with the selector directly
+    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": hotspot_selector})
+    click_data = assert_tool_success(click_result, "browser_click with ALV selector")
+
+    # Wait for navigation
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Verify navigation
+    screen_info_after = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+    title_after = parse_tool_response(screen_info_after).get("title", "")
+
+    print(f"Title before: {title_before}")
+    print(f"Title after: {title_after}")
+
+    assert title_before != title_after, (
+        f"Page title should change after clicking hotspot. " f"Before: '{title_before}', After: '{title_after}'"
+    )
+
+    # Go back
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
+
+
+@pytest.mark.anyio
 async def test_intent_logging_with_bp_transaction(
     sap_mcp_client: ClientSession,
     caplog: pytest.LogCaptureFixture,

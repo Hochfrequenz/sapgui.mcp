@@ -61,10 +61,11 @@ def _escape_css_selector(selector: str) -> str:
     # If it's an ID selector (starts with #), escape special chars in the ID part
     if selector.startswith("#"):
         id_part = selector[1:]
-        # Escape CSS special characters: : [ ] . (but not at start)
+        # Escape CSS special characters: : [ ] # ,
+        # SAP ALV grids use IDs like "grid#C120#1,2#if" which need # and , escaped
         escaped_id = ""
         for char in id_part:
-            if char in r":[]":
+            if char in r":[]#,":
                 escaped_id += f"\\{char}"
             else:
                 escaped_id += char
