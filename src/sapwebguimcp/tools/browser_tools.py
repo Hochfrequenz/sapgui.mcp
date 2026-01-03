@@ -141,10 +141,18 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             logger.exception("Error clicking element")
             return ClickResult.failure(f"Error clicking {selector}: {e}", selector=selector)
 
-    @mcp.tool(description="Fill an input field by CSS selector")
+    @mcp.tool(
+        description=(
+            "Fill a single input field by CSS selector. "
+            "For filling multiple fields on the same screen, use sap_fill_form instead - it's much faster."
+        )
+    )
     async def browser_fill(selector: str, value: str) -> FillResult:
         """
         Fill an input field by CSS selector.
+
+        For filling multiple fields on the same SAP screen, use sap_fill_form
+        instead - it fills all fields in a single call, which is much faster.
 
         Args:
             selector: CSS selector for the input element
@@ -163,10 +171,19 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             logger.exception("Error filling element")
             return FillResult.failure(f"Error filling {selector}: {e}", selector=selector, value=value)
 
-    @mcp.tool(description="Send keyboard input")
+    @mcp.tool(
+        description=(
+            "Send keyboard input (key press or text typing). "
+            "For filling multiple form fields, use sap_fill_form instead - "
+            "it's much faster than repeated focus+type calls."
+        )
+    )
     async def browser_keyboard(key: Optional[str] = None, text: Optional[str] = None) -> BrowserKeyboardResult:
         """
         Send keyboard input.
+
+        For filling multiple form fields on the same screen, use sap_fill_form
+        instead - it's much faster than repeated focus+type calls.
 
         Args:
             key: Key to press (e.g., 'Enter', 'Tab', 'F3', 'Control+s')

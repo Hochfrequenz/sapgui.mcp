@@ -80,33 +80,48 @@ sap_get_screen_text()  # Look for "Gruppierung" / "Grouping"
 # Select appropriate grouping from dropdown
 ```
 
-### Step 4: Enter General Data (Person)
+### Step 4: Enter General Data and Address
+
+There are two ways to fill the form fields:
+
+#### Option A: Batch Fill (Recommended - Much Faster)
+
+Use `sap_fill_form` to fill all fields in a single call. This is ~10x faster
+than filling fields one by one because it executes everything in one browser round-trip.
 
 ```
-sap_get_screen_text()  # Identify field positions
-
-# Fill fields - use adaptive matching:
-# Find "Anrede" or "Title" label, fill adjacent field
-sap_fill(field_near_label="Anrede", value="Herr")
-sap_fill(field_near_label="Vorname", value="Max")
-sap_fill(field_near_label="Nachname", value="Mustermann")
+# Fill person fields using CSS selectors that target SAP field IDs
+sap_fill_form({
+    "input[lsdata*='NAME_FIRST']": "Max",
+    "input[lsdata*='NAME_LAST']": "Mustermann",
+    "input[lsdata*='STREET']": "Hauptstraße",
+    "input[lsdata*='HOUSE_NUM1']": "123",
+    "input[lsdata*='POST_CODE1']": "12345",
+    "input[lsdata*='CITY1']": "Berlin"
+})
 ```
 
-### Step 5: Enter Address Data
+Keys can be:
 
-Navigate to address section/tab if needed.
+- CSS selectors using lsdata attribute (reliable, works across systems)
+- Example patterns: `input[lsdata*='NAME_FIRST']`, `input[lsdata*='STREET']`
+
+#### Option B: One-by-One Fill (Slower, More Control)
+
+Fill fields individually when you need to wait between fields or handle
+dynamic field behavior:
 
 ```
-sap_get_screen_text()  # Look for "Adresse" / "Address" tab or section
-
-sap_fill(field_near_label="Straße", value="Hauptstraße")
-sap_fill(field_near_label="Hausnummer", value="123")
-sap_fill(field_near_label="PLZ", value="12345")
-sap_fill(field_near_label="Ort", value="Berlin")
-sap_fill(field_near_label="Land", value="DE")
+# Use sap_set_field for single fields (returns matched selector for debugging)
+sap_set_field(label="input[lsdata*='NAME_FIRST']", value="Max")
+sap_set_field(label="input[lsdata*='NAME_LAST']", value="Mustermann")
+# ... etc
 ```
 
-### Step 6: Add Business Partner Role (for IS-U)
+This approach is slower but gives more control when fields have
+dependencies or trigger UI updates. It also returns the matched selector.
+
+### Step 5: Add Business Partner Role (for IS-U)
 
 For utilities, add appropriate roles:
 
@@ -117,7 +132,7 @@ sap_get_screen_text()  # Look for role section
 # Role codes vary by configuration
 ```
 
-### Step 7: Save
+### Step 6: Save
 
 ```
 sap_keyboard("Control+S")
@@ -126,6 +141,17 @@ sap_read_status_bar()  # Should show "Geschäftspartner XXXXXXXXXX angelegt"
 ```
 
 Capture the BP number from the status message.
+
+### Step 7: Start Over
+
+If you want to create another business partner, simply start again with step 1
+
+```
+sap_transaction("BP")
+```
+
+Do NOT try to navigate back after the success message appeared - the UI is broken.
+Just focus the OK_CODE transaction field and start over by starting the transaction.
 
 ## Error Handling
 

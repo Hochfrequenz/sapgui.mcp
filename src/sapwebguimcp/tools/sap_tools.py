@@ -28,14 +28,17 @@ from fastmcp import FastMCP
 from sapwebguimcp.models import (
     BrowserManager,
     DiscoveredFields,
+    FieldFillError,
     FieldInfo,
     FieldLookupResult,
+    FillFormResult,
     KeepaliveResult,
     KeyboardResult,
     LoginResult,
     ScreenInfo,
     ScreenText,
     SessionStatus,
+    SetFieldResult,
     StatusBarInfo,
     TableData,
     TransactionResult,
@@ -808,6 +811,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Read the current message from SAP's status bar.
 
         SAP displays success, error, warning, and info messages in the status bar.
+        Whenever you're stuck, maybe check the status bar for hints what to do.
         This tool extracts that message for programmatic checking.
 
         Returns:
@@ -952,9 +956,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 FieldInfo(
                     id=f.get("id"),
                     name=f.get("name"),
+                    field_id=f.get("fieldId"),
                     label=f.get("label"),
                     type=f.get("type"),
                     selector=f.get("selector", ""),
+                    alternative_selectors=f.get("alternativeSelectors", []),
                     value=f.get("value"),
                 )
                 for f in fields_data
@@ -968,3 +974,129 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error discovering fields")
             return DiscoveredFields.failure(f"Error discovering fields: {e}", field_count=0)
+
+    @mcp.tool(
+        description=(
+            "Fill multiple SAP form fields in a single call. "
+            "Use this when filling 2+ fields on the SAME screen without UI navigation between them. "
+            "Much faster than multiple browser_fill/browser_keyboard calls.\n\n"
+            "Keys can be:\n"
+            "- Visible label text (e.g., 'First Name', 'Straße')\n"
+            "- CSS selectors starting with '#' (e.g., '#M0:46:1:1::0:21')\n\n"
+            "When to use:\n"
+            "- Filling a form with multiple input fields\n"
+            "- All fields visible on current screen\n"
+            "- No button clicks or navigation needed between fields\n\n"
+            "When NOT to use:\n"
+            "- Single field only (use browser_fill)\n"
+            "- Fields on different screens/tabs\n"
+            "- Need to click buttons between fills"
+        )
+    )
+    async def sap_fill_form(fields: dict[str, str], strict: bool = False) -> FillFormResult:
+        """
+        Fill multiple SAP form fields in a single call.
+
+        This is much faster than filling fields one by one, as it executes
+        all fills in a single browser round-trip.
+
+        Args:
+            fields: Dictionary mapping field identifiers to values.
+                    Keys can be visible label text (e.g., 'First Name')
+                    or CSS selectors (e.g., '#M0:46:1:1::0:21').
+            strict: If True, fail if any field is not found.
+                    If False, skip missing fields and report them.
+
+        Returns:
+            FillFormResult with lists of filled, not_found, and errored fields.
+        """
+        if not fields:
+            return FillFormResult.failure("fields cannot be empty")
+
+        browser_manager = await get_browser_manager()
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Execute JavaScript to fill all fields
+            result = await page.evaluate(
+                _load_js("fill_form_fields.js"),
+                {"fields": fields},
+            )
+
+            filled = result.get("filled", [])
+            not_found = result.get("notFound", [])
+            errors = [FieldFillError(field=e["field"], error=e["error"]) for e in result.get("errors", [])]
+
+            # In strict mode, fail if any field was not found
+            if strict and not_found:
+                return FillFormResult.failure(
+                    f"Fields not found: {', '.join(not_found)}",
+                    filled=filled,
+                    not_found=not_found,
+                    errors=errors,
+                )
+
+            return FillFormResult(filled=filled, not_found=not_found, errors=errors)
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error filling form fields")
+            return FillFormResult.failure(f"Error filling form fields: {e}")
+
+    @mcp.tool(
+        description=(
+            "Set a single SAP form field by label or CSS selector. "
+            "Finds the field dynamically and fills it with the given value.\n\n"
+            "The label parameter can be:\n"
+            "- Visible label text (e.g., 'Last Name', 'Nachname')\n"
+            "- CSS selector (e.g., '#M0:46:1:1::0:21', '[lsdata*=\"NAME_LAST\"]')\n\n"
+            "This is simpler than sap_fill_form for single fields, and returns "
+            "the CSS selector that was matched (useful for debugging)."
+        )
+    )
+    async def sap_set_field(label: str, value: str) -> SetFieldResult:
+        """
+        Set a single SAP form field by label or CSS selector.
+
+        This tool finds the field dynamically using label text or CSS selector,
+        and returns information about what was matched. Useful for:
+        - Single field updates
+        - Debugging field discovery (returns the matched selector)
+
+        Args:
+            label: Field label text (e.g., 'Last Name') or CSS selector
+            value: Value to set in the field
+
+        Returns:
+            SetFieldResult with label, value, and the CSS selector that was used.
+        """
+        if not label:
+            return SetFieldResult.failure("label cannot be empty", label="", value=value)
+
+        browser_manager = await get_browser_manager()
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Execute JavaScript to set the field
+            result = await page.evaluate(
+                _load_js("set_field.js"),
+                {"label": label, "value": value},
+            )
+
+            if not result.get("success", False):
+                return SetFieldResult.failure(
+                    result.get("error", "Unknown error"),
+                    label=label,
+                    value=value,
+                )
+
+            return SetFieldResult(
+                label=label,
+                value=value,
+                selector_used=result.get("selectorUsed"),
+            )
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error setting field")
+            return SetFieldResult.failure(f"Error setting field: {e}", label=label, value=value)

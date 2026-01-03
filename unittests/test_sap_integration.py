@@ -220,6 +220,8 @@ _TRANSACTION_WAIT_SELECTORS: dict[str, str] = {
     "SE93": "input[lsdata*='TSTC-TCODE']",  # Transaction code input field
     "SM37": "input[lsdata*='JOBNAME']",  # Job name input field
     "SU3": "[lsdata*='SUID_ST_NODE']",  # User profile (SU3) fields - SUID_ST_NODE_PERSON_NAME etc.
+    "BP": "span:has-text('Person'), span:has-text('Organisation')",  # BP category buttons
+    "EMMACL": "input[type='text']",  # EMMACL has many input fields
 }
 
 
@@ -1117,3 +1119,392 @@ async def test_browser_reconnect_multiple_times(sap_mcp_client: ClientSession) -
         status = await sap_mcp_client.call_tool("sap_session_status", {})
         status_data = parse_tool_response(status)
         assert status_data.get("success", True), f"Expected valid status after transaction {i+1}: {status_data}"
+
+
+# =============================================================================
+# Tests for sap_fill_form (batch form filling)
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_bp_fill_form_batch_fill(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_fill_form batch filling in BP (Business Partner) transaction.
+
+    This test verifies that sap_fill_form can fill multiple form fields
+    in a single call, which is much faster than individual browser_fill calls.
+
+    The test:
+    1. Opens BP transaction
+    2. Captures HTML snapshot of initial screen (shows Person/Organisation buttons)
+    3. Clicks "Person" button to create a new person BP
+    4. Captures HTML snapshot of person form
+    5. Uses sap_fill_form to batch fill name and address fields
+    6. Verifies all fields were reported as filled
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Step 1: Open BP transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    assert_tool_success(result, "sap_transaction BP")
+
+    # Wait for BP initial screen (has Person/Organisation buttons)
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Capture HTML snapshot of BP initial screen
+    await capture_html_snapshot(sap_mcp_client, "bp_initial")
+
+    # Step 2: Click on "Person" button to create a new person
+    # The button text depends on language (Person in both DE and EN)
+    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "span:has-text('Person')"})
+    click_data = parse_tool_response(click_result)
+    assert click_data.get("success", True), f"Failed to click Person button: {click_data}"
+
+    # Wait for form to load - look for typical BP person form fields
+    # Use a short wait for the form to render
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Capture HTML snapshot after clicking Person (shows the form fields)
+    await capture_html_snapshot(sap_mcp_client, "bp_person_form")
+
+    # Step 3: Use sap_fill_form to batch fill multiple fields
+    # Field labels depend on language setting
+    if sap_language == "DE":
+        fields_to_fill = {
+            "Vorname": "Max",
+            "Nachname": "Mustermann",
+        }
+    else:
+        fields_to_fill = {
+            "First Name": "Max",
+            "Last Name": "Mustermann",
+        }
+
+    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": fields_to_fill})
+    fill_data = assert_tool_success(fill_result, "sap_fill_form")
+
+    # Verify ALL fields were filled successfully
+    filled_fields = set(fill_data.get("filled", []))
+    not_found_fields = fill_data.get("not_found", [])
+    error_fields = fill_data.get("errors", [])
+    expected_fields = set(fields_to_fill.keys())
+
+    # No fields should be missing or have errors
+    assert len(not_found_fields) == 0, (
+        f"All fields must be found. Not found: {not_found_fields}. "
+        f"Check if labels match SAP_LANGUAGE={sap_language} setting."
+    )
+    assert len(error_fields) == 0, f"All fields must fill without errors. Errors: {error_fields}"
+
+    # All requested fields must be in the filled list
+    assert (
+        filled_fields == expected_fields
+    ), f"All fields must be filled. Expected: {expected_fields}, Filled: {filled_fields}"
+
+
+@pytest.mark.anyio
+async def test_bp_fill_form_with_css_selectors(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_fill_form using CSS selectors instead of labels.
+
+    This test verifies that sap_fill_form can fill fields using direct
+    CSS selectors (e.g., [attribute*='value'] selectors) that match SAP lsdata attributes.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open BP transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    assert_tool_success(result, "sap_transaction BP")
+
+    # Wait for BP initial screen
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Click on "Person" button
+    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "span:has-text('Person')"})
+    click_data = parse_tool_response(click_result)
+    assert click_data.get("success", True), f"Failed to click Person button: {click_data}"
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Use CSS selectors that match SAP lsdata attributes for BP person form
+    # These selectors target the actual SAP field IDs embedded in lsdata
+    # Based on actual BP form HTML snapshots (bp_person_form_de.html)
+    fields_to_fill = {
+        "input[lsdata*='NAME_FIRST']": "Max",
+        "input[lsdata*='NAME_LAST']": "Mustermann",
+        "input[lsdata*='STREET']": "Hauptstraße",
+        "input[lsdata*='HOUSE_NUM1']": "123",
+        "input[lsdata*='POST_CODE1']": "12345",
+        "input[lsdata*='CITY1']": "Berlin",
+    }
+
+    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": fields_to_fill})
+    fill_data = assert_tool_success(fill_result, "sap_fill_form with CSS selectors")
+
+    # Verify ALL fields were filled successfully
+    filled_fields = set(fill_data.get("filled", []))
+    not_found_fields = fill_data.get("not_found", [])
+    error_fields = fill_data.get("errors", [])
+    expected_fields = set(fields_to_fill.keys())
+
+    # No fields should be missing or have errors
+    assert len(not_found_fields) == 0, (
+        f"All CSS selector fields must be found. Not found: {not_found_fields}. "
+        f"Selectors may need adjustment based on actual BP form HTML."
+    )
+    assert len(error_fields) == 0, f"All fields must fill without errors. Errors: {error_fields}"
+
+    # All requested fields must be in the filled list
+    assert (
+        filled_fields == expected_fields
+    ), f"All fields must be filled. Expected: {expected_fields}, Filled: {filled_fields}"
+
+
+@pytest.mark.anyio
+async def test_sap_fill_form_strict_mode(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_fill_form strict mode - should fail if any field is not found.
+
+    In strict mode (strict=True), the tool should return success=False
+    if any field cannot be found or filled.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open a simple transaction
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+
+    # Try to fill with an invalid field label in strict mode
+    fill_result = await sap_mcp_client.call_tool(
+        "sap_fill_form",
+        {
+            "fields": {
+                "NONEXISTENT_FIELD_12345": "test value",
+            },
+            "strict": True,
+        },
+    )
+    fill_data = parse_tool_response(fill_result)
+
+    # Strict mode should report failure when field not found
+    assert not fill_data.get("success", True), f"Strict mode should fail when field not found. Response: {fill_data}"
+    assert "NONEXISTENT_FIELD_12345" in fill_data.get(
+        "not_found", []
+    ), f"Field should be in not_found list: {fill_data}"
+
+
+# =============================================================================
+# Tests for EMMACL transaction (field discovery and batch fill)
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_emmacl_discover_fields(sap_mcp_client: ClientSession) -> None:
+    """
+    Test field discovery in EMMACL transaction.
+
+    EMMACL is an energy market clearing transaction with many input fields,
+    making it ideal for testing field discovery and batch fill capabilities.
+
+    This test:
+    1. Opens EMMACL transaction
+    2. Captures HTML snapshot
+    3. Uses sap_discover_fields to find all fields
+    4. Verifies fields are discovered with proper structure
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    assert_tool_success(result, "sap_transaction EMMACL")
+
+    # Wait for the screen to load
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture HTML snapshot of EMMACL initial screen
+    await capture_html_snapshot(sap_mcp_client, "emmacl_initial")
+
+    # Discover all fields on the screen
+    discover_result = await sap_mcp_client.call_tool("sap_discover_fields", {})
+    discover_data = assert_tool_success(discover_result, "sap_discover_fields")
+
+    # Verify we found some fields
+    field_count = discover_data.get("field_count", 0)
+    fields = discover_data.get("fields", [])
+
+    assert field_count > 0, f"EMMACL should have input fields. Got: {discover_data}"
+    assert len(fields) > 0, f"Fields list should not be empty. Got: {discover_data}"
+
+    # Print discovered fields for debugging (visible in test output)
+    print(f"\nDiscovered {field_count} fields in EMMACL:")
+    for field in fields[:20]:  # Show first 20
+        print(f"  - {field.get('label', 'no-label')}: {field.get('selector', 'no-selector')}")
+
+
+@pytest.mark.anyio
+async def test_emmacl_fill_form_with_discovered_fields(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_fill_form in EMMACL using discovered field selectors.
+
+    This test:
+    1. Opens EMMACL transaction
+    2. Discovers fields using sap_discover_fields
+    3. Uses sap_fill_form to fill some of the discovered fields
+    4. Verifies all specified fields were filled
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    assert_tool_success(result, "sap_transaction EMMACL")
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # First discover fields to find valid selectors
+    discover_result = await sap_mcp_client.call_tool("sap_discover_fields", {})
+    discover_data = assert_tool_success(discover_result, "sap_discover_fields")
+
+    fields = discover_data.get("fields", [])
+
+    # Find text input fields (not readonly, not checkboxes)
+    fillable_fields = [f for f in fields if f.get("type") in ("text", None) and f.get("selector")]
+
+    if len(fillable_fields) < 2:
+        pytest.skip("Not enough fillable fields found in EMMACL")
+
+    # Pick first 2 fillable fields and try to fill them
+    fields_to_fill = {}
+    for i, field in enumerate(fillable_fields[:2]):
+        selector = field.get("selector")
+        if selector:
+            fields_to_fill[selector] = f"TEST{i}"
+
+    print(f"\nTrying to fill {len(fields_to_fill)} fields: {list(fields_to_fill.keys())}")
+
+    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": fields_to_fill})
+    fill_data = parse_tool_response(fill_result)
+
+    # Log results
+    print(f"Filled: {fill_data.get('filled', [])}")
+    print(f"Not found: {fill_data.get('not_found', [])}")
+    print(f"Errors: {fill_data.get('errors', [])}")
+
+    # At least some fields should have been filled
+    filled = fill_data.get("filled", [])
+    assert len(filled) > 0, f"Expected at least one field to be filled. Result: {fill_data}"
+
+
+@pytest.mark.anyio
+async def test_emmacl_execute_without_filter(sap_mcp_client: ClientSession) -> None:
+    """
+    Test executing EMMACL without any filter (F8 on initial screen).
+
+    This test:
+    1. Opens EMMACL transaction
+    2. Presses F8 to execute without filters
+    3. Captures result table
+    4. Saves HTML snapshot of results
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    assert_tool_success(result, "sap_transaction EMMACL")
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Execute without any filters (F8)
+    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    assert_tool_success(kb_result, "sap_keyboard F8")
+
+    # Wait for results to load
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture HTML snapshot of results
+    await capture_html_snapshot(sap_mcp_client, "emmacl_results_no_filter")
+
+    # Read result table
+    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 20})
+    table_data = parse_tool_response(table_result)
+
+    # Print results for debugging
+    print(f"\nEMMACL results without filter:")
+    print(f"Headers: {table_data.get('headers', [])}")
+    print(f"Total rows: {table_data.get('total_rows', 0)}")
+    for row in table_data.get("rows", [])[:5]:
+        print(f"  Row {row.get('row')}: {row.get('data')}")
+
+    # Verify we got some results (or at least the table was read)
+    assert table_data.get("success", True), f"Table read failed: {table_data}"
+
+
+@pytest.mark.anyio
+async def test_emmacl_execute_with_filter(sap_mcp_client: ClientSession) -> None:
+    """
+    Test executing EMMACL with filter fields.
+
+    This test:
+    1. Opens EMMACL transaction
+    2. Fills a filter field (Business Process Code)
+    3. Presses F8 to execute
+    4. Verifies the search was executed (got results or "no data" message)
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    assert_tool_success(result, "sap_transaction EMMACL")
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Fill filter field using discovered selector
+    # Using a filter value that likely won't match many rows to test filtering works
+    filter_values = {
+        "input[lsdata*='BPCODE-LOW']": "ZTEST",  # Business Process Code (likely no matches)
+    }
+
+    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": filter_values})
+    fill_data = assert_tool_success(fill_result, "sap_fill_form")
+
+    print(f"\nFilled filter fields: {fill_data.get('filled', [])}")
+
+    # Verify filter field was filled
+    assert len(fill_data.get("filled", [])) == len(
+        filter_values
+    ), f"Expected {len(filter_values)} fields filled, got: {fill_data}"
+
+    # Execute with filter (F8)
+    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    assert_tool_success(kb_result, "sap_keyboard F8")
+
+    # Wait for results to load
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture HTML snapshot of filtered results
+    await capture_html_snapshot(sap_mcp_client, "emmacl_results_filtered")
+
+    # Check status bar for result message (works in DE and EN)
+    status_result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
+    status_data = parse_tool_response(status_result)
+
+    print(f"\nStatus bar after F8: {status_data.get('message', '')}")
+
+    # Also try reading table (may show 0 rows if filter matched nothing)
+    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 5})
+    table_data = parse_tool_response(table_result)
+
+    print(f"Table rows: {table_data.get('total_rows', 0)}")
+
+    # The test passes if:
+    # 1. Filter was filled successfully (already verified above)
+    # 2. F8 was executed (already verified)
+    # 3. We got either results or a "no data" status message
+    status_msg = status_data.get("message", "").lower()
+    total_rows = table_data.get("total_rows", 0)
+
+    # Either we got some rows, or we got a status message about no data
+    assert (
+        total_rows > 0 or "keine" in status_msg or "no " in status_msg or status_msg == ""
+    ), f"Expected either results or 'no data' message. Got rows={total_rows}, status='{status_msg}'"
