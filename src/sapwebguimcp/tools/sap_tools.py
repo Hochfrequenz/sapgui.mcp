@@ -88,7 +88,7 @@ async def _keepalive_loop(browser_manager: BrowserManager, interval: int) -> Non
             # Perform a harmless action - evaluate JS to keep connection alive
             await page.evaluate("() => { /* keepalive ping */ }")
 
-            logger.debug("Keepalive ping sent")
+            logger.info("Keepalive ping sent")
 
         except asyncio.CancelledError:
             logger.info("Keepalive task cancelled")
