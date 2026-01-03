@@ -10,6 +10,7 @@ from sapwebguimcp.models import (
     DiscoveredFields,
     FieldInfo,
     KeepaliveResult,
+    KeyboardResult,
     LoginResult,
     ScreenInfo,
     SessionStatus,
@@ -233,3 +234,82 @@ class TestModelSerialization:
         assert data["id"] == "field1"
         assert data["selector"] == 'input[lsdata*="TABLENAME"]'
         assert data["value"] == "T000"
+
+
+class TestKeyboardResultStatusBarValidation:
+    """Tests for KeyboardResult status bar consistency validation."""
+
+    def test_no_status_bar_read(self) -> None:
+        """Test KeyboardResult with status_bar_read=False (default)."""
+        result = KeyboardResult(key="Enter", page_title="SAP")
+        assert result.status_bar_read is False
+        assert result.status_bar_type is None
+        assert result.status_bar_message is None
+
+    def test_status_bar_read_with_message(self) -> None:
+        """Test KeyboardResult with status bar successfully read."""
+        result = KeyboardResult(
+            key="Ctrl+S",
+            page_title="SAP",
+            status_bar_read=True,
+            status_bar_type="S",
+            status_bar_message="Document saved",
+        )
+        assert result.status_bar_read is True
+        assert result.status_bar_type == "S"
+        assert result.status_bar_message == "Document saved"
+
+    def test_status_bar_read_empty_message(self) -> None:
+        """Test KeyboardResult with status bar read but empty message."""
+        result = KeyboardResult(
+            key="F8",
+            page_title="SAP",
+            status_bar_read=True,
+            status_bar_type="none",
+            status_bar_message="",
+        )
+        assert result.status_bar_read is True
+        assert result.status_bar_type == "none"
+        assert result.status_bar_message == ""
+
+    def test_status_bar_read_missing_message_fails(self) -> None:
+        """Test that status_bar_read=True without message fails."""
+        with pytest.raises(ValidationError, match="status_bar_message must be set"):
+            KeyboardResult(
+                key="F8",
+                page_title="SAP",
+                status_bar_read=True,
+                status_bar_type="S",
+                # status_bar_message is None
+            )
+
+    def test_status_bar_read_missing_type_fails(self) -> None:
+        """Test that status_bar_read=True without type fails."""
+        with pytest.raises(ValidationError, match="status_bar_type must be set"):
+            KeyboardResult(
+                key="F8",
+                page_title="SAP",
+                status_bar_read=True,
+                # status_bar_type is None
+                status_bar_message="Some message",
+            )
+
+    def test_status_bar_not_read_with_message_fails(self) -> None:
+        """Test that status_bar_read=False with message fails."""
+        with pytest.raises(ValidationError, match="status_bar_message must be None"):
+            KeyboardResult(
+                key="Enter",
+                page_title="SAP",
+                status_bar_read=False,
+                status_bar_message="Should not be here",
+            )
+
+    def test_status_bar_not_read_with_type_fails(self) -> None:
+        """Test that status_bar_read=False with type fails."""
+        with pytest.raises(ValidationError, match="status_bar_type must be None"):
+            KeyboardResult(
+                key="Enter",
+                page_title="SAP",
+                status_bar_read=False,
+                status_bar_type="S",
+            )

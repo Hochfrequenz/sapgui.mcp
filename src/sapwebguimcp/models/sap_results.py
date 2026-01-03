@@ -2,9 +2,13 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from sapwebguimcp.models.base import TCode, ToolResult
+
+# Shared type for SAP status bar message types
+StatusBarType = Literal["S", "E", "W", "I", "none"]
+"""Status bar message type: 'S' (success), 'E' (error), 'W' (warning), 'I' (info), 'none' (empty)."""
 
 
 class LoginResult(ToolResult):
@@ -34,10 +38,41 @@ class SessionStatus(ToolResult):
 
 
 class KeyboardResult(ToolResult):
-    """Result from sap_keyboard tool."""
+    """Result from sap_keyboard tool.
+
+    For shortcut keys (F-keys or Ctrl+*), the status bar is automatically read
+    after the keystroke since SAP often displays feedback there.
+    """
 
     key: str = Field(description="Key that was sent")
     page_title: str | None = Field(default=None, description="Current page title after")
+    status_bar_read: bool = Field(
+        default=False,
+        description="Whether status bar was read (only for shortcuts: F-keys, Ctrl+*)",
+    )
+    status_bar_type: StatusBarType | None = Field(
+        default=None,
+        description="Status bar type if read",
+    )
+    status_bar_message: str | None = Field(
+        default=None,
+        description="Status bar text if read. None if not read, empty string if read but empty.",
+    )
+
+    @model_validator(mode="after")
+    def _validate_status_bar_consistency(self) -> "KeyboardResult":
+        """Ensure status_bar_message is set iff status_bar_read is True."""
+        if self.status_bar_read:
+            if self.status_bar_message is None:
+                raise ValueError("status_bar_message must be set when status_bar_read is True")
+            if self.status_bar_type is None:
+                raise ValueError("status_bar_type must be set when status_bar_read is True")
+        else:
+            if self.status_bar_message is not None:
+                raise ValueError("status_bar_message must be None when status_bar_read is False")
+            if self.status_bar_type is not None:
+                raise ValueError("status_bar_type must be None when status_bar_read is False")
+        return self
 
 
 class KeepaliveResult(ToolResult):
@@ -50,7 +85,7 @@ class KeepaliveResult(ToolResult):
 class StatusBarInfo(ToolResult):
     """Result from sap_read_status_bar tool."""
 
-    type: Literal["S", "E", "W", "I", "none"] = Field(
+    type: StatusBarType = Field(
         description="Message type: 'S' (success), 'E' (error), 'W' (warning), 'I' (info), or 'none'"
     )
     message: str = Field(default="", description="Status bar text")
