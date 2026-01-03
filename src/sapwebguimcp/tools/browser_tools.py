@@ -42,6 +42,37 @@ __all__ = ["register_browser_tools"]
 logger = logging.getLogger(__name__)
 
 
+def _escape_css_selector(selector: str) -> str:
+    """
+    Escape special CSS characters in selectors.
+
+    SAP generates IDs like 'M0:48::btn[5]' which contain special CSS characters.
+    This function escapes them so they work as valid CSS selectors.
+
+    Args:
+        selector: CSS selector string
+
+    Returns:
+        Escaped CSS selector
+    """
+    if not selector:
+        return selector
+
+    # If it's an ID selector (starts with #), escape special chars in the ID part
+    if selector.startswith("#"):
+        id_part = selector[1:]
+        # Escape CSS special characters: : [ ] . (but not at start)
+        escaped_id = ""
+        for char in id_part:
+            if char in r":[]":
+                escaped_id += f"\\{char}"
+            else:
+                escaped_id += char
+        return f"#{escaped_id}"
+
+    return selector
+
+
 def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements
     """Register all browser automation tools with the MCP server."""
 
@@ -64,7 +95,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
         try:
             if selector:
-                locator = page.locator(selector)
+                escaped_selector = _escape_css_selector(selector)
+                locator = page.locator(escaped_selector)
                 if await locator.count() > 0:
                     snapshot = await locator.first.aria_snapshot()
                 else:
@@ -144,8 +176,10 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
+        escaped_selector = _escape_css_selector(selector)
+
         try:
-            await page.click(selector)
+            await page.click(escaped_selector)
             await page.wait_for_load_state("networkidle")
             return ClickResult(selector=selector)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -175,8 +209,10 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
+        escaped_selector = _escape_css_selector(selector)
+
         try:
-            await page.fill(selector, value)
+            await page.fill(escaped_selector, value)
             return FillResult(selector=selector, value=value)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error filling element")
@@ -293,7 +329,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
         try:
             if selector:
-                await page.wait_for_selector(selector, timeout=timeout, state=state)
+                escaped_selector = _escape_css_selector(selector)
+                await page.wait_for_selector(escaped_selector, timeout=timeout, state=state)
                 return WaitResult(selector=selector, state=state, timeout=timeout_td)
             await page.wait_for_timeout(timeout)
             return WaitResult(timeout=timeout_td)
@@ -318,7 +355,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
         try:
             if selector:
-                element = await page.query_selector(selector)
+                escaped_selector = _escape_css_selector(selector)
+                element = await page.query_selector(escaped_selector)
                 if element:
                     if outer:
                         html: str = await element.evaluate("el => el.outerHTML")
@@ -352,12 +390,14 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
+        escaped_selector = _escape_css_selector(selector)
+
         try:
             if value:
-                await page.select_option(selector, value=value)
+                await page.select_option(escaped_selector, value=value)
                 return SelectOptionResult(selector=selector, selected_value=value)
             if label:
-                await page.select_option(selector, label=label)
+                await page.select_option(escaped_selector, label=label)
                 return SelectOptionResult(selector=selector, selected_label=label)
             return SelectOptionResult.failure(
                 "Either 'value' or 'label' parameter required",
