@@ -18,7 +18,7 @@ class ToolCall(BaseModel):
             return f"{self.name}()"
 
         formatted_args = []
-        for k, v in self.args.items():
+        for k, v in self.args.items(): # pylint:disable=no-member
             v_str = str(v)
             if len(v_str) > max_arg_len:
                 v_str = v_str[: max_arg_len - 3] + "..."
