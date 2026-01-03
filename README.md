@@ -145,6 +145,8 @@ Add this configuration (replace the SAP values with your own):
                 "--rm",
                 "--network",
                 "sapwebguimcp_default",
+                "-v",
+                "/path/to/audit-logs:/audit-logs",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
@@ -157,6 +159,8 @@ Add this configuration (replace the SAP values with your own):
                 "SAP_PASSWORD=your_password",
                 "-e",
                 "SAP_MANDANT=100",
+                "-e",
+                "AUDIT_LOG_DIR=/audit-logs",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ]
         }
@@ -164,7 +168,7 @@ Add this configuration (replace the SAP values with your own):
 }
 ```
 
-> **Note**: The `--network sapwebguimcp_default` connects the container to the same Docker network as the CDP proxy, allowing it to reach Chrome via `cdp-proxy:9222`.
+> **Note**: The `--network sapwebguimcp_default` connects the container to the same Docker network as the CDP proxy, allowing it to reach Chrome via `cdp-proxy:9222`. The `-v` mounts a host directory for audit logs (replace `/path/to/audit-logs` with your actual path).
 
 ### Step 4: Restart Claude Desktop and start chatting
 
@@ -189,6 +193,8 @@ By default, Claude Desktop asks for confirmation before running MCP tools. To au
                 "--rm",
                 "--network",
                 "sapwebguimcp_default",
+                "-v",
+                "/path/to/audit-logs:/audit-logs",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
@@ -201,6 +207,8 @@ By default, Claude Desktop asks for confirmation before running MCP tools. To au
                 "SAP_PASSWORD=your_password",
                 "-e",
                 "SAP_MANDANT=100",
+                "-e",
+                "AUDIT_LOG_DIR=/audit-logs",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ],
             "alwaysAllow": [
@@ -252,12 +260,14 @@ google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" -
 
 # 2. Run the MCP server with --network host
 docker run --network host -i --rm \
+  -v /path/to/audit-logs:/audit-logs \
   -e BROWSER_MODE=connect \
   -e CDP_URL=http://localhost:9222 \
   -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
   -e SAP_USER=your_username \
   -e SAP_PASSWORD=your_password \
   -e SAP_MANDANT=100 \
+  -e AUDIT_LOG_DIR=/audit-logs \
   ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ```
 
@@ -278,12 +288,14 @@ docker compose up -d cdp-proxy
 # 3. Run the MCP server on the same Docker network as the proxy
 docker run -i --rm \
   --network sapwebguimcp_default \
+  -v /path/to/audit-logs:/audit-logs \
   -e BROWSER_MODE=connect \
   -e CDP_URL=http://cdp-proxy:9222 \
   -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
   -e SAP_USER=your_username \
   -e SAP_PASSWORD=your_password \
   -e SAP_MANDANT=100 \
+  -e AUDIT_LOG_DIR=/audit-logs \
   ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ```
 
@@ -326,6 +338,8 @@ First start Chrome with remote debugging and the CDP proxy (see Quick Start abov
                 "--rm",
                 "--network",
                 "sapwebguimcp_default",
+                "-v",
+                "/path/to/audit-logs:/audit-logs",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
@@ -338,6 +352,8 @@ First start Chrome with remote debugging and the CDP proxy (see Quick Start abov
                 "SAP_PASSWORD=your_password",
                 "-e",
                 "SAP_MANDANT=100",
+                "-e",
+                "AUDIT_LOG_DIR=/audit-logs",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ]
         }
@@ -358,6 +374,8 @@ First start Chrome with remote debugging and the CDP proxy (see Quick Start abov
                 "host",
                 "-i",
                 "--rm",
+                "-v",
+                "/path/to/audit-logs:/audit-logs",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
@@ -370,6 +388,8 @@ First start Chrome with remote debugging and the CDP proxy (see Quick Start abov
                 "SAP_PASSWORD=your_password",
                 "-e",
                 "SAP_MANDANT=100",
+                "-e",
+                "AUDIT_LOG_DIR=/audit-logs",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ]
         }

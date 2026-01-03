@@ -83,4 +83,8 @@ def register_intent_tools(mcp: FastMCP) -> None:
             context_str,
         )
 
-        return IntentLogResult(logged=True, entry_id=entry.entry_id)
+        return IntentLogResult(
+            logged=True,
+            entry_id=entry.entry_id,
+            session_id=session_key,
+        )

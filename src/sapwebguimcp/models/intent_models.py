@@ -28,3 +28,4 @@ class IntentLogResult(ToolResult):
 
     logged: bool = Field(description="Whether the entry was recorded")
     entry_id: str | None = Field(default=None, description="UUID of the entry")
+    session_id: str | None = Field(default=None, description="Session ID for resource access")

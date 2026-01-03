@@ -25,10 +25,13 @@ class IntentFileHandler(logging.Handler):
 
         Args:
             log_dir: Directory to write audit log files to
+
+        Raises:
+            FileNotFoundError: If parent directory does not exist
         """
         super().__init__()
         self.log_dir = log_dir
-        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.log_dir.mkdir(parents=False, exist_ok=True)
         self._session_files: dict[str, Path] = {}
 
     def _get_session_file(self, session_id: str) -> Path:

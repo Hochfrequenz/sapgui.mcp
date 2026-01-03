@@ -1508,3 +1508,109 @@ async def test_emmacl_execute_with_filter(sap_mcp_client: ClientSession) -> None
     assert (
         total_rows > 0 or "keine" in status_msg or "no " in status_msg or status_msg == ""
     ), f"Expected either results or 'no data' message. Got rows={total_rows}, status='{status_msg}'"
+
+
+@pytest.mark.anyio
+async def test_intent_logging_with_bp_transaction(
+    sap_mcp_client: ClientSession,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test intent logging during BP (Business Partner) transaction.
+
+    This test verifies that:
+    1. log_intent tool can record intents during SAP operations
+    2. The intent log messages are emitted with correct format
+    3. The intent resource is accessible
+
+    Steps:
+    - Login to SAP
+    - Run transaction BP
+    - Press F5 to start creating a person
+    - Log intents and verify log messages
+    """
+    # Login to SAP
+    login_result = await sap_mcp_client.call_tool("sap_login", {})
+    assert_tool_success(login_result, "sap_login")
+
+    # Log intent at start
+    intent_result = await sap_mcp_client.call_tool(
+        "log_intent",
+        {
+            "intent": "Create a new business partner of type Person",
+            "context": {"tcode": "BP", "action": "create_person"},
+        },
+    )
+    intent_data = assert_tool_success(intent_result, "log_intent")
+    assert intent_data.get("logged") is True, "Intent should be logged"
+    entry_id = intent_data.get("entry_id")
+    assert entry_id, "Intent should have an entry_id"
+    session_id = intent_data.get("session_id")
+    assert session_id, "Intent should have a session_id"
+
+    # Run transaction BP
+    tx_result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    assert_tool_success(tx_result, "sap_transaction BP")
+
+    # Wait for BP screen (has Person/Organisation buttons)
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Capture HTML snapshot for debugging
+    await capture_html_snapshot(sap_mcp_client, "bp_initial")
+
+    # Press F5 to start creating (opens new partner creation)
+    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F5"})
+    assert_tool_success(kb_result, "sap_keyboard F5")
+
+    # Wait a moment for the dialog to open
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Capture HTML snapshot after F5
+    await capture_html_snapshot(sap_mcp_client, "bp_create_person")
+
+    # Log another intent for the milestone
+    intent2_result = await sap_mcp_client.call_tool(
+        "log_intent",
+        {
+            "intent": "Opened person creation dialog",
+            "context": {"step": "dialog_open"},
+        },
+    )
+    intent2_data = assert_tool_success(intent2_result, "log_intent 2")
+
+    # Verify the intent resource template is available
+    templates = await sap_mcp_client.list_resource_templates()
+    template_uris = [str(t.uriTemplate) for t in templates.resourceTemplates]
+    print(f"\nAvailable resource templates: {template_uris}")
+
+    # Check that an intent resource template exists
+    has_intent_template = any("intent://" in uri for uri in template_uris)
+    assert has_intent_template, f"Expected intent:// template, got: {template_uris}"
+
+    # Read the intent resource for the session using the session_id from log_intent
+    intent_resource = await sap_mcp_client.read_resource(f"intent://session/{session_id}")
+    intent_log = intent_resource.contents[0].text if intent_resource.contents else "[]"
+    print(f"\nIntent log content for session {session_id}: {intent_log}")
+
+    # Parse and verify the log has our entries
+    entries = json.loads(intent_log)
+    assert len(entries) >= 2, f"Expected at least 2 intent entries, got {len(entries)}"
+
+    # Verify the entries have the expected structure
+    for entry in entries:
+        assert "timestamp" in entry, f"Entry missing timestamp: {entry}"
+        assert "intent" in entry, f"Entry missing intent: {entry}"
+        assert "entry_id" in entry, f"Entry missing entry_id: {entry}"
+
+    # Verify our specific intents are in the log
+    intents = [e["intent"] for e in entries]
+    assert any("business partner" in i.lower() for i in intents), f"Expected BP intent: {intents}"
+    assert any("dialog" in i.lower() for i in intents), f"Expected dialog intent: {intents}"
+
+    # Verify entry_ids match what we received from the tool
+    entry_ids = [e["entry_id"] for e in entries]
+    assert entry_id in entry_ids, f"First entry_id {entry_id} not in log: {entry_ids}"
+    assert intent2_data.get("entry_id") in entry_ids, "Second entry_id not in log"
+
+    # Press F3 to go back/cancel (avoid creating an actual partner)
+    back_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
+    print(f"\nBack result: {back_result.content[0].text if back_result.content else 'N/A'}")
