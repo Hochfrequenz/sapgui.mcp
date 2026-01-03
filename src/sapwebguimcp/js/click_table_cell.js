@@ -1,5 +1,5 @@
 (params) => {
-    const { row, column, action } = params;
+    const { row, column, action, performClick } = params;
 
     /**
      * Escape special CSS characters for use in selectors.
@@ -71,16 +71,57 @@
     }
 
     // Determine click target
-    const isHotspot = innerSpan && isHotspotCell(innerSpan);
+    const isHotspot = Boolean(innerSpan && isHotspotCell(innerSpan));
     const clickTarget = isHotspot && innerSpan ? innerSpan : cellElement;
     const targetId = isHotspot && innerSpan ? innerSpanId : cellId;
 
-    // Return the selector and metadata - actual click will be done by Python
+    // If performClick is true, simulate a complete mouse interaction
+    // SAP WebGUI uses event delegation that requires realistic mouse events
+    if (performClick && clickTarget) {
+        // Scroll element into view first
+        clickTarget.scrollIntoView({ block: 'center', inline: 'center' });
+
+        // Get element position for realistic event coordinates
+        const rect = clickTarget.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+
+        const eventOptions = {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            clientX: x,
+            clientY: y,
+            screenX: x,
+            screenY: y,
+            button: 0,
+            buttons: 1,
+        };
+
+        // Dispatch complete mouse event sequence for SAP event handlers
+        if (action === 'dblclick') {
+            // Double-click sequence: mousedown, mouseup, click, mousedown, mouseup, click, dblclick
+            clickTarget.dispatchEvent(new MouseEvent('mousedown', eventOptions));
+            clickTarget.dispatchEvent(new MouseEvent('mouseup', eventOptions));
+            clickTarget.dispatchEvent(new MouseEvent('click', eventOptions));
+            clickTarget.dispatchEvent(new MouseEvent('mousedown', eventOptions));
+            clickTarget.dispatchEvent(new MouseEvent('mouseup', eventOptions));
+            clickTarget.dispatchEvent(new MouseEvent('click', eventOptions));
+            clickTarget.dispatchEvent(new MouseEvent('dblclick', eventOptions));
+        } else {
+            // Single click sequence: mousedown, mouseup, click
+            clickTarget.dispatchEvent(new MouseEvent('mousedown', eventOptions));
+            clickTarget.dispatchEvent(new MouseEvent('mouseup', eventOptions));
+            clickTarget.dispatchEvent(new MouseEvent('click', eventOptions));
+        }
+    }
+
     return {
         selector: escapeCssSelector(targetId),
         wasHotspot: isHotspot,
         row: row,
         column: colIndex,
         tableId: tableId,
+        clicked: Boolean(performClick),
     };
 };

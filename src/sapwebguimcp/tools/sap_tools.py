@@ -893,10 +893,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         try:
             page = await browser_manager.get_current_page()
 
-            # Use JavaScript to find the correct click target
+            # Use JavaScript to find the correct click target (but not click yet)
             result = await page.evaluate(
                 _load_js("click_table_cell.js"),
-                {"row": row, "column": column, "action": action},
+                {"row": row, "column": column, "action": action, "performClick": False},
             )
 
             if "error" in result:
@@ -909,14 +909,20 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             selector = result["selector"]
 
-            # Perform the click
+            # Use Playwright's native click - provides trusted events SAP requires
             if action == "dblclick":
                 await page.dblclick(selector)
             else:
                 await page.click(selector)
 
-            # Wait for navigation
+            # Wait for SAP to process the click event
+            await asyncio.sleep(0.5)
+
+            # Wait for navigation/network activity
             await page.wait_for_load_state("networkidle", timeout=15000)
+
+            # Additional wait for SAP AJAX updates
+            await asyncio.sleep(0.3)
 
             title = await page.title()
 

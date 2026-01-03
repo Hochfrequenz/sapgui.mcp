@@ -779,6 +779,9 @@ class TestCssSelectorEscaping:
             pytest.param("#grid#C120#0,0", r"#grid\#C120\#0\,0", id="alv_header_cell"),
             pytest.param("#grid#C120#1,2#if-r", r"#grid\#C120\#1\,2\#if-r", id="alv_cell_wrapper"),
             pytest.param("#C120-mrss-cont-left-Row-0", r"#C120-mrss-cont-left-Row-0", id="alv_row_no_special"),
+            # Already-escaped selectors should not be double-escaped
+            pytest.param(r"#grid\#C120\#1\,2\#if", r"#grid\#C120\#1\,2\#if", id="already_escaped_alv"),
+            pytest.param(r"#M0\:48\:\:btn\[5\]", r"#M0\:48\:\:btn\[5\]", id="already_escaped_sap"),
         ],
     )
     def test_escape_css_selector(self, selector: str, expected: str) -> None:

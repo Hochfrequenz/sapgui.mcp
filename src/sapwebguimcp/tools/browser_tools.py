@@ -49,6 +49,9 @@ def _escape_css_selector(selector: str) -> str:
     SAP generates IDs like 'M0:48::btn[5]' which contain special CSS characters.
     This function escapes them so they work as valid CSS selectors.
 
+    If the selector is already escaped (contains patterns like \\# or \\,),
+    it will be returned as-is to avoid double-escaping.
+
     Args:
         selector: CSS selector string
 
@@ -61,6 +64,12 @@ def _escape_css_selector(selector: str) -> str:
     # If it's an ID selector (starts with #), escape special chars in the ID part
     if selector.startswith("#"):
         id_part = selector[1:]
+
+        # Check if already escaped - look for backslash followed by special chars
+        # This prevents double-escaping of selectors from sap_read_table cells
+        if any(f"\\{c}" in id_part for c in ":[]#,"):
+            return selector  # Already escaped
+
         # Escape CSS special characters: : [ ] # ,
         # SAP ALV grids use IDs like "grid#C120#1,2#if" which need # and , escaped
         escaped_id = ""
