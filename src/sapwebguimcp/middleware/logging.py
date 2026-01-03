@@ -56,20 +56,6 @@ class ToolCallLoggingMiddleware(Middleware):
         formatted_args = self._format_args(arguments)
         current_call = ToolCall(name=tool_name, args=formatted_args)
 
-        # Show sequence: last calls -> current
-        pending_sequence = session.format_sequence(last_n=20)
-        if pending_sequence:
-            pending_sequence += " -> " + current_call.format_short()
-        else:
-            pending_sequence = current_call.format_short()
-
-        _logger.debug(
-            "TOOL_CALL | session=%s | call_number=%d | sequence=%s",
-            session_id,
-            session.call_count + 1,
-            pending_sequence,
-        )
-
         try:
             result = await call_next(context)
             duration = timedelta(seconds=time.perf_counter() - start)

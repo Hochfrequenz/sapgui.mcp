@@ -37,9 +37,13 @@ class SessionStats(BaseModel):
     total_duration: timedelta = Field(default_factory=timedelta)
     call_count: int = Field(default=0)
 
-    def format_sequence(self, last_n: int = 5) -> str:
+    def format_sequence(self, last_n: int = 20) -> str:
         """Format last N calls as a sequence diagram."""
         if not self.tool_calls:
             return ""
+        total = len(self.tool_calls)
+        if total <= last_n:
+            return " -> ".join(tc.format_short() for tc in self.tool_calls)
+        omitted = total - last_n
         calls = self.tool_calls[-last_n:]
-        return " -> ".join(tc.format_short() for tc in calls)
+        return f"...({omitted} others) -> " + " -> ".join(tc.format_short() for tc in calls)
