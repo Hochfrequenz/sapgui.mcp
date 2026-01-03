@@ -30,7 +30,7 @@ class ToolCallLoggingMiddleware(Middleware):
 
     async def on_call_tool(self, context: MiddlewareContext, call_next: Any) -> Any:
         """Log tool call with per-session timing."""
-        tool_name = context.message.params.get("name", "unknown")
+        tool_name = context.message.name
         start = time.perf_counter()
 
         # Extract context IDs
