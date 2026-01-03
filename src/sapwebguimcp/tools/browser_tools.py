@@ -261,7 +261,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     @mcp.tool(description="Wait for an element or timeout")
     async def browser_wait(
         selector: Optional[str] = None,
-        timeout: int = 30000,
+        timeout: int = 5000,
         state: Literal["attached", "detached", "hidden", "visible"] = "visible",
     ) -> WaitResult:
         """
