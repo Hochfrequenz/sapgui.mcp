@@ -13,7 +13,7 @@ from pathlib import Path
 from fastmcp import FastMCP
 from fastmcp.server.middleware.logging import LoggingMiddleware
 
-from sapwebguimcp.loghandlers import FeedbackIssueHandler, IntentFileHandler
+from sapwebguimcp.loghandlers import IntentFileHandler
 from sapwebguimcp.middleware import ToolCallLoggingMiddleware
 from sapwebguimcp.models import close_browser_manager
 from sapwebguimcp.models.config import get_settings
@@ -43,14 +43,7 @@ if _settings.audit_log_dir:
     logging.getLogger().addHandler(_intent_handler)
     logger.info("Intent audit logging enabled: %s", _settings.audit_log_dir)
 
-# Configure feedback issue handler if GITHUB_PAT is set
-if _settings.github_pat:
-    _feedback_handler = FeedbackIssueHandler(
-        pat=_settings.github_pat,
-        repo=_settings.github_repo,
-    )
-    logging.getLogger().addHandler(_feedback_handler)
-    logger.info("GitHub feedback issues enabled for repo: %s", _settings.github_repo)
+# Note: GitHub issue creation is handled directly in log_feedback tool (async)
 
 
 @asynccontextmanager

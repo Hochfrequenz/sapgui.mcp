@@ -8,10 +8,10 @@ Automatically create GitHub issues from model feedback logged via `log_feedback`
 
 Two new env vars in `SapWebGuiSettings`:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GITHUB_PAT` | GitHub PAT for creating issues (empty = disabled) | (empty) |
-| `GITHUB_REPO` | Repository for issues (owner/repo) | `Hochfrequenz/sapwebgui.mcp` |
+| Variable      | Description                                       | Default                      |
+| ------------- | ------------------------------------------------- | ---------------------------- |
+| `GITHUB_PAT`  | GitHub PAT for creating issues (empty = disabled) | (empty)                      |
+| `GITHUB_REPO` | Repository for issues (owner/repo)                | `Hochfrequenz/sapwebgui.mcp` |
 
 ## Architecture
 
@@ -46,7 +46,7 @@ issue_url: str | None = Field(default=None)
 issue_error: str | None = Field(default=None)
 ```
 
-Note: These fields reflect the *previous* flush, not immediate creation (due to buffering).
+Note: These fields reflect the _previous_ flush, not immediate creation (due to buffering).
 
 ## FeedbackIssueHandler
 
@@ -64,16 +64,20 @@ New handler in `loghandlers/feedback_issue_handler.py`:
 **Title**: `Feedback (3 entries): selector, timing`
 
 **Body**:
+
 ```markdown
 **Session**: abc123
 
 ## Entry 1 - 2024-01-03T10:15:00Z
+
 Couldn't find save button until I tried selector 'span:has-text(Sichern)'
 
 ## Entry 2 - 2024-01-03T10:16:30Z
+
 browser_wait timeout after 30s on SE16 table load
 
 ## Entry 3 - 2024-01-03T10:17:00Z
+
 ...
 ```
 
@@ -86,6 +90,7 @@ browser_wait timeout after 30s on SE16 table load
 ## Testing
 
 Unit tests with `respx` (httpx mocking):
+
 - Successful issue creation (mock 201)
 - API failure (mock 401/403/500)
 - Network error (mock timeout)

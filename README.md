@@ -47,28 +47,28 @@ docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 
 Configure via environment variables:
 
-| Variable           | Description                                          | Default                 |
-| ------------------ | ---------------------------------------------------- | ----------------------- |
-| `SAP_URL`          | Default SAP Web GUI URL (can be overridden per call) | (empty)                 |
-| `SAP_USER`         | SAP username for automatic login                     | (empty)                 |
-| `SAP_PASSWORD`     | SAP password for automatic login                     | (empty)                 |
-| `SAP_MANDANT`      | SAP client/mandant (3-digit, e.g., "100")            | (empty)                 |
-| `SAP_LANGUAGE`     | SAP login language (`DE` or `EN`)                    | `EN`                    |
-| `BROWSER_MODE`     | `launch` (start new) or `connect` (use existing)     | `launch`                |
-| `BROWSER_TYPE`     | `chromium`, `firefox`, or `webkit`                   | `chromium`              |
-| `BROWSER_HEADLESS` | Run headless (`true`/`false`)                        | `false`                 |
-| `CDP_URL`          | CDP URL for connecting to existing browser           | `http://localhost:9222` |
-| `AUDIT_LOG_DIR`    | Directory for intent audit logs (JSONL files)        | (empty, no file output) |
-| `GITHUB_PAT`       | GitHub PAT for creating issues from feedback (empty = disabled) | (empty)    |
-| `GITHUB_REPO`      | Repository for feedback issues (owner/repo format)   | `Hochfrequenz/sapwebgui.mcp` |
+| Variable           | Description                                                     | Default                      |
+| ------------------ | --------------------------------------------------------------- | ---------------------------- |
+| `SAP_URL`          | Default SAP Web GUI URL (can be overridden per call)            | (empty)                      |
+| `SAP_USER`         | SAP username for automatic login                                | (empty)                      |
+| `SAP_PASSWORD`     | SAP password for automatic login                                | (empty)                      |
+| `SAP_MANDANT`      | SAP client/mandant (3-digit, e.g., "100")                       | (empty)                      |
+| `SAP_LANGUAGE`     | SAP login language (`DE` or `EN`)                               | `EN`                         |
+| `BROWSER_MODE`     | `launch` (start new) or `connect` (use existing)                | `launch`                     |
+| `BROWSER_TYPE`     | `chromium`, `firefox`, or `webkit`                              | `chromium`                   |
+| `BROWSER_HEADLESS` | Run headless (`true`/`false`)                                   | `false`                      |
+| `CDP_URL`          | CDP URL for connecting to existing browser                      | `http://localhost:9222`      |
+| `AUDIT_LOG_DIR`    | Directory for intent audit logs (JSONL files)                   | (empty, no file output)      |
+| `GITHUB_PAT`       | GitHub PAT for creating issues from feedback (empty = disabled) | (empty)                      |
+| `GITHUB_REPO`      | Repository for feedback issues (owner/repo format)              | `Hochfrequenz/sapwebgui.mcp` |
 
 ### GitHub Feedback Integration
 
 To enable automatic GitHub issue creation from model feedback:
 
 1. Create a GitHub Personal Access Token (PAT) with `repo` scope:
-   - Go to GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens
-   - Create a new token with "Issues" permission (Read and Write) for your repository
+    - Go to GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens
+    - Create a new token with "Issues" permission (Read and Write) for your repository
 2. Set the `GITHUB_PAT` environment variable to your token
 3. Optionally set `GITHUB_REPO` if you want issues in a different repository
 
@@ -456,13 +456,13 @@ The MCP server will connect to your existing browser instead of launching a new 
 
 ### SAP Tools
 
-| Tool                  | Description                                                                                                                       |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `sap_login`           | Opens SAP Web GUI login page. User enters credentials manually in the browser.                                                    |
-| `sap_transaction`     | Enters and executes a transaction code. Automatically enables OK-Code field if not visible (via Settings → enable OK-Code Field). |
-| `sap_keepalive_start` | Starts background task to prevent session timeout (default: ping every 5 minutes).                                                |
-| `sap_keepalive_stop`  | Stops the keepalive background task.                                                                                              |
-| `log_intent`          | Log a high-level intent for audit trail. Used by models to document what they're doing and why.                                   |
+| Tool                  | Description                                                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sap_login`           | Opens SAP Web GUI login page. User enters credentials manually in the browser.                                                                  |
+| `sap_transaction`     | Enters and executes a transaction code. Automatically enables OK-Code field if not visible (via Settings → enable OK-Code Field).               |
+| `sap_keepalive_start` | Starts background task to prevent session timeout (default: ping every 5 minutes).                                                              |
+| `sap_keepalive_stop`  | Stops the keepalive background task.                                                                                                            |
+| `log_intent`          | Log a high-level intent for audit trail. Used by models to document what they're doing and why.                                                 |
 | `log_feedback`        | Log technical feedback about tool usage patterns, friction points, or optimization opportunities. Creates GitHub issues if `GITHUB_PAT` is set. |
 
 ### Low-Level Browser Tools (Escape Hatches)
