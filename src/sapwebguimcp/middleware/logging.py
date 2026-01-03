@@ -1,4 +1,26 @@
-"""Logging middleware for tool call sequence analysis."""
+"""Logging middleware for tool call sequence analysis.
+
+This middleware tracks:
+- Tool call sequences with arguments (last 20 calls shown)
+- Per-session cumulative timing
+- Transaction round times (time between consecutive calls to the same transaction)
+
+Transaction Round Tracking:
+    When using MCP tools for repetitive SAP tasks (e.g., processing invoices,
+    updating master data), calling the same transaction again indicates the
+    start of a new iteration. The middleware measures the time between these
+    calls as "round_time", helping identify:
+    - Average time per iteration
+    - Performance degradation over many iterations
+    - Workflow bottlenecks
+
+Example log output:
+    TOOL_DONE | session=abc | tool=sap_transaction | duration=0:00:01.5 |
+    round_time=0:02:34 | tcode=VA01 | ...
+
+    The round_time=0:02:34 shows it took 2 minutes 34 seconds since the last
+    VA01 call, representing one complete processing cycle.
+"""
 
 import logging
 import time
@@ -15,7 +37,11 @@ _logger = logging.getLogger(__name__)
 
 
 class ToolCallLoggingMiddleware(Middleware):
-    """Middleware to log tool calls with per-session timing and sequence tracking."""
+    """Middleware to log tool calls with per-session timing and sequence tracking.
+
+    Logs tool call sequences, durations, and transaction round times for
+    analyzing repetitive SAP workflows.
+    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -32,7 +58,7 @@ class ToolCallLoggingMiddleware(Middleware):
         """Format tool arguments for logging, masking sensitive values."""
         if not arguments:
             return {}
-        sensitive_keys = {"password", "secret", "token", "key", "credential"}
+        sensitive_keys = {"password", "secret", "token", "credential", "api_key", "secret_key"}
         result: dict[str, str] = {}
         for k, v in arguments.items():
             if any(s in k.lower() for s in sensitive_keys):
@@ -41,52 +67,64 @@ class ToolCallLoggingMiddleware(Middleware):
                 result[k] = str(v)
         return result
 
-    async def on_call_tool(self, context: MiddlewareContext, call_next: Any) -> Any:
+    async def on_call_tool(self, context: MiddlewareContext, call_next: Any) -> Any:  # pylint: disable=too-many-locals
         """Log tool call with per-session timing."""
         tool_name = context.message.name
-        arguments = getattr(context.message, "arguments", None) or {}
+        args = self._format_args(getattr(context.message, "arguments", None) or {})
         start = time.perf_counter()
 
-        # Extract context IDs
         ctx = context.fastmcp_context
         session_id = getattr(ctx, "session_id", None) if ctx else None
         session = self._get_session(session_id)
+        current_call = ToolCall(name=tool_name, args=args)
 
-        # Create tool call record
-        formatted_args = self._format_args(arguments)
-        current_call = ToolCall(name=tool_name, args=formatted_args)
+        # Track transaction round times (resets round_start_index if same tcode)
+        round_time: timedelta | None = None
+        if tool_name == "sap_transaction" and (tcode := args.get("tcode")):
+            round_time = session.record_transaction(tcode)
 
         try:
             result = await call_next(context)
-            duration = timedelta(seconds=time.perf_counter() - start)
-
-            # Update session stats
-            session.tool_calls.append(current_call)
-            session.total_duration += duration
-            session.call_count += 1
-
-            _logger.info(
-                "TOOL_DONE | session=%s | tool=%s | duration=%s | session_total=%s | sequence=%s",
-                session_id,
-                tool_name,
-                duration,
-                session.total_duration,
-                session.format_sequence(last_n=20),
-            )
-            return result
         except Exception as e:
             duration = timedelta(seconds=time.perf_counter() - start)
             current_call.success = False
             session.tool_calls.append(current_call)
             session.total_duration += duration
             session.call_count += 1
-
             _logger.warning(
-                "TOOL_FAIL | session=%s | tool=%s | duration=%s | error=%s | sequence=%s",
+                "TOOL_FAIL | session=%s | tool=%s | duration=%s | error=%s | seq=%s",
                 session_id,
                 tool_name,
                 duration,
-                str(e),
+                e,
                 session.format_sequence(last_n=20),
             )
             raise
+
+        # Update session stats and log success
+        duration = timedelta(seconds=time.perf_counter() - start)
+        session.tool_calls.append(current_call)
+        session.total_duration += duration
+        session.call_count += 1
+
+        seq = session.format_sequence(last_n=20, current_round_only=True)
+        if round_time is not None:
+            _logger.info(
+                "TOOL_DONE | session=%s | tool=%s | duration=%s | round_time=%s | total=%s | seq=%s",
+                session_id,
+                tool_name,
+                duration,
+                round_time,
+                session.total_duration,
+                seq,
+            )
+        else:
+            _logger.info(
+                "TOOL_DONE | session=%s | tool=%s | duration=%s | total=%s | seq=%s",
+                session_id,
+                tool_name,
+                duration,
+                session.total_duration,
+                seq,
+            )
+        return result
