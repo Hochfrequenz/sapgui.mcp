@@ -7,7 +7,7 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
-from sapwebguimcp.models.middleware import SessionStats
+from sapwebguimcp.models.middleware import SessionStats, ToolCall
 
 __all__ = ["ToolCallLoggingMiddleware"]
 
@@ -28,9 +28,23 @@ class ToolCallLoggingMiddleware(Middleware):
             self._sessions[key] = SessionStats()
         return self._sessions[key]
 
+    def _format_args(self, arguments: dict[str, Any] | None) -> dict[str, str]:
+        """Format tool arguments for logging, masking sensitive values."""
+        if not arguments:
+            return {}
+        sensitive_keys = {"password", "secret", "token", "key", "credential"}
+        result: dict[str, str] = {}
+        for k, v in arguments.items():
+            if any(s in k.lower() for s in sensitive_keys):
+                result[k] = "***"
+            else:
+                result[k] = str(v)
+        return result
+
     async def on_call_tool(self, context: MiddlewareContext, call_next: Any) -> Any:
         """Log tool call with per-session timing."""
         tool_name = context.message.name
+        arguments = getattr(context.message, "arguments", None) or {}
         start = time.perf_counter()
 
         # Extract context IDs
@@ -38,15 +52,22 @@ class ToolCallLoggingMiddleware(Middleware):
         session_id = getattr(ctx, "session_id", None) if ctx else None
         session = self._get_session(session_id)
 
-        # Show sequence: last 3 calls -> current
-        sequence = " -> ".join(session.tool_calls[-3:] + [tool_name]) if session.tool_calls else tool_name
+        # Create tool call record
+        formatted_args = self._format_args(arguments)
+        current_call = ToolCall(name=tool_name, args=formatted_args)
+
+        # Show sequence: last calls -> current
+        pending_sequence = session.format_sequence(last_n=20)
+        if pending_sequence:
+            pending_sequence += " -> " + current_call.format_short()
+        else:
+            pending_sequence = current_call.format_short()
 
         _logger.debug(
-            "TOOL_CALL | session=%s | tool=%s | call_number=%d | sequence=%s",
+            "TOOL_CALL | session=%s | call_number=%d | sequence=%s",
             session_id,
-            tool_name,
             session.call_count + 1,
-            sequence,
+            pending_sequence,
         )
 
         try:
@@ -54,29 +75,32 @@ class ToolCallLoggingMiddleware(Middleware):
             duration = timedelta(seconds=time.perf_counter() - start)
 
             # Update session stats
-            session.tool_calls.append(tool_name)
+            session.tool_calls.append(current_call)
             session.total_duration += duration
             session.call_count += 1
 
             _logger.info(
-                "TOOL_DONE | session=%s | tool=%s | duration=%s | session_total=%s",
+                "TOOL_DONE | session=%s | tool=%s | duration=%s | session_total=%s | sequence=%s",
                 session_id,
                 tool_name,
                 duration,
                 session.total_duration,
+                session.format_sequence(last_n=20),
             )
             return result
         except Exception as e:
             duration = timedelta(seconds=time.perf_counter() - start)
-            session.tool_calls.append(f"{tool_name}[FAILED]")
+            current_call.success = False
+            session.tool_calls.append(current_call)
             session.total_duration += duration
             session.call_count += 1
 
             _logger.warning(
-                "TOOL_FAIL | session=%s | tool=%s | duration=%s | error=%s",
+                "TOOL_FAIL | session=%s | tool=%s | duration=%s | error=%s | sequence=%s",
                 session_id,
                 tool_name,
                 duration,
                 str(e),
+                session.format_sequence(last_n=20),
             )
             raise
