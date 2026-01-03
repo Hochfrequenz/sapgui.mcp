@@ -28,6 +28,12 @@ from sapwebguimcp.models.config import (
     SapWebGuiSettings,
     get_settings,
 )
+from sapwebguimcp.models.intent_models import (
+    FeedbackEntry,
+    FeedbackLogResult,
+    IntentEntry,
+    IntentLogResult,
+)
 from sapwebguimcp.models.sap_results import (
     DiscoveredFields,
     FieldFillError,
@@ -89,4 +95,9 @@ __all__ = [
     "SelectOptionResult",
     "SnapshotResult",
     "WaitResult",
+    # Intent and feedback models
+    "FeedbackEntry",
+    "FeedbackLogResult",
+    "IntentEntry",
+    "IntentLogResult",
 ]

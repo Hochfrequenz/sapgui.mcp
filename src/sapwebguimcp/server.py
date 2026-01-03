@@ -8,11 +8,22 @@ Tools are organized in separate modules under sapwebguimcp.tools.
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastmcp import FastMCP
+from fastmcp.server.middleware.logging import LoggingMiddleware
 
+from sapwebguimcp.loghandlers import IntentFileHandler
+from sapwebguimcp.middleware import ToolCallLoggingMiddleware
 from sapwebguimcp.models import close_browser_manager
-from sapwebguimcp.tools import register_browser_tools, register_sap_tools
+from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.resources import register_feedback_resources, register_intent_resources
+from sapwebguimcp.tools import (
+    register_browser_tools,
+    register_feedback_tools,
+    register_intent_tools,
+    register_sap_tools,
+)
 
 __all__ = ["main", "mcp"]
 
@@ -22,6 +33,17 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Get settings for handler configuration
+_settings = get_settings()
+
+# Configure intent file handler if AUDIT_LOG_DIR is set
+if _settings.audit_log_dir:
+    _intent_handler = IntentFileHandler(Path(_settings.audit_log_dir))
+    logging.getLogger().addHandler(_intent_handler)
+    logger.info("Intent audit logging enabled: %s", _settings.audit_log_dir)
+
+# Note: GitHub issue creation is handled directly in log_feedback tool (async)
 
 
 @asynccontextmanager
@@ -51,9 +73,21 @@ mcp = FastMCP(
     strict_input_validation=True,
 )
 
+# Add logging middleware for tool call sequence analysis
+mcp.add_middleware(ToolCallLoggingMiddleware())
+
+# Add FastMCP built-in logging with payload visibility
+mcp.add_middleware(LoggingMiddleware(include_payloads=True, max_payload_length=1000))
+
 # Register all tools
 register_sap_tools(mcp)
 register_browser_tools(mcp)
+register_intent_tools(mcp)
+register_feedback_tools(mcp)
+
+# Register resources
+register_intent_resources(mcp)
+register_feedback_resources(mcp)
 
 
 def main() -> None:
