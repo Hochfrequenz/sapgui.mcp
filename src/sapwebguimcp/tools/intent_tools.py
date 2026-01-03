@@ -33,30 +33,38 @@ def clear_session_intents(session_id: str) -> None:
 def register_intent_tools(mcp: FastMCP) -> None:
     """Register intent logging tools with the MCP server."""
 
-    @mcp.tool(description="Log a high-level intent for audit trail")
+    @mcp.tool(
+        description=(
+            "MANDATORY: Log intent for audit trail when using SAP. "
+            "You MUST call this at the start of every SAP task and before "
+            "any SAP write operation. Required for compliance and accountability."
+        )
+    )
     async def log_intent(
         intent: str,
         context: dict[str, str] | None = None,
         ctx: Context | None = None,
     ) -> IntentLogResult:
         """
-        Log a high-level intent for audit trail.
+        MANDATORY: Log a high-level intent for audit trail.
 
-        Use this to document what the user requested or what action you're about
-        to perform. This creates an audit trail for accountability, separate from
-        technical tool call logs.
+        You MUST use this tool when performing SAP operations. This is REQUIRED
+        for compliance and accountability in SAP environments - not optional.
 
-        Call this:
-        - At the start of a user request to document what was asked
-        - Before significant write operations
-        - At milestones (e.g., "Document 3 of 10 complete")
+        WHEN TO CALL (required):
+        - ALWAYS at the start of every SAP-related user request
+        - ALWAYS before any SAP write operation (create, update, delete, post)
+        - At milestones during multi-step SAP workflows (e.g., "Order 3 of 10")
+        - Before running transactions that modify data
 
         Args:
-            intent: High-level description of the intent
-            context: Optional context dict (e.g., {"tcode": "VA02", "document_id": "4711"})
+            intent: High-level description of what was requested or what you
+                    intend to do (e.g., "User requested to create sales order
+                    for customer 12345")
+            context: Optional context dict (e.g., {"tcode": "VA01", "customer": "12345"})
 
         Returns:
-            IntentLogResult with logged status and entry_id
+            IntentLogResult with logged status, entry_id, and session_id
         """
         session_id = getattr(ctx, "session_id", None) if ctx else None
         session_key = session_id or "unknown"
