@@ -29,18 +29,18 @@ High-level, SAP-specific operations:
 
 Low-level escape hatches when SAP tools don't work:
 
-| Tool                    | Description                          |
-| ----------------------- | ------------------------------------ |
-| `browser_snapshot`      | Get accessibility tree of page       |
-| `browser_screenshot`    | Take screenshot (returns base64 PNG) |
-| `browser_click`         | Click element by selector            |
-| `browser_fill`          | Fill input field                     |
-| `browser_keyboard`      | Send keyboard input                  |
-| `browser_navigate`      | Navigate to URL                      |
-| `browser_evaluate`      | Execute JavaScript                   |
-| `browser_wait`          | Wait for element or timeout          |
-| `browser_get_html`      | Get HTML content                     |
-| `browser_select_option` | Select dropdown option               |
+| Tool                    | Description                                |
+| ----------------------- | ------------------------------------------ |
+| `browser_snapshot`      | Get accessibility tree of page             |
+| `browser_screenshot`    | Take screenshot (returns base64 PNG)       |
+| `browser_click`         | Click element by selector                  |
+| `browser_fill`          | Fill input field                           |
+| `browser_keyboard`      | Send keyboard input                        |
+| `browser_navigate`      | Navigate to URL                            |
+| `browser_evaluate`      | Execute JavaScript                         |
+| `browser_wait`          | Wait for element state (use with selector) |
+| `browser_get_html`      | Get HTML content                           |
+| `browser_select_option` | Select dropdown option                     |
 
 ## Adding New Tools
 

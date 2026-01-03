@@ -305,18 +305,34 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             logger.exception("Error evaluating script")
             return EvaluateResult.failure(f"Error executing script: {e}", script_snippet=script_snippet)
 
-    @mcp.tool(description="Wait for an element or timeout")
+    @mcp.tool(
+        description=(
+            "Wait for an element to reach a specific state. "
+            "IMPORTANT: Only useful with a selector - calling without a selector is almost always pointless "
+            "because MCP round-trip time already provides natural delays. "
+            "Use this to wait for elements to appear (state='visible') or disappear (state='hidden'), "
+            "e.g., waiting for a loading indicator to vanish before reading content."
+        )
+    )
     async def browser_wait(
         selector: Optional[str] = None,
         timeout: int = 5000,
         state: Literal["attached", "detached", "hidden", "visible"] = "visible",
     ) -> WaitResult:
         """
-        Wait for an element or timeout.
+        Wait for an element to reach a specific state.
+
+        IMPORTANT: Only useful with a selector. Calling without a selector is almost always
+        pointless because the MCP tool round-trip already introduces natural delays. Don't
+        use this as a generic sleep - it wastes time without benefit.
+
+        Good use cases:
+        - Wait for an element to appear before reading: browser_wait(selector="#result", state="visible")
+        - Wait for loading spinner to disappear: browser_wait(selector=".loading", state="hidden")
 
         Args:
-            selector: CSS selector to wait for
-            timeout: Timeout in milliseconds
+            selector: CSS selector to wait for (required for meaningful use)
+            timeout: Maximum wait time in milliseconds (returns early if condition met)
             state: Element state to wait for ('visible', 'hidden', 'attached', 'detached')
 
         Returns:
