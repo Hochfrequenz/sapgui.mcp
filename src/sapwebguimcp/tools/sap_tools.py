@@ -368,6 +368,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Check if we're already logged in
             okcode_field = await _find_okcode_field(page)
             if okcode_field:
+                # Start keepalive to prevent session timeout
+                await sap_keepalive_start()
                 return LoginResult(
                     url=effective_url,
                     already_logged_in=True,
@@ -419,6 +421,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             try:
                 await page.wait_for_selector("#ToolbarOkCode", timeout=15000, state="visible")
                 logger.info("Login successful - OK-Code field visible")
+                # Start keepalive to prevent session timeout
+                await sap_keepalive_start()
                 return LoginResult(
                     url=effective_url,
                     user=settings.sap_user,
@@ -438,6 +442,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         )
                         await page.click(continue_btn_selector, timeout=5000)
                         await page.wait_for_selector("#ToolbarOkCode", timeout=10000, state="visible")
+                        # Start keepalive to prevent session timeout
+                        await sap_keepalive_start()
                         return LoginResult(
                             url=effective_url,
                             user=settings.sap_user,
