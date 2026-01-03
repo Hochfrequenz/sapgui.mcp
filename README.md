@@ -58,6 +58,7 @@ Configure via environment variables:
 | `BROWSER_TYPE`     | `chromium`, `firefox`, or `webkit`                   | `chromium`              |
 | `BROWSER_HEADLESS` | Run headless (`true`/`false`)                        | `false`                 |
 | `CDP_URL`          | CDP URL for connecting to existing browser           | `http://localhost:9222` |
+| `AUDIT_LOG_DIR`    | Directory for intent audit logs (JSONL files)        | (empty, no file output) |
 
 If `SAP_USER`, `SAP_PASSWORD`, and `SAP_MANDANT` are set, the server will automatically fill in the login form.
 Otherwise, the login page opens for manual credential entry.
@@ -213,6 +214,7 @@ By default, Claude Desktop asks for confirmation before running MCP tools. To au
                 "sap_read_table",
                 "sap_read_status_bar",
                 "sap_get_screen_info",
+                "log_intent",
                 "browser_snapshot",
                 "browser_screenshot",
                 "browser_click",
@@ -415,6 +417,7 @@ The MCP server will connect to your existing browser instead of launching a new 
 | `sap_transaction`     | Enters and executes a transaction code. Automatically enables OK-Code field if not visible (via Settings → enable OK-Code Field). |
 | `sap_keepalive_start` | Starts background task to prevent session timeout (default: ping every 5 minutes).                                                |
 | `sap_keepalive_stop`  | Stops the keepalive background task.                                                                                              |
+| `log_intent`          | Log a high-level intent for audit trail. Used by models to document what they're doing and why.                                   |
 
 ### Low-Level Browser Tools (Escape Hatches)
 
@@ -494,7 +497,12 @@ sap-webgui-mcp/
 │   │   ├── __init__.py      # Tool registration exports
 │   │   ├── sap_tools.py     # SAP-specific tools
 │   │   ├── browser_tools.py # Browser escape hatches
+│   │   ├── intent_tools.py  # Intent logging for audit trail
 │   │   └── README.md        # Tools documentation
+│   ├── loghandlers/         # Custom log handlers
+│   │   └── audit_handler.py # JSONL file handler for intents
+│   ├── resources/           # MCP resources
+│   │   └── intent_resource.py # Intent log resource
 │   └── skills/              # Reusable workflows
 │       └── README.md        # Skills documentation
 ├── unittests/               # Test suite
