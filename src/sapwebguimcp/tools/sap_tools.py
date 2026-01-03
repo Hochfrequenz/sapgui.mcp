@@ -274,7 +274,7 @@ async def _enable_okcode_field(page: Any) -> tuple[bool, str]:
 # =============================================================================
 
 
-def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements
+def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements,too-many-locals
     """Register all SAP-specific tools with the MCP server."""
 
     @mcp.tool(description="Start a background task that keeps the SAP session alive")
