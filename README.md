@@ -58,6 +58,7 @@ Configure via environment variables:
 | `BROWSER_TYPE`     | `chromium`, `firefox`, or `webkit`                   | `chromium`              |
 | `BROWSER_HEADLESS` | Run headless (`true`/`false`)                        | `false`                 |
 | `CDP_URL`          | CDP URL for connecting to existing browser           | `http://localhost:9222` |
+| `AUDIT_LOG_DIR`    | Directory for intent audit logs (JSONL files)        | (empty, no file output) |
 
 If `SAP_USER`, `SAP_PASSWORD`, and `SAP_MANDANT` are set, the server will automatically fill in the login form.
 Otherwise, the login page opens for manual credential entry.
@@ -144,6 +145,8 @@ Add this configuration (replace the SAP values with your own):
                 "--rm",
                 "--network",
                 "sapwebguimcp_default",
+                "-v",
+                "/path/to/audit-logs:/audit-logs",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
@@ -156,6 +159,8 @@ Add this configuration (replace the SAP values with your own):
                 "SAP_PASSWORD=your_password",
                 "-e",
                 "SAP_MANDANT=100",
+                "-e",
+                "AUDIT_LOG_DIR=/audit-logs",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ]
         }
@@ -163,7 +168,7 @@ Add this configuration (replace the SAP values with your own):
 }
 ```
 
-> **Note**: The `--network sapwebguimcp_default` connects the container to the same Docker network as the CDP proxy, allowing it to reach Chrome via `cdp-proxy:9222`.
+> **Note**: The `--network sapwebguimcp_default` connects the container to the same Docker network as the CDP proxy, allowing it to reach Chrome via `cdp-proxy:9222`. The `-v` mounts a host directory for audit logs (replace `/path/to/audit-logs` with your actual path).
 
 ### Step 4: Restart Claude Desktop and start chatting
 
@@ -188,6 +193,8 @@ By default, Claude Desktop asks for confirmation before running MCP tools. To au
                 "--rm",
                 "--network",
                 "sapwebguimcp_default",
+                "-v",
+                "/path/to/audit-logs:/audit-logs",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
@@ -200,6 +207,8 @@ By default, Claude Desktop asks for confirmation before running MCP tools. To au
                 "SAP_PASSWORD=your_password",
                 "-e",
                 "SAP_MANDANT=100",
+                "-e",
+                "AUDIT_LOG_DIR=/audit-logs",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ],
             "alwaysAllow": [
@@ -213,6 +222,7 @@ By default, Claude Desktop asks for confirmation before running MCP tools. To au
                 "sap_read_table",
                 "sap_read_status_bar",
                 "sap_get_screen_info",
+                "log_intent",
                 "browser_snapshot",
                 "browser_screenshot",
                 "browser_click",
@@ -250,12 +260,14 @@ google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" -
 
 # 2. Run the MCP server with --network host
 docker run --network host -i --rm \
+  -v /path/to/audit-logs:/audit-logs \
   -e BROWSER_MODE=connect \
   -e CDP_URL=http://localhost:9222 \
   -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
   -e SAP_USER=your_username \
   -e SAP_PASSWORD=your_password \
   -e SAP_MANDANT=100 \
+  -e AUDIT_LOG_DIR=/audit-logs \
   ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ```
 
@@ -276,12 +288,14 @@ docker compose up -d cdp-proxy
 # 3. Run the MCP server on the same Docker network as the proxy
 docker run -i --rm \
   --network sapwebguimcp_default \
+  -v /path/to/audit-logs:/audit-logs \
   -e BROWSER_MODE=connect \
   -e CDP_URL=http://cdp-proxy:9222 \
   -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
   -e SAP_USER=your_username \
   -e SAP_PASSWORD=your_password \
   -e SAP_MANDANT=100 \
+  -e AUDIT_LOG_DIR=/audit-logs \
   ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ```
 
@@ -324,6 +338,8 @@ First start Chrome with remote debugging and the CDP proxy (see Quick Start abov
                 "--rm",
                 "--network",
                 "sapwebguimcp_default",
+                "-v",
+                "/path/to/audit-logs:/audit-logs",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
@@ -336,6 +352,8 @@ First start Chrome with remote debugging and the CDP proxy (see Quick Start abov
                 "SAP_PASSWORD=your_password",
                 "-e",
                 "SAP_MANDANT=100",
+                "-e",
+                "AUDIT_LOG_DIR=/audit-logs",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ]
         }
@@ -356,6 +374,8 @@ First start Chrome with remote debugging and the CDP proxy (see Quick Start abov
                 "host",
                 "-i",
                 "--rm",
+                "-v",
+                "/path/to/audit-logs:/audit-logs",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
@@ -368,6 +388,8 @@ First start Chrome with remote debugging and the CDP proxy (see Quick Start abov
                 "SAP_PASSWORD=your_password",
                 "-e",
                 "SAP_MANDANT=100",
+                "-e",
+                "AUDIT_LOG_DIR=/audit-logs",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ]
         }
@@ -415,6 +437,7 @@ The MCP server will connect to your existing browser instead of launching a new 
 | `sap_transaction`     | Enters and executes a transaction code. Automatically enables OK-Code field if not visible (via Settings → enable OK-Code Field). |
 | `sap_keepalive_start` | Starts background task to prevent session timeout (default: ping every 5 minutes).                                                |
 | `sap_keepalive_stop`  | Stops the keepalive background task.                                                                                              |
+| `log_intent`          | Log a high-level intent for audit trail. Used by models to document what they're doing and why.                                   |
 
 ### Low-Level Browser Tools (Escape Hatches)
 
@@ -494,7 +517,12 @@ sap-webgui-mcp/
 │   │   ├── __init__.py      # Tool registration exports
 │   │   ├── sap_tools.py     # SAP-specific tools
 │   │   ├── browser_tools.py # Browser escape hatches
+│   │   ├── intent_tools.py  # Intent logging for audit trail
 │   │   └── README.md        # Tools documentation
+│   ├── loghandlers/         # Custom log handlers
+│   │   └── audit_handler.py # JSONL file handler for intents
+│   ├── resources/           # MCP resources
+│   │   └── intent_resource.py # Intent log resource
 │   └── skills/              # Reusable workflows
 │       └── README.md        # Skills documentation
 ├── unittests/               # Test suite
