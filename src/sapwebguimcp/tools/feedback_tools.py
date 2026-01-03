@@ -69,12 +69,12 @@ async def _create_github_issue(
 
             # Create the issue
             url = f"https://api.github.com/repos/{repo}/issues"
-            payload = {
+            issue_payload: dict[str, str | list[str]] = {
                 "title": title,
                 "body": body,
                 "labels": ["model-feedback"],
             }
-            response = await client.post(url, headers=headers, json=payload)
+            response = await client.post(url, headers=headers, json=issue_payload)
             if response.status_code == 201:
                 return response.json().get("html_url"), None
             return None, f"GitHub API error: {response.status_code} - {response.text}"
