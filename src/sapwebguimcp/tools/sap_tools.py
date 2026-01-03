@@ -45,6 +45,7 @@ from sapwebguimcp.models import (
     get_browser_manager,
     get_settings,
 )
+from sapwebguimcp.utils import is_sap_shortcut
 
 __all__ = ["register_sap_tools"]
 
@@ -689,7 +690,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             key: Keyboard shortcut. Use "Ctrl+", "Shift+", "Alt+" prefixes for modifiers.
 
         Returns:
-            KeyboardResult with the key sent and current page title.
+            KeyboardResult with the key sent, page title, and status bar (for shortcuts).
+            Status bar is auto-read for F-keys and Ctrl+* since SAP often shows feedback there.
         """
         browser_manager = await get_browser_manager()
 
@@ -707,6 +709,26 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             await page.wait_for_load_state("networkidle", timeout=15000)
 
             title = await page.title()
+
+            # Auto-read status bar for shortcuts (F-keys or Ctrl+*)
+            if is_sap_shortcut(key):
+                try:
+                    status_info = await page.evaluate(_load_js("extract_status_bar.js"))
+                    return KeyboardResult(
+                        key=key,
+                        page_title=title,
+                        status_bar_read=True,
+                        status_bar_type=status_info.get("type", "none"),
+                        status_bar_message=status_info.get("message", ""),
+                    )
+                except Exception:  # pylint: disable=broad-exception-caught
+                    # Status bar read failed, but keystroke succeeded
+                    return KeyboardResult(
+                        key=key,
+                        page_title=title,
+                        status_bar_read=False,
+                    )
+
             return KeyboardResult(key=key, page_title=title)
 
         except Exception as e:  # pylint: disable=broad-exception-caught
