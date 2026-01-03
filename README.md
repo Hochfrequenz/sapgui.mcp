@@ -467,18 +467,18 @@ The MCP server will connect to your existing browser instead of launching a new 
 
 ### Low-Level Browser Tools (Escape Hatches)
 
-| Tool                    | Description                            |
-| ----------------------- | -------------------------------------- |
-| `browser_snapshot`      | Get accessibility tree of current page |
-| `browser_screenshot`    | Take a screenshot                      |
-| `browser_click`         | Click an element by selector           |
-| `browser_fill`          | Fill an input field                    |
-| `browser_keyboard`      | Send keyboard input                    |
-| `browser_navigate`      | Navigate to URL                        |
-| `browser_evaluate`      | Execute JavaScript                     |
-| `browser_wait`          | Wait for element or timeout            |
-| `browser_get_html`      | Get HTML content                       |
-| `browser_select_option` | Select dropdown option                 |
+| Tool                    | Description                                     |
+| ----------------------- | ----------------------------------------------- |
+| `browser_snapshot`      | Get accessibility tree of current page          |
+| `browser_screenshot`    | Take a screenshot                               |
+| `browser_click`         | Click an element by selector                    |
+| `browser_fill`          | Fill an input field                             |
+| `browser_keyboard`      | Send keyboard input                             |
+| `browser_navigate`      | Navigate to URL                                 |
+| `browser_evaluate`      | Execute JavaScript                              |
+| `browser_wait`          | Wait for element state (use with selector only) |
+| `browser_get_html`      | Get HTML content                                |
+| `browser_select_option` | Select dropdown option                          |
 
 ## Usage Example
 
