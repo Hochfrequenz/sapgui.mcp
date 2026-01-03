@@ -899,9 +899,22 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             # Look up the transaction (case-insensitive)
             if tcode_upper in registry_data:
+                tcode_data = registry_data[tcode_upper]
+
+                # Flatten nested screens structure into a single dict
+                # Registry format: {"screens": {"initial": {"field": "selector"}, ...}}
+                fields: dict[str, str] = {}
+                screens = tcode_data.get("screens", {})
+                for screen_name, screen_fields in screens.items():
+                    if isinstance(screen_fields, dict):
+                        for field_name, selector in screen_fields.items():
+                            # Prefix with screen name if field name would collide
+                            key = f"{screen_name}.{field_name}" if field_name in fields else field_name
+                            fields[key] = selector
+
                 return FieldLookupResult(
                     transaction=tcode_upper,
-                    fields=registry_data[tcode_upper],
+                    fields=fields,
                 )
 
             # Check if it's a partial match
