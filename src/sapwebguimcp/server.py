@@ -15,6 +15,7 @@ from typing import Any
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware, MiddlewareContext
+from fastmcp.server.middleware.logging import LoggingMiddleware
 
 from sapwebguimcp.models import close_browser_manager
 from sapwebguimcp.tools import register_browser_tools, register_sap_tools
@@ -134,6 +135,9 @@ mcp = FastMCP(
 
 # Add logging middleware for tool call sequence analysis
 mcp.add_middleware(ToolCallLoggingMiddleware())
+
+# Add FastMCP built-in logging with payload visibility
+mcp.add_middleware(LoggingMiddleware(include_payloads=True, max_payload_length=1000))
 
 # Register all tools
 register_sap_tools(mcp)
