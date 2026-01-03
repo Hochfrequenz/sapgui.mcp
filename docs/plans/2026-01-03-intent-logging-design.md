@@ -5,11 +5,13 @@
 A separate logging system that captures high-level model intentions - parallel to existing tool-call logging but on a semantic level.
 
 **Purpose:**
+
 - Accountability for stakeholders: What did the user want? What did the model try to do?
 - Non-technical audit trail (no tool args, no durations)
 - Retrievable as MCP Resource at end of session
 
 **Components:**
+
 1. `log_intent` Tool - Model documents its intentions
 2. `IntentFileHandler` - Writes to JSONL file (optional, if AUDIT_LOG_DIR set)
 3. In-memory store - Always keeps entries per session
@@ -18,19 +20,21 @@ A separate logging system that captures high-level model intentions - parallel t
 ## Data Structure
 
 **Intent Entry:**
+
 ```json
 {
-  "timestamp": "2026-01-03T12:34:56.789+00:00",
-  "session_id": "abc-123-def",
-  "intent": "Check invoice 4711 and change payment terms to ZB01",
-  "context": {
-    "tcode": "VA02",
-    "document_id": "4711"
-  }
+    "timestamp": "2026-01-03T12:34:56.789+00:00",
+    "session_id": "abc-123-def",
+    "intent": "Check invoice 4711 and change payment terms to ZB01",
+    "context": {
+        "tcode": "VA02",
+        "document_id": "4711"
+    }
 }
 ```
 
 **Tool Signature:**
+
 ```python
 async def log_intent(
     intent: str,
@@ -39,6 +43,7 @@ async def log_intent(
 ```
 
 **Pydantic Models:**
+
 ```python
 class IntentEntry(BaseModel):
     timestamp: AwareDatetime
@@ -55,6 +60,7 @@ class IntentLogResult(ToolResult):
 ## Storage
 
 ### In-Memory (Always)
+
 ```python
 # Per-session intent storage
 _session_intents: dict[str, list[IntentEntry]] = {}
@@ -65,7 +71,9 @@ _session_intents: dict[str, list[IntentEntry]] = {}
 - Cleared when session ends
 
 ### File (Optional)
+
 **Filename format:**
+
 ```
 audit_20260103T123456_{session_id}.jsonl
 ```
@@ -73,6 +81,7 @@ audit_20260103T123456_{session_id}.jsonl
 **Trigger:** New file created on `sap_login`
 
 **Handler:**
+
 ```python
 class IntentFileHandler(logging.Handler):
     """Writes intent logs to audit_YYYYMMDDTHHMMSS_{session_id}.jsonl"""
@@ -88,6 +97,7 @@ class IntentFileHandler(logging.Handler):
 ```
 
 **Configuration:**
+
 - `AUDIT_LOG_DIR` environment variable
 - If empty: no file persistence, only in-memory
 - If set: writes to specified directory (should be mounted volume for Docker)
@@ -97,6 +107,7 @@ class IntentFileHandler(logging.Handler):
 **URI:** `intent://session/{session_id}`
 
 **Implementation:**
+
 ```python
 @mcp.resource("intent://session/{session_id}")
 async def get_session_intent_log(session_id: str) -> str:
@@ -110,6 +121,7 @@ async def get_session_intent_log(session_id: str) -> str:
 ## Logging Integration
 
 **Logger:** Uses standard `__name__` convention
+
 ```python
 # In sapwebguimcp/tools/intent_tools.py
 _logger = logging.getLogger(__name__)
@@ -123,6 +135,7 @@ def log_intent(...):
 ## File Structure
 
 **New files:**
+
 ```
 src/sapwebguimcp/
 ├── tools/
@@ -138,12 +151,14 @@ src/sapwebguimcp/
 ```
 
 **Changes:**
+
 - `server.py` - Register handler if AUDIT_LOG_DIR is set
 - `README.md` - Document environment variable
 
 ## Docker Configuration
 
 **Volume mount for persistence:**
+
 ```json
 "args": [
   "run", "-i", "--rm",
@@ -160,6 +175,7 @@ src/sapwebguimcp/
 ## Usage Examples
 
 **Model logs intent at start of request:**
+
 ```
 User: "Check invoice 4711 and update payment terms"
 Model calls: log_intent(
@@ -169,6 +185,7 @@ Model calls: log_intent(
 ```
 
 **Model logs milestone:**
+
 ```
 Model calls: log_intent(
     intent="Changes saved successfully, proceeding to next document",
@@ -177,6 +194,7 @@ Model calls: log_intent(
 ```
 
 **User retrieves audit log:**
+
 ```
 Resource: intent://session/abc-123-def
 Returns: [
