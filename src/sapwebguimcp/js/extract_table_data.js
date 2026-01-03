@@ -114,7 +114,8 @@
                     hasData = true;
 
                     // Determine click target and build selector
-                    const isHotspot = innerSpan && isHotspotCell(innerSpan);
+                    // Use Boolean() to ensure we return true/false, not null/undefined
+                    const isHotspot = Boolean(innerSpan && isHotspotCell(innerSpan));
                     const clickTarget = isHotspot ? innerSpanId : cellId;
                     const selector = escapeCssSelector(clickTarget);
 
