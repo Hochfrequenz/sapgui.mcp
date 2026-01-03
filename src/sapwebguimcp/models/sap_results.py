@@ -117,7 +117,10 @@ class DiscoveredFields(ToolResult):
     """Result from sap_discover_fields tool."""
 
     field_count: int = Field(ge=0, description="Number of fields found")
-    fields: list[FieldInfo] = Field(default_factory=list)
+    fields: list[FieldInfo] = Field(
+        default_factory=list,
+        description="List of discovered fields with selectors - use the 'selector' field for targeting",
+    )
 
 
 class FieldLookupResult(ToolResult):
