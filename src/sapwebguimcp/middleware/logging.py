@@ -11,7 +11,7 @@ from sapwebguimcp.models.middleware import SessionStats
 
 __all__ = ["ToolCallLoggingMiddleware"]
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class ToolCallLoggingMiddleware(Middleware):
@@ -41,7 +41,7 @@ class ToolCallLoggingMiddleware(Middleware):
         # Show sequence: last 3 calls -> current
         sequence = " -> ".join(session.tool_calls[-3:] + [tool_name]) if session.tool_calls else tool_name
 
-        logger.debug(
+        _logger.debug(
             "TOOL_CALL | session=%s | tool=%s | call_number=%d | sequence=%s",
             session_id,
             tool_name,
@@ -58,7 +58,7 @@ class ToolCallLoggingMiddleware(Middleware):
             session.total_duration += duration
             session.call_count += 1
 
-            logger.info(
+            _logger.info(
                 "TOOL_DONE | session=%s | tool=%s | duration=%s | session_total=%s",
                 session_id,
                 tool_name,
@@ -72,7 +72,7 @@ class ToolCallLoggingMiddleware(Middleware):
             session.total_duration += duration
             session.call_count += 1
 
-            logger.warning(
+            _logger.warning(
                 "TOOL_FAIL | session=%s | tool=%s | duration=%s | error=%s",
                 session_id,
                 tool_name,
