@@ -34,6 +34,7 @@ from bs4 import BeautifulSoup
 from bs4.element import Tag
 
 # Import the selectors we want to test
+from sapwebguimcp.tools.browser_tools import _escape_css_selector
 from sapwebguimcp.tools.sap_tools import SELECTORS
 
 
@@ -671,3 +672,27 @@ class TestTableContentExtraction:
         assert has_mandt or has_cccategory or has_field_indicator, (
             "SE11 T000 definition should show field names. " "Expected MANDT, CCCATEGORY, or FIELD/COMPONENT labels."
         )
+
+
+class TestCssSelectorEscaping:
+    """Tests for CSS selector escaping utility.
+
+    SAP generates element IDs containing special CSS characters like : and [].
+    These must be escaped for valid CSS selectors.
+    """
+
+    @pytest.mark.parametrize(
+        ("selector", "expected"),
+        [
+            pytest.param("#M0:48::btn[5]", r"#M0\:48\:\:btn\[5\]", id="sap_button"),
+            pytest.param("#M0:46:1:1::0:21", r"#M0\:46\:1\:1\:\:0\:21", id="sap_input"),
+            pytest.param("#mySimpleId", "#mySimpleId", id="simple_id"),
+            pytest.param(".some-class:hover", ".some-class:hover", id="class_selector"),
+            pytest.param("[data-id='test:value']", "[data-id='test:value']", id="attribute_selector"),
+            pytest.param("", "", id="empty_string"),
+        ],
+    )
+    def test_escape_css_selector(self, selector: str, expected: str) -> None:
+        """Test CSS selector escaping for various inputs."""
+        result = _escape_css_selector(selector)
+        assert result == expected, f"Input: {selector!r}, Expected: {expected!r}, Got: {result!r}"
