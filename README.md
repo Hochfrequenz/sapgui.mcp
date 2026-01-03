@@ -59,6 +59,20 @@ Configure via environment variables:
 | `BROWSER_HEADLESS` | Run headless (`true`/`false`)                        | `false`                 |
 | `CDP_URL`          | CDP URL for connecting to existing browser           | `http://localhost:9222` |
 | `AUDIT_LOG_DIR`    | Directory for intent audit logs (JSONL files)        | (empty, no file output) |
+| `GITHUB_PAT`       | GitHub PAT for creating issues from feedback (empty = disabled) | (empty)    |
+| `GITHUB_REPO`      | Repository for feedback issues (owner/repo format)   | `Hochfrequenz/sapwebgui.mcp` |
+
+### GitHub Feedback Integration
+
+To enable automatic GitHub issue creation from model feedback:
+
+1. Create a GitHub Personal Access Token (PAT) with `repo` scope:
+   - Go to GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens
+   - Create a new token with "Issues" permission (Read and Write) for your repository
+2. Set the `GITHUB_PAT` environment variable to your token
+3. Optionally set `GITHUB_REPO` if you want issues in a different repository
+
+The server will automatically create a `model-feedback` label (light purple) if it doesn't exist.
 
 If `SAP_USER`, `SAP_PASSWORD`, and `SAP_MANDANT` are set, the server will automatically fill in the login form.
 Otherwise, the login page opens for manual credential entry.
@@ -161,6 +175,8 @@ Add this configuration (replace the SAP values with your own):
                 "SAP_MANDANT=100",
                 "-e",
                 "AUDIT_LOG_DIR=/audit-logs",
+                "-e",
+                "GITHUB_PAT=your_github_pat_here",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ]
         }
@@ -209,6 +225,8 @@ By default, Claude Desktop asks for confirmation before running MCP tools. To au
                 "SAP_MANDANT=100",
                 "-e",
                 "AUDIT_LOG_DIR=/audit-logs",
+                "-e",
+                "GITHUB_PAT=your_github_pat_here",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ],
             "alwaysAllow": [
@@ -223,6 +241,7 @@ By default, Claude Desktop asks for confirmation before running MCP tools. To au
                 "sap_read_status_bar",
                 "sap_get_screen_info",
                 "log_intent",
+                "log_feedback",
                 "browser_snapshot",
                 "browser_screenshot",
                 "browser_click",
@@ -268,6 +287,7 @@ docker run --network host -i --rm \
   -e SAP_PASSWORD=your_password \
   -e SAP_MANDANT=100 \
   -e AUDIT_LOG_DIR=/audit-logs \
+  -e GITHUB_PAT=your_github_pat_here \
   ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ```
 
@@ -296,6 +316,7 @@ docker run -i --rm \
   -e SAP_PASSWORD=your_password \
   -e SAP_MANDANT=100 \
   -e AUDIT_LOG_DIR=/audit-logs \
+  -e GITHUB_PAT=your_github_pat_here \
   ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ```
 
@@ -354,6 +375,8 @@ First start Chrome with remote debugging and the CDP proxy (see Quick Start abov
                 "SAP_MANDANT=100",
                 "-e",
                 "AUDIT_LOG_DIR=/audit-logs",
+                "-e",
+                "GITHUB_PAT=your_github_pat_here",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ]
         }
@@ -390,6 +413,8 @@ First start Chrome with remote debugging and the CDP proxy (see Quick Start abov
                 "SAP_MANDANT=100",
                 "-e",
                 "AUDIT_LOG_DIR=/audit-logs",
+                "-e",
+                "GITHUB_PAT=your_github_pat_here",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ]
         }
@@ -438,6 +463,7 @@ The MCP server will connect to your existing browser instead of launching a new 
 | `sap_keepalive_start` | Starts background task to prevent session timeout (default: ping every 5 minutes).                                                |
 | `sap_keepalive_stop`  | Stops the keepalive background task.                                                                                              |
 | `log_intent`          | Log a high-level intent for audit trail. Used by models to document what they're doing and why.                                   |
+| `log_feedback`        | Log technical feedback about tool usage patterns, friction points, or optimization opportunities. Creates GitHub issues if `GITHUB_PAT` is set. |
 
 ### Low-Level Browser Tools (Escape Hatches)
 

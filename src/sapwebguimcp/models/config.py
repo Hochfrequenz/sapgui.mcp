@@ -122,6 +122,27 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "CDP_URL"},
     )
 
+    # Audit Logging
+    audit_log_dir: str = Field(
+        default="",
+        description="Directory for intent audit logs (JSONL files). "
+        "Leave empty to disable file-based audit logging.",
+        json_schema_extra={"env": "AUDIT_LOG_DIR"},
+    )
+
+    # GitHub Issue Creation (optional)
+    github_pat: str = Field(
+        default="",
+        description="GitHub Personal Access Token for creating issues from feedback. "
+        "Leave empty to disable automatic issue creation.",
+        json_schema_extra={"env": "GITHUB_PAT"},
+    )
+    github_repo: str = Field(
+        default="Hochfrequenz/sapwebgui.mcp",
+        description="GitHub repository for feedback issues (format: owner/repo)",
+        json_schema_extra={"env": "GITHUB_REPO"},
+    )
+
     def validate_for_browser(self) -> list[str]:
         """Validate settings required for browser connection."""
         errors: list[str] = []
