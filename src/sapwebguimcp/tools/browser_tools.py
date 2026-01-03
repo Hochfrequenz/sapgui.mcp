@@ -146,7 +146,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
         try:
             await page.click(selector)
-            await page.wait_for_load_state("networkidle")
+            await page.wait_for_load_state("networkidle", timeout=15000)
             return ClickResult(selector=selector)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error clicking element")
@@ -234,7 +234,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
         try:
             await page.goto(url)
-            await page.wait_for_load_state("networkidle")
+            await page.wait_for_load_state("networkidle", timeout=15000)
             title = await page.title()
             return NavigateResult(url=url, title=title)
         except Exception as e:  # pylint: disable=broad-exception-caught

@@ -363,7 +363,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         try:
             logger.info("Navigating to SAP Web GUI: %s", effective_url)
             await page.goto(effective_url)
-            await page.wait_for_load_state("networkidle")
+            await page.wait_for_load_state("networkidle", timeout=15000)
 
             # Check if we're already logged in
             okcode_field = await _find_okcode_field(page)
@@ -578,7 +578,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             await page.keyboard.press("Enter")
             logger.debug("Pressed Enter to execute transaction")
 
-            await page.wait_for_load_state("networkidle")
+            await page.wait_for_load_state("networkidle", timeout=15000)
 
             title = await page.title()
 
@@ -704,7 +704,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             await page.keyboard.press(key)
 
             # Wait for SAP to respond
-            await page.wait_for_load_state("networkidle")
+            await page.wait_for_load_state("networkidle", timeout=15000)
 
             title = await page.title()
             return KeyboardResult(key=key, page_title=title)
