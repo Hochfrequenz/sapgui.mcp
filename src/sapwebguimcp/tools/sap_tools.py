@@ -936,25 +936,31 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Error looking up fields")
             return FieldLookupResult.failure(f"Error looking up fields: {e}", transaction=tcode_upper)
 
-    @mcp.tool(description="Discover input fields on the current SAP screen")
+    @mcp.tool(
+        description=(
+            "Discover input fields on the current SAP screen. "
+            "Returns fields with reliable CSS selectors (use the 'selector' field). "
+            "Call once per screen, not repeatedly - results are consistent."
+        )
+    )
     async def sap_discover_fields() -> DiscoveredFields:
         """
         Discover all input fields on the current SAP screen.
 
         This tool analyzes the current page and returns information about
-        all visible input fields, including their IDs, names, labels, and
-        suggested CSS selectors.
+        all visible input fields with reliable CSS selectors.
 
-        Use this when sap_lookup_fields doesn't have information for
-        the current transaction.
+        IMPORTANT: Use the 'selector' field directly with sap_fill_form or
+        sap_set_field - it is designed to work reliably. Avoid using raw
+        element IDs which may contain special characters.
 
         Returns:
             DiscoveredFields with list of fields including:
-            - id: Element ID
-            - name: Element name attribute
-            - label: Associated label text (if found)
-            - type: Input type
-            - selector: Suggested CSS selector to use
+            - field_id: SAP field ID (e.g., 'NAME_FIRST', 'STREET')
+            - label: Associated label text (for display)
+            - selector: Reliable CSS selector to use with sap_fill_form
+            - alternative_selectors: Other valid selectors (fallbacks)
+            - type: Input type (text, checkbox, etc.)
             - value: Current value (if any)
         """
         browser_manager = await get_browser_manager()
