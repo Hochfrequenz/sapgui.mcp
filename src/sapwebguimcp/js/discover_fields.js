@@ -118,6 +118,22 @@
             }
         }
 
+        // SAP-specific: look for label with lsdata["1"] pointing to this input's ID
+        if (!field.label && el.id) {
+            const labels = document.querySelectorAll('label[lsdata]');
+            for (const label of labels) {
+                try {
+                    const lsdata = JSON.parse(label.getAttribute('lsdata'));
+                    if (lsdata['1'] === el.id && lsdata['3']) {
+                        field.label = lsdata['3'].substring(0, 100);
+                        break;
+                    }
+                } catch {
+                    // Ignore parsing errors
+                }
+            }
+        }
+
         // If still no label, look for nearby text
         if (!field.label) {
             const parent = el.parentElement;

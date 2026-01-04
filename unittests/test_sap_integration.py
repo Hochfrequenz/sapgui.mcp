@@ -1156,15 +1156,32 @@ async def test_bp_fill_form_batch_fill(sap_mcp_client: ClientSession) -> None:
     # Capture HTML snapshot of BP initial screen
     await capture_html_snapshot(sap_mcp_client, "bp_initial")
 
-    # Step 2: Click on "Person" button to create a new person
-    # The button text depends on language (Person in both DE and EN)
-    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "span:has-text('Person')"})
+    # Step 2: Click on the "Person" button to create a new person
+    # The button has ID M0:48::btn[5] with text "Person anlegen (F5)"
+    #
+    # IMPORTANT: SAP Web GUI requires multiple waits for reliable form interaction:
+    # - Pre-click wait: Ensures the page is fully interactive after initial load
+    # - Post-click wait: Allows SAP backend to process and return the form HTML
+    # - Form label wait: Ensures the specific form labels are rendered
+    # - Post-render wait: Allows all label-input associations (lsdata) to be populated
+    # Without these waits, the form may not have all labels visible when sap_fill_form runs.
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
     click_data = parse_tool_response(click_result)
     assert click_data.get("success", True), f"Failed to click Person button: {click_data}"
 
-    # Wait for form to load - look for typical BP person form fields
-    # Use a short wait for the form to render
-    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+    # Wait for SAP backend to process and return form HTML
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Wait for specific form labels to be rendered
+    if sap_language == "DE":
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Vorname')", "timeout": 15000})
+    else:
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('First Name')", "timeout": 15000})
+
+    # Allow all label-input lsdata associations to be populated
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Capture HTML snapshot after clicking Person (shows the form fields)
     await capture_html_snapshot(sap_mcp_client, "bp_person_form")
@@ -1221,12 +1238,25 @@ async def test_bp_fill_form_with_css_selectors(sap_mcp_client: ClientSession) ->
     # Wait for BP initial screen
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
-    # Click on "Person" button
-    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "span:has-text('Person')"})
+    # Click on "Person" button to create a new person
+    # IMPORTANT: SAP Web GUI requires multiple waits for reliable form interaction.
+    # See test_bp_fill_form_batch_fill for detailed explanation.
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
     click_data = parse_tool_response(click_result)
     assert click_data.get("success", True), f"Failed to click Person button: {click_data}"
 
-    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+    # Wait for SAP backend to process and return form HTML
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Wait for first name label to confirm form is loaded
+    await sap_mcp_client.call_tool(
+        "browser_wait", {"selector": "label:has-text('Vorname'), label:has-text('First Name')", "timeout": 15000}
+    )
+
+    # Allow all label-input lsdata associations to be populated
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Use CSS selectors that match SAP lsdata attributes for BP person form
     # These selectors target the actual SAP field IDs embedded in lsdata

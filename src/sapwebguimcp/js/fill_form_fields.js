@@ -1,6 +1,6 @@
 (args) => {
     const fields = args.fields;
-    const results = { filled: [], notFound: [], errors: [] };
+    const results = { filled: [], notFound: [], errors: [], debug: [] };
 
     /**
      * Find an input element by its associated label text.
@@ -16,7 +16,32 @@
             }
         }
 
-        // 2. Find text node matching label, then look for nearby input
+        // 2. SAP-specific: labels use lsdata["1"] for associated input ID
+        // and lsdata["3"] for the label text
+        let debugInfo = { labelCount: labels.length, matchingLabels: [], foundInput: null };
+        for (const label of labels) {
+            const lsdata = label.getAttribute('lsdata');
+            if (!lsdata) continue;
+            try {
+                const parsed = JSON.parse(lsdata);
+                // Check if this label's text (key "3") matches
+                if (parsed['3'] === labelText) {
+                    debugInfo.matchingLabels.push({ labelText: parsed['3'], inputId: parsed['1'] });
+                    if (parsed['1']) {
+                        const input = document.getElementById(parsed['1']);
+                        if (input) {
+                            debugInfo.foundInput = parsed['1'];
+                            return input;
+                        }
+                    }
+                }
+            } catch {
+                // Not valid JSON, skip
+            }
+        }
+        console.log('DEBUG findInputByLabel:', labelText, debugInfo);
+
+        // 3. Find text node matching label, then look for nearby input
         // SAP often uses spans, divs, or table cells as labels
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
 
@@ -87,6 +112,36 @@
             }
 
             if (!el) {
+                // Add debug info about labels searched (helps diagnose form loading issues)
+                const labels = document.querySelectorAll('label');
+                let labelsWithLsdata = 0;
+                let matchingLabels = [];
+                let sampleLabelTexts = [];
+                for (const label of labels) {
+                    const lsdata = label.getAttribute('lsdata');
+                    if (lsdata) {
+                        labelsWithLsdata++;
+                        try {
+                            const parsed = JSON.parse(lsdata);
+                            if (parsed['3']) {
+                                // Keep first 10 labels for debugging
+                                if (sampleLabelTexts.length < 10) {
+                                    sampleLabelTexts.push(parsed['3']);
+                                }
+                            }
+                            if (parsed['3'] === key) {
+                                matchingLabels.push({ label: parsed['3'], inputId: parsed['1'] });
+                            }
+                        } catch {}
+                    }
+                }
+                results.debug.push({
+                    field: key,
+                    totalLabels: labels.length,
+                    labelsWithLsdata: labelsWithLsdata,
+                    matchingLabels: matchingLabels,
+                    sampleLabelTexts: sampleLabelTexts,
+                });
                 results.notFound.push(key);
                 continue;
             }

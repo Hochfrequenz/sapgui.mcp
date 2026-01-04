@@ -1185,6 +1185,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             not_found = result.get("notFound", [])
             errors = [FieldFillError(field=e["field"], error=e["error"]) for e in result.get("errors", [])]
 
+            # Log debug info if fields were not found
+            debug_info = result.get("debug", [])
+            if debug_info:
+                logger.warning("sap_fill_form debug: %s", debug_info)
+
             # In strict mode, fail if any field was not found
             if strict and not_found:
                 return FillFormResult.failure(
