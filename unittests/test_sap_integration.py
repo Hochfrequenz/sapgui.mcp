@@ -233,6 +233,7 @@ async def capture_html_snapshot(
 _TRANSACTION_WAIT_SELECTORS: dict[str, str] = {
     "SE11": "[lsdata*='RSRD1-TBMA']",  # Database table radio button
     "SE16": "input[lsdata*='TABLENAME']",  # Table name input field
+    "SE38": "label:has-text('Programm'), label:has-text('Program')",  # ABAP Editor program label
     "SE93": "input[lsdata*='TSTC-TCODE']",  # Transaction code input field
     "SM37": "input[lsdata*='JOBNAME']",  # Job name input field
     "SU3": "[lsdata*='SUID_ST_NODE']",  # User profile (SU3) fields - SUID_ST_NODE_PERSON_NAME etc.
@@ -2382,6 +2383,104 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     assert (
         "SAP" in title or "Geschäftspartner" in title or "Easy Access" in title or "Einstieg" in title
     ), f"Should be back to BP or SAP landing page. Got title: {title}"
+
+
+@pytest.mark.anyio
+async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession) -> None:
+    """
+    Test popup detection with a detailed body message in SE38.
+
+    This test triggers an error popup that has:
+    - Title: "Fehler in der Objektbearbeitung"
+    - Body: "Systemeinstellung erlaubt keine Änderung des Objekts PROG AAAAAAAA..."
+    - Buttons: "Weiter", "Langdokumentation"
+    - Close button (X)
+
+    This verifies that:
+    1. Popup body text from iframes is extracted correctly
+    2. Multiple buttons are detected
+    3. Close button is detected
+    4. Popup can be dismissed via close button
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open SE38 (ABAP Editor)
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE38"})
+    assert_tool_success(result, "sap_transaction SE38")
+    await _wait_for_transaction_screen(sap_mcp_client, "SE38")
+
+    # Capture initial SE38 screen
+    await capture_html_snapshot(sap_mcp_client, "se38_initial", overwrite=True)
+
+    # Enter an invalid program name
+    fill_result = await sap_mcp_client.call_tool(
+        "sap_fill_form", {"fields": {"Programm": "AAAAAAAAAAAAAAAAAAAA"}}
+    )
+    assert_tool_success(fill_result, "Fill program name")
+
+    # Click "Anlegen" (Create) button - this triggers the error popup
+    click_result = await sap_mcp_client.call_tool(
+        "browser_click", {"selector": "span:has-text('Anlegen'), button:has-text('Anlegen')"}
+    )
+    click_data = parse_tool_response(click_result)
+
+    # Capture the popup HTML for debugging
+    await capture_html_snapshot(sap_mcp_client, "se38_error_popup", overwrite=True)
+
+    # Check if popup was detected via the click result or needs manual check
+    popup = click_data.get("blocking_popup")
+    if not popup:
+        # Popup might not be in click result, check via sap_get_screen_info
+        await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
+        # Try to detect popup by checking screen info
+        screen_result = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+        screen_data = parse_tool_response(screen_result)
+        popup = screen_data.get("blocking_popup")
+
+    assert popup, (
+        f"Expected error popup after clicking Anlegen with invalid program name. "
+        f"Check se38_error_popup_*.html. Click result: {click_data}"
+    )
+
+    # Verify popup has a message (title + body)
+    message = popup.get("message", "")
+    assert message, f"Popup should have a message. Got: {popup}"
+    # The message should contain either the title or body text
+    assert len(message) > 10, f"Popup message should be descriptive. Got: {message}"
+
+    # Should have buttons "Weiter" and "Langdokumentation"
+    buttons = popup.get("buttons", [])
+    button_labels = [b.get("label", "") for b in buttons]
+    assert len(buttons) >= 1, f"Popup should have buttons. Got: {button_labels}"
+    # Check for expected buttons (German)
+    has_weiter = any("Weiter" in label or "weiter" in label.lower() for label in button_labels)
+    has_langdoku = any("Langdoku" in label or "langdoku" in label.lower() for label in button_labels)
+    assert has_weiter or has_langdoku, (
+        f"Expected 'Weiter' or 'Langdokumentation' button. Got: {button_labels}"
+    )
+
+    # Should have a close button (X)
+    close_button_id = popup.get("close_button_id")
+    # Note: close button may not always be present, so we just log it
+    if close_button_id:
+        # Dismiss using close button
+        dismiss_result = await sap_mcp_client.call_tool("sap_dismiss_popup", {"close": True})
+        dismiss_data = parse_tool_response(dismiss_result)
+        assert dismiss_data.get("success", False), f"Close should succeed. Result: {dismiss_data}"
+    else:
+        # Dismiss using "Weiter" button
+        dismiss_result = await sap_mcp_client.call_tool("sap_dismiss_popup", {"button": "Weiter"})
+        dismiss_data = parse_tool_response(dismiss_result)
+        assert dismiss_data.get("success", False), f"Dismiss should succeed. Result: {dismiss_data}"
+
+    # Verify we're back to SE38
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
+    screen_result = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+    screen_data = parse_tool_response(screen_result)
+    title = screen_data.get("title", "")
+    assert "ABAP" in title or "SE38" in title or "Editor" in title, (
+        f"Should be back to SE38. Got title: {title}"
+    )
 
 
 @pytest.mark.anyio

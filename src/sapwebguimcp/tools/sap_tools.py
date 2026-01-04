@@ -1184,6 +1184,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         try:
             page = await browser_manager.get_current_page()
 
+            # Check for blocking popup
+            popup = await _check_blocking_popup(page)
+
             # Extract screen info using JavaScript
             screen_info = await page.evaluate(_load_js("extract_screen_info.js"))
 
@@ -1193,6 +1196,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 url=screen_info.get("url", ""),
                 program=screen_info.get("program"),
                 dynpro=screen_info.get("dynpro"),
+                blocking_popup=popup,
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught

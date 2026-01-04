@@ -966,3 +966,119 @@ class TestParseShortcutFromTitle:
         """Verify non-keyboard patterns return None."""
         result = parse_shortcut_from_title(title)
         assert result is None, f"Expected None for: {title!r}"
+
+
+class TestPopupDetection:
+    """Tests for popup detection in SAP Web GUI HTML snapshots.
+
+    These tests verify that the popup detection JavaScript (check_popup.js)
+    can find the expected elements in real SAP popup HTML.
+    """
+
+    def test_se38_error_popup_has_blocking_layer(self, html_snapshots_path: Path) -> None:
+        """Verify SE38 error popup has a blocking layer."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "se38_error_popup")
+        if not snapshot_path:
+            pytest.skip("SE38 error popup snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load SE38 error popup snapshot")
+
+        # Check for blocking layer (urPopupWindowBlockLayer or lsBlockLayer)
+        blocking_layer = soup.select_one("#urPopupWindowBlockLayer, .lsBlockLayer")
+        assert blocking_layer is not None, "Expected blocking layer element"
+
+    def test_se38_error_popup_has_popup_container(self, html_snapshots_path: Path) -> None:
+        """Verify SE38 error popup has a popup container."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "se38_error_popup")
+        if not snapshot_path:
+            pytest.skip("SE38 error popup snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load SE38 error popup snapshot")
+
+        # Check for popup container (lsPWNew or similar)
+        popup = soup.select_one(".lsPWNew, [class*='lsPopupWindow'], .urPopupWindow")
+        assert popup is not None, "Expected popup container element"
+
+    def test_se38_error_popup_has_buttons(self, html_snapshots_path: Path) -> None:
+        """Verify SE38 error popup has expected buttons."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "se38_error_popup")
+        if not snapshot_path:
+            pytest.skip("SE38 error popup snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load SE38 error popup snapshot")
+
+        # Find buttons in popup (Weiter, Langdokumentation)
+        buttons = soup.select(".lsPWNew button, .lsPWNew [role='button']")
+        button_texts = [btn.get_text(strip=True) for btn in buttons]
+
+        # Should have Weiter and/or Langdokumentation
+        has_weiter = any("Weiter" in text for text in button_texts)
+        has_langdoku = any("Langdoku" in text for text in button_texts)
+        assert has_weiter or has_langdoku, f"Expected Weiter/Langdokumentation. Got: {button_texts}"
+
+    def test_se38_error_popup_has_header_title(self, html_snapshots_path: Path) -> None:
+        """Verify SE38 error popup has a header title."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "se38_error_popup")
+        if not snapshot_path:
+            pytest.skip("SE38 error popup snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load SE38 error popup snapshot")
+
+        # Find header title (Fehler in der Objektbearbeitung)
+        header = soup.select_one(".lsPWNewHeaderTextOverflow, [class*='header-title']")
+        assert header is not None, "Expected header title element"
+        header_text = header.get_text(strip=True)
+        assert "Fehler" in header_text or "Error" in header_text, f"Expected error title. Got: {header_text}"
+
+    def test_bp_validation_popup_has_blocking_layer(self, html_snapshots_path: Path) -> None:
+        """Verify BP validation popup has a blocking layer."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_validation_popup")
+        if not snapshot_path:
+            pytest.skip("BP validation popup snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP validation popup snapshot")
+
+        # Check for blocking layer
+        blocking_layer = soup.select_one("#urPopupWindowBlockLayer, .lsBlockLayer")
+        assert blocking_layer is not None, "Expected blocking layer element"
+
+    def test_bp_validation_popup_has_ja_nein_buttons(self, html_snapshots_path: Path) -> None:
+        """Verify BP validation popup has Ja/Nein buttons."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_validation_popup")
+        if not snapshot_path:
+            pytest.skip("BP validation popup snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP validation popup snapshot")
+
+        # Find buttons in popup
+        buttons = soup.select(".lsPWNew button, .lsPWNew [role='button']")
+        button_texts = [btn.get_text(strip=True) for btn in buttons]
+
+        # Should have Ja and Nein
+        has_ja = any("Ja" in text for text in button_texts)
+        has_nein = any("Nein" in text for text in button_texts)
+        assert has_ja and has_nein, f"Expected Ja/Nein buttons. Got: {button_texts}"
+
+    def test_se38_initial_has_no_popup(self, html_snapshots_path: Path) -> None:
+        """Verify SE38 initial screen has no blocking popup."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "se38_initial")
+        if not snapshot_path:
+            pytest.skip("SE38 initial snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load SE38 initial snapshot")
+
+        # Blocking layer should not exist or should be hidden
+        blocking_layer = soup.select_one("#urPopupWindowBlockLayer, .lsBlockLayer")
+        if blocking_layer:
+            # Check if it's hidden (display: none)
+            style = blocking_layer.get("style", "")
+            assert "display: none" in style or "display:none" in style, (
+                "Blocking layer exists but should be hidden on initial screen"
+            )
