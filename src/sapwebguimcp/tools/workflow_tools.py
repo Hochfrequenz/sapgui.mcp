@@ -38,6 +38,77 @@ __all__ = ["register_workflow_tools"]
 _logger = logging.getLogger(__name__)
 
 
+async def _execute_workflow_run(  # pylint: disable=too-many-locals
+    name: str,
+    items: list[dict[str, str]],
+    ctx: Context,
+) -> WorkflowRunResult:
+    """
+    Execute a workflow for multiple items using server-side agent loops.
+
+    This is the implementation extracted from workflow_run to reduce
+    statement count in register_workflow_tools.
+    """
+    _logger.warning(
+        "workflow_run called - using ctx.sample() for server-side agent loops. "
+        "WARNING (January 2026): This tool is UNTESTED because no MCP client currently "
+        "supports both sampling AND SAP authentication. "
+        "See docs/testing/workflow-sampling-copilot-setup.md for client compatibility."
+    )
+
+    workflow = load_workflow(name)
+    if not workflow:
+        return WorkflowRunResult.failure(
+            f"Workflow '{name}' not found. Use workflow_list to see available workflows.",
+            total=len(items),
+        )
+
+    results: list[str] = []
+    errors: list[WorkflowError] = []
+
+    for i, item in enumerate(items):
+        await ctx.report_progress(progress=i, total=len(items))
+
+        try:
+            result = await ctx.sample(
+                messages=f"{workflow.prompt}\n\nCurrent item ({i + 1}/{len(items)}):\n"
+                + "\n".join(f"  {k}: {v}" for k, v in item.items())
+                + "\n\nExecute the workflow for this item. Return a short confirmation like "
+                '"BP 12345: Max Mustermann created" on success, or describe the error if it fails.',
+                tools=get_sampling_tools(),
+            )
+            results.append(result.text or f"Item {i + 1} completed")
+            _logger.info("Workflow item %d/%d: %s", i + 1, len(items), results[-1][:100])
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            _logger.warning("Workflow item %d/%d failed: %s", i + 1, len(items), e)
+            item_summary = ", ".join(f"{k}={v}" for k, v in list(item.items())[:3])
+            errors.append(
+                WorkflowError(
+                    input_summary=item_summary + (", ..." if len(item) > 3 else ""),
+                    error=str(e),
+                )
+            )
+
+    await ctx.report_progress(progress=len(items), total=len(items))
+
+    _logger.info(
+        "Workflow '%s' completed: %d/%d succeeded, %d failed",
+        name,
+        len(results),
+        len(items),
+        len(errors),
+    )
+
+    return WorkflowRunResult(
+        total=len(items),
+        succeeded=len(results),
+        failed=len(errors),
+        succeeded_items=results,
+        errors=errors,
+    )
+
+
 async def _create_workflow_issue(
     pat: str,
     repo: str,
@@ -201,7 +272,7 @@ def register_workflow_tools(mcp: FastMCP) -> None:
             "REQUIRES: Client must support MCP Sampling (Claude Desktop, ChatGPT, etc.)."
         )
     )
-    async def workflow_run(  # pylint: disable=too-many-locals
+    async def workflow_run(
         name: str,
         items: list[dict[str, str]],
         ctx: Context,
@@ -228,87 +299,7 @@ def register_workflow_tools(mcp: FastMCP) -> None:
         Returns:
             WorkflowRunResult with success/failure counts and details
         """
-        _logger.warning(
-            "workflow_run called - using ctx.sample() for server-side agent loops. "
-            "WARNING (January 2026): This tool is UNTESTED because no MCP client currently "
-            "supports both sampling AND SAP authentication. "
-            "See docs/testing/workflow-sampling-copilot-setup.md for client compatibility."
-        )
-
-        # Load workflow
-        workflow = load_workflow(name)
-        if not workflow:
-            return WorkflowRunResult.failure(
-                f"Workflow '{name}' not found. Use workflow_list to see available workflows.",
-                total=len(items),
-            )
-
-        # Get available SAP tools for the agent loop
-        # These will be passed to ctx.sample() so the LLM can call them
-        sap_tools = get_sampling_tools()
-
-        results: list[str] = []
-        errors: list[WorkflowError] = []
-
-        total = len(items)
-        for i, item in enumerate(items):
-            # Report progress
-            await ctx.report_progress(progress=i, total=total)
-
-            # Build prompt for this item
-            item_str = "\n".join(f"  {k}: {v}" for k, v in item.items())
-            messages = f"""{workflow.prompt}
-
-Current item ({i + 1}/{total}):
-{item_str}
-
-Execute the workflow for this item. Return a short confirmation like
-"BP 12345: Max Mustermann created" on success, or describe the error if it fails.
-"""
-
-            try:
-                # Server-side agent loop - uses client's LLM via sampling
-                result = await ctx.sample(
-                    messages=messages,
-                    tools=sap_tools,
-                )
-
-                result_text = result.text or f"Item {i + 1} completed"
-                results.append(result_text)
-                _logger.info("Workflow item %d/%d: %s", i + 1, total, result_text[:100])
-
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                error_msg = str(e)
-                _logger.warning("Workflow item %d/%d failed: %s", i + 1, total, error_msg)
-
-                # Create summary of item for error reporting
-                item_summary = ", ".join(f"{k}={v}" for k, v in list(item.items())[:3])
-                if len(item) > 3:
-                    item_summary += ", ..."
-
-                errors.append(WorkflowError(input_summary=item_summary, error=error_msg))
-
-        # Report completion
-        await ctx.report_progress(progress=total, total=total)
-
-        succeeded = len(results)
-        failed = len(errors)
-
-        _logger.info(
-            "Workflow '%s' completed: %d/%d succeeded, %d failed",
-            name,
-            succeeded,
-            total,
-            failed,
-        )
-
-        return WorkflowRunResult(
-            total=total,
-            succeeded=succeeded,
-            failed=failed,
-            succeeded_items=results,
-            errors=errors,
-        )
+        return await _execute_workflow_run(name, items, ctx)
 
     @mcp.tool(
         description=(
