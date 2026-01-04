@@ -3,6 +3,7 @@
 ## Problem
 
 SAP popup dialogs block MCP tool operations:
+
 1. **Confirmation dialogs** (Ja/Nein) - e.g., "Discard unsaved changes?"
 2. **Blocking overlay layers** (`lsBlockLayer`, `urPopupWindowBlockLayer`) - intercept clicks, cause 30s timeouts
 
@@ -16,9 +17,7 @@ Fast check (~5ms) before operations:
 
 ```javascript
 // Quick CSS selector check
-const isBlocked = document.querySelector(
-  '#urPopupWindowBlockLayer, .lsBlockLayer'
-) !== null;
+const isBlocked = document.querySelector('#urPopupWindowBlockLayer, .lsBlockLayer') !== null;
 ```
 
 Detailed extraction only when blocked:
@@ -54,6 +53,7 @@ class ToolResult(BaseModel):
 ### 3. Affected Tools
 
 Tools that check for popup before operating:
+
 - `sap_transaction`
 - `sap_keyboard`
 - `sap_fill_form`
@@ -62,6 +62,7 @@ Tools that check for popup before operating:
 - `browser_fill`
 
 Pattern:
+
 ```python
 popup = await _check_blocking_popup(page)
 if popup:
@@ -78,6 +79,7 @@ async def sap_dismiss_popup(
 ```
 
 Error cases:
+
 - No popup present
 - `close=True` but no X button
 - Button not found
@@ -85,6 +87,7 @@ Error cases:
 ### 5. Integration Test
 
 BP discard changes popup:
+
 1. `sap_login`
 2. `sap_transaction("BP")`
 3. `sap_keyboard("F5")` - create person

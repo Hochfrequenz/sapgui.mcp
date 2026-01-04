@@ -56,6 +56,7 @@ from sapwebguimcp.models import (
     get_browser_manager,
     get_settings,
 )
+from sapwebguimcp.tools.browser_tools import _escape_css_selector
 from sapwebguimcp.utils import is_sap_shortcut
 
 __all__ = ["register_sap_tools", "SELECTORS", "parse_shortcut_from_title"]
@@ -871,9 +872,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         try:
             page = await browser_manager.get_current_page()
 
-            # Fast popup check (~5ms)
+            # Fast popup check (~5ms) - only blocks if popup exists BEFORE keystroke
             popup = await _check_blocking_popup(page)
             if popup:
+                logger.debug("sap_keyboard(%s): popup already present before keystroke", key)
                 return KeyboardResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
                     key=key,
@@ -890,13 +892,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Wait for SAP to respond
             await page.wait_for_load_state("networkidle", timeout=15000)
 
-            # Small wait to let popup render if it appeared
-            await page.wait_for_timeout(200)
+            # Wait for popup to render (SAP popups may appear after networkidle)
+            await page.wait_for_timeout(300)
 
             # Check if a popup appeared after the keystroke
             popup_after = await _check_blocking_popup(page)
-            logger.debug("Popup check after keystroke: %s", popup_after)
             if popup_after:
+                logger.debug("sap_keyboard(%s): popup appeared after keystroke", key)
                 return KeyboardResult.failure(
                     f"Popup blocking: {popup_after.message or 'confirmation required'}",
                     key=key,
@@ -1421,7 +1423,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             if close:
                 if not popup.has_close_button:
                     return DismissPopupResult.failure("No close button available")
-                await page.click(f"#{popup.close_button_id}")
+                # SAP IDs contain special characters - use CSS escaping
+                await page.click(_escape_css_selector(f"#{popup.close_button_id}"))
                 clicked_label = "[X]"
             elif not button:
                 return DismissPopupResult.failure("Specify button or close=True")
@@ -1444,7 +1447,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
                 # Click the button using best available method
                 if matched_button.id:
-                    await page.click(f"#{matched_button.id}")
+                    # SAP IDs contain special characters - use CSS escaping
+                    await page.click(_escape_css_selector(f"#{matched_button.id}"))
                 elif matched_button.accesskey:
                     await page.keyboard.press(f"Alt+{matched_button.accesskey}")
                 else:
