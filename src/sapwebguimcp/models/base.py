@@ -10,6 +10,27 @@ TCODE_PATTERN = r"^[A-Z0-9_/]+$"
 TCode = Annotated[str, BeforeValidator(str.upper), Field(pattern=TCODE_PATTERN)]
 
 
+class PopupButton(BaseModel):
+    """A button in a popup dialog."""
+
+    label: str = Field(description="Button text (e.g., 'Ja', 'Nein', 'Abbrechen')")
+    accesskey: str | None = Field(default=None, description="Keyboard shortcut (e.g., 'J', 'N')")
+    id: str | None = Field(default=None, description="Button element ID for clicking")
+
+
+class PopupInfo(BaseModel):
+    """Info about a blocking popup dialog."""
+
+    message: str | None = Field(default=None, description="Popup message text")
+    buttons: list[PopupButton] = Field(default_factory=list, description="Available buttons")
+    close_button_id: str | None = Field(default=None, description="ID of X close button if present")
+
+    @property
+    def has_close_button(self) -> bool:
+        """Whether the popup has an X close button."""
+        return self.close_button_id is not None
+
+
 class ToolResult(BaseModel):
     """Base class for all MCP tool results with standardized error handling.
 
@@ -28,6 +49,10 @@ class ToolResult(BaseModel):
 
     success: bool = Field(default=True, description="Whether the operation succeeded")
     error: str | None = Field(default=None, description="Error message if success=False")
+    blocking_popup: PopupInfo | None = Field(
+        default=None,
+        description="Present when a popup dialog is blocking further operations",
+    )
 
     @model_validator(mode="after")
     def validate_success_error_consistency(self) -> Self:

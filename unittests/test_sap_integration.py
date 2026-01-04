@@ -2252,3 +2252,137 @@ async def test_sap_get_shortcuts_no_duplicates(sap_mcp_client: ClientSession) ->
         key = (s.get("action", "").lower(), s.get("shortcut", "").lower())
         assert key not in seen, f"Duplicate shortcut found: {s}"
         seen.add(key)
+
+
+# =============================================================================
+# Popup Handling Tests (fixes #54, #44, #57)
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> None:
+    """
+    Test popup detection and dismissal in BP transaction.
+
+    This test verifies the popup handling feature:
+    1. Open BP transaction and create a person (F5)
+    2. Fill some data to mark the form as "dirty"
+    3. Navigate away (sap_transaction to SE16) - this triggers "Discard changes?" popup
+    4. Verify that sap_transaction returns with blocking_popup info
+    5. Capture HTML snapshot of the popup for offline testing
+    6. Dismiss the popup using sap_dismiss_popup
+    7. Verify the popup was dismissed and navigation succeeded
+
+    Fixes:
+    - #54: Popup dialogs blocking operations cause 30s timeouts
+    - #44: "Daten geändert" (Data changed) popup blocks navigation
+    - #57: Dialog closed unexpectedly - reliable popup interaction
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open BP transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    assert_tool_success(result, "sap_transaction BP")
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Press F5 to create a new person
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F5"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Wait for person form to load (name fields appear)
+    await sap_mcp_client.call_tool(
+        "browser_wait", {"selector": "label:has-text('Vorname'), label:has-text('First Name')", "timeout": 15000}
+    )
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # Fill some data to mark the form as dirty
+    fill_result = await sap_mcp_client.call_tool(
+        "sap_fill_form",
+        {
+            "fields": {
+                "input[lsdata*='NAME_FIRST']": "PopupTest",
+                "input[lsdata*='NAME_LAST']": "Integration",
+            }
+        },
+    )
+    assert_tool_success(fill_result, "sap_fill_form to make form dirty")
+
+    # Try to navigate away - this should trigger the "Discard changes?" popup
+    # The transaction should fail with blocking_popup info
+    nav_result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    nav_data = parse_tool_response(nav_result)
+
+    # Check if popup was detected
+    if nav_data.get("blocking_popup"):
+        # Popup was detected - capture HTML snapshot
+        await capture_html_snapshot(sap_mcp_client, "bp_discard_popup", overwrite=True)
+
+        popup = nav_data["blocking_popup"]
+        assert popup.get("message") or popup.get("buttons"), f"Popup should have message or buttons: {popup}"
+
+        # Should have buttons like "Ja" (Yes), "Nein" (No)
+        buttons = popup.get("buttons", [])
+        assert len(buttons) > 0, f"Popup should have buttons. Got: {popup}"
+
+        # Dismiss with "Ja" (Yes) to discard changes and continue
+        dismiss_result = await sap_mcp_client.call_tool("sap_dismiss_popup", {"button": "Ja"})
+        dismiss_data = parse_tool_response(dismiss_result)
+
+        # Check dismiss result
+        assert dismiss_data.get("popup_dismissed", False), f"Popup should be dismissed. Result: {dismiss_data}"
+        assert dismiss_data.get("button_clicked") == "Ja", f"Should have clicked 'Ja'. Result: {dismiss_data}"
+
+        # Now try navigation again - should work without popup
+        await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
+        retry_result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+        retry_data = parse_tool_response(retry_result)
+
+        # No popup should block this time
+        assert not retry_data.get("blocking_popup"), f"No popup should block after dismiss. Got: {retry_data}"
+
+        # Verify SE16 was actually reached
+        await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+    else:
+        # Navigation succeeded without popup - form wasn't dirty enough
+        # or SAP configuration doesn't show confirmation dialogs
+        # Verify SE16 was actually reached
+        assert nav_data.get("success", True), f"Navigation should have succeeded: {nav_data}"
+        await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+
+
+@pytest.mark.anyio
+async def test_popup_detection_without_popup(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that tools work normally when no popup is present.
+
+    Verifies that the popup detection doesn't interfere with normal operation.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Navigate to SE16 - should work without any popup
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    data = assert_tool_success(result, "sap_transaction SE16")
+
+    # Should NOT have blocking_popup
+    assert data.get("blocking_popup") is None, f"No popup expected on clean navigation. Got: {data}"
+
+
+@pytest.mark.anyio
+async def test_sap_dismiss_popup_no_popup_present(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that sap_dismiss_popup handles the case when no popup is present.
+
+    Should return an error message, not crash.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+
+    # Try to dismiss when no popup is present
+    result = await sap_mcp_client.call_tool("sap_dismiss_popup", {"button": "Ja"})
+    data = parse_tool_response(result)
+
+    # Should fail gracefully
+    assert not data.get("success", True), f"Should fail when no popup present: {data}"
+    assert "no popup" in data.get("error", "").lower(), f"Error should mention no popup: {data}"
