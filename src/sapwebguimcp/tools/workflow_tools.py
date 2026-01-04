@@ -269,7 +269,8 @@ def register_workflow_tools(mcp: FastMCP) -> None:
             "IMPORTANT: Use this when the user requests bulk operations like "
             "'create 100...', 'for each entry...', 'repeat for all...'. "
             "This tool preserves client context by running iterations server-side. "
-            "REQUIRES: Client must support MCP Sampling (Claude Desktop, ChatGPT, etc.)."
+            "REQUIRES: Client must support MCP Sampling. "
+            "NOTE: Claude Desktop/Code do NOT support sampling (Jan 2026)."
         )
     )
     async def workflow_run(
