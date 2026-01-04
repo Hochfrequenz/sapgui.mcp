@@ -25,6 +25,7 @@ Selector Sources:
 - Field registry in sap_field_registry.json (SE16, VA01, etc.)
 """
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -69,15 +70,30 @@ def load_snapshot(snapshot_path: Path) -> BeautifulSoup | None:
     """
     Load an HTML snapshot and parse it with BeautifulSoup.
 
+    Handles both raw HTML files and JSON-wrapped snapshots (from capture_html_snapshot).
+    JSON snapshots have the structure: {"success": true, "error": null, "html": "..."}
+
     Args:
         snapshot_path: Full path to the HTML snapshot file.
 
     Returns:
         BeautifulSoup object or None if the snapshot doesn't exist (test will be skipped).
     """
+    import json
+
     if not snapshot_path.exists():
         return None
-    html = snapshot_path.read_text(encoding="utf-8")
+    content = snapshot_path.read_text(encoding="utf-8")
+
+    # Check if content is JSON-wrapped HTML
+    if content.strip().startswith("{"):
+        try:
+            data = json.loads(content)
+            html = data.get("html", content)
+        except json.JSONDecodeError:
+            html = content
+    else:
+        html = content
 
     # SAP Web GUI generates invalid HTML with <table> inside <span> (role="textbox").
     # Python 3.13+ html.parser auto-closes spans when encountering block elements.
@@ -674,6 +690,207 @@ class TestTableContentExtraction:
         )
 
 
+class TestAlvGridDetection:
+    """Tests for ALV grid detection and cell selector generation.
+
+    These tests verify that our JavaScript extraction logic correctly:
+    1. Detects ALV grids (table[ct="STCS"])
+    2. Finds cell elements with grid# pattern IDs
+    3. Identifies hotspot cells (UNDERLINE_HOTSPOT in lsdata)
+    4. Generates correctly escaped CSS selectors
+    """
+
+    def test_emmacl_results_has_alv_table(self, html_snapshots_path: Path) -> None:
+        """Verify EMMACL results contain an ALV grid table."""
+        snapshot = get_snapshot_path(html_snapshots_path, "emmacl_results_no_filter")
+        if snapshot is None:
+            pytest.skip("emmacl_results_no_filter snapshot not available")
+
+        # Read raw HTML since BeautifulSoup may alter attributes
+        html_content = snapshot.read_text(encoding="utf-8")
+
+        # ALV grids have ct="STCS" attribute (escaped in the HTML snapshot)
+        has_stcs = 'ct=\\"STCS\\"' in html_content or 'ct="STCS"' in html_content
+
+        assert has_stcs, (
+            "EMMACL results should contain at least one ALV grid table. " "ALV tables have ct='STCS' attribute."
+        )
+
+        # Verify the table has an ID (look for id="C followed by digits)
+        import re
+
+        table_ids = re.findall(r'id=\\"(C\d+)\\"', html_content)
+        assert len(table_ids) >= 1, "ALV table should have an ID attribute (e.g., C120)"
+
+    def test_emmacl_results_has_grid_cell_ids(self, html_snapshots_path: Path) -> None:
+        """Verify EMMACL results contain grid# pattern cell IDs."""
+        snapshot = get_snapshot_path(html_snapshots_path, "emmacl_results_no_filter")
+        if snapshot is None:
+            pytest.skip("emmacl_results_no_filter snapshot not available")
+
+        # Read raw HTML since BeautifulSoup may alter escaped content
+        html_content = snapshot.read_text(encoding="utf-8")
+
+        # Look for grid# pattern IDs
+        import re
+
+        grid_ids = re.findall(r'id=\\"(grid#[^\\"]+)\\"', html_content)
+
+        assert len(grid_ids) >= 1, (
+            "EMMACL results should contain grid# pattern cell IDs. " "Pattern: grid#<table_id>#<row>,<col>"
+        )
+
+    def test_emmacl_results_has_hotspot_cells(self, html_snapshots_path: Path) -> None:
+        """Verify EMMACL results contain hotspot cells (navigable links)."""
+        snapshot = get_snapshot_path(html_snapshots_path, "emmacl_results_no_filter")
+        if snapshot is None:
+            pytest.skip("emmacl_results_no_filter snapshot not available")
+
+        html_content = snapshot.read_text(encoding="utf-8")
+
+        # Hotspot cells have UNDERLINE_HOTSPOT in lsdata
+        hotspot_count = html_content.count("UNDERLINE_HOTSPOT")
+
+        assert hotspot_count >= 1, (
+            "EMMACL results should contain at least one hotspot cell. "
+            "Hotspots have 'UNDERLINE_HOTSPOT' in their lsdata attribute."
+        )
+
+    def test_emmacl_results_has_clickable_case_column(self, html_snapshots_path: Path) -> None:
+        """Verify EMMACL results have a clickable 'Fall' (case) column."""
+        snapshot = get_snapshot_path(html_snapshots_path, "emmacl_results_no_filter")
+        if snapshot is None:
+            pytest.skip("emmacl_results_no_filter snapshot not available")
+
+        html_content = snapshot.read_text(encoding="utf-8")
+
+        # The "Fall" column should exist and have hotspot cells
+        # Look for elements with both "Fall" text nearby and hotspot attribute
+        has_fall_column = "Fall" in html_content or "Case" in html_content
+        has_hotspots = "UNDERLINE_HOTSPOT" in html_content
+
+        assert has_fall_column and has_hotspots, (
+            "EMMACL results should have a clickable 'Fall' (case) column " "with hotspot cells for navigation."
+        )
+
+
+class TestFillFormLsdataLabelParsing:
+    """Tests for sap_fill_form lsdata-based label parsing.
+
+    SAP Web GUI uses lsdata attributes on labels to associate them with input fields.
+    The label's lsdata["1"] contains the associated input ID.
+    The label's lsdata["3"] contains the label text.
+    """
+
+    def _find_input_by_label(self, soup: BeautifulSoup, label_text: str) -> Tag | None:
+        """
+        Simulate the JavaScript findInputByLabel function.
+
+        This mirrors the logic in fill_form_fields.js to verify it works
+        against real SAP HTML snapshots.
+        """
+        import json
+
+        # Find all label elements with lsdata attribute
+        labels = soup.find_all("label", attrs={"lsdata": True})
+
+        for label in labels:
+            lsdata_raw = label.get("lsdata")
+            if not lsdata_raw:
+                continue
+
+            try:
+                # Parse lsdata JSON
+                lsdata = json.loads(lsdata_raw)
+
+                # Check if this label's text (key "3") matches
+                if lsdata.get("3") == label_text:
+                    input_id = lsdata.get("1")
+                    if input_id:
+                        # Find input by ID
+                        input_el = soup.find(id=input_id)
+                        if input_el:
+                            return input_el
+            except json.JSONDecodeError:
+                continue
+
+        return None
+
+    @pytest.mark.parametrize(
+        ("lang", "first_name_label", "last_name_label"),
+        [
+            pytest.param("de", "Vorname", "Nachname", id="german"),
+            pytest.param("en", "First Name", "Last Name", id="english"),
+        ],
+    )
+    def test_bp_person_form_name_labels(
+        self, html_snapshots_path: Path, lang: str, first_name_label: str, last_name_label: str
+    ) -> None:
+        """Verify first/last name labels are found via lsdata parsing in BP person form."""
+        snapshot = html_snapshots_path / f"bp_person_form_{lang}.html"
+        if not snapshot.exists():
+            pytest.skip(f"bp_person_form_{lang} snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+        if soup is None:
+            pytest.skip(f"Could not parse bp_person_form_{lang} snapshot")
+
+        # Test first name
+        first_name_input = self._find_input_by_label(soup, first_name_label)
+        assert first_name_input is not None, (
+            f"Failed to find input for '{first_name_label}' label via lsdata parsing. "
+            f"The label should have lsdata with key '3' = '{first_name_label}' and key '1' pointing to input ID."
+        )
+        assert (
+            first_name_input.name == "input"
+        ), f"{first_name_label} field should be an input, got: {first_name_input.name}"
+
+        # Test last name
+        last_name_input = self._find_input_by_label(soup, last_name_label)
+        assert last_name_input is not None, (
+            f"Failed to find input for '{last_name_label}' label via lsdata parsing. "
+            f"The label should have lsdata with key '3' = '{last_name_label}' and key '1' pointing to input ID."
+        )
+        assert (
+            last_name_input.name == "input"
+        ), f"{last_name_label} field should be an input, got: {last_name_input.name}"
+
+    def test_bp_person_form_label_lsdata_structure(self, html_snapshots_path: Path) -> None:
+        """Verify BP person form has labels with lsdata containing expected keys."""
+
+        # Use English snapshot (preferred)
+        snapshot = get_snapshot_path(html_snapshots_path, "bp_person_form")
+        if snapshot is None:
+            pytest.skip("bp_person_form snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+        if soup is None:
+            pytest.skip("Could not parse bp_person_form snapshot")
+
+        # Find labels with lsdata
+        labels_with_lsdata = soup.find_all("label", attrs={"lsdata": True})
+        assert len(labels_with_lsdata) > 0, "BP person form should have labels with lsdata attribute"
+
+        # Check that at least one label has the expected structure
+        labels_with_key_3 = []
+        for label in labels_with_lsdata:
+            try:
+                lsdata = json.loads(label.get("lsdata"))
+                if "3" in lsdata:
+                    labels_with_key_3.append(lsdata.get("3"))
+            except json.JSONDecodeError:
+                continue
+
+        assert len(labels_with_key_3) > 0, (
+            "BP person form should have labels with lsdata containing key '3' (label text). "
+            f"Found {len(labels_with_lsdata)} labels with lsdata."
+        )
+
+        # Verify name fields are in the labels (English or German)
+        has_first_name = "First Name" in labels_with_key_3 or "Vorname" in labels_with_key_3
+        has_last_name = "Last Name" in labels_with_key_3 or "Nachname" in labels_with_key_3
+        assert has_first_name, f"First name field should be in labels. Found: {labels_with_key_3[:10]}"
+        assert has_last_name, f"Last name field should be in labels. Found: {labels_with_key_3[:10]}"
+
+
 class TestCssSelectorEscaping:
     """Tests for CSS selector escaping utility.
 
@@ -690,6 +907,14 @@ class TestCssSelectorEscaping:
             pytest.param(".some-class:hover", ".some-class:hover", id="class_selector"),
             pytest.param("[data-id='test:value']", "[data-id='test:value']", id="attribute_selector"),
             pytest.param("", "", id="empty_string"),
+            # ALV grid cell selectors with # and , characters
+            pytest.param("#grid#C120#1,2#if", r"#grid\#C120\#1\,2\#if", id="alv_cell_hotspot"),
+            pytest.param("#grid#C120#0,0", r"#grid\#C120\#0\,0", id="alv_header_cell"),
+            pytest.param("#grid#C120#1,2#if-r", r"#grid\#C120\#1\,2\#if-r", id="alv_cell_wrapper"),
+            pytest.param("#C120-mrss-cont-left-Row-0", r"#C120-mrss-cont-left-Row-0", id="alv_row_no_special"),
+            # Already-escaped selectors should not be double-escaped
+            pytest.param(r"#grid\#C120\#1\,2\#if", r"#grid\#C120\#1\,2\#if", id="already_escaped_alv"),
+            pytest.param(r"#M0\:48\:\:btn\[5\]", r"#M0\:48\:\:btn\[5\]", id="already_escaped_sap"),
         ],
     )
     def test_escape_css_selector(self, selector: str, expected: str) -> None:

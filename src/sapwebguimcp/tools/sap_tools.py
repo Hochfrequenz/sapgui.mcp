@@ -9,7 +9,8 @@ This module contains tools for:
 - sap_session_status: Check SAP session status
 - sap_keyboard: Send keyboard shortcuts (F-keys, Ctrl+S, etc.)
 - sap_get_screen_text: Get all readable text from current screen
-- sap_read_table: Read data from ALV grids and tables
+- sap_read_table: Read data from ALV grids and tables (with cell selectors)
+- sap_click_table_cell: Click a cell in an ALV grid table
 - sap_read_status_bar: Read status bar messages
 - sap_get_screen_info: Get technical screen information
 - sap_lookup_fields: Look up known field selectors for a transaction
@@ -26,6 +27,8 @@ from typing import Any, Optional
 from fastmcp import FastMCP
 
 from sapwebguimcp.models import (
+    AlvCellInfo,
+    AlvMetadata,
     BrowserManager,
     DiscoveredFields,
     FieldFillError,
@@ -40,7 +43,9 @@ from sapwebguimcp.models import (
     SessionStatus,
     SetFieldResult,
     StatusBarInfo,
+    TableCellClickResult,
     TableData,
+    TableRow,
     TransactionResult,
     get_browser_manager,
     get_settings,
@@ -269,7 +274,7 @@ async def _enable_okcode_field(page: Any) -> tuple[bool, str]:
 # =============================================================================
 
 
-def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements
+def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements,too-many-locals
     """Register all SAP-specific tools with the MCP server."""
 
     @mcp.tool(description="Start a background task that keeps the SAP session alive")
@@ -811,17 +816,132 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             if "error" in table_data:
                 return TableData.failure(str(table_data["error"]))
 
+            # Parse rows, converting cell metadata for ALV grids
+            rows = []
+            for row_data in table_data.get("rows", []):
+                cells = None
+                if "cells" in row_data and row_data["cells"]:
+                    cells = {
+                        col: AlvCellInfo(
+                            selector=info["selector"],
+                            clickable=info.get("clickable", False),
+                            hotspot=info.get("hotspot", False),
+                        )
+                        for col, info in row_data["cells"].items()
+                    }
+                rows.append(
+                    TableRow(
+                        row=row_data["row"],
+                        data=row_data["data"],
+                        cells=cells,
+                    )
+                )
+
+            # Parse ALV metadata if present
+            alv = None
+            if "alv" in table_data and table_data["alv"]:
+                alv_data = table_data["alv"]
+                alv = AlvMetadata(
+                    table_id=alv_data["table_id"],
+                    selection_mode=alv_data.get("selection_mode", "NONE"),
+                    hotspot_columns=alv_data.get("hotspot_columns", []),
+                    column_map=alv_data.get("column_map", {}),
+                )
+
             return TableData(
                 headers=table_data.get("headers", []),
-                rows=table_data.get("rows", []),
+                rows=rows,
                 total_rows=table_data.get("totalRows", 0),
                 start_row=table_data.get("startRow", start_row),
                 end_row=table_data.get("endRow"),
+                alv=alv,
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error reading table")
             return TableData.failure(f"Error reading table: {e}")
+
+    @mcp.tool(
+        description=(
+            "Click a cell in an ALV grid table. "
+            "Automatically targets the correct clickable element (hotspot span vs TD). "
+            "Use after sap_read_table to navigate to detail views."
+        )
+    )
+    async def sap_click_table_cell(
+        row: int,
+        column: int | str,
+        action: str = "click",
+    ) -> TableCellClickResult:
+        """
+        Click a cell in the current ALV grid table.
+
+        Automatically detects the table structure and targets the correct
+        clickable element. For hotspot cells (underlined, navigable), clicks
+        the inner span. For regular cells, clicks the TD element.
+
+        Args:
+            row: Row number (1-indexed, data rows start at 1)
+            column: Column index (0-based) or column header name
+            action: "click" for single click, "dblclick" for double-click
+
+        Returns:
+            TableCellClickResult with the selector used and page title after click.
+        """
+        browser_manager = await get_browser_manager()
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Use JavaScript to find the correct click target (but not click yet)
+            result = await page.evaluate(
+                _load_js("click_table_cell.js"),
+                {"row": row, "column": column, "action": action, "performClick": False},
+            )
+
+            if "error" in result:
+                return TableCellClickResult.failure(
+                    str(result["error"]),
+                    row=row,
+                    column=column,
+                    selector_used="",
+                )
+
+            selector = result["selector"]
+
+            # Use Playwright's native click - provides trusted events SAP requires
+            if action == "dblclick":
+                await page.dblclick(selector)
+            else:
+                await page.click(selector)
+
+            # Wait for SAP to process the click event
+            await asyncio.sleep(0.5)
+
+            # Wait for navigation/network activity
+            await page.wait_for_load_state("networkidle", timeout=15000)
+
+            # Additional wait for SAP AJAX updates
+            await asyncio.sleep(0.3)
+
+            title = await page.title()
+
+            return TableCellClickResult(
+                row=row,
+                column=result.get("column", column),
+                selector_used=selector,
+                page_title=title,
+                was_hotspot=result.get("wasHotspot", False),
+            )
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error clicking table cell")
+            return TableCellClickResult.failure(
+                f"Error clicking table cell: {e}",
+                row=row,
+                column=column,
+                selector_used="",
+            )
 
     @mcp.tool(description="Read the current message from SAP's status bar")
     async def sap_read_status_bar() -> StatusBarInfo:
@@ -1064,6 +1184,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             filled = result.get("filled", [])
             not_found = result.get("notFound", [])
             errors = [FieldFillError(field=e["field"], error=e["error"]) for e in result.get("errors", [])]
+
+            # Log debug info if fields were not found
+            debug_info = result.get("debug", [])
+            if debug_info:
+                logger.warning("sap_fill_form debug: %s", debug_info)
 
             # In strict mode, fail if any field was not found
             if strict and not_found:

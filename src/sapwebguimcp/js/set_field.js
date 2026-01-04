@@ -17,7 +17,24 @@
             }
         }
 
-        // 2. Try aria-label match
+        // 2. SAP-specific: labels use lsdata["1"] for associated input ID
+        // and lsdata["3"] for the label text
+        for (const label of labels) {
+            const lsdata = label.getAttribute('lsdata');
+            if (!lsdata) continue;
+            try {
+                const parsed = JSON.parse(lsdata);
+                // Check if this label's text (key "3") matches
+                if (parsed['3'] === labelText && parsed['1']) {
+                    const input = document.getElementById(parsed['1']);
+                    if (input) return { element: input, selector: `#${input.id}` };
+                }
+            } catch {
+                // Not valid JSON, skip
+            }
+        }
+
+        // 3. Try aria-label match
         const ariaInputs = document.querySelectorAll(
             `input[aria-label="${labelText}"], textarea[aria-label="${labelText}"]`
         );
@@ -26,7 +43,7 @@
             return { element: input, selector: `[aria-label="${labelText}"]` };
         }
 
-        // 3. Try title attribute match
+        // 4. Try title attribute match
         const titleInputs = document.querySelectorAll(
             `input[title="${labelText}"], textarea[title="${labelText}"]`
         );
@@ -35,7 +52,7 @@
             return { element: input, selector: `[title="${labelText}"]` };
         }
 
-        // 4. Find text node matching label, then look for nearby input
+        // 5. Find text node matching label, then look for nearby input
         // SAP often uses spans, divs, or table cells as labels
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
 

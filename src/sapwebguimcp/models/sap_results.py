@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from sapwebguimcp.models.alv_models import AlvCellInfo, AlvMetadata
 from sapwebguimcp.models.base import TCode, ToolResult
 
 # Shared type for SAP status bar message types
@@ -117,20 +118,35 @@ class ScreenText(ToolResult):
 
 
 class TableRow(BaseModel):
-    """A single table row with row number and cell data."""
+    """A single table row with row number and cell data.
+
+    For ALV grids, includes cell-level click metadata with pre-escaped CSS selectors.
+    """
 
     row: int = Field(ge=1, description="Row number (1-indexed)")
     data: dict[str, str] = Field(description="Cell values by column header")
+    cells: dict[str, AlvCellInfo] | None = Field(
+        default=None,
+        description="Cell click metadata (ALV grids only). Keys are column headers.",
+    )
 
 
 class TableData(ToolResult):
-    """Result from sap_read_table tool."""
+    """Result from sap_read_table tool.
+
+    For ALV grids, includes grid-level metadata with hotspot column info.
+    Use the `cells` field on each row to get pre-escaped CSS selectors for clicking.
+    """
 
     headers: list[str] = Field(default_factory=list, description="Column headers")
     rows: list[TableRow] = Field(default_factory=list, description="Row data")
     total_rows: int = Field(default=0, ge=0, description="Total rows found")
     start_row: int = Field(default=1, ge=1, description="First row returned (1-indexed)")
     end_row: int | None = Field(default=None, ge=1, description="Last row returned")
+    alv: AlvMetadata | None = Field(
+        default=None,
+        description="ALV grid metadata (only present for ALV grids)",
+    )
 
 
 class FieldInfo(BaseModel):
