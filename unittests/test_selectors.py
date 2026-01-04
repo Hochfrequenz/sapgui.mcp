@@ -1079,6 +1079,6 @@ class TestPopupDetection:
         if blocking_layer:
             # Check if it's hidden (display: none)
             style = blocking_layer.get("style", "")
-            assert "display: none" in style or "display:none" in style, (
-                "Blocking layer exists but should be hidden on initial screen"
-            )
+            assert (
+                "display: none" in style or "display:none" in style
+            ), "Blocking layer exists but should be hidden on initial screen"

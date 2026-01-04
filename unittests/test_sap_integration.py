@@ -2413,9 +2413,7 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
     await capture_html_snapshot(sap_mcp_client, "se38_initial", overwrite=True)
 
     # Enter an invalid program name
-    fill_result = await sap_mcp_client.call_tool(
-        "sap_fill_form", {"fields": {"Programm": "AAAAAAAAAAAAAAAAAAAA"}}
-    )
+    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": {"Programm": "AAAAAAAAAAAAAAAAAAAA"}})
     assert_tool_success(fill_result, "Fill program name")
 
     # Click "Anlegen" (Create) button - this triggers the error popup
@@ -2455,9 +2453,7 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
     # Check for expected buttons (German)
     has_weiter = any("Weiter" in label or "weiter" in label.lower() for label in button_labels)
     has_langdoku = any("Langdoku" in label or "langdoku" in label.lower() for label in button_labels)
-    assert has_weiter or has_langdoku, (
-        f"Expected 'Weiter' or 'Langdokumentation' button. Got: {button_labels}"
-    )
+    assert has_weiter or has_langdoku, f"Expected 'Weiter' or 'Langdokumentation' button. Got: {button_labels}"
 
     # Should have a close button (X)
     close_button_id = popup.get("close_button_id")
@@ -2478,9 +2474,7 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
     screen_result = await sap_mcp_client.call_tool("sap_get_screen_info", {})
     screen_data = parse_tool_response(screen_result)
     title = screen_data.get("title", "")
-    assert "ABAP" in title or "SE38" in title or "Editor" in title, (
-        f"Should be back to SE38. Got title: {title}"
-    )
+    assert "ABAP" in title or "SE38" in title or "Editor" in title, f"Should be back to SE38. Got title: {title}"
 
 
 @pytest.mark.anyio
