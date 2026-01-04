@@ -228,6 +228,28 @@ class WorkflowRunResult(BaseModel):
     errors: list[WorkflowError]
 ```
 
+### Progress Reporting
+
+`workflow_run` meldet Fortschritt via FastMCP Context:
+
+```python
+from fastmcp import Context
+
+@mcp.tool
+async def workflow_run(
+    name: str,
+    items: list[dict],
+    ctx: Context
+) -> WorkflowRunResult:
+    total = len(items)
+    for i, item in enumerate(items):
+        await ctx.report_progress(progress=i, total=total)
+        # Subagent ausfuehren...
+    await ctx.report_progress(progress=total, total=total)
+```
+
+Der Client sieht: "23/100 verarbeitet..." in Echtzeit.
+
 ### Intelligentes Retry durch Agent
 
 Das Ziel ist die Aufgabe perfekt zu loesen, nicht nur zu berichten:
