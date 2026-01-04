@@ -29,7 +29,7 @@ For repetitive tasks like "create 100 business partners", the workflow system us
 
 **Requirements for workflow_run:**
 - MCP client with Sampling support
-- See [MCP Client Compatibility](https://mcpiuse.com/) for supported clients
+- **Note:** As of January 2026, Claude Desktop and Claude Code do NOT support MCP sampling yet ([tracking issue](https://github.com/anthropics/claude-code/issues/1785))
 
 Tools: `workflow_list`, `workflow_save`, `workflow_run`, `workflow_submit`, `workflow_delete`
 

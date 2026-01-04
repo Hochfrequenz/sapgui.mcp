@@ -14,8 +14,13 @@ To properly test sampling, you need a real MCP client like Claude Desktop that c
 This is why we have automated tests for `workflow_list`, `workflow_save`, `workflow_delete` (which don't need sampling), but `workflow_run` must be tested manually.
 
 **Requirements:**
-- MCP client with Sampling support (see [MCP Client Compatibility](https://mcpiuse.com/))
+- MCP client with Sampling support
 - SAP Web GUI access with EMMACL transaction
+
+**Important Limitation (January 2026):**
+Neither Claude Desktop nor Claude Code support MCP sampling yet.
+See [tracking issue #1785](https://github.com/anthropics/claude-code/issues/1785) for status.
+Until this is resolved, `workflow_run` will fail with "Client does not support sampling".
 
 ## Test 1: Full Learning + Execution Flow
 
@@ -90,7 +95,7 @@ Report the results and compare context usage to doing this manually.
 ## Troubleshooting
 
 **"Sampling not supported" error:**
-Your MCP client doesn't support the Sampling feature. Check [mcpiuse.com](https://mcpiuse.com/) for compatible clients.
+Your MCP client doesn't support the Sampling feature. As of January 2026, neither Claude Desktop nor Claude Code support MCP sampling. See [tracking issue #1785](https://github.com/anthropics/claude-code/issues/1785).
 
 **workflow_run fails immediately:**
 - Check that the workflow exists (`workflow_list`)
