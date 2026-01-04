@@ -2500,8 +2500,7 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
         # Verify status bar shows "Aktion wurde abgebrochen" after closing via X
         status_message = dismiss_data.get("status_bar_message", "")
         assert "abgebrochen" in status_message.lower() or "cancelled" in status_message.lower(), (
-            f"After closing popup with X, status bar should say 'Aktion wurde abgebrochen'. "
-            f"Got: {status_message}"
+            f"After closing popup with X, status bar should say 'Aktion wurde abgebrochen'. " f"Got: {status_message}"
         )
     else:
         # Dismiss using "Weiter" button
