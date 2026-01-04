@@ -33,15 +33,19 @@ from sapwebguimcp.models import (
     BrowserManager,
     DiscoveredFields,
     DismissPopupResult,
+    DropdownInfo,
     FieldFillError,
     FieldInfo,
     FieldLookupResult,
     FillFormResult,
+    FormField,
+    FormFieldsResult,
     KeepaliveResult,
     KeyboardResult,
     LoginResult,
     PopupButton,
     PopupInfo,
+    SapFieldType,
     ScreenInfo,
     ScreenText,
     SessionStatus,
@@ -932,14 +936,24 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Error sending keyboard shortcut")
             return KeyboardResult.failure(f"Error sending keyboard shortcut {key}: {e}", key=key)
 
-    @mcp.tool(description="Get all readable text from the current SAP screen")
-    async def sap_get_screen_text() -> ScreenText:
+    @mcp.tool(
+        description=(
+            "Get all readable text from the current SAP screen. "
+            "Use include_dropdown_options=True to also fetch available options for dropdown fields."
+        )
+    )
+    async def sap_get_screen_text(include_dropdown_options: bool = False) -> ScreenText:
         """
         Get all readable text from the current SAP screen.
 
         This tool extracts text content for adaptive field discovery.
         Use it to identify field labels, button texts, and screen content
         when you need to work with screens that vary by system configuration.
+
+        Args:
+            include_dropdown_options: If True, opens each dropdown to capture available
+                options. This is slower but provides complete information for dropdowns.
+                Default is False.
 
         Returns:
             ScreenText with structured content including:
@@ -949,6 +963,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - Tab labels
             - Status messages
             - Table headers
+            - Dropdowns with options (when include_dropdown_options=True)
         """
         browser_manager = await get_browser_manager()
 
@@ -964,6 +979,36 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             unique_headers = list(dict.fromkeys(screen_text.get("tableHeaders", [])))[:20]
             content_sample = screen_text.get("mainContent", [])[:30]
 
+            # Optionally fetch dropdown options
+            dropdowns: list[DropdownInfo] | None = None
+            if include_dropdown_options:
+                # Detect dropdown fields
+                raw_fields = await page.evaluate(_load_js("detect_form_fields.js"))
+                dropdown_fields = [f for f in raw_fields if f.get("field_type") == "dropdown"]
+
+                dropdowns = []
+                for field in dropdown_fields:
+                    element_id = field.get("id")
+                    label = field.get("label", "")
+                    if not element_id:
+                        continue
+
+                    try:
+                        result = await page.evaluate(
+                            _load_js("get_dropdown_options.js"),
+                            element_id,
+                        )
+                        if result.get("success"):
+                            dropdowns.append(
+                                DropdownInfo(
+                                    id=element_id,
+                                    label=label,
+                                    options=result.get("options", []),
+                                )
+                            )
+                    except Exception as dropdown_err:  # pylint: disable=broad-exception-caught
+                        logger.warning("Failed to get options for %s: %s", element_id, dropdown_err)
+
             return ScreenText(
                 title=screen_text.get("title", ""),
                 status_bar=screen_text.get("statusBar"),
@@ -972,11 +1017,79 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 buttons=unique_buttons,
                 table_headers=unique_headers,
                 main_content=content_sample,
+                dropdowns=dropdowns,
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error getting screen text")
             return ScreenText.failure(f"Error getting screen text: {e}", title="")
+
+    @mcp.tool(
+        description=(
+            "Discover fillable form fields on the current SAP screen. "
+            "Returns field IDs, labels, types (text/dropdown/checkbox/radio), and current values. "
+            "Use include_dropdown_options=True to also fetch available options for dropdown fields."
+        )
+    )
+    async def sap_get_form_fields(include_dropdown_options: bool = False) -> FormFieldsResult:
+        """
+        Discover all fillable form fields on the current SAP screen.
+
+        This tool scans the screen for input fields and categorizes them by type.
+        Use it to understand what fields are available before filling a form.
+
+        Args:
+            include_dropdown_options: If True, opens each dropdown to capture available
+                options. This is slower but provides complete information for dropdowns.
+                Default is False (lazy fetching).
+
+        Returns:
+            FormFieldsResult with list of FormField objects containing:
+            - id: Element ID for targeting
+            - label: Visible label text
+            - field_type: text, dropdown, checkbox, or radio
+            - current_value: Current field value (if any)
+            - readonly: Whether field is editable
+            - options: Available options (dropdowns only, when include_dropdown_options=True)
+        """
+        browser_manager = await get_browser_manager()
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Detect all form fields
+            raw_fields = await page.evaluate(_load_js("detect_form_fields.js"))
+
+            fields = []
+            for raw in raw_fields:
+                field = FormField(
+                    id=raw.get("id", ""),
+                    label=raw.get("label", ""),
+                    field_type=SapFieldType(raw.get("field_type", "text")),
+                    current_value=raw.get("current_value"),
+                    readonly=raw.get("readonly", False),
+                    options=None,
+                )
+
+                # Fetch dropdown options if requested
+                if include_dropdown_options and field.field_type == SapFieldType.DROPDOWN:
+                    try:
+                        result = await page.evaluate(
+                            _load_js("get_dropdown_options.js"),
+                            field.id,
+                        )
+                        if result.get("success"):
+                            field.options = result.get("options", [])
+                    except Exception as dropdown_err:  # pylint: disable=broad-exception-caught
+                        logger.warning("Failed to get options for %s: %s", field.id, dropdown_err)
+
+                fields.append(field)
+
+            return FormFieldsResult(fields=fields)
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error getting form fields")
+            return FormFieldsResult.failure(f"Error getting form fields: {e}")
 
     @mcp.tool(description="Read data from an ALV grid or table on the current screen")
     async def sap_read_table(start_row: int = 1, end_row: Optional[int] = None, max_rows: int = 100) -> TableData:
@@ -1504,6 +1617,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         This is much faster than filling fields one by one, as it executes
         all fills in a single browser round-trip.
 
+        Dropdown fields (ComboBox) are automatically detected and handled:
+        the dropdown is opened, the matching option is selected. If the
+        requested value is not found, an error is returned with all
+        available options.
+
         Args:
             fields: Dictionary mapping field identifiers to values.
                     Keys can be visible label text (e.g., 'First Name')
@@ -1513,6 +1631,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         Returns:
             FillFormResult with lists of filled, not_found, and errored fields.
+            If a popup appears after filling (e.g., role change confirmation),
+            it's returned in blocking_popup.
         """
         if not fields:
             return FillFormResult.failure("fields cannot be empty")
@@ -1530,20 +1650,94 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     blocking_popup=popup,
                 )
 
-            # Execute JavaScript to fill all fields
-            result = await page.evaluate(
-                _load_js("fill_form_fields.js"),
-                {"fields": fields},
-            )
+            filled: list[str] = []
+            not_found: list[str] = []
+            errors: list[FieldFillError] = []
+            blocking_popup: PopupInfo | None = None
 
-            filled = result.get("filled", [])
-            not_found = result.get("notFound", [])
-            errors = [FieldFillError(field=e["field"], error=e["error"]) for e in result.get("errors", [])]
+            # Separate dropdown fields from regular fields
+            regular_fields: dict[str, str] = {}
 
-            # Log debug info if fields were not found
-            debug_info = result.get("debug", [])
-            if debug_info:
-                logger.warning("sap_fill_form debug: %s", debug_info)
+            for key, value in fields.items():
+                # Check if this is a dropdown by examining the element
+                is_dropdown = await page.evaluate(
+                    """(key) => {
+                        let el;
+                        if (key.startsWith('#') || key.startsWith('.') || key.includes('[')) {
+                            el = document.querySelector(key);
+                        } else {
+                            // Find by label - check lsdata["3"] for label text
+                            const labels = document.querySelectorAll('label[lsdata]');
+                            for (const label of labels) {
+                                try {
+                                    const parsed = JSON.parse(label.getAttribute('lsdata'));
+                                    if (parsed['3'] === key && parsed['1']) {
+                                        el = document.getElementById(parsed['1']);
+                                        break;
+                                    }
+                                } catch {}
+                            }
+                        }
+                        if (!el) return { found: false };
+                        const ct = el.getAttribute('ct');
+                        const isDropdown = ct === 'CB' || el.getAttribute('aria-haspopup') === 'true';
+                        return { found: true, isDropdown, elementId: el.id };
+                    }""",
+                    key,
+                )
+
+                if not is_dropdown.get("found"):
+                    not_found.append(key)
+                    continue
+
+                if is_dropdown.get("isDropdown"):
+                    # Handle dropdown field
+                    element_id = is_dropdown.get("elementId")
+                    if not element_id:
+                        errors.append(FieldFillError(field=key, error="Dropdown has no ID"))
+                        continue
+
+                    result = await page.evaluate(
+                        _load_js("select_dropdown_option.js"),
+                        element_id,
+                        value,
+                    )
+
+                    if result.get("success"):
+                        filled.append(key)
+                        # Check for popup after dropdown selection
+                        await page.wait_for_timeout(300)
+                        popup_after = await _check_blocking_popup(page)
+                        if popup_after:
+                            blocking_popup = popup_after
+                    else:
+                        errors.append(
+                            FieldFillError(
+                                field=key,
+                                error=result.get("error", "Unknown dropdown error"),
+                                available_options=result.get("available_options"),
+                            )
+                        )
+                else:
+                    # Regular field - add to batch
+                    regular_fields[key] = value
+
+            # Fill regular fields in batch
+            if regular_fields:
+                result = await page.evaluate(
+                    _load_js("fill_form_fields.js"),
+                    {"fields": regular_fields},
+                )
+
+                filled.extend(result.get("filled", []))
+                not_found.extend(result.get("notFound", []))
+                for e in result.get("errors", []):
+                    errors.append(FieldFillError(field=e["field"], error=e["error"]))
+
+                # Log debug info if fields were not found
+                debug_info = result.get("debug", [])
+                if debug_info:
+                    logger.warning("sap_fill_form debug: %s", debug_info)
 
             # In strict mode, fail if any field was not found
             if strict and not_found:
@@ -1552,9 +1746,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     filled=filled,
                     not_found=not_found,
                     errors=errors,
+                    blocking_popup=blocking_popup,
                 )
 
-            return FillFormResult(filled=filled, not_found=not_found, errors=errors)
+            return FillFormResult(
+                filled=filled,
+                not_found=not_found,
+                errors=errors,
+                blocking_popup=blocking_popup,
+            )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error filling form fields")

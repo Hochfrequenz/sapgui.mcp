@@ -1,5 +1,6 @@
 """SAP tool result models."""
 
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
@@ -10,6 +11,39 @@ from sapwebguimcp.models.base import TCode, ToolResult
 # Shared type for SAP status bar message types
 StatusBarType = Literal["S", "E", "W", "I", "none"]
 """Status bar message type: 'S' (success), 'E' (error), 'W' (warning), 'I' (info), 'none' (empty)."""
+
+
+class SapFieldType(StrEnum):
+    """Type of SAP input control."""
+
+    TEXT = "text"
+    DROPDOWN = "dropdown"
+    CHECKBOX = "checkbox"
+    RADIO = "radio"
+
+
+class FormField(BaseModel):
+    """A fillable field on a SAP screen."""
+
+    id: str = Field(description="Element ID for targeting with sap_fill_form or browser tools")
+    label: str = Field(description="Visible label text associated with this field")
+    field_type: SapFieldType = Field(description="Type of input control: text, dropdown, checkbox, or radio")
+    current_value: str | None = Field(default=None, description="Current field value, or None if empty")
+    readonly: bool = Field(
+        default=False, description="True if field cannot be edited (HTML readonly/disabled attribute)"
+    )
+    options: list[str] | None = Field(
+        default=None,
+        description="Available options for dropdown fields. Only populated when include_dropdown_options=True",
+    )
+
+
+class DropdownInfo(BaseModel):
+    """Dropdown field info for sap_get_screen_text."""
+
+    id: str = Field(description="Element ID for targeting")
+    label: str = Field(description="Visible label text")
+    options: list[str] = Field(description="Available dropdown options")
 
 
 class LoginResult(ToolResult):
@@ -115,6 +149,10 @@ class ScreenText(ToolResult):
     buttons: list[str] = Field(default_factory=list, description="Button labels (deduplicated)")
     table_headers: list[str] = Field(default_factory=list, description="Table column headers")
     main_content: list[str] = Field(default_factory=list, description="Other visible text content")
+    dropdowns: list[DropdownInfo] | None = Field(
+        default=None,
+        description="Dropdown fields with available options. Only populated when include_dropdown_options=True",
+    )
 
 
 class TableRow(BaseModel):
@@ -187,6 +225,10 @@ class FieldFillError(BaseModel):
 
     field: str = Field(description="Field key (label or selector) that failed")
     error: str = Field(description="Error message")
+    available_options: list[str] | None = Field(
+        default=None,
+        description="For dropdown fields: list of valid options when requested value was not found",
+    )
 
 
 class FillFormResult(ToolResult):
@@ -203,6 +245,25 @@ class SetFieldResult(ToolResult):
     label: str = Field(default="", description="Label or selector used to find the field")
     value: str = Field(default="", description="Value that was set")
     selector_used: str | None = Field(default=None, description="CSS selector that matched the field")
+
+
+class FormFieldsResult(ToolResult):
+    """Result from sap_get_form_fields tool."""
+
+    fields: list[FormField] = Field(
+        default_factory=list,
+        description="Fillable fields discovered on the current screen",
+    )
+
+    @property
+    def field_count(self) -> int:
+        """Number of fields found."""
+        return len(self.fields)
+
+    @property
+    def dropdown_count(self) -> int:
+        """Number of dropdown fields found."""
+        return sum(1 for f in self.fields if f.field_type == SapFieldType.DROPDOWN)
 
 
 class ShortcutInfo(BaseModel):
