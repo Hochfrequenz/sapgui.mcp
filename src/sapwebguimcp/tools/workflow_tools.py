@@ -63,6 +63,22 @@ async def _execute_workflow_run(  # pylint: disable=too-many-locals
             total=len(items),
         )
 
+    # Fail-fast: test sampling support before processing any items
+    try:
+        await ctx.sample(messages="Test sampling support. Reply with 'OK'.", tools=[])
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        error_str = str(e)
+        if "sampling" in error_str.lower() or "not support" in error_str.lower():
+            return WorkflowRunResult.failure(
+                "Client does not support MCP Sampling. This tool requires a sampling-capable "
+                "client. As of January 2026, Claude Desktop/Code do NOT support sampling. "
+                "Fallback: Use the workflow prompt from workflow_list as guidance and "
+                "execute items manually with individual tool calls.",
+                total=len(items),
+            )
+        # Other errors during test - log but continue (might be transient)
+        _logger.warning("Sampling test failed with unexpected error: %s", error_str)
+
     results: list[str] = []
     errors: list[WorkflowError] = []
 
@@ -270,7 +286,9 @@ def register_workflow_tools(mcp: FastMCP) -> None:
             "'create 100...', 'for each entry...', 'repeat for all...'. "
             "This tool preserves client context by running iterations server-side. "
             "REQUIRES: Client must support MCP Sampling. "
-            "NOTE: Claude Desktop/Code do NOT support sampling (Jan 2026)."
+            "NOTE: Claude Desktop/Code do NOT support sampling (Jan 2026). "
+            "FALLBACK: If sampling unavailable, use workflow_list to get the workflow prompt "
+            "and execute items manually with individual tool calls."
         )
     )
     async def workflow_run(
