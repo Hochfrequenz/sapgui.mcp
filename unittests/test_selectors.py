@@ -36,7 +36,7 @@ from bs4.element import Tag
 
 # Import the selectors we want to test
 from sapwebguimcp.tools.browser_tools import _escape_css_selector
-from sapwebguimcp.tools.sap_tools import SELECTORS
+from sapwebguimcp.tools.sap_tools import SELECTORS, parse_shortcut_from_title
 
 
 @pytest.fixture
@@ -921,3 +921,48 @@ class TestCssSelectorEscaping:
         """Test CSS selector escaping for various inputs."""
         result = _escape_css_selector(selector)
         assert result == expected, f"Input: {selector!r}, Expected: {expected!r}, Got: {result!r}"
+
+
+class TestParseShortcutFromTitle:
+    """Tests for parsing keyboard shortcuts from title attribute values.
+
+    The parse_shortcut_from_title function extracts action text and shortcut
+    from SAP button title attributes like "Person anlegen (F5)".
+    """
+
+    @pytest.mark.parametrize(
+        ("title", "expected_action", "expected_shortcut"),
+        [
+            pytest.param("Person anlegen (F5)", "Person anlegen", "F5", id="simple_f_key"),
+            pytest.param("Organisation anlegen (Strg+F5)", "Organisation anlegen", "Strg+F5", id="ctrl_f_key_german"),
+            pytest.param("Beenden (Umschalt+F3)", "Beenden", "Umschalt+F3", id="shift_f_key_german"),
+            pytest.param("Als Variante sichern (Strg+S)", "Als Variante sichern", "Strg+S", id="ctrl_letter_key"),
+            pytest.param("Ausführen (F8)", "Ausführen", "F8", id="execute_f8"),
+            pytest.param("Zurück (F3)", "Zurück", "F3", id="back_f3"),
+            pytest.param("Bestätigen (Eingabe)", "Bestätigen", "Eingabe", id="enter_key"),
+            pytest.param("Save (Ctrl+S)", "Save", "Ctrl+S", id="ctrl_english"),
+            pytest.param("Exit (Shift+F3)", "Exit", "Shift+F3", id="shift_english"),
+            pytest.param("  Person anlegen  (F5)  ", "Person anlegen", "F5", id="whitespace_handling"),
+        ],
+    )
+    def test_valid_shortcuts(self, title: str, expected_action: str, expected_shortcut: str) -> None:
+        """Verify valid shortcuts are parsed correctly."""
+        result = parse_shortcut_from_title(title)
+        assert result is not None, f"Expected shortcut for: {title}"
+        assert result.action == expected_action, f"Wrong action for: {title}"
+        assert result.shortcut == expected_shortcut, f"Wrong shortcut for: {title}"
+
+    @pytest.mark.parametrize(
+        "title",
+        [
+            pytest.param("Created (2024-01-01)", id="date_pattern"),
+            pytest.param("Item (123)", id="number_pattern"),
+            pytest.param("Status (active)", id="text_pattern"),
+            pytest.param("Just some text", id="no_parentheses"),
+            pytest.param("", id="empty_string"),
+        ],
+    )
+    def test_invalid_shortcuts_return_none(self, title: str) -> None:
+        """Verify non-keyboard patterns return None."""
+        result = parse_shortcut_from_title(title)
+        assert result is None, f"Expected None for: {title!r}"

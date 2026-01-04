@@ -203,3 +203,24 @@ class SetFieldResult(ToolResult):
     label: str = Field(default="", description="Label or selector used to find the field")
     value: str = Field(default="", description="Value that was set")
     selector_used: str | None = Field(default=None, description="CSS selector that matched the field")
+
+
+class ShortcutInfo(BaseModel):
+    """Single keyboard shortcut discovered on the current screen."""
+
+    action: str = Field(description="Action/button text (e.g., 'Person anlegen', 'Ausführen')")
+    shortcut: str = Field(description="Keyboard shortcut (e.g., 'F5', 'Strg+F5', 'Umschalt+F3')")
+
+
+class ShortcutsResult(ToolResult):
+    """Result from sap_get_shortcuts tool."""
+
+    shortcuts: list[ShortcutInfo] = Field(
+        default_factory=list,
+        description="List of keyboard shortcuts available on current screen",
+    )
+
+    @property
+    def shortcut_count(self) -> int:
+        """Number of shortcuts found."""
+        return len(self.shortcuts)
