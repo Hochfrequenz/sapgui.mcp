@@ -4,30 +4,101 @@
 
 Repetitive SAP-Aufgaben (z.B. 100 Business Partner anlegen) verbrauchen schnell den Kontext. Jeder Tool-Call und dessen Ergebnis bleibt im Kontext, bis dieser erschöpft ist.
 
-## Lösungsansatz
+**Beispielrechnung ohne Optimierung:**
+- 100 Business Partner erstellen
+- Pro BP: ~10 Tool-Calls (transaction, fill_form, keyboard, status_bar, etc.)
+- Pro Tool-Call: ~500 Tokens (Name, Parameter, Ergebnis)
+- Gesamt: 100 x 10 x 500 = **500.000 Tokens**
 
-Zweistufiges System:
-1. **Subagent-Pattern** für flexible, kontextschonende Ausführung
-2. **Workflow-Persistenz** für Wiederverwendung und Teilen
+Das ueberschreitet typische Kontextlimits (128k-200k) bei weitem.
+
+## Entscheidungsfindung
+
+### Evaluierte Optionen
+
+**Option A: Client-seitige Subagents**
+- Claude Code's Task-Tool spawnt isolierte Subagents
+- Pro: Einfach zu implementieren
+- Contra: Nur Claude Code, nicht Claude Desktop/ChatGPT/Gemini
+
+**Option B: Scripted Workflows (RPA-Stil)**
+- Deterministische Schritte ohne LLM-Beteiligung
+- Pro: Maximale Kontexteinsparung, kein LLM-Kosten pro Iteration
+- Contra: Keine Flexibilitaet, bei SAP-Aenderungen bricht alles ab, "dann gleich RPA"
+
+**Option C: Server-Side Agent Loops (gewaehlt)**
+- MCP Server fuehrt eigene Agent-Loops aus via `ctx.sample()`
+- Pro: Funktioniert mit ALLEN Clients, LLM-Flexibilitaet bleibt
+- Pro: Massive Kontexteinsparung (Client sieht nur 1 Call -> 1 Result)
+- Contra: Abhaengig von Client-Sampling-Support
+
+### Annahmen (Stand Januar 2026)
+
+1. **MCP Sampling ist weit verbreitet** - Die November 2025 Spec hat Sampling mit Tools
+   eingefuehrt. Wir nehmen an, dass Claude Desktop, ChatGPT Desktop und andere
+   Clients dies unterstuetzen oder bald unterstuetzen werden.
+
+2. **LLM-Flexibilitaet ist wichtiger als Determinismus** - SAP-Screens koennen
+   variieren (Sprache, Customizing, Popups). Ein LLM kann darauf reagieren,
+   ein starres Script nicht.
+
+3. **Kontexteinsparung ist kritisch** - Ohne Einsparung sind Bulk-Operationen
+   praktisch nicht moeglich. 500k Tokens pro 100 Items ist nicht akzeptabel.
+
+4. **Lernphase ist akzeptabel** - 2-3 manuelle Iterationen zum Lernen sind OK,
+   wenn danach 97+ Iterationen automatisiert laufen.
+
+### Fallback bei fehlendem Sampling-Support
+
+Falls ein Client kein Sampling unterstuetzt, funktioniert `workflow_run` nicht.
+Der User muss dann manuell iterieren (alter Modus). Die Tool-Beschreibung
+macht klar, dass Sampling erforderlich ist.
 
 ## Design
 
-### Workflow-Ausführung mit Subagents
+### Server-Side Agent Loops mit ctx.sample()
 
-**Lernphase (Iteration 1-3):**
-- Hauptagent spawnt Subagent mit Task-Beschreibung
-- Subagent führt aus, gibt detailliertes Feedback
-- Hauptagent extrahiert Learnings und verdichtet sie zu einem optimierten Workflow-Prompt
+Anstatt Client-seitige Subagents zu nutzen, fuehrt der MCP Server eigene Agent-Loops
+aus. Dies nutzt FastMCP's `ctx.sample()` Feature (seit v2.14.1, MCP Spec November 2025).
 
-**Ausführungsphase (Iteration 4+):**
-- Subagent bekommt optimierten Prompt + Daten
-- Gibt nur knappes Ergebnis: "BP 12345 erstellt" / "Fehler: ..."
-- Hauptkontext bleibt schlank
+**Vorteile:**
+- Funktioniert mit **jedem MCP Client** (Claude Desktop, ChatGPT, Gemini)
+- Client-Kontext sieht nur: 1 Tool-Call -> 1 Ergebnis
+- LLM-Flexibilitaet bleibt erhalten (kein starres Script)
+- Massive Kontexteinsparung: ~500k -> ~2k Tokens
+
+**Ablauf:**
+```python
+@mcp.tool
+async def workflow_run(
+    name: str,
+    items: list[dict],
+    ctx: Context
+) -> WorkflowRunResult:
+    workflow = load_workflow(name)
+    results = []
+
+    for i, item in enumerate(items):
+        await ctx.report_progress(progress=i, total=len(items))
+
+        # Server-side agent loop - nutzt Client's LLM via Sampling
+        result = await ctx.sample(
+            messages=f"{workflow.prompt}\n\nData: {item}",
+            tools=[sap_fill_form, sap_keyboard, sap_read_status_bar, ...],
+        )
+        results.append(parse_result(result.text))
+
+    return WorkflowRunResult(...)
+```
+
+**Lernphase:**
+- Erste 2-3 Iterationen: Client-Agent fuehrt manuell aus, lernt
+- Agent ruft `workflow_save` auf um optimierten Prompt zu speichern
+- Danach: `workflow_run` nutzt gespeicherten Prompt server-seitig
 
 **Kontextverbrauch:**
-- Lernphase: ~3 detaillierte Rückmeldungen
-- Ausführungsphase: ~1 Zeile pro Iteration
-- Statt 100x volle Tool-Logs nur 3 + 97 Kurzzeilen
+- Ohne workflow_run: 100 Items x 10 Tool-Calls x 500 Tokens = ~500k Tokens
+- Mit workflow_run: 1 Tool-Call + 1 Ergebnis = ~2k Tokens
 
 ### Workflow-Persistenz
 
@@ -159,13 +230,6 @@ class Workflow(BaseModel):
 | `workflow_save` | Speichert gelernten Workflow lokal |
 | `workflow_submit` | Teilt Workflow via GitHub Issue |
 | `workflow_delete` | Entfernt lokalen Workflow (bundled bleiben) |
-
-## MCP Resources
-
-| URI | Beschreibung |
-|-----|--------------|
-| `workflow://list` | Liste aller Workflows mit Metadaten |
-| `workflow://{name}` | Vollstaendiger Workflow-Prompt |
 
 ## Browser-Multiplexing
 
