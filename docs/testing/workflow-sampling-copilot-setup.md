@@ -14,29 +14,32 @@ The `workflow_run` tool uses MCP Sampling (`ctx.sample()`) to execute bulk SAP o
 
 ### Clients That DO Support Sampling
 
-| Client | Sampling | Local MCP | Status |
-|--------|----------|-----------|--------|
-| VS Code + Copilot | Yes | Yes | Sampling works, but login blocked |
-| JetBrains + Copilot | Yes | Yes | Sampling works, but login blocked |
-| ChatGPT Desktop | Yes | No (remote only) | Won't work for local servers |
-| Claude Desktop | No | Yes | Doesn't support sampling |
-| Claude Code | No | Yes | Doesn't support sampling |
+| Client              | Sampling | Local MCP        | Status                            |
+| ------------------- | -------- | ---------------- | --------------------------------- |
+| VS Code + Copilot   | Yes      | Yes              | Sampling works, but login blocked |
+| JetBrains + Copilot | Yes      | Yes              | Sampling works, but login blocked |
+| ChatGPT Desktop     | Yes      | No (remote only) | Won't work for local servers      |
+| Claude Desktop      | No       | Yes              | Doesn't support sampling          |
+| Claude Code         | No       | Yes              | Doesn't support sampling          |
 
 ### Copilot Login Limitation (January 2026)
 
 **Copilot refuses to perform SAP login**, even with the `sap_login` tool available.
 
 When asked to login to SAP, Copilot responds with variations of:
+
 > "I'm not able to log into external systems or perform actions that require authentication credentials."
 
 This is a policy decision by GitHub/OpenAI, not a technical limitation. The sampling capability works, but Copilot won't use `sap_login` to authenticate.
 
 **Workarounds:**
+
 1. Login manually before starting the Copilot session (use browser with CDP)
 2. Use pre-authenticated browser sessions
 3. Test sampling with mock data that doesn't require SAP access
 
 **Bottom line:** As of January 2026, there is no MCP client that both:
+
 - Supports MCP Sampling with tools
 - Is willing to perform SAP authentication
 
@@ -65,35 +68,45 @@ Add to your MCP configuration (location varies, check Settings → Tools → MCP
 
 ```json
 {
-  "mcpServers": {
-    "sap-webgui-mcp": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "--network", "sapwebguimcp_default",
-        "-e", "BROWSER_MODE=connect",
-        "-e", "CDP_URL=http://cdp-proxy:9222",
-        "-e", "SAP_URL=<your-sap-url>",
-        "-e", "SAP_USER=<your-user>",
-        "-e", "SAP_PASSWORD=<your-password>",
-        "-e", "SAP_MANDANT=<your-mandant>",
-        "sapwebgui-mcp:test"
-      ]
+    "mcpServers": {
+        "sap-webgui-mcp": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "--network",
+                "sapwebguimcp_default",
+                "-e",
+                "BROWSER_MODE=connect",
+                "-e",
+                "CDP_URL=http://cdp-proxy:9222",
+                "-e",
+                "SAP_URL=<your-sap-url>",
+                "-e",
+                "SAP_USER=<your-user>",
+                "-e",
+                "SAP_PASSWORD=<your-password>",
+                "-e",
+                "SAP_MANDANT=<your-mandant>",
+                "sapwebgui-mcp:test"
+            ]
+        }
     }
-  }
 }
 ```
 
 ### Step 3: Enable Sampling for the Server
 
 In VS Code, add to `settings.json`:
+
 ```json
 {
-  "chat.mcp.serverSampling": {
-    "sap-webgui-mcp": {
-      "allowedModels": ["*"]
+    "chat.mcp.serverSampling": {
+        "sap-webgui-mcp": {
+            "allowedModels": ["*"]
+        }
     }
-  }
 }
 ```
 
@@ -106,6 +119,7 @@ For JetBrains, check if there's a similar setting in Copilot preferences.
 ### Test 1: Verify Tools Are Available
 
 In Copilot Chat, ask:
+
 ```
 List all available SAP workflow tools from the sap-webgui-mcp server.
 ```
@@ -155,6 +169,7 @@ Report the results including success/failure counts.
 ### "Client does not support sampling"
 
 Your MCP client doesn't advertise the `sampling` capability. Options:
+
 1. Use VS Code + Copilot instead
 2. Use JetBrains + Copilot instead
 3. Wait for Claude Desktop/Code to add support
@@ -178,11 +193,11 @@ Your MCP client doesn't advertise the `sampling` capability. Options:
 
 After successful test, compare:
 
-| Metric | Manual (without workflow_run) | With workflow_run |
-|--------|------------------------------|-------------------|
-| Tool calls visible in context | ~10 per item | 1 total |
-| Tokens consumed | ~5,000 per item | ~2,000 total |
-| For 100 items | ~500,000 tokens | ~2,000 tokens |
+| Metric                        | Manual (without workflow_run) | With workflow_run |
+| ----------------------------- | ----------------------------- | ----------------- |
+| Tool calls visible in context | ~10 per item                  | 1 total           |
+| Tokens consumed               | ~5,000 per item               | ~2,000 total      |
+| For 100 items                 | ~500,000 tokens               | ~2,000 tokens     |
 
 The whole point is that `workflow_run` executes iterations **server-side** using the client's LLM via sampling, so your context only sees the final summary.
 
@@ -202,6 +217,7 @@ The whole point is that `workflow_run` executes iterations **server-side** using
 All changes are on: `feat/workflow-learning`
 
 Commits:
+
 - `a045af5` feat(workflow): add workflow system for repetitive SAP task automation
 - `c551161` test(workflow): add integration tests for workflow tools and EMMACL iteration
 - `7acf66f` docs(design): update workflow design with ctx.sample() implementation details

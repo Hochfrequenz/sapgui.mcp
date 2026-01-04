@@ -5,6 +5,7 @@
 Repetitive SAP-Aufgaben (z.B. 100 Business Partner anlegen) verbrauchen schnell den Kontext. Jeder Tool-Call und dessen Ergebnis bleibt im Kontext, bis dieser erschöpft ist.
 
 **Beispielrechnung ohne Optimierung:**
+
 - 100 Business Partner erstellen
 - Pro BP: ~10 Tool-Calls (transaction, fill_form, keyboard, status_bar, etc.)
 - Pro Tool-Call: ~500 Tokens (Name, Parameter, Ergebnis)
@@ -17,16 +18,19 @@ Das ueberschreitet typische Kontextlimits (128k-200k) bei weitem.
 ### Evaluierte Optionen
 
 **Option A: Client-seitige Subagents**
+
 - Claude Code's Task-Tool spawnt isolierte Subagents
 - Pro: Einfach zu implementieren
 - Contra: Nur Claude Code, nicht Claude Desktop/ChatGPT/Gemini
 
 **Option B: Scripted Workflows (RPA-Stil)**
+
 - Deterministische Schritte ohne LLM-Beteiligung
 - Pro: Maximale Kontexteinsparung, kein LLM-Kosten pro Iteration
 - Contra: Keine Flexibilitaet, bei SAP-Aenderungen bricht alles ab, "dann gleich RPA"
 
 **Option C: Server-Side Agent Loops (gewaehlt)**
+
 - MCP Server fuehrt eigene Agent-Loops aus via `ctx.sample()`
 - Pro: Funktioniert mit ALLEN Clients, LLM-Flexibilitaet bleibt
 - Pro: Massive Kontexteinsparung (Client sieht nur 1 Call -> 1 Result)
@@ -62,12 +66,14 @@ Anstatt Client-seitige Subagents zu nutzen, fuehrt der MCP Server eigene Agent-L
 aus. Dies nutzt FastMCP's `ctx.sample()` Feature (seit v2.14.1, MCP Spec November 2025).
 
 **Vorteile:**
+
 - Funktioniert mit **jedem MCP Client** (Claude Desktop, ChatGPT, Gemini)
 - Client-Kontext sieht nur: 1 Tool-Call -> 1 Ergebnis
 - LLM-Flexibilitaet bleibt erhalten (kein starres Script)
 - Massive Kontexteinsparung: ~500k -> ~2k Tokens
 
 **Ablauf:**
+
 ```python
 @mcp.tool
 async def workflow_run(
@@ -92,11 +98,13 @@ async def workflow_run(
 ```
 
 **Lernphase:**
+
 - Erste 2-3 Iterationen: Client-Agent fuehrt manuell aus, lernt
 - Agent ruft `workflow_save` auf um optimierten Prompt zu speichern
 - Danach: `workflow_run` nutzt gespeicherten Prompt server-seitig
 
 **Kontextverbrauch:**
+
 - Ohne workflow_run: 100 Items x 10 Tool-Calls x 500 Tokens = ~500k Tokens
 - Mit workflow_run: 1 Tool-Call + 1 Ergebnis = ~2k Tokens
 
@@ -115,6 +123,7 @@ sapwebguimcp/
 ```
 
 **Merge-Logik:**
+
 1. Lade bundled Workflows aus Package
 2. Lade User-Workflows aus lokalem Verzeichnis
 3. User überschreibt Bundled bei gleichem Namen (für Anpassungen)
@@ -136,12 +145,13 @@ Oeffne Transaktion BP. Druecke F5 fuer neue Person...
 
 **Trennung von Feedback-Typen:**
 
-| Tool | Zweck | GitHub Label |
-|------|-------|--------------|
-| `log_feedback` (existiert) | MCP-Bugs, Feature-Requests | `feedback` |
-| `workflow_submit` (neu) | Funktionierende Workflows teilen | `workflow-submission` |
+| Tool                       | Zweck                            | GitHub Label          |
+| -------------------------- | -------------------------------- | --------------------- |
+| `log_feedback` (existiert) | MCP-Bugs, Feature-Requests       | `feedback`            |
+| `workflow_submit` (neu)    | Funktionierende Workflows teilen | `workflow-submission` |
 
 **Flow:**
+
 ```
 User lernt Workflow (automatisch nach 2-3 Iterationen)
         |
@@ -159,6 +169,7 @@ Devs reviewen -> Aufnahme in bundled Workflows -> naechster Release
 ```
 
 **Neuer User-Flow:**
+
 - Tag 1: `workflow_list` zeigt bundled "bp-creation" -> sofort nutzbar
 - Spaeter: User passt an -> lokale Kopie ueberschreibt
 - Noch spaeter: `workflow_submit` teilt Verbesserung
@@ -223,13 +234,13 @@ class Workflow(BaseModel):
 
 ## Tools
 
-| Tool | Beschreibung |
-|------|--------------|
-| `workflow_list` | Listet alle verfuegbaren Workflows (bundled + user) |
-| `workflow_run` | Fuehrt einen Workflow mit Subagent-Pattern aus |
-| `workflow_save` | Speichert gelernten Workflow lokal |
-| `workflow_submit` | Teilt Workflow via GitHub Issue |
-| `workflow_delete` | Entfernt lokalen Workflow (bundled bleiben) |
+| Tool              | Beschreibung                                        |
+| ----------------- | --------------------------------------------------- |
+| `workflow_list`   | Listet alle verfuegbaren Workflows (bundled + user) |
+| `workflow_run`    | Fuehrt einen Workflow mit Subagent-Pattern aus      |
+| `workflow_save`   | Speichert gelernten Workflow lokal                  |
+| `workflow_submit` | Teilt Workflow via GitHub Issue                     |
+| `workflow_delete` | Entfernt lokalen Workflow (bundled bleiben)         |
 
 ## Browser-Multiplexing
 
@@ -268,6 +279,7 @@ Spaeter:    [Tab 1] -> Item 1 -> Item 7  -> Item 13 -> ...
 Der Agent erkennt repetitive Aufgaben anhand von Schluesselwoertern und nutzt das Subagent-Pattern automatisch. Der User muss nicht wissen dass es Subagents gibt.
 
 **Tool-Beschreibung als Trigger:**
+
 ```python
 @mcp.tool(
     description=(
@@ -283,6 +295,7 @@ async def workflow_run(...):
 ### Lernphase vs. Ausfuehrungsphase
 
 Der Agent hat explizite Kontrolle:
+
 - Nach 2-3 erfolgreichen Iterationen entscheidet der Agent: "Genug gelernt"
 - Ruft `workflow_save` auf um den optimierten Prompt zu speichern
 - Nutzt danach `workflow_run` fuer den Rest
@@ -292,6 +305,7 @@ Wenn Iteration 2 fehlschlaegt, kann der Agent weiter explorieren statt automatis
 ### Workflow-Submit als Nudge
 
 Nach erfolgreicher Ausfuehrung schlaegt der Agent vor:
+
 > "98/100 erfolgreich. Dieser Workflow koennte anderen helfen - soll ich ihn mit dem Team teilen?"
 
 User entscheidet explizit, wird aber sanft angestupst.

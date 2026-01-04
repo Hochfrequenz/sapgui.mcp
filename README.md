@@ -22,12 +22,13 @@ Built on the [dev-browser](https://github.com/anthropics/dev-browser) philosophy
 
 For repetitive tasks like "create 100 business partners", the workflow system uses **MCP Sampling** to run iterations server-side, reducing context consumption by ~90%:
 
-| Approach | Context for 100 items |
-|----------|----------------------|
-| Manual iteration | ~500,000 tokens |
-| `workflow_run` | ~2,000 tokens |
+| Approach         | Context for 100 items |
+| ---------------- | --------------------- |
+| Manual iteration | ~500,000 tokens       |
+| `workflow_run`   | ~2,000 tokens         |
 
 **Requirements for workflow_run:**
+
 - MCP client with Sampling support
 - **Note:** As of January 2026, Claude Desktop and Claude Code do NOT support MCP sampling yet ([tracking issue](https://github.com/anthropics/claude-code/issues/1785))
 

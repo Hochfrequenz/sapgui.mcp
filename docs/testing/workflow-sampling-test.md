@@ -7,6 +7,7 @@ This document provides prompts for manually testing the workflow system with MCP
 The `workflow_run` tool uses `ctx.sample()` which requires the MCP client to provide an LLM for server-side agent loops. Our automated test framework uses a minimal `ClientSession` that doesn't support MCP Sampling - it's a protocol client, not an LLM client.
 
 To properly test sampling, you need a real MCP client like Claude Desktop that can:
+
 1. Receive sampling requests from the server
 2. Execute them using its LLM
 3. Return results back to the server
@@ -14,6 +15,7 @@ To properly test sampling, you need a real MCP client like Claude Desktop that c
 This is why we have automated tests for `workflow_list`, `workflow_save`, `workflow_delete` (which don't need sampling), but `workflow_run` must be tested manually.
 
 **Requirements:**
+
 - MCP client with Sampling support
 - SAP Web GUI access with EMMACL transaction
 
@@ -86,11 +88,11 @@ Report the results and compare context usage to doing this manually.
 
 ## Expected Context Savings
 
-| Approach | ~Tokens for 15 items |
-|----------|---------------------|
-| Manual iteration | ~18,000 tokens |
-| workflow_run | ~2,000 tokens |
-| **Savings** | **~89%** |
+| Approach         | ~Tokens for 15 items |
+| ---------------- | -------------------- |
+| Manual iteration | ~18,000 tokens       |
+| workflow_run     | ~2,000 tokens        |
+| **Savings**      | **~89%**             |
 
 ## Troubleshooting
 
@@ -98,6 +100,7 @@ Report the results and compare context usage to doing this manually.
 Your MCP client doesn't support the Sampling feature. As of January 2026, neither Claude Desktop nor Claude Code support MCP sampling. See [tracking issue #1785](https://github.com/anthropics/claude-code/issues/1785).
 
 **workflow_run fails immediately:**
+
 - Check that the workflow exists (`workflow_list`)
 - Verify item format matches what the workflow prompt expects
 - Check SAP login status
