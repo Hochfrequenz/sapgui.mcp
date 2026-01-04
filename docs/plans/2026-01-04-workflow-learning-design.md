@@ -158,6 +158,7 @@ class Workflow(BaseModel):
 | `workflow_run` | Fuehrt einen Workflow mit Subagent-Pattern aus |
 | `workflow_save` | Speichert gelernten Workflow lokal |
 | `workflow_submit` | Teilt Workflow via GitHub Issue |
+| `workflow_delete` | Entfernt lokalen Workflow (bundled bleiben) |
 
 ## MCP Resources
 
@@ -166,8 +167,78 @@ class Workflow(BaseModel):
 | `workflow://list` | Liste aller Workflows mit Metadaten |
 | `workflow://{name}` | Vollstaendiger Workflow-Prompt |
 
-## Offene Fragen
+## Steuerung und Erkennung
 
-- Wie genau steuert der Hauptagent die Lernphase vs. Ausführungsphase?
-- Soll `workflow_run` die Iteration selbst steuern oder nur einen einzelnen Durchlauf machen?
-- Brauchen wir ein `workflow_delete` Tool?
+### Proaktive Nutzung
+
+Der Agent erkennt repetitive Aufgaben anhand von Schluesselwoertern und nutzt das Subagent-Pattern automatisch. Der User muss nicht wissen dass es Subagents gibt.
+
+**Tool-Beschreibung als Trigger:**
+```python
+@mcp.tool(
+    description=(
+        "Execute a workflow for repetitive SAP tasks using subagents. "
+        "Use this when the user requests bulk operations like "
+        "'create 100...', 'for each entry...', 'repeat for all...'. "
+        "Preserves main context by running iterations in isolated subagents."
+    )
+)
+async def workflow_run(...):
+```
+
+### Lernphase vs. Ausfuehrungsphase
+
+Der Agent hat explizite Kontrolle:
+- Nach 2-3 erfolgreichen Iterationen entscheidet der Agent: "Genug gelernt"
+- Ruft `workflow_save` auf um den optimierten Prompt zu speichern
+- Nutzt danach `workflow_run` fuer den Rest
+
+Wenn Iteration 2 fehlschlaegt, kann der Agent weiter explorieren statt automatisch zu wechseln.
+
+### Workflow-Submit als Nudge
+
+Nach erfolgreicher Ausfuehrung schlaegt der Agent vor:
+> "98/100 erfolgreich. Dieser Workflow koennte anderen helfen - soll ich ihn mit dem Team teilen?"
+
+User entscheidet explizit, wird aber sanft angestupst.
+
+## Fehlerbehandlung
+
+### Continue on Error
+
+`workflow_run` laeuft durch alle Items und sammelt Fehler:
+
+```python
+class WorkflowError(BaseModel):
+    input_summary: str = Field(
+        description="Identifying info of the failed item, e.g. 'Max Mustermann, Berlin'"
+    )
+    error: str = Field(
+        description="What went wrong, e.g. 'Pflichtfeld PLZ leer'"
+    )
+
+
+class WorkflowRunResult(BaseModel):
+    total: int = Field(description="Total items to process, e.g. 100")
+    succeeded: int = Field(description="Successfully completed, e.g. 95")
+    failed: int = Field(description="Failed items, e.g. 5")
+    succeeded_items: list[str] = Field(
+        description="Short confirmations, e.g. ['BP 12345: Max Mustermann']"
+    )
+    errors: list[WorkflowError]
+```
+
+### Intelligentes Retry durch Agent
+
+Das Ziel ist die Aufgabe perfekt zu loesen, nicht nur zu berichten:
+
+```
+workflow_run(100 items)
+    -> 95 OK, 5 failed
+Agent: "5 fehlgeschlagen, versuche nochmal..."
+workflow_run(5 items)
+    -> 4 OK, 1 failed (gleiches Item, gleicher Fehler)
+Agent: "1 Item scheitert wiederholt, frage User..."
+```
+
+Kein kompliziertes Retry im Tool - der Agent nutzt sein Urteilsvermoegen.
