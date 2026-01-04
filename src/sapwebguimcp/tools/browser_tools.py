@@ -21,7 +21,7 @@ from datetime import timedelta
 from typing import Literal, Optional
 
 from fastmcp import FastMCP
-from fastmcp.utilities.types import Image
+from fastmcp.utilities.types import File, Image
 
 from sapwebguimcp.models import (
     BrowserKeyboardResult,
@@ -40,6 +40,10 @@ from sapwebguimcp.models import (
 __all__ = ["register_browser_tools"]
 
 logger = logging.getLogger(__name__)
+
+# Threshold for returning HTML as File instead of inline (50KB)
+# This prevents context bloat for large SAP pages
+_HTML_SIZE_THRESHOLD_BYTES = 50 * 1024
 
 
 def _escape_css_selector(selector: str) -> str:
@@ -373,16 +377,19 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             return WaitResult.failure(f"Error waiting: {e}", selector=selector, state=state, timeout=timeout_td)
 
     @mcp.tool(description="Get HTML content of an element or the full page")
-    async def browser_get_html(selector: Optional[str] = None, outer: bool = True) -> HtmlResult:
+    async def browser_get_html(selector: Optional[str] = None, outer: bool = True) -> HtmlResult | list[File | str]:
         """
         Get HTML content of an element or the full page.
+
+        For large HTML (>50KB), returns a File to avoid context bloat.
+        The File contains the HTML and is accompanied by metadata text.
 
         Args:
             selector: CSS selector (if None, returns full page HTML)
             outer: Include the element itself (outerHTML) or just children (innerHTML)
 
         Returns:
-            HtmlResult with HTML content
+            HtmlResult for small HTML, or [File, metadata_text] for large HTML
         """
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
@@ -396,10 +403,26 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                         html: str = await element.evaluate("el => el.outerHTML")
                     else:
                         html = await element.evaluate("el => el.innerHTML")
-                    return HtmlResult(html=html, selector=selector, outer=outer)
-                return HtmlResult.failure(f"Element not found: {selector}", selector=selector, outer=outer)
-            html = await page.content()
-            return HtmlResult(html=html, outer=outer)
+                else:
+                    return HtmlResult.failure(f"Element not found: {selector}", selector=selector, outer=outer)
+            else:
+                html = await page.content()
+
+            # Check if HTML is large enough to return as File
+            html_bytes = html.encode("utf-8")
+            if len(html_bytes) > _HTML_SIZE_THRESHOLD_BYTES:
+                size_kb = len(html_bytes) / 1024
+                logger.debug("HTML size %.1fKB exceeds threshold, returning as File", size_kb)
+                metadata = (
+                    f"HTML content returned as file (size: {size_kb:.1f}KB). "
+                    f"Selector: {selector or 'full page'}, outer: {outer}"
+                )
+                return [
+                    File(data=html_bytes, name="page_content.html"),
+                    metadata,
+                ]
+
+            return HtmlResult(html=html, selector=selector, outer=outer)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error getting HTML")
             return HtmlResult.failure(f"Error getting HTML: {e}", selector=selector, outer=outer)
