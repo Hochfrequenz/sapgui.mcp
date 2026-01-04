@@ -1897,3 +1897,262 @@ async def test_browser_screenshot_returns_mcp_image_content(sap_mcp_client: Clie
     print(f"  - Type: {content.type}")
     print(f"  - MIME type: {content.mimeType}")
     print(f"  - Size: {image_size:,} bytes")
+
+
+# =============================================================================
+# Tests for Workflow Tools (workflow_list, workflow_save, workflow_delete)
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_workflow_list_returns_bundled_workflows(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that workflow_list returns bundled workflows.
+
+    This verifies:
+    1. The workflow_list tool is registered and callable
+    2. Bundled workflows (shipped with the package) are listed
+    3. The response has expected structure with workflow metadata
+    """
+    result = await sap_mcp_client.call_tool("workflow_list", {})
+    data = assert_tool_success(result, "workflow_list")
+
+    # Should have a workflows list
+    assert "workflows" in data, f"Expected 'workflows' in response: {data}"
+    workflows = data.get("workflows", [])
+
+    # Should have at least one bundled workflow
+    assert len(workflows) >= 1, f"Expected at least one bundled workflow: {workflows}"
+
+    # Verify workflow structure
+    first_workflow = workflows[0]
+    required_fields = ["name", "description", "author", "prompt", "applicable_when"]
+    for field in required_fields:
+        assert field in first_workflow, f"Workflow missing '{field}': {first_workflow}"
+
+    print(f"\nFound {len(workflows)} workflows:")
+    for wf in workflows:
+        print(f"  - {wf.get('name')}: {wf.get('description')}")
+
+
+@pytest.mark.anyio
+async def test_workflow_save_and_delete(sap_mcp_client: ClientSession) -> None:
+    """
+    Test saving and deleting a user workflow.
+
+    This verifies:
+    1. workflow_save creates a new workflow in user directory
+    2. The workflow appears in workflow_list
+    3. workflow_delete removes the workflow
+    4. The workflow is gone from workflow_list
+    """
+    test_workflow_name = "test-integration-workflow-12345"
+
+    # Save a test workflow
+    save_result = await sap_mcp_client.call_tool(
+        "workflow_save",
+        {
+            "workflow_input": {
+                "name": test_workflow_name,
+                "description": "Test workflow for integration tests",
+                "prompt": "This is a test prompt for integration testing",
+                "applicable_when": "During integration tests",
+                "not_applicable_when": "In production",
+                "author": "integration-test",
+            }
+        },
+    )
+    save_data = assert_tool_success(save_result, "workflow_save")
+
+    assert save_data.get("name") == test_workflow_name, f"Name mismatch: {save_data}"
+    assert save_data.get("path"), f"Expected path in response: {save_data}"
+
+    print(f"\nSaved workflow to: {save_data.get('path')}")
+
+    # Verify it appears in list
+    list_result = await sap_mcp_client.call_tool("workflow_list", {})
+    list_data = assert_tool_success(list_result, "workflow_list after save")
+
+    workflow_names = [w.get("name") for w in list_data.get("workflows", [])]
+    assert test_workflow_name in workflow_names, f"Saved workflow not in list: {workflow_names}"
+
+    # Delete the workflow
+    delete_result = await sap_mcp_client.call_tool("workflow_delete", {"name": test_workflow_name})
+    delete_data = assert_tool_success(delete_result, "workflow_delete")
+
+    assert delete_data.get("name") == test_workflow_name, f"Name mismatch: {delete_data}"
+
+    # Verify it's gone from list
+    list_result2 = await sap_mcp_client.call_tool("workflow_list", {})
+    list_data2 = assert_tool_success(list_result2, "workflow_list after delete")
+
+    workflow_names2 = [w.get("name") for w in list_data2.get("workflows", [])]
+    assert test_workflow_name not in workflow_names2, f"Deleted workflow still in list: {workflow_names2}"
+
+    print("Workflow save/delete cycle completed successfully")
+
+
+@pytest.mark.anyio
+async def test_workflow_delete_bundled_fails(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that deleting a bundled workflow fails.
+
+    Bundled workflows (shipped with the package) cannot be deleted.
+    Only user-created workflows can be deleted.
+    """
+    # First get a bundled workflow name
+    list_result = await sap_mcp_client.call_tool("workflow_list", {})
+    list_data = assert_tool_success(list_result, "workflow_list")
+
+    workflows = list_data.get("workflows", [])
+    if not workflows:
+        pytest.skip("No bundled workflows to test with")
+
+    bundled_name = workflows[0].get("name")
+    print(f"\nAttempting to delete bundled workflow: {bundled_name}")
+
+    # Try to delete it
+    delete_result = await sap_mcp_client.call_tool("workflow_delete", {"name": bundled_name})
+    delete_data = parse_tool_response(delete_result)
+
+    # Should fail
+    assert not delete_data.get("success", True), f"Should not be able to delete bundled workflow: {delete_data}"
+    assert (
+        "bundled" in delete_data.get("error", "").lower() or "cannot delete" in delete_data.get("error", "").lower()
+    ), f"Error should mention bundled: {delete_data}"
+
+    print(f"Correctly rejected: {delete_data.get('error')}")
+
+
+# =============================================================================
+# EMMACL Manual Iteration Test (baseline for workflow comparison)
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -> None:
+    """
+    Test manually iterating through 15 EMMACL cases.
+
+    This test establishes a baseline for:
+    1. How long it takes to click through cases manually
+    2. What the navigation pattern looks like (list -> detail -> back)
+    3. Context consumption of individual tool calls
+
+    This is the "before" scenario that workflow_run with ctx.sample()
+    is designed to optimize. Each iteration here adds to client context,
+    whereas workflow_run would process all items server-side.
+
+    Note: workflow_run with ctx.sample() cannot be tested here because
+    the test client doesn't support MCP Sampling. This manual test
+    documents the behavior that workflow_run would automate.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL and execute without filters
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Read table to get available cases
+    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 20})
+    table_data = assert_tool_success(table_result, "sap_read_table")
+
+    rows = table_data.get("rows", [])
+    total_available = len(rows)
+
+    if total_available < 1:
+        pytest.skip("No EMMACL cases available to click through")
+
+    # Limit to 15 cases (or fewer if not enough)
+    cases_to_process = min(15, total_available)
+    print(f"\nProcessing {cases_to_process} of {total_available} available cases")
+
+    successful_clicks = 0
+    failed_clicks = 0
+    results: list[dict[str, str]] = []
+
+    # Process each case: click -> verify navigation -> go back
+    for i in range(cases_to_process):
+        row = rows[i]
+        row_num = row.get("row", i + 1)
+        cells = row.get("cells", {})
+
+        # Find a hotspot column (typically "Fall" or similar)
+        hotspot_col = None
+        for col_name, cell_info in cells.items():
+            if cell_info.get("hotspot"):
+                hotspot_col = col_name
+                break
+
+        if not hotspot_col:
+            print(f"  Row {row_num}: No hotspot found, skipping")
+            failed_clicks += 1
+            continue
+
+        # Get title before click
+        screen_before = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+        title_before = parse_tool_response(screen_before).get("title", "")
+
+        # Click on the hotspot cell
+        try:
+            click_result = await sap_mcp_client.call_tool(
+                "sap_click_table_cell",
+                {"row": row_num, "column": hotspot_col},
+            )
+            click_data = parse_tool_response(click_result)
+
+            if not click_data.get("success", True):
+                print(f"  Row {row_num}: Click failed - {click_data.get('error')}")
+                failed_clicks += 1
+                continue
+
+            # Wait for navigation
+            await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+            # Get title after click
+            screen_after = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+            title_after = parse_tool_response(screen_after).get("title", "")
+
+            # Verify navigation happened
+            if title_before != title_after:
+                successful_clicks += 1
+                results.append({"row": str(row_num), "title": title_after})
+                print(f"  Row {row_num}: Navigated to '{title_after}'")
+            else:
+                failed_clicks += 1
+                print(f"  Row {row_num}: Title unchanged, navigation may have failed")
+
+            # Go back to the list
+            await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
+            await sap_mcp_client.call_tool("browser_wait", {"timeout": 1500})
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            failed_clicks += 1
+            print(f"  Row {row_num}: Error - {e}")
+
+    print(f"\n=== EMMACL Manual Iteration Summary ===")
+    print(f"Processed: {cases_to_process} cases")
+    print(f"Successful: {successful_clicks}")
+    print(f"Failed: {failed_clicks}")
+
+    # At least half should succeed for the test to pass
+    assert (
+        successful_clicks >= cases_to_process // 2
+    ), f"Expected at least {cases_to_process // 2} successful clicks, got {successful_clicks}"
+
+    # This test documents the context cost of manual iteration:
+    # - Each sap_click_table_cell call: ~300 tokens (call + result)
+    # - Each sap_get_screen_info call: ~200 tokens
+    # - Each sap_keyboard call: ~200 tokens
+    # - Each browser_wait call: ~150 tokens
+    # For 15 cases: ~15 * (300 + 200 + 200 + 150 + 200 + 150) = ~18,000 tokens
+    #
+    # With workflow_run using ctx.sample():
+    # - 1 workflow_run call: ~1,500 tokens (call + result with 15 summaries)
+    # Savings: ~16,500 tokens (91% reduction)
+    print("\n=== Context Estimation (Manual vs Workflow) ===")
+    print(f"Manual approach: ~{cases_to_process * 1200:,} tokens")
+    print(f"Workflow approach: ~2,000 tokens (estimated)")
+    print(f"Estimated savings: ~{(cases_to_process * 1200 - 2000):,} tokens")
