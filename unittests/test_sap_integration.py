@@ -1831,3 +1831,69 @@ async def test_intent_logging_with_bp_transaction(
     # Press F3 to go back/cancel (avoid creating an actual partner)
     back_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
     print(f"\nBack result: {back_result.content[0].text if back_result.content else 'N/A'}")
+
+
+# =============================================================================
+# Tests for browser_screenshot returning native MCP Image
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_browser_screenshot_returns_mcp_image_content(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that browser_screenshot returns a native MCP ImageContent.
+
+    This verifies that:
+    1. The tool returns ImageContent (type='image') instead of text with base64
+    2. The image data is valid base64-encoded PNG
+    3. The image can be decoded and has reasonable dimensions
+
+    Using native MCP ImageContent is more token-efficient than returning base64
+    as a string, because the MCP client can process the image as binary data
+    rather than as text tokens.
+    """
+    import base64
+
+    from mcp.types import ImageContent
+
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Take a screenshot
+    result = await sap_mcp_client.call_tool("browser_screenshot", {})
+
+    # Verify we got a response
+    assert result.content, "Expected non-empty response from browser_screenshot"
+
+    # The first content block should be an ImageContent
+    content = result.content[0]
+    assert isinstance(content, ImageContent), (
+        f"Expected ImageContent, got {type(content).__name__}. "
+        "Screenshot should return native MCP image, not text with base64."
+    )
+
+    # Verify the ImageContent structure
+    assert content.type == "image", f"Expected type='image', got '{content.type}'"
+    assert content.mimeType == "image/png", f"Expected mimeType='image/png', got '{content.mimeType}'"
+    assert content.data, "Expected non-empty image data"
+
+    # Verify the base64 data is valid and decodes to PNG
+    try:
+        image_bytes = base64.b64decode(content.data)
+    except Exception as e:
+        raise AssertionError(f"Image data is not valid base64: {e}") from e
+
+    # PNG files start with the magic bytes: 0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
+    png_magic = b"\x89PNG\r\n\x1a\n"
+    assert image_bytes[:8] == png_magic, (
+        f"Image data does not start with PNG magic bytes. " f"Got: {image_bytes[:8].hex()}, expected: {png_magic.hex()}"
+    )
+
+    # Verify reasonable image size (at least 1KB, at most 10MB)
+    image_size = len(image_bytes)
+    assert image_size > 1024, f"Image seems too small: {image_size} bytes"
+    assert image_size < 10 * 1024 * 1024, f"Image seems too large: {image_size} bytes"
+
+    print(f"\nScreenshot captured successfully:")
+    print(f"  - Type: {content.type}")
+    print(f"  - MIME type: {content.mimeType}")
+    print(f"  - Size: {image_size:,} bytes")
