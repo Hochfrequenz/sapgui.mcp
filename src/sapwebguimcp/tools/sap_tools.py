@@ -94,13 +94,47 @@ async def _keepalive_loop(browser_manager: BrowserManager, interval: int) -> Non
             # Perform a harmless action - evaluate JS to keep connection alive
             await page.evaluate("() => { /* keepalive ping */ }")
 
-            logger.debug("Keepalive ping sent")
+            logger.info("Keepalive ping sent")
 
         except asyncio.CancelledError:
             logger.info("Keepalive task cancelled")
             break
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning("Keepalive error (will retry): %s", e)
+
+
+async def _start_keepalive(interval_seconds: int = 300) -> KeepaliveResult:
+    """
+    Start the keepalive background task.
+
+    This is the implementation used by both the sap_keepalive_start tool
+    and called internally from sap_login.
+
+    Args:
+        interval_seconds: Seconds between keepalive pings (default: 300 = 5 minutes)
+
+    Returns:
+        KeepaliveResult indicating the keepalive is running.
+    """
+    global _keepalive_task, _keepalive_interval  # pylint: disable=global-statement
+
+    browser_manager = await get_browser_manager()
+
+    # Stop existing task if running
+    if _keepalive_task is not None and not _keepalive_task.done():
+        _keepalive_task.cancel()
+        try:
+            await _keepalive_task
+        except asyncio.CancelledError:
+            pass
+
+    _keepalive_interval = interval_seconds
+    _keepalive_task = asyncio.create_task(_keepalive_loop(browser_manager, interval_seconds))
+
+    return KeepaliveResult(
+        running=True,
+        interval_seconds=interval_seconds,
+    )
 
 
 # =============================================================================
@@ -292,25 +326,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             KeepaliveResult indicating the keepalive is running.
         """
-        global _keepalive_task, _keepalive_interval  # pylint: disable=global-statement
-
-        browser_manager = await get_browser_manager()
-
-        # Stop existing task if running
-        if _keepalive_task is not None and not _keepalive_task.done():
-            _keepalive_task.cancel()
-            try:
-                await _keepalive_task
-            except asyncio.CancelledError:
-                pass
-
-        _keepalive_interval = interval_seconds
-        _keepalive_task = asyncio.create_task(_keepalive_loop(browser_manager, interval_seconds))
-
-        return KeepaliveResult(
-            running=True,
-            interval_seconds=interval_seconds,
-        )
+        return await _start_keepalive(interval_seconds)
 
     @mcp.tool(description="Stop the background keepalive task")
     async def sap_keepalive_stop() -> KeepaliveResult:
@@ -374,6 +390,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Check if we're already logged in
             okcode_field = await _find_okcode_field(page)
             if okcode_field:
+                # Start keepalive to prevent session timeout
+                await _start_keepalive()
                 return LoginResult(
                     url=effective_url,
                     already_logged_in=True,
@@ -425,6 +443,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             try:
                 await page.wait_for_selector("#ToolbarOkCode", timeout=15000, state="visible")
                 logger.info("Login successful - OK-Code field visible")
+                # Start keepalive to prevent session timeout
+                await _start_keepalive()
                 return LoginResult(
                     url=effective_url,
                     user=settings.sap_user,
@@ -444,6 +464,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         )
                         await page.click(continue_btn_selector, timeout=5000)
                         await page.wait_for_selector("#ToolbarOkCode", timeout=10000, state="visible")
+                        # Start keepalive to prevent session timeout
+                        await _start_keepalive()
                         return LoginResult(
                             url=effective_url,
                             user=settings.sap_user,
