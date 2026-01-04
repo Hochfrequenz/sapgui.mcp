@@ -15,13 +15,13 @@ when SAP-specific tools are insufficient:
 - browser_select_option: Select dropdown options
 """
 
-import base64
 import json
 import logging
 from datetime import timedelta
 from typing import Literal, Optional
 
 from fastmcp import FastMCP
+from fastmcp.utilities.types import Image
 
 from sapwebguimcp.models import (
     BrowserKeyboardResult,
@@ -49,6 +49,9 @@ def _escape_css_selector(selector: str) -> str:
     SAP generates IDs like 'M0:48::btn[5]' which contain special CSS characters.
     This function escapes them so they work as valid CSS selectors.
 
+    If the selector is already escaped (contains patterns like \\# or \\,),
+    it will be returned as-is to avoid double-escaping.
+
     Args:
         selector: CSS selector string
 
@@ -61,10 +64,17 @@ def _escape_css_selector(selector: str) -> str:
     # If it's an ID selector (starts with #), escape special chars in the ID part
     if selector.startswith("#"):
         id_part = selector[1:]
-        # Escape CSS special characters: : [ ] . (but not at start)
+
+        # Check if already escaped - look for backslash followed by special chars
+        # This prevents double-escaping of selectors from sap_read_table cells
+        if any(f"\\{c}" in id_part for c in ":[]#,"):
+            return selector  # Already escaped
+
+        # Escape CSS special characters: : [ ] # ,
+        # SAP ALV grids use IDs like "grid#C120#1,2#if" which need # and , escaped
         escaped_id = ""
         for char in id_part:
-            if char in r":[]":
+            if char in r":[]#,":
                 escaped_id += f"\\{char}"
             else:
                 escaped_id += char
@@ -112,25 +122,36 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     @mcp.tool(
         description=(
             "Take a screenshot of the current page. "
-            "WARNING: Screenshots are large and consume significant context. "
-            "Prefer sap_get_screen_text when you only need to read text/labels. "
-            "Use screenshots sparingly - only when visual layout matters."
+            "AVOID THIS TOOL - it returns a large image that fills up the conversation context. "
+            "Use browser_snapshot instead to get a compact text-based accessibility tree. "
+            "Only use screenshots when visual layout verification is absolutely necessary."
         )
     )
-    async def browser_screenshot(full_page: bool = False, selector: Optional[str] = None) -> ScreenshotResult:
+    async def browser_screenshot(full_page: bool = False, selector: Optional[str] = None) -> Image | ScreenshotResult:
         """
         Take a screenshot of the current page.
 
-        WARNING: Screenshots are large base64 images that consume significant
-        conversation context. Prefer sap_get_screen_text when you only need
-        to read text, labels, or field names. Use screenshots sparingly.
+        WARNING: This tool returns image data that consumes significant conversation
+        context. In almost all cases, you should use browser_snapshot instead, which
+        returns a compact YAML accessibility tree that uses far fewer tokens.
+
+        Use browser_snapshot for:
+        - Reading text, labels, or field values
+        - Understanding page structure
+        - Finding elements to interact with
+        - Any task that doesn't require pixel-perfect visual verification
+
+        Only use browser_screenshot when:
+        - You need to verify visual layout/styling
+        - You're debugging rendering issues
+        - The user explicitly requests a screenshot
 
         Args:
             full_page: Capture entire scrollable page
             selector: Optional CSS selector to capture specific element
 
         Returns:
-            ScreenshotResult with base64 encoded PNG image
+            Image (native MCP image content) on success, ScreenshotResult on failure
         """
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
@@ -149,11 +170,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             else:
                 screenshot = await page.screenshot(full_page=full_page)
 
-            return ScreenshotResult(
-                image_base64=base64.b64encode(screenshot).decode("utf-8"),
-                full_page=full_page,
-                selector=selector,
-            )
+            # Return native MCP Image instead of base64 string to reduce token usage
+            return Image(data=screenshot, format="png")
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error taking screenshot")
             return ScreenshotResult.failure(
@@ -305,18 +323,34 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             logger.exception("Error evaluating script")
             return EvaluateResult.failure(f"Error executing script: {e}", script_snippet=script_snippet)
 
-    @mcp.tool(description="Wait for an element or timeout")
+    @mcp.tool(
+        description=(
+            "Wait for an element to reach a specific state. "
+            "IMPORTANT: Only useful with a selector - calling without a selector is almost always pointless "
+            "because MCP round-trip time already provides natural delays. "
+            "Use this to wait for elements to appear (state='visible') or disappear (state='hidden'), "
+            "e.g., waiting for a loading indicator to vanish before reading content."
+        )
+    )
     async def browser_wait(
         selector: Optional[str] = None,
         timeout: int = 5000,
         state: Literal["attached", "detached", "hidden", "visible"] = "visible",
     ) -> WaitResult:
         """
-        Wait for an element or timeout.
+        Wait for an element to reach a specific state.
+
+        IMPORTANT: Only useful with a selector. Calling without a selector is almost always
+        pointless because the MCP tool round-trip already introduces natural delays. Don't
+        use this as a generic sleep - it wastes time without benefit.
+
+        Good use cases:
+        - Wait for an element to appear before reading: browser_wait(selector="#result", state="visible")
+        - Wait for loading spinner to disappear: browser_wait(selector=".loading", state="hidden")
 
         Args:
-            selector: CSS selector to wait for
-            timeout: Timeout in milliseconds
+            selector: CSS selector to wait for (required for meaningful use)
+            timeout: Maximum wait time in milliseconds (returns early if condition met)
             state: Element state to wait for ('visible', 'hidden', 'attached', 'detached')
 
         Returns:

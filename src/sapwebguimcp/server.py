@@ -23,6 +23,7 @@ from sapwebguimcp.tools import (
     register_feedback_tools,
     register_intent_tools,
     register_sap_tools,
+    register_workflow_tools,
 )
 
 __all__ = ["main", "mcp"]
@@ -84,6 +85,7 @@ register_sap_tools(mcp)
 register_browser_tools(mcp)
 register_intent_tools(mcp)
 register_feedback_tools(mcp)
+register_workflow_tools(mcp)
 
 # Register resources
 register_intent_resources(mcp)

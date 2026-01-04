@@ -1156,15 +1156,32 @@ async def test_bp_fill_form_batch_fill(sap_mcp_client: ClientSession) -> None:
     # Capture HTML snapshot of BP initial screen
     await capture_html_snapshot(sap_mcp_client, "bp_initial")
 
-    # Step 2: Click on "Person" button to create a new person
-    # The button text depends on language (Person in both DE and EN)
-    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "span:has-text('Person')"})
+    # Step 2: Click on the "Person" button to create a new person
+    # The button has ID M0:48::btn[5] with text "Person anlegen (F5)"
+    #
+    # IMPORTANT: SAP Web GUI requires multiple waits for reliable form interaction:
+    # - Pre-click wait: Ensures the page is fully interactive after initial load
+    # - Post-click wait: Allows SAP backend to process and return the form HTML
+    # - Form label wait: Ensures the specific form labels are rendered
+    # - Post-render wait: Allows all label-input associations (lsdata) to be populated
+    # Without these waits, the form may not have all labels visible when sap_fill_form runs.
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
     click_data = parse_tool_response(click_result)
     assert click_data.get("success", True), f"Failed to click Person button: {click_data}"
 
-    # Wait for form to load - look for typical BP person form fields
-    # Use a short wait for the form to render
-    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+    # Wait for SAP backend to process and return form HTML
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Wait for specific form labels to be rendered
+    if sap_language == "DE":
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Vorname')", "timeout": 15000})
+    else:
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('First Name')", "timeout": 15000})
+
+    # Allow all label-input lsdata associations to be populated
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Capture HTML snapshot after clicking Person (shows the form fields)
     await capture_html_snapshot(sap_mcp_client, "bp_person_form")
@@ -1221,12 +1238,25 @@ async def test_bp_fill_form_with_css_selectors(sap_mcp_client: ClientSession) ->
     # Wait for BP initial screen
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
-    # Click on "Person" button
-    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "span:has-text('Person')"})
+    # Click on "Person" button to create a new person
+    # IMPORTANT: SAP Web GUI requires multiple waits for reliable form interaction.
+    # See test_bp_fill_form_batch_fill for detailed explanation.
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
     click_data = parse_tool_response(click_result)
     assert click_data.get("success", True), f"Failed to click Person button: {click_data}"
 
-    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+    # Wait for SAP backend to process and return form HTML
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Wait for first name label to confirm form is loaded
+    await sap_mcp_client.call_tool(
+        "browser_wait", {"selector": "label:has-text('Vorname'), label:has-text('First Name')", "timeout": 15000}
+    )
+
+    # Allow all label-input lsdata associations to be populated
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Use CSS selectors that match SAP lsdata attributes for BP person form
     # These selectors target the actual SAP field IDs embedded in lsdata
@@ -1511,6 +1541,193 @@ async def test_emmacl_execute_with_filter(sap_mcp_client: ClientSession) -> None
 
 
 @pytest.mark.anyio
+async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None:
+    """
+    Test clicking on an ALV grid cell in EMMACL to navigate to detail view.
+
+    This test verifies the full ALV grid click workflow:
+    1. Opens EMMACL transaction
+    2. Presses F8 to execute (shows ALV grid with results)
+    3. Reads table with sap_read_table (should get ALV metadata + cell selectors)
+    4. Clicks on a case number (hotspot cell) using sap_click_table_cell
+    5. Verifies navigation to the detail screen
+
+    This is a critical test for the ALV grid click support feature.
+    The test MUST succeed with an actual click + navigation for the feature to work.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Step 1: Open EMMACL transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    assert_tool_success(result, "sap_transaction EMMACL")
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+    # Step 2: Execute without filters (F8) to get the results table
+    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    assert_tool_success(kb_result, "sap_keyboard F8")
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Step 3: Read the table - should get ALV metadata with cell selectors
+    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 10})
+    table_data = assert_tool_success(table_result, "sap_read_table")
+
+    print(f"\nTable data structure:")
+    print(f"  Headers: {table_data.get('headers', [])}")
+    print(f"  Total rows: {table_data.get('total_rows', 0)}")
+    print(f"  ALV metadata: {table_data.get('alv', 'NOT PRESENT')}")
+
+    # Verify we have ALV metadata (proves ALV grid detection worked)
+    assert "alv" in table_data, (
+        "sap_read_table should return ALV metadata for EMMACL results. " f"Got: {list(table_data.keys())}"
+    )
+
+    alv_meta = table_data.get("alv", {})
+    assert alv_meta.get("table_id"), f"ALV metadata should have table_id: {alv_meta}"
+
+    # Verify we have at least one row
+    rows = table_data.get("rows", [])
+    assert len(rows) >= 1, f"Expected at least one row in EMMACL results: {table_data}"
+
+    # Verify first row has cell metadata with selectors
+    first_row = rows[0]
+    cells = first_row.get("cells", {})
+    print(f"  First row cells metadata: {cells}")
+
+    assert cells, "First row should have cells metadata with click selectors. " f"Got row: {first_row}"
+
+    # Find a hotspot cell (one that can be clicked to navigate)
+    hotspot_cell = None
+    hotspot_column = None
+    for col_name, cell_info in cells.items():
+        if cell_info.get("hotspot"):
+            hotspot_cell = cell_info
+            hotspot_column = col_name
+            break
+
+    assert hotspot_cell, (
+        "EMMACL results should have at least one hotspot cell (e.g., 'Fall' column). " f"Cells: {cells}"
+    )
+
+    print(f"\n  Found hotspot in column '{hotspot_column}': {hotspot_cell}")
+
+    # Get the page title before clicking
+    screen_info_before = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+    info_before = parse_tool_response(screen_info_before)
+    title_before = info_before.get("title", "")
+    print(f"  Title before click: {title_before}")
+
+    # Step 4: Click on the hotspot cell using sap_click_table_cell
+    # This should navigate to the detail view
+    click_result = await sap_mcp_client.call_tool(
+        "sap_click_table_cell",
+        {"row": first_row.get("row", 1), "column": hotspot_column},
+    )
+    click_data = assert_tool_success(click_result, "sap_click_table_cell")
+
+    print(f"\n  Click result:")
+    print(f"    Selector used: {click_data.get('selector_used')}")
+    print(f"    Was hotspot: {click_data.get('was_hotspot')}")
+    print(f"    Page title after: {click_data.get('page_title')}")
+
+    # Verify the click was on a hotspot
+    assert click_data.get("was_hotspot"), f"Click should have been on a hotspot cell. Result: {click_data}"
+
+    # Step 5: Verify navigation happened (title should change)
+    title_after = click_data.get("page_title", "")
+
+    # The title should change to show the detail view
+    # German: "Klärungsfall XXXXXXXXX anzeigen" (Show case XXXXXXXXX)
+    # English: "Display Case XXXXXXXXX"
+    assert title_before != title_after, (
+        f"Page title should change after clicking hotspot cell. " f"Before: '{title_before}', After: '{title_after}'"
+    )
+
+    # Verify we're on a detail screen (not still on the list)
+    detail_indicators = ["anzeigen", "display", "case", "fall", "klärungsfall"]
+    assert any(
+        ind in title_after.lower() for ind in detail_indicators
+    ), f"Should navigate to detail view. Got title: '{title_after}'"
+
+    print(f"\n  SUCCESS: Navigated from '{title_before}' to '{title_after}'")
+
+    # Capture the detail screen HTML for reference
+    await capture_html_snapshot(sap_mcp_client, "emmacl_case_detail")
+
+    # Press F3 to go back to the list
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+
+@pytest.mark.anyio
+async def test_emmacl_alv_click_with_browser_click(sap_mcp_client: ClientSession) -> None:
+    """
+    Test clicking on an ALV grid cell using browser_click with the selector from sap_read_table.
+
+    This is an alternative approach to sap_click_table_cell - using the
+    pre-escaped CSS selector directly with browser_click.
+
+    This test verifies:
+    1. sap_read_table returns properly escaped CSS selectors
+    2. browser_click can use these selectors directly
+    3. Navigation works when clicking hotspot cells
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL and get results
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Read table with ALV metadata
+    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 5})
+    table_data = assert_tool_success(table_result, "sap_read_table")
+
+    rows = table_data.get("rows", [])
+    assert len(rows) >= 1, "Expected at least one row"
+
+    # Find a hotspot cell selector
+    first_row = rows[0]
+    cells = first_row.get("cells", {})
+
+    hotspot_selector = None
+    for col_name, cell_info in cells.items():
+        if cell_info.get("hotspot"):
+            hotspot_selector = cell_info.get("selector")
+            print(f"Found hotspot selector for '{col_name}': {hotspot_selector}")
+            break
+
+    assert hotspot_selector, "Expected a hotspot cell with selector"
+
+    # Get title before click
+    screen_info = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+    title_before = parse_tool_response(screen_info).get("title", "")
+
+    # Use browser_click with the selector directly
+    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": hotspot_selector})
+    click_data = assert_tool_success(click_result, "browser_click with ALV selector")
+
+    # Wait for navigation
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Verify navigation
+    screen_info_after = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+    title_after = parse_tool_response(screen_info_after).get("title", "")
+
+    print(f"Title before: {title_before}")
+    print(f"Title after: {title_after}")
+
+    assert title_before != title_after, (
+        f"Page title should change after clicking hotspot. " f"Before: '{title_before}', After: '{title_after}'"
+    )
+
+    # Go back
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
+
+
+@pytest.mark.anyio
 async def test_intent_logging_with_bp_transaction(
     sap_mcp_client: ClientSession,
     caplog: pytest.LogCaptureFixture,
@@ -1614,3 +1831,328 @@ async def test_intent_logging_with_bp_transaction(
     # Press F3 to go back/cancel (avoid creating an actual partner)
     back_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
     print(f"\nBack result: {back_result.content[0].text if back_result.content else 'N/A'}")
+
+
+# =============================================================================
+# Tests for browser_screenshot returning native MCP Image
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_browser_screenshot_returns_mcp_image_content(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that browser_screenshot returns a native MCP ImageContent.
+
+    This verifies that:
+    1. The tool returns ImageContent (type='image') instead of text with base64
+    2. The image data is valid base64-encoded PNG
+    3. The image can be decoded and has reasonable dimensions
+
+    Using native MCP ImageContent is more token-efficient than returning base64
+    as a string, because the MCP client can process the image as binary data
+    rather than as text tokens.
+    """
+    import base64
+
+    from mcp.types import ImageContent
+
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Take a screenshot
+    result = await sap_mcp_client.call_tool("browser_screenshot", {})
+
+    # Verify we got a response
+    assert result.content, "Expected non-empty response from browser_screenshot"
+
+    # The first content block should be an ImageContent
+    content = result.content[0]
+    assert isinstance(content, ImageContent), (
+        f"Expected ImageContent, got {type(content).__name__}. "
+        "Screenshot should return native MCP image, not text with base64."
+    )
+
+    # Verify the ImageContent structure
+    assert content.type == "image", f"Expected type='image', got '{content.type}'"
+    assert content.mimeType == "image/png", f"Expected mimeType='image/png', got '{content.mimeType}'"
+    assert content.data, "Expected non-empty image data"
+
+    # Verify the base64 data is valid and decodes to PNG
+    try:
+        image_bytes = base64.b64decode(content.data)
+    except Exception as e:
+        raise AssertionError(f"Image data is not valid base64: {e}") from e
+
+    # PNG files start with the magic bytes: 0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
+    png_magic = b"\x89PNG\r\n\x1a\n"
+    assert image_bytes[:8] == png_magic, (
+        f"Image data does not start with PNG magic bytes. " f"Got: {image_bytes[:8].hex()}, expected: {png_magic.hex()}"
+    )
+
+    # Verify reasonable image size (at least 1KB, at most 10MB)
+    image_size = len(image_bytes)
+    assert image_size > 1024, f"Image seems too small: {image_size} bytes"
+    assert image_size < 10 * 1024 * 1024, f"Image seems too large: {image_size} bytes"
+
+    print(f"\nScreenshot captured successfully:")
+    print(f"  - Type: {content.type}")
+    print(f"  - MIME type: {content.mimeType}")
+    print(f"  - Size: {image_size:,} bytes")
+
+
+# =============================================================================
+# Tests for Workflow Tools (workflow_list, workflow_save, workflow_delete)
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_workflow_list_returns_bundled_workflows(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that workflow_list returns bundled workflows.
+
+    This verifies:
+    1. The workflow_list tool is registered and callable
+    2. Bundled workflows (shipped with the package) are listed
+    3. The response has expected structure with workflow metadata
+    """
+    result = await sap_mcp_client.call_tool("workflow_list", {})
+    data = assert_tool_success(result, "workflow_list")
+
+    # Should have a workflows list
+    assert "workflows" in data, f"Expected 'workflows' in response: {data}"
+    workflows = data.get("workflows", [])
+
+    # Should have at least one bundled workflow
+    assert len(workflows) >= 1, f"Expected at least one bundled workflow: {workflows}"
+
+    # Verify workflow structure
+    first_workflow = workflows[0]
+    required_fields = ["name", "description", "author", "prompt", "applicable_when"]
+    for field in required_fields:
+        assert field in first_workflow, f"Workflow missing '{field}': {first_workflow}"
+
+    print(f"\nFound {len(workflows)} workflows:")
+    for wf in workflows:
+        print(f"  - {wf.get('name')}: {wf.get('description')}")
+
+
+@pytest.mark.anyio
+async def test_workflow_save_and_delete(sap_mcp_client: ClientSession) -> None:
+    """
+    Test saving and deleting a user workflow.
+
+    This verifies:
+    1. workflow_save creates a new workflow in user directory
+    2. The workflow appears in workflow_list
+    3. workflow_delete removes the workflow
+    4. The workflow is gone from workflow_list
+    """
+    test_workflow_name = "test-integration-workflow-12345"
+
+    # Save a test workflow
+    save_result = await sap_mcp_client.call_tool(
+        "workflow_save",
+        {
+            "workflow_input": {
+                "name": test_workflow_name,
+                "description": "Test workflow for integration tests",
+                "prompt": "This is a test prompt for integration testing",
+                "applicable_when": "During integration tests",
+                "not_applicable_when": "In production",
+                "author": "integration-test",
+            }
+        },
+    )
+    save_data = assert_tool_success(save_result, "workflow_save")
+
+    assert save_data.get("name") == test_workflow_name, f"Name mismatch: {save_data}"
+    assert save_data.get("path"), f"Expected path in response: {save_data}"
+
+    print(f"\nSaved workflow to: {save_data.get('path')}")
+
+    # Verify it appears in list
+    list_result = await sap_mcp_client.call_tool("workflow_list", {})
+    list_data = assert_tool_success(list_result, "workflow_list after save")
+
+    workflow_names = [w.get("name") for w in list_data.get("workflows", [])]
+    assert test_workflow_name in workflow_names, f"Saved workflow not in list: {workflow_names}"
+
+    # Delete the workflow
+    delete_result = await sap_mcp_client.call_tool("workflow_delete", {"name": test_workflow_name})
+    delete_data = assert_tool_success(delete_result, "workflow_delete")
+
+    assert delete_data.get("name") == test_workflow_name, f"Name mismatch: {delete_data}"
+
+    # Verify it's gone from list
+    list_result2 = await sap_mcp_client.call_tool("workflow_list", {})
+    list_data2 = assert_tool_success(list_result2, "workflow_list after delete")
+
+    workflow_names2 = [w.get("name") for w in list_data2.get("workflows", [])]
+    assert test_workflow_name not in workflow_names2, f"Deleted workflow still in list: {workflow_names2}"
+
+    print("Workflow save/delete cycle completed successfully")
+
+
+@pytest.mark.anyio
+async def test_workflow_delete_bundled_fails(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that deleting a bundled workflow fails.
+
+    Bundled workflows (shipped with the package) cannot be deleted.
+    Only user-created workflows can be deleted.
+    """
+    # First get a bundled workflow name
+    list_result = await sap_mcp_client.call_tool("workflow_list", {})
+    list_data = assert_tool_success(list_result, "workflow_list")
+
+    workflows = list_data.get("workflows", [])
+    if not workflows:
+        pytest.skip("No bundled workflows to test with")
+
+    bundled_name = workflows[0].get("name")
+    print(f"\nAttempting to delete bundled workflow: {bundled_name}")
+
+    # Try to delete it
+    delete_result = await sap_mcp_client.call_tool("workflow_delete", {"name": bundled_name})
+    delete_data = parse_tool_response(delete_result)
+
+    # Should fail
+    assert not delete_data.get("success", True), f"Should not be able to delete bundled workflow: {delete_data}"
+    assert (
+        "bundled" in delete_data.get("error", "").lower() or "cannot delete" in delete_data.get("error", "").lower()
+    ), f"Error should mention bundled: {delete_data}"
+
+    print(f"Correctly rejected: {delete_data.get('error')}")
+
+
+# =============================================================================
+# EMMACL Manual Iteration Test (baseline for workflow comparison)
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -> None:
+    """
+    Test manually iterating through 15 EMMACL cases.
+
+    This test establishes a baseline for:
+    1. How long it takes to click through cases manually
+    2. What the navigation pattern looks like (list -> detail -> back)
+    3. Context consumption of individual tool calls
+
+    This is the "before" scenario that workflow_run with ctx.sample()
+    is designed to optimize. Each iteration here adds to client context,
+    whereas workflow_run would process all items server-side.
+
+    Note: workflow_run with ctx.sample() cannot be tested here because
+    the test client doesn't support MCP Sampling. This manual test
+    documents the behavior that workflow_run would automate.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open EMMACL and execute without filters
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Read table to get available cases
+    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 20})
+    table_data = assert_tool_success(table_result, "sap_read_table")
+
+    rows = table_data.get("rows", [])
+    total_available = len(rows)
+
+    if total_available < 1:
+        pytest.skip("No EMMACL cases available to click through")
+
+    # Limit to 15 cases (or fewer if not enough)
+    cases_to_process = min(15, total_available)
+    print(f"\nProcessing {cases_to_process} of {total_available} available cases")
+
+    successful_clicks = 0
+    failed_clicks = 0
+    results: list[dict[str, str]] = []
+
+    # Process each case: click -> verify navigation -> go back
+    for i in range(cases_to_process):
+        row = rows[i]
+        row_num = row.get("row", i + 1)
+        cells = row.get("cells", {})
+
+        # Find a hotspot column (typically "Fall" or similar)
+        hotspot_col = None
+        for col_name, cell_info in cells.items():
+            if cell_info.get("hotspot"):
+                hotspot_col = col_name
+                break
+
+        if not hotspot_col:
+            print(f"  Row {row_num}: No hotspot found, skipping")
+            failed_clicks += 1
+            continue
+
+        # Get title before click
+        screen_before = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+        title_before = parse_tool_response(screen_before).get("title", "")
+
+        # Click on the hotspot cell
+        try:
+            click_result = await sap_mcp_client.call_tool(
+                "sap_click_table_cell",
+                {"row": row_num, "column": hotspot_col},
+            )
+            click_data = parse_tool_response(click_result)
+
+            if not click_data.get("success", True):
+                print(f"  Row {row_num}: Click failed - {click_data.get('error')}")
+                failed_clicks += 1
+                continue
+
+            # Wait for navigation
+            await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
+
+            # Get title after click
+            screen_after = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+            title_after = parse_tool_response(screen_after).get("title", "")
+
+            # Verify navigation happened
+            if title_before != title_after:
+                successful_clicks += 1
+                results.append({"row": str(row_num), "title": title_after})
+                print(f"  Row {row_num}: Navigated to '{title_after}'")
+            else:
+                failed_clicks += 1
+                print(f"  Row {row_num}: Title unchanged, navigation may have failed")
+
+            # Go back to the list
+            await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
+            await sap_mcp_client.call_tool("browser_wait", {"timeout": 1500})
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            failed_clicks += 1
+            print(f"  Row {row_num}: Error - {e}")
+
+    print(f"\n=== EMMACL Manual Iteration Summary ===")
+    print(f"Processed: {cases_to_process} cases")
+    print(f"Successful: {successful_clicks}")
+    print(f"Failed: {failed_clicks}")
+
+    # At least half should succeed for the test to pass
+    assert (
+        successful_clicks >= cases_to_process // 2
+    ), f"Expected at least {cases_to_process // 2} successful clicks, got {successful_clicks}"
+
+    # This test documents the context cost of manual iteration:
+    # - Each sap_click_table_cell call: ~300 tokens (call + result)
+    # - Each sap_get_screen_info call: ~200 tokens
+    # - Each sap_keyboard call: ~200 tokens
+    # - Each browser_wait call: ~150 tokens
+    # For 15 cases: ~15 * (300 + 200 + 200 + 150 + 200 + 150) = ~18,000 tokens
+    #
+    # With workflow_run using ctx.sample():
+    # - 1 workflow_run call: ~1,500 tokens (call + result with 15 summaries)
+    # Savings: ~16,500 tokens (91% reduction)
+    print("\n=== Context Estimation (Manual vs Workflow) ===")
+    print(f"Manual approach: ~{cases_to_process * 1200:,} tokens")
+    print(f"Workflow approach: ~2,000 tokens (estimated)")
+    print(f"Estimated savings: ~{(cases_to_process * 1200 - 2000):,} tokens")
