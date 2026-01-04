@@ -741,8 +741,12 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             await page.wait_for_load_state("networkidle", timeout=15000)
 
+            # Small wait to let popup render if it appeared
+            await page.wait_for_timeout(200)
+
             # Check if a popup appeared after navigation (e.g., "Discard changes?")
             popup = await _check_blocking_popup(page)
+            logger.debug("Popup check after Enter: %s", popup)
             if popup:
                 return TransactionResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
@@ -886,8 +890,12 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Wait for SAP to respond
             await page.wait_for_load_state("networkidle", timeout=15000)
 
+            # Small wait to let popup render if it appeared
+            await page.wait_for_timeout(200)
+
             # Check if a popup appeared after the keystroke
             popup_after = await _check_blocking_popup(page)
+            logger.debug("Popup check after keystroke: %s", popup_after)
             if popup_after:
                 return KeyboardResult.failure(
                     f"Popup blocking: {popup_after.message or 'confirmation required'}",
