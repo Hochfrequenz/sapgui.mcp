@@ -20,12 +20,14 @@ from sapwebguimcp.tools.intent_tools import (
     register_intent_tools,
 )
 from sapwebguimcp.tools.sap_tools import register_sap_tools
+from sapwebguimcp.tools.workflow_tools import register_workflow_tools
 
 __all__ = [
     "register_browser_tools",
     "register_feedback_tools",
     "register_intent_tools",
     "register_sap_tools",
+    "register_workflow_tools",
     "get_session_feedback",
     "clear_session_feedback",
     "get_session_intents",
