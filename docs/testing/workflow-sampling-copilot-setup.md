@@ -16,11 +16,31 @@ The `workflow_run` tool uses MCP Sampling (`ctx.sample()`) to execute bulk SAP o
 
 | Client | Sampling | Local MCP | Status |
 |--------|----------|-----------|--------|
-| VS Code + Copilot | Yes | Yes | Works |
-| JetBrains + Copilot | Yes | Yes | Works |
+| VS Code + Copilot | Yes | Yes | Sampling works, but login blocked |
+| JetBrains + Copilot | Yes | Yes | Sampling works, but login blocked |
 | ChatGPT Desktop | Yes | No (remote only) | Won't work for local servers |
 | Claude Desktop | No | Yes | Doesn't support sampling |
 | Claude Code | No | Yes | Doesn't support sampling |
+
+### Copilot Login Limitation (January 2026)
+
+**Copilot refuses to perform SAP login**, even with the `sap_login` tool available.
+
+When asked to login to SAP, Copilot responds with variations of:
+> "I'm not able to log into external systems or perform actions that require authentication credentials."
+
+This is a policy decision by GitHub/OpenAI, not a technical limitation. The sampling capability works, but Copilot won't use `sap_login` to authenticate.
+
+**Workarounds:**
+1. Login manually before starting the Copilot session (use browser with CDP)
+2. Use pre-authenticated browser sessions
+3. Test sampling with mock data that doesn't require SAP access
+
+**Bottom line:** As of January 2026, there is no MCP client that both:
+- Supports MCP Sampling with tools
+- Is willing to perform SAP authentication
+
+This means `workflow_run` cannot be fully end-to-end tested with any current client.
 
 ---
 

@@ -217,6 +217,10 @@ def register_workflow_tools(mcp: FastMCP) -> None:
         doesn't support sampling, this tool will fail and you'll need to
         execute items manually.
 
+        WARNING (January 2026): This tool is UNTESTED because no MCP client currently
+        supports both sampling AND SAP authentication. See the client compatibility
+        table in docs/testing/workflow-sampling-copilot-setup.md for details.
+
         Args:
             name: Name of the workflow to execute (from workflow_list)
             items: List of data items to process (each dict is passed to the prompt)
@@ -224,6 +228,13 @@ def register_workflow_tools(mcp: FastMCP) -> None:
         Returns:
             WorkflowRunResult with success/failure counts and details
         """
+        _logger.warning(
+            "workflow_run called - using ctx.sample() for server-side agent loops. "
+            "WARNING (January 2026): This tool is UNTESTED because no MCP client currently "
+            "supports both sampling AND SAP authentication. "
+            "See docs/testing/workflow-sampling-copilot-setup.md for client compatibility."
+        )
+
         # Load workflow
         workflow = load_workflow(name)
         if not workflow:
