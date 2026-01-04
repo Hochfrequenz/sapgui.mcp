@@ -224,3 +224,12 @@ class ShortcutsResult(ToolResult):
     def shortcut_count(self) -> int:
         """Number of shortcuts found."""
         return len(self.shortcuts)
+
+
+class DismissPopupResult(ToolResult):
+    """Result from sap_dismiss_popup tool."""
+
+    button_clicked: str | None = Field(default=None, description="Label of button that was clicked")
+    popup_dismissed: bool = Field(default=False, description="Whether popup is now gone")
+    status_bar_type: StatusBarType = Field(default="none", description="Status bar message type after dismissing popup")
+    status_bar_message: str = Field(default="", description="Status bar text after dismissing popup")
