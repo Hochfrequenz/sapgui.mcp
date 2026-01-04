@@ -1462,9 +1462,17 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Wait and verify popup is gone
             await page.wait_for_timeout(500)
             popup_after = await _check_blocking_popup(page)
+
+            # Read status bar after dismissing (often contains useful feedback)
+            status_info = await page.evaluate(_load_js("extract_status_bar.js"))
+            status_type = status_info.get("type", "none")
+            status_message = status_info.get("message", "")
+
             return DismissPopupResult(
                 button_clicked=clicked_label,
                 popup_dismissed=popup_after is None,
+                status_bar_type=status_type,
+                status_bar_message=status_message,
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught

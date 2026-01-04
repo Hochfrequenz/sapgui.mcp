@@ -231,3 +231,5 @@ class DismissPopupResult(ToolResult):
 
     button_clicked: str | None = Field(default=None, description="Label of button that was clicked")
     popup_dismissed: bool = Field(default=False, description="Whether popup is now gone")
+    status_bar_type: StatusBarType = Field(default="none", description="Status bar message type after dismissing popup")
+    status_bar_message: str = Field(default="", description="Status bar text after dismissing popup")
