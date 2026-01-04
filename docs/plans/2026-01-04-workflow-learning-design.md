@@ -167,6 +167,36 @@ class Workflow(BaseModel):
 | `workflow://list` | Liste aller Workflows mit Metadaten |
 | `workflow://{name}` | Vollstaendiger Workflow-Prompt |
 
+## Browser-Multiplexing
+
+### Aktueller Stand
+
+Der MCP-Server arbeitet mit einem einzelnen Browser und einem Tab. Alle Workflow-Iterationen laufen sequentiell.
+
+### Zukuenftige Erweiterung
+
+SAP Web GUI unterstuetzt bis zu 6 parallele Sessions (via `/o` Prefix). Das Design ist darauf vorbereitet:
+
+```
+Heute:      [Tab 1] -> Item 1 -> Item 2 -> Item 3 -> ... (sequentiell)
+
+Spaeter:    [Tab 1] -> Item 1 -> Item 7  -> Item 13 -> ...
+            [Tab 2] -> Item 2 -> Item 8  -> Item 14 -> ...
+            [Tab 3] -> Item 3 -> Item 9  -> Item 15 -> ...
+            [Tab 4] -> Item 4 -> Item 10 -> Item 16 -> ...
+            [Tab 5] -> Item 5 -> Item 11 -> Item 17 -> ...
+            [Tab 6] -> Item 6 -> Item 12 -> Item 18 -> ...
+```
+
+### Vorbereitung im Design
+
+- `workflow_run` akzeptiert optional `parallel: int = 1` Parameter
+- Subagents sind bereits isoliert und koennen parallel spawnen
+- Progress Reporting funktioniert auch bei paralleler Ausfuehrung
+- `WorkflowRunResult` aggregiert Ergebnisse unabhaengig von Ausfuehrungsreihenfolge
+
+**Aktuell nicht implementiert** - aber das Design blockiert eine spaetere Erweiterung nicht.
+
 ## Steuerung und Erkennung
 
 ### Proaktive Nutzung
