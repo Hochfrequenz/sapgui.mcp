@@ -121,6 +121,8 @@ def register_feedback_tools(mcp: FastMCP) -> None:
         - Use code blocks for longer code snippets
 
         BE DETAILED AND TECHNICAL - include:
+        - Transaction code where the issue occurred (e.g., VA01, SE16, BP)
+        - Steps to reproduce the issue
         - Specific tool names and parameters
         - Selector paths that were hard to find
         - Timing observations (e.g., "browser_wait took 5s")
