@@ -17,6 +17,7 @@ oder
 alle
 sie
 offen
+variante
 
 # Technical terms
 stdin
