@@ -20,6 +20,7 @@ This module contains tools for:
 import asyncio
 import json
 import logging
+import re
 from functools import lru_cache
 from importlib import resources
 from typing import Any, Optional
@@ -42,6 +43,8 @@ from sapwebguimcp.models import (
     ScreenText,
     SessionStatus,
     SetFieldResult,
+    ShortcutInfo,
+    ShortcutsResult,
     StatusBarInfo,
     TableCellClickResult,
     TableData,
@@ -52,7 +55,7 @@ from sapwebguimcp.models import (
 )
 from sapwebguimcp.utils import is_sap_shortcut
 
-__all__ = ["register_sap_tools"]
+__all__ = ["register_sap_tools", "SELECTORS", "parse_shortcut_from_title"]
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +138,82 @@ async def _start_keepalive(interval_seconds: int = 300) -> KeepaliveResult:
         running=True,
         interval_seconds=interval_seconds,
     )
+
+
+# =============================================================================
+# Shortcut Extraction
+# =============================================================================
+
+# Pattern: "Action Text (Shortcut)" where Shortcut can be:
+# F1-F12, Strg+F1, Umschalt+F1, Strg+Umschalt+F1, Eingabe, Strg+S, etc.
+_SHORTCUT_PATTERN = re.compile(r"(.+)\s+\(([^)]+)\)$")
+
+
+def _is_keyboard_shortcut(shortcut: str) -> bool:
+    """
+    Check if a string looks like a keyboard shortcut.
+
+    Valid shortcuts include:
+    - F1-F12, Eingabe, Enter, Escape, Esc
+    - Strg+S, Ctrl+S, Strg+F1
+    - Umschalt+F1, Shift+F1
+    - Strg+Umschalt+F1, Ctrl+Shift+F1
+    """
+    shortcut_lower = shortcut.lower()
+
+    # Function keys
+    if re.match(r"^f\d{1,2}$", shortcut_lower):
+        return True
+
+    # Special keys
+    if shortcut_lower in ("eingabe", "enter", "escape", "esc", "entf", "delete"):
+        return True
+
+    # Modifier + key combinations
+    if any(mod in shortcut_lower for mod in ("strg", "ctrl", "umschalt", "shift", "alt")):
+        return True
+
+    return False
+
+
+def parse_shortcut_from_title(title: str) -> ShortcutInfo | None:
+    """
+    Parse a title attribute value for keyboard shortcut.
+
+    SAP buttons have title attributes like:
+    - "Person anlegen (F5)"
+    - "Beenden (Umschalt+F3)"
+    - "Als Variante sichern (Strg+S)"
+
+    This function is exported for unit testing - the MCP tool sap_get_shortcuts
+    uses Playwright to get title attributes directly, then passes them here.
+
+    Args:
+        title: Title attribute value (e.g., "Person anlegen (F5)")
+
+    Returns:
+        ShortcutInfo if a valid keyboard shortcut is found, None otherwise.
+        Returns None for non-keyboard patterns like dates or numbers.
+
+    Examples:
+        >>> parse_shortcut_from_title("Person anlegen (F5)")
+        ShortcutInfo(action='Person anlegen', shortcut='F5')
+        >>> parse_shortcut_from_title("Save (Strg+S)")
+        ShortcutInfo(action='Save', shortcut='Strg+S')
+        >>> parse_shortcut_from_title("Created (2024-01-01)")  # Not a shortcut
+        None
+    """
+    match = _SHORTCUT_PATTERN.match(title.strip())
+    if not match:
+        return None
+
+    action = match.group(1).strip()
+    shortcut = match.group(2).strip()
+
+    if not _is_keyboard_shortcut(shortcut):
+        return None
+
+    return ShortcutInfo(action=action, shortcut=shortcut)
 
 
 # =============================================================================
@@ -1153,6 +1232,68 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error discovering fields")
             return DiscoveredFields.failure(f"Error discovering fields: {e}", field_count=0)
+
+    @mcp.tool(
+        description=(
+            "Discover keyboard shortcuts available on the current SAP screen. "
+            "Use BEFORE clicking buttons - shortcuts like F5, Strg+S are faster and more reliable. "
+            "Returns action text and key combination for each available shortcut."
+        )
+    )
+    async def sap_get_shortcuts() -> ShortcutsResult:
+        """
+        Discover keyboard shortcuts available on the current SAP screen.
+
+        SAP buttons often have keyboard shortcuts that are faster and more reliable
+        than clicking. This tool finds all available shortcuts by analyzing button
+        titles like "Person anlegen (F5)" or "Speichern (Strg+S)".
+
+        Use this tool to discover shortcuts BEFORE attempting button clicks.
+        Then use sap_keyboard to execute the shortcut.
+
+        Returns:
+            ShortcutsResult with list of ShortcutInfo objects containing:
+            - action: Button/action text (e.g., "Person anlegen")
+            - shortcut: Key combination (e.g., "F5", "Strg+S")
+        """
+        browser_manager = await get_browser_manager()
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Get all title attributes via JavaScript - much more efficient than parsing HTML
+            titles: list[str] = await page.evaluate(
+                """() => {
+                    const elements = document.querySelectorAll('[title]');
+                    return Array.from(elements).map(el => el.title);
+                }"""
+            )
+
+            # Parse titles for shortcuts
+            shortcuts: list[ShortcutInfo] = []
+            seen: set[tuple[str, str]] = set()
+
+            for title in titles:
+                shortcut_info: ShortcutInfo | None = parse_shortcut_from_title(title)
+                if shortcut_info is None:
+                    continue
+
+                # Skip duplicates (action and shortcut are str fields)
+                # pylint: disable=no-member  # False positive: ShortcutInfo.action/shortcut are str
+                action_lower: str = shortcut_info.action.lower()
+                shortcut_lower: str = shortcut_info.shortcut.lower()
+                key = (action_lower, shortcut_lower)
+                if key in seen:
+                    continue
+                seen.add(key)
+
+                shortcuts.append(shortcut_info)
+
+            return ShortcutsResult(shortcuts=shortcuts)
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error getting shortcuts")
+            return ShortcutsResult.failure(f"Error getting shortcuts: {e}")
 
     @mcp.tool(
         description=(

@@ -2156,3 +2156,99 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
     print(f"Manual approach: ~{cases_to_process * 1200:,} tokens")
     print(f"Workflow approach: ~2,000 tokens (estimated)")
     print(f"Estimated savings: ~{(cases_to_process * 1200 - 2000):,} tokens")
+
+
+# =============================================================================
+# sap_get_shortcuts Tests
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_sap_get_shortcuts_returns_shortcuts(sap_mcp_client: ClientSession) -> None:
+    """Test that sap_get_shortcuts discovers shortcuts from the current screen.
+
+    SAP screens have toolbar buttons with keyboard shortcuts like F5, F8, Strg+S.
+    These are exposed in the button's title attribute as "Action (Shortcut)".
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+
+    result = await sap_mcp_client.call_tool("sap_get_shortcuts", {})
+    data = assert_tool_success(result, "sap_get_shortcuts")
+
+    # Should return list of shortcuts
+    assert "shortcuts" in data, f"Expected 'shortcuts' in response: {data}"
+    shortcuts = data["shortcuts"]
+    assert isinstance(shortcuts, list), f"Expected list of shortcuts: {shortcuts}"
+
+    # SE16 should have at least some common shortcuts (F3=Back, F8=Execute)
+    shortcut_keys = [s.get("shortcut", "") for s in shortcuts]
+    assert any(
+        "F" in k for k in shortcut_keys
+    ), f"Expected at least one F-key shortcut on SE16 screen. Found: {shortcut_keys}"
+
+
+@pytest.mark.anyio
+async def test_sap_get_shortcuts_has_execute_f8(sap_mcp_client: ClientSession) -> None:
+    """Test that SE16 screen has F8 (Execute) shortcut."""
+    sap_language = os.environ.get("SAP_LANGUAGE", "EN")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+
+    result = await sap_mcp_client.call_tool("sap_get_shortcuts", {})
+    data = assert_tool_success(result, "sap_get_shortcuts")
+
+    shortcuts = data.get("shortcuts", [])
+    f8_shortcuts = [s for s in shortcuts if s.get("shortcut") == "F8"]
+
+    assert (
+        len(f8_shortcuts) >= 1
+    ), f"SE16 should have F8 shortcut. Found shortcuts: {[s.get('shortcut') for s in shortcuts]}"
+
+    # F8 should be Execute (Ausführen in DE)
+    f8_action = f8_shortcuts[0].get("action", "")
+    if sap_language == "DE":
+        assert "Ausf" in f8_action or "Execute" in f8_action, f"F8 should be Execute. Got: {f8_action}"
+    else:
+        assert "Execute" in f8_action or "Ausf" in f8_action, f"F8 should be Execute. Got: {f8_action}"
+
+
+@pytest.mark.anyio
+async def test_sap_get_shortcuts_has_back_f3(sap_mcp_client: ClientSession) -> None:
+    """Test that screens have F3 (Back) shortcut."""
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+
+    result = await sap_mcp_client.call_tool("sap_get_shortcuts", {})
+    data = assert_tool_success(result, "sap_get_shortcuts")
+
+    shortcuts = data.get("shortcuts", [])
+    f3_shortcuts = [s for s in shortcuts if s.get("shortcut") == "F3"]
+
+    assert (
+        len(f3_shortcuts) >= 1
+    ), f"Screen should have F3 (Back) shortcut. Found shortcuts: {[s.get('shortcut') for s in shortcuts]}"
+
+
+@pytest.mark.anyio
+async def test_sap_get_shortcuts_no_duplicates(sap_mcp_client: ClientSession) -> None:
+    """Test that duplicate shortcuts are not returned."""
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+
+    result = await sap_mcp_client.call_tool("sap_get_shortcuts", {})
+    data = assert_tool_success(result, "sap_get_shortcuts")
+
+    shortcuts = data.get("shortcuts", [])
+
+    # Check for uniqueness
+    seen = set()
+    for s in shortcuts:
+        key = (s.get("action", "").lower(), s.get("shortcut", "").lower())
+        assert key not in seen, f"Duplicate shortcut found: {s}"
+        seen.add(key)
