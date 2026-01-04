@@ -108,7 +108,7 @@ This means Playwright errors like timeouts DON'T automatically fail tests!
 
 ALWAYS check tool return values for errors:
     result = await client.call_tool("browser_fill", {"selector": "...", "value": "..."})
-    text = result.content[0].text if result.content else ""
+    text = _get_content_text(result.content[0]) if result.content else ""
     assert "Error" not in text, f"Operation failed: {text}"
 
 Use the helper functions _wait_for_transaction_screen() and _wait_for_easy_access()
@@ -129,6 +129,29 @@ from mcp import ClientSession
 HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
 
 
+def _get_content_text(content_item: Any) -> str:
+    """
+    Extract text from a content item, handling both TextContent and EmbeddedResource.
+
+    browser_get_html returns EmbeddedResource with base64-encoded blob for large HTML,
+    while other tools return TextContent with a .text attribute.
+
+    Args:
+        content_item: A content item from result.content[0]
+
+    Returns:
+        The text content as a string
+    """
+    import base64
+
+    if hasattr(content_item, "text"):
+        return content_item.text
+    elif hasattr(content_item, "resource") and hasattr(content_item.resource, "blob"):
+        return base64.b64decode(content_item.resource.blob).decode("utf-8")
+    else:
+        return str(content_item)
+
+
 def parse_tool_response(result: Any) -> dict[str, Any]:
     """
     Parse a tool result that returns a JSON-serialized Pydantic model.
@@ -146,7 +169,7 @@ def parse_tool_response(result: Any) -> dict[str, Any]:
         AssertionError: If result is empty or not valid JSON
     """
     assert result.content, "Expected non-empty response from tool"
-    text = result.content[0].text
+    text = _get_content_text(result.content[0])
     try:
         return json.loads(text)
     except json.JSONDecodeError:
@@ -333,7 +356,17 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     # Verify browser state: check that SAP Easy Access loaded
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
     assert html_result.content, "Expected HTML response"
-    page_html = html_result.content[0].text
+
+    # Handle both TextContent and EmbeddedResource (base64 encoded)
+    content_item = html_result.content[0]
+    if hasattr(content_item, "text"):
+        page_html = content_item.text
+    elif hasattr(content_item, "resource") and hasattr(content_item.resource, "blob"):
+        import base64
+
+        page_html = base64.b64decode(content_item.resource.blob).decode("utf-8")
+    else:
+        page_html = str(content_item)
 
     # SAP Easy Access page should have the OK-Code field
     assert "toolbarokcode" in page_html.lower(), (
@@ -393,7 +426,7 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
         },
     )
 
-    if settings_clicked.content and "clicked" in settings_clicked.content[0].text:
+    if settings_clicked.content and "clicked" in _get_content_text(settings_clicked.content[0]):
         await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
         await capture_html_snapshot(sap_mcp_client, "settings_dialog")
 
@@ -450,7 +483,7 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
     # Verify SU3 actually opened by checking the page content
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
     assert html_result.content, "Expected HTML response"
-    page_html = html_result.content[0].text.lower()
+    page_html = _get_content_text(html_result.content[0]).lower()
 
     # Check that we're no longer on the Easy Access menu (SMEN)
     assert "sap easy access" not in page_html, "Still on SAP Easy Access menu. Transaction SU3 did not open."
@@ -486,7 +519,7 @@ async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> N
     # Get the page HTML to check for error message in the status bar
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
     assert html_result.content, "Expected HTML response"
-    page_html = html_result.content[0].text.lower()
+    page_html = _get_content_text(html_result.content[0]).lower()
 
     # SAP should show an error message about invalid transaction code
     # - German: "Transaktion INVALIDTCODE123 existiert nicht"
@@ -518,7 +551,7 @@ async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) 
     result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "/IWFND/GW_CLIENT"})
 
     assert result.content, "Expected response from sap_transaction"
-    response_text = result.content[0].text.lower()
+    response_text = _get_content_text(result.content[0]).lower()
 
     # Should indicate transaction executed (or error if not authorized)
     assert "executed" in response_text or "error" in response_text, f"Unexpected response: {response_text}"
@@ -632,7 +665,7 @@ async def test_sap_session_status_after_login(sap_mcp_client: ClientSession) -> 
 
     result = await sap_mcp_client.call_tool("sap_session_status", {})
     assert result.content, "Expected response from sap_session_status"
-    response_text = result.content[0].text.lower()
+    response_text = _get_content_text(result.content[0]).lower()
 
     assert "active" in response_text, f"Expected active session after login: {response_text}"
 
@@ -643,7 +676,7 @@ async def test_sap_session_status_returns_valid_state(sap_mcp_client: ClientSess
     await sap_mcp_client.call_tool("sap_login", {})
 
     result = await sap_mcp_client.call_tool("sap_session_status", {})
-    response_text = result.content[0].text.lower()
+    response_text = _get_content_text(result.content[0]).lower()
 
     valid_states = ["active", "timed_out", "logged_off", "no_page", "unknown"]
     assert any(
@@ -701,7 +734,7 @@ async def test_sap_keyboard_f8_triggers_execution(sap_mcp_client: ClientSession)
 
     # Check for error message in page or status bar
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
-    page_html = html_result.content[0].text.lower()
+    page_html = _get_content_text(html_result.content[0]).lower()
 
     # SAP should show error about missing table name
     if sap_language == "DE":
@@ -726,7 +759,7 @@ async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> N
 
     result = await sap_mcp_client.call_tool("sap_get_screen_text", {})
     assert result.content, "Expected response from sap_get_screen_text"
-    response_text = result.content[0].text.lower()
+    response_text = _get_content_text(result.content[0]).lower()
 
     # SE16 should show table name prompt
     if sap_language == "DE":
@@ -783,7 +816,7 @@ async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -
 
     # Use defaults (current user) - typically no jobs
     fill_result = await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='JOBNAME']", "value": "*"})
-    fill_text = fill_result.content[0].text if fill_result.content else ""
+    fill_text = _get_content_text(fill_result.content[0]) if fill_result.content else ""
     assert "Error" not in fill_text, f"Failed to fill JOBNAME field: {fill_text}"
 
     await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
@@ -791,7 +824,7 @@ async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -
 
     # Check status bar for "no jobs" message
     status_result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
-    status_text = status_result.content[0].text.lower() if status_result.content else ""
+    status_text = _get_content_text(status_result.content[0]).lower() if status_result.content else ""
 
     # German: "Kein Job entspricht den Selektionsbedingungen"
     # English: "No job meets the selection conditions"
@@ -880,7 +913,7 @@ async def test_sap_read_table_from_se93(sap_mcp_client: ClientSession) -> None:
     fill_result = await sap_mcp_client.call_tool(
         "browser_fill", {"selector": "input[lsdata*='TSTC-TCODE']", "value": "SE*"}
     )
-    fill_text = fill_result.content[0].text if fill_result.content else ""
+    fill_text = _get_content_text(fill_result.content[0]) if fill_result.content else ""
     assert "Error" not in fill_text, f"Failed to fill SE93 transaction code field: {fill_text}"
 
     await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
@@ -888,7 +921,7 @@ async def test_sap_read_table_from_se93(sap_mcp_client: ClientSession) -> None:
 
     result = await sap_mcp_client.call_tool("sap_read_table", {})
     assert result.content, "Expected response from sap_read_table"
-    response_text = result.content[0].text.lower()
+    response_text = _get_content_text(result.content[0]).lower()
 
     # Should find standard SE* transactions
     # Check for either transaction codes in data or valid table structure
@@ -923,7 +956,7 @@ async def test_se16_table_content_t000(sap_mcp_client: ClientSession) -> None:
     fill_result = await sap_mcp_client.call_tool(
         "browser_fill", {"selector": "input[lsdata*='TABLENAME']", "value": "T000"}
     )
-    fill_text = fill_result.content[0].text if fill_result.content else ""
+    fill_text = _get_content_text(fill_result.content[0]) if fill_result.content else ""
     assert "Error" not in fill_text, f"Failed to fill table name field: {fill_text}"
 
     # Execute to show table content
@@ -936,7 +969,7 @@ async def test_se16_table_content_t000(sap_mcp_client: ClientSession) -> None:
     # Read the table data
     result = await sap_mcp_client.call_tool("sap_read_table", {"start_row": 1, "end_row": 10})
     assert result.content, "Expected response from sap_read_table"
-    response_text = result.content[0].text
+    response_text = _get_content_text(result.content[0])
 
     # T000 must have at least one row (the current client)
     # Check for table data indicators
@@ -984,7 +1017,7 @@ async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None
     # Verify we're on the table definition screen
     html_result = await sap_mcp_client.call_tool("browser_get_html", {})
     assert html_result.content, "Expected HTML response"
-    page_html = html_result.content[0].text.upper()
+    page_html = _get_content_text(html_result.content[0]).upper()
 
     # T000 definition should show field names like MANDT, CCCATEGORY
     has_mandt = "MANDT" in page_html
@@ -1005,7 +1038,7 @@ async def test_sap_read_status_bar_after_navigation(sap_mcp_client: ClientSessio
 
     result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
     assert result.content, "Expected response from sap_read_status_bar"
-    response_text = result.content[0].text
+    response_text = _get_content_text(result.content[0])
 
     # Should return JSON with type and message fields
     assert (
@@ -1024,7 +1057,7 @@ async def test_sap_read_status_bar_after_error(sap_mcp_client: ClientSession) ->
 
     result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
     assert result.content, "Expected response from sap_read_status_bar"
-    response_text = result.content[0].text.lower()
+    response_text = _get_content_text(result.content[0]).lower()
 
     # Should indicate error type or contain error message
     error_indicators = ['"e"', '"type": "e"', "error", "fehler", "existiert nicht", "does not exist"]
@@ -1043,7 +1076,7 @@ async def test_sap_get_screen_info_from_se16(sap_mcp_client: ClientSession) -> N
 
     result = await sap_mcp_client.call_tool("sap_get_screen_info", {})
     assert result.content, "Expected response from sap_get_screen_info"
-    response_text = result.content[0].text.lower()
+    response_text = _get_content_text(result.content[0]).lower()
 
     # Should contain basic screen info
     assert "title" in response_text, "Screen info should contain title"
@@ -1060,14 +1093,14 @@ async def test_sap_get_screen_info_different_transactions(sap_mcp_client: Client
     # Wait for SE16 to load (has table name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
     result1 = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-    info1 = result1.content[0].text.lower()
+    info1 = _get_content_text(result1.content[0]).lower()
 
     # Get info from SM37
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
     # Wait for SM37 to load (has job name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SM37")
     result2 = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-    info2 = result2.content[0].text.lower()
+    info2 = _get_content_text(result2.content[0]).lower()
 
     # The title or content should be different
     assert info1 != info2, "Screen info should differ between SE16 and SM37"
@@ -1847,7 +1880,7 @@ async def test_intent_logging_with_bp_transaction(
 
     # Press F3 to go back/cancel (avoid creating an actual partner)
     back_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
-    print(f"\nBack result: {back_result.content[0].text if back_result.content else 'N/A'}")
+    print(f"\nBack result: {_get_content_text(back_result.content[0]) if back_result.content else 'N/A'}")
 
 
 # =============================================================================
