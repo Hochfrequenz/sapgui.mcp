@@ -15,13 +15,13 @@ when SAP-specific tools are insufficient:
 - browser_select_option: Select dropdown options
 """
 
-import base64
 import json
 import logging
 from datetime import timedelta
 from typing import Literal, Optional
 
 from fastmcp import FastMCP
+from fastmcp.utilities.types import Image
 
 from sapwebguimcp.models import (
     BrowserKeyboardResult,
@@ -122,25 +122,36 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     @mcp.tool(
         description=(
             "Take a screenshot of the current page. "
-            "WARNING: Screenshots are large and consume significant context. "
-            "Prefer sap_get_screen_text when you only need to read text/labels. "
-            "Use screenshots sparingly - only when visual layout matters."
+            "AVOID THIS TOOL - it returns a large image that fills up the conversation context. "
+            "Use browser_snapshot instead to get a compact text-based accessibility tree. "
+            "Only use screenshots when visual layout verification is absolutely necessary."
         )
     )
-    async def browser_screenshot(full_page: bool = False, selector: Optional[str] = None) -> ScreenshotResult:
+    async def browser_screenshot(full_page: bool = False, selector: Optional[str] = None) -> Image | ScreenshotResult:
         """
         Take a screenshot of the current page.
 
-        WARNING: Screenshots are large base64 images that consume significant
-        conversation context. Prefer sap_get_screen_text when you only need
-        to read text, labels, or field names. Use screenshots sparingly.
+        WARNING: This tool returns image data that consumes significant conversation
+        context. In almost all cases, you should use browser_snapshot instead, which
+        returns a compact YAML accessibility tree that uses far fewer tokens.
+
+        Use browser_snapshot for:
+        - Reading text, labels, or field values
+        - Understanding page structure
+        - Finding elements to interact with
+        - Any task that doesn't require pixel-perfect visual verification
+
+        Only use browser_screenshot when:
+        - You need to verify visual layout/styling
+        - You're debugging rendering issues
+        - The user explicitly requests a screenshot
 
         Args:
             full_page: Capture entire scrollable page
             selector: Optional CSS selector to capture specific element
 
         Returns:
-            ScreenshotResult with base64 encoded PNG image
+            Image (native MCP image content) on success, ScreenshotResult on failure
         """
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
@@ -159,11 +170,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             else:
                 screenshot = await page.screenshot(full_page=full_page)
 
-            return ScreenshotResult(
-                image_base64=base64.b64encode(screenshot).decode("utf-8"),
-                full_page=full_page,
-                selector=selector,
-            )
+            # Return native MCP Image instead of base64 string to reduce token usage
+            return Image(data=screenshot, format="png")
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error taking screenshot")
             return ScreenshotResult.failure(
