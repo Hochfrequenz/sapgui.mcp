@@ -58,6 +58,16 @@ from sapwebguimcp.models.sap_results import (
     TableRow,
     TransactionResult,
 )
+from sapwebguimcp.models.workflow_models import (
+    Workflow,
+    WorkflowDeleteResult,
+    WorkflowError,
+    WorkflowListResult,
+    WorkflowRunResult,
+    WorkflowSaveInput,
+    WorkflowSaveResult,
+    WorkflowSubmitResult,
+)
 
 __all__ = [
     # Base
@@ -111,4 +121,13 @@ __all__ = [
     "FeedbackLogResult",
     "IntentEntry",
     "IntentLogResult",
+    # Workflow models
+    "Workflow",
+    "WorkflowDeleteResult",
+    "WorkflowError",
+    "WorkflowListResult",
+    "WorkflowRunResult",
+    "WorkflowSaveInput",
+    "WorkflowSaveResult",
+    "WorkflowSubmitResult",
 ]

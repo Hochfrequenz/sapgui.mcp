@@ -12,10 +12,27 @@ Built on the [dev-browser](https://github.com/anthropics/dev-browser) philosophy
 
 - **SAP Login**: Opens SAP Web GUI for user to enter credentials manually
 - **Smart Transaction Entry**: Automatically enables OK-Code field if not visible, then enters transaction
+- **Workflow Automation**: Save and run learned workflows for bulk operations with massive context savings
 - **Low-level browser tools**: Click, fill, snapshot for edge cases when SAP tools don't work
 - **Persistent sessions**: Login once, stay authenticated across tool calls
 - **Browser choice**: Use your own browser (VPN/Citrix) or let the server launch one
 - **Python 3.11-3.14 support**: Tested on latest Python versions
+
+### Workflow System (Bulk Operations)
+
+For repetitive tasks like "create 100 business partners", the workflow system uses **MCP Sampling** to run iterations server-side, reducing context consumption by ~90%:
+
+| Approach         | Context for 100 items |
+| ---------------- | --------------------- |
+| Manual iteration | ~500,000 tokens       |
+| `workflow_run`   | ~2,000 tokens         |
+
+**Requirements for workflow_run:**
+
+- MCP client with Sampling support
+- **Note:** As of January 2026, Claude Desktop and Claude Code do NOT support MCP sampling yet ([tracking issue](https://github.com/anthropics/claude-code/issues/1785))
+
+Tools: `workflow_list`, `workflow_save`, `workflow_run`, `workflow_submit`, `workflow_delete`
 
 ## Installation
 
