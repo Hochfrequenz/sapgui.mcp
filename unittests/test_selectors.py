@@ -1392,9 +1392,7 @@ class TestAmbiguousLabelDetection:
     to fill a different field with the same label.
     """
 
-    def _find_inputs_by_label(
-        self, soup: BeautifulSoup, label_text: str
-    ) -> list[dict[str, str | None]]:
+    def _find_inputs_by_label(self, soup: BeautifulSoup, label_text: str) -> list[dict[str, str | None]]:
         """
         Simulate the JavaScript findInputByLabel function with ambiguity detection.
 
@@ -1410,12 +1408,14 @@ class TestAmbiguousLabelDetection:
         def add_match(element: Tag, selector: str, source: str, lsdata_field: str | None = None) -> None:
             """Add a match if not already present by element."""
             if not any(m["element"] is element for m in all_matches):
-                all_matches.append({
-                    "element": element,
-                    "selector": selector,
-                    "source": source,
-                    "lsdataField": lsdata_field,
-                })
+                all_matches.append(
+                    {
+                        "element": element,
+                        "selector": selector,
+                        "source": source,
+                        "lsdataField": lsdata_field,
+                    }
+                )
 
         def extract_lsdata_field(inp: Tag) -> str | None:
             """Extract field name from input's lsdata attribute."""
@@ -1431,6 +1431,7 @@ class TestAmbiguousLabelDetection:
                     if sid:
                         # Extract field name from SID like ".../txtADDR2_DATA-POST_CODE1"
                         import re
+
                         match = re.search(r"txt([A-Z0-9_-]+)$", sid)
                         if match:
                             return match.group(1)
