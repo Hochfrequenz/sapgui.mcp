@@ -34,6 +34,11 @@ SAP Web GUI may be in German or English. Common translations:
 - Change = Ändern
 - Display = Anzeigen
 
+## Functional Background
+* This MCP server was designed with a S/4 utilities system in mind, so many transactions relate to the legacy SAP IS-U (Industry Solution for Utilities) or (mostly) are the same.
+* Often before you start guessing, you'll be faster if you try to find e.g. table or transaction names online.
+* Don't expect the system to behave intuitively - SAP has many legacy behaviors and quirks.
+
 ## Transaction Code Tips
 
 <!-- Add your transaction-specific knowledge here -->
