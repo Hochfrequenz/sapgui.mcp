@@ -1555,7 +1555,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Dismiss a blocking popup dialog by clicking a button. "
+            "Dismiss an unexpected blocking popup dialog by clicking a button. "
+            "Note that not all popups are unexpected. "
+            "Only close those that you didn't expect but sometimes the popup actually indicates success."
             "Use after a tool returns blocking_popup info. "
             "Specify button by label ('Ja', 'Nein') or accesskey ('J', 'N'), "
             "or use close=True to click the X button if available."

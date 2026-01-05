@@ -122,7 +122,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
     @mcp.tool(
         description=(
-            "Take a screenshot of the current page. "
+            "Take a screenshot of the current page if and only if browser_snapshot is insufficient. "
             "AVOID THIS TOOL - it returns a large image that fills up conversation context. "
             "Use browser_snapshot instead for a compact text-based accessibility tree. "
             "Only use screenshots when visual layout verification is absolutely necessary "
@@ -206,7 +206,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     @mcp.tool(
         description=(
             "Send keyboard input (key press or text typing). "
-            "For SAP shortcuts, prefer sap_keyboard which auto-reads the status bar. "
+            "Important: For SAP shortcuts like Ctrl+S, prefer sap_keyboard which auto-reads the status bar! "
             "For filling multiple form fields, use sap_fill_form - much faster. "
             "Args: key = key to press (e.g., 'Enter', 'Tab', 'F3'), "
             "text = text to type character by character."
