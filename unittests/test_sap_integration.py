@@ -258,6 +258,7 @@ _TRANSACTION_WAIT_SELECTORS: dict[str, str] = {
     "SE16": "input[lsdata*='TABLENAME']",  # Table name input field
     "SE38": "label:has-text('Programm'), label:has-text('Program')",  # ABAP Editor program label
     "SE93": "input[lsdata*='TSTC-TCODE']",  # Transaction code input field
+    "SM30": "input[title*='Table/View']",  # SM30 table maintenance - table name field
     "SM37": "input[lsdata*='JOBNAME']",  # Job name input field
     "SU3": "[lsdata*='SUID_ST_NODE']",  # User profile (SU3) fields - SUID_ST_NODE_PERSON_NAME etc.
     "BP": "span:has-text('Person'), span:has-text('Organisation')",  # BP category buttons
@@ -3095,3 +3096,162 @@ async def test_bp_dropdown_value_actually_applied(sap_mcp_client: ClientSession)
         f"Dropdown value should have changed. "
         f"Original: {original_value}, Expected key: {option_key}, Actual: {new_value}"
     )
+
+
+@pytest.mark.anyio
+async def test_sm30_discover_buttons(sap_mcp_client: ClientSession) -> None:
+    """
+    Test button discovery in SM30 transaction.
+
+    SM30 is the Table/View Maintenance transaction. After entering a table name,
+    it shows buttons like "Pflegen" (Maintain) and "Anzeigen" (Display).
+
+    This test:
+    1. Opens SM30 transaction
+    2. Enters a table name (EIPO - a simple customizing table)
+    3. Discovers all buttons on the screen using JavaScript
+    4. Verifies we can find the "Pflegen" or "Maintain" button
+    5. Captures HTML snapshot for offline analysis
+
+    This test is foundational for issue #99 (sap_discover_fields doesn't return buttons)
+    and issue #101 (browser_click doesn't work for SAP buttons).
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open SM30 transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM30"})
+    assert_tool_success(result, "sap_transaction SM30")
+
+    # Wait for SM30 to load - look for a more generic selector first
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture initial SM30 screen
+    await capture_html_snapshot(sap_mcp_client, "sm30_initial")
+
+    # Find and fill the table name field
+    # SM30 has a field for "Table/View" (Tabelle/Sicht)
+    fill_result = await sap_mcp_client.call_tool(
+        "sap_fill_form",
+        {"fields": {"Tabelle/Sicht": "EIPO", "Table/View": "EIPO"}},
+    )
+    fill_data = parse_tool_response(fill_result)
+    print(f"\nFill result for table name: {fill_data}")
+
+    # Wait briefly for SAP to process
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
+
+    # Capture SM30 screen with table name entered
+    await capture_html_snapshot(sap_mcp_client, "sm30_with_table")
+
+    # Discover buttons using JavaScript - this is the key test
+    # SAP Web GUI buttons are <div> elements with role="button" and class "lsButton"
+    # The button text is in the "title" attribute, NOT in textContent
+    button_js = """
+    (() => {
+        const buttons = [];
+        const seenIds = new Set();
+
+        // SAP-specific button selectors
+        const buttonSelectors = [
+            '.lsButton[role="button"]',  // Primary SAP button style
+            'div[role="button"].lsButton',
+            '[role="button"][title]',    // Any role=button with title
+            'button',                     // Standard HTML buttons
+        ];
+
+        for (const sel of buttonSelectors) {
+            const btns = document.querySelectorAll(sel);
+            for (const btn of btns) {
+                // Skip if already seen (by ID)
+                if (btn.id && seenIds.has(btn.id)) continue;
+                if (btn.id) seenIds.add(btn.id);
+
+                // Skip invisible buttons
+                const style = window.getComputedStyle(btn);
+                if (style.display === 'none' || style.visibility === 'hidden') continue;
+                if (btn.offsetWidth === 0 && btn.offsetHeight === 0) continue;
+
+                // SAP buttons: text is in title attribute, not textContent
+                // (textContent may contain SVG or icon text)
+                const title = btn.getAttribute('title') || '';
+                const textContent = btn.textContent?.trim() || '';
+
+                // Try to extract label from lsdata
+                let lsdataLabel = null;
+                const lsdata = btn.getAttribute('lsdata');
+                if (lsdata) {
+                    try {
+                        const parsed = JSON.parse(lsdata);
+                        // SAP stores button text in key "0" or "4"
+                        lsdataLabel = parsed['0'] || parsed['4'] || null;
+                    } catch {}
+                }
+
+                // Use title first (most reliable for SAP), then lsdata, then textContent
+                const label = title || lsdataLabel || textContent || '';
+                if (!label) continue;
+
+                buttons.push({
+                    label: label,
+                    id: btn.id || null,
+                    title: title || null,
+                    lsdataLabel: lsdataLabel,
+                    tagName: btn.tagName,
+                    className: btn.className?.substring(0, 100) || '',
+                    selector: btn.id ? `#${CSS.escape(btn.id)}` : null,
+                    accesskey: btn.getAttribute('accesskey') || null,
+                });
+            }
+        }
+
+        return buttons;
+    })()
+    """
+
+    button_result = await sap_mcp_client.call_tool("browser_evaluate", {"script": button_js})
+    buttons_data = parse_tool_response(button_result)
+
+    # browser_evaluate returns result as JSON-serialized string, so parse it again
+    result_str = buttons_data.get("result", "[]")
+    buttons = json.loads(result_str) if isinstance(result_str, str) else result_str
+
+    print(f"\nDiscovered {len(buttons)} buttons on SM30 screen:")
+    for btn in buttons[:20]:  # Show first 20 buttons
+        print(f"  - {btn.get('label', 'no-label')}: id={btn.get('id')}, selector={btn.get('selector')}")
+
+    # Look for the "Pflegen" or "Maintain" button
+    maintain_button = None
+    for btn in buttons:
+        label = (btn.get("label") or "").lower()
+        title = (btn.get("title") or "").lower()
+        if "pflegen" in label or "maintain" in label or "pflegen" in title or "maintain" in title:
+            maintain_button = btn
+            break
+
+    # Also look for "Anzeigen" / "Display" button as alternative
+    display_button = None
+    for btn in buttons:
+        label = (btn.get("label") or "").lower()
+        title = (btn.get("title") or "").lower()
+        if "anzeigen" in label or "display" in label or "anzeigen" in title or "display" in title:
+            display_button = btn
+            break
+
+    print(f"\nMaintain button found: {maintain_button}")
+    print(f"Display button found: {display_button}")
+
+    # Verify we found at least one of these buttons
+    # This is the critical assertion for issues #99, #101
+    assert maintain_button is not None or display_button is not None, (
+        f"Expected to find 'Pflegen'/'Maintain' or 'Anzeigen'/'Display' button in SM30. "
+        f"Found buttons: {[b.get('label') for b in buttons[:20]]}"
+    )
+
+    # Verify button has required properties for clicking
+    target_btn = maintain_button or display_button
+    assert target_btn.get("id"), f"Button should have an ID: {target_btn}"
+    assert target_btn.get("selector"), f"Button should have a selector: {target_btn}"
+
+    # Verify SAP-specific button properties
+    assert target_btn.get("tagName") == "DIV", f"SAP buttons are DIV elements: {target_btn}"
+    assert "lsButton" in (target_btn.get("className") or ""), f"SAP buttons have lsButton class: {target_btn}"
