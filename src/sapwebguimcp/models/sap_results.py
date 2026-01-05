@@ -216,6 +216,26 @@ class DiscoveredFields(ToolResult):
     )
 
 
+class ButtonInfo(BaseModel):
+    """Single button discovered on screen."""
+
+    label: str = Field(description="Button text (from title attribute or lsdata)")
+    id: str | None = Field(default=None, description="Element ID attribute")
+    selector: str | None = Field(default=None, description="CSS selector for clicking this button")
+    shortcut: str | None = Field(default=None, description="Keyboard shortcut if shown (e.g., 'F3', 'Strg+S')")
+    accesskey: str | None = Field(default=None, description="Accesskey attribute for keyboard activation")
+
+
+class DiscoveredButtons(ToolResult):
+    """Result from sap_discover_buttons tool."""
+
+    button_count: int = Field(ge=0, description="Number of buttons found")
+    buttons: list[ButtonInfo] = Field(
+        default_factory=list,
+        description="List of discovered buttons with selectors - use the 'selector' field for clicking",
+    )
+
+
 class FieldLookupResult(ToolResult):
     """Result from sap_lookup_fields tool."""
 
