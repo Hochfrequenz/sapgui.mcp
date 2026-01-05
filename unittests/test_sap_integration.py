@@ -2241,7 +2241,11 @@ async def test_sap_get_shortcuts_returns_shortcuts(sap_mcp_client: ClientSession
 
 @pytest.mark.anyio
 async def test_sap_get_shortcuts_has_execute_f8(sap_mcp_client: ClientSession) -> None:
-    """Test that SE16 screen has F8 (Execute) shortcut."""
+    """Test that SE16 screen has F8-related shortcut (Execute).
+
+    Note: Some SAP configurations show "F8" while others show "Strg+F8" (Ctrl+F8).
+    This test accepts any shortcut containing "F8".
+    """
     sap_language = os.environ.get("SAP_LANGUAGE", "EN")
 
     await sap_mcp_client.call_tool("sap_login", {})
@@ -2252,11 +2256,12 @@ async def test_sap_get_shortcuts_has_execute_f8(sap_mcp_client: ClientSession) -
     data = assert_tool_success(result, "sap_get_shortcuts")
 
     shortcuts = data.get("shortcuts", [])
-    f8_shortcuts = [s for s in shortcuts if s.get("shortcut") == "F8"]
+    # Accept any shortcut containing "F8" (plain F8, Strg+F8, Ctrl+F8, etc.)
+    f8_shortcuts = [s for s in shortcuts if "F8" in s.get("shortcut", "")]
 
     assert (
         len(f8_shortcuts) >= 1
-    ), f"SE16 should have F8 shortcut. Found shortcuts: {[s.get('shortcut') for s in shortcuts]}"
+    ), f"SE16 should have F8-related shortcut. Found shortcuts: {[s.get('shortcut') for s in shortcuts]}"
 
     # F8 should be Execute (Ausführen in DE)
     f8_action = f8_shortcuts[0].get("action", "")
