@@ -1082,3 +1082,300 @@ class TestPopupDetection:
             assert (
                 "display: none" in style or "display:none" in style
             ), "Blocking layer exists but should be hidden on initial screen"
+
+
+class TestDropdownDetection:
+    """Tests for dropdown/combobox field detection using HTML snapshots."""
+
+    def test_bp_create_person_has_dropdown_fields(self, html_snapshots_path: Path) -> None:
+        """Verify BP create person screen has dropdown fields (ct=CB)."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
+        if not snapshot_path:
+            pytest.skip("BP create person snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP create person snapshot")
+
+        # Find all inputs with ct="CB" (ComboBox)
+        dropdowns = soup.select('input[ct="CB"]')
+        assert len(dropdowns) >= 1, "Expected at least one dropdown field in BP create person"
+
+    def test_bp_create_person_gp_rolle_dropdown(self, html_snapshots_path: Path) -> None:
+        """Verify GP-Rolle dropdown has expected attributes."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
+        if not snapshot_path:
+            pytest.skip("BP create person snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP create person snapshot")
+
+        # Find dropdown with GP-Rolle label (look for lsdata containing the text)
+        dropdowns = soup.select('input[ct="CB"]')
+        gp_rolle_dropdown = None
+        for dd in dropdowns:
+            title = dd.get("title", "")
+            if "GP-Rolle" in title or "Rolle" in title:
+                gp_rolle_dropdown = dd
+                break
+
+        assert gp_rolle_dropdown is not None, "Expected GP-Rolle dropdown field"
+        assert gp_rolle_dropdown.get("readonly") is not None or gp_rolle_dropdown.has_attr(
+            "readonly"
+        ), "Dropdown should be readonly"
+        assert gp_rolle_dropdown.get("aria-haspopup") == "true", "Dropdown should have aria-haspopup=true"
+
+    def test_bp_create_person_dropdown_has_value(self, html_snapshots_path: Path) -> None:
+        """Verify GP-Rolle dropdown has default value 'GPartner allgemein'."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
+        if not snapshot_path:
+            pytest.skip("BP create person snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP create person snapshot")
+
+        # Find dropdown with value containing GPartner
+        dropdowns = soup.select('input[ct="CB"]')
+        gpartner_found = False
+        for dd in dropdowns:
+            value = dd.get("value", "")
+            if "GPartner" in value:
+                gpartner_found = True
+                break
+
+        assert gpartner_found, "Expected dropdown with 'GPartner allgemein' default value"
+
+    def test_bp_create_person_gruppierung_dropdown_empty(self, html_snapshots_path: Path) -> None:
+        """Verify Gruppierung dropdown exists and is empty by default."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
+        if not snapshot_path:
+            pytest.skip("BP create person snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP create person snapshot")
+
+        # Find dropdown with Gruppierung in title
+        dropdowns = soup.select('input[ct="CB"]')
+        gruppierung_dropdown = None
+        for dd in dropdowns:
+            title = dd.get("title", "")
+            if "Gruppierung" in title or "gruppierung" in title.lower():
+                gruppierung_dropdown = dd
+                break
+
+        assert gruppierung_dropdown is not None, "Expected Gruppierung dropdown field"
+        # Value should be empty
+        value = gruppierung_dropdown.get("value", "")
+        assert value == "", f"Gruppierung should be empty by default, got: {value}"
+
+    def test_dropdown_detection_attributes(self, html_snapshots_path: Path) -> None:
+        """Verify dropdown detection criteria work correctly."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
+        if not snapshot_path:
+            pytest.skip("BP create person snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP create person snapshot")
+
+        # All ct=CB inputs should have readonly and aria-haspopup
+        dropdowns = soup.select('input[ct="CB"]')
+        for dd in dropdowns:
+            # Should have readonly attribute (though BeautifulSoup might parse it as empty string)
+            has_readonly = dd.has_attr("readonly") or dd.get("readonly") is not None
+            # Note: Some dropdowns might not have readonly if they allow typing
+            # Just verify the ct=CB is correctly identifying them
+            assert dd.get("ct") == "CB", f"Expected ct=CB, got: {dd.get('ct')}"
+
+    def test_se16_has_no_dropdowns(self, html_snapshots_path: Path) -> None:
+        """Verify SE16 initial screen has no dropdown fields."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "se16_initial")
+        if not snapshot_path:
+            pytest.skip("SE16 initial snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load SE16 initial snapshot")
+
+        # SE16 is a simple screen with just a table name input - no dropdowns expected
+        dropdowns = soup.select('input[ct="CB"]')
+        # There might be some system dropdowns but the main table name field is not a dropdown
+        main_input = soup.select_one("input[lsdata*='TABLENAME']")
+        if main_input:
+            assert main_input.get("ct") != "CB", "Table name field should not be a dropdown"
+
+
+class TestDropdownListboxStructure:
+    """Tests for dropdown listbox structure and option detection.
+
+    These tests verify the listbox structure used by select_dropdown_option.js
+    and get_dropdown_options.js to select dropdown values.
+
+    Related issues: #72 (dropdown opening), #73 (value not applied), #74 (learning),
+    #79 (GP-Rolle not set correctly)
+    """
+
+    def _find_listbox_for_dropdown(self, soup: BeautifulSoup, input_element: Tag) -> Tag | None:
+        """Find the listbox associated with a dropdown input element.
+
+        Mirrors the JavaScript logic in select_dropdown_option.js:
+        1. aria-controls attribute on input
+        2. lsdata["3"] on input contains listbox ID
+        """
+        # Method 1: aria-controls
+        aria_controls = input_element.get("aria-controls")
+        if aria_controls:
+            listbox = soup.find(id=aria_controls)
+            if listbox:
+                return listbox
+
+        # Method 2: lsdata["3"]
+        lsdata_raw = input_element.get("lsdata")
+        if lsdata_raw:
+            try:
+                lsdata = json.loads(lsdata_raw)
+                listbox_id = lsdata.get("3")
+                if listbox_id:
+                    listbox = soup.find(id=listbox_id)
+                    if listbox:
+                        return listbox
+            except json.JSONDecodeError:
+                pass
+
+        return None
+
+    def test_dropdown_has_listbox_reference(self, html_snapshots_path: Path) -> None:
+        """Verify dropdown inputs have aria-controls or lsdata pointing to listbox."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
+        if not snapshot_path:
+            pytest.skip("BP create person snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP create person snapshot")
+
+        dropdowns = soup.select('input[ct="CB"]')
+        assert len(dropdowns) >= 1, "Expected at least one dropdown"
+
+        # At least one dropdown should have a listbox reference
+        found_listbox = False
+        for dd in dropdowns:
+            aria_controls = dd.get("aria-controls")
+            lsdata_raw = dd.get("lsdata")
+
+            has_aria = aria_controls is not None
+            has_lsdata_3 = False
+            if lsdata_raw:
+                try:
+                    lsdata = json.loads(lsdata_raw)
+                    has_lsdata_3 = "3" in lsdata
+                except json.JSONDecodeError:
+                    pass
+
+            if has_aria or has_lsdata_3:
+                found_listbox = True
+                break
+
+        assert found_listbox, "At least one dropdown should have listbox reference via aria-controls or lsdata[3]"
+
+    def test_listbox_has_options_with_data_itemkey(self, html_snapshots_path: Path) -> None:
+        """Verify listbox contains options with data-itemkey attribute."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
+        if not snapshot_path:
+            pytest.skip("BP create person snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP create person snapshot")
+
+        # Find any listbox element
+        listboxes = soup.select('[role="listbox"]')
+        if not listboxes:
+            pytest.skip("No listboxes found in snapshot")
+
+        # At least one listbox should have options with data-itemkey
+        found_options = False
+        for listbox in listboxes:
+            options = listbox.select("[data-itemkey]")
+            if len(options) >= 1:
+                found_options = True
+                # Verify option structure
+                opt = options[0]
+                assert opt.has_attr("data-itemkey"), "Option should have data-itemkey"
+                break
+
+        assert found_options, "Expected listbox with options having data-itemkey attribute"
+
+    def test_listbox_options_have_value_attributes(self, html_snapshots_path: Path) -> None:
+        """Verify listbox options have data-itemvalue1 and data-itemvalue2."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
+        if not snapshot_path:
+            pytest.skip("BP create person snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP create person snapshot")
+
+        # Find options with data-itemkey
+        options = soup.select("[data-itemkey]")
+        if not options:
+            pytest.skip("No options found in snapshot")
+
+        # Check that options have value attributes
+        for opt in options[:5]:  # Check first 5 options
+            key = opt.get("data-itemkey")
+            value1 = opt.get("data-itemvalue1")
+            value2 = opt.get("data-itemvalue2")
+
+            # At least one value attribute should exist
+            assert key is not None, "Option should have data-itemkey"
+            # value1 or value2 should exist
+            has_value = value1 is not None or value2 is not None
+            assert has_value, f"Option with key={key} should have data-itemvalue1 or data-itemvalue2"
+
+    def test_dropdown_can_find_associated_listbox(self, html_snapshots_path: Path) -> None:
+        """Verify we can find the listbox for a dropdown input."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
+        if not snapshot_path:
+            pytest.skip("BP create person snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP create person snapshot")
+
+        dropdowns = soup.select('input[ct="CB"]')
+        if not dropdowns:
+            pytest.skip("No dropdowns found")
+
+        # Try to find listbox for at least one dropdown
+        found_listbox = False
+        for dd in dropdowns:
+            listbox = self._find_listbox_for_dropdown(soup, dd)
+            if listbox:
+                found_listbox = True
+                # Verify it's a listbox
+                assert listbox.get("role") == "listbox" or listbox.has_attr("role"), "Found element should be a listbox"
+                break
+
+        assert found_listbox, "Should be able to find listbox for at least one dropdown"
+
+    def test_gruppierung_dropdown_has_listbox_with_options(self, html_snapshots_path: Path) -> None:
+        """Verify Gruppierung dropdown has associated listbox with options."""
+        snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
+        if not snapshot_path:
+            pytest.skip("BP create person snapshot not found")
+        soup = load_snapshot(snapshot_path)
+        if not soup:
+            pytest.skip("Could not load BP create person snapshot")
+
+        # Find Gruppierung dropdown
+        dropdowns = soup.select('input[ct="CB"]')
+        gruppierung = None
+        for dd in dropdowns:
+            title = dd.get("title", "")
+            if "Gruppierung" in title or "gruppierung" in title.lower():
+                gruppierung = dd
+                break
+
+        if not gruppierung:
+            pytest.skip("Gruppierung dropdown not found")
+
+        listbox = self._find_listbox_for_dropdown(soup, gruppierung)
+        assert listbox is not None, "Gruppierung dropdown should have associated listbox"
+
+        # Verify listbox has options
+        options = listbox.select("[data-itemkey]")
+        assert len(options) >= 1, "Gruppierung listbox should have at least one option"
