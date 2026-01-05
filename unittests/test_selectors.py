@@ -1379,3 +1379,163 @@ class TestDropdownListboxStructure:
         # Verify listbox has options
         options = listbox.select("[data-itemkey]")
         assert len(options) >= 1, "Gruppierung listbox should have at least one option"
+
+
+class TestAmbiguousLabelDetection:
+    """Tests for ambiguous label detection in field finding.
+
+    When multiple form fields share the same label (e.g., "Postleitzahl" for both
+    street address and PO Box), the field finder should detect the ambiguity and
+    return an error with the available selectors.
+
+    This prevents silently matching the first field when the user might intend
+    to fill a different field with the same label.
+    """
+
+    def _find_inputs_by_label(self, soup: BeautifulSoup, label_text: str) -> list[dict[str, str | None]]:
+        """
+        Simulate the JavaScript findInputByLabel function with ambiguity detection.
+
+        Returns a list of all matching inputs instead of just the first one.
+        Each match includes: element, selector, source, lsdataField
+
+        IMPORTANT: This mirrors the JS logic that searches ALL strategies before
+        checking for uniqueness (title + lsdata + aria-label, etc.).
+        """
+        normalized_label = label_text.strip()
+        all_matches: list[dict[str, str | None]] = []
+
+        def add_match(element: Tag, selector: str, source: str, lsdata_field: str | None = None) -> None:
+            """Add a match if not already present by element."""
+            if not any(m["element"] is element for m in all_matches):
+                all_matches.append(
+                    {
+                        "element": element,
+                        "selector": selector,
+                        "source": source,
+                        "lsdataField": lsdata_field,
+                    }
+                )
+
+        def extract_lsdata_field(inp: Tag) -> str | None:
+            """Extract field name from input's lsdata attribute."""
+            input_lsdata_raw = inp.get("lsdata")
+            if input_lsdata_raw:
+                try:
+                    input_lsdata = json.loads(input_lsdata_raw)
+                    # Field name is often in key "0"
+                    if input_lsdata.get("0"):
+                        return input_lsdata.get("0")
+                    # Or in nested SID object
+                    sid = input_lsdata.get("21", {}).get("SID", "")
+                    if sid:
+                        # Extract field name from SID like ".../txtADDR2_DATA-POST_CODE1"
+                        import re
+
+                        match = re.search(r"txt([A-Z0-9_-]+)$", sid)
+                        if match:
+                            return match.group(1)
+                except json.JSONDecodeError:
+                    pass
+            return None
+
+        # 1. Try title attribute match (search ALL, don't return early)
+        for tag_name in ("input", "select", "textarea"):
+            for inp in soup.find_all(tag_name, attrs={"title": True}):
+                title = inp.get("title", "")
+                if title.strip() == normalized_label:
+                    selector = f"#{inp['id']}" if inp.get("id") else f'[title="{title}"]'
+                    lsdata_field = extract_lsdata_field(inp)
+                    add_match(inp, selector, "title", lsdata_field)
+
+        # 2. SAP-specific: labels use lsdata["1"] for associated input ID
+        # Continue searching even if we found title matches!
+        labels = soup.find_all("label", attrs={"lsdata": True})
+        for label in labels:
+            lsdata_raw = label.get("lsdata")
+            if not lsdata_raw:
+                continue
+            try:
+                lsdata = json.loads(lsdata_raw)
+                if lsdata.get("3", "").strip() == normalized_label and lsdata.get("1"):
+                    input_el = soup.find(id=lsdata["1"])
+                    if input_el:
+                        lsdata_field = extract_lsdata_field(input_el)
+                        selector = f"#{input_el['id']}"
+                        add_match(input_el, selector, "lsdata", lsdata_field)
+            except json.JSONDecodeError:
+                continue
+
+        # 3. Try standard label with 'for' attribute
+        for label in soup.find_all("label"):
+            if label.get_text(strip=True) == normalized_label and label.get("for"):
+                input_el = soup.find(id=label.get("for"))
+                if input_el:
+                    lsdata_field = extract_lsdata_field(input_el)
+                    selector = f"#{input_el['id']}"
+                    add_match(input_el, selector, "for-attribute", lsdata_field)
+
+        return all_matches
+
+    def test_bp_person_form_duplicate_postleitzahl(self, html_snapshots_path: Path) -> None:
+        """Test that real BP Person form has duplicate Postleitzahl fields.
+
+        The BP Person form (BP transaction, F5 for Person) has two Postleitzahl fields:
+        - ADDR2_DATA-POST_CODE1: for street address
+        - ADDR2_DATA-POST_CODE2: for PO Box address
+
+        Both are labeled "Postleitzahl" (or "Postal Code" in English).
+        """
+        snapshot = get_snapshot_path(html_snapshots_path, "bp_person_form")
+        if snapshot is None:
+            pytest.skip("bp_person_form snapshot not available")
+
+        soup = load_snapshot(snapshot)
+        if soup is None:
+            pytest.skip("Could not parse bp_person_form snapshot")
+
+        # Determine language-specific label
+        lang = "en" if "_en.html" in str(snapshot) else "de"
+        label = "Postal Code" if lang == "en" else "Postleitzahl"
+
+        matches = self._find_inputs_by_label(soup, label)
+
+        # The form should have at least 2 Postleitzahl fields
+        # (may have more if there are other address sections)
+        assert len(matches) >= 2, (
+            f"Expected at least 2 matches for '{label}' in BP Person form, "
+            f"got {len(matches)}. This verifies the bug scenario exists. "
+            f"Matches: {[m.get('selector') for m in matches]}"
+        )
+
+        # Verify POST_CODE1 and POST_CODE2 are both present
+        lsdata_fields = {m["lsdataField"] for m in matches if m["lsdataField"]}
+        has_post_code1 = any("POST_CODE1" in (f or "") for f in lsdata_fields)
+        has_post_code2 = any("POST_CODE2" in (f or "") for f in lsdata_fields)
+
+        assert has_post_code1 and has_post_code2, (
+            f"BP Person form should have both POST_CODE1 and POST_CODE2 fields. "
+            f"Found lsdata fields: {lsdata_fields}"
+        )
+
+    def test_bp_person_form_unique_label(self, html_snapshots_path: Path) -> None:
+        """Test that unique labels in BP Person form find exactly one match."""
+        snapshot = get_snapshot_path(html_snapshots_path, "bp_person_form")
+        if snapshot is None:
+            pytest.skip("bp_person_form snapshot not available")
+
+        soup = load_snapshot(snapshot)
+        if soup is None:
+            pytest.skip("Could not parse bp_person_form snapshot")
+
+        # Determine language-specific label
+        lang = "en" if "_en.html" in str(snapshot) else "de"
+        label = "First Name" if lang == "en" else "Vorname"
+
+        matches = self._find_inputs_by_label(soup, label)
+
+        # Vorname/First Name should be unique
+        assert len(matches) == 1, (
+            f"Expected exactly 1 match for '{label}' in BP Person form, "
+            f"got {len(matches)}. Matches: {[m.get('selector') for m in matches]}"
+        )
