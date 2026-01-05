@@ -2551,3 +2551,241 @@ async def test_sap_dismiss_popup_no_popup_present(sap_mcp_client: ClientSession)
     # Should fail gracefully
     assert not data.get("success", True), f"Should fail when no popup present: {data}"
     assert "no popup" in data.get("error", "").lower(), f"Error should mention no popup: {data}"
+
+
+@pytest.mark.anyio
+async def test_bp_get_form_fields_discovers_dropdowns(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_get_form_fields discovers dropdown fields on BP create person screen.
+
+    The BP create person screen has two dropdown fields:
+    - GP-Rolle (Business Partner Role)
+    - Gruppierung (Grouping)
+
+    This test verifies that sap_get_form_fields correctly identifies these as dropdowns.
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Navigate to person creation form
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+    await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Wait for form to load
+    if sap_language == "DE":
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Vorname')", "timeout": 15000})
+    else:
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('First Name')", "timeout": 15000})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # Call sap_get_form_fields
+    result = await sap_mcp_client.call_tool("sap_get_form_fields", {})
+    data = assert_tool_success(result, "sap_get_form_fields")
+
+    # Check that fields were found
+    fields = data.get("fields", [])
+    assert len(fields) > 0, "Expected to find form fields"
+
+    # Find dropdown fields
+    dropdown_fields = [f for f in fields if f.get("field_type") == "dropdown"]
+    assert (
+        len(dropdown_fields) >= 2
+    ), f"Expected at least 2 dropdowns (GP-Rolle, Gruppierung), found {len(dropdown_fields)}"
+
+    # Check for GP-Rolle dropdown
+    gp_rolle_dropdown = next(
+        (f for f in dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        None,
+    )
+    assert (
+        gp_rolle_dropdown is not None
+    ), f"Expected GP-Rolle dropdown. Found dropdowns: {[f.get('label') for f in dropdown_fields]}"
+    assert gp_rolle_dropdown.get("id"), "Dropdown should have an ID"
+
+
+@pytest.mark.anyio
+async def test_bp_get_form_fields_with_dropdown_options(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_get_form_fields with include_dropdown_options=True fetches options.
+
+    When include_dropdown_options=True, the tool should open each dropdown,
+    extract available options, and return them in the field data.
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Navigate to person creation form
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+    await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    if sap_language == "DE":
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Vorname')", "timeout": 15000})
+    else:
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('First Name')", "timeout": 15000})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # Call sap_get_form_fields with dropdown options
+    result = await sap_mcp_client.call_tool("sap_get_form_fields", {"include_dropdown_options": True})
+    data = assert_tool_success(result, "sap_get_form_fields with options")
+
+    # Find dropdown fields with options
+    dropdown_fields = [f for f in data.get("fields", []) if f.get("field_type") == "dropdown"]
+    assert len(dropdown_fields) >= 2, "Expected at least 2 dropdowns"
+
+    # GP-Rolle should have options populated
+    gp_rolle_dropdown = next(
+        (f for f in dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        None,
+    )
+    assert gp_rolle_dropdown is not None, "Expected GP-Rolle dropdown"
+
+    options = gp_rolle_dropdown.get("options")
+    assert options is not None, "Expected options to be populated when include_dropdown_options=True"
+    assert len(options) > 0, "Expected GP-Rolle to have available options"
+
+    # Verify it has the default option (GPartner allgemein / General BP)
+    has_general_bp = any("GPartner" in opt or "General" in opt for opt in options)
+    assert has_general_bp, f"Expected 'GPartner allgemein' or similar in options: {options}"
+
+
+@pytest.mark.anyio
+async def test_bp_get_screen_text_with_dropdown_options(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_get_screen_text with include_dropdown_options=True.
+
+    The dropdowns field should contain dropdown info with options.
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Navigate to person creation form
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+    await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    if sap_language == "DE":
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Vorname')", "timeout": 15000})
+    else:
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('First Name')", "timeout": 15000})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # Call sap_get_screen_text with dropdown options
+    result = await sap_mcp_client.call_tool("sap_get_screen_text", {"include_dropdown_options": True})
+    data = assert_tool_success(result, "sap_get_screen_text with dropdowns")
+
+    # Check that dropdowns field is populated
+    dropdowns = data.get("dropdowns")
+    assert dropdowns is not None, "Expected dropdowns field when include_dropdown_options=True"
+    assert len(dropdowns) >= 2, f"Expected at least 2 dropdowns, found {len(dropdowns)}"
+
+    # Each dropdown should have id, label, and options
+    for dd in dropdowns:
+        assert dd.get("id"), f"Dropdown should have id: {dd}"
+        assert dd.get("label"), f"Dropdown should have label: {dd}"
+        assert isinstance(dd.get("options"), list), f"Dropdown should have options list: {dd}"
+
+
+@pytest.mark.anyio
+async def test_bp_fill_form_dropdown_selection(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_fill_form can select a dropdown value by label.
+
+    This test selects a specific GP-Rolle value from the dropdown.
+    Note: Changing GP-Rolle may trigger a popup dialog.
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Navigate to person creation form
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+    await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    if sap_language == "DE":
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Vorname')", "timeout": 15000})
+    else:
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('First Name')", "timeout": 15000})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # First, get the dropdown options to know valid values
+    form_result = await sap_mcp_client.call_tool("sap_get_form_fields", {"include_dropdown_options": True})
+    form_data = assert_tool_success(form_result, "sap_get_form_fields")
+
+    # Find GP-Rolle dropdown and get first option
+    dropdown_fields = [f for f in form_data.get("fields", []) if f.get("field_type") == "dropdown"]
+    gp_rolle = next(
+        (f for f in dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        None,
+    )
+    assert gp_rolle is not None, "Expected GP-Rolle dropdown"
+
+    options = gp_rolle.get("options", [])
+    assert len(options) > 0, "Expected GP-Rolle to have options"
+
+    # Select the first option (should be the default, so no popup)
+    option_to_select = options[0]
+    label = gp_rolle.get("label")
+
+    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": {label: option_to_select}})
+    fill_data = assert_tool_success(fill_result, "sap_fill_form dropdown")
+
+    # Verify the field was filled
+    filled = fill_data.get("filled", [])
+    assert label in filled, f"Expected {label} to be filled. Result: {fill_data}"
+
+
+@pytest.mark.anyio
+async def test_bp_fill_form_dropdown_invalid_value(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_fill_form returns available options when dropdown value not found.
+
+    When a requested value is not in the dropdown, the tool should fail
+    and return the list of available options.
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Navigate to person creation form
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+    await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    if sap_language == "DE":
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Vorname')", "timeout": 15000})
+    else:
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('First Name')", "timeout": 15000})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # Try to fill with invalid dropdown value
+    label = "GP-Rolle" if sap_language == "DE" else "BP Role"
+    fill_result = await sap_mcp_client.call_tool(
+        "sap_fill_form", {"fields": {label: "INVALID_NONEXISTENT_VALUE_12345"}}
+    )
+    fill_data = parse_tool_response(fill_result)
+
+    # Should have an error
+    errors = fill_data.get("errors", [])
+    assert len(errors) > 0, f"Expected error for invalid dropdown value. Result: {fill_data}"
+
+    # Error should contain available options
+    error = errors[0]
+    available = error.get("available_options")
+    assert available is not None, f"Expected available_options in error: {error}"
+    assert len(available) > 0, f"Expected non-empty available_options: {error}"
