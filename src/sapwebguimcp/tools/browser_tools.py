@@ -90,20 +90,17 @@ def _escape_css_selector(selector: str) -> str:
 def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements
     """Register all browser automation tools with the MCP server."""
 
-    @mcp.tool(description="Get accessibility tree snapshot of the current page")
-    async def browser_snapshot(selector: Optional[str] = None) -> SnapshotResult:
-        """
-        Get ARIA snapshot of the current page.
-
-        Returns a YAML representation of the accessibility tree.
-        Useful for understanding page structure when other tools fail.
-
-        Args:
-            selector: Optional CSS selector to scope the snapshot
-
-        Returns:
-            SnapshotResult with ARIA snapshot in YAML format
-        """
+    @mcp.tool(
+        description=(
+            "Get accessibility tree snapshot of the current page. "
+            "Returns a YAML representation of the ARIA tree - useful for understanding "
+            "page structure when other tools fail. "
+            "Args: selector = optional CSS selector to scope the snapshot."
+        )
+    )
+    async def browser_snapshot(  # pylint: disable=missing-function-docstring
+        selector: Optional[str] = None,
+    ) -> SnapshotResult:
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
@@ -126,37 +123,18 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     @mcp.tool(
         description=(
             "Take a screenshot of the current page. "
-            "AVOID THIS TOOL - it returns a large image that fills up the conversation context. "
-            "Use browser_snapshot instead to get a compact text-based accessibility tree. "
-            "Only use screenshots when visual layout verification is absolutely necessary."
+            "AVOID THIS TOOL - it returns a large image that fills up conversation context. "
+            "Use browser_snapshot instead for a compact text-based accessibility tree. "
+            "Only use screenshots when visual layout verification is absolutely necessary "
+            "(e.g., debugging rendering issues, user explicitly requests screenshot). "
+            "Args: full_page = capture entire scrollable page, "
+            "selector = optional CSS selector to capture specific element."
         )
     )
-    async def browser_screenshot(full_page: bool = False, selector: Optional[str] = None) -> Image | ScreenshotResult:
-        """
-        Take a screenshot of the current page.
-
-        WARNING: This tool returns image data that consumes significant conversation
-        context. In almost all cases, you should use browser_snapshot instead, which
-        returns a compact YAML accessibility tree that uses far fewer tokens.
-
-        Use browser_snapshot for:
-        - Reading text, labels, or field values
-        - Understanding page structure
-        - Finding elements to interact with
-        - Any task that doesn't require pixel-perfect visual verification
-
-        Only use browser_screenshot when:
-        - You need to verify visual layout/styling
-        - You're debugging rendering issues
-        - The user explicitly requests a screenshot
-
-        Args:
-            full_page: Capture entire scrollable page
-            selector: Optional CSS selector to capture specific element
-
-        Returns:
-            Image (native MCP image content) on success, ScreenshotResult on failure
-        """
+    async def browser_screenshot(  # pylint: disable=missing-function-docstring
+        full_page: bool = False,
+        selector: Optional[str] = None,
+    ) -> Image | ScreenshotResult:
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
@@ -184,17 +162,14 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                 selector=selector,
             )
 
-    @mcp.tool(description="Click an element by CSS selector")
-    async def browser_click(selector: str) -> ClickResult:
-        """
-        Click an element by CSS selector.
-
-        Args:
-            selector: CSS selector for the element to click
-
-        Returns:
-            ClickResult with the selector that was clicked
-        """
+    @mcp.tool(
+        description=(
+            "Click an element by CSS selector. "
+            "BEFORE clicking buttons, use sap_get_shortcuts to check if a keyboard shortcut "
+            "is available - shortcuts are faster and more reliable than clicks."
+        )
+    )
+    async def browser_click(selector: str) -> ClickResult:  # pylint: disable=missing-function-docstring
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
@@ -211,23 +186,11 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     @mcp.tool(
         description=(
             "Fill a single input field by CSS selector. "
-            "For filling multiple fields on the same screen, use sap_fill_form instead - it's much faster."
+            "For filling multiple fields on the same screen, use sap_fill_form instead - "
+            "it fills all fields in a single call, which is much faster."
         )
     )
-    async def browser_fill(selector: str, value: str) -> FillResult:
-        """
-        Fill an input field by CSS selector.
-
-        For filling multiple fields on the same SAP screen, use sap_fill_form
-        instead - it fills all fields in a single call, which is much faster.
-
-        Args:
-            selector: CSS selector for the input element
-            value: Value to fill
-
-        Returns:
-            FillResult with selector and value
-        """
+    async def browser_fill(selector: str, value: str) -> FillResult:  # pylint: disable=missing-function-docstring
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
@@ -243,24 +206,16 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     @mcp.tool(
         description=(
             "Send keyboard input (key press or text typing). "
-            "For filling multiple form fields, use sap_fill_form instead - "
-            "it's much faster than repeated focus+type calls."
+            "For SAP shortcuts, prefer sap_keyboard which auto-reads the status bar. "
+            "For filling multiple form fields, use sap_fill_form - much faster. "
+            "Args: key = key to press (e.g., 'Enter', 'Tab', 'F3'), "
+            "text = text to type character by character."
         )
     )
-    async def browser_keyboard(key: Optional[str] = None, text: Optional[str] = None) -> BrowserKeyboardResult:
-        """
-        Send keyboard input.
-
-        For filling multiple form fields on the same screen, use sap_fill_form
-        instead - it's much faster than repeated focus+type calls.
-
-        Args:
-            key: Key to press (e.g., 'Enter', 'Tab', 'F3', 'Control+s')
-            text: Text to type character by character
-
-        Returns:
-            BrowserKeyboardResult with key or text that was sent
-        """
+    async def browser_keyboard(  # pylint: disable=missing-function-docstring
+        key: Optional[str] = None,
+        text: Optional[str] = None,
+    ) -> BrowserKeyboardResult:
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
@@ -276,17 +231,13 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             logger.exception("Error sending keyboard input")
             return BrowserKeyboardResult.failure(f"Error with keyboard input: {e}", key=key, text=text)
 
-    @mcp.tool(description="Navigate to a URL")
-    async def browser_navigate(url: str) -> NavigateResult:
-        """
-        Navigate to a URL.
-
-        Args:
-            url: URL to navigate to
-
-        Returns:
-            NavigateResult with URL and page title
-        """
+    @mcp.tool(
+        description=(
+            "Navigate to a URL. "
+            "For SAP login, use sap_login instead - it handles credentials and session setup."
+        )
+    )
+    async def browser_navigate(url: str) -> NavigateResult:  # pylint: disable=missing-function-docstring
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
@@ -299,19 +250,15 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             logger.exception("Error navigating")
             return NavigateResult.failure(f"Error navigating to {url}: {e}", url=url)
 
-    @mcp.tool(description="Execute JavaScript in the browser")
-    async def browser_evaluate(script: str) -> EvaluateResult:
-        """
-        Execute JavaScript in the browser.
-
-        Use with caution - this has full access to the page context.
-
-        Args:
-            script: JavaScript code to execute
-
-        Returns:
-            EvaluateResult with JSON-serialized result
-        """
+    @mcp.tool(
+        description=(
+            "Execute JavaScript in the browser. "
+            "Use with caution - this has full access to the page context. "
+            "Prefer SAP-specific tools when available. "
+            "Returns: JSON-serialized result."
+        )
+    )
+    async def browser_evaluate(script: str) -> EvaluateResult:  # pylint: disable=missing-function-docstring
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
@@ -330,36 +277,19 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     @mcp.tool(
         description=(
             "Wait for an element to reach a specific state. "
-            "IMPORTANT: Only useful with a selector - calling without a selector is almost always pointless "
+            "IMPORTANT: Only useful with a selector - calling without a selector is pointless "
             "because MCP round-trip time already provides natural delays. "
-            "Use this to wait for elements to appear (state='visible') or disappear (state='hidden'), "
-            "e.g., waiting for a loading indicator to vanish before reading content."
+            "Good uses: wait for element to appear (state='visible') or loading spinner to "
+            "disappear (state='hidden'). "
+            "Args: selector = CSS selector to wait for, timeout = max wait in ms, "
+            "state = 'visible'/'hidden'/'attached'/'detached'."
         )
     )
-    async def browser_wait(
+    async def browser_wait(  # pylint: disable=missing-function-docstring
         selector: Optional[str] = None,
         timeout: int = 5000,
         state: Literal["attached", "detached", "hidden", "visible"] = "visible",
     ) -> WaitResult:
-        """
-        Wait for an element to reach a specific state.
-
-        IMPORTANT: Only useful with a selector. Calling without a selector is almost always
-        pointless because the MCP tool round-trip already introduces natural delays. Don't
-        use this as a generic sleep - it wastes time without benefit.
-
-        Good use cases:
-        - Wait for an element to appear before reading: browser_wait(selector="#result", state="visible")
-        - Wait for loading spinner to disappear: browser_wait(selector=".loading", state="hidden")
-
-        Args:
-            selector: CSS selector to wait for (required for meaningful use)
-            timeout: Maximum wait time in milliseconds (returns early if condition met)
-            state: Element state to wait for ('visible', 'hidden', 'attached', 'detached')
-
-        Returns:
-            WaitResult with selector, state, and timeout
-        """
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
@@ -376,21 +306,19 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             logger.exception("Error waiting")
             return WaitResult.failure(f"Error waiting: {e}", selector=selector, state=state, timeout=timeout_td)
 
-    @mcp.tool(description="Get HTML content of an element or the full page")
-    async def browser_get_html(selector: Optional[str] = None, outer: bool = True) -> HtmlResult | list[File | str]:
-        """
-        Get HTML content of an element or the full page.
-
-        For large HTML (>50KB), returns a File to avoid context bloat.
-        The File contains the HTML and is accompanied by metadata text.
-
-        Args:
-            selector: CSS selector (if None, returns full page HTML)
-            outer: Include the element itself (outerHTML) or just children (innerHTML)
-
-        Returns:
-            HtmlResult for small HTML, or [File, metadata_text] for large HTML
-        """
+    @mcp.tool(
+        description=(
+            "Get HTML content of an element or the full page. "
+            "For large HTML (>50KB), returns a File to avoid context bloat. "
+            "Prefer sap_get_screen_text or sap_get_form_fields for structured SAP data. "
+            "Args: selector = CSS selector (None for full page), "
+            "outer = include element itself (outerHTML) or just children (innerHTML)."
+        )
+    )
+    async def browser_get_html(  # pylint: disable=missing-function-docstring
+        selector: Optional[str] = None,
+        outer: bool = True,
+    ) -> HtmlResult | list[File | str]:
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 
@@ -427,23 +355,20 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             logger.exception("Error getting HTML")
             return HtmlResult.failure(f"Error getting HTML: {e}", selector=selector, outer=outer)
 
-    @mcp.tool(description="Select an option from a dropdown/select element")
-    async def browser_select_option(
+    @mcp.tool(
+        description=(
+            "Select an option from a dropdown/select element. "
+            "For SAP dropdowns, prefer sap_fill_form or sap_set_field which handle "
+            "SAP-specific dropdown behavior. "
+            "Args: selector = CSS selector for select element, "
+            "value = option value to select, label = option text (alternative to value)."
+        )
+    )
+    async def browser_select_option(  # pylint: disable=missing-function-docstring
         selector: str,
         value: Optional[str] = None,
         label: Optional[str] = None,
     ) -> SelectOptionResult:
-        """
-        Select an option from a dropdown/select element.
-
-        Args:
-            selector: CSS selector for the select element
-            value: Option value to select
-            label: Option label/text to select (alternative to value)
-
-        Returns:
-            SelectOptionResult with selector and selected value/label
-        """
         browser_manager = await get_browser_manager()
         page = await browser_manager.get_current_page()
 

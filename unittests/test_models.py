@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from sapwebguimcp.models import (
+    CapabilitiesResult,
     ClickResult,
     DiscoveredFields,
     FieldInfo,
@@ -15,6 +16,7 @@ from sapwebguimcp.models import (
     ScreenInfo,
     SessionStatus,
     TableData,
+    ToolInfo,
     ToolResult,
     TransactionResult,
     WaitResult,
@@ -313,3 +315,74 @@ class TestKeyboardResultStatusBarValidation:
                 status_bar_read=False,
                 status_bar_type="S",
             )
+
+
+class TestCapabilitiesResult:
+    """Tests for CapabilitiesResult and ToolInfo models."""
+
+    def test_tool_info_creation(self) -> None:
+        """Test ToolInfo can be created with name and description."""
+        tool = ToolInfo(name="sap_login", description="Log into SAP Web GUI")
+        assert tool.name == "sap_login"
+        assert tool.description == "Log into SAP Web GUI"
+
+    def test_capabilities_result_empty(self) -> None:
+        """Test CapabilitiesResult with no tools."""
+        result = CapabilitiesResult(tools=[])
+        assert result.success is True
+        assert result.tools == []
+        assert result.tool_count == 0
+
+    def test_capabilities_result_with_tools(self) -> None:
+        """Test CapabilitiesResult with multiple tools."""
+        tools = [
+            ToolInfo(name="sap_login", description="Login tool"),
+            ToolInfo(name="sap_transaction", description="Transaction tool"),
+            ToolInfo(name="browser_click", description="Click tool"),
+        ]
+        result = CapabilitiesResult(tools=tools)
+        assert result.success is True
+        assert len(result.tools) == 3
+        assert result.tool_count == 3
+        assert result.tools[0].name == "sap_login"
+
+    def test_capabilities_result_failure(self) -> None:
+        """Test CapabilitiesResult.failure() factory method."""
+        result = CapabilitiesResult.failure("Could not get capabilities")
+        assert result.success is False
+        assert result.error == "Could not get capabilities"
+        assert result.tools == []
+
+    def test_capabilities_result_json(self) -> None:
+        """Test CapabilitiesResult serializes correctly to JSON."""
+        tools = [ToolInfo(name="test_tool", description="A test tool")]
+        result = CapabilitiesResult(tools=tools)
+        json_str = result.model_dump_json()
+        assert '"name":"test_tool"' in json_str
+        assert '"description":"A test tool"' in json_str
+        assert '"success":true' in json_str
+
+
+class TestLoginResultGuidance:
+    """Tests for LoginResult guidance field."""
+
+    def test_login_result_with_guidance(self) -> None:
+        """Test LoginResult can include guidance."""
+        result = LoginResult(
+            url="https://sap.example.com",
+            user="testuser",
+            guidance="Call sap_get_capabilities() first",
+        )
+        assert result.success is True
+        assert result.guidance == "Call sap_get_capabilities() first"
+
+    def test_login_result_without_guidance(self) -> None:
+        """Test LoginResult guidance defaults to None."""
+        result = LoginResult(url="https://sap.example.com")
+        assert result.guidance is None
+
+    def test_login_result_failure_no_guidance(self) -> None:
+        """Test LoginResult.failure() has no guidance."""
+        result = LoginResult.failure("Login failed", url="https://sap.example.com")
+        assert result.success is False
+        assert result.guidance is None

@@ -52,6 +52,10 @@ class LoginResult(ToolResult):
     url: str | None = Field(default=None, description="SAP URL that was accessed")
     user: str | None = Field(default=None, description="Logged in username")
     already_logged_in: bool = Field(default=False, description="Was already logged in")
+    guidance: str | None = Field(
+        default=None,
+        description="Recommended next action after login (e.g., call sap_get_capabilities)",
+    )
 
 
 class TransactionResult(ToolResult):
@@ -317,3 +321,28 @@ class FormFieldsProcessResult(BaseModel):
     errors: list[FieldFillError] = Field(default_factory=list, description="Fields that errored")
     regular_fields: dict[str, str] = Field(default_factory=dict, description="Non-dropdown fields to batch fill")
     blocking_popup: PopupInfo | None = Field(default=None, description="Popup that appeared after dropdown selection")
+
+
+class ToolInfo(BaseModel):
+    """Information about a single MCP tool."""
+
+    name: str = Field(description="Tool name (e.g., 'sap_login', 'browser_click')")
+    description: str = Field(description="Full tool description including usage guidance")
+
+
+class CapabilitiesResult(ToolResult):
+    """Result from sap_get_capabilities tool."""
+
+    tools: list[ToolInfo] = Field(
+        default_factory=list,
+        description="All available tools with their names and descriptions",
+    )
+    sap_knowledge: str | None = Field(
+        default=None,
+        description="Free-form SAP domain knowledge, tips, and best practices in markdown format",
+    )
+
+    @property
+    def tool_count(self) -> int:
+        """Number of tools available."""
+        return len(self.tools)

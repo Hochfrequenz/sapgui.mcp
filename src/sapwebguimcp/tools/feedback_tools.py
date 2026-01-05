@@ -97,77 +97,21 @@ def register_feedback_tools(mcp: FastMCP) -> None:
     @mcp.tool(
         description=(
             "Log technical feedback about tool usage patterns, friction points, "
-            "or optimization opportunities. You are encouraged to use this "
-            "whenever you notice something that could improve the tooling."
+            "or optimization opportunities. ENCOURAGED whenever you notice something "
+            "that could improve tooling. If GITHUB_PAT configured, auto-posts as GitHub issue. "
+            "BE DETAILED: include transaction code, steps to reproduce, tool names, selectors, "
+            "timing observations, what you tried, error messages. "
+            "TAGS: 'tool-combination' (tools always used together), 'repetition' (same tool repeated), "
+            "'selector' (hard to find), 'timing' (slow/timeout), 'workflow' (could be simplified), "
+            "'missing-tool', 'error-handling', 'deadlock' (got stuck), 'problem' (blocked progress). "
+            "Use markdown formatting: `backticks` for code, **bold** for emphasis."
         )
     )
-    async def log_feedback(
+    async def log_feedback(  # pylint: disable=missing-function-docstring
         feedback: str,
         tags: list[str] | None = None,
         ctx: Context | None = None,
     ) -> FeedbackLogResult:
-        """
-        Log technical feedback for tooling optimization.
-
-        You are ENCOURAGED to use this tool whenever you notice patterns,
-        friction, or improvement ideas during SAP operations. Your feedback
-        is read by developers to optimize the MCP server tooling.
-
-        FORMATTING: If GITHUB_PAT is configured, feedback is automatically
-        posted as a GitHub issue. Use GitHub-flavored Markdown for formatting:
-        - Use `backticks` for code, selectors, tool names
-        - Use **bold** for emphasis
-        - Use bullet lists for multiple points
-        - Use code blocks for longer code snippets
-
-        BE DETAILED AND TECHNICAL - include:
-        - Transaction code where the issue occurred (e.g., VA01, SE16, BP)
-        - Steps to reproduce the issue
-        - Specific tool names and parameters
-        - Selector paths that were hard to find
-        - Timing observations (e.g., "browser_wait took 5s")
-        - What you tried before finding the solution
-        - Error messages encountered
-
-        SUGGESTED TAGS:
-        - "tool-combination": Two+ tools always used together, could be merged
-        - "repetition": Same tool called multiple times in sequence
-        - "selector": Selector was hard to find or unreliable
-        - "timing": Operation was slow or timeout occurred
-        - "workflow": Multi-step process that could be simplified
-        - "missing-tool": Functionality that should exist but doesn't
-        - "error-handling": Error recovery was difficult
-        - "deadlock": Got stuck in a loop or needed user intervention
-        - "problem": Encountered an issue that blocked progress
-
-        EXAMPLES - Optimization observations:
-        - "`sap_transaction('VA01')` requires `browser_wait` for `#ToolbarOkCode`
-          every time - these could be combined" ["tool-combination", "va01"]
-        - "Pagination in **SM37** required 3 `browser_click` calls on the same
-          selector `button[title=Next]`" ["repetition", "sm37"]
-        - "Couldn't find save button until I tried selector
-          `span:has-text(Sichern)` - EN selector didn't work" ["selector"]
-        - "`browser_wait` timeout after 30s on SE16 table load with 10k rows,
-          had to increase to 60s" ["timing", "se16"]
-
-        EXAMPLES - Problems and deadlocks (important for developers!):
-        - "Got stuck in a loop clicking **OK** on error popup that kept
-          reappearing - needed user to manually dismiss it" ["deadlock"]
-        - "Tried 5 different selectors for the material field but none
-          worked, user had to identify the correct one" ["problem", "selector"]
-        - "Transaction **SE16N** kept timing out, attempted 3 retries with
-          increasing timeouts but ultimately needed user intervention"
-          ["problem", "timing"]
-        - "Could not determine which button to click for `save as variant`,
-          UI had multiple similar options" ["problem", "workflow"]
-
-        Args:
-            feedback: Detailed technical description of the observation
-            tags: Optional list of tags for categorization
-
-        Returns:
-            FeedbackLogResult with logged status, entry_id, and session_id
-        """
         session_id = getattr(ctx, "session_id", None) if ctx else None
         session_key = session_id or "unknown"
 

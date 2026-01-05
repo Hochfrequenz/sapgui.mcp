@@ -41,6 +41,7 @@ from sapwebguimcp.models.intent_models import (
     IntentLogResult,
 )
 from sapwebguimcp.models.sap_results import (
+    CapabilitiesResult,
     DiscoveredFields,
     DismissPopupResult,
     DropdownFillResult,
@@ -65,6 +66,7 @@ from sapwebguimcp.models.sap_results import (
     StatusBarInfo,
     TableData,
     TableRow,
+    ToolInfo,
     TransactionResult,
 )
 from sapwebguimcp.models.workflow_models import (
@@ -100,6 +102,7 @@ __all__ = [
     "get_browser_manager",
     "close_browser_manager",
     # SAP results
+    "CapabilitiesResult",
     "DismissPopupResult",
     "DiscoveredFields",
     "DropdownFillResult",
@@ -124,6 +127,7 @@ __all__ = [
     "StatusBarInfo",
     "TableData",
     "TableRow",
+    "ToolInfo",
     "TransactionResult",
     # Browser results
     "BrowserKeyboardResult",

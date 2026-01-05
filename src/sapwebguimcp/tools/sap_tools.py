@@ -31,6 +31,7 @@ from sapwebguimcp.models import (
     AlvCellInfo,
     AlvMetadata,
     BrowserManager,
+    CapabilitiesResult,
     DiscoveredFields,
     DismissPopupResult,
     DropdownFillResult,
@@ -58,6 +59,7 @@ from sapwebguimcp.models import (
     TableCellClickResult,
     TableData,
     TableRow,
+    ToolInfo,
     TransactionResult,
     get_browser_manager,
     get_settings,
@@ -524,6 +526,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 return LoginResult(
                     url=effective_url,
                     already_logged_in=True,
+                    guidance=(
+                        "RECOMMENDED: Call sap_get_capabilities() to review all available "
+                        "tools and their descriptions before proceeding."
+                    ),
                 )
 
             # Check for login form
@@ -577,6 +583,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 return LoginResult(
                     url=effective_url,
                     user=settings.sap_user,
+                    guidance=(
+                        "RECOMMENDED: Call sap_get_capabilities() to review all available "
+                        "tools and their descriptions before proceeding."
+                    ),
                 )
             except Exception:  # pylint: disable=broad-exception-caught
                 # Login might have failed or there's a dialog
@@ -599,6 +609,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                             url=effective_url,
                             user=settings.sap_user,
                             already_logged_in=True,
+                            guidance=(
+                                "RECOMMENDED: Call sap_get_capabilities() to review all available "
+                                "tools and their descriptions before proceeding."
+                            ),
                         )
                     except Exception:  # pylint: disable=broad-exception-caught
                         pass
@@ -848,6 +862,44 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error checking session status")
             return SessionStatus(status="unknown", message=f"Error checking status: {e}")
+
+    @mcp.tool(
+        description=(
+            "RECOMMENDED: Call at the start of every SAP session. "
+            "Returns all available tools with their full descriptions. "
+            "Reading this first helps you understand what capabilities are available, "
+            "work faster, and avoid common mistakes like clicking buttons when keyboard "
+            "shortcuts are available."
+        )
+    )
+    async def sap_get_capabilities() -> CapabilitiesResult:  # pylint: disable=missing-function-docstring
+        # Introspect MCP registry to get all registered tools
+        # FastMCP stores tools in _tool_manager._tools dict
+        try:
+            tool_manager = mcp._tool_manager  # pylint: disable=protected-access
+            tools = []
+            for tool in tool_manager._tools.values():  # pylint: disable=protected-access
+                tools.append(
+                    ToolInfo(
+                        name=tool.name,
+                        description=tool.description or "",
+                    )
+                )
+            # Sort by name for consistent ordering
+            tools.sort(key=lambda t: t.name)
+
+            # Load SAP knowledge from markdown file
+            sap_knowledge = None
+            try:
+                knowledge_file = resources.files("sapwebguimcp.data").joinpath("sap_knowledge.md")
+                sap_knowledge = knowledge_file.read_text(encoding="utf-8")
+            except Exception as knowledge_err:  # pylint: disable=broad-exception-caught
+                logger.warning("Could not load SAP knowledge file: %s", knowledge_err)
+
+            return CapabilitiesResult(tools=tools, sap_knowledge=sap_knowledge)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error getting capabilities")
+            return CapabilitiesResult.failure(f"Error getting capabilities: {e}")
 
     @mcp.tool(description="Send a keyboard shortcut to SAP Web GUI")
     async def sap_keyboard(key: str) -> KeyboardResult:

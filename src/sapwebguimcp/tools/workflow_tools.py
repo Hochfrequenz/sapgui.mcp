@@ -207,23 +207,12 @@ def register_workflow_tools(mcp: FastMCP) -> None:
     @mcp.tool(
         description=(
             "List all available workflows for repetitive SAP tasks. "
-            "Shows bundled workflows (shipped with the server) and user-created workflows. "
-            "Use this to find a workflow before running bulk operations."
+            "Shows bundled workflows (shipped with server) and user-created workflows. "
+            "User workflows (~/.sap-mcp/workflows/) override bundled ones with same name. "
+            "Use 'applicable_when' field to find the right workflow for your task."
         )
     )
-    async def workflow_list() -> WorkflowListResult:
-        """
-        List all available workflows.
-
-        Returns bundled workflows (from the package) and user workflows
-        (from ~/.sap-mcp/workflows/). User workflows override bundled
-        ones with the same name.
-
-        Use the 'applicable_when' field to find the right workflow for your task.
-
-        Returns:
-            WorkflowListResult with list of available workflows
-        """
+    async def workflow_list() -> WorkflowListResult:  # pylint: disable=missing-function-docstring
         try:
             workflows = load_all_workflows()
             return WorkflowListResult(workflows=workflows)
@@ -234,27 +223,16 @@ def register_workflow_tools(mcp: FastMCP) -> None:
     @mcp.tool(
         description=(
             "Save a learned workflow for future use. "
-            "Use this after successfully completing 2-3 iterations manually "
-            "to capture the optimized prompt for bulk execution."
+            "Use after successfully completing 2-3 iterations manually "
+            "to capture the optimized prompt for bulk execution with workflow_run. "
+            "Args: workflow_input = WorkflowSaveInput with name, description, prompt, "
+            "applicable_when, not_applicable_when, and optional author."
         )
     )
-    async def workflow_save(
+    async def workflow_save(  # pylint: disable=missing-function-docstring
         workflow_input: WorkflowSaveInput,
         _: Context | None = None,
     ) -> WorkflowSaveResult:
-        """
-        Save a workflow for reuse.
-
-        After learning from 2-3 manual iterations, save the optimized prompt
-        so it can be used with workflow_run for bulk operations.
-
-        Args:
-            workflow_input: Workflow details including name, description, prompt,
-                           applicable_when, not_applicable_when, and author.
-
-        Returns:
-            WorkflowSaveResult with save location
-        """
         try:
             # Default author to configured SAP user
             author = workflow_input.author
@@ -282,66 +260,29 @@ def register_workflow_tools(mcp: FastMCP) -> None:
     @mcp.tool(
         description=(
             "Execute a workflow for repetitive SAP tasks using server-side agent loops. "
-            "IMPORTANT: Use this when the user requests bulk operations like "
-            "'create 100...', 'for each entry...', 'repeat for all...'. "
-            "This tool preserves client context by running iterations server-side. "
-            "REQUIRES: Client must support MCP Sampling. "
-            "NOTE: Claude Desktop/Code do NOT support sampling (Jan 2026). "
-            "FALLBACK: If sampling unavailable, use workflow_list to get the workflow prompt "
-            "and execute items manually with individual tool calls."
+            "Use when user requests bulk operations ('create 100...', 'for each entry...', 'repeat for all...'). "
+            "Preserves client context by running iterations server-side via ctx.sample(). "
+            "REQUIRES: MCP Sampling support - Claude Desktop/Code do NOT support sampling (Jan 2026). "
+            "FALLBACK: If sampling unavailable, use workflow_list to get prompt and execute manually. "
+            "WARNING: UNTESTED - no client currently supports both sampling AND SAP auth."
         )
     )
-    async def workflow_run(
+    async def workflow_run(  # pylint: disable=missing-function-docstring
         name: str,
         items: list[dict[str, str]],
         ctx: Context,
     ) -> WorkflowRunResult:
-        """
-        Execute a workflow for multiple items using server-side agent loops.
-
-        This tool runs each iteration in a server-side agent loop using ctx.sample().
-        The client only sees one tool call and one result, saving massive amounts
-        of context (e.g., 500k tokens -> 2k tokens for 100 items).
-
-        REQUIRES: Client must support MCP Sampling with tools. If your client
-        doesn't support sampling, this tool will fail and you'll need to
-        execute items manually.
-
-        WARNING (January 2026): This tool is UNTESTED because no MCP client currently
-        supports both sampling AND SAP authentication. See the client compatibility
-        table in docs/testing/workflow-sampling-copilot-setup.md for details.
-
-        Args:
-            name: Name of the workflow to execute (from workflow_list)
-            items: List of data items to process (each dict is passed to the prompt)
-
-        Returns:
-            WorkflowRunResult with success/failure counts and details
-        """
         return await _execute_workflow_run(name, items, ctx)
 
     @mcp.tool(
         description=(
             "Share a working workflow with the development team via GitHub issue. "
-            "Use this when you have a workflow that works well and could help others. "
-            "The workflow will be reviewed and potentially added to bundled workflows."
+            "Use when you have a workflow that works well and could help others. "
+            "Creates a GitHub issue for review - may be added to bundled workflows. "
+            "REQUIRES: GITHUB_PAT configured."
         )
     )
-    async def workflow_submit(
-        name: str,
-    ) -> WorkflowSubmitResult:
-        """
-        Submit a workflow for review and inclusion in bundled workflows.
-
-        Creates a GitHub issue with the workflow details so developers can
-        review and potentially add it to the bundled workflows in the next release.
-
-        Args:
-            name: Name of the workflow to submit
-
-        Returns:
-            WorkflowSubmitResult with issue URL if created
-        """
+    async def workflow_submit(name: str) -> WorkflowSubmitResult:  # pylint: disable=missing-function-docstring
         # Load workflow
         workflow = load_workflow(name)
         if not workflow:
@@ -372,20 +313,14 @@ def register_workflow_tools(mcp: FastMCP) -> None:
 
         return WorkflowSubmitResult(name=name, issue_url=issue_url)
 
-    @mcp.tool(description="Delete a user-created workflow. Only user workflows can be deleted, not bundled ones.")
-    async def workflow_delete(name: str) -> WorkflowDeleteResult:
-        """
-        Delete a user workflow.
-
-        Bundled workflows (shipped with the server) cannot be deleted.
-        User workflows in ~/.sap-mcp/workflows/ can be deleted.
-
-        Args:
-            name: Name of the workflow to delete
-
-        Returns:
-            WorkflowDeleteResult with deletion status
-        """
+    @mcp.tool(
+        description=(
+            "Delete a user-created workflow. "
+            "Only user workflows (~/.sap-mcp/workflows/) can be deleted - "
+            "bundled workflows shipped with the server cannot be deleted."
+        )
+    )
+    async def workflow_delete(name: str) -> WorkflowDeleteResult:  # pylint: disable=missing-function-docstring
         # Check if it's a bundled workflow
         if is_bundled_workflow(name):
             return WorkflowDeleteResult.failure(
