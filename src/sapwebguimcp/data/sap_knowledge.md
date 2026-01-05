@@ -38,7 +38,7 @@ But you may use this MCP tool to test code which was generated with Claude Code 
 
 ### Accessing SAP Help Portal via Chrome Browser
 
-The best ressource for finding correct SAP specific information, is the SAP help portal.
+The best resource for finding correct SAP specific information, is the SAP help portal.
 Their robots.txt disallows browsers integrated into regular AI tools (like Claude, Gemini or ChatGPT).
 This leads to the symptom that when the human user asks the LLM to do an online research, they'll find links to the SAP help portal but requests will fail.
 The workaround is to use the same browser that is used to access the SAP Web GUI to visit the help portal (instead of the SAP GUI)
@@ -56,7 +56,7 @@ If you find a cookie banner/layover: Click on "Alle Ablehnen".
 Then proceed like a user would do.
 Make sure to NOT use `sap_`... MCP tools on the help portal.
 `browser_snapshot` should be the way to go to access information after you loaded SAP help portal in the browser.
-If you see that online research failed when accessing `help.sap.com`, use thie workaround with the respective URL.
+If you see that online research failed when accessing `help.sap.com`, use this workaround with the respective URL.
 
 ## Transaction Code Tips
 
