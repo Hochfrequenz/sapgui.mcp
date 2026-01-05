@@ -65,8 +65,9 @@
     function getFieldType(el) {
         const ct = el.getAttribute('ct');
 
-        // ComboBox/Dropdown
-        if (ct === 'CB' || el.getAttribute('aria-haspopup') === 'true') {
+        // ComboBox/Dropdown - only ct=CB is a true dropdown
+        // ct=CBS (ComboBox with Server) is an autocomplete field, NOT a dropdown
+        if (ct === 'CB') {
             return 'dropdown';
         }
 

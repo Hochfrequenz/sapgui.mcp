@@ -18,9 +18,10 @@
     }
 
     // Verify it's a dropdown (ct=CB for ComboBox)
+    // Note: ct=CBS is an autocomplete field, NOT a dropdown - don't use aria-haspopup
     const ct = element.getAttribute('ct');
-    if (ct !== 'CB' && element.getAttribute('aria-haspopup') !== 'true') {
-        return { success: false, error: 'Element is not a dropdown (no ct=CB or aria-haspopup)' };
+    if (ct !== 'CB') {
+        return { success: false, error: 'Element is not a dropdown (no ct=CB)' };
     }
 
     // Find the listbox element

@@ -31,7 +31,10 @@
         return { found: false };
     }
 
+    // Only ct=CB is a true dropdown (ComboBox with predefined options)
+    // ct=CBS (ComboBox with Server) is an autocomplete field, NOT a dropdown
+    // aria-haspopup is too broad - it's set on CBS fields too
     const ct = el.getAttribute('ct');
-    const isDropdown = ct === 'CB' || el.getAttribute('aria-haspopup') === 'true';
+    const isDropdown = ct === 'CB';
     return { found: true, isDropdown, elementId: el.id };
 };
