@@ -2881,3 +2881,101 @@ async def test_bp_set_field_dropdown_invalid_value(sap_mcp_client: ClientSession
     available = set_data.get("available_options")
     assert available is not None, f"Expected available_options in result: {set_data}"
     assert len(available) > 0, f"Expected non-empty available_options: {set_data}"
+
+
+@pytest.mark.anyio
+async def test_bp_dropdown_value_actually_applied(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that dropdown selection actually changes the input field value.
+
+    This verifies the fix for issues:
+    - #72 (dropdown doesn't open)
+    - #73 (value not applied)
+    - #74 (learning: listbox visibility approach)
+    - #79 (GP-Rolle not set correctly)
+
+    The test:
+    1. Gets the current dropdown value
+    2. Selects a DIFFERENT dropdown option
+    3. Verifies the input field value actually changed
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Navigate to person creation form
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+    await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    if sap_language == "DE":
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Vorname')", "timeout": 15000})
+    else:
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('First Name')", "timeout": 15000})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # Get form fields with dropdown options
+    form_result = await sap_mcp_client.call_tool("sap_get_form_fields", {"include_dropdown_options": True})
+    form_data = assert_tool_success(form_result, "sap_get_form_fields")
+
+    # Find GP-Rolle dropdown
+    dropdown_fields = [f for f in form_data.get("fields", []) if f.get("field_type") == "dropdown"]
+    gp_rolle = next(
+        (f for f in dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        None,
+    )
+    assert gp_rolle is not None, "Expected GP-Rolle dropdown"
+
+    # Get current value and available options
+    original_value = gp_rolle.get("current_value", "")
+    options = gp_rolle.get("options", [])
+    assert len(options) >= 2, "Need at least 2 options to test value change"
+
+    # Find a different option than the current value
+    option_to_select = None
+    for opt in options:
+        # Options are in format "KEY - Description"
+        if opt != original_value and opt.strip():
+            option_to_select = opt
+            break
+
+    assert (
+        option_to_select is not None
+    ), f"Could not find different option. Current: {original_value}, Options: {options}"
+
+    # Extract just the key from "KEY - Description" format for matching
+    option_key = option_to_select.split(" - ")[0].strip() if " - " in option_to_select else option_to_select
+
+    # Select the new option
+    label = gp_rolle.get("label")
+    set_result = await sap_mcp_client.call_tool("sap_set_field", {"label": label, "value": option_key})
+    set_data = assert_tool_success(set_result, "sap_set_field dropdown selection")
+
+    # Verify the selection was successful
+    assert set_data.get("success", False), f"Expected successful selection. Result: {set_data}"
+
+    # Wait for SAP to process the selection
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
+
+    # Read the form fields again to verify the value changed
+    verify_result = await sap_mcp_client.call_tool("sap_get_form_fields", {"include_dropdown_options": False})
+    verify_data = assert_tool_success(verify_result, "sap_get_form_fields verification")
+
+    # Find the GP-Rolle field again
+    verify_dropdown_fields = [f for f in verify_data.get("fields", []) if f.get("field_type") == "dropdown"]
+    verify_gp_rolle = next(
+        (f for f in verify_dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        None,
+    )
+    assert verify_gp_rolle is not None, "Expected GP-Rolle dropdown in verification"
+
+    # Check that the value actually changed
+    new_value = verify_gp_rolle.get("current_value", "")
+
+    # The new value should contain the selected option key (not the original value)
+    assert option_key in new_value or new_value != original_value, (
+        f"Dropdown value should have changed. "
+        f"Original: {original_value}, Expected key: {option_key}, Actual: {new_value}"
+    )

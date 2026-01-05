@@ -1,84 +1,81 @@
 /**
- * Get available options from a dropdown/combobox field.
- * This script clicks the dropdown to open the listbox, extracts options, then closes it.
+ * Get available options from a SAP dropdown/combobox field.
+ *
+ * SAP WebGUI dropdowns have a hidden listbox containing all options.
+ * The listbox ID is stored in the input's lsdata["3"] or aria-controls attribute.
+ * Options have data-itemkey (code) and data-itemvalue2 (description) attributes.
  *
  * @param {string} elementId - The ID of the dropdown input element
  * @returns {Object} - { success: boolean, options: string[], error?: string }
  */
 (elementId) => {
-    return new Promise((resolve) => {
-        const element = document.getElementById(elementId);
-        if (!element) {
-            resolve({ success: false, options: [], error: `Element not found: ${elementId}` });
-            return;
+    const element = document.getElementById(elementId);
+    if (!element) {
+        return { success: false, options: [], error: `Element not found: ${elementId}` };
+    }
+
+    // Verify it's a dropdown (ct=CB for ComboBox)
+    const ct = element.getAttribute('ct');
+    if (ct !== 'CB' && element.getAttribute('aria-haspopup') !== 'true') {
+        return { success: false, options: [], error: 'Element is not a dropdown' };
+    }
+
+    // Find the listbox element
+    let listbox = null;
+
+    // Method 1: aria-controls attribute
+    const ariaControls = element.getAttribute('aria-controls');
+    if (ariaControls) {
+        listbox = document.getElementById(ariaControls);
+    }
+
+    // Method 2: lsdata["3"] contains listbox ID
+    if (!listbox) {
+        const lsdataAttr = element.getAttribute('lsdata');
+        if (lsdataAttr) {
+            try {
+                const lsdata = JSON.parse(lsdataAttr);
+                if (lsdata['3']) {
+                    listbox = document.getElementById(lsdata['3']);
+                }
+            } catch {
+                // JSON parse error, continue
+            }
         }
+    }
 
-        // Verify it's a dropdown
-        const ct = element.getAttribute('ct');
-        if (ct !== 'CB' && element.getAttribute('aria-haspopup') !== 'true') {
-            resolve({ success: false, options: [], error: 'Element is not a dropdown' });
-            return;
+    // Method 3: Search for any listbox that might be associated
+    if (!listbox) {
+        const allListboxes = document.querySelectorAll('[role="listbox"]');
+        for (const lb of allListboxes) {
+            if (lb.id && element.id && lb.id.includes(element.name || element.id.split(':').pop())) {
+                listbox = lb;
+                break;
+            }
         }
+    }
 
-        // Click to open the listbox
-        element.click();
-        element.focus();
+    if (!listbox) {
+        return { success: false, options: [], error: 'Listbox not found for this dropdown' };
+    }
 
-        // Wait for listbox to appear
-        setTimeout(() => {
-            // Find the visible listbox (SAP keeps old ones hidden in DOM)
-            const listboxes = document.querySelectorAll('[role="listbox"]');
-            let visibleListbox = null;
+    // Extract options (no need to make visible for reading)
+    const optionElements = listbox.querySelectorAll('[role="option"], [data-itemkey]');
+    const options = [];
 
-            for (const lb of listboxes) {
-                // Check if visible (offsetParent !== null or check computed style)
-                if (lb.offsetParent !== null) {
-                    visibleListbox = lb;
-                    break;
-                }
-                // Also check display style
-                const style = window.getComputedStyle(lb);
-                if (style.display !== 'none' && style.visibility !== 'hidden') {
-                    visibleListbox = lb;
-                    break;
-                }
-            }
+    for (const opt of optionElements) {
+        const itemKey = opt.getAttribute('data-itemkey') || '';
+        const itemValue2 = opt.getAttribute('data-itemvalue2') || '';
+        const text = opt.textContent.trim();
 
-            if (!visibleListbox) {
-                // Try aria-controls reference
-                const ariaControls = element.getAttribute('aria-controls');
-                if (ariaControls) {
-                    visibleListbox = document.getElementById(ariaControls);
-                }
-            }
+        // Build display string: "KEY - Description" or just description
+        const displayText = itemValue2 || text;
+        if (displayText && displayText.trim()) {
+            options.push(itemKey ? `${itemKey} - ${displayText}` : displayText);
+        } else if (itemKey && itemKey.trim()) {
+            options.push(itemKey);
+        }
+    }
 
-            if (!visibleListbox) {
-                resolve({
-                    success: false,
-                    options: [],
-                    error: 'Listbox not found after clicking dropdown',
-                });
-                return;
-            }
-
-            // Extract options
-            const optionElements = visibleListbox.querySelectorAll('[role="option"]');
-            const options = [];
-            for (const opt of optionElements) {
-                const text = opt.textContent.trim();
-                if (text) {
-                    options.push(text);
-                }
-            }
-
-            // Close the listbox by clicking elsewhere or pressing Escape
-            document.body.click();
-            element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-
-            // Wait a bit for listbox to close
-            setTimeout(() => {
-                resolve({ success: true, options: options });
-            }, 100);
-        }, 300); // Wait 300ms for listbox to open
-    });
+    return { success: true, options };
 };
