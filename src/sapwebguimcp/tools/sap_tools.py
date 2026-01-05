@@ -1584,7 +1584,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     async def _fill_dropdown_field(page: Any, value: str, element_id: str) -> DropdownFillResult:
         """Fill a dropdown field by selecting the matching option."""
-        result = await page.evaluate(_load_js("select_dropdown_option.js"), element_id, value)
+        result = await page.evaluate(
+            _load_js("select_dropdown_option.js"), {"elementId": element_id, "optionText": value}
+        )
 
         if result.get("success"):
             await page.wait_for_timeout(300)

@@ -5,11 +5,13 @@
  * The listbox ID is stored in the input's lsdata["3"] or aria-controls attribute.
  * Options have data-itemkey (code) and data-itemvalue2 (description) attributes.
  *
- * @param {string} elementId - The ID of the dropdown input element
- * @param {string} optionText - The option to select (key code or visible text)
+ * @param {Object} args - Arguments object (Playwright evaluate passes single arg)
+ * @param {string} args.elementId - The ID of the dropdown input element
+ * @param {string} args.optionText - The option to select (key code or visible text)
  * @returns {Object} - { success: boolean, selected?: string, available_options?: string[], error?: string }
  */
-(elementId, optionText) => {
+(args) => {
+    const { elementId, optionText } = args;
     const element = document.getElementById(elementId);
     if (!element) {
         return { success: false, error: `Element not found: ${elementId}` };
