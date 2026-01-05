@@ -936,6 +936,24 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Error sending keyboard shortcut")
             return KeyboardResult.failure(f"Error sending keyboard shortcut {key}: {e}", key=key)
 
+    async def _fetch_dropdown_options(page: "Page") -> list[DropdownInfo]:
+        """Fetch options for all dropdown fields on the current page."""
+        raw_fields = await page.evaluate(_load_js("detect_form_fields.js"))
+        dropdown_fields = [f for f in raw_fields if f.get("field_type") == "dropdown"]
+
+        dropdowns: list[DropdownInfo] = []
+        for field in dropdown_fields:
+            element_id, label = field.get("id"), field.get("label", "")
+            if not element_id:
+                continue
+            try:
+                result = await page.evaluate(_load_js("get_dropdown_options.js"), element_id)
+                if result.get("success"):
+                    dropdowns.append(DropdownInfo(id=element_id, label=label, options=result.get("options", [])))
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                logger.warning("Failed to get options for %s: %s", element_id, err)
+        return dropdowns
+
     @mcp.tool(
         description=(
             "Get all readable text from the current SAP screen. "
@@ -969,54 +987,24 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         try:
             page = await browser_manager.get_current_page()
-
-            # Extract text using JavaScript for comprehensive coverage
             screen_text = await page.evaluate(_load_js("extract_screen_text.js"))
 
-            # Deduplicate lists
-            unique_labels = list(dict.fromkeys(screen_text.get("labels", [])))[:50]
-            unique_buttons = list(dict.fromkeys(screen_text.get("buttons", [])))[:20]
-            unique_headers = list(dict.fromkeys(screen_text.get("tableHeaders", [])))[:20]
-            content_sample = screen_text.get("mainContent", [])[:30]
+            # Deduplicate and limit lists
+            labels = list(dict.fromkeys(screen_text.get("labels", [])))[:50]
+            buttons = list(dict.fromkeys(screen_text.get("buttons", [])))[:20]
+            headers = list(dict.fromkeys(screen_text.get("tableHeaders", [])))[:20]
 
             # Optionally fetch dropdown options
-            dropdowns: list[DropdownInfo] | None = None
-            if include_dropdown_options:
-                # Detect dropdown fields
-                raw_fields = await page.evaluate(_load_js("detect_form_fields.js"))
-                dropdown_fields = [f for f in raw_fields if f.get("field_type") == "dropdown"]
-
-                dropdowns = []
-                for field in dropdown_fields:
-                    element_id = field.get("id")
-                    label = field.get("label", "")
-                    if not element_id:
-                        continue
-
-                    try:
-                        result = await page.evaluate(
-                            _load_js("get_dropdown_options.js"),
-                            element_id,
-                        )
-                        if result.get("success"):
-                            dropdowns.append(
-                                DropdownInfo(
-                                    id=element_id,
-                                    label=label,
-                                    options=result.get("options", []),
-                                )
-                            )
-                    except Exception as dropdown_err:  # pylint: disable=broad-exception-caught
-                        logger.warning("Failed to get options for %s: %s", element_id, dropdown_err)
+            dropdowns = await _fetch_dropdown_options(page) if include_dropdown_options else None
 
             return ScreenText(
                 title=screen_text.get("title", ""),
                 status_bar=screen_text.get("statusBar"),
                 tabs=screen_text.get("tabs", []),
-                labels=unique_labels,
-                buttons=unique_buttons,
-                table_headers=unique_headers,
-                main_content=content_sample,
+                labels=labels,
+                buttons=buttons,
+                table_headers=headers,
+                main_content=screen_text.get("mainContent", [])[:30],
                 dropdowns=dropdowns,
             )
 
@@ -1592,6 +1580,63 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Error dismissing popup")
             return DismissPopupResult.failure(f"Error dismissing popup: {e}")
 
+    async def _fill_dropdown_field(
+        page: "Page", value: str, element_id: str
+    ) -> tuple[bool, str | None, list[str] | None, PopupInfo | None]:
+        """
+        Fill a dropdown field by selecting the matching option.
+
+        Returns:
+            Tuple of (success, error_message, available_options, popup_after)
+        """
+        result = await page.evaluate(
+            _load_js("select_dropdown_option.js"),
+            element_id,
+            value,
+        )
+
+        if result.get("success"):
+            # Check for popup after dropdown selection
+            await page.wait_for_timeout(300)
+            popup_after = await _check_blocking_popup(page)
+            return True, None, None, popup_after
+
+        return False, result.get("error", "Unknown dropdown error"), result.get("available_options"), None
+
+    async def _process_form_fields(
+        page: "Page", fields: dict[str, str]
+    ) -> tuple[list[str], list[str], list[FieldFillError], dict[str, str], PopupInfo | None]:
+        """
+        Process form fields, handling dropdowns separately from regular fields.
+
+        Returns:
+            Tuple of (filled, not_found, errors, regular_fields, blocking_popup)
+        """
+        filled: list[str] = []
+        not_found: list[str] = []
+        errors: list[FieldFillError] = []
+        regular_fields: dict[str, str] = {}
+        blocking_popup: PopupInfo | None = None
+
+        for key, value in fields.items():
+            field_info = await page.evaluate(_load_js("check_field_type.js"), key)
+
+            if not field_info.get("found"):
+                not_found.append(key)
+            elif not field_info.get("isDropdown"):
+                regular_fields[key] = value
+            elif not field_info.get("elementId"):
+                errors.append(FieldFillError(field=key, error="Dropdown has no ID"))
+            else:
+                success, err, opts, popup_after = await _fill_dropdown_field(page, value, field_info["elementId"])
+                if success:
+                    filled.append(key)
+                    blocking_popup = popup_after or blocking_popup
+                else:
+                    errors.append(FieldFillError(field=key, error=err or "Unknown", available_options=opts))
+
+        return filled, not_found, errors, regular_fields, blocking_popup
+
     @mcp.tool(
         description=(
             "Fill multiple SAP form fields in a single call. "
@@ -1650,111 +1695,26 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     blocking_popup=popup,
                 )
 
-            filled: list[str] = []
-            not_found: list[str] = []
-            errors: list[FieldFillError] = []
-            blocking_popup: PopupInfo | None = None
-
-            # Separate dropdown fields from regular fields
-            regular_fields: dict[str, str] = {}
-
-            for key, value in fields.items():
-                # Check if this is a dropdown by examining the element
-                is_dropdown = await page.evaluate(
-                    """(key) => {
-                        let el;
-                        if (key.startsWith('#') || key.startsWith('.') || key.includes('[')) {
-                            el = document.querySelector(key);
-                        } else {
-                            // Find by label - check lsdata["3"] for label text
-                            const labels = document.querySelectorAll('label[lsdata]');
-                            for (const label of labels) {
-                                try {
-                                    const parsed = JSON.parse(label.getAttribute('lsdata'));
-                                    if (parsed['3'] === key && parsed['1']) {
-                                        el = document.getElementById(parsed['1']);
-                                        break;
-                                    }
-                                } catch {}
-                            }
-                        }
-                        if (!el) return { found: false };
-                        const ct = el.getAttribute('ct');
-                        const isDropdown = ct === 'CB' || el.getAttribute('aria-haspopup') === 'true';
-                        return { found: true, isDropdown, elementId: el.id };
-                    }""",
-                    key,
-                )
-
-                if not is_dropdown.get("found"):
-                    not_found.append(key)
-                    continue
-
-                if is_dropdown.get("isDropdown"):
-                    # Handle dropdown field
-                    element_id = is_dropdown.get("elementId")
-                    if not element_id:
-                        errors.append(FieldFillError(field=key, error="Dropdown has no ID"))
-                        continue
-
-                    result = await page.evaluate(
-                        _load_js("select_dropdown_option.js"),
-                        element_id,
-                        value,
-                    )
-
-                    if result.get("success"):
-                        filled.append(key)
-                        # Check for popup after dropdown selection
-                        await page.wait_for_timeout(300)
-                        popup_after = await _check_blocking_popup(page)
-                        if popup_after:
-                            blocking_popup = popup_after
-                    else:
-                        errors.append(
-                            FieldFillError(
-                                field=key,
-                                error=result.get("error", "Unknown dropdown error"),
-                                available_options=result.get("available_options"),
-                            )
-                        )
-                else:
-                    # Regular field - add to batch
-                    regular_fields[key] = value
+            # Process dropdowns separately from regular fields
+            filled, not_found, errors, regular_fields, blocking_popup = await _process_form_fields(page, fields)
 
             # Fill regular fields in batch
             if regular_fields:
-                result = await page.evaluate(
-                    _load_js("fill_form_fields.js"),
-                    {"fields": regular_fields},
-                )
-
+                result = await page.evaluate(_load_js("fill_form_fields.js"), {"fields": regular_fields})
                 filled.extend(result.get("filled", []))
                 not_found.extend(result.get("notFound", []))
-                for e in result.get("errors", []):
-                    errors.append(FieldFillError(field=e["field"], error=e["error"]))
-
-                # Log debug info if fields were not found
-                debug_info = result.get("debug", [])
-                if debug_info:
-                    logger.warning("sap_fill_form debug: %s", debug_info)
+                errors.extend(FieldFillError(field=e["field"], error=e["error"]) for e in result.get("errors", []))
+                if result.get("debug"):
+                    logger.warning("sap_fill_form debug: %s", result.get("debug"))
 
             # In strict mode, fail if any field was not found
             if strict and not_found:
                 return FillFormResult.failure(
                     f"Fields not found: {', '.join(not_found)}",
-                    filled=filled,
-                    not_found=not_found,
-                    errors=errors,
-                    blocking_popup=blocking_popup,
+                    filled=filled, not_found=not_found, errors=errors, blocking_popup=blocking_popup,
                 )
 
-            return FillFormResult(
-                filled=filled,
-                not_found=not_found,
-                errors=errors,
-                blocking_popup=blocking_popup,
-            )
+            return FillFormResult(filled=filled, not_found=not_found, errors=errors, blocking_popup=blocking_popup)
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error filling form fields")
