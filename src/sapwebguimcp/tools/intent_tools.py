@@ -37,35 +37,20 @@ def register_intent_tools(mcp: FastMCP) -> None:
         description=(
             "MANDATORY: Log intent for audit trail when using SAP. "
             "You MUST call this at the start of every SAP task and before "
-            "any SAP write operation. Required for compliance and accountability."
+            "any SAP write operation. Required for compliance and accountability. "
+            "WHEN TO CALL: (1) ALWAYS at the start of every SAP-related user request, "
+            "(2) ALWAYS before any SAP write operation (create, update, delete, post), "
+            "(3) At milestones during multi-step workflows (e.g., 'Order 3 of 10'), "
+            "(4) Before running transactions that modify data. "
+            "Args: intent = high-level description (e.g., 'User requested to create sales order'), "
+            "context = optional dict (e.g., {'tcode': 'VA01', 'customer': '12345'})."
         )
     )
-    async def log_intent(
+    async def log_intent(  # pylint: disable=missing-function-docstring
         intent: str,
         context: dict[str, str] | None = None,
         ctx: Context | None = None,
     ) -> IntentLogResult:
-        """
-        MANDATORY: Log a high-level intent for audit trail.
-
-        You MUST use this tool when performing SAP operations. This is REQUIRED
-        for compliance and accountability in SAP environments - not optional.
-
-        WHEN TO CALL (required):
-        - ALWAYS at the start of every SAP-related user request
-        - ALWAYS before any SAP write operation (create, update, delete, post)
-        - At milestones during multi-step SAP workflows (e.g., "Order 3 of 10")
-        - Before running transactions that modify data
-
-        Args:
-            intent: High-level description of what was requested or what you
-                    intend to do (e.g., "User requested to create sales order
-                    for customer 12345")
-            context: Optional context dict (e.g., {"tcode": "VA01", "customer": "12345"})
-
-        Returns:
-            IntentLogResult with logged status, entry_id, and session_id
-        """
         session_id = getattr(ctx, "session_id", None) if ctx else None
         session_key = session_id or "unknown"
 
