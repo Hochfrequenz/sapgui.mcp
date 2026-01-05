@@ -2789,3 +2789,95 @@ async def test_bp_fill_form_dropdown_invalid_value(sap_mcp_client: ClientSession
     available = error.get("available_options")
     assert available is not None, f"Expected available_options in error: {error}"
     assert len(available) > 0, f"Expected non-empty available_options: {error}"
+
+
+@pytest.mark.anyio
+async def test_bp_set_field_dropdown_selection(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_set_field can select a dropdown value by label.
+
+    This tests the single-field variant of dropdown selection.
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Navigate to person creation form
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+    await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    if sap_language == "DE":
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Vorname')", "timeout": 15000})
+    else:
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('First Name')", "timeout": 15000})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # First, get the dropdown options to know valid values
+    form_result = await sap_mcp_client.call_tool("sap_get_form_fields", {"include_dropdown_options": True})
+    form_data = assert_tool_success(form_result, "sap_get_form_fields")
+
+    # Find GP-Rolle dropdown and get first option
+    dropdown_fields = [f for f in form_data.get("fields", []) if f.get("field_type") == "dropdown"]
+    gp_rolle = next(
+        (f for f in dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        None,
+    )
+    assert gp_rolle is not None, "Expected GP-Rolle dropdown"
+
+    options = gp_rolle.get("options", [])
+    assert len(options) > 0, "Expected GP-Rolle to have options"
+
+    # Select the first option using sap_set_field
+    option_to_select = options[0]
+    label = gp_rolle.get("label")
+
+    set_result = await sap_mcp_client.call_tool("sap_set_field", {"label": label, "value": option_to_select})
+    set_data = assert_tool_success(set_result, "sap_set_field dropdown")
+
+    # Verify the field was set
+    assert set_data.get("label") == label, f"Expected label {label}. Result: {set_data}"
+    assert set_data.get("value") == option_to_select, f"Expected value {option_to_select}. Result: {set_data}"
+    assert set_data.get("selector_used"), f"Expected selector_used. Result: {set_data}"
+
+
+@pytest.mark.anyio
+async def test_bp_set_field_dropdown_invalid_value(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_set_field returns available options when dropdown value not found.
+
+    Similar to sap_fill_form, but for single field setting.
+    """
+    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
+
+    await sap_mcp_client.call_tool("sap_login", {})
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Navigate to person creation form
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+    await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    if sap_language == "DE":
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Vorname')", "timeout": 15000})
+    else:
+        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('First Name')", "timeout": 15000})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # Try to set invalid dropdown value
+    label = "GP-Rolle" if sap_language == "DE" else "BP Role"
+    set_result = await sap_mcp_client.call_tool(
+        "sap_set_field", {"label": label, "value": "INVALID_NONEXISTENT_VALUE_12345"}
+    )
+    set_data = parse_tool_response(set_result)
+
+    # Should have failed
+    assert not set_data.get("success", True), f"Expected failure for invalid dropdown value. Result: {set_data}"
+
+    # Error should contain available options
+    available = set_data.get("available_options")
+    assert available is not None, f"Expected available_options in result: {set_data}"
+    assert len(available) > 0, f"Expected non-empty available_options: {set_data}"

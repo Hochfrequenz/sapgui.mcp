@@ -245,6 +245,10 @@ class SetFieldResult(ToolResult):
     label: str = Field(default="", description="Label or selector used to find the field")
     value: str = Field(default="", description="Value that was set")
     selector_used: str | None = Field(default=None, description="CSS selector that matched the field")
+    available_options: list[str] | None = Field(
+        default=None,
+        description="For dropdown fields: list of valid options when requested value was not found",
+    )
 
 
 class FormFieldsResult(ToolResult):

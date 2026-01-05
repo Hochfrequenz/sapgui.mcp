@@ -117,6 +117,14 @@
     }
 
     /**
+     * Check if an element is a dropdown/combobox.
+     * SAP dropdowns have ct="CB" attribute and are readonly.
+     */
+    function isDropdown(el) {
+        return el.getAttribute('ct') === 'CB' && el.hasAttribute('readonly');
+    }
+
+    /**
      * Fill a single input element with a value, dispatching appropriate events.
      */
     function fillInput(el, val) {
@@ -156,6 +164,17 @@
 
         if (!el) {
             return { success: false, error: `Field not found: ${label}` };
+        }
+
+        // Check if this is a dropdown - return without filling so Python can handle it
+        if (isDropdown(el)) {
+            return {
+                success: false,
+                isDropdown: true,
+                elementId: el.id,
+                selectorUsed,
+                error: 'Field is a dropdown, requires special handling',
+            };
         }
 
         fillInput(el, value);

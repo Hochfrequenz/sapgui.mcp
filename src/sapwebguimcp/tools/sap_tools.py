@@ -1776,16 +1776,20 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Set a single SAP form field by label or CSS selector.
 
         This tool finds the field dynamically using label text or CSS selector,
-        and returns information about what was matched. Useful for:
-        - Single field updates
-        - Debugging field discovery (returns the matched selector)
+        and returns information about what was matched. Supports both regular
+        text inputs and dropdown/combobox fields.
+
+        For dropdown fields, the tool automatically detects the field type and
+        uses the appropriate selection mechanism. If the requested value is not
+        in the dropdown options, returns available_options listing valid choices.
 
         Args:
-            label: Field label text (e.g., 'Last Name') or CSS selector
-            value: Value to set in the field
+            label: Field label text (e.g., 'Last Name', 'GP-Rolle') or CSS selector
+            value: Value to set in the field (for dropdowns: exact option text)
 
         Returns:
             SetFieldResult with label, value, and the CSS selector that was used.
+            For dropdown errors, includes available_options.
         """
         if not label:
             return SetFieldResult.failure("label cannot be empty", label="", value=value)
@@ -1805,24 +1809,44 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     blocking_popup=popup,
                 )
 
-            # Execute JavaScript to set the field
+            # Execute JavaScript to find and set the field
             result = await page.evaluate(
                 _load_js("set_field.js"),
                 {"label": label, "value": value},
             )
 
-            if not result.get("success", False):
-                return SetFieldResult.failure(
-                    result.get("error", "Unknown error"),
-                    label=label,
-                    value=value,
+            # Handle dropdown fields - needs special selection mechanism
+            if result.get("isDropdown"):
+                element_id = result.get("elementId")
+                if not element_id:
+                    return SetFieldResult.failure(
+                        "Dropdown field found but has no ID",
+                        label=label,
+                        value=value,
+                        selector_used=result.get("selectorUsed"),
+                    )
+
+                dropdown_result = await page.evaluate(
+                    _load_js("select_dropdown_option.js"),
+                    [element_id, value],
                 )
 
-            return SetFieldResult(
-                label=label,
-                value=value,
-                selector_used=result.get("selectorUsed"),
-            )
+                success = dropdown_result.get("success", False)
+                selector = f"#{element_id}"
+                error = dropdown_result.get("error", "Failed to select dropdown option")
+                available = dropdown_result.get("available_options")
+            else:
+                success = result.get("success", False)
+                selector = result.get("selectorUsed")
+                error = result.get("error", "Unknown error")
+                available = None
+
+            if not success:
+                return SetFieldResult.failure(
+                    error, label=label, value=value, selector_used=selector, available_options=available
+                )
+
+            return SetFieldResult(label=label, value=value, selector_used=selector)
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error setting field")
