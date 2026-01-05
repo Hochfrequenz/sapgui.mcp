@@ -10,12 +10,18 @@ git clone https://github.com/Hochfrequenz/sapwebgui.mcp.git
 cd sapwebgui.mcp
 pip install -e ".[dev]"
 
-# Run tests
+# Create virtual environment in .tox/dev/
 tox -e dev
-python -m pytest unittests/
 
 # Run linting
 tox -e linting
+
+# Run type check
+tox -e type_check
+
+# Run tests
+tox -e unittests
+# note only few tests run without SAP system access, the others will be skipped.
 ```
 
 ## MCP Tool Guidelines
@@ -52,13 +58,6 @@ async def sap_discover_buttons() -> DiscoveredButtons:
     ...
 ```
 
-### Tool Description Best Practices
-
-1. **First sentence**: What the tool does
-2. **Return values**: What fields are returned and their purpose
-3. **Usage hints**: How to use the returned data with other tools
-4. **Cross-references**: Point to related tools (e.g., "For buttons use X instead")
-
 ### JavaScript Files
 
 - Place JavaScript in `src/sapwebguimcp/js/`
@@ -66,7 +65,7 @@ async def sap_discover_buttons() -> DiscoveredButtons:
 - Load with `_load_js("filename.js")` in Python
 - Document SAP-specific quirks in comments
 
-### Pydantic Models
+### Pydantic Models and DTOs
 
 - Place in `src/sapwebguimcp/models/`
 - Use `Field(description=...)` for all fields
@@ -77,8 +76,9 @@ async def sap_discover_buttons() -> DiscoveredButtons:
 ### Integration Tests
 
 Integration tests run against a real SAP system. They:
+
 - Require SAP credentials in environment
-- Are slow (~20-30s each)
+- Are slow (~10-30s each)
 - Should capture HTML snapshots for debugging
 
 ```python
@@ -102,51 +102,45 @@ def test_my_parser():
 
 ## Code Style
 
-- Use `black` for formatting
-- Use `isort` for imports
-- Use `pylint` and `mypy` for linting
-- Run `tox -e linting` before committing
+### Python
+
+In the tox `dev` and `formatting` venv black and isort are installed.
+
+- Use `black .` for formatting
+- Use `isort .` for imports
+
+linting and type checking should happen via tox (see above).
+
+### Javascript and Markdown
+
+Use Prettier for formatting.
+
+```bash
+npm run format
+```
 
 ## Commit Messages
 
-Use [Conventional Commits](https://www.conventionalcommits.org/):
+Use [Conventional Commits](https://www.conventionalcommits.org/).
+In the long commit message include what we learned (about SAP, about playwright, about MCP usage etc.).
+Also include what assumptions we made and which prior assumptions turned out to be wrong.
+Be honest.
 
-```
-feat(tools): add sap_discover_buttons for button discovery
-fix(login): handle session timeout gracefully
-test(sm30): add integration test for button clicking
-docs(readme): update installation instructions
-refactor(models): extract ButtonInfo from DiscoveredButtons
-```
+### No Force Push
+
+Do not force push unless absolutely necessary and discussed with the team.
+
+### No amend
+
+In the end, one pull request should contain one logical change.
+We'll squash merge PRs when they're ready.
+So it's ok to have commits that are not perfect.
+You don't need to put any effort in rebases, amends or similar.
 
 ## Pull Requests
 
 1. Create a feature branch: `feat/my-feature` or `fix/my-bug`
 2. Write tests for new functionality
-3. Ensure all tests pass: `python -m pytest unittests/`
-4. Ensure linting passes: `tox -e linting`
+3. Ensure all tests pass: `tox -e unittests`
+4. Ensure linting passes: `tox -e linting`, `tox -e type_check`
 5. Create PR with clear description
-
-## SAP-Specific Knowledge
-
-### SAP Web GUI Button Structure
-
-SAP buttons are `<div>` elements with:
-- `role="button"` attribute
-- Class containing `lsButton`
-- Text in `title` attribute (NOT `textContent`)
-- IDs like `M0:46:::10:18` that need CSS escaping
-
-### SAP Web GUI Field Structure
-
-SAP input fields use:
-- `lsdata` attribute with JSON containing field metadata
-- `title` attribute for field labels
-- Labels linked via `lsdata["1"]` (target ID) and `lsdata["3"]` (label text)
-
-### Common Pitfalls
-
-1. **Button text**: Use `title` attribute, not `textContent`
-2. **CSS selectors**: SAP IDs contain `:` - use `CSS.escape()` in JS
-3. **Multiple fields same label**: Check for ambiguity (e.g., two "Postleitzahl" fields)
-4. **Popups**: Check `blocking_popup` in tool responses
