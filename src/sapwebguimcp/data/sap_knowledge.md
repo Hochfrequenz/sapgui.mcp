@@ -16,6 +16,10 @@ Common shortcuts (German keyboard labels shown, work the same on EN keyboards):
 - **Enter** - Confirm current action
 - **F4** - Open search help / value list which helps you to fill meaningful values to a field (browser focus needs to be on the respective field before hitting F4 - this often opens a popup which we don't want to dismiss in most cases)
 
+### `*` wildcards
+Often to search something you can use `*` as wildcard.
+So if you search say for a report in se38 which starts with "Z" and contains "energy" enter `Z*energy*` in the field, hit F4 and hope for results.
+
 ## When Stuck
 
 1. **Check the status bar** - SAP shows errors, warnings, and info messages there
