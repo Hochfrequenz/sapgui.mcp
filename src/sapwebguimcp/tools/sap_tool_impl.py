@@ -48,6 +48,14 @@ def _load_js(filename: str) -> str:
     return resources.files("sapwebguimcp.js").joinpath(filename).read_text(encoding="utf-8")
 
 
+@lru_cache(maxsize=8)
+def _load_js_with_field_utils(filename: str) -> str:
+    """Load a JS file with find_field_utils.js prepended (for set_field.js and fill_form_fields.js)."""
+    utils = _load_js("find_field_utils.js")
+    tool = _load_js(filename)
+    return utils + "\n" + tool
+
+
 async def _find_okcode_field(page: Any) -> Any | None:
     """Find the OK-Code field on the page."""
     # Try the standard ID first
@@ -262,13 +270,15 @@ async def sap_fill_form_impl(fields: dict[str, str], strict: bool = False) -> Fi
         page = await browser_manager.get_current_page()
 
         result = await page.evaluate(
-            _load_js("fill_form_fields.js"),
+            _load_js_with_field_utils("fill_form_fields.js"),
             {"fields": fields},
         )
 
         filled = result.get("filled", [])
         not_found = result.get("notFound", [])
-        errors = [FieldFillError(field=e["field"], error=e["error"]) for e in result.get("errors", [])]
+        # Handle ambiguous labels as errors
+        errors = [FieldFillError(field=a["field"], error=a["error"]) for a in result.get("ambiguous", [])]
+        errors.extend(FieldFillError(field=e["field"], error=e["error"]) for e in result.get("errors", []))
 
         debug_info = result.get("debug", [])
         if debug_info:

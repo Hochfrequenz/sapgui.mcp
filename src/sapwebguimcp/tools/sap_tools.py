@@ -78,6 +78,14 @@ def _load_js(filename: str) -> str:
     return resources.files("sapwebguimcp.js").joinpath(filename).read_text(encoding="utf-8")
 
 
+@lru_cache(maxsize=8)
+def _load_js_with_field_utils(filename: str) -> str:
+    """Load a JS file with find_field_utils.js prepended (for set_field.js and fill_form_fields.js)."""
+    utils = _load_js("find_field_utils.js")
+    tool = _load_js(filename)
+    return utils + "\n" + tool
+
+
 # =============================================================================
 # Popup Detection
 # =============================================================================
@@ -1747,10 +1755,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Fill regular fields in batch
             if processed.regular_fields:
                 batch_result = await page.evaluate(
-                    _load_js("fill_form_fields.js"), {"fields": processed.regular_fields}
+                    _load_js_with_field_utils("fill_form_fields.js"), {"fields": processed.regular_fields}
                 )
                 processed.filled.extend(batch_result.get("filled", []))
                 processed.not_found.extend(batch_result.get("notFound", []))
+                # Handle ambiguous labels as errors
+                for amb in batch_result.get("ambiguous", []):
+                    processed.errors.append(FieldFillError(field=amb["field"], error=amb["error"]))
                 for err in batch_result.get("errors", []):
                     processed.errors.append(FieldFillError(field=err["field"], error=err["error"]))
                 if batch_result.get("debug"):
@@ -1828,7 +1839,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             # Execute JavaScript to find and set the field
             result = await page.evaluate(
-                _load_js("set_field.js"),
+                _load_js_with_field_utils("set_field.js"),
                 {"label": label, "value": value},
             )
 

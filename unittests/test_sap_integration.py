@@ -1375,6 +1375,121 @@ async def test_sap_fill_form_strict_mode(sap_mcp_client: ClientSession) -> None:
     ), f"Field should be in not_found list: {fill_data}"
 
 
+@pytest.mark.anyio
+async def test_bp_fill_form_ambiguous_label_rejected(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that ambiguous labels are rejected with a helpful error message.
+
+    The BP Person form (BP transaction, F5 for Person) has two "Postleitzahl" fields:
+    - ADDR2_DATA-POST_CODE1: for street address
+    - ADDR2_DATA-POST_CODE2: for PO Box address
+
+    Using the label "Postleitzahl" (German) or "Postal Code" (English) should fail
+    because it's ambiguous. The error message should include the available CSS selectors.
+
+    This test verifies the fix for the bug where sap_fill_form silently matched
+    the first field when multiple fields shared the same label.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open BP transaction
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Press F5 to create a Person (uses sap_keyboard which reads status bar)
+    keyboard_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F5"})
+    keyboard_data = parse_tool_response(keyboard_result)
+
+    # Handle category selection popup if it appears
+    if keyboard_data.get("blocking_popup"):
+        # Click "Ja" (Yes) or confirm button to proceed
+        await sap_mcp_client.call_tool("sap_keyboard", {"key": "Enter"})
+        await asyncio.sleep(0.5)
+
+    # Wait for Person form to load
+    await asyncio.sleep(1.0)
+
+    # Try to fill using the ambiguous "Postleitzahl" label
+    # This should fail because there are 2 fields with this label
+    fill_result = await sap_mcp_client.call_tool(
+        "sap_fill_form",
+        {
+            "fields": {
+                "Postleitzahl": "12345",  # Ambiguous - matches POST_CODE1 and POST_CODE2
+            },
+        },
+    )
+    fill_data = parse_tool_response(fill_result)
+
+    # The field should NOT be filled successfully
+    filled_fields = [f.get("field") if isinstance(f, dict) else f for f in fill_data.get("filled", [])]
+    assert "Postleitzahl" not in filled_fields, (
+        f"Ambiguous label 'Postleitzahl' should NOT be filled. " f"Response: {fill_data}"
+    )
+
+    # There should be an error about the ambiguous label
+    errors = fill_data.get("errors", [])
+    error_messages = [e.get("error", "") if isinstance(e, dict) else str(e) for e in errors]
+    error_text = " ".join(error_messages)
+
+    assert any("Postleitzahl" in msg or "matches" in msg.lower() for msg in error_messages), (
+        f"Expected an error mentioning 'Postleitzahl' ambiguity. " f"Errors: {errors}, Response: {fill_data}"
+    )
+
+    # The error should mention POST_CODE1 and/or POST_CODE2 as alternatives
+    assert "POST_CODE" in error_text or "#" in error_text, (
+        f"Error should include CSS selectors as alternatives. " f"Errors: {errors}"
+    )
+
+
+@pytest.mark.anyio
+async def test_bp_set_field_ambiguous_label_rejected(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that sap_set_field also rejects ambiguous labels.
+
+    Similar to test_bp_fill_form_ambiguous_label_rejected but tests the
+    single-field sap_set_field tool instead of sap_fill_form.
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open BP transaction
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Press F5 to create a Person
+    keyboard_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F5"})
+    keyboard_data = parse_tool_response(keyboard_result)
+
+    # Handle category selection popup if it appears
+    if keyboard_data.get("blocking_popup"):
+        await sap_mcp_client.call_tool("sap_keyboard", {"key": "Enter"})
+        await asyncio.sleep(0.5)
+
+    # Wait for Person form to load
+    await asyncio.sleep(1.0)
+
+    # Try to set the ambiguous "Postleitzahl" field
+    set_result = await sap_mcp_client.call_tool(
+        "sap_set_field",
+        {
+            "label": "Postleitzahl",
+            "value": "12345",
+        },
+    )
+    set_data = parse_tool_response(set_result)
+
+    # Should fail due to ambiguity
+    assert not set_data.get("success", True), (
+        f"sap_set_field should fail for ambiguous label 'Postleitzahl'. " f"Response: {set_data}"
+    )
+
+    # Error should mention the ambiguity
+    error = set_data.get("error", "")
+    assert (
+        "Postleitzahl" in error or "matches" in error.lower() or "ambiguous" in error.lower()
+    ), f"Error should mention ambiguity. Error: {error}"
+
+
 # =============================================================================
 # Tests for EMMACL transaction (field discovery and batch fill)
 # =============================================================================
