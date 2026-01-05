@@ -13,9 +13,8 @@ Common shortcuts (German keyboard labels shown, work the same on EN keyboards):
 - **F8** - Execute (Ausführen)
 - **Ctrl+S** - Save (Sichern)
 - **Shift+F3** - Exit completely (Beenden)
-- **F5** - Refresh / Create (context dependent)
 - **Enter** - Confirm current action
-- **F4** - Open search help / value list
+- **F4** - Open search help / value list which helps you to fill meaningful values to a field (browser focus needs to be on the respective field before hitting F4 - this often opens a popup which we don't want to dismiss in most cases)
 
 ## When Stuck
 
@@ -23,6 +22,8 @@ Common shortcuts (German keyboard labels shown, work the same on EN keyboards):
 2. **Look for popups** - A blocking popup may be waiting for confirmation (maybe use popup tools)
 3. **Try F3 (Back)** - Often helps to back out and retry
 4. **Start over** - either by restarting the transaction or using sap_login again (changes will be lost)
+
+After you found out how to solve a specific problem without these workarounds, consider providing feedback to the devs.
 
 ## Language Considerations
 
