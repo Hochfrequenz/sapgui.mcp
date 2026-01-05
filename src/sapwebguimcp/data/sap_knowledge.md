@@ -30,23 +30,27 @@ Don't try to write any ABAP code with this MCP.
 Use Claude Code and abapGit instead.
 But you may use this MCP tool to test code which was generated with Claude Code and pushed/pull to the SAP system with abapGit.
 
-## Language Considerations
-
-SAP Web GUI may be in German or English. Common translations:
-
-- Save = Sichern
-- Execute = Ausführen
-- Back = Zurück
-- Exit = Beenden
-- Create = Anlegen
-- Change = Ändern
-- Display = Anzeigen
-
 ## Functional Background
 
 - This MCP server was designed with a S/4 utilities system in mind, so many transactions relate to the legacy SAP IS-U (Industry Solution for Utilities) or (mostly) are the same.
 - Often before you start guessing, you'll be faster if you try to find e.g. table or transaction names online.
-- Don't expect the system to behave intuitively - SAP has many legacy behaviors and quirks.
+
+### Accessing SAP Help Portal via Chrome Browser
+The best ressource for finding correct SAP specific information, is the SAP help portal.
+Their robots.txt disallows browsers integrated into regular AI tools (like Claude, Gemini or ChatGPT).
+This leads to the symptom that when the human user asks the LLM to do an online research, they'll find links to the SAP help portal but requests will fail.
+The workaround is to use the same browser that is used to access the SAP Web GUI to visit the help portal (instead of the SAP GUI)
+
+Therefore use the tool `browser_navigate` to access the help portal:
+```json
+{
+  `url`: `https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/021b182b0c47416c8fafed67ebfd78a9/266dce53118d4308e10000000a174cb4.html`
+}
+```
+Then add a little `browser_wait` for the site to load.
+If you find a cookie banner/layover: Click on "Alle Ablehnen".
+Then proceed like a user would do.
+
 
 ## Transaction Code Tips
 
