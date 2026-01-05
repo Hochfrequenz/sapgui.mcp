@@ -33,12 +33,14 @@ from sapwebguimcp.models import (
     BrowserManager,
     DiscoveredFields,
     DismissPopupResult,
+    DropdownFillResult,
     DropdownInfo,
     FieldFillError,
     FieldInfo,
     FieldLookupResult,
     FillFormResult,
     FormField,
+    FormFieldsProcessResult,
     FormFieldsResult,
     KeepaliveResult,
     KeyboardResult,
@@ -936,7 +938,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Error sending keyboard shortcut")
             return KeyboardResult.failure(f"Error sending keyboard shortcut {key}: {e}", key=key)
 
-    async def _fetch_dropdown_options(page: "Page") -> list[DropdownInfo]:
+    async def _fetch_dropdown_options(page: Any) -> list[DropdownInfo]:
         """Fetch options for all dropdown fields on the current page."""
         raw_fields = await page.evaluate(_load_js("detect_form_fields.js"))
         dropdown_fields = [f for f in raw_fields if f.get("field_type") == "dropdown"]
@@ -1580,62 +1582,50 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Error dismissing popup")
             return DismissPopupResult.failure(f"Error dismissing popup: {e}")
 
-    async def _fill_dropdown_field(
-        page: "Page", value: str, element_id: str
-    ) -> tuple[bool, str | None, list[str] | None, PopupInfo | None]:
-        """
-        Fill a dropdown field by selecting the matching option.
-
-        Returns:
-            Tuple of (success, error_message, available_options, popup_after)
-        """
-        result = await page.evaluate(
-            _load_js("select_dropdown_option.js"),
-            element_id,
-            value,
-        )
+    async def _fill_dropdown_field(page: Any, value: str, element_id: str) -> DropdownFillResult:
+        """Fill a dropdown field by selecting the matching option."""
+        result = await page.evaluate(_load_js("select_dropdown_option.js"), element_id, value)
 
         if result.get("success"):
-            # Check for popup after dropdown selection
             await page.wait_for_timeout(300)
             popup_after = await _check_blocking_popup(page)
-            return True, None, None, popup_after
+            return DropdownFillResult(success=True, popup_after=popup_after)
 
-        return False, result.get("error", "Unknown dropdown error"), result.get("available_options"), None
+        return DropdownFillResult(
+            success=False,
+            error_message=result.get("error", "Unknown dropdown error"),
+            available_options=result.get("available_options"),
+        )
 
-    async def _process_form_fields(
-        page: "Page", fields: dict[str, str]
-    ) -> tuple[list[str], list[str], list[FieldFillError], dict[str, str], PopupInfo | None]:
-        """
-        Process form fields, handling dropdowns separately from regular fields.
+    async def _process_form_fields(  # pylint: disable=too-many-branches
+        page: Any, fields: dict[str, str]
+    ) -> FormFieldsProcessResult:
+        """Process form fields, handling dropdowns separately from regular fields."""
+        out = FormFieldsProcessResult()
 
-        Returns:
-            Tuple of (filled, not_found, errors, regular_fields, blocking_popup)
-        """
-        filled: list[str] = []
-        not_found: list[str] = []
-        errors: list[FieldFillError] = []
-        regular_fields: dict[str, str] = {}
-        blocking_popup: PopupInfo | None = None
-
+        # pylint: disable=no-member  # False positive: pylint misidentifies Pydantic model fields
         for key, value in fields.items():
-            field_info = await page.evaluate(_load_js("check_field_type.js"), key)
+            field_check = await page.evaluate(_load_js("check_field_type.js"), key)
 
-            if not field_info.get("found"):
-                not_found.append(key)
-            elif not field_info.get("isDropdown"):
-                regular_fields[key] = value
-            elif not field_info.get("elementId"):
-                errors.append(FieldFillError(field=key, error="Dropdown has no ID"))
+            if not field_check.get("found"):
+                out.not_found.append(key)
+            elif not field_check.get("isDropdown"):
+                out.regular_fields[key] = value
+            elif not field_check.get("elementId"):
+                out.errors.append(FieldFillError(field=key, error="Dropdown has no ID"))
             else:
-                success, err, opts, popup_after = await _fill_dropdown_field(page, value, field_info["elementId"])
-                if success:
-                    filled.append(key)
-                    blocking_popup = popup_after or blocking_popup
+                dd = await _fill_dropdown_field(page, value, field_check["elementId"])
+                if dd.success:
+                    out.filled.append(key)
+                    out.blocking_popup = dd.popup_after or out.blocking_popup
                 else:
-                    errors.append(FieldFillError(field=key, error=err or "Unknown", available_options=opts))
+                    out.errors.append(FieldFillError(
+                        field=key,
+                        error=dd.error_message or "Unknown",
+                        available_options=dd.available_options,
+                    ))
 
-        return filled, not_found, errors, regular_fields, blocking_popup
+        return out
 
     @mcp.tool(
         description=(
@@ -1696,25 +1686,36 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 )
 
             # Process dropdowns separately from regular fields
-            filled, not_found, errors, regular_fields, blocking_popup = await _process_form_fields(page, fields)
+            processed = await _process_form_fields(page, fields)
 
             # Fill regular fields in batch
-            if regular_fields:
-                result = await page.evaluate(_load_js("fill_form_fields.js"), {"fields": regular_fields})
-                filled.extend(result.get("filled", []))
-                not_found.extend(result.get("notFound", []))
-                errors.extend(FieldFillError(field=e["field"], error=e["error"]) for e in result.get("errors", []))
-                if result.get("debug"):
-                    logger.warning("sap_fill_form debug: %s", result.get("debug"))
+            if processed.regular_fields:
+                batch_result = await page.evaluate(
+                    _load_js("fill_form_fields.js"), {"fields": processed.regular_fields}
+                )
+                processed.filled.extend(batch_result.get("filled", []))
+                processed.not_found.extend(batch_result.get("notFound", []))
+                for err in batch_result.get("errors", []):
+                    processed.errors.append(FieldFillError(field=err["field"], error=err["error"]))
+                if batch_result.get("debug"):
+                    logger.warning("sap_fill_form debug: %s", batch_result.get("debug"))
 
             # In strict mode, fail if any field was not found
-            if strict and not_found:
+            if strict and processed.not_found:
                 return FillFormResult.failure(
-                    f"Fields not found: {', '.join(not_found)}",
-                    filled=filled, not_found=not_found, errors=errors, blocking_popup=blocking_popup,
+                    f"Fields not found: {', '.join(processed.not_found)}",
+                    filled=processed.filled,
+                    not_found=processed.not_found,
+                    errors=processed.errors,
+                    blocking_popup=processed.blocking_popup,
                 )
 
-            return FillFormResult(filled=filled, not_found=not_found, errors=errors, blocking_popup=blocking_popup)
+            return FillFormResult(
+                filled=processed.filled,
+                not_found=processed.not_found,
+                errors=processed.errors,
+                blocking_popup=processed.blocking_popup,
+            )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error filling form fields")

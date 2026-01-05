@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 from sapwebguimcp.models.alv_models import AlvCellInfo, AlvMetadata
-from sapwebguimcp.models.base import TCode, ToolResult
+from sapwebguimcp.models.base import PopupInfo, TCode, ToolResult
 
 # Shared type for SAP status bar message types
 StatusBarType = Literal["S", "E", "W", "I", "none"]
@@ -298,3 +298,22 @@ class DismissPopupResult(ToolResult):
     popup_dismissed: bool = Field(default=False, description="Whether popup is now gone")
     status_bar_type: StatusBarType = Field(default="none", description="Status bar message type after dismissing popup")
     status_bar_message: str = Field(default="", description="Status bar text after dismissing popup")
+
+
+class DropdownFillResult(BaseModel):
+    """Internal result from filling a dropdown field."""
+
+    success: bool = Field(description="Whether the dropdown option was selected")
+    error_message: str | None = Field(default=None, description="Error message if selection failed")
+    available_options: list[str] | None = Field(default=None, description="Valid options if requested value not found")
+    popup_after: PopupInfo | None = Field(default=None, description="Popup that appeared after selection")
+
+
+class FormFieldsProcessResult(BaseModel):
+    """Internal result from processing form fields before batch fill."""
+
+    filled: list[str] = Field(default_factory=list, description="Fields filled successfully (dropdowns)")
+    not_found: list[str] = Field(default_factory=list, description="Fields not found on page")
+    errors: list[FieldFillError] = Field(default_factory=list, description="Fields that errored")
+    regular_fields: dict[str, str] = Field(default_factory=dict, description="Non-dropdown fields to batch fill")
+    blocking_popup: PopupInfo | None = Field(default=None, description="Popup that appeared after dropdown selection")
