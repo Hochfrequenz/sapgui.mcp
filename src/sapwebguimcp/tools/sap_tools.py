@@ -31,7 +31,9 @@ from sapwebguimcp.models import (
     AlvCellInfo,
     AlvMetadata,
     BrowserManager,
+    ButtonInfo,
     CapabilitiesResult,
+    DiscoveredButtons,
     DiscoveredFields,
     DismissPopupResult,
     DropdownFillResult,
@@ -1437,7 +1439,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Discover input fields on the current SAP screen. "
             "Returns fields with reliable CSS selectors (use the 'selector' field). "
-            "Call once per screen, not repeatedly - results are consistent."
+            "For buttons, use sap_discover_buttons instead."
         )
     )
     async def sap_discover_fields() -> DiscoveredFields:
@@ -1490,6 +1492,46 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error discovering fields")
             return DiscoveredFields.failure(f"Error discovering fields: {e}", field_count=0)
+
+    @mcp.tool(
+        description=(
+            "Discover clickable buttons on the current SAP screen. "
+            "Returns buttons with label, selector (for browser_click), shortcut (e.g. F3), and accesskey. "
+            "Use the 'selector' field with browser_click to click buttons reliably. "
+            "Prefer keyboard shortcuts when available - they're faster. "
+            "For input fields use sap_discover_fields instead."
+        )
+    )
+    async def sap_discover_buttons() -> DiscoveredButtons:
+        """Discover all clickable buttons on the current SAP screen."""
+        browser_manager = await get_browser_manager()
+
+        try:
+            page = await browser_manager.get_current_page()
+
+            # Discover buttons using JavaScript
+            buttons_data = await page.evaluate(_load_js("discover_buttons.js"))
+
+            buttons = [
+                ButtonInfo(
+                    label=b.get("label", ""),
+                    id=b.get("id"),
+                    selector=b.get("selector"),
+                    shortcut=b.get("shortcut"),
+                    accesskey=b.get("accesskey"),
+                )
+                for b in buttons_data
+                if b.get("label")  # Skip buttons without labels
+            ]
+
+            return DiscoveredButtons(
+                button_count=len(buttons),
+                buttons=buttons,
+            )
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Error discovering buttons")
+            return DiscoveredButtons.failure(f"Error discovering buttons: {e}", button_count=0)
 
     @mcp.tool(
         description=(

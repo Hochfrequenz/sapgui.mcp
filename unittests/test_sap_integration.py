@@ -258,6 +258,7 @@ _TRANSACTION_WAIT_SELECTORS: dict[str, str] = {
     "SE16": "input[lsdata*='TABLENAME']",  # Table name input field
     "SE38": "label:has-text('Programm'), label:has-text('Program')",  # ABAP Editor program label
     "SE93": "input[lsdata*='TSTC-TCODE']",  # Transaction code input field
+    "SM30": "input[title*='Table/View']",  # SM30 table maintenance - table name field
     "SM37": "input[lsdata*='JOBNAME']",  # Job name input field
     "SU3": "[lsdata*='SUID_ST_NODE']",  # User profile (SU3) fields - SUID_ST_NODE_PERSON_NAME etc.
     "BP": "span:has-text('Person'), span:has-text('Organisation')",  # BP category buttons
@@ -3094,4 +3095,177 @@ async def test_bp_dropdown_value_actually_applied(sap_mcp_client: ClientSession)
     assert option_key in new_value or new_value != original_value, (
         f"Dropdown value should have changed. "
         f"Original: {original_value}, Expected key: {option_key}, Actual: {new_value}"
+    )
+
+
+@pytest.mark.anyio
+async def test_sm30_discover_buttons(sap_mcp_client: ClientSession) -> None:
+    """
+    Test button discovery in SM30 transaction.
+
+    SM30 is the Table/View Maintenance transaction. After entering a table name,
+    it shows buttons like "Pflegen" (Maintain) and "Anzeigen" (Display).
+
+    This test:
+    1. Opens SM30 transaction
+    2. Enters a table name (EIPO - a simple customizing table)
+    3. Discovers all buttons on the screen using JavaScript
+    4. Verifies we can find the "Pflegen" or "Maintain" button
+    5. Captures HTML snapshot for offline analysis
+
+    This test is foundational for issue #99 (sap_discover_fields doesn't return buttons)
+    and issue #101 (browser_click doesn't work for SAP buttons).
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open SM30 transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM30"})
+    assert_tool_success(result, "sap_transaction SM30")
+
+    # Wait for SM30 to load - look for a more generic selector first
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture initial SM30 screen
+    await capture_html_snapshot(sap_mcp_client, "sm30_initial")
+
+    # Find and fill the table name field
+    # SM30 has a field for "Table/View" (Tabelle/Sicht)
+    fill_result = await sap_mcp_client.call_tool(
+        "sap_fill_form",
+        {"fields": {"Tabelle/Sicht": "EIPO", "Table/View": "EIPO"}},
+    )
+    fill_data = parse_tool_response(fill_result)
+    print(f"\nFill result for table name: {fill_data}")
+
+    # Wait briefly for SAP to process
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
+
+    # Capture SM30 screen with table name entered
+    await capture_html_snapshot(sap_mcp_client, "sm30_with_table")
+
+    # Discover buttons using the sap_discover_buttons tool
+    # This tests the new tool (addresses issue #99)
+    button_result = await sap_mcp_client.call_tool("sap_discover_buttons", {})
+    buttons_data = assert_tool_success(button_result, "sap_discover_buttons")
+
+    buttons = buttons_data.get("buttons", [])
+    print(f"\nDiscovered {len(buttons)} buttons on SM30 screen:")
+    for btn in buttons[:20]:  # Show first 20 buttons
+        print(f"  - {btn.get('label', 'no-label')}: id={btn.get('id')}, selector={btn.get('selector')}")
+
+    # Look for the "Pflegen" or "Maintain" button
+    maintain_button = None
+    for btn in buttons:
+        label = (btn.get("label") or "").lower()
+        if "pflegen" in label or "maintain" in label:
+            maintain_button = btn
+            break
+
+    # Also look for "Anzeigen" / "Display" button as alternative
+    display_button = None
+    for btn in buttons:
+        label = (btn.get("label") or "").lower()
+        if "anzeigen" in label or "display" in label:
+            display_button = btn
+            break
+
+    print(f"\nMaintain button found: {maintain_button}")
+    print(f"Display button found: {display_button}")
+
+    # Verify we found at least one of these buttons
+    # This is the critical assertion for issues #99, #101
+    assert maintain_button is not None or display_button is not None, (
+        f"Expected to find 'Pflegen'/'Maintain' or 'Anzeigen'/'Display' button in SM30. "
+        f"Found buttons: {[b.get('label') for b in buttons[:20]]}"
+    )
+
+    # Verify button has required properties for clicking
+    target_btn = maintain_button or display_button
+    assert target_btn.get("id"), f"Button should have an ID: {target_btn}"
+    assert target_btn.get("selector"), f"Button should have a selector: {target_btn}"
+
+
+@pytest.mark.anyio
+async def test_sm30_click_pflegen_button(sap_mcp_client: ClientSession) -> None:
+    """
+    Test clicking the Pflegen (Maintain) button in SM30 transaction.
+
+    This test verifies that:
+    1. We can discover SAP buttons using sap_discover_buttons tool
+    2. We can click buttons using browser_click with the discovered selector
+    3. Clicking "Pflegen" navigates to the table maintenance screen
+
+    This test addresses issues:
+    - #99 (sap_discover_fields doesn't return buttons -> use sap_discover_buttons)
+    - #101 (browser_click doesn't work for SAP buttons with text selectors)
+    """
+    await sap_mcp_client.call_tool("sap_login", {})
+
+    # Open SM30 transaction
+    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM30"})
+    assert_tool_success(result, "sap_transaction SM30")
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Fill the table name field
+    fill_result = await sap_mcp_client.call_tool(
+        "sap_fill_form",
+        {"fields": {"Tabelle/Sicht": "EIPO", "Table/View": "EIPO"}},
+    )
+    fill_data = parse_tool_response(fill_result)
+    assert fill_data.get("success", True), f"Fill failed: {fill_data}"
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
+
+    # Discover buttons using the sap_discover_buttons tool
+    button_result = await sap_mcp_client.call_tool("sap_discover_buttons", {})
+    buttons_data = assert_tool_success(button_result, "sap_discover_buttons")
+    buttons = buttons_data.get("buttons", [])
+
+    # Find the Pflegen/Maintain button
+    pflegen_button = None
+    for btn in buttons:
+        label = (btn.get("label") or "").lower()
+        if "pflegen" in label or "maintain" in label:
+            pflegen_button = btn
+            break
+
+    assert pflegen_button is not None, f"Pflegen button not found. Buttons: {[b.get('label') for b in buttons]}"
+    assert pflegen_button.get("id"), f"Pflegen button should have ID: {pflegen_button}"
+    assert pflegen_button.get("selector"), f"Pflegen button should have selector: {pflegen_button}"
+
+    print(f"\nFound Pflegen button: {pflegen_button}")
+
+    # Get screen info before clicking
+    screen_before = await sap_mcp_client.call_tool("sap_get_screen_info", {})
+    info_before = parse_tool_response(screen_before)
+    title_before = info_before.get("title", "")
+    print(f"Screen title before click: {title_before}")
+
+    # Click the Pflegen button using its selector (from sap_discover_buttons)
+    btn_selector = pflegen_button["selector"]
+    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": btn_selector})
+    click_data = parse_tool_response(click_result)
+
+    print(f"Click result: {click_data}")
+    assert click_data.get("success", True), f"Click failed: {click_data}"
+
+    # Wait for SAP to process the click
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture the result
+    await capture_html_snapshot(sap_mcp_client, "sm30_after_click_pflegen")
+
+    # Read the status bar - SAP shows a message about the table after clicking Pflegen
+    status_result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
+    status_data = parse_tool_response(status_result)
+
+    status_type = status_data.get("type", "none")
+    status_message = (status_data.get("message") or "").lower()
+
+    print(f"Status bar after click: type={status_type}, message={status_message}")
+
+    # The status bar should contain EIPO - this proves the click worked
+    # (SAP shows an error/info message about the table we tried to maintain)
+    assert "eipo" in status_message, (
+        f"Expected status bar to mention EIPO after clicking Pflegen. "
+        f"Status: type={status_type}, message={status_message}"
     )

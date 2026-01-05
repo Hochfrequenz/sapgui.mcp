@@ -41,7 +41,9 @@ from sapwebguimcp.models.intent_models import (
     IntentLogResult,
 )
 from sapwebguimcp.models.sap_results import (
+    ButtonInfo,
     CapabilitiesResult,
+    DiscoveredButtons,
     DiscoveredFields,
     DismissPopupResult,
     DropdownFillResult,
@@ -102,9 +104,11 @@ __all__ = [
     "get_browser_manager",
     "close_browser_manager",
     # SAP results
+    "ButtonInfo",
     "CapabilitiesResult",
-    "DismissPopupResult",
+    "DiscoveredButtons",
     "DiscoveredFields",
+    "DismissPopupResult",
     "DropdownFillResult",
     "DropdownInfo",
     "FieldFillError",
