@@ -25,6 +25,11 @@ Common shortcuts (German keyboard labels shown, work the same on EN keyboards):
 
 After you found out how to solve a specific problem without these workarounds, consider providing feedback to the devs.
 
+## No Programming
+Don't try to write any ABAP code with this MCP.
+Use Claude Code and abapGit instead.
+But you may use this MCP tool to test code which was generated with Claude Code and pushed/pull to the SAP system with abapGit.
+
 ## Language Considerations
 
 SAP Web GUI may be in German or English. Common translations:
