@@ -21,12 +21,14 @@ Additionally, ensure all tool guidance is properly exposed via MCP by moving det
 ### Part A: Move descriptions to `description` parameter
 
 FastMCP exposes the `description` parameter via MCP, but ignores docstrings for this purpose. Currently some tools have:
+
 - Guidance split between decorator `description` and docstring
 - Detailed docstring not exposed via MCP
 
 **Change:** Merge docstring content into `description` parameter for all `@mcp.tool` decorated functions. Remove or minimize docstrings (add `# pylint: disable=missing-function-docstring`).
 
 **Files affected:**
+
 - `src/sapwebguimcp/tools/sap_tools.py`
 - `src/sapwebguimcp/tools/browser_tools.py`
 - `src/sapwebguimcp/tools/intent_tools.py`

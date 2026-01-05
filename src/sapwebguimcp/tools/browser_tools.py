@@ -233,8 +233,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
     @mcp.tool(
         description=(
-            "Navigate to a URL. "
-            "For SAP login, use sap_login instead - it handles credentials and session setup."
+            "Navigate to a URL. " "For SAP login, use sap_login instead - it handles credentials and session setup."
         )
     )
     async def browser_navigate(url: str) -> NavigateResult:  # pylint: disable=missing-function-docstring
