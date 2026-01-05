@@ -69,16 +69,12 @@
         return { success: false, error: 'Listbox not found for this dropdown' };
     }
 
-    // Make the listbox visible (SAP keeps it hidden)
-    const originalVisibility = listbox.style.visibility;
-    const originalDisplay = listbox.style.display;
-    listbox.style.visibility = 'visible';
-    listbox.style.display = 'block';
-
-    // Find all options and collect available values
+    // Find all options and collect available values, find matching option
     const optionElements = listbox.querySelectorAll('[role="option"], [data-itemkey]');
     const availableOptions = [];
     let matchingOption = null;
+    let matchingKey = null;
+    let matchingDescription = null;
 
     for (const opt of optionElements) {
         const itemKey = opt.getAttribute('data-itemkey') || '';
@@ -86,29 +82,30 @@
         const itemValue2 = opt.getAttribute('data-itemvalue2') || '';
         const text = opt.textContent.trim();
 
-        // Build display string for available options
+        // Build display string for available options (same format as get_dropdown_options.js)
         const displayText = itemValue2 || itemValue1 || text;
+        const formattedOption = itemKey ? `${itemKey} - ${displayText}` : displayText;
         if (displayText) {
-            availableOptions.push(itemKey ? `${itemKey} - ${displayText}` : displayText);
+            availableOptions.push(formattedOption);
         }
 
-        // Match by key, value1, value2, or full text
+        // Match by key, formatted string, value1, value2, or full text
         if (
             itemKey === optionText ||
+            formattedOption === optionText ||
+            optionText.startsWith(itemKey + ' - ') ||
             itemValue1 === optionText ||
             itemValue2 === optionText ||
             text === optionText ||
             text.includes(optionText)
         ) {
             matchingOption = opt;
+            matchingKey = itemKey;
+            matchingDescription = displayText;
         }
     }
 
     if (!matchingOption) {
-        // Hide listbox again before returning
-        listbox.style.visibility = originalVisibility;
-        listbox.style.display = originalDisplay;
-
         return {
             success: false,
             error: `Option '${optionText}' not found in dropdown`,
@@ -116,22 +113,36 @@
         };
     }
 
-    // Click the matching option
+    // Make the listbox visible so SAP can process the click
+    const originalVisibility = listbox.style.visibility;
+    const originalDisplay = listbox.style.display;
+    listbox.style.visibility = 'visible';
+    listbox.style.display = 'block';
+
+    // First, click on the dropdown input to "open" it properly (triggers SAP event handlers)
+    element.focus();
+    element.click();
+
+    // Mark the option as selected using SAP's aria-selected attribute
+    matchingOption.setAttribute('aria-selected', 'true');
+
+    // Click the matching option with full event sequence
+    matchingOption.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    matchingOption.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
     matchingOption.click();
 
-    // Also dispatch events to ensure SAP processes the selection
-    matchingOption.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-    matchingOption.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    // Directly update the input value to match SAP's behavior
+    // SAP dropdowns show the description (not the key) in the input field
+    element.value = matchingDescription || matchingKey || optionText;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
 
-    // Get the selected key for confirmation
-    const selectedKey = matchingOption.getAttribute('data-itemkey') || optionText;
+    // Also set data attributes that SAP might use
+    element.setAttribute('data-selectedkey', matchingKey || '');
 
-    // Hide listbox (SAP should do this automatically after selection, but ensure it)
-    // Small delay to let SAP process the click
-    setTimeout(() => {
-        listbox.style.visibility = originalVisibility || 'hidden';
-        listbox.style.display = originalDisplay || 'none';
-    }, 100);
+    // Hide listbox
+    listbox.style.visibility = originalVisibility || 'hidden';
+    listbox.style.display = originalDisplay || 'none';
 
-    return { success: true, selected: selectedKey };
+    return { success: true, selected: matchingKey || optionText };
 };

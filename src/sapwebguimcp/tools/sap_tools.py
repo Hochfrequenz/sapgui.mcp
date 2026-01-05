@@ -1793,13 +1793,17 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
                 dropdown_result = await page.evaluate(
                     _load_js("select_dropdown_option.js"),
-                    [element_id, value],
+                    {"elementId": element_id, "optionText": value},
                 )
 
                 success = dropdown_result.get("success", False)
                 selector = f"#{element_id}"
                 error = dropdown_result.get("error", "Failed to select dropdown option")
                 available = dropdown_result.get("available_options")
+
+                # Wait for SAP to process the dropdown selection
+                if success:
+                    await page.wait_for_timeout(300)
             else:
                 success = result.get("success", False)
                 selector = result.get("selectorUsed")

@@ -2247,7 +2247,7 @@ async def test_sap_get_shortcuts_has_execute_f8(sap_mcp_client: ClientSession) -
     This test accepts any shortcut containing "F8".
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "DE")
-    if sap_language!="DE":
+    if sap_language != "DE":
         pytest.skip("Skipping F8 Execute test in non-DE language environments")
 
     await sap_mcp_client.call_tool("sap_login", {})
@@ -2260,9 +2260,9 @@ async def test_sap_get_shortcuts_has_execute_f8(sap_mcp_client: ClientSession) -
     shortcuts = data.get("shortcuts", [])
     # Accept any shortcut containing "F8" (plain F8, Strg+F8, Ctrl+F8, etc.)
     print(shortcuts)
-    assert any(sc for sc in shortcuts if sc.get("shortcut")=="Strg+F8" and sc.get("action")=="Online Handbuch")
-    assert any(sc for sc in shortcuts if sc.get("shortcut")=="Eingabe" and sc.get("action")=="Tabelleninhalt")
-    assert any(sc for sc in shortcuts if sc.get("shortcut")=="F7" and sc.get("action")=="Tabelleninhalt")
+    assert any(sc for sc in shortcuts if sc.get("shortcut") == "Strg+F8" and sc.get("action") == "Online Handbuch")
+    assert any(sc for sc in shortcuts if sc.get("shortcut") == "Eingabe" and sc.get("action") == "Tabelleninhalt")
+    assert any(sc for sc in shortcuts if sc.get("shortcut") == "F7" and sc.get("action") == "Tabelleninhalt")
 
 
 @pytest.mark.anyio
@@ -2737,14 +2737,16 @@ async def test_bp_fill_form_dropdown_selection(sap_mcp_client: ClientSession) ->
 
     # Select the first option (should be the default, so no popup)
     option_to_select = options[0]
-    label = gp_rolle.get("label")
+    element_id = gp_rolle.get("id")
 
-    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": {label: option_to_select}})
+    # Use CSS selector with element ID
+    selector = f"#{element_id}"
+    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": {selector: option_to_select}})
     fill_data = assert_tool_success(fill_result, "sap_fill_form dropdown")
 
-    # Verify the field was filled
+    # Verify the field was filled (selector should be in filled list)
     filled = fill_data.get("filled", [])
-    assert label in filled, f"Expected {label} to be filled. Result: {fill_data}"
+    assert selector in filled, f"Expected {selector} to be filled. Result: {fill_data}"
 
 
 @pytest.mark.anyio
