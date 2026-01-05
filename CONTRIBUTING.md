@@ -144,3 +144,15 @@ You don't need to put any effort in rebases, amends or similar.
 3. Ensure all tests pass: `tox -e unittests`
 4. Ensure linting passes: `tox -e linting`, `tox -e type_check`
 5. Create PR with clear description
+
+## Python Specific Guidelines
+
+Use strict typing:
+
+- Pydantic models for data structures instead of plain dicts, tuples or dataclasses
+    - pydantic model fields should have descriptions
+- Proper type hints for function parameters and return types
+
+### MCP
+
+Read the docs of [FastMCP](https://gofastmcp.com/servers/server) before you google or guess.
