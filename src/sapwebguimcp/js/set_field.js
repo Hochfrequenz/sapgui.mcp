@@ -11,13 +11,18 @@
         const normalizedLabel = labelText.trim();
 
         // 1. Try title attribute match (most common for SAP fields - same as detect_form_fields.js)
-        const inputsWithTitle = document.querySelectorAll('input[title], select[title], textarea[title]');
+        const inputsWithTitle = document.querySelectorAll(
+            'input[title], select[title], textarea[title]'
+        );
         for (const input of inputsWithTitle) {
             const title = input.getAttribute('title');
             if (title) {
                 const normalizedTitle = title.substring(0, 100).trim();
                 if (normalizedTitle === normalizedLabel) {
-                    return { element: input, selector: input.id ? `#${input.id}` : `[title="${title}"]` };
+                    return {
+                        element: input,
+                        selector: input.id ? `#${input.id}` : `[title="${title}"]`,
+                    };
                 }
             }
         }
@@ -25,7 +30,10 @@
         for (const input of inputsWithTitle) {
             const title = input.getAttribute('title');
             if (title && title.startsWith(normalizedLabel)) {
-                return { element: input, selector: input.id ? `#${input.id}` : `[title="${title}"]` };
+                return {
+                    element: input,
+                    selector: input.id ? `#${input.id}` : `[title="${title}"]`,
+                };
             }
         }
 
