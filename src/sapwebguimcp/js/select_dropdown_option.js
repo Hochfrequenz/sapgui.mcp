@@ -51,7 +51,11 @@
         for (const lb of allListboxes) {
             // Check if this listbox is associated with our input
             // Often the listbox ID contains part of the input field name
-            if (lb.id && element.id && lb.id.includes(element.name || element.id.split(':').pop())) {
+            if (
+                lb.id &&
+                element.id &&
+                lb.id.includes(element.name || element.id.split(':').pop())
+            ) {
                 listbox = lb;
                 break;
             }

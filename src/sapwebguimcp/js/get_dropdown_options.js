@@ -48,7 +48,11 @@
     if (!listbox) {
         const allListboxes = document.querySelectorAll('[role="listbox"]');
         for (const lb of allListboxes) {
-            if (lb.id && element.id && lb.id.includes(element.name || element.id.split(':').pop())) {
+            if (
+                lb.id &&
+                element.id &&
+                lb.id.includes(element.name || element.id.split(':').pop())
+            ) {
                 listbox = lb;
                 break;
             }
