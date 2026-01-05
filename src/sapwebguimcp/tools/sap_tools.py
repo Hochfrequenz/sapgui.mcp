@@ -1496,30 +1496,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Discover clickable buttons on the current SAP screen. "
-            "Returns buttons with CSS selectors for clicking. "
-            "Use sap_discover_fields for input fields, sap_discover_buttons for buttons."
+            "Returns buttons with label, selector (for browser_click), shortcut (e.g. F3), and accesskey. "
+            "Use the 'selector' field with browser_click to click buttons reliably. "
+            "Prefer keyboard shortcuts when available - they're faster. "
+            "For input fields use sap_discover_fields instead."
         )
     )
     async def sap_discover_buttons() -> DiscoveredButtons:
-        """
-        Discover all clickable buttons on the current SAP screen.
-
-        SAP Web GUI buttons are <div> elements with role="button" and class "lsButton".
-        Button text is in the title attribute, not textContent.
-
-        Use the returned 'selector' field with browser_click to click buttons reliably.
-        Prefer keyboard shortcuts (check 'shortcut' field) when available - they're faster.
-
-        Returns:
-            DiscoveredButtons with list of buttons including:
-            - label: Button text (e.g., "Pflegen", "Anzeigen")
-            - id: Element ID (if available)
-            - selector: CSS selector for browser_click
-            - shortcut: Keyboard shortcut if shown (e.g., "F3", "Strg+S")
-            - accesskey: Accesskey for keyboard activation
-
-        Note: For input fields use sap_discover_fields instead.
-        """
+        """Discover all clickable buttons on the current SAP screen."""
         browser_manager = await get_browser_manager()
 
         try:
