@@ -53,7 +53,11 @@
             }
 
             if (!visibleListbox) {
-                resolve({ success: false, options: [], error: 'Listbox not found after clicking dropdown' });
+                resolve({
+                    success: false,
+                    options: [],
+                    error: 'Listbox not found after clicking dropdown',
+                });
                 return;
             }
 

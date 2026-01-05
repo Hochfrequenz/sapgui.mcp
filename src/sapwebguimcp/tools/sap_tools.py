@@ -1619,11 +1619,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     out.filled.append(key)
                     out.blocking_popup = dd.popup_after or out.blocking_popup
                 else:
-                    out.errors.append(FieldFillError(
-                        field=key,
-                        error=dd.error_message or "Unknown",
-                        available_options=dd.available_options,
-                    ))
+                    out.errors.append(
+                        FieldFillError(
+                            field=key,
+                            error=dd.error_message or "Unknown",
+                            available_options=dd.available_options,
+                        )
+                    )
 
         return out
 

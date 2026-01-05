@@ -74,7 +74,9 @@
             if (!matchingOption) {
                 // Close the listbox before returning error
                 document.body.click();
-                element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                element.dispatchEvent(
+                    new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+                );
 
                 resolve({
                     success: false,

@@ -3,6 +3,7 @@
 ## Problem
 
 SAP dropdown fields (ComboBox, `ct="CB"`) cannot be filled with `sap_fill_form` or `browser_fill` because:
+
 - They have `readonly` attribute (can't type directly)
 - Clicking opens a listbox popup with `role="listbox"`
 - Standard `browser_click` on options fails ("element is not visible")
@@ -15,11 +16,13 @@ Integrate dropdown support into existing tools with lazy option fetching by defa
 ### Dropdown Detection
 
 Identify dropdowns via:
+
 ```javascript
-is_dropdown = element.getAttribute('ct') == 'CB' && element.hasAttribute('readonly')
+is_dropdown = element.getAttribute('ct') == 'CB' && element.hasAttribute('readonly');
 ```
 
 Key attributes:
+
 - `id` - element ID for clicking
 - `value` - current selection
 - `title` - tooltip/label
@@ -84,11 +87,12 @@ When filling a dropdown field:
 7. **Popup appears:** Return success + `blocking_popup` info
 
 Error response example:
+
 ```json
 {
-  "success": false,
-  "error": "Value 'Kreditor' not found in dropdown 'GP-Rolle'",
-  "available_options": ["GPartner allgemein", "Gläubiger", "Debitor"]
+    "success": false,
+    "error": "Value 'Kreditor' not found in dropdown 'GP-Rolle'",
+    "available_options": ["GPartner allgemein", "Gläubiger", "Debitor"]
 }
 ```
 
@@ -96,12 +100,15 @@ Error response example:
 
 ```javascript
 // Find visible listbox (SAP keeps old ones hidden in DOM)
-const listbox = [...document.querySelectorAll('[role="listbox"]')]
-  .find(lb => lb.offsetParent !== null);
+const listbox = [...document.querySelectorAll('[role="listbox"]')].find(
+    (lb) => lb.offsetParent !== null
+);
 
 // Extract options
-const options = [...listbox.querySelectorAll('[role="option"]')]
-  .map(opt => ({ text: opt.textContent.trim(), id: opt.id }));
+const options = [...listbox.querySelectorAll('[role="option"]')].map((opt) => ({
+    text: opt.textContent.trim(),
+    id: opt.id,
+}));
 
 // Click option (standard click fails, use JS)
 option.click();
@@ -110,11 +117,13 @@ option.click();
 ## Testing
 
 ### Unit Tests (HTML snapshots)
+
 - Dropdown detection from `bp_create_person_de.html`
 - Verify `ct="CB"` + `readonly` identification
 - Label extraction for GP-Rolle, Gruppierung, Anredetext
 
 ### Integration Tests (BP transaction)
+
 1. `test_dropdown_detection` - verify dropdowns found on BP F5 screen
 2. `test_dropdown_get_options` - open GP-Rolle, verify options include "Gläubiger"
 3. `test_dropdown_select_value` - select "Gläubiger", handle popup with `sap_dismiss_popup`
@@ -122,6 +131,7 @@ option.click();
 5. `test_dropdown_invalid_value` - verify error returns available options
 
 ### New Snapshots
+
 - BP F5 screen with listbox open
 
 ## Implementation Order
