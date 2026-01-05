@@ -122,7 +122,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
     @mcp.tool(
         description=(
-            "Take a screenshot of the current page. "
+            "Take a screenshot of the current page if and only if browser_snapshot is insufficient. "
             "AVOID THIS TOOL - it returns a large image that fills up conversation context. "
             "Use browser_snapshot instead for a compact text-based accessibility tree. "
             "Only use screenshots when visual layout verification is absolutely necessary "
