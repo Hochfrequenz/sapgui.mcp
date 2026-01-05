@@ -41,16 +41,18 @@ Their robots.txt disallows browsers integrated into regular AI tools (like Claud
 This leads to the symptom that when the human user asks the LLM to do an online research, they'll find links to the SAP help portal but requests will fail.
 The workaround is to use the same browser that is used to access the SAP Web GUI to visit the help portal (instead of the SAP GUI)
 
-Therefore use the tool `browser_navigate` to access the help portal:
+Therefore use the tool `browser_navigate` to access the help portal, e.g. this URL:
 ```json
 {
   `url`: `https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/021b182b0c47416c8fafed67ebfd78a9/266dce53118d4308e10000000a174cb4.html`
 }
 ```
-Then add a little `browser_wait` for the site to load.
+Add a little `browser_wait` for the site to load (10s is sufficient).
 If you find a cookie banner/layover: Click on "Alle Ablehnen".
 Then proceed like a user would do.
-
+Make sure to NOT use `sap_`... MCP tools on the help portal.
+`browser_snapshot` should be the way to go to access information after you loaded SAP help portal in the browser.
+If you see that online research failed when accessing `help.sap.com`, use thie workaround with the respective URL.
 
 ## Transaction Code Tips
 
