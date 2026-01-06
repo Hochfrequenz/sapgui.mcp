@@ -10,7 +10,7 @@ from sapwebguimcp.models.alv_models import (
     AlvMetadata,
     TableCellClickResult,
 )
-from sapwebguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, TCode, ToolResult
+from sapwebguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, TCode, ToolResult
 from sapwebguimcp.models.browser import (
     BrowserManager,
     close_browser_manager,
@@ -43,9 +43,9 @@ from sapwebguimcp.models.intent_models import (
 from sapwebguimcp.models.sap_results import (
     ButtonInfo,
     CapabilitiesResult,
+    ClosePopupResult,
     DiscoveredButtons,
     DiscoveredFields,
-    DismissPopupResult,
     DropdownFillResult,
     DropdownInfo,
     FieldFillError,
@@ -87,6 +87,7 @@ __all__ = [
     "TCODE_PATTERN",
     "PopupButton",
     "PopupInfo",
+    "PopupType",
     "TCode",
     "ToolResult",
     # ALV models
@@ -108,7 +109,7 @@ __all__ = [
     "CapabilitiesResult",
     "DiscoveredButtons",
     "DiscoveredFields",
-    "DismissPopupResult",
+    "ClosePopupResult",
     "DropdownFillResult",
     "DropdownInfo",
     "FieldFillError",

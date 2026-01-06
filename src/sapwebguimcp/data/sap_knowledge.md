@@ -16,16 +16,18 @@ Common shortcuts (German keyboard labels shown, work the same on EN keyboards):
 - **Enter** - Confirm current action
 - **F4** - Open search help / value list which helps you to fill meaningful values to a field.
   Browser focus needs to be on the respective field before hitting F4.
-  This often opens a popup which we don't want to dismiss in most cases.
+  This opens a popup with available values - this is expected behavior, not an error.
+  Read the values before closing the popup.
 
 ### `*` wildcards
+
 Often to search something you can use `*` as wildcard.
 So if you search say for a report in se38 which starts with "Z" and contains "energy" enter `Z*energy*` in the field, hit F4 and hope for results.
 
 ## When Stuck
 
 1. **Check the status bar** - SAP shows errors, warnings, and info messages there
-2. **Look for popups** - A blocking popup may be waiting for confirmation (maybe use popup tools)
+2. **Look for popups** - A popup may be waiting for your response - check if it's an error, confirmation, or help dialog
 3. **Try F3 (Back)** - Often helps to back out and retry
 4. **Start over** - Either by restarting the transaction or using sap_login again (changes will be lost)
 
@@ -33,9 +35,9 @@ After you found out how to solve a specific problem without these workarounds, c
 
 ## ABAP Development with Claude Code and abapGit
 
-Don't try to write any ABAP code directly with this MCP server.
+Don't try to write any ABAP code directly with this MCP server (i.e. by interacting with the sAP GUI for ABAP development).
 Instead, use Claude Code together with abapGit for ABAP development.
-This MCP server is designed to **test** code that was generated with Claude Code and synchronized via abapGit.
+This MCP server is designed to **test** code that was generated with Claude Code and synchronized via abapGit, but development in the SAP GUI is not recommended.
 
 ### Setup
 
@@ -114,11 +116,11 @@ Their robots.txt disallows browsers integrated into regular AI tools (like Claud
 This leads to the symptom that when the human user asks the LLM to do an online research, they'll find links to the SAP help portal but requests will fail.
 The workaround is to use the same browser that is used to access the SAP Web GUI to visit the help portal (instead of the SAP GUI).
 
-Therefore use the tool `browser_navigate` to access the help portal, e.g. this URL:
+Therefore, use the tool `browser_navigate` to access the help portal, e.g. this URL:
 
 ```json
 {
-  "url": "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/021b182b0c47416c8fafed67ebfd78a9/266dce53118d4308e10000000a174cb4.html"
+    "url": "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/021b182b0c47416c8fafed67ebfd78a9/266dce53118d4308e10000000a174cb4.html"
 }
 ```
 
@@ -128,6 +130,8 @@ Then proceed like a user would do.
 Make sure to NOT use `sap_`... MCP tools on the help portal.
 `browser_snapshot` should be the way to go to access information after you loaded SAP help portal in the browser.
 If you see that online research failed when accessing `help.sap.com`, use this workaround with the respective URL.
+
+USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 
 ## Transaction Code Tips
 

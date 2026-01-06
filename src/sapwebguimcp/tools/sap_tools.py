@@ -33,9 +33,9 @@ from sapwebguimcp.models import (
     BrowserManager,
     ButtonInfo,
     CapabilitiesResult,
+    ClosePopupResult,
     DiscoveredButtons,
     DiscoveredFields,
-    DismissPopupResult,
     DropdownFillResult,
     DropdownInfo,
     FieldFillError,
@@ -93,7 +93,7 @@ def _load_js_with_field_utils(filename: str) -> str:
 # =============================================================================
 
 
-async def _check_blocking_popup(page: Any) -> PopupInfo | None:
+async def _check_popup(page: Any) -> PopupInfo | None:
     """
     Fast check for blocking popup dialog.
 
@@ -668,12 +668,12 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         page = await browser_manager.get_current_page()
 
         # Fast popup check (~5ms)
-        popup = await _check_blocking_popup(page)
+        popup = await _check_popup(page)
         if popup:
             return TransactionResult.failure(
                 f"Popup blocking: {popup.message or 'confirmation required'}",
                 tcode=tcode,
-                blocking_popup=popup,
+                popup=popup,
             )
 
         try:
@@ -776,13 +776,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             await page.wait_for_timeout(200)
 
             # Check if a popup appeared after navigation (e.g., "Discard changes?")
-            popup = await _check_blocking_popup(page)
+            popup = await _check_popup(page)
             logger.debug("Popup check after Enter: %s", popup)
             if popup:
                 return TransactionResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
                     tcode=tcode,
-                    blocking_popup=popup,
+                    popup=popup,
                 )
 
             title = await page.title()
@@ -941,13 +941,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             page = await browser_manager.get_current_page()
 
             # Fast popup check (~5ms) - only blocks if popup exists BEFORE keystroke
-            popup = await _check_blocking_popup(page)
+            popup = await _check_popup(page)
             if popup:
                 logger.debug("sap_keyboard(%s): popup already present before keystroke", key)
                 return KeyboardResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
                     key=key,
-                    blocking_popup=popup,
+                    popup=popup,
                 )
 
             # Ensure page is in front
@@ -964,13 +964,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             await page.wait_for_timeout(300)
 
             # Check if a popup appeared after the keystroke
-            popup_after = await _check_blocking_popup(page)
+            popup_after = await _check_popup(page)
             if popup_after:
                 logger.debug("sap_keyboard(%s): popup appeared after keystroke", key)
                 return KeyboardResult.failure(
                     f"Popup blocking: {popup_after.message or 'confirmation required'}",
                     key=key,
-                    blocking_popup=popup_after,
+                    popup=popup_after,
                 )
 
             title = await page.title()
@@ -1350,7 +1350,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             page = await browser_manager.get_current_page()
 
             # Check for blocking popup
-            popup = await _check_blocking_popup(page)
+            popup = await _check_popup(page)
 
             # Extract screen info using JavaScript
             screen_info = await page.evaluate(_load_js("extract_screen_info.js"))
@@ -1361,7 +1361,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 url=screen_info.get("url", ""),
                 program=screen_info.get("program"),
                 dynpro=screen_info.get("dynpro"),
-                blocking_popup=popup,
+                popup=popup,
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -1597,27 +1597,27 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Dismiss an unexpected blocking popup dialog by clicking a button. "
-            "Note that not all popups are unexpected. "
-            "Only close those that you didn't expect but sometimes the popup actually indicates success."
-            "Use after a tool returns blocking_popup info. "
+            "Close an active popup dialog by clicking a button. "
+            "Use after a tool returns popup info. "
+            "Note: Not all popups are errors - F4 help dialogs are expected behavior. "
+            "For F4 help popups, consider reading the values first before closing. "
             "Specify button by label ('Ja', 'Nein') or accesskey ('J', 'N'), "
             "or use close=True to click the X button if available."
         )
     )
-    async def sap_dismiss_popup(  # pylint: disable=too-many-branches
+    async def sap_close_popup(  # pylint: disable=too-many-branches
         button: Optional[str] = None,
         close: bool = False,
-    ) -> DismissPopupResult:
+    ) -> ClosePopupResult:
         """
-        Dismiss a blocking popup dialog.
+        Close an active popup dialog.
 
         Args:
             button: Button label (e.g., 'Ja', 'Nein') or accesskey (e.g., 'J', 'N')
             close: Click the X close button instead of a specific button
 
         Returns:
-            DismissPopupResult with success status and button clicked
+            ClosePopupResult with success status and button clicked
         """
         browser_manager = await get_browser_manager()
 
@@ -1625,20 +1625,20 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             page = await browser_manager.get_current_page()
 
             # Check if popup is present
-            popup = await _check_blocking_popup(page)
+            popup = await _check_popup(page)
             if popup is None:
-                return DismissPopupResult.failure("No popup to dismiss")
+                return ClosePopupResult.failure("No popup to close")
 
             # Determine what to click and the label for the result
             clicked_label: str
             if close:
                 if not popup.has_close_button:
-                    return DismissPopupResult.failure("No close button available")
+                    return ClosePopupResult.failure("No close button available")
                 # SAP IDs contain special characters - use CSS escaping
                 await page.click(_escape_css_selector(f"#{popup.close_button_id}"))
                 clicked_label = "[X]"
             elif not button:
-                return DismissPopupResult.failure("Specify button or close=True")
+                return ClosePopupResult.failure("Specify button or close=True")
             else:
                 # Find matching button by label or accesskey
                 button_lower = button.lower()
@@ -1654,7 +1654,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
                 if not matched_button:
                     available = [b.label for b in popup.buttons]
-                    return DismissPopupResult.failure(f"Button '{button}' not found. Available: {available}")
+                    return ClosePopupResult.failure(f"Button '{button}' not found. Available: {available}")
 
                 # Click the button using best available method
                 if matched_button.id:
@@ -1668,23 +1668,23 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             # Wait and verify popup is gone
             await page.wait_for_timeout(500)
-            popup_after = await _check_blocking_popup(page)
+            popup_after = await _check_popup(page)
 
             # Read status bar after dismissing (often contains useful feedback)
             status_info = await page.evaluate(_load_js("extract_status_bar.js"))
             status_type = status_info.get("type", "none")
             status_message = status_info.get("message", "")
 
-            return DismissPopupResult(
+            return ClosePopupResult(
                 button_clicked=clicked_label,
-                popup_dismissed=popup_after is None,
+                popup_closed=popup_after is None,
                 status_bar_type=status_type,
                 status_bar_message=status_message,
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error dismissing popup")
-            return DismissPopupResult.failure(f"Error dismissing popup: {e}")
+            return ClosePopupResult.failure(f"Error dismissing popup: {e}")
 
     async def _fill_dropdown_field(page: Any, value: str, element_id: str) -> DropdownFillResult:
         """Fill a dropdown field by selecting the matching option."""
@@ -1694,7 +1694,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         if result.get("success"):
             await page.wait_for_timeout(300)
-            popup_after = await _check_blocking_popup(page)
+            popup_after = await _check_popup(page)
             return DropdownFillResult(success=True, popup_after=popup_after)
 
         return DropdownFillResult(
@@ -1723,7 +1723,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 dd = await _fill_dropdown_field(page, value, field_check["elementId"])
                 if dd.success:
                     out.filled.append(key)
-                    out.blocking_popup = dd.popup_after or out.blocking_popup
+                    out.popup = dd.popup_after or out.popup
                 else:
                     out.errors.append(
                         FieldFillError(
@@ -1775,7 +1775,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             FillFormResult with lists of filled, not_found, and errored fields.
             If a popup appears after filling (e.g., role change confirmation),
-            it's returned in blocking_popup.
+            it's returned in popup.
         """
         if not fields:
             return FillFormResult.failure("fields cannot be empty")
@@ -1786,11 +1786,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             page = await browser_manager.get_current_page()
 
             # Fast popup check (~5ms)
-            popup = await _check_blocking_popup(page)
+            popup = await _check_popup(page)
             if popup:
                 return FillFormResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
-                    blocking_popup=popup,
+                    popup=popup,
                 )
 
             # Process dropdowns separately from regular fields
@@ -1818,14 +1818,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     filled=processed.filled,
                     not_found=processed.not_found,
                     errors=processed.errors,
-                    blocking_popup=processed.blocking_popup,
+                    popup=processed.popup,
                 )
 
             return FillFormResult(
                 filled=processed.filled,
                 not_found=processed.not_found,
                 errors=processed.errors,
-                blocking_popup=processed.blocking_popup,
+                popup=processed.popup,
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -1872,13 +1872,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             page = await browser_manager.get_current_page()
 
             # Fast popup check (~5ms)
-            popup = await _check_blocking_popup(page)
+            popup = await _check_popup(page)
             if popup:
                 return SetFieldResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
                     label=label,
                     value=value,
-                    blocking_popup=popup,
+                    popup=popup,
                 )
 
             # Execute JavaScript to find and set the field

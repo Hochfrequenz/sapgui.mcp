@@ -3,12 +3,14 @@
 ## Problem
 
 Current naming implies popups are always errors/blockers:
+
 - `blocking_popup` field name
 - `sap_dismiss_popup` tool name
 - "Dismiss" language throughout
 
 But popups aren't always problems:
-- F4 help dialogs are the *goal*, not a blocker
+
+- F4 help dialogs are the _goal_, not a blocker
 - Confirmation dialogs need user decision
 - Only error popups are actual blockers
 
@@ -19,6 +21,7 @@ Rename to neutral terminology and add popup type classification.
 ### Model Changes
 
 **New enum in `models/base.py`:**
+
 ```python
 class PopupType(StrEnum):
     """Type of popup dialog."""
@@ -30,6 +33,7 @@ class PopupType(StrEnum):
 ```
 
 **Updated PopupInfo:**
+
 ```python
 class PopupInfo(BaseModel):
     """Info about an active popup dialog."""
@@ -44,6 +48,7 @@ class PopupInfo(BaseModel):
 ```
 
 **ToolResult field rename:**
+
 ```python
 # Old
 blocking_popup: PopupInfo | None
@@ -66,6 +71,7 @@ sap_close_popup() -> ClosePopupResult
 ```
 
 New description:
+
 > Close an active popup dialog. Use after a tool returns popup info.
 > For F4 help popups, consider reading the values first before closing.
 > Specify button by label ('Ja', 'Nein') or accesskey ('J', 'N'),
@@ -73,14 +79,14 @@ New description:
 
 ### Files to Update
 
-| File | Changes |
-|------|---------|
-| `models/base.py` | Add `PopupType` enum, rename field to `popup` |
-| `models/sap_results.py` | Rename `DismissPopupResult` → `ClosePopupResult` |
-| `models/__init__.py` | Update exports |
-| `tools/sap_tools.py` | Rename tool + helper, update all `blocking_popup` refs |
-| `data/sap_knowledge.md` | Update popup guidance text |
-| Tests | Update popup-related assertions |
+| File                    | Changes                                                |
+| ----------------------- | ------------------------------------------------------ |
+| `models/base.py`        | Add `PopupType` enum, rename field to `popup`          |
+| `models/sap_results.py` | Rename `DismissPopupResult` → `ClosePopupResult`       |
+| `models/__init__.py`    | Update exports                                         |
+| `tools/sap_tools.py`    | Rename tool + helper, update all `blocking_popup` refs |
+| `data/sap_knowledge.md` | Update popup guidance text                             |
+| Tests                   | Update popup-related assertions                        |
 
 ### Internal Helper Rename
 

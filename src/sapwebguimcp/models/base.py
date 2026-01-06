@@ -1,5 +1,6 @@
 """Base model for MCP tool results with standardized error handling."""
 
+from enum import StrEnum
 from typing import Annotated, Any, Self
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
@@ -8,6 +9,16 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_valida
 # BeforeValidator normalizes to uppercase before pattern validation
 TCODE_PATTERN = r"^[A-Z0-9_/]+$"
 TCode = Annotated[str, BeforeValidator(str.upper), Field(pattern=TCODE_PATTERN)]
+
+
+class PopupType(StrEnum):
+    """Type of popup dialog."""
+
+    HELP = "help"  # F4 search help, value lists
+    CONFIRM = "confirm"  # Yes/No decisions
+    ERROR = "error"  # Validation errors, warnings
+    INFO = "info"  # Informational messages
+    UNKNOWN = "unknown"  # Can't determine (default)
 
 
 class PopupButton(BaseModel):
@@ -19,8 +30,12 @@ class PopupButton(BaseModel):
 
 
 class PopupInfo(BaseModel):
-    """Info about a blocking popup dialog."""
+    """Info about an active popup dialog."""
 
+    popup_type: PopupType = Field(
+        default=PopupType.UNKNOWN,
+        description="Type of popup if detectable: help, confirm, error, info, or unknown",
+    )
     message: str | None = Field(default=None, description="Popup message text")
     buttons: list[PopupButton] = Field(default_factory=list, description="Available buttons")
     close_button_id: str | None = Field(default=None, description="ID of X close button if present")
@@ -49,9 +64,9 @@ class ToolResult(BaseModel):
 
     success: bool = Field(default=True, description="Whether the operation succeeded")
     error: str | None = Field(default=None, description="Error message if success=False")
-    blocking_popup: PopupInfo | None = Field(
+    popup: PopupInfo | None = Field(
         default=None,
-        description="Present when a popup dialog is blocking further operations",
+        description="Present when a popup dialog is active on screen",
     )
 
     @model_validator(mode="after")

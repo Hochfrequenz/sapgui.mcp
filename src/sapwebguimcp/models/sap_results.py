@@ -315,13 +315,13 @@ class ShortcutsResult(ToolResult):
         return len(self.shortcuts)
 
 
-class DismissPopupResult(ToolResult):
-    """Result from sap_dismiss_popup tool."""
+class ClosePopupResult(ToolResult):
+    """Result from sap_close_popup tool."""
 
     button_clicked: str | None = Field(default=None, description="Label of button that was clicked")
-    popup_dismissed: bool = Field(default=False, description="Whether popup is now gone")
-    status_bar_type: StatusBarType = Field(default="none", description="Status bar message type after dismissing popup")
-    status_bar_message: str = Field(default="", description="Status bar text after dismissing popup")
+    popup_closed: bool = Field(default=False, description="Whether popup is now gone")
+    status_bar_type: StatusBarType = Field(default="none", description="Status bar message type after closing popup")
+    status_bar_message: str = Field(default="", description="Status bar text after closing popup")
 
 
 class DropdownFillResult(BaseModel):
@@ -340,7 +340,7 @@ class FormFieldsProcessResult(BaseModel):
     not_found: list[str] = Field(default_factory=list, description="Fields not found on page")
     errors: list[FieldFillError] = Field(default_factory=list, description="Fields that errored")
     regular_fields: dict[str, str] = Field(default_factory=dict, description="Non-dropdown fields to batch fill")
-    blocking_popup: PopupInfo | None = Field(default=None, description="Popup that appeared after dropdown selection")
+    popup: PopupInfo | None = Field(default=None, description="Popup that appeared after dropdown selection")
 
 
 class ToolInfo(BaseModel):
