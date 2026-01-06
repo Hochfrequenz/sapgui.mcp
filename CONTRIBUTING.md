@@ -20,7 +20,7 @@ tox -e linting
 tox -e type_check
 
 # Run tests
-tox -e unittests
+tox -e unit_tests
 # note only few tests run without SAP system access, the others will be skipped.
 ```
 
@@ -141,7 +141,7 @@ You don't need to put any effort in rebases, amends or similar.
 
 1. Create a feature branch: `feat/my-feature` or `fix/my-bug`
 2. Write tests for new functionality
-3. Ensure all tests pass: `tox -e unittests`
+3. Ensure all tests pass: `tox -e unit_tests`
 4. Ensure linting passes: `tox -e linting`, `tox -e type_check`
 5. Create PR with clear description
 

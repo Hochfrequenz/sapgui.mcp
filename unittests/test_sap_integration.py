@@ -1402,7 +1402,7 @@ async def test_bp_fill_form_ambiguous_label_rejected(sap_mcp_client: ClientSessi
     keyboard_data = parse_tool_response(keyboard_result)
 
     # Handle category selection popup if it appears
-    if keyboard_data.get("blocking_popup"):
+    if keyboard_data.get("popup"):
         # Click "Ja" (Yes) or confirm button to proceed
         await sap_mcp_client.call_tool("sap_keyboard", {"key": "Enter"})
         await asyncio.sleep(0.5)
@@ -1462,7 +1462,7 @@ async def test_bp_set_field_ambiguous_label_rejected(sap_mcp_client: ClientSessi
     keyboard_data = parse_tool_response(keyboard_result)
 
     # Handle category selection popup if it appears
-    if keyboard_data.get("blocking_popup"):
+    if keyboard_data.get("popup"):
         await sap_mcp_client.call_tool("sap_keyboard", {"key": "Enter"})
         await asyncio.sleep(0.5)
 
@@ -2434,9 +2434,9 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     2. Dismiss the first popup to enter person creation mode
     3. Press F3 (Back) WITHOUT filling required fields
     4. This triggers a validation popup: "Die Daten des Geschäftspartners sind fehlerhaft"
-    5. Verify that sap_keyboard returns with blocking_popup info
+    5. Verify that sap_keyboard returns with popup info
     6. Capture HTML snapshot of the popup for offline testing
-    7. Dismiss the popup using sap_dismiss_popup with "Ja"
+    7. Dismiss the popup using sap_close_popup with "Ja"
     8. Verify the popup was dismissed and we're back to BP initial screen
 
     Fixes:
@@ -2461,8 +2461,8 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     await capture_html_snapshot(sap_mcp_client, "bp_switch_to_person_popup", overwrite=True)
 
     # F5 should trigger the "Switch to Person" confirmation popup
-    if kb_data.get("blocking_popup"):
-        popup = kb_data["blocking_popup"]
+    if kb_data.get("popup"):
+        popup = kb_data["popup"]
         assert popup.get("message"), f"F5 popup should have a message. Got: {popup}"
         # Message should mention "Person" or "Wechsel" (switch)
         assert "Person" in popup.get("message", "") or "Wechsel" in popup.get(
@@ -2470,7 +2470,7 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
         ), f"F5 popup should mention 'Person' or 'Wechsel'. Got: {popup['message']}"
 
         # Dismiss with "Ja" to proceed to person creation
-        dismiss_result = await sap_mcp_client.call_tool("sap_dismiss_popup", {"button": "Ja"})
+        dismiss_result = await sap_mcp_client.call_tool("sap_close_popup", {"button": "Ja"})
         dismiss_data = parse_tool_response(dismiss_result)
         assert dismiss_data.get("success", False), f"Dismiss should succeed. Result: {dismiss_data}"
         await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -2491,13 +2491,13 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     await capture_html_snapshot(sap_mcp_client, "bp_validation_popup", overwrite=True)
 
     # The popup should be detected
-    assert back_data.get("blocking_popup"), (
+    assert back_data.get("popup"), (
         f"Expected popup after F3 from empty BP form. Got: {back_data}. "
         "The popup should show a validation error. "
         "Check bp_validation_popup_*.html for the actual page state."
     )
 
-    popup = back_data["blocking_popup"]
+    popup = back_data["popup"]
 
     # Verify popup has message (could be header title like "Beenden" or body text)
     assert popup.get("message"), f"Popup should have a message. Got: {popup}"
@@ -2513,12 +2513,12 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     assert any("Nein" in label for label in button_labels), f"Should have 'Nein' button. Got: {button_labels}"
 
     # Dismiss with "Ja" to go back without saving
-    dismiss_result = await sap_mcp_client.call_tool("sap_dismiss_popup", {"button": "Ja"})
+    dismiss_result = await sap_mcp_client.call_tool("sap_close_popup", {"button": "Ja"})
     dismiss_data = parse_tool_response(dismiss_result)
 
     # Check dismiss result
     assert dismiss_data.get("success", False), f"Dismiss should succeed. Result: {dismiss_data}"
-    assert dismiss_data.get("popup_dismissed", False), f"Popup should be dismissed. Result: {dismiss_data}"
+    assert dismiss_data.get("popup_closed", False), f"Popup should be dismissed. Result: {dismiss_data}"
     assert dismiss_data.get("button_clicked") == "Ja", f"Should have clicked 'Ja'. Result: {dismiss_data}"
 
     # Verify we're back to BP initial screen or SAP Easy Access
@@ -2574,14 +2574,14 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
     await capture_html_snapshot(sap_mcp_client, "se38_error_popup", overwrite=True)
 
     # Check if popup was detected via the click result or needs manual check
-    popup = click_data.get("blocking_popup")
+    popup = click_data.get("popup")
     if not popup:
         # Popup might not be in click result, check via sap_get_screen_info
         await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
         # Try to detect popup by checking screen info
         screen_result = await sap_mcp_client.call_tool("sap_get_screen_info", {})
         screen_data = parse_tool_response(screen_result)
-        popup = screen_data.get("blocking_popup")
+        popup = screen_data.get("popup")
 
     assert popup, (
         f"Expected error popup after clicking Anlegen with invalid program name. "
@@ -2608,7 +2608,7 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
     # Note: close button may not always be present, so we just log it
     if close_button_id:
         # Dismiss using close button
-        dismiss_result = await sap_mcp_client.call_tool("sap_dismiss_popup", {"close": True})
+        dismiss_result = await sap_mcp_client.call_tool("sap_close_popup", {"close": True})
         dismiss_data = parse_tool_response(dismiss_result)
         assert dismiss_data.get("success", False), f"Close should succeed. Result: {dismiss_data}"
 
@@ -2619,7 +2619,7 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
         )
     else:
         # Dismiss using "Weiter" button
-        dismiss_result = await sap_mcp_client.call_tool("sap_dismiss_popup", {"button": "Weiter"})
+        dismiss_result = await sap_mcp_client.call_tool("sap_close_popup", {"button": "Weiter"})
         dismiss_data = parse_tool_response(dismiss_result)
         assert dismiss_data.get("success", False), f"Dismiss should succeed. Result: {dismiss_data}"
 
@@ -2644,14 +2644,14 @@ async def test_popup_detection_without_popup(sap_mcp_client: ClientSession) -> N
     result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     data = assert_tool_success(result, "sap_transaction SE16")
 
-    # Should NOT have blocking_popup
-    assert data.get("blocking_popup") is None, f"No popup expected on clean navigation. Got: {data}"
+    # Should NOT have popup
+    assert data.get("popup") is None, f"No popup expected on clean navigation. Got: {data}"
 
 
 @pytest.mark.anyio
-async def test_sap_dismiss_popup_no_popup_present(sap_mcp_client: ClientSession) -> None:
+async def test_sap_close_popup_no_popup_present(sap_mcp_client: ClientSession) -> None:
     """
-    Test that sap_dismiss_popup handles the case when no popup is present.
+    Test that sap_close_popup handles the case when no popup is present.
 
     Should return an error message, not crash.
     """
@@ -2660,7 +2660,7 @@ async def test_sap_dismiss_popup_no_popup_present(sap_mcp_client: ClientSession)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Try to dismiss when no popup is present
-    result = await sap_mcp_client.call_tool("sap_dismiss_popup", {"button": "Ja"})
+    result = await sap_mcp_client.call_tool("sap_close_popup", {"button": "Ja"})
     data = parse_tool_response(result)
 
     # Should fail gracefully
