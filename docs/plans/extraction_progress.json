@@ -60,7 +60,25 @@
     "/US4G/MR_MRP_IBR",
     "/US4G/MR_MRP_MMP",
     "/US4G/MR_MRP_MSH",
-    "/US4G/MR_REASON"
+    "/US4G/MR_REASON",
+    "/US4G/MSBQT_H",
+    "/US4G/MSBQT_H_DF",
+    "/US4G/MSBQT_I",
+    "/US4G/MSBQT_I_DF",
+    "/US4G/MSBQT_P",
+    "/US4G/MSBQT_P_DF",
+    "/US4G/MSBRQOT",
+    "/US4G/MSBRQOT_DF",
+    "/US4G/MTR_ENDI_T",
+    "/US4G/MTR_EN_DIR",
+    "/US4G/MTR_MNTP_T",
+    "/US4G/MTR_MNT_TP",
+    "/US4G/MTR_RATE",
+    "/US4G/MTR_RATE_T",
+    "/US4G/MUND_OPR",
+    "/US4G/NEW_RLMMD",
+    "/US4G/NO_RES_CER",
+    "/US4G/OBIS_CODE"
   ],
   "tables_failed": [
     "/US4G/MP_ASE_NAM"
@@ -68,5 +86,5 @@
   "transactions_completed": [],
   "transactions_failed": [],
   "current_batch": null,
-  "last_updated": "2026-01-08T00:10:48.745726"
+  "last_updated": "2026-01-08T00:38:46.968291"
 }
