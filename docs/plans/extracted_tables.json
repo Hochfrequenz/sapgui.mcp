@@ -1,0 +1,4717 @@
+[
+  {
+    "tabname": "/US4G/MI_RUC_CP",
+    "description": "PI-Kommunikationsprofil - Massenänderung",
+    "extracted_at": "2026-01-07T22:30:22.498865",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "CP_CHANGE_ID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_CP_CHANGE_ID",
+        "domname": "",
+        "description": "ID der Kommunikationsprofil-Massenänderung"
+      },
+      {
+        "fieldname": "MI_RUC_KEY",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "MI_ID",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_ID",
+        "domname": "",
+        "description": "Parametrierungsinstanz-ID"
+      },
+      {
+        "fieldname": "MI_PAR_START",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_DATEFROM",
+        "domname": "",
+        "description": "Beginndatum für MI-PAR-Zeitscheibe"
+      },
+      {
+        "fieldname": "RUC_ID",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "/US4G/DE_RUC_ID",
+        "domname": "",
+        "description": "Tarifanwendungsfall"
+      },
+      {
+        "fieldname": "PROC_DOC_NO",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 20,
+        "decimals": 0,
+        "rollname": "/APE/DE_DOC_NO",
+        "domname": "",
+        "description": "Dokumentennummer"
+      },
+      {
+        "fieldname": "EVAL_PROFILE",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 50,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EVAL_PROFILE",
+        "domname": "",
+        "description": "Name des von Intelligent Metering gener. Auswertungsprofils"
+      },
+      {
+        "fieldname": "COMM_PROFILE_OLD",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 50,
+        "decimals": 0,
+        "rollname": "/US4G/DE_COMM_PROFILE",
+        "domname": "",
+        "description": "Kommunikationsprofilname"
+      },
+      {
+        "fieldname": "COMM_PROFILE_NEW",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 50,
+        "decimals": 0,
+        "rollname": "/US4G/DE_COMM_PROFILE",
+        "domname": "",
+        "description": "Kommunikationsprofilname"
+      },
+      {
+        "fieldname": "PROC_STATUS",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/APE/DE_PROC_STATUS",
+        "domname": "",
+        "description": "Prozessstatus"
+      },
+      {
+        "fieldname": "ACTION_STATUS",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ACTION_STATUS",
+        "domname": "",
+        "description": "Aktionsstatus"
+      },
+      {
+        "fieldname": "WS_STATUS",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_WS_STATUS",
+        "domname": "",
+        "description": "Status der Antwort vom Web-Service"
+      },
+      {
+        "fieldname": "WS_STATUS_ICON",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_WS_STATUS_ICON",
+        "domname": "",
+        "description": "Symbol für Antwortstatus"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MI_RUC_TR",
+    "description": "Reorganisation von PI-Versandzeitpunkt",
+    "extracted_at": "2026-01-07T22:40:18.836673",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "TR_REORG_ID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TR_REORG_ID",
+        "domname": "",
+        "description": "Versandzeitpunkt-Reorg-ID"
+      },
+      {
+        "fieldname": "MI_RUC_KEY",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "MI_ID",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_ID",
+        "domname": "",
+        "description": "Parametrierungsinstanz-ID"
+      },
+      {
+        "fieldname": "MI_PAR_START",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_DATEFROM",
+        "domname": "",
+        "description": "Beginndatum für MI-PAR-Zeitscheibe"
+      },
+      {
+        "fieldname": "RUC_ID",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "/US4G/DE_RUC_ID",
+        "domname": "",
+        "description": "Tarifanwendungsfall"
+      },
+      {
+        "fieldname": "PROC_DOC_NO",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 20,
+        "decimals": 0,
+        "rollname": "/APE/DE_DOC_NO",
+        "domname": "",
+        "description": "Dokumentennummer"
+      },
+      {
+        "fieldname": "EVAL_PROFILE",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 50,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EVAL_PROFILE",
+        "domname": "",
+        "description": "Name des von Intelligent Metering gener. Auswertungsprofils"
+      },
+      {
+        "fieldname": "TR_START_DATE_OLD",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_DISTR_DATE_OLD",
+        "domname": "",
+        "description": "Versanddatum alt"
+      },
+      {
+        "fieldname": "TR_START_TIME_OLD",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_DISTR_TIME_OLD",
+        "domname": "",
+        "description": "Versandzeitpunkt alt"
+      },
+      {
+        "fieldname": "TR_START_DATE_NEW",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_DISTR_DATE",
+        "domname": "",
+        "description": "Versanddatum"
+      },
+      {
+        "fieldname": "TR_START_TIME_NEW",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_DISTR_TIME",
+        "domname": "",
+        "description": "Versandzeitpunkt"
+      },
+      {
+        "fieldname": "ETIMEZONE",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "EDM_TIMEZONE",
+        "domname": "",
+        "description": "Zeitzone für EDM-Objekte"
+      },
+      {
+        "fieldname": "PROC_STATUS",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/APE/DE_PROC_STATUS",
+        "domname": "",
+        "description": "Prozessstatus"
+      },
+      {
+        "fieldname": "ACTION_STATUS",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ACTION_STATUS",
+        "domname": "",
+        "description": "Aktionsstatus"
+      },
+      {
+        "fieldname": "WS_STATUS",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_WS_STATUS",
+        "domname": "",
+        "description": "Status der Antwort vom Web-Service"
+      },
+      {
+        "fieldname": "WS_STATUS_ICON",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_WS_STATUS_ICON",
+        "domname": "",
+        "description": "Symbol für Antwortstatus"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MI_VIEW",
+    "description": "Sicht für Messprodukt/Messinstanz",
+    "extracted_at": "2026-01-07T22:38:58.288425",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "MI_VIEW",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_VIEW",
+        "domname": "",
+        "description": "Sicht Messprodukt/Parametrierungsinstanz"
+      },
+      {
+        "fieldname": "FEED_IN",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_FEED_IN",
+        "domname": "",
+        "description": "Einspeisung"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MI_VIEWT",
+    "description": "Sicht für Messprodukt / Messinstanz Beschreibung",
+    "extracted_at": "2026-01-07T22:40:00.422473",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "MI_VIEW",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_VIEW",
+        "domname": "",
+        "description": "Sicht Messprodukt/Parametrierungsinstanz"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschlüssel"
+      },
+      {
+        "fieldname": "TEXT",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 30,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_VIEW_TXT",
+        "domname": "",
+        "description": "Beschreibung für Sicht Messprodukt/Parametrierungsinstanz"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_BIT_CRT",
+    "description": "Parameter für Erstellung abrechenbarer Positionen bestimmen",
+    "extracted_at": "2026-01-07T22:42:01.290009",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "QUANTITY_TYPE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MEMI_QUANTITY_TYPE",
+        "domname": "",
+        "description": "Mengenart für Mehr- und Mindermengenabrechnung"
+      },
+      {
+        "fieldname": "REVERSE_CHARGE_TYPE",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_REVERSE_CHARGE_TYPE",
+        "domname": "",
+        "description": "Reverse-Charge-Typ"
+      },
+      {
+        "fieldname": "SUPPL_DIR",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SUPPL_DIR",
+        "domname": "",
+        "description": "Lieferrichtung"
+      },
+      {
+        "fieldname": "BITTYPE",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "BITTYPE_KK",
+        "domname": "",
+        "description": "Art der abrechenbaren Position"
+      },
+      {
+        "fieldname": "SUBPROCESS",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "SUB_PROCESS_KK",
+        "domname": "",
+        "description": "Teilprozess der Abrechnung"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_DETRC",
+    "description": "Bestimmen des Reverse-Charge-Typs",
+    "extracted_at": "2026-01-07T22:43:16.962982",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DIVISION",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTE",
+        "domname": "",
+        "description": "Sparte"
+      },
+      {
+        "fieldname": "QUANTITY_TYPE",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MEMI_QUANTITY_TYPE",
+        "domname": "",
+        "description": "Mengenart für Mehr- und Mindermengenabrechnung"
+      },
+      {
+        "fieldname": "DSO_RESELLER",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_IS_DSO_RESELLER",
+        "domname": "",
+        "description": "VNB ist ein Wiederverkäufer"
+      },
+      {
+        "fieldname": "SUP_RESELLER",
+        "position": 5,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_IS_SUP_RESELLER",
+        "domname": "",
+        "description": "Lieferant ist ein Wiederverkäufer"
+      },
+      {
+        "fieldname": "REVERSE_CHARGE_TYPE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_REVERSE_CHARGE_TYPE",
+        "domname": "",
+        "description": "Reverse-Charge-Typ"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_DOC_SH",
+    "description": "Mehr- und Mindermengenabrechnungsbeleg - Kurzdaten",
+    "extracted_at": "2026-01-07T22:47:52.485653",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_MM_DOC_SH_GEN_DATA",
+        "domname": "",
+        "description": "MeMi-Beleg - Kurzdaten - allgemeine Daten"
+      },
+      {
+        "fieldname": "DOC_ID",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MEMI_DOC_ID",
+        "domname": "",
+        "description": "ID des Mehr- und Mindermengenabrechnungsbelegs"
+      },
+      {
+        "fieldname": "STATUS",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MEMI_STATUS",
+        "domname": "",
+        "description": "Status für Mehr- und Mindermengenabrechnungsbeleg"
+      },
+      {
+        "fieldname": "DIVISION",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTE",
+        "domname": "",
+        "description": "Sparte"
+      },
+      {
+        "fieldname": "MALO_INT",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 22,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MALO_INT",
+        "domname": "",
+        "description": "Interner Schlüssel der Marktlokation"
+      },
+      {
+        "fieldname": "SUPPL_BP",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "BU_PARTNER",
+        "domname": "",
+        "description": "Geschäftspartnernummer"
+      },
+      {
+        "fieldname": "CONTRACT_ACC",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "VKONT_KK",
+        "domname": "",
+        "description": "Vertragskontonummer"
+      },
+      {
+        "fieldname": "COMPANY_CODE",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "BUKRS",
+        "domname": "",
+        "description": "Buchungskreis"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_MM_DOC_SH_QTY_DATA",
+        "domname": "",
+        "description": "MeMi-Beleg - Kurzdaten - Mengendaten"
+      },
+      {
+        "fieldname": "START_DATE",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_START_DATE",
+        "domname": "",
+        "description": "Beginndatum"
+      },
+      {
+        "fieldname": "END_DATE",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_END_DATE",
+        "domname": "",
+        "description": "Endedatum"
+      },
+      {
+        "fieldname": "APPLICATION_YEAR",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_APPLICATION_YEAR",
+        "domname": "",
+        "description": "Anwendungsjahr"
+      },
+      {
+        "fieldname": "APPLICATION_MONTH",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_APPLICATION_MONTH",
+        "domname": "",
+        "description": "Anwendungsmonat"
+      },
+      {
+        "fieldname": "QUANTITY",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 31,
+        "decimals": 14,
+        "rollname": "/US4G/DE_MEMI_QUANTITY",
+        "domname": "",
+        "description": "Menge für Mehr- und Mindermengenabrechnung"
+      },
+      {
+        "fieldname": "MEASURE_UNIT",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "UNIT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MEMI_MEASURE_UNIT",
+        "domname": "",
+        "description": "Maßeinheit für die Mehr- und Mindermengenabrechnung"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_MM_DOC_SH_PRICE_DATA",
+        "domname": "",
+        "description": "MeMi-Beleg - Kurzdaten - Preisdaten"
+      },
+      {
+        "fieldname": "REV_CHG_TYPE",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_REVERSE_CHARGE_TYPE",
+        "domname": "",
+        "description": "Reverse-Charge-Typ"
+      },
+      {
+        "fieldname": "PRICE",
+        "position": 20,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 6,
+        "rollname": "/US4G/DE_PRICE",
+        "domname": "",
+        "description": "Preis"
+      },
+      {
+        "fieldname": "CURRENCY",
+        "position": 21,
+        "keyflag": "",
+        "datatype": "CUKY",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "WAERS",
+        "domname": "",
+        "description": "Währungsschlüssel"
+      },
+      {
+        "fieldname": "ENERGY_TAX_PRICE",
+        "position": 22,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 6,
+        "rollname": "/US4G/DE_ENERGY_TAX_PRICE",
+        "domname": "",
+        "description": "Preis der Energiesteuer"
+      },
+      {
+        "fieldname": "TAX_VALUATION_CODE",
+        "position": 23,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TAX_VALUATION_CODE",
+        "domname": "",
+        "description": "Code für Steuerbewertung"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 24,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_MM_DOC_SH_AMT_DATA",
+        "domname": "",
+        "description": "MeMi-Beleg - Kurzdaten - Betragsdaten"
+      },
+      {
+        "fieldname": "NET_AMOUNT",
+        "position": 25,
+        "keyflag": "",
+        "datatype": "CURR",
+        "length": 13,
+        "decimals": 2,
+        "rollname": "/US4G/DE_NET_AMOUNT",
+        "domname": "",
+        "description": "Nettobetrag"
+      },
+      {
+        "fieldname": "TAX_AMOUNT",
+        "position": 26,
+        "keyflag": "",
+        "datatype": "CURR",
+        "length": 13,
+        "decimals": 2,
+        "rollname": "/US4G/DE_TAX_AMOUNT",
+        "domname": "",
+        "description": "Steuerbetrag"
+      },
+      {
+        "fieldname": "ENERGY_TAX_NET_AMOUNT",
+        "position": 27,
+        "keyflag": "",
+        "datatype": "CURR",
+        "length": 13,
+        "decimals": 2,
+        "rollname": "/US4G/DE_ENERGY_TAX_NET_AMOUNT",
+        "domname": "",
+        "description": "Nettobetrag der Energiesteuer"
+      },
+      {
+        "fieldname": "TOTAL_NET_AMOUNT",
+        "position": 28,
+        "keyflag": "",
+        "datatype": "CURR",
+        "length": 13,
+        "decimals": 2,
+        "rollname": "/US4G/DE_TOTAL_NET_AMOUNT",
+        "domname": "",
+        "description": "Gesamtnettobetrag"
+      },
+      {
+        "fieldname": "GROSS_AMOUNT",
+        "position": 29,
+        "keyflag": "",
+        "datatype": "CURR",
+        "length": 13,
+        "decimals": 2,
+        "rollname": "/US4G/DE_GROSS_AMOUNT",
+        "domname": "",
+        "description": "Bruttobetrag"
+      },
+      {
+        "fieldname": "TAX_CODE",
+        "position": 30,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "MWSKZ",
+        "domname": "",
+        "description": "Umsatzsteuerkennzeichen"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_ETPRI",
+    "description": "Preis der Energiesteuer für Mehr- und Mindermengen",
+    "extracted_at": "2026-01-07T22:49:01.624156",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DIVISION",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTE",
+        "domname": "",
+        "description": "Sparte"
+      },
+      {
+        "fieldname": "VALID_FROM",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_VALID_START_DATE",
+        "domname": "",
+        "description": "Gültig ab Datum"
+      },
+      {
+        "fieldname": "CURRENCY",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CUKY",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "WAERS",
+        "domname": "",
+        "description": "Währungsschlüssel"
+      },
+      {
+        "fieldname": "ENERGY_TAX_PRICE",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 6,
+        "rollname": "/US4G/DE_ENERGY_TAX_PRICE",
+        "domname": "",
+        "description": "Preis der Energiesteuer"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_GEN",
+    "description": "Allgemeine Konfiguration für Mehr- und Mindermengen",
+    "extracted_at": "2026-01-07T22:50:48.458119",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "COMPANY_CODE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "BUKRS",
+        "domname": "",
+        "description": "Buchungskreis"
+      },
+      {
+        "fieldname": "DIVISION",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTE",
+        "domname": "",
+        "description": "Sparte"
+      },
+      {
+        "fieldname": "SUPPL_DIR",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SUPPL_DIR",
+        "domname": "",
+        "description": "Lieferrichtung"
+      },
+      {
+        "fieldname": "VALID_FROM",
+        "position": 5,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_VALID_START_DATE",
+        "domname": "",
+        "description": "Gültig ab Datum"
+      },
+      {
+        "fieldname": "EDM_SYSTEM_TYPE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_SYSTEM_TYPE",
+        "domname": "",
+        "description": "EDM-Systemtyp"
+      },
+      {
+        "fieldname": "PACKAGE_SIZE",
+        "position": 7,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PACKAGE_SIZE",
+        "domname": "",
+        "description": "Paketgröße"
+      },
+      {
+        "fieldname": "BITCAT",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "BITCAT_KK",
+        "domname": "",
+        "description": "Klasse abrechenbarer Positionen"
+      },
+      {
+        "fieldname": "TSO_IND",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TSO_IND",
+        "domname": "",
+        "description": "ÜNB-Kennzeichen"
+      },
+      {
+        "fieldname": "NO_BPEM_SINGLE_MEMI",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_NO_BPEM_SINGLE_MEMI",
+        "domname": "",
+        "description": "BPEM-Fall auf MeMi-Einzelbelegebene deaktivieren"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_GEN_H",
+    "description": "Kopf der allgemeinen Konfiguration für MeMi",
+    "extracted_at": "2026-01-07T22:51:51.034585",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "COMPANY_CODE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "BUKRS",
+        "domname": "",
+        "description": "Buchungskreis"
+      },
+      {
+        "fieldname": "DIVISION",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTE",
+        "domname": "",
+        "description": "Sparte"
+      },
+      {
+        "fieldname": "GAS_DAY_OFFSETTING",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_GAS_DAY_OFFSETTING",
+        "domname": "",
+        "description": "Tagesoffset Gas"
+      },
+      {
+        "fieldname": "DISABLE_GUB_INVOIC_CHK",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DIS_GUB_INVOIC_CHK",
+        "domname": "",
+        "description": "Rechnungsprüfung Netznutzungsabrechnung deaktivieren"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_PRICE",
+    "description": "Preis für Mehr- und Mindermengenabrechnungsbeleg",
+    "extracted_at": "2026-01-07T22:52:58.627127",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DIVISION",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTE",
+        "domname": "",
+        "description": "Sparte"
+      },
+      {
+        "fieldname": "SC_SP",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "E_EDMSETTLCOORD",
+        "domname": "",
+        "description": "Bilanzkoordinator als Serviceanbieter"
+      },
+      {
+        "fieldname": "APPLICATION_YEAR",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_APPLICATION_YEAR",
+        "domname": "",
+        "description": "Anwendungsjahr"
+      },
+      {
+        "fieldname": "APPLICATION_MONTH",
+        "position": 5,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_APPLICATION_MONTH",
+        "domname": "",
+        "description": "Anwendungsmonat"
+      },
+      {
+        "fieldname": "CURRENCY",
+        "position": 6,
+        "keyflag": "X",
+        "datatype": "CUKY",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "WAERS",
+        "domname": "",
+        "description": "Währungsschlüssel"
+      },
+      {
+        "fieldname": "PRICE",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 6,
+        "rollname": "/US4G/DE_PRICE",
+        "domname": "",
+        "description": "Preis"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_STL_QTY",
+    "description": "Informationen zum Empfang der bilanzierten MeMi-Menge",
+    "extracted_at": "2026-01-07T22:55:22.601660",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "SETTLMTQTYRCVGUUID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/APE/DE_APPL_DB_KEY",
+        "domname": "",
+        "description": "Schlüssel Anwendungstabellen-Datenbank"
+      },
+      {
+        "fieldname": "SETTLMTFRMDTE",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_START_DATE",
+        "domname": "",
+        "description": "Beginndatum"
+      },
+      {
+        "fieldname": "SETTLMTTODTE",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_END_DATE",
+        "domname": "",
+        "description": "Endedatum"
+      },
+      {
+        "fieldname": "SETTLMTQTY",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 31,
+        "decimals": 14,
+        "rollname": "/US4G/DE_SETTLE_QUANTITY",
+        "domname": "",
+        "description": "Bilanzierte Menge"
+      },
+      {
+        "fieldname": "SETTLMTQTYUOM",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "UNIT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SETTLE_MEASURE_UNIT",
+        "domname": "",
+        "description": "Bilanzierungsmaßeinheit"
+      },
+      {
+        "fieldname": "PODEXT",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 50,
+        "decimals": 0,
+        "rollname": "EXT_UI",
+        "domname": "",
+        "description": "Zählpunktbezeichnung"
+      },
+      {
+        "fieldname": "PODINT",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 22,
+        "decimals": 0,
+        "rollname": "INT_UI",
+        "domname": "",
+        "description": "Interner Schlüssel des Zählpunkts"
+      },
+      {
+        "fieldname": "DIVISION",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTYP",
+        "domname": "",
+        "description": "Spartentyp"
+      },
+      {
+        "fieldname": "OBISCODE",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 35,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_CODE",
+        "domname": "",
+        "description": "OBIS-Kennzahl (Kennziffer)"
+      },
+      {
+        "fieldname": "OWNSRVCPRO",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "E_DEXSERVPROVSELF",
+        "domname": "",
+        "description": "Eigener Serviceanbieter"
+      },
+      {
+        "fieldname": "ASSOCSRVCPRO",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "E_DEXSERVPROV",
+        "domname": "",
+        "description": "Fremder Serviceanbieter"
+      },
+      {
+        "fieldname": "MEMISETTLMTQTYTOLSTS",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_STL_QTY_TOL_STATUS",
+        "domname": "",
+        "description": "Toleranzstatus bilanzierte Menge"
+      },
+      {
+        "fieldname": "SETTLMTTOLDRCTN",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_STL_QTY_TOL_DRCTN",
+        "domname": "",
+        "description": "Toleranzrichtung bilanzierte Menge"
+      },
+      {
+        "fieldname": "MEMIALLOCQTY",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 31,
+        "decimals": 14,
+        "rollname": "/US4G/DE_ALLOC_LIST_QTY",
+        "domname": "",
+        "description": "Menge Allokationsliste"
+      },
+      {
+        "fieldname": "PDOCID",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 20,
+        "decimals": 0,
+        "rollname": "/APE/DE_DOC_NO",
+        "domname": "",
+        "description": "Dokumentennummer"
+      },
+      {
+        "fieldname": "DOCUMENT_IDENT",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DOCUMENT_IDENT",
+        "domname": "",
+        "description": "Dokument-ID"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/BOBF/S_LIB_ADMIN_DATA_V2",
+        "domname": "",
+        "description": "In Datenbanktabelle aufzunehmende Verwaltungsdaten"
+      },
+      {
+        "fieldname": "CREATIONDATETIME",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "/BOBF/CREATIONDATETIME",
+        "domname": "",
+        "description": "Angelegt am"
+      },
+      {
+        "fieldname": "CREATEDBYUSER",
+        "position": 20,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOBF/CREATEDBYUSER",
+        "domname": "",
+        "description": "Angelegt von"
+      },
+      {
+        "fieldname": "LASTCHANGEDATETIME",
+        "position": 21,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "/BOBF/LASTCHANGEDATETIME",
+        "domname": "",
+        "description": "Zuletzt geändert am"
+      },
+      {
+        "fieldname": "LASTCHANGEDBYUSER",
+        "position": 22,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOBF/LASTCHANGEDBYUSER",
+        "domname": "",
+        "description": "Zuletzt geändert von"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_STL_TOL",
+    "description": "\"US4G: Toleranzstatus f. Empfang von bilanzierten MeMi-Mengen\"",
+    "extracted_at": "2026-01-07T22:58:33.428302",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DIVISION_CAT",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTYP",
+        "domname": "",
+        "description": "Spartentyp"
+      },
+      {
+        "fieldname": "TOLERANCE_DIRECT",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_STL_QTY_TOL_DRCTN",
+        "domname": "",
+        "description": "Toleranzrichtung bilanzierte Menge"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_STS",
+    "description": "Belegstatus für Mehr- und Mindermengenabrechnung",
+    "extracted_at": "2026-01-07T23:01:01.384188",
+    "fields": [
+      {
+        "fieldname": "STATUS",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MEMI_STATUS",
+        "domname": "",
+        "description": "Status für Mehr- und Mindermengenabrechnungsbeleg"
+      },
+      {
+        "fieldname": "FINAL_STATUS",
+        "position": 2,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_FINAL_STATUS",
+        "domname": "",
+        "description": "Finaler Status für MeMi-Beleg"
+      },
+      {
+        "fieldname": "DUNNING_ENABLED",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DUNNING_ENABLED",
+        "domname": "",
+        "description": "Mahnen aktiviert"
+      },
+      {
+        "fieldname": "DUNNING_EXCLUDED",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DUNNING_EXCLUDED",
+        "domname": "",
+        "description": "Mahnungen ausgeschlossen"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_STSCON",
+    "description": "Status für Mehr- und Mindermengenabrechnung konfigurieren",
+    "extracted_at": "2026-01-07T23:02:34.086191",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "STATUS",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MEMI_STATUS",
+        "domname": "",
+        "description": "Status für Mehr- und Mindermengenabrechnungsbeleg"
+      },
+      {
+        "fieldname": "FINAL_STATUS",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_FINAL_STATUS",
+        "domname": "",
+        "description": "Finaler Status für MeMi-Beleg"
+      },
+      {
+        "fieldname": "DUNNING_ENABLED",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DUNNING_ENABLED",
+        "domname": "",
+        "description": "Mahnen aktiviert"
+      },
+      {
+        "fieldname": "DUNNING_EXCLUDED",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DUNNING_EXCLUDED",
+        "domname": "",
+        "description": "Mahnungen ausgeschlossen"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_STS_T",
+    "description": "Text von Status für Mehr- und Mindermengenabrechnung",
+    "extracted_at": "2026-01-07T23:04:00.268842",
+    "fields": [
+      {
+        "fieldname": "STATUS",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MEMI_STATUS",
+        "domname": "",
+        "description": "Status für Mehr- und Mindermengenabrechnungsbeleg"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschlüssel"
+      },
+      {
+        "fieldname": "STATUS_TEXT",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 60,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MEMI_STATUS_TEXT",
+        "domname": "",
+        "description": "Statusbeschreibung für die Mehr- und Mindermengenabrechnung"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MM_TOL_CHK",
+    "description": "Toleranzprüfung für MeMi-Belegmenge",
+    "extracted_at": "2026-01-07T23:05:18.530803",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "COMPANY_CODE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "BUKRS",
+        "domname": "",
+        "description": "Buchungskreis"
+      },
+      {
+        "fieldname": "DIVISION",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTE",
+        "domname": "",
+        "description": "Sparte"
+      },
+      {
+        "fieldname": "QUANTITY_TYPE",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MEMI_QUANTITY_TYPE",
+        "domname": "",
+        "description": "Mengenart für Mehr- und Mindermengenabrechnung"
+      },
+      {
+        "fieldname": "MEASURE_UNIT",
+        "position": 5,
+        "keyflag": "X",
+        "datatype": "UNIT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MEMI_MEASURE_UNIT",
+        "domname": "",
+        "description": "Maßeinheit für die Mehr- und Mindermengenabrechnung"
+      },
+      {
+        "fieldname": "QUANT_LOW_LIMIT",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 31,
+        "decimals": 14,
+        "rollname": "/US4G/DE_MEMI_QUANT_LOW_LIMIT",
+        "domname": "",
+        "description": "Untergrenze der Menge für MeMi-Abrechnung"
+      },
+      {
+        "fieldname": "QUANT_HIGH_LIMIT",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 31,
+        "decimals": 14,
+        "rollname": "/US4G/DE_MEMI_QUANT_HIGH_LIMIT",
+        "domname": "",
+        "description": "Obergrenze der Menge für MeMi-Abrechnung"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MOSB_OPR",
+    "description": "Operand für MSB-Abrechnung",
+    "extracted_at": "2026-01-07T23:06:53.321338",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "OPERAND",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "E_OPERAND",
+        "domname": "",
+        "description": "Operand"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MPES_SCEN",
+    "description": "MPES-Standardszenario",
+    "extracted_at": "2026-01-07T23:08:02.608433",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DATEFROM",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "E_EDMDATEFROM",
+        "domname": "",
+        "description": "Ab-Datum"
+      },
+      {
+        "fieldname": "DEF_FEED_POD",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DEF_FEED_POD",
+        "domname": "",
+        "description": "Einspeise-Zielversorgungsszenario mit internem MSB"
+      },
+      {
+        "fieldname": "DEF_DSO_TRANCHE",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DEF_DSO_TRANCHE",
+        "domname": "",
+        "description": "VNBT-Zielversorgungsszenario mit internem MSB"
+      },
+      {
+        "fieldname": "DEF_FEED_POD_EXTMOS",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DEF_FEED_POD_EXTMOS",
+        "domname": "",
+        "description": "Einspeise-Zielversorgungsszenario mit externem MSB"
+      },
+      {
+        "fieldname": "DEF_DSO_TRANCHE_EXTMOS",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DEF_DSO_TRANCHE_EXTMO",
+        "domname": "",
+        "description": "VNBT-Zielversorgungsszenario mit externem MSB"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MPGRPTYP",
+    "description": "Messproduktgruppenart",
+    "extracted_at": "2026-01-07T23:09:15.484064",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "MP_GROUP_TYPE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_GROUP_TYPE",
+        "domname": "",
+        "description": "Art der Messproduktgruppe"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MPGRPTYPS",
+    "description": "Sichten für Arten von Messproduktgruppen",
+    "extracted_at": "2026-01-07T23:10:36.124125",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "MP_GROUP_TYPE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_GROUP_TYPE",
+        "domname": "",
+        "description": "Art der Messproduktgruppe"
+      },
+      {
+        "fieldname": "SERVICE_TYPE",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "SERCODE",
+        "domname": "",
+        "description": "Serviceart"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MPGRPTYPT",
+    "description": "Messproduktgruppe Beschreibung",
+    "extracted_at": "2026-01-07T23:12:12.048497",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "MP_GROUP_TYPE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_GROUP_TYPE",
+        "domname": "",
+        "description": "Art der Messproduktgruppe"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschlüssel"
+      },
+      {
+        "fieldname": "DESCR",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 30,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_GROUP_TYPE_TXT",
+        "domname": "",
+        "description": "Beschreibung der Art der Messproduktgruppe"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MP_ASE_NAM",
+    "description": "Name f. zusaetzliche Einstellung fuer Messprodukt definieren",
+    "extracted_at": "2026-01-07T23:18:28.592790",
+    "fields": [
+      {
+        "fieldname": "SETTING_NAME",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 20,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MES_PROD_SETTING_NAME",
+        "domname": "",
+        "description": "Datenelement: Messprodukt - Name zusaetzliche Einstellung"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MP_ASE_NAT",
+    "description": "Texttabelle fuer Name zusaetzliche Einstellung f. Messprodukt",
+    "extracted_at": "2026-01-07T23:18:59.684297",
+    "fields": [
+      {
+        "fieldname": "SETTING_NAME",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 20,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MES_PROD_SETTING_NAME",
+        "domname": "",
+        "description": "Datenelement: Messprodukt - Name zusaetzliche Einstellung"
+      },
+      {
+        "fieldname": "LANGUAGE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschluessel"
+      },
+      {
+        "fieldname": "DESCRIPTION",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 255,
+        "decimals": 0,
+        "rollname": "/US4G/DE_FREE_DESCRIPTION",
+        "domname": "",
+        "description": "Beschreibung"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MP_GROUP",
+    "description": "Messprodukt-Gruppe",
+    "extracted_at": "2026-01-07T23:19:53.632092",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "MP_GROUP",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_GROUP",
+        "domname": "",
+        "description": "Messproduktgruppe"
+      },
+      {
+        "fieldname": "MP_GROUP_TYPE",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_GROUP_TYPE",
+        "domname": "",
+        "description": "Art der Messproduktgruppe"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MP_GROUPT",
+    "description": "Messproduktgruppe Beschreibung",
+    "extracted_at": "2026-01-07T23:20:35.621286",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "MP_GROUP",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_GROUP",
+        "domname": "",
+        "description": "Messproduktgruppe"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschluessel"
+      },
+      {
+        "fieldname": "DESCR",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 30,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_GROUP_TXT",
+        "domname": "",
+        "description": "Beschreibung der Messproduktgruppe"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MP_HEAD",
+    "description": "Messproduktkopf",
+    "extracted_at": "2026-01-07T23:23:38.533759",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "MP_ID",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_ID",
+        "domname": "",
+        "description": "Messprodukt-ID"
+      },
+      {
+        "fieldname": "MP_TEXT",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 100,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_TXT",
+        "domname": "",
+        "description": "Beschreibung Messprodukt"
+      },
+      {
+        "fieldname": "DIVISION",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTE",
+        "domname": "",
+        "description": "Sparte"
+      },
+      {
+        "fieldname": "SERVICE_TYPE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "SERCODE",
+        "domname": "",
+        "description": "Serviceart"
+      },
+      {
+        "fieldname": "MP_GROUP",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_GROUP",
+        "domname": "",
+        "description": "Messproduktgruppe"
+      },
+      {
+        "fieldname": "MI_VIEW",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_VIEW",
+        "domname": "",
+        "description": "Sicht Messprodukt"
+      },
+      {
+        "fieldname": "DATE_FROM",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_DATEFROM",
+        "domname": "",
+        "description": "Beginndatum"
+      },
+      {
+        "fieldname": "DATE_TO",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_DATETO",
+        "domname": "",
+        "description": "Endedatum"
+      },
+      {
+        "fieldname": "BILLING_CLASS",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "E_AKLASSE",
+        "domname": "",
+        "description": "Abrechnungsklasse"
+      },
+      {
+        "fieldname": "RATE_CAT",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "TARIFTYP_ANL",
+        "domname": "",
+        "description": "Tariftyp"
+      },
+      {
+        "fieldname": "STATUS",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_STATUS",
+        "domname": "",
+        "description": "Messprodukt-Status"
+      },
+      {
+        "fieldname": "EMOS",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_IM_EMOS",
+        "domname": "",
+        "description": "Externer MSB"
+      },
+      {
+        "fieldname": "CREATED_BY",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOFU/USER_ID_CREATED_BY",
+        "domname": "",
+        "description": "Angelegt von"
+      },
+      {
+        "fieldname": "CREATED_ON",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/BOFU/TSTMP_CREATION_TIME",
+        "domname": "",
+        "description": "Angelegt am"
+      },
+      {
+        "fieldname": "CHANGED_BY",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOFU/USER_ID_CHANGED_BY",
+        "domname": "",
+        "description": "Geaendert von"
+      },
+      {
+        "fieldname": "CHANGED_ON",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/BOFU/TSTMP_CHANGED_TIME",
+        "domname": "",
+        "description": "Geaendert am"
+      },
+      {
+        "fieldname": "MP_HEAD_EXTENDED",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TABLE_EXTENDED",
+        "domname": "",
+        "description": "Tabelle erweitert"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MP_HEAD_DD",
+    "description": "MP Head Draft Data",
+    "extracted_at": "2026-01-07T23:24:21.697856",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "MP_ID",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_ID",
+        "domname": "",
+        "description": "Messprodukt-ID"
+      },
+      {
+        "fieldname": "MP_TEXT",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 100,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_TXT",
+        "domname": "",
+        "description": "Beschreibung Messprodukt"
+      },
+      {
+        "fieldname": "DIVISION",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTE",
+        "domname": "",
+        "description": "Sparte"
+      },
+      {
+        "fieldname": "SERVICE_TYPE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "SERCODE",
+        "domname": "",
+        "description": "Serviceart"
+      },
+      {
+        "fieldname": "MI_VIEW",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MI_VIEW",
+        "domname": "",
+        "description": "Sicht Messprodukt"
+      },
+      {
+        "fieldname": "DATE_FROM",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_DATEFROM",
+        "domname": "",
+        "description": "Beginndatum"
+      },
+      {
+        "fieldname": "DATE_TO",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_DATETO",
+        "domname": "",
+        "description": "Endedatum"
+      },
+      {
+        "fieldname": "MP_GROUP",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_GROUP",
+        "domname": "",
+        "description": "Messproduktgruppe"
+      },
+      {
+        "fieldname": "BILLING_CLASS",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "E_AKLASSE",
+        "domname": "",
+        "description": "Abrechnungsklasse"
+      },
+      {
+        "fieldname": "RATE_CAT",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "TARIFTYP_ANL",
+        "domname": "",
+        "description": "Tariftyp"
+      },
+      {
+        "fieldname": "STATUS",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_STATUS",
+        "domname": "",
+        "description": "Messprodukt-Status"
+      },
+      {
+        "fieldname": "EMOS",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_IM_EMOS",
+        "domname": "",
+        "description": "Externer MSB"
+      },
+      {
+        "fieldname": "CREATED_BY",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOFU/USER_ID_CREATED_BY",
+        "domname": "",
+        "description": "Angelegt von"
+      },
+      {
+        "fieldname": "CREATED_ON",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/BOFU/TSTMP_CREATION_TIME",
+        "domname": "",
+        "description": "Angelegt am"
+      },
+      {
+        "fieldname": "CHANGED_BY",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOFU/USER_ID_CHANGED_BY",
+        "domname": "",
+        "description": "Geaendert von"
+      },
+      {
+        "fieldname": "CHANGED_ON",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/BOFU/TSTMP_CHANGED_TIME",
+        "domname": "",
+        "description": "Geaendert am"
+      },
+      {
+        "fieldname": "ACTIVEUUID",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/UUID",
+        "domname": "",
+        "description": "UUID"
+      },
+      {
+        "fieldname": "HASACTIVEENTITY",
+        "position": 20,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SDRAFT_HAS_ACTIVE",
+        "domname": "",
+        "description": "Hat aktives Dokument"
+      },
+      {
+        "fieldname": "DRAFTENTITYCREATIONDATETIME",
+        "position": 21,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "SDRAFT_CREATED_AT",
+        "domname": "",
+        "description": "Entwurf angelegt am"
+      },
+      {
+        "fieldname": "DRAFTENTITYLASTCHANGEDATETIME",
+        "position": 22,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "SDRAFT_LAST_CHANGED_AT",
+        "domname": "",
+        "description": "Entwurf geaendert"
+      },
+      {
+        "fieldname": "DRAFTADMINISTRATIVEDATAUUID",
+        "position": 23,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "SDRAFT_ADMIN_UUID",
+        "domname": "",
+        "description": "Technische ID"
+      },
+      {
+        "fieldname": "DRAFTENTITYCONSISTENCYSTATUS",
+        "position": 24,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SDRAFT_CONSISTENCY_STATUS",
+        "domname": "",
+        "description": "Konsistenzstatus"
+      },
+      {
+        "fieldname": "DRAFTENTITYOPERATIONCODE",
+        "position": 25,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SDRAFT_OPERATION_CODE",
+        "domname": "",
+        "description": "Befehlscode"
+      },
+      {
+        "fieldname": "MP_HEAD_EXTENDED",
+        "position": 26,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TABLE_EXTENDED",
+        "domname": "",
+        "description": "Tabelle erweitert"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MP_OBIS",
+    "description": "Messprodukt-OBIS",
+    "extracted_at": "2026-01-07T23:25:10.897708",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "PARENT_KEY",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "Parent NodeID"
+      },
+      {
+        "fieldname": "ROOT_KEY",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "Root NodeID"
+      },
+      {
+        "fieldname": "OBIS",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_VIRT",
+        "domname": "",
+        "description": "Kennzahl fuer virtuelles Zaehlwerk"
+      },
+      {
+        "fieldname": "OBIS_BASE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_BASE",
+        "domname": "",
+        "description": "Kennzahl fuer Basiszaehlwerk"
+      },
+      {
+        "fieldname": "RATE_TYPE",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "TARIFART",
+        "domname": "",
+        "description": "Tarifart"
+      },
+      {
+        "fieldname": "FACT_GROUP",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "KONDIGR",
+        "domname": "",
+        "description": "Tariffaktengruppe"
+      },
+      {
+        "fieldname": "RESPAR",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "E_MDUSRESPAR",
+        "domname": "",
+        "description": "Ergebnisparameter"
+      },
+      {
+        "fieldname": "BILL_NOT_REL",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_BILL_RELEVANCE",
+        "domname": "",
+        "description": "Nicht abrechnungsrelevant"
+      },
+      {
+        "fieldname": "ISU_NOT_REL",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_ISU_RELEVANCE",
+        "domname": "",
+        "description": "Nicht IS-U-relevant"
+      },
+      {
+        "fieldname": "MDM_NOT_REL",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_MDM_RELEVANCE",
+        "domname": "",
+        "description": "Nicht MDM-relevant"
+      },
+      {
+        "fieldname": "GWA_NOT_REL",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_GWA_RELEVANCE",
+        "domname": "",
+        "description": "Nicht GWA-relevant"
+      },
+      {
+        "fieldname": "READ_NOT_REL",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_READ_REG",
+        "domname": "",
+        "description": "Zaehlwerk nicht ablesen"
+      },
+      {
+        "fieldname": "SETTL_NOT_REL",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_SETTL_RELEVANCE",
+        "domname": "",
+        "description": "Nicht bilanzierungsrelevant"
+      },
+      {
+        "fieldname": "OBIS_NO_RESET_MR",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_NO_RESET_MR",
+        "domname": "",
+        "description": "Zaehlwerke beibehalten"
+      },
+      {
+        "fieldname": "MP_OBIS_EXTENDED",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TABLE_EXTENDED",
+        "domname": "",
+        "description": "Tabelle erweitert"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MP_RUC",
+    "description": "Messprodukt - Tarifanwendungsfall",
+    "extracted_at": "2026-01-07T23:25:54.997006",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "PARENT_KEY",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "Parent NodeID"
+      },
+      {
+        "fieldname": "RUC_ID",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "/US4G/DE_RUC_ID",
+        "domname": "",
+        "description": "Tarifanwendungsfall"
+      },
+      {
+        "fieldname": "ITEM_DESCR",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 60,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_RUC_DESCR",
+        "domname": "",
+        "description": "Beschreibung der MP-TAF-Position"
+      },
+      {
+        "fieldname": "MEAS_PERIOD",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PERIOD_MEAS",
+        "domname": "",
+        "description": "Messperiode"
+      },
+      {
+        "fieldname": "REG_PERIOD",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PERIOD_REG",
+        "domname": "",
+        "description": "Registrierperiode"
+      },
+      {
+        "fieldname": "TR_PERIOD",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TRPERIOD",
+        "domname": "",
+        "description": "Versandintervall"
+      },
+      {
+        "fieldname": "MDUSIFACE",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "E_MDUSIFACE",
+        "domname": "",
+        "description": "Time-of-Use-Schnittstelle"
+      },
+      {
+        "fieldname": "MP_RUC_EXTENDED",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TABLE_EXTENDED",
+        "domname": "",
+        "description": "Tabelle erweitert"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/RUC",
+    "description": "Tarifanwendungsfall",
+    "extracted_at": "2026-01-07T23:26:48.883179",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "RUC_ID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "/US4G/DE_RUC_ID",
+        "domname": "",
+        "description": "Tarifanwendungsfall"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MP_OBIS_DD",
+    "description": "/US4G/I_MP_HEAD_TP /US4G/I_MP_OBIS_TP",
+    "extracted_at": "2026-01-07T23:29:03.062381",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "PARENT_KEY",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "ROOT_KEY",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "OBIS",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_VIRT",
+        "domname": "",
+        "description": "Kennzahl fuer virtuelles Zaehlwerk eines intelligenten Zaehlers"
+      },
+      {
+        "fieldname": "OBIS_BASE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_BASE",
+        "domname": "",
+        "description": "Kennzahl fuer Basiszaehlwerk eines intelligenten Zaehlers"
+      },
+      {
+        "fieldname": "RATE_TYPE",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "TARIFART",
+        "domname": "",
+        "description": "Tarifart"
+      },
+      {
+        "fieldname": "FACT_GROUP",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "KONDIGR",
+        "domname": "",
+        "description": "Tariffaktengruppe"
+      },
+      {
+        "fieldname": "RESPAR",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "E_MDUSRESPAR",
+        "domname": "",
+        "description": "Ergebnisparameter"
+      },
+      {
+        "fieldname": "BILL_NOT_REL",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_BILL_RELEVANCE",
+        "domname": "",
+        "description": "Zaehlwerk nicht abrechnungsrelevant"
+      },
+      {
+        "fieldname": "ISU_NOT_REL",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_ISU_RELEVANCE",
+        "domname": "",
+        "description": "Nicht IS-U-relevant (fuer OBIS)"
+      },
+      {
+        "fieldname": "MDM_NOT_REL",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_MDM_RELEVANCE",
+        "domname": "",
+        "description": "Nicht MDM-relevant (fuer OBIS)"
+      },
+      {
+        "fieldname": "GWA_NOT_REL",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_GWA_RELEVANCE",
+        "domname": "",
+        "description": "Nicht GWA-relevant (fuer OBIS)"
+      },
+      {
+        "fieldname": "READ_NOT_REL",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_READ_REG",
+        "domname": "",
+        "description": "Zaehlwerk nicht ablesen"
+      },
+      {
+        "fieldname": "SETTL_NOT_REL",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_SETTL_RELEVANCE",
+        "domname": "",
+        "description": "Zaehlwerk ist nicht bilanzierungsrelevant"
+      },
+      {
+        "fieldname": "OBIS_NO_RESET_MR",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_NO_RESET_MR",
+        "domname": "",
+        "description": "Zaehlerstaende bei Neuparametrierung beibehalten"
+      },
+      {
+        "fieldname": "ACTIVEUUID",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/UUID",
+        "domname": "",
+        "description": "Als Schluessel dienender UUID"
+      },
+      {
+        "fieldname": "HASACTIVEENTITY",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SDRAFT_HAS_ACTIVE",
+        "domname": "",
+        "description": "Entwurf - Kennzeichen - Hat aktives Dokument"
+      },
+      {
+        "fieldname": "DRAFTENTITYCREATIONDATETIME",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "SDRAFT_CREATED_AT",
+        "domname": "",
+        "description": "Entwurf angelegt am"
+      },
+      {
+        "fieldname": "DRAFTENTITYLASTCHANGEDATETIME",
+        "position": 20,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "SDRAFT_LAST_CHANGED_AT",
+        "domname": "",
+        "description": "Entwurf zuletzt geaendert am"
+      },
+      {
+        "fieldname": "DRAFTADMINISTRATIVEDATAUUID",
+        "position": 21,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "SDRAFT_ADMIN_UUID",
+        "domname": "",
+        "description": "Technische ID fuer Verwaltungsdaten eines Entwurfsdokuments"
+      },
+      {
+        "fieldname": "DRAFTENTITYCONSISTENCYSTATUS",
+        "position": 22,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SDRAFT_CONSISTENCY_STATUS",
+        "domname": "",
+        "description": "Entwurf - Konsistenzstatus"
+      },
+      {
+        "fieldname": "DRAFTENTITYOPERATIONCODE",
+        "position": 23,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SDRAFT_OPERATION_CODE",
+        "domname": "",
+        "description": "Entwurf - Befehlscode"
+      },
+      {
+        "fieldname": "MP_OBIS_EXTENDED",
+        "position": 24,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TABLE_EXTENDED",
+        "domname": "",
+        "description": "Tabelle erweitert"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MP_RUC_DD",
+    "description": "/US4G/I_MP_HEAD_TP /US4G/I_MP_RUC_TP",
+    "extracted_at": "2026-01-07T23:29:47.277653",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "PARENT_KEY",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "RUC_ID",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "/US4G/DE_RUC_ID",
+        "domname": "",
+        "description": "Tarifanwendungsfall"
+      },
+      {
+        "fieldname": "ITEM_DESCR",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 60,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MP_RUC_DESCR",
+        "domname": "",
+        "description": "Beschreibung der MP-TAF-Position"
+      },
+      {
+        "fieldname": "MEAS_PERIOD",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PERIOD_MEAS",
+        "domname": "",
+        "description": "Messperiode"
+      },
+      {
+        "fieldname": "REG_PERIOD",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PERIOD_REG",
+        "domname": "",
+        "description": "Registrierperiode"
+      },
+      {
+        "fieldname": "TR_PERIOD",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TRPERIOD",
+        "domname": "",
+        "description": "Versandintervall"
+      },
+      {
+        "fieldname": "MDUSIFACE",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "E_MDUSIFACE",
+        "domname": "",
+        "description": "Time-of-Use-Schnittstelle"
+      },
+      {
+        "fieldname": "ACTIVEUUID",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/UUID",
+        "domname": "",
+        "description": "Als Schluessel dienender UUID"
+      },
+      {
+        "fieldname": "HASACTIVEENTITY",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SDRAFT_HAS_ACTIVE",
+        "domname": "",
+        "description": "Entwurf - Kennzeichen - Hat aktives Dokument"
+      },
+      {
+        "fieldname": "DRAFTENTITYCREATIONDATETIME",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "SDRAFT_CREATED_AT",
+        "domname": "",
+        "description": "Entwurf angelegt am"
+      },
+      {
+        "fieldname": "DRAFTENTITYLASTCHANGEDATETIME",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "SDRAFT_LAST_CHANGED_AT",
+        "domname": "",
+        "description": "Entwurf zuletzt geaendert am"
+      },
+      {
+        "fieldname": "DRAFTADMINISTRATIVEDATAUUID",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "SDRAFT_ADMIN_UUID",
+        "domname": "",
+        "description": "Technische ID fuer Verwaltungsdaten eines Entwurfsdokuments"
+      },
+      {
+        "fieldname": "DRAFTENTITYCONSISTENCYSTATUS",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SDRAFT_CONSISTENCY_STATUS",
+        "domname": "",
+        "description": "Entwurf - Konsistenzstatus"
+      },
+      {
+        "fieldname": "DRAFTENTITYOPERATIONCODE",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SDRAFT_OPERATION_CODE",
+        "domname": "",
+        "description": "Entwurf - Befehlscode"
+      },
+      {
+        "fieldname": "MP_RUC_EXTENDED",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TABLE_EXTENDED",
+        "domname": "",
+        "description": "Tabelle erweitert"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MREDIREF",
+    "description": "EDI-Referenzen fuer Zaehlerstaende",
+    "extracted_at": "2026-01-07T23:30:44.540026",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "OBJECTKEY",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 30,
+        "decimals": 0,
+        "rollname": "OBJKEY",
+        "domname": "",
+        "description": "Objektschluessel"
+      },
+      {
+        "fieldname": "OBJECTTYPE",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBJECTTYPE",
+        "domname": "",
+        "description": "Objekttyp"
+      },
+      {
+        "fieldname": "SENDER_ID",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 20,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SERVPROV_EXT",
+        "domname": "",
+        "description": "Externe ID des Serviceanbieters"
+      },
+      {
+        "fieldname": "MR_REF_NO",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_REF_NO",
+        "domname": "",
+        "description": "Referenznummer von Messwerten"
+      },
+      {
+        "fieldname": "MSG_FILE_NO",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MSG_FILE_NO",
+        "domname": "",
+        "description": "Datenaustauschreferenz der Datei"
+      },
+      {
+        "fieldname": "AGI_REFERENCE_NO",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_AGI_REFERENCE_NO",
+        "domname": "",
+        "description": "AGI-Referenznummer - veraltet"
+      },
+      {
+        "fieldname": "MDMSG_REF_NO",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MDMSG_REF_NO",
+        "domname": "",
+        "description": "Referenznummer der Stammdatennachricht"
+      },
+      {
+        "fieldname": "REQMSG_REF_NO",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_REQMSG_REF_NO",
+        "domname": "",
+        "description": "Referenznummer der Anfragenachricht"
+      },
+      {
+        "fieldname": "RECIPIENT_ID",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 20,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SERVPROV_EXT",
+        "domname": "",
+        "description": "Externe ID des Serviceanbieters"
+      },
+      {
+        "fieldname": "COM_ACC_UUID",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/APE/DE_COM_ACC_UUID",
+        "domname": "",
+        "description": "Gemeinsame Zugriffsreferenz"
+      },
+      {
+        "fieldname": "REV_REF_NO",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_REV_REF_NO",
+        "domname": "",
+        "description": "Referenznummer Zaehlerstandsstorno"
+      },
+      {
+        "fieldname": "REV_MSG_FILE_NO",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_REV_MSG_FILE_NO",
+        "domname": "",
+        "description": "Datenaustauschreferenz der Datei, die Storno enthaelt"
+      },
+      {
+        "fieldname": "DIRECTION",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "E_DEXDIRECTION",
+        "domname": "",
+        "description": "Richtung des Datenaustausches"
+      },
+      {
+        "fieldname": "EXT_UI",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 50,
+        "decimals": 0,
+        "rollname": "EXT_UI",
+        "domname": "",
+        "description": "Zaehlpunktbezeichnung"
+      },
+      {
+        "fieldname": "IS_ACKNOWLEDGED",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_POS_CONTRL_ACK",
+        "domname": "",
+        "description": "Positive CONTRL-Nachricht empfangen"
+      },
+      {
+        "fieldname": "TRANSFER_TIMESTAMP",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "/US4G/TRANSFER_TIMESTAMP",
+        "domname": "",
+        "description": "Zeitstempel der Uebertragung"
+      },
+      {
+        "fieldname": "MSG_DATE_TIME",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "/US4G/DE_MSG_DATE_TIME",
+        "domname": "",
+        "description": "NachrDatum/-uhrz."
+      },
+      {
+        "fieldname": "IS_MMT_ACKNOWLEDGED",
+        "position": 20,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_IS_MMT_ACKNOWLEDGED",
+        "domname": "",
+        "description": "MMT bestaetigt"
+      },
+      {
+        "fieldname": "FINAL_STATE",
+        "position": 21,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_FINAL_STATE",
+        "domname": "",
+        "description": "Status der letzten MSCONS"
+      },
+      {
+        "fieldname": "FINAL_STATE_TIMESTAMP",
+        "position": 22,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "/US4G/DE_FINAL_STATE_TIMESTAMP",
+        "domname": "",
+        "description": "Uhrzeit, zu der Cloud den finalen Status empfangen hat"
+      },
+      {
+        "fieldname": "RESULT_TEXT",
+        "position": 23,
+        "keyflag": "",
+        "datatype": "SSTRING",
+        "length": 1333,
+        "decimals": 0,
+        "rollname": "/US4G/DE_RESULT_TEXT",
+        "domname": "",
+        "description": "Grund fuer den letzten MSCONS-Status"
+      },
+      {
+        "fieldname": "REV_IS_ACKNOWLEDGED",
+        "position": 24,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_REV_IS_ACKNOWLEDGED",
+        "domname": "",
+        "description": "Positive CONTRL fuer Stornonachricht empfangen"
+      },
+      {
+        "fieldname": "REV_TRANSFER_TIMESTAMP",
+        "position": 25,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "/US4G/DE_REV_TRANSF_TIMESTAMP",
+        "domname": "",
+        "description": "Uebertragungszeitstempel der Stornierung"
+      },
+      {
+        "fieldname": "REV_IS_MMT_ACKNOWLEDGED",
+        "position": 26,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_REV_IS_MMT_ACKNOW",
+        "domname": "",
+        "description": "Stornierung MMT bestaetigt"
+      },
+      {
+        "fieldname": "REV_FINAL_STATE",
+        "position": 27,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_REV_FINAL_STATE",
+        "domname": "",
+        "description": "Finaler Stornierungsstatus"
+      },
+      {
+        "fieldname": "REV_FINAL_STATE_TIMESTAMP",
+        "position": 28,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 21,
+        "decimals": 7,
+        "rollname": "/US4G/DE_REV_FINAL_STATE_TS",
+        "domname": "",
+        "description": "Zeitstempel fuer Empfang von finalem StornStatus durch Cloud"
+      },
+      {
+        "fieldname": "REV_RESULT_TEXT",
+        "position": 29,
+        "keyflag": "",
+        "datatype": "SSTRING",
+        "length": 1333,
+        "decimals": 0,
+        "rollname": "/US4G/DE_REV_RESULT_TEXT",
+        "domname": "",
+        "description": "Text zum Stornierungsergebnis"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MREDI_ST",
+    "description": "Wertetab. fuer finalen Status der EDI-Ref. fuer Zaehlerstand",
+    "extracted_at": "2026-01-07T23:31:21.094834",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "FINAL_STATE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_FINAL_STATE",
+        "domname": "",
+        "description": "Status der letzten MSCONS"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MREDI_STT",
+    "description": "Wertetab. fuer finalen Status der EDI-Ref. fuer Zaehlerstand",
+    "extracted_at": "2026-01-07T23:31:54.329472",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "FINAL_STATE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_FINAL_STATE",
+        "domname": "",
+        "description": "Status der letzten MSCONS"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschluessel"
+      },
+      {
+        "fieldname": "FINAL_STATE_TEXT",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 60,
+        "decimals": 0,
+        "rollname": "/US4G/DE_FINAL_STATE_TEXT",
+        "domname": "",
+        "description": "Text des finalen Status der EDI-Referenzen fuer Zaehlerstand"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MRGASF",
+    "description": "Zuordnen von Gasfaktor zu Ablesebeleg aktivieren",
+    "extracted_at": "2026-01-07T23:34:05.611347",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "MRGASF_ACTIVE",
+        "position": 2,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MRGASF_ACTIVE",
+        "domname": "",
+        "description": "Zuordnen von Gasfaktor zu Ablesebeleg aktivieren"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MROBJ_STS",
+    "description": "Statuszusatzinformationen fuer Ableseobjekt",
+    "extracted_at": "2026-01-07T23:34:51.825750",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "OBJECTKEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 30,
+        "decimals": 0,
+        "rollname": "OBJKEY",
+        "domname": "",
+        "description": "Objektschluessel"
+      },
+      {
+        "fieldname": "OBJECTTYPE",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "SWO_OBJTYP",
+        "domname": "",
+        "description": "Objekttyp"
+      },
+      {
+        "fieldname": "MR_STS_COUNTER",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MSCONS_STS_COUNT",
+        "domname": "",
+        "description": "Zaehler fuer Statuszusatzinformationen"
+      },
+      {
+        "fieldname": "MR_STATUS_TYPE",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_STATUS_TYPE",
+        "domname": "",
+        "description": "Art des Ablesestatus"
+      },
+      {
+        "fieldname": "STATUS_CAT_CODE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_STATUS_CAT_CODE",
+        "domname": "",
+        "description": "Statuskategorie-Code"
+      },
+      {
+        "fieldname": "MR_STATUS_INFO",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_STATUS_INFO",
+        "domname": "",
+        "description": "Informationen zum Ablesestatus"
+      },
+      {
+        "fieldname": "ARCHIVED",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ARCHIVE_FLAG",
+        "domname": "",
+        "description": "Archivkennzeichen"
+      },
+      {
+        "fieldname": "CR_DATE",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ERDAT",
+        "domname": "",
+        "description": "Datum, an dem der Satz hinzugefuegt wurde"
+      },
+      {
+        "fieldname": "CR_TIME",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "ERZET",
+        "domname": "",
+        "description": "Erfassungszeit"
+      },
+      {
+        "fieldname": "CR_NAME",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "ERNAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt hinzugefuegt hat"
+      },
+      {
+        "fieldname": "CH_DATE",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "AEDAT",
+        "domname": "",
+        "description": "Datum der letzten Aenderung"
+      },
+      {
+        "fieldname": "CH_TIME",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "AEZET",
+        "domname": "",
+        "description": "Zeitpunkt der letzten Aenderung"
+      },
+      {
+        "fieldname": "CH_NAME",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "AENAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt geaendert hat"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MRREASON_T",
+    "description": "Text zum Ablesegrund",
+    "extracted_at": "2026-01-07T23:35:35.925375",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschluessel"
+      },
+      {
+        "fieldname": "ABLESGR",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "ABLESGR",
+        "domname": "",
+        "description": "Ablesegrund"
+      },
+      {
+        "fieldname": "TEXT40",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "TEXT40",
+        "domname": "",
+        "description": "Text in der Laenge 40"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MRRSN_MAP",
+    "description": "Mapping-Tabelle fuer Ablesegrund: IS-UT auf GDV",
+    "extracted_at": "2026-01-07T23:36:08.496283",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "ABLESGR",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "ABLESGR",
+        "domname": "",
+        "description": "Ablesegrund"
+      },
+      {
+        "fieldname": "UBD_MR_REASON",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_REASON",
+        "domname": "",
+        "description": "GDV: Ablesegrund"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MRT_ADDSTS",
+    "description": "Mapping-Tabelle fuer Ablesetyp und Statuszusatzinformation",
+    "extracted_at": "2026-01-07T23:37:11.072451",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "MR_CATEGORY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_CATEGORY",
+        "domname": "",
+        "description": "Ablesetyp"
+      },
+      {
+        "fieldname": "MR_TYPE",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "ISTABLART",
+        "domname": "",
+        "description": "Ableseart"
+      },
+      {
+        "fieldname": "DIV_CAT",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTYP",
+        "domname": "",
+        "description": "Spartentyp"
+      },
+      {
+        "fieldname": "COUNTER",
+        "position": 5,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ADDSTS_COUNTER",
+        "domname": "",
+        "description": "Zaehler fuer Statuszusatzinformationen"
+      },
+      {
+        "fieldname": "STATUS_CAT_CODE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_STATUS_CAT_CODE",
+        "domname": "",
+        "description": "Statuskategorie-Code"
+      },
+      {
+        "fieldname": "ADDSTATUSID",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_STATUS_INFO",
+        "domname": "",
+        "description": "Informationen zum Ablesestatus"
+      },
+      {
+        "fieldname": "DIRECTION",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/UCOM/DE_DEXDIRECTION",
+        "domname": "",
+        "description": "Richtung des DA-Prozesses"
+      },
+      {
+        "fieldname": "SENDER_INTCODE",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "INTCODE",
+        "domname": "",
+        "description": "Servicetyp"
+      },
+      {
+        "fieldname": "DEFAULT_RECORD",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ADDSTS_DEFAULT",
+        "domname": "",
+        "description": "Standardsatz fuer Statuszusatzinformationen"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MRU_MAP",
+    "description": "Zuordnungstabelle fuer Ableseeinheit",
+    "extracted_at": "2026-01-07T23:38:41.489794",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "AKLASSE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "AKLASSE",
+        "domname": "",
+        "description": "Abrechnungsklasse"
+      },
+      {
+        "fieldname": "GRID_ID",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "GRID_ID",
+        "domname": "",
+        "description": "Netz"
+      },
+      {
+        "fieldname": "PERIOD_LENGTH",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_PERIOD_LENGTH",
+        "domname": "",
+        "description": "Laenge der Ableseperiode"
+      },
+      {
+        "fieldname": "DATE_FROM",
+        "position": 5,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DATE_FROM_MMDD",
+        "domname": "",
+        "description": "Beginndatum im Format MMDD"
+      },
+      {
+        "fieldname": "DATE_TO",
+        "position": 6,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DATE_TO_MMDD",
+        "domname": "",
+        "description": "Endedatum im Format MMDD"
+      },
+      {
+        "fieldname": "ABLEINH",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ABLEINHEIT",
+        "domname": "",
+        "description": "Ableseeinheit"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MRVOBJREF",
+    "description": "Ablesewert-Objektreferenzen",
+    "extracted_at": "2026-01-07T23:47:08.203148",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_MRVOBJREF",
+        "domname": "",
+        "description": "Ablesewert-Objektreferenz - Datenteil DATA"
+      },
+      {
+        "fieldname": "OBJECTKEY",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 30,
+        "decimals": 0,
+        "rollname": "OBJKEY",
+        "domname": "",
+        "description": "Objektschlüssel"
+      },
+      {
+        "fieldname": "OBJECTTYPE",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBJECTTYPE",
+        "domname": "",
+        "description": "Objekttyp"
+      },
+      {
+        "fieldname": "BO_DB_KEY",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_MRVOBJREF_NO_KEY",
+        "domname": "",
+        "description": "Ablesewert-Objektreferenzspeicher - Nicht-Schlüsseldaten"
+      },
+      {
+        "fieldname": "DOC_CATEGORY",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DOC_CATEGORY",
+        "domname": "",
+        "description": "Dokumenttyp"
+      },
+      {
+        "fieldname": "COM_ACC_UUID",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/APE/DE_COM_ACC_UUID",
+        "domname": "",
+        "description": "Gemeinsame Zugriffsreferenz"
+      },
+      {
+        "fieldname": "BO_DB_KEY_PREDEC",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "DIRECTION",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "E_DEXDIRECTION",
+        "domname": "",
+        "description": "Richtung des Datenaustausches"
+      },
+      {
+        "fieldname": "EXT_UI",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 50,
+        "decimals": 0,
+        "rollname": "EXT_UI",
+        "domname": "",
+        "description": "Zählpunktbezeichnung"
+      },
+      {
+        "fieldname": "MR_MODE",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MODE",
+        "domname": "",
+        "description": "Sendemodus von Messwerten"
+      },
+      {
+        "fieldname": "CONFIGURATION_ID",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_CONFIGURATION_ID",
+        "domname": "",
+        "description": "Konfig.-ID für Tarifanwendungsfall f. intelligente Messungen"
+      },
+      {
+        "fieldname": "KEY_DATE",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_KEY_DATE",
+        "domname": "",
+        "description": "Stichtag"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "EEDMDATEFROM",
+        "domname": "",
+        "description": "Struktur für Ab-Datum FROM"
+      },
+      {
+        "fieldname": "DATEFROM",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "E_EDMDATEFROM",
+        "domname": "",
+        "description": "Ab-Datum"
+      },
+      {
+        "fieldname": "TIMEFROM",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "E_EDMTIMEFROM",
+        "domname": "",
+        "description": "Ab-Zeit"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "EEDMDATETO",
+        "domname": "",
+        "description": "Struktur für Bis-Datum TO"
+      },
+      {
+        "fieldname": "DATETO",
+        "position": 20,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "E_EDMDATETO",
+        "domname": "",
+        "description": "Bis-Datum"
+      },
+      {
+        "fieldname": "TIMETO",
+        "position": 21,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "E_EDMTIMETO",
+        "domname": "",
+        "description": "Bis-Zeit"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 22,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/BOFU/S_ADMIN_DATA",
+        "domname": "",
+        "description": "Verwaltungsdaten ADMIN_INFO"
+      },
+      {
+        "fieldname": "CREATED_BY",
+        "position": 23,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOFU/USER_ID_CREATED_BY",
+        "domname": "",
+        "description": "Angelegt von"
+      },
+      {
+        "fieldname": "CREATED_ON",
+        "position": 24,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/BOFU/TSTMP_CREATION_TIME",
+        "domname": "",
+        "description": "Angelegt am"
+      },
+      {
+        "fieldname": "CHANGED_BY",
+        "position": 25,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOFU/USER_ID_CHANGED_BY",
+        "domname": "",
+        "description": "Geändert von"
+      },
+      {
+        "fieldname": "CHANGED_ON",
+        "position": 26,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/BOFU/TSTMP_CHANGED_TIME",
+        "domname": "",
+        "description": "Geändert am"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MRV_RCTP_T",
+    "description": "Beschreibung der Erfassungsart für Ablesewerte",
+    "extracted_at": "2026-01-07T23:48:00.870212",
+    "fields": [
+      {
+        "fieldname": "EXT_REC_TYP",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EXT_REC_TYP",
+        "domname": "",
+        "description": "BDEW-Erfassungsart für Ablesewerte"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschlüssel"
+      },
+      {
+        "fieldname": "EXT_REC_TYP_TXT",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 60,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EXT_REC_TYP_TXT",
+        "domname": "",
+        "description": "Beschreibung der BDEW-Erfassungsart für Ablesewerte"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MRV_RECTY",
+    "description": "Erfassungsart für Ablesewerte",
+    "extracted_at": "2026-01-07T23:48:57.154742",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "EXT_REC_TYP",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EXT_REC_TYP",
+        "domname": "",
+        "description": "BDEW-Erfassungsart für Ablesewerte"
+      }
+    ]
+  }
+]
