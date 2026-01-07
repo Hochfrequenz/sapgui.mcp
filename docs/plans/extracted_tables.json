@@ -4713,5 +4713,1140 @@
         "description": "BDEW-Erfassungsart für Ablesewerte"
       }
     ]
+  },
+  {
+    "tabname": "/US4G/MRV_RECTYP",
+    "description": "Erfassungsart für Ablesewerte",
+    "extracted_at": "2026-01-07T23:51:18.394598",
+    "fields": [
+      {
+        "fieldname": "EXT_REC_TYP",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EXT_REC_TYP",
+        "domname": "",
+        "description": "BDEW-Erfassungsart für Ablesewerte"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MRV_RETY_T",
+    "description": "Beschreibung der Erfassungsart für Ablesewerte",
+    "extracted_at": "2026-01-07T23:52:22.664252",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "EXT_REC_TYP",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EXT_REC_TYP",
+        "domname": "",
+        "description": "BDEW-Erfassungsart für Ablesewerte"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschlüssel"
+      },
+      {
+        "fieldname": "EXT_REC_TYP_TXT",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 60,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EXT_REC_TYP_TXT",
+        "domname": "",
+        "description": "Beschreibung der BDEW-Erfassungsart für Ablesewerte"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_ADDSTS",
+    "description": "Wertetabelle für Statuszusatzinformation zum Zählerstand",
+    "extracted_at": "2026-01-07T23:53:12.414901",
+    "fields": [
+      {
+        "fieldname": "ADDSTS_INFO",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_STATUS_INFO",
+        "domname": "",
+        "description": "Informationen zum Ablesestatus"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_ADDSTT",
+    "description": "Texttabelle für Statuszusatzinformation zum Zählerstand",
+    "extracted_at": "2026-01-07T23:54:14.178218",
+    "fields": [
+      {
+        "fieldname": "ADDSTS_INFO",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_STATUS_INFO",
+        "domname": "",
+        "description": "Informationen zum Ablesestatus"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschlüssel"
+      },
+      {
+        "fieldname": "ADDSTS_INFO_TEXT",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 80,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_STATUS_INFO_TEXT",
+        "domname": "",
+        "description": "Beschreibung der Statuszusatzinformationen zur Ablesung"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_CAT",
+    "description": "Wertetabelle für Ablesetyp",
+    "extracted_at": "2026-01-07T23:55:15.079316",
+    "fields": [
+      {
+        "fieldname": "MR_CATEGORY",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_CATEGORY",
+        "domname": "",
+        "description": "Ablesetyp"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_CATT",
+    "description": "Texttabelle für Ablesetyp",
+    "extracted_at": "2026-01-07T23:56:14.392199",
+    "fields": [
+      {
+        "fieldname": "MR_CATEGORY",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_CATEGORY",
+        "domname": "",
+        "description": "Ablesetyp"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschlüssel"
+      },
+      {
+        "fieldname": "MR_CATEGORY_TEXT",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 80,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_CATEGORY_TEXT",
+        "domname": "",
+        "description": "Beschreibung für Ablesetyp"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_EXCEP",
+    "description": "Ausnahmen pflegen (nicht in Produktivsystem verwenden)",
+    "extracted_at": "2026-01-07T23:57:34.008864",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "EXT_UI",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 50,
+        "decimals": 0,
+        "rollname": "EXT_UI",
+        "domname": "",
+        "description": "Zählpunktbezeichnung"
+      },
+      {
+        "fieldname": "DATE_TO",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DATE_TO",
+        "domname": "",
+        "description": "Enddatum"
+      },
+      {
+        "fieldname": "DATE_FROM",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DATE_FROM",
+        "domname": "",
+        "description": "Startdatum"
+      },
+      {
+        "fieldname": "ACTIVE",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ACTIVE",
+        "domname": "",
+        "description": "Aktiv"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_MRP_ACT",
+    "description": "Zuordnung von MRP-Attributen zu Aktionsattributen",
+    "extracted_at": "2026-01-07T23:59:36.810813",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "MR_MRP_ATT_EX",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_ATT_EX",
+        "domname": "",
+        "description": "Vorhandenes Zählerstands-Attribut"
+      },
+      {
+        "fieldname": "MR_MRP_ATT_INB",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_ATT_INB",
+        "domname": "",
+        "description": "Eingehendes Zählerstands-Attribut"
+      },
+      {
+        "fieldname": "MR_MRP_ATT_ACT",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_ATT_ACT",
+        "domname": "",
+        "description": "Zählerstands-Aktionsattribut"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_MRP_AGD",
+    "description": "Aktionsgruppenermittlung",
+    "extracted_at": "2026-01-08T00:01:25.776880",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "ACTION_GR",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_AC_GR",
+        "domname": "",
+        "description": "Verarbeitung von Zählerständen (MRP): Aktionsgruppe"
+      },
+      {
+        "fieldname": "ATTR_CSO",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_CSO",
+        "domname": "",
+        "description": "Reihenfolge der Ableseschritte"
+      },
+      {
+        "fieldname": "ATT_OPERATOR",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_ATT_OP",
+        "domname": "",
+        "description": "Verarbeitung von Zählerständen (MRP): Attributoperator"
+      },
+      {
+        "fieldname": "MRP_ATTR",
+        "position": 5,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_ATT",
+        "domname": "",
+        "description": "Ableseattribut"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_MRP_AGR",
+    "description": "MRP-Aktionsgruppen",
+    "extracted_at": "2026-01-08T00:02:41.933850",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "ACTION_GR",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_AC_GR",
+        "domname": "",
+        "description": "Verarbeitung von Zählerständen (MRP): Aktionsgruppe"
+      },
+      {
+        "fieldname": "AC_EXEC_ORDER",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_CSO",
+        "domname": "",
+        "description": "Reihenfolge der Ableseschritte"
+      },
+      {
+        "fieldname": "CLSNAME",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 61,
+        "decimals": 0,
+        "rollname": "SEOCPDNAME",
+        "domname": "",
+        "description": "Vollständiger Komponentenname"
+      },
+      {
+        "fieldname": "METHOD",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 30,
+        "decimals": 0,
+        "rollname": "EIDESWTCHECKMETH",
+        "domname": "",
+        "description": "Methode für die Implementierung der Prüfung"
+      },
+      {
+        "fieldname": "AC_DESC",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "TEXT40",
+        "domname": "",
+        "description": "Text in der Länge 40"
+      },
+      {
+        "fieldname": "MRP_PARAM",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MRP_PARAM",
+        "domname": "",
+        "description": "Ableseparameterwert"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_MRP_ATT",
+    "description": "MRP-Attribute",
+    "extracted_at": "2026-01-08T00:03:46.643342",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "MRP_ATT",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_ATT",
+        "domname": "",
+        "description": "Ableseattribut"
+      },
+      {
+        "fieldname": "MRP_ATT_T",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 30,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_ATT_T",
+        "domname": "",
+        "description": "Beschreibung Ableseattribut"
+      },
+      {
+        "fieldname": "MRP_ATT_TYPE",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_ATT_TYPE",
+        "domname": "",
+        "description": "Zählerstands-Attributart"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_MRP_EXR",
+    "description": "Mapping für vorhandenen Zählerstand",
+    "extracted_at": "2026-01-08T00:04:47.439504",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "ABLESGR",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "ABLESGR",
+        "domname": "",
+        "description": "Ablesegrund"
+      },
+      {
+        "fieldname": "MR_TYPE",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "ISTABLART",
+        "domname": "",
+        "description": "Ableseart"
+      },
+      {
+        "fieldname": "DIV_CAT",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTYP",
+        "domname": "",
+        "description": "Spartentyp"
+      },
+      {
+        "fieldname": "MRP_ATT",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_ATT",
+        "domname": "",
+        "description": "Ableseattribut"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_MRP_IBR",
+    "description": "Mapping für eingehenden Zählerstand",
+    "extracted_at": "2026-01-08T00:06:32.823242",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "SOURCE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_SOU",
+        "domname": "",
+        "description": "Quelle des eingehenden Zählerstands"
+      },
+      {
+        "fieldname": "SENDER_R",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "SERCODE",
+        "domname": "",
+        "description": "Serviceart"
+      },
+      {
+        "fieldname": "SENDER_ID",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 20,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SERVPROV_EXT",
+        "domname": "",
+        "description": "Externe ID des Serviceanbieters"
+      },
+      {
+        "fieldname": "ABLESGR",
+        "position": 5,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "ABLESGR",
+        "domname": "",
+        "description": "Ablesegrund"
+      },
+      {
+        "fieldname": "MR_TYPE",
+        "position": 6,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "ISTABLART",
+        "domname": "",
+        "description": "Ableseart"
+      },
+      {
+        "fieldname": "DIV_CAT",
+        "position": 7,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTYP",
+        "domname": "",
+        "description": "Spartentyp"
+      },
+      {
+        "fieldname": "PROC_ID",
+        "position": 8,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/APE/DE_PROC_ID",
+        "domname": "",
+        "description": "Prozess-ID"
+      },
+      {
+        "fieldname": "MRP_ATT",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_ATT",
+        "domname": "",
+        "description": "Ableseattribut"
+      },
+      {
+        "fieldname": "MR_INTERVAL",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_INTERV",
+        "domname": "",
+        "description": "MRP-Suchintervall"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_MRP_MMP",
+    "description": "MRP-Methoden-Mapping",
+    "extracted_at": "2026-01-08T00:08:09.874995",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "SOURCE",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_SOU",
+        "domname": "",
+        "description": "Quelle des eingehenden Zählerstands"
+      },
+      {
+        "fieldname": "CLSNAME",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 61,
+        "decimals": 0,
+        "rollname": "SEOCPDNAME",
+        "domname": "",
+        "description": "Vollständiger Komponentenname"
+      },
+      {
+        "fieldname": "MRP_ATT",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_ATT",
+        "domname": "",
+        "description": "Ableseattribut"
+      },
+      {
+        "fieldname": "MRP_AN_CSO",
+        "position": 5,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_CSO",
+        "domname": "",
+        "description": "Reihenfolge der Ableseschritte"
+      },
+      {
+        "fieldname": "PROC_ID",
+        "position": 6,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/APE/DE_PROC_ID",
+        "domname": "",
+        "description": "Prozess-ID"
+      },
+      {
+        "fieldname": "MRP_ATT_METHOD",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 30,
+        "decimals": 0,
+        "rollname": "EIDESWTCHECKMETH",
+        "domname": "",
+        "description": "Methode für die Implementierung der Prüfung"
+      },
+      {
+        "fieldname": "MRP_ATT_SIGN",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_MRP_SIGN",
+        "domname": "",
+        "description": "Wahr oder Falsch je nach Methode"
+      },
+      {
+        "fieldname": "MRP_PARAM",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MRP_PARAM",
+        "domname": "",
+        "description": "Ableseparameterwert"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_MRP_MSH",
+    "description": "Schattentabelle für Zählerstände",
+    "extracted_at": "2026-01-08T00:09:52.644782",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "MR_REF_NO",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_REF_NO",
+        "domname": "",
+        "description": "Referenznummer von Messwerten"
+      },
+      {
+        "fieldname": "MSG_FILE_NO",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MSG_FILENO",
+        "domname": "",
+        "description": "Nummer der Nachrichtendatei"
+      },
+      {
+        "fieldname": "COM_ACC_UUID",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_COM_ACC_UUID",
+        "domname": "",
+        "description": "Gemeinsame Zugriffsreferenz"
+      },
+      {
+        "fieldname": "SENDER_ID",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 20,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SERVPROV_EXT",
+        "domname": "",
+        "description": "Externe ID des Serviceanbieters"
+      },
+      {
+        "fieldname": "RECIPIENT_ID",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 20,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SERVPROV_EXT",
+        "domname": "",
+        "description": "Externe ID des Serviceanbieters"
+      },
+      {
+        "fieldname": "INT_UI",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 22,
+        "decimals": 0,
+        "rollname": "INT_UI",
+        "domname": "",
+        "description": "Interner Schlüssel des Zählpunkts"
+      },
+      {
+        "fieldname": "EXT_UI",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 50,
+        "decimals": 0,
+        "rollname": "EXT_UI",
+        "domname": "",
+        "description": "Zählpunktbezeichnung"
+      },
+      {
+        "fieldname": "SERIALNR",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "GERAET",
+        "domname": "",
+        "description": "Gerät"
+      },
+      {
+        "fieldname": "OBIS",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 35,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBIS_CODE",
+        "domname": "",
+        "description": "OBIS-Kennzahl (Kennziffer)"
+      },
+      {
+        "fieldname": "READINGRESULT",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 32,
+        "decimals": 0,
+        "rollname": "READINGRESULT",
+        "domname": "",
+        "description": "Abgelesener Zählerstand"
+      },
+      {
+        "fieldname": "V_ZWSTAND",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 17,
+        "decimals": 0,
+        "rollname": "V_ZWSTAND",
+        "domname": "",
+        "description": "Vorkommastellen des abgelesenen Zählerstands"
+      },
+      {
+        "fieldname": "N_ZWSTAND",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 14,
+        "decimals": 14,
+        "rollname": "N_ZWSTAND",
+        "domname": "",
+        "description": "Nachkommastellen des abgelesenen Zählerstands"
+      },
+      {
+        "fieldname": "ADAT",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ADAT",
+        "domname": "",
+        "description": "Abrechnungsrelevantes Ablesedatum"
+      },
+      {
+        "fieldname": "MR_CATEGORY",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 40,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_CATEGORY",
+        "domname": "",
+        "description": "Ablesetyp"
+      },
+      {
+        "fieldname": "STS_INFO",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 256,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_STS_MERGED",
+        "domname": "",
+        "description": "Zusammengeführte Informationen aus STS"
+      },
+      {
+        "fieldname": "ISTABLART",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "ISTABLART",
+        "domname": "",
+        "description": "Ableseart"
+      },
+      {
+        "fieldname": "ABLBELNR",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 20,
+        "decimals": 0,
+        "rollname": "ABLBELNR",
+        "domname": "",
+        "description": "Interne ID des Ablesebelegs"
+      },
+      {
+        "fieldname": "ABLESGR",
+        "position": 20,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "ABLESGR",
+        "domname": "",
+        "description": "Ablesegrund"
+      },
+      {
+        "fieldname": "VCORRFAC",
+        "position": 21,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 17,
+        "decimals": 12,
+        "rollname": "GASFACTOR",
+        "domname": "",
+        "description": "Umrechnungsfaktor für Gas"
+      },
+      {
+        "fieldname": "CALORIFICVAL",
+        "position": 22,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 17,
+        "decimals": 12,
+        "rollname": "GASFACTOR",
+        "domname": "",
+        "description": "Umrechnungsfaktor für Gas"
+      },
+      {
+        "fieldname": "DATEFROM",
+        "position": 23,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DATEFROM",
+        "domname": "",
+        "description": "Beginndatum"
+      },
+      {
+        "fieldname": "DATETO",
+        "position": 24,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DATETO",
+        "domname": "",
+        "description": "Endedatum"
+      },
+      {
+        "fieldname": "REVERSED",
+        "position": 25,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/FLAG",
+        "domname": "",
+        "description": "Kennzeichen Allgemein"
+      },
+      {
+        "fieldname": "REV_REF_NO",
+        "position": 26,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_MR_REV_REF_NO",
+        "domname": "",
+        "description": "Referenznummer Zählerstandsstorno"
+      },
+      {
+        "fieldname": "REV_MSG_FILE_NO",
+        "position": 27,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_REV_MSG_FILENO",
+        "domname": "",
+        "description": "Nummer des Nachrichtendateistornos"
+      },
+      {
+        "fieldname": "CREATED_BY",
+        "position": 28,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOFU/USER_ID_CREATED_BY",
+        "domname": "",
+        "description": "Angelegt von"
+      },
+      {
+        "fieldname": "CREATED_ON",
+        "position": 29,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/BOFU/TSTMP_CREATION_TIME",
+        "domname": "",
+        "description": "Angelegt am"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/MR_REASON",
+    "description": "In der Geräteaktion zu ignorierende Ablesegründe",
+    "extracted_at": "2026-01-08T00:10:48.742301",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "ABLESGR",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "ABLESGR",
+        "domname": "",
+        "description": "Ablesegrund"
+      }
+    ]
   }
 ]

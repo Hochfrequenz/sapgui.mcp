@@ -44,7 +44,23 @@
     "/US4G/MRU_MAP",
     "/US4G/MRVOBJREF",
     "/US4G/MRV_RCTP_T",
-    "/US4G/MRV_RECTY"
+    "/US4G/MRV_RECTY",
+    "/US4G/MRV_RECTYP",
+    "/US4G/MRV_RETY_T",
+    "/US4G/MR_ADDSTS",
+    "/US4G/MR_ADDSTT",
+    "/US4G/MR_CAT",
+    "/US4G/MR_CATT",
+    "/US4G/MR_EXCEP",
+    "/US4G/MR_MRP_ACT",
+    "/US4G/MR_MRP_AGD",
+    "/US4G/MR_MRP_AGR",
+    "/US4G/MR_MRP_ATT",
+    "/US4G/MR_MRP_EXR",
+    "/US4G/MR_MRP_IBR",
+    "/US4G/MR_MRP_MMP",
+    "/US4G/MR_MRP_MSH",
+    "/US4G/MR_REASON"
   ],
   "tables_failed": [
     "/US4G/MP_ASE_NAM"
@@ -52,5 +68,5 @@
   "transactions_completed": [],
   "transactions_failed": [],
   "current_batch": null,
-  "last_updated": "2026-01-07T23:48:57.164810"
+  "last_updated": "2026-01-08T00:10:48.745726"
 }
