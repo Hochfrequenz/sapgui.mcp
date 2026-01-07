@@ -1,0 +1,163 @@
+{
+  "meta": {
+    "extraktionsdatum": "2026-01-07",
+    "quelle": "SAP SE93 - Transaktionspflege",
+    "system": "S4U (100)",
+    "sprache": "DE",
+    "beschreibung": "IS-U / FI-CA Transaktionscodes"
+  },
+  "zusammenfassung": {
+    "geprueft": 14,
+    "vorhanden": 10,
+    "nicht_vorhanden": 4
+  },
+  "transaktionen": {
+    "installation": [
+      {
+        "tcode": "ES31",
+        "titel": "Anlage aendern",
+        "programm": "SAPLES30",
+        "dynpro": "110",
+        "paket": "EE01",
+        "status": "vorhanden"
+      },
+      {
+        "tcode": "ES32",
+        "titel": "Anlage anzeigen",
+        "programm": "SAPLES30",
+        "dynpro": "110",
+        "paket": "EE01",
+        "status": "vorhanden"
+      }
+    ],
+    "tariff": [
+      {
+        "tcode": "EC30",
+        "titel": "Tarifdaten pflegen",
+        "programm": "SAPLEC30",
+        "dynpro": "100",
+        "paket": "EE05",
+        "status": "vorhanden"
+      }
+    ],
+    "move_in_out": [
+      {
+        "tcode": "EC50",
+        "titel": "Einzugsbeleg anlegen",
+        "programm": "SAPLEC50",
+        "dynpro": "100",
+        "paket": "EE06",
+        "status": "vorhanden"
+      }
+    ],
+    "order": [
+      {
+        "tcode": "EL01",
+        "titel": "Auftragserstellung ausfuehren",
+        "programm": "SAPLEL01",
+        "dynpro": "100",
+        "paket": "EE16",
+        "status": "vorhanden"
+      }
+    ],
+    "billing": [
+      {
+        "tcode": "EA00",
+        "titel": "Test-Abrechnung eines Vertrages",
+        "programm": "SAPLEA02",
+        "dynpro": "100",
+        "paket": "EE20",
+        "status": "vorhanden"
+      }
+    ],
+    "device": [
+      {
+        "tcode": "EG31",
+        "titel": "Einbau gesamt",
+        "programm": "SAPLE30D",
+        "dynpro": "100",
+        "paket": "EE07",
+        "status": "vorhanden"
+      }
+    ],
+    "fica_account": [
+      {
+        "tcode": "FPL9",
+        "titel": "Kontenstand",
+        "programm": "SAPMFKL9",
+        "dynpro": "100",
+        "paket": "FKK_ACCBAL",
+        "status": "vorhanden",
+        "hinweis": "Zeigt Kontenstand/offene Posten an"
+      },
+      {
+        "tcode": "FP02",
+        "titel": null,
+        "programm": null,
+        "status": "nicht_vorhanden",
+        "hinweis": "Transaktionscode nicht angelegt in diesem System"
+      }
+    ],
+    "fica_collection": [
+      {
+        "tcode": "FP03",
+        "titel": "Inkassopositionen bearbeiten",
+        "programm": "SAPLFKA6",
+        "dynpro": "200",
+        "paket": "FKK_COLL_AGENCY",
+        "status": "vorhanden"
+      }
+    ],
+    "fica_dunning": [
+      {
+        "tcode": "FPVA",
+        "titel": "Mahnvorschlag",
+        "programm": "SAPLFKKAKTIV2",
+        "dynpro": "999",
+        "paket": "FKK_DUNNING",
+        "status": "vorhanden"
+      },
+      {
+        "tcode": "FPM1",
+        "titel": null,
+        "programm": null,
+        "status": "nicht_vorhanden",
+        "hinweis": "Transaktionscode nicht angelegt in diesem System"
+      }
+    ],
+    "market_communication": [
+      {
+        "tcode": "/IDXGC/MM01",
+        "titel": null,
+        "programm": null,
+        "status": "nicht_vorhanden",
+        "hinweis": "Marktkommunikation evtl. nicht installiert"
+      },
+      {
+        "tcode": "/IDXGC/GP01",
+        "titel": null,
+        "programm": null,
+        "status": "nicht_vorhanden",
+        "hinweis": "Marktkommunikation evtl. nicht installiert"
+      }
+    ]
+  },
+  "weitere_relevante_tcodes": {
+    "hinweis": "Diese wurden noch nicht verifiziert",
+    "zu_pruefen": [
+      "ES30 - Anlage anlegen",
+      "ES33 - Vertrag aendern",
+      "ES80 - Geraetewechsel",
+      "EG30 - Geraeteeinbau",
+      "EG32 - Geraet anzeigen",
+      "EC60 - Auszugsbeleg anlegen",
+      "EA01 - Abrechnung starten",
+      "FP01 - Vertragskonto anlegen",
+      "FPVA - Mahnvorschlag",
+      "SE11 - ABAP Dictionary",
+      "SE16 - Data Browser",
+      "SE38 - ABAP Editor",
+      "SE93 - Transaktionspflege"
+    ]
+  }
+}
