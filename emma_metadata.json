@@ -1,0 +1,781 @@
+{
+  "extraktionsdatum": "2026-01-07",
+  "quelle": "SAP SE11 - ABAP Dictionary",
+  "beschreibung": "EMMA (BPEM - Business Process Exception Management) Tabellen-Feldmetadaten",
+  "fortschritt": {
+    "extrahiert": 57,
+    "gesamt": 57,
+    "status": "KOMPLETT"
+  },
+  "tabellen": {
+    "EMMA_CASE": {
+      "beschreibung": "Klaerungsfall",
+      "anzahl_felder": 38,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CASENR", "datenelement": "EMMA_CNR", "datentyp": "CHAR", "laenge": 10, "kurztext": "Klaerungsfall", "schluesselfeld": true},
+        {"feldname": "CASE_GUID", "datenelement": "EMMA_CGUID", "datentyp": "RAW", "laenge": 16, "kurztext": "GUID des Klaerungsfalls", "schluesselfeld": false},
+        {"feldname": "RUNID", "datenelement": "EMMA_RUNID", "datentyp": "NUMC", "laenge": 10, "kurztext": "Interne Jobnummer", "schluesselfeld": false},
+        {"feldname": "INTNR", "datenelement": "EMMA_INTNR", "datentyp": "INT4", "laenge": 10, "kurztext": "Nummer des Jobintervalls", "schluesselfeld": false},
+        {"feldname": "LOGSYS", "datenelement": "LOGSYS", "datentyp": "CHAR", "laenge": 10, "kurztext": "Logisches System", "schluesselfeld": false},
+        {"feldname": "BPGUID", "datenelement": "EMMA_BPGUID", "datentyp": "RAW", "laenge": 16, "kurztext": "GUID des Vorgangs/Prozesses", "schluesselfeld": false},
+        {"feldname": "BPCODE", "datenelement": "EMMA_BPCODE", "datentyp": "CHAR", "laenge": 8, "kurztext": "Business-Prozess-Code", "schluesselfeld": false},
+        {"feldname": "CTYPE", "datenelement": "EMMA_CTYPE", "datentyp": "CHAR", "laenge": 4, "kurztext": "Fallart", "schluesselfeld": false},
+        {"feldname": "STATUS", "datenelement": "EMMA_CSTATUS", "datentyp": "NUMC", "laenge": 1, "kurztext": "Bearbeitungsstatus des Klaerungsfalls", "schluesselfeld": false},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": false},
+        {"feldname": "PRIO", "datenelement": "EMMA_CPRIO", "datentyp": "CHAR", "laenge": 1, "kurztext": "Klaerungsfallprioritaet", "schluesselfeld": false},
+        {"feldname": "PRIOORIG", "datenelement": "EMMA_CPORIG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Herkunft der Prioritaet", "schluesselfeld": false},
+        {"feldname": "BRGRU", "datenelement": "BRGRU", "datentyp": "CHAR", "laenge": 4, "kurztext": "Berechtigungsgruppe", "schluesselfeld": false},
+        {"feldname": "MAINOBJTYPE", "datenelement": "EMMA_MAINOBJTYPE", "datentyp": "CHAR", "laenge": 10, "kurztext": "Objekttyp des primaeren Business-Objektes", "schluesselfeld": false},
+        {"feldname": "MAINOBJKEY", "datenelement": "SWO_TYPEID", "datentyp": "CHAR", "laenge": 70, "kurztext": "Objektschluessel", "schluesselfeld": false},
+        {"feldname": "ORIG_DATE", "datenelement": "EMMA_CORIGDATE", "datentyp": "DATS", "laenge": 8, "kurztext": "Ursprungsdatum des Klaerungsfalls", "schluesselfeld": false},
+        {"feldname": "ORIG_TIME", "datenelement": "EMMA_CORIGTIME", "datentyp": "TIMS", "laenge": 6, "kurztext": "Erzeugungszeitpunkt des Klaerungsfalls", "schluesselfeld": false},
+        {"feldname": "CURRPROC", "datenelement": "EMMA_CPROCESSOR", "datentyp": "CHAR", "laenge": 12, "kurztext": "Bearbeiter fuer Klaerungsfall", "schluesselfeld": false},
+        {"feldname": "REACODE", "datenelement": "EMMA_CREACODE", "datentyp": "CHAR", "laenge": 4, "kurztext": "Grund fuer Weiterleitung", "schluesselfeld": false},
+        {"feldname": "CANCODE", "datenelement": "EMMA_CANCODE", "datentyp": "CHAR", "laenge": 4, "kurztext": "Stornogrund", "schluesselfeld": false},
+        {"feldname": "PREVPROC", "datenelement": "EMMA_CPREVPROC", "datentyp": "CHAR", "laenge": 12, "kurztext": "Vorheriger Bearbeiter", "schluesselfeld": false},
+        {"feldname": "DUE_DATE", "datenelement": "EMMA_CDUEDATE", "datentyp": "DATS", "laenge": 8, "kurztext": "Faelligkeitsdatum des Falls", "schluesselfeld": false},
+        {"feldname": "DUE_TIME", "datenelement": "EMMA_CDUETIME", "datentyp": "TIMS", "laenge": 6, "kurztext": "Faelligkeitszeitpunkt des Klaerungsfalls", "schluesselfeld": false},
+        {"feldname": "XNOTE", "datenelement": "EMMA_XNOTE", "datentyp": "CHAR", "laenge": 1, "kurztext": "Notiz erfasst", "schluesselfeld": false},
+        {"feldname": "CASETXT", "datenelement": "EMMA_CASETXT", "datentyp": "CHAR", "laenge": 60, "kurztext": "Klaerungsfalltext", "schluesselfeld": false},
+        {"feldname": "FWM", "datenelement": "EMMA_FWM", "datentyp": "CHAR", "laenge": 4, "kurztext": "Methode zur Weiterleitung von Klaerungsfaellen", "schluesselfeld": false},
+        {"feldname": "CUSTSTATUS", "datenelement": "EMMA_CCUSTSTATUS", "datentyp": "CHAR", "laenge": 1, "kurztext": "Bearbeitungssubstatus des Klaerungsfalls", "schluesselfeld": false},
+        {"feldname": ".INCLUDE", "datenelement": "EMMA_ADMIN", "datentyp": "STRU", "laenge": 0, "kurztext": "Administrative Daten", "schluesselfeld": false},
+        {"feldname": "CREATED_DATE", "datenelement": "UDFDATE", "datentyp": "DATS", "laenge": 8, "kurztext": "Datum, an dem der Satz hinzugefuegt wurde", "schluesselfeld": false},
+        {"feldname": "CREATED_TIME", "datenelement": "UDFTIME", "datentyp": "TIMS", "laenge": 6, "kurztext": "Erfassungszeit", "schluesselfeld": false},
+        {"feldname": "CREATED_BY", "datenelement": "UDFUSER", "datentyp": "CHAR", "laenge": 12, "kurztext": "Name des Erfassers", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_CACTOR": {
+      "beschreibung": "Klaerungsfallbearbeiter",
+      "anzahl_felder": 5,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CASENR", "datenelement": "EMMA_CNR", "datentyp": "CHAR", "laenge": 10, "kurztext": "Klaerungsfall", "schluesselfeld": true},
+        {"feldname": "SEQNR", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": true},
+        {"feldname": "OTYPE", "datenelement": "OTYPE", "datentyp": "CHAR", "laenge": 2, "kurztext": "Objekttyp", "schluesselfeld": false},
+        {"feldname": "OBJID", "datenelement": "ACTORID", "datentyp": "CHAR", "laenge": 12, "kurztext": "Bearbeiterid im Organisationsmanagement", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_CACTOR_CD": {
+      "beschreibung": "Bearbeiterzuordnungen (nur fuer Aenderungsbelege)",
+      "anzahl_felder": 2,
+      "hinweis": "Cross-Client Tabelle - kein CLIENT Feld",
+      "felder": [
+        {"feldname": "OTYPE", "datenelement": "OTYPE", "datentyp": "CHAR", "laenge": 2, "kurztext": "Objekttyp", "schluesselfeld": true},
+        {"feldname": "OBJID", "datenelement": "ACTORID", "datentyp": "CHAR", "laenge": 12, "kurztext": "Bearbeiterid im Organisationsmanagement", "schluesselfeld": true}
+      ]
+    },
+    "EMMA_COBJECT": {
+      "beschreibung": "Objekte und Feldwerte fuer Fall",
+      "anzahl_felder": 11,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CASENR", "datenelement": "EMMA_CNR", "datentyp": "CHAR", "laenge": 10, "kurztext": "Klaerungsfall", "schluesselfeld": true},
+        {"feldname": "SEQNR", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": true}
+      ]
+    },
+    "EMMA_COBJECT_CD": {
+      "beschreibung": "Objekte und Feldwerte fuer Fall (nur fuer Aenderungsbelege)",
+      "anzahl_felder": 5,
+      "hinweis": "Cross-Client Tabelle - kein CLIENT Feld",
+      "felder": [
+        {"feldname": "CASENR", "datenelement": "EMMA_CNR", "datentyp": "CHAR", "laenge": 10, "kurztext": "Klaerungsfall", "schluesselfeld": true},
+        {"feldname": "SEQNR", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": true},
+        {"feldname": "OBJTYPE", "datenelement": "SWO_OBJTYP", "datentyp": "CHAR", "laenge": 10, "kurztext": "Objekttyp", "schluesselfeld": true},
+        {"feldname": "OBJKEY", "datenelement": "SWOTOBJID", "datentyp": "CHAR", "laenge": 70, "kurztext": "Objekt-Id", "schluesselfeld": true},
+        {"feldname": "FLDVALUE", "datenelement": "EMMA_FLDVALUE", "datentyp": "CHAR", "laenge": 255, "kurztext": "Feldwert", "schluesselfeld": true}
+      ]
+    },
+    "EMMA_CMSG_LINK": {
+      "beschreibung": "Nachrichten eines Falls",
+      "anzahl_felder": 11,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CASENR", "datenelement": "EMMA_CNR", "datentyp": "CHAR", "laenge": 10, "kurztext": "Klaerungsfall", "schluesselfeld": true},
+        {"feldname": "SEQNR", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": true},
+        {"feldname": "LOG_HANDLE", "datenelement": "BALLOGHNDL", "datentyp": "CHAR", "laenge": 22, "kurztext": "Anwendungs-Log: Log-Handle", "schluesselfeld": false},
+        {"feldname": "LOGNUMBER", "datenelement": "BALOGNR", "datentyp": "CHAR", "laenge": 20, "kurztext": "Anwendungs-Log: Lognummer", "schluesselfeld": false},
+        {"feldname": "MSGNUMBER", "datenelement": "BALMSGNR", "datentyp": "NUMC", "laenge": 6, "kurztext": "Anwendungs-Log: Interne Meldungsnummer", "schluesselfeld": false},
+        {"feldname": "MSG_ID", "datenelement": "BALMSGID", "datentyp": "CHAR", "laenge": 20, "kurztext": "Anwendungs-Log: Meldungsklasse", "schluesselfeld": false},
+        {"feldname": "MSG_TYPE", "datenelement": "BALMSGTY", "datentyp": "CHAR", "laenge": 1, "kurztext": "Anwendungs-Log: Meldungstyp", "schluesselfeld": false},
+        {"feldname": "MSG_NUMBER", "datenelement": "BALMSGNO", "datentyp": "NUMC", "laenge": 3, "kurztext": "Anwendungs-Log: Meldungsnummer", "schluesselfeld": false},
+        {"feldname": "CCMSG", "datenelement": "EMMA_CCMSG", "datentyp": "NUMC", "laenge": 3, "kurztext": "Laufende Nummer der Nachricht", "schluesselfeld": false},
+        {"feldname": "XPRIMARY", "datenelement": "EMMA_XPRIMARY", "datentyp": "CHAR", "laenge": 1, "kurztext": "Primaere Nachricht", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_CMSG_LNK_CD": {
+      "beschreibung": "Nachrichten eines Falls (nur fuer Aenderungsbelege)",
+      "anzahl_felder": 6,
+      "hinweis": "Cross-Client Tabelle - kein CLIENT Feld",
+      "felder": [
+        {"feldname": "CASENR", "datenelement": "EMMA_CNR", "datentyp": "CHAR", "laenge": 10, "kurztext": "Klaerungsfall", "schluesselfeld": true},
+        {"feldname": "SEQNR", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": true},
+        {"feldname": "LOG_HANDLE", "datenelement": "BALLOGHNDL", "datentyp": "CHAR", "laenge": 22, "kurztext": "Anwendungs-Log: Log-Handle", "schluesselfeld": true},
+        {"feldname": "LOGNUMBER", "datenelement": "BALOGNR", "datentyp": "CHAR", "laenge": 20, "kurztext": "Anwendungs-Log: Lognummer", "schluesselfeld": true},
+        {"feldname": "MSGNUMBER", "datenelement": "BALMSGNR", "datentyp": "NUMC", "laenge": 6, "kurztext": "Anwendungs-Log: Interne Meldungsnummer", "schluesselfeld": true},
+        {"feldname": "MSG_ID", "datenelement": "BALMSGID", "datentyp": "CHAR", "laenge": 20, "kurztext": "Anwendungs-Log: Meldungsklasse", "schluesselfeld": true}
+      ]
+    },
+    "EMMA_CSOLP": {
+      "beschreibung": "Loesungsweg eines Falls",
+      "anzahl_felder": 25,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CASENR", "datenelement": "EMMA_CNR", "datentyp": "CHAR", "laenge": 10, "kurztext": "Klaerungsfall", "schluesselfeld": true},
+        {"feldname": "SEQNR", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": true},
+        {"feldname": "SOP_GUID", "datenelement": "EMMA_SOPGUID", "datentyp": "CHAR", "laenge": 32, "kurztext": "GUID des Loesungsprozesses", "schluesselfeld": false},
+        {"feldname": "SOPTXTID", "datenelement": "EMMA_SOPTXTID", "datentyp": "CHAR", "laenge": 10, "kurztext": "Bezeichnung des Loesungsprozesses", "schluesselfeld": false},
+        {"feldname": "XPROCA", "datenelement": "EMMA_PROCAUT", "datentyp": "CHAR", "laenge": 1, "kurztext": "Automatischer Loesungsprozess", "schluesselfeld": false},
+        {"feldname": "OBJTYPE", "datenelement": "SWO_OBJTYP", "datentyp": "CHAR", "laenge": 10, "kurztext": "Objekttyp", "schluesselfeld": false},
+        {"feldname": "METHOD", "datenelement": "SWO_METHOD", "datentyp": "CHAR", "laenge": 32, "kurztext": "Methode", "schluesselfeld": false},
+        {"feldname": "WFTASKTYP", "datenelement": "EWC_TASK_TP", "datentyp": "CHAR", "laenge": 2, "kurztext": "Aufgabentyp", "schluesselfeld": false},
+        {"feldname": "WFTASKID", "datenelement": "HROBJID", "datentyp": "NUMC", "laenge": 8, "kurztext": "Objekt-Id", "schluesselfeld": false},
+        {"feldname": "ABOX_CONF", "datenelement": "EWF_CONFIG", "datentyp": "CHAR", "laenge": 8, "kurztext": "Action Box Konfiguration", "schluesselfeld": false},
+        {"feldname": "ABOX_CALLID", "datenelement": "EWF_CALLID", "datentyp": "CHAR", "laenge": 4, "kurztext": "Transaktionscode eines Action-Box-Prozesses", "schluesselfeld": false},
+        {"feldname": "CLSNAM", "datenelement": "SWF_CLSNAM", "datentyp": "CHAR", "laenge": 32, "kurztext": "Objekttyp", "schluesselfeld": false},
+        {"feldname": "CLSMET", "datenelement": "SWF_CLSMET", "datentyp": "CHAR", "laenge": 32, "kurztext": "Workflow: Methodename", "schluesselfeld": false},
+        {"feldname": "EXSTATUS", "datenelement": "EMMA_SOLPSTATUS", "datentyp": "CHAR", "laenge": 1, "kurztext": "Ausfuehrungsstatus des Loesungsprozesses", "schluesselfeld": false},
+        {"feldname": "EXDATE", "datenelement": "EMMA_SOLPDATE", "datentyp": "DATS", "laenge": 8, "kurztext": "Ausfuehrungsdatum des Loesungsprozesses", "schluesselfeld": false},
+        {"feldname": "EXTIME", "datenelement": "EMMA_SOLPTIME", "datentyp": "TIMS", "laenge": 6, "kurztext": "Ausfuehrungszeit des Loesungsprozesses", "schluesselfeld": false},
+        {"feldname": "EXUSER", "datenelement": "EMMA_SOLPUSER", "datentyp": "CHAR", "laenge": 12, "kurztext": "Ausfuehrender des Loesungsprozesses", "schluesselfeld": false},
+        {"feldname": "WI_ID", "datenelement": "SWW_WIID", "datentyp": "NUMC", "laenge": 12, "kurztext": "Workitem-ID", "schluesselfeld": false},
+        {"feldname": "LOGRUNID", "datenelement": "EMMA_RUNID", "datentyp": "NUMC", "laenge": 10, "kurztext": "Interne Jobnummer", "schluesselfeld": false},
+        {"feldname": "LOGINTNR", "datenelement": "EMMA_INTNR", "datentyp": "INT4", "laenge": 10, "kurztext": "Nummer des Jobintervalls", "schluesselfeld": false},
+        {"feldname": "LOGMESSAGE", "datenelement": "BAPI_MSG", "datentyp": "CHAR", "laenge": 220, "kurztext": "BAPI-Nachricht", "schluesselfeld": false},
+        {"feldname": "SOPEXTID", "datenelement": "EMMA_SOPEXTID", "datentyp": "CHAR", "laenge": 10, "kurztext": "Externe Bezeichnung Loesungsprozess", "schluesselfeld": false},
+        {"feldname": "CCATSEQNR", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": false},
+        {"feldname": "WF_SUBRC", "datenelement": "SYSUBRC", "datentyp": "INT4", "laenge": 10, "kurztext": "Returncode nach Anweisung", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_BPA": {
+      "beschreibung": "Business-Prozess-Bereich",
+      "anzahl_felder": 3,
+      "hinweis": "Cross-Client Tabelle - kein CLIENT Feld",
+      "felder": [
+        {"feldname": "BPAREA", "datenelement": "EMMA_BPAREA", "datentyp": "CHAR", "laenge": 4, "kurztext": "Business-Prozess-Bereich", "schluesselfeld": true},
+        {"feldname": "BPAREACL", "datenelement": "EMMA_BPAREACL", "datentyp": "CHAR", "laenge": 30, "kurztext": "Klasse fuer Business-Prozess-Bereich", "schluesselfeld": false},
+        {"feldname": "ALOBJ", "datenelement": "BALOBJ_D", "datentyp": "CHAR", "laenge": 20, "kurztext": "Anwendungs-Log: Objektname (Applikationskuerzel)", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_BPAT": {
+      "beschreibung": "Texttabelle zum Business-Prozess-Bereich",
+      "anzahl_felder": 3,
+      "hinweis": "Cross-Client Tabelle - kein CLIENT Feld",
+      "felder": [
+        {"feldname": "LANGU", "datenelement": "SPRAS", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "BPAREA", "datenelement": "EMMA_BPAREA", "datentyp": "CHAR", "laenge": 4, "kurztext": "Business-Prozess-Bereich", "schluesselfeld": true},
+        {"feldname": "BPATXT", "datenelement": "EMMA_BPATXT", "datentyp": "CHAR", "laenge": 40, "kurztext": "Text zum Business-Prozess-Bereich", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_BPC": {
+      "beschreibung": "Business-Prozess-Code",
+      "anzahl_felder": 20,
+      "hinweis": "Cross-Client Tabelle - kein CLIENT Feld",
+      "felder": [
+        {"feldname": "BPCODE", "datenelement": "EMMA_BPCODE", "datentyp": "CHAR", "laenge": 8, "kurztext": "Business-Prozess-Code", "schluesselfeld": true},
+        {"feldname": "BPAREA", "datenelement": "EMMA_BPAREA", "datentyp": "CHAR", "laenge": 4, "kurztext": "Business-Prozess-Bereich", "schluesselfeld": false},
+        {"feldname": "BPCCL", "datenelement": "EMMA_BPCCL", "datentyp": "CHAR", "laenge": 30, "kurztext": "Business-Prozess-Code-Klasse", "schluesselfeld": false},
+        {"feldname": "XPREP", "datenelement": "EMMA_XPREP", "datentyp": "CHAR", "laenge": 1, "kurztext": "Vorbereitungsstatus eines Jobs", "schluesselfeld": false},
+        {"feldname": "ALSUBOBJ", "datenelement": "BALSUBOBJ", "datentyp": "CHAR", "laenge": 20, "kurztext": "Anwendungs-Log: Unterobjekt", "schluesselfeld": false},
+        {"feldname": "MOBJTYPE", "datenelement": "EMMA_MAINOBJTYPE", "datentyp": "CHAR", "laenge": 10, "kurztext": "Objekttyp des primaeren Business-Objektes eines Klaerungsfalls", "schluesselfeld": false},
+        {"feldname": "CTYPE", "datenelement": "EMMA_CTYPE", "datentyp": "CHAR", "laenge": 4, "kurztext": "Fallart", "schluesselfeld": false},
+        {"feldname": "XPEXEC", "datenelement": "EMMA_XPEXEC", "datentyp": "CHAR", "laenge": 1, "kurztext": "Parallele Ausfuehrung des Massenlaufs erlaubt", "schluesselfeld": false},
+        {"feldname": "KNTBWORG", "datenelement": "EMMA_KNTBWORG", "datentyp": "CHAR", "laenge": 4, "kurztext": "Kontierungsbewegungsorganisationsart", "schluesselfeld": false},
+        {"feldname": "PKGSIZE", "datenelement": "EMMA_PKGSIZE", "datentyp": "INT4", "laenge": 10, "kurztext": "Paketgroesse", "schluesselfeld": false},
+        {"feldname": "XDISTR", "datenelement": "EMMA_XDISTR", "datentyp": "CHAR", "laenge": 1, "kurztext": "Intervallverteilung", "schluesselfeld": false},
+        {"feldname": "NUMPKG", "datenelement": "EMMA_NUMPKG", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl der Pakete", "schluesselfeld": false},
+        {"feldname": "XEXEC", "datenelement": "EMMA_XEXEC", "datentyp": "CHAR", "laenge": 1, "kurztext": "Indikator, ob die Hauptaktion ausgefuehrt werden soll", "schluesselfeld": false},
+        {"feldname": "XLAST", "datenelement": "EMMA_XLAST", "datentyp": "CHAR", "laenge": 1, "kurztext": "Indikator, ob vorherige Ergebnisse geloescht werden sollen", "schluesselfeld": false},
+        {"feldname": "XREDU", "datenelement": "EMMA_XREDU", "datentyp": "CHAR", "laenge": 1, "kurztext": "Protokollergebnisse reduzieren", "schluesselfeld": false},
+        {"feldname": "CLASSINTOBJINFO", "datenelement": "EMMA_INTOBJINFO", "datentyp": "CHAR", "laenge": 30, "kurztext": "Klasse zur Bestimmung der Intervallinformation", "schluesselfeld": false},
+        {"feldname": "XPREPSTAT", "datenelement": "EMMA_XPREPSTAT", "datentyp": "CHAR", "laenge": 1, "kurztext": "Vorbereitungsstatus ermitteln", "schluesselfeld": false},
+        {"feldname": "XSTORNO", "datenelement": "EMMA_XSTORNO", "datentyp": "CHAR", "laenge": 1, "kurztext": "Protokoll: Abschluss-Storno durchfuehren", "schluesselfeld": false},
+        {"feldname": "CLASS_PREP", "datenelement": "EMMA_CL_PREP", "datentyp": "CHAR", "laenge": 30, "kurztext": "Vorbereitungsklasse", "schluesselfeld": false},
+        {"feldname": "PREP_METH", "datenelement": "EMMA_PREP_METH", "datentyp": "CHAR", "laenge": 30, "kurztext": "Methode zur Vorbereitung", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_BPCT": {
+      "beschreibung": "Text zum Business-Prozess-Code",
+      "anzahl_felder": 3,
+      "hinweis": "Cross-Client Tabelle - kein CLIENT Feld",
+      "felder": [
+        {"feldname": "LANGU", "datenelement": "SPRAS", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "BPCODE", "datenelement": "EMMA_BPCODE", "datentyp": "CHAR", "laenge": 8, "kurztext": "Business-Prozess-Code", "schluesselfeld": true},
+        {"feldname": "BPCTXT", "datenelement": "EMMA_BPCTXT", "datentyp": "CHAR", "laenge": 50, "kurztext": "Text zum Business-Prozess-Code", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_HDR": {
+      "beschreibung": "Vorbereitete Anwendungsprotokolle",
+      "anzahl_felder": 30,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "RUNID", "datenelement": "EMMA_RUNID", "datentyp": "NUMC", "laenge": 10, "kurztext": "Interne Jobnummer", "schluesselfeld": true},
+        {"feldname": "BPCODE", "datenelement": "EMMA_BPCODE", "datentyp": "CHAR", "laenge": 8, "kurztext": "Business-Prozess-Code", "schluesselfeld": false},
+        {"feldname": "LOGLEVEL", "datenelement": "EMMA_LOGLEVEL", "datentyp": "CHAR", "laenge": 1, "kurztext": "Protokollierungsstufe", "schluesselfeld": false},
+        {"feldname": "NUMJOBS", "datenelement": "EMMA_NUMJOBS", "datentyp": "INT2", "laenge": 5, "kurztext": "Anzahl gestarteter paralleler Prozesse", "schluesselfeld": false},
+        {"feldname": "OBJECT_PROCESS", "datenelement": "EMMA_PROCESS", "datentyp": "INT4", "laenge": 10, "kurztext": "Gesamtanzahl prozessierter Business-Objekte", "schluesselfeld": false},
+        {"feldname": "OBJECT_ERROR", "datenelement": "EMMA_ERROR", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl fehlerhafter Business-Objekte", "schluesselfeld": false},
+        {"feldname": "OBJECT_WARNING", "datenelement": "EMMA_WARNING", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl der Business-Objekte mit Warnungen", "schluesselfeld": false},
+        {"feldname": "OBJECT_SUCCESS", "datenelement": "EMMA_SUCCESS", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl erfolgreich prozessierter Business-Objekte", "schluesselfeld": false},
+        {"feldname": "OBJECT_SKIPPED", "datenelement": "EMMA_SKIP", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl uebersprungener Business-Objekte", "schluesselfeld": false},
+        {"feldname": "MESSAGE_ERROR", "datenelement": "EMMA_MSGERROR", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl Fehlermeldungen ohne Business-Objektbezug", "schluesselfeld": false},
+        {"feldname": "MESSAGE_WARNING", "datenelement": "EMMA_MSGWARNING", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl Warnungen ohne Business-Objektbezug", "schluesselfeld": false},
+        {"feldname": "MESSAGE_INFO", "datenelement": "EMMA_MSGINFO", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl Informationsmeldungen ohne Business-Objektbezug", "schluesselfeld": false},
+        {"feldname": "MESSAGE_COUNT", "datenelement": "EMMA_MESSAGES", "datentyp": "INT4", "laenge": 10, "kurztext": "Gesamtanzahl der Nachrichten eines Jobs", "schluesselfeld": false},
+        {"feldname": "RUNSTATUS", "datenelement": "EMMA_RUNSTATUS", "datentyp": "CHAR", "laenge": 1, "kurztext": "Jobstatus", "schluesselfeld": false},
+        {"feldname": "DSTART", "datenelement": "EMMA_DSTART", "datentyp": "DATS", "laenge": 8, "kurztext": "Beginn des Joblaufs (Datum)", "schluesselfeld": false},
+        {"feldname": "TSTART", "datenelement": "EMMA_TSTART", "datentyp": "TIMS", "laenge": 6, "kurztext": "Beginn des Joblaufs (Zeit)", "schluesselfeld": false},
+        {"feldname": "DEND", "datenelement": "EMMA_DEND", "datentyp": "DATS", "laenge": 8, "kurztext": "Ende der Verarbeitung (Datum)", "schluesselfeld": false},
+        {"feldname": "TEND", "datenelement": "EMMA_TEND", "datentyp": "TIMS", "laenge": 6, "kurztext": "Ende der Verarbeitung (Zeit)", "schluesselfeld": false},
+        {"feldname": "USNAM", "datenelement": "SYUNAME", "datentyp": "CHAR", "laenge": 12, "kurztext": "Benutzername des ABAP-Benutzers", "schluesselfeld": false},
+        {"feldname": "XPREP", "datenelement": "EMMA_XPREP", "datentyp": "CHAR", "laenge": 1, "kurztext": "Vorbereitungsstatus eines Jobs", "schluesselfeld": false},
+        {"feldname": "XEXEC", "datenelement": "EMMA_XEXEC", "datentyp": "CHAR", "laenge": 1, "kurztext": "Indikator, ob die Hauptaktion ausgefuehrt werden soll", "schluesselfeld": false},
+        {"feldname": "XLAST", "datenelement": "EMMA_XLAST", "datentyp": "CHAR", "laenge": 1, "kurztext": "Indikator, ob vorherige Ergebnisse geloescht werden sollen", "schluesselfeld": false},
+        {"feldname": "EMMA_CASE", "datenelement": "EMMA_CASECOUNT", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl der Klaerungsfaelle", "schluesselfeld": false},
+        {"feldname": "EXTRUNID", "datenelement": "EMMA_EXTINTNR", "datentyp": "CHAR", "laenge": 50, "kurztext": "Applikationsspezifische externe Intervallnummer", "schluesselfeld": false},
+        {"feldname": "MOBRUNSTATUS", "datenelement": "EMMA_JOBRUSTATUS", "datentyp": "CHAR", "laenge": 1, "kurztext": "Jobstatus zum Zeitpunkt der Vorbereitung", "schluesselfeld": false},
+        {"feldname": "CGEN_STATUS", "datenelement": "EMMA_XCGEN", "datentyp": "CHAR", "laenge": 1, "kurztext": "Status Klaerungsfallgenerierung", "schluesselfeld": false},
+        {"feldname": "PREP_RUNID", "datenelement": "EMMA_RUNID", "datentyp": "NUMC", "laenge": 10, "kurztext": "Interne Jobnummer", "schluesselfeld": false},
+        {"feldname": "XSYNCMOB", "datenelement": "EMMA_XSYNCMOB", "datentyp": "CHAR", "laenge": 1, "kurztext": "Synchrone Ausfuehrung des Massenlaufs", "schluesselfeld": false},
+        {"feldname": "XTEST", "datenelement": "EMMA_XTEST", "datentyp": "CHAR", "laenge": 1, "kurztext": "Testmodus", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_INT": {
+      "beschreibung": "Vorbereitete Intervalle in Anwendungsprotokollen",
+      "anzahl_felder": 28,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "RUNID", "datenelement": "EMMA_RUNID", "datentyp": "NUMC", "laenge": 10, "kurztext": "Interne Jobnummer", "schluesselfeld": true},
+        {"feldname": "INTNR", "datenelement": "EMMA_INTNR", "datentyp": "INT4", "laenge": 10, "kurztext": "Nummer des Jobintervalls", "schluesselfeld": true},
+        {"feldname": "INTLO", "datenelement": "INTLO_KK", "datentyp": "CHAR", "laenge": 20, "kurztext": "Intervalluntergrenze", "schluesselfeld": false},
+        {"feldname": "INTHI", "datenelement": "INTHI_KK", "datentyp": "CHAR", "laenge": 20, "kurztext": "Intervallobergrenze", "schluesselfeld": false},
+        {"feldname": "EXTRUNID", "datenelement": "EMMA_EXTINTNR", "datentyp": "CHAR", "laenge": 50, "kurztext": "Applikationsspezifische externe Intervallnummer", "schluesselfeld": false},
+        {"feldname": "OBJECT_PROCESS", "datenelement": "EMMA_PROCESS", "datentyp": "INT4", "laenge": 10, "kurztext": "Gesamtanzahl prozessierter Business-Objekte", "schluesselfeld": false},
+        {"feldname": "OBJECT_ERROR", "datenelement": "EMMA_ERROR", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl fehlerhafter Business-Objekte", "schluesselfeld": false},
+        {"feldname": "OBJECT_WARNING", "datenelement": "EMMA_WARNING", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl der Business-Objekte mit Warnungen", "schluesselfeld": false},
+        {"feldname": "OBJECT_SUCCESS", "datenelement": "EMMA_SUCCESS", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl erfolgreich prozessierter Business-Objekte", "schluesselfeld": false},
+        {"feldname": "MESSAGE_ERROR", "datenelement": "EMMA_MSGERROR", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl Fehlermeldungen ohne Business-Objektbezug", "schluesselfeld": false},
+        {"feldname": "MESSAGE_WARNING", "datenelement": "EMMA_MSGWARNING", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl Warnungen ohne Business-Objektbezug", "schluesselfeld": false},
+        {"feldname": "MESSAGE_INFO", "datenelement": "EMMA_MSGINFO", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl Informationsmeldungen ohne Business-Objektbezug", "schluesselfeld": false},
+        {"feldname": "MESSAGE_COUNT", "datenelement": "EMMA_MESSAGES", "datentyp": "INT4", "laenge": 10, "kurztext": "Gesamtanzahl der Nachrichten eines Jobs", "schluesselfeld": false},
+        {"feldname": "FTCHBY", "datenelement": "EMMA_FTCHBY", "datentyp": "INT2", "laenge": 5, "kurztext": "Geholt von Job", "schluesselfeld": false},
+        {"feldname": "XFIN", "datenelement": "EMMA_XFIN", "datentyp": "CHAR", "laenge": 1, "kurztext": "Bearbeitung des Intervalls abgeschlossen", "schluesselfeld": false},
+        {"feldname": "ERRNUM", "datenelement": "EMMA_ERRNUM", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl der Fehler", "schluesselfeld": false},
+        {"feldname": "HITNUM", "datenelement": "EMMA_HITNUM", "datentyp": "INT4", "laenge": 10, "kurztext": "Trefferanzahl", "schluesselfeld": false},
+        {"feldname": "TBEG", "datenelement": "EMMA_TBEG", "datentyp": "TIMS", "laenge": 6, "kurztext": "Beginn der Verarbeitung (Zeit)", "schluesselfeld": false},
+        {"feldname": "DBEG", "datenelement": "EMMA_DBEG", "datentyp": "DATS", "laenge": 8, "kurztext": "Beginn der Verarbeitung (Datum)", "schluesselfeld": false},
+        {"feldname": "TEND", "datenelement": "EMMA_TEND", "datentyp": "TIMS", "laenge": 6, "kurztext": "Ende der Verarbeitung (Zeit)", "schluesselfeld": false},
+        {"feldname": "DEND", "datenelement": "EMMA_DEND", "datentyp": "DATS", "laenge": 8, "kurztext": "Ende der Verarbeitung (Datum)", "schluesselfeld": false},
+        {"feldname": "MOBRUNSTATUS", "datenelement": "EMMA_JOBRUSTATUS", "datentyp": "CHAR", "laenge": 1, "kurztext": "Jobstatus zum Zeitpunkt der Vorbereitung", "schluesselfeld": false},
+        {"feldname": "EMMA_CASE", "datenelement": "EMMA_CASECOUNT", "datentyp": "INT4", "laenge": 10, "kurztext": "Anzahl der Klaerungsfaelle", "schluesselfeld": false},
+        {"feldname": "LOGDATE", "datenelement": "BALDATE", "datentyp": "DATS", "laenge": 8, "kurztext": "Anwendungs-Log: Datum", "schluesselfeld": false},
+        {"feldname": "LOGTIME", "datenelement": "BALTIME", "datentyp": "TIMS", "laenge": 6, "kurztext": "Anwendungs-Log: Uhrzeit", "schluesselfeld": false},
+        {"feldname": "CGEN_STATUS", "datenelement": "EMMA_XCGEN", "datentyp": "CHAR", "laenge": 1, "kurztext": "Status Klaerungsfallgenerierung", "schluesselfeld": false},
+        {"feldname": "XPREP", "datenelement": "EMMA_XPREP", "datentyp": "CHAR", "laenge": 1, "kurztext": "Vorbereitungsstatus eines Jobs", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_JOBRUNIDMSG": {
+      "beschreibung": "Ueberwachung Massenlauf: Zwischenspeicher Meldungen (INDX)",
+      "anzahl_felder": 10,
+      "hinweis": "INDX-Tabelle fuer Cluster-Speicherung",
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "RELID", "datenelement": "SYCHAR02", "datentyp": "CHAR", "laenge": 2, "kurztext": "CHAR02-Datenelement fuer SYST", "schluesselfeld": true},
+        {"feldname": "SRTFD", "datenelement": "SYCHAR22", "datentyp": "CHAR", "laenge": 22, "kurztext": "Character 22", "schluesselfeld": true},
+        {"feldname": "SRTF2", "datenelement": "SYBIN4", "datentyp": "INT4", "laenge": 10, "kurztext": "BIN4-Datenelement fuer SYST", "schluesselfeld": true},
+        {"feldname": "LOEKZ", "datenelement": "SYCHAR01", "datentyp": "CHAR", "laenge": 1, "kurztext": "CHAR01-Datenelement fuer SYST", "schluesselfeld": false},
+        {"feldname": "SPERR", "datenelement": "SYCHAR01", "datentyp": "CHAR", "laenge": 1, "kurztext": "CHAR01-Datenelement fuer SYST", "schluesselfeld": false},
+        {"feldname": "AEDAT", "datenelement": "SYDATS", "datentyp": "DATS", "laenge": 8, "kurztext": "DATE (8-stelig) fuer SYST", "schluesselfeld": false},
+        {"feldname": "USERA", "datenelement": "USERNAME", "datentyp": "CHAR", "laenge": 12, "kurztext": "Benutzername", "schluesselfeld": false},
+        {"feldname": "CLUSTR", "datenelement": "SYBIN2", "datentyp": "INT2", "laenge": 5, "kurztext": "BIN2-Datenelement fuer SYST", "schluesselfeld": false},
+        {"feldname": "CLUSTD", "datenelement": "INDX_CLUST", "datentyp": "LRAW", "laenge": 2886, "kurztext": "Datenfeld fuer IMPORT/EXPORT-Datenbanktabellen", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_MASSACT_INF": {
+      "beschreibung": "Lesen der Intervallinfo eines Applikationslogobjekts",
+      "anzahl_felder": 2,
+      "hinweis": "Cross-Client Tabelle - kein CLIENT Feld",
+      "felder": [
+        {"feldname": "ALOBJ", "datenelement": "BALOBJ_D", "datentyp": "CHAR", "laenge": 20, "kurztext": "Anwendungs-Log: Objektname (Applikationskuerzel)", "schluesselfeld": true},
+        {"feldname": "CLASSINTINFO", "datenelement": "EMMA_CLASS_INTERAVL", "datentyp": "CHAR", "laenge": 30, "kurztext": "Klasse zum Lesen der Intervallinformation eines Massenlaufs", "schluesselfeld": false}
+      ]
+    },
+    "EMMA_TCODE": {
+      "beschreibung": "Unterstuetzte Transaktionscodes fuer Anwendungslogueberwachung",
+      "anzahl_felder": 8,
+      "hinweis": "Cross-Client Tabelle - kein CLIENT Feld",
+      "felder": [
+        {"feldname": "TCODE", "datenelement": "TCODE", "datentyp": "CHAR", "laenge": 20, "kurztext": "Transaktionscode", "schluesselfeld": true},
+        {"feldname": "CLASSEMMAJOB", "datenelement": "EMMA_CLASS_ANALYZE_JOB", "datentyp": "CHAR", "laenge": 30, "kurztext": "Klasse zur Analyse des Jobs", "schluesselfeld": false},
+        {"feldname": "CLASSLOGNR", "datenelement": "EMMA_CLASS_LOGNR", "datentyp": "CHAR", "laenge": 30, "kurztext": "Klasse zur Bestimmung der Anwendungslognummer", "schluesselfeld": false},
+        {"feldname": "CLASSINTINFO", "datenelement": "EMMA_INTOBJINFO", "datentyp": "CHAR", "laenge": 30, "kurztext": "Klasse zur Bestimmung der Intervallinformation", "schluesselfeld": false},
+        {"feldname": "CLASSCOUNTMSG", "datenelement": "EMMA_CLASS_COUNTBUSOBJ", "datentyp": "CHAR", "laenge": 30, "kurztext": "Klasse zur Analyse der prozessierten Objekte und Meldungen", "schluesselfeld": false},
+        {"feldname": "OBJTYPE", "datenelement": "EMMA_MAINOBJTYPE", "datentyp": "CHAR", "laenge": 10, "kurztext": "Objekttyp des primaeren Business-Objektes eines Klaerungsfalls", "schluesselfeld": false},
+        {"feldname": "BPCODE", "datenelement": "EMMA_BPCODE", "datentyp": "CHAR", "laenge": 8, "kurztext": "Business-Prozess-Code", "schluesselfeld": false},
+        {"feldname": "CLASSJOB", "datenelement": "EMMA_CLASS_ANALYZE_JOB", "datentyp": "CHAR", "laenge": 30, "kurztext": "Klasse zur Analyse des Jobs", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CCAT_HDR": {
+      "beschreibung": "Klaerungsfallkategorien",
+      "anzahl_felder": 26,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true}
+      ]
+    },
+    "EMMAC_BASIC": {
+      "beschreibung": "Grundeinstellungen fuer EMMA",
+      "anzahl_felder": 4,
+      "felder": [
+        {"feldname": "EMMABASICKEY", "datenelement": "EMMA_BASIC_KEY", "datentyp": "CHAR", "laenge": 1, "kurztext": "Technischer Schluessel", "schluesselfeld": true},
+        {"feldname": "BASCM", "datenelement": "EMMA_BASCM", "datentyp": "CHAR", "laenge": 1, "kurztext": "Anwendung zur Fallverwaltung", "schluesselfeld": false},
+        {"feldname": "LAYOUT", "datenelement": "TAB_LAYOUT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Tabstrip in Stammsaetzen: Layout", "schluesselfeld": false},
+        {"feldname": "EMMACLASSIC", "datenelement": "EMMA_XCLASSIC", "datentyp": "CHAR", "laenge": 1, "kurztext": "Schalter fuer neue bzw. klassische EMMA Version", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_BPA": {
+      "beschreibung": "Business-Prozess-Bereich Customizing",
+      "anzahl_felder": 6,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "BPAREA", "datenelement": "EMMA_BPAREA", "datentyp": "CHAR", "laenge": 4, "kurztext": "Business-Prozess-Bereich", "schluesselfeld": true},
+        {"feldname": "XBPAACT", "datenelement": "EMMA_BPA_ACTIVE", "datentyp": "NUMC", "laenge": 1, "kurztext": "Aktivierung Business-Prozess-Bereich", "schluesselfeld": false},
+        {"feldname": "KPI_MSG", "datenelement": "EMMA_KPI_MSG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Ausloesende Meldungen von Klaerungsfaellen extrahieren", "schluesselfeld": false},
+        {"feldname": "NRRANGENR", "datenelement": "NRNR", "datentyp": "CHAR", "laenge": 2, "kurztext": "Nummernkreisnummer", "schluesselfeld": false},
+        {"feldname": "BRGRU", "datenelement": "BRGRU", "datentyp": "CHAR", "laenge": 4, "kurztext": "Berechtigungsgruppe", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_BPC": {
+      "beschreibung": "Business-Prozess-Code Customizing",
+      "anzahl_felder": 6,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "BPCODE", "datenelement": "EMMA_BPCODE", "datentyp": "CHAR", "laenge": 8, "kurztext": "Business-Prozess-Code", "schluesselfeld": true},
+        {"feldname": "XPSOC", "datenelement": "EMMA_XPSOC", "datentyp": "CHAR", "laenge": 1, "kurztext": "Klaerungsfaelle fuer erfolgreiche Business-Prozesse anlegen", "schluesselfeld": false},
+        {"feldname": "XBPCACT", "datenelement": "EMMA_BPC_ACTIVE", "datentyp": "NUMC", "laenge": 1, "kurztext": "Aktivierung Business-Prozess-Code", "schluesselfeld": false},
+        {"feldname": "NRRANGENR", "datenelement": "NRNR", "datentyp": "CHAR", "laenge": 2, "kurztext": "Nummernkreisnummer", "schluesselfeld": false},
+        {"feldname": "BRGRU", "datenelement": "BRGRU", "datentyp": "CHAR", "laenge": 4, "kurztext": "Berechtigungsgruppe", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_BPC_PROCID": {
+      "beschreibung": "Protokollieren Prozess-Id einer Action-Box-Transaktion",
+      "anzahl_felder": 3,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "PROCID", "datenelement": "EWB_PROCLX", "datentyp": "CHAR", "laenge": 60, "kurztext": "generische Prozess-Klassen ID", "schluesselfeld": true},
+        {"feldname": "BPCODE", "datenelement": "EMMA_BPCODE", "datentyp": "CHAR", "laenge": 8, "kurztext": "Business-Prozess-Code", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CANCODE": {
+      "beschreibung": "Stornogrund",
+      "anzahl_felder": 2,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CANCODE", "datenelement": "EMMA_CANCODE", "datentyp": "CHAR", "laenge": 4, "kurztext": "Stornogrund", "schluesselfeld": true}
+      ]
+    },
+    "EMMAC_CANCODET": {
+      "beschreibung": "Text zum Stornogrund",
+      "anzahl_felder": 4,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "LANGU", "datenelement": "LANGU", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "CANCODE", "datenelement": "EMMA_CANCODE", "datentyp": "CHAR", "laenge": 4, "kurztext": "Stornogrund", "schluesselfeld": true},
+        {"feldname": "CANCODETXT", "datenelement": "EMMA_CANCODETXT", "datentyp": "CHAR", "laenge": 50, "kurztext": "Text zum Stornogrund", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CCAT_BND": {
+      "beschreibung": "Datenfluss",
+      "anzahl_felder": 6,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true},
+        {"feldname": "BND_TYPE", "datenelement": "EMMA_BND_TYPE", "datentyp": "CHAR", "laenge": 2, "kurztext": "Datenflusstyp", "schluesselfeld": true},
+        {"feldname": "TAB_INDEX", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": true},
+        {"feldname": "EXPR", "datenelement": "SWA_EXPR", "datentyp": "CHAR", "laenge": 255, "kurztext": "Ausdruck in Datenflussdefinition", "schluesselfeld": false},
+        {"feldname": "TARGETEXPR", "datenelement": "SWA_EXPR", "datentyp": "CHAR", "laenge": 255, "kurztext": "Ausdruck in Datenflussdefinition", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CCAT_CND": {
+      "beschreibung": "Bedingungen zur Fallbestimmung oder Prioritaet",
+      "anzahl_felder": 13,
+      "felder": [
+        {"feldname": "MANDANT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true},
+        {"feldname": "PRIO", "datenelement": "EMMA_CPRIO", "datentyp": "CHAR", "laenge": 1, "kurztext": "Klaerungsfallprioritaet", "schluesselfeld": true},
+        {"feldname": "PARSE_TYP", "datenelement": "SWB_LINTYP", "datentyp": "CHAR", "laenge": 1, "kurztext": "Bedingungseditor: Typ der Zeile", "schluesselfeld": true},
+        {"feldname": "LINE_ID", "datenelement": "SWB_LINEID", "datentyp": "NUMC", "laenge": 3, "kurztext": "Bedingungseditor: Zeilennummer", "schluesselfeld": true},
+        {"feldname": "LINE_TYP", "datenelement": "SWB_LINTYP", "datentyp": "CHAR", "laenge": 1, "kurztext": "Bedingungseditor: Typ der Zeile", "schluesselfeld": false},
+        {"feldname": "LEFTEXPR", "datenelement": "SWD_CONEXP", "datentyp": "CHAR", "laenge": 255, "kurztext": "Vergleichsausdruck", "schluesselfeld": false},
+        {"feldname": "LEFTEXPTY", "datenelement": "SWA_EXPRTY", "datentyp": "CHAR", "laenge": 1, "kurztext": "Workflow Ausdruckstyp", "schluesselfeld": false},
+        {"feldname": "RIGHTEXPR", "datenelement": "SWD_CONEXP", "datentyp": "CHAR", "laenge": 255, "kurztext": "Vergleichsausdruck", "schluesselfeld": false},
+        {"feldname": "RIGHTEXPTY", "datenelement": "SWA_EXPRTY", "datentyp": "CHAR", "laenge": 1, "kurztext": "Workflow Ausdruckstyp", "schluesselfeld": false},
+        {"feldname": "COMPOP", "datenelement": "SWD_OPERAT", "datentyp": "CHAR", "laenge": 2, "kurztext": "Vergleichsoperator", "schluesselfeld": false},
+        {"feldname": "LOGOP", "datenelement": "SWB_LOGOP", "datentyp": "CHAR", "laenge": 3, "kurztext": "Logischer Operator", "schluesselfeld": false},
+        {"feldname": "NOTFLAG", "datenelement": "SWB_NOT", "datentyp": "CHAR", "laenge": 1, "kurztext": "Negationsflag", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CCAT_COB": {
+      "beschreibung": "Objektcontainer",
+      "anzahl_felder": 8,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true},
+        {"feldname": "CELEMNAME", "datenelement": "EMMA_CCONTELEM", "datentyp": "CHAR", "laenge": 32, "kurztext": "Name des Containerelements", "schluesselfeld": true},
+        {"feldname": "REFOBJTYPE", "datenelement": "SWO_REFOBJ", "datentyp": "CHAR", "laenge": 10, "kurztext": "Referenzobjekttyp", "schluesselfeld": false},
+        {"feldname": "REFSTRUCT", "datenelement": "SWC_REFSTR", "datentyp": "CHAR", "laenge": 30, "kurztext": "Bezugstabelle", "schluesselfeld": false},
+        {"feldname": "REFFIELD", "datenelement": "SWC_REFFLD", "datentyp": "CHAR", "laenge": 30, "kurztext": "Bezugsfeld", "schluesselfeld": false},
+        {"feldname": "REFTYPE", "datenelement": "TYPENAME", "datentyp": "CHAR", "laenge": 30, "kurztext": "Name des Dictionary Typs", "schluesselfeld": false},
+        {"feldname": "HIDDEN", "datenelement": "EMMA_FLAG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Erweitertes Nachrichten-Management", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CCAT_HDRT": {
+      "beschreibung": "Kurztexte der Klaerungsfallkategorien",
+      "anzahl_felder": 5,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "LANGU", "datenelement": "LANGU", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true},
+        {"feldname": "CCTXT", "datenelement": "EMMA_CCTXT", "datentyp": "CHAR", "laenge": 50, "kurztext": "Kurztext der Klaerungsfallkategorie", "schluesselfeld": false},
+        {"feldname": "CASETXT", "datenelement": "EMMA_CASETXT_RAW", "datentyp": "CHAR", "laenge": 120, "kurztext": "Klaerungsfalltext mit unaufgeloesten Variablen", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CCAT_MOB": {
+      "beschreibung": "Zuordnung Business-Objekte (oder Feldwerte) zu Fallkategorie",
+      "anzahl_felder": 5,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true},
+        {"feldname": "CCMSG", "datenelement": "EMMA_CCMSG", "datentyp": "NUMC", "laenge": 3, "kurztext": "Laufende Nummer der Nachricht", "schluesselfeld": true},
+        {"feldname": "VARNR", "datenelement": "EMMA_VARNO", "datentyp": "CHAR", "laenge": 10, "kurztext": "Nachrichtenvariable oder Parameter", "schluesselfeld": true},
+        {"feldname": "CELEMNAME", "datenelement": "EMMA_CCONTELEM", "datentyp": "CHAR", "laenge": 32, "kurztext": "Name des Containerelements", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CCAT_MSG": {
+      "beschreibung": "Nachrichtenpool fuer Fallkategorie",
+      "anzahl_felder": 8,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true},
+        {"feldname": "CCMSG", "datenelement": "EMMA_CCMSG", "datentyp": "NUMC", "laenge": 3, "kurztext": "Laufende Nummer der Nachricht", "schluesselfeld": true},
+        {"feldname": ".INCLUDE", "datenelement": "EMMA_MSG_ID_NO", "datentyp": "STRU", "laenge": 0, "kurztext": "Nachrichtengebiet und -nummer", "schluesselfeld": false},
+        {"feldname": "MSGID", "datenelement": "BALMSGID", "datentyp": "CHAR", "laenge": 20, "kurztext": "Meldungsklasse", "schluesselfeld": false},
+        {"feldname": "MSGNO", "datenelement": "BALMSGNO", "datentyp": "NUMC", "laenge": 3, "kurztext": "Meldungsnummer", "schluesselfeld": false},
+        {"feldname": "OPER", "datenelement": "EMMA_MSGOPER", "datentyp": "CHAR", "laenge": 1, "kurztext": "Vorkommen der Meldung pruefen", "schluesselfeld": false},
+        {"feldname": "HIDDEN", "datenelement": "EMMA_FLAG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Erweitertes Nachrichten-Management", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CCAT_PRI": {
+      "beschreibung": "Erweiterte Fallbestimmung und -prioritaet",
+      "anzahl_felder": 7,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true},
+        {"feldname": "PRIO", "datenelement": "EMMA_CPRIO", "datentyp": "CHAR", "laenge": 1, "kurztext": "Klaerungsfallprioritaet", "schluesselfeld": true},
+        {"feldname": "FWM", "datenelement": "EMMA_FWM", "datentyp": "CHAR", "laenge": 4, "kurztext": "Methode zur Weiterleitung von Klaerungsfaellen", "schluesselfeld": false},
+        {"feldname": "TIMTYP", "datenelement": "EMMA_CCTTYP", "datentyp": "CHAR", "laenge": 1, "kurztext": "Zeitart zur Faelligkeitsberechnung", "schluesselfeld": false},
+        {"feldname": "TIMQTY", "datenelement": "EMMA_CCTQTY", "datentyp": "NUMC", "laenge": 3, "kurztext": "Anzahl Zeiteinheiten (z.B. Tage, Monate, Stunden)", "schluesselfeld": false},
+        {"feldname": "BRGRU", "datenelement": "BRGRU", "datentyp": "CHAR", "laenge": 4, "kurztext": "Berechtigungsgruppe", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CCAT_SOP": {
+      "beschreibung": "Loesungsprozesse",
+      "anzahl_felder": 22,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true},
+        {"feldname": "SEQNR", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": true},
+        {"feldname": "XPROCA", "datenelement": "EMMA_PROCAUT", "datentyp": "CHAR", "laenge": 1, "kurztext": "Automatischer Loesungsprozess", "schluesselfeld": false},
+        {"feldname": "XDEACT", "datenelement": "EMMA_CCDEACT", "datentyp": "CHAR", "laenge": 1, "kurztext": "Klaerungsfallkategorie oder Loesungsprozess deaktiviert", "schluesselfeld": false},
+        {"feldname": "ICON", "datenelement": "ICON_D", "datentyp": "CHAR", "laenge": 4, "kurztext": "Ikone in Textfeldern", "schluesselfeld": false},
+        {"feldname": ".INCLUDE", "datenelement": "EMMA_PROC", "datentyp": "STRU", "laenge": 0, "kurztext": "Unterstuetzte Fallloeungsprozessarten", "schluesselfeld": false},
+        {"feldname": "OBJTYPE", "datenelement": "SWO_OBJTYP", "datentyp": "CHAR", "laenge": 10, "kurztext": "Objekttyp", "schluesselfeld": false},
+        {"feldname": "METHOD", "datenelement": "SWO_METHOD", "datentyp": "CHAR", "laenge": 32, "kurztext": "Methode", "schluesselfeld": false},
+        {"feldname": "WFTASKTYP", "datenelement": "EWC_TASK_TP", "datentyp": "CHAR", "laenge": 2, "kurztext": "Aufgabentyp", "schluesselfeld": false},
+        {"feldname": "WFTASKID", "datenelement": "HROBJID", "datentyp": "NUMC", "laenge": 8, "kurztext": "Objekt-Id", "schluesselfeld": false},
+        {"feldname": "ABOX_CONF", "datenelement": "EWF_CONFIG", "datentyp": "CHAR", "laenge": 8, "kurztext": "Action Box Konfiguration", "schluesselfeld": false},
+        {"feldname": "ABOX_CALLID", "datenelement": "EWF_CALLID", "datentyp": "CHAR", "laenge": 4, "kurztext": "Transaktionscode eines Action-Box-Prozesses", "schluesselfeld": false},
+        {"feldname": "CLSNAM", "datenelement": "SWF_CLSNAM", "datentyp": "CHAR", "laenge": 32, "kurztext": "Objekttyp", "schluesselfeld": false},
+        {"feldname": "CLSMET", "datenelement": "SWF_CLSMET", "datentyp": "CHAR", "laenge": 32, "kurztext": "Workflow: Methodename", "schluesselfeld": false},
+        {"feldname": "SOPTXTID", "datenelement": "EMMA_SOPTXTID", "datentyp": "CHAR", "laenge": 10, "kurztext": "Bezeichnung des Loesungsprozesses", "schluesselfeld": false},
+        {"feldname": "XEXECCTRL", "datenelement": "EMMA_PROCAUT_MODE", "datentyp": "CHAR", "laenge": 1, "kurztext": "Freigabe Ausfuehrung Loesungsprozess", "schluesselfeld": false},
+        {"feldname": "XPROCM", "datenelement": "EMMA_PROCAUT_MULTIPLE", "datentyp": "CHAR", "laenge": 1, "kurztext": "Mehrfache Ausfuehrung automatischer Loesungsprozess erlaubt", "schluesselfeld": false},
+        {"feldname": "XPROCL", "datenelement": "EMMA_PROCAUT_LOG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Protokollierung Ausfuehrung automatischer Loesungsprozess", "schluesselfeld": false},
+        {"feldname": "SOP_GUID", "datenelement": "EMMA_SOPGUID", "datentyp": "CHAR", "laenge": 32, "kurztext": "GUID des Loesungsprozesses", "schluesselfeld": false},
+        {"feldname": "SOPEXTID", "datenelement": "EMMA_SOPEXTID", "datentyp": "CHAR", "laenge": 10, "kurztext": "Externe Bezeichnung Loesungsprozess", "schluesselfeld": false},
+        {"feldname": "HIDDEN", "datenelement": "EMMA_FLAG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Erweitertes Nachrichten-Management", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CCAT_SOP_B": {
+      "beschreibung": "Datenfluss fuer Loesungsmethoden",
+      "anzahl_felder": 8,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true},
+        {"feldname": "SEQNR", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": true},
+        {"feldname": "TAB_INDEX", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": true},
+        {"feldname": ".INCLUDE", "datenelement": "EMMA_CCAT_BND", "datentyp": "STRU", "laenge": 0, "kurztext": "Datenfluss", "schluesselfeld": false},
+        {"feldname": "DATAFLOW", "datenelement": "SWA_DAFLOW", "datentyp": "CHAR", "laenge": 1, "kurztext": "Workflow Binding: Datenflusszeitpunkt", "schluesselfeld": false},
+        {"feldname": "EXPR", "datenelement": "SWA_EXPR", "datentyp": "CHAR", "laenge": 255, "kurztext": "Ausdruck in Datenflussdefinition", "schluesselfeld": false},
+        {"feldname": "TARGETEXPR", "datenelement": "SWA_EXPR", "datentyp": "CHAR", "laenge": 255, "kurztext": "Ausdruck in Datenflussdefinition", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CCSTATUS": {
+      "beschreibung": "Kundeneigene Klaerungsfallstatus",
+      "anzahl_felder": 2,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CUSTSTATUS", "datenelement": "EMMA_CCUSTSTATUS", "datentyp": "CHAR", "laenge": 1, "kurztext": "Bearbeitungssubstatus des Klaerungsfalls", "schluesselfeld": true}
+      ]
+    },
+    "EMMAC_CCSTATUST": {
+      "beschreibung": "Texte kundeneigener Klaerungsfallstatus",
+      "anzahl_felder": 4,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "LANGU", "datenelement": "LANGU", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "CUSTSTATUS", "datenelement": "EMMA_CCUSTSTATUS", "datentyp": "CHAR", "laenge": 1, "kurztext": "Bearbeitungssubstatus des Klaerungsfalls", "schluesselfeld": true},
+        {"feldname": "CUSTSTATUSTXT", "datenelement": "EMMA_CCUSTSTATUS_TXT", "datentyp": "CHAR", "laenge": 40, "kurztext": "Substatustext", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CREACODE": {
+      "beschreibung": "Weiterleitungsgruende",
+      "anzahl_felder": 2,
+      "felder": [
+        {"feldname": "CIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "REACODE", "datenelement": "EMMA_CREACODE", "datentyp": "CHAR", "laenge": 4, "kurztext": "Grund fuer Weiterleitung", "schluesselfeld": true}
+      ]
+    },
+    "EMMAC_CREACODET": {
+      "beschreibung": "Texte Weiterleitungsgruende",
+      "anzahl_felder": 4,
+      "felder": [
+        {"feldname": "CIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "LANGU", "datenelement": "LANGU", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "REACODE", "datenelement": "EMMA_CREACODE", "datentyp": "CHAR", "laenge": 4, "kurztext": "Grund fuer Weiterleitung", "schluesselfeld": true},
+        {"feldname": "TEXT", "datenelement": "EMMA_CODETXT", "datentyp": "CHAR", "laenge": 50, "kurztext": "Weiterleitungsgrund", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CSTAT_ASS": {
+      "beschreibung": "Zuordnung kundeneigener Klaerungsfallstatus",
+      "anzahl_felder": 3,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "STATUS", "datenelement": "EMMA_CSTATUS", "datentyp": "NUMC", "laenge": 1, "kurztext": "Bearbeitungsstatus des Klaerungsfalls", "schluesselfeld": true},
+        {"feldname": "CUSTSTATUS", "datenelement": "EMMA_CCUSTSTATUS", "datentyp": "CHAR", "laenge": 1, "kurztext": "Bearbeitungssubstatus des Klaerungsfalls", "schluesselfeld": true}
+      ]
+    },
+    "EMMAC_CTYPE": {
+      "beschreibung": "Fallarten",
+      "anzahl_felder": 3,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CTYPE", "datenelement": "EMMA_CTYPE", "datentyp": "CHAR", "laenge": 4, "kurztext": "Fallart", "schluesselfeld": true},
+        {"feldname": "XDEACT", "datenelement": "EMMA_CTDEACT", "datentyp": "CHAR", "laenge": 1, "kurztext": "Fallart deaktiviert", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CTYPET": {
+      "beschreibung": "Kurzbeschreibung der Fallarten",
+      "anzahl_felder": 4,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "LANGU", "datenelement": "LANGU", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "CTYPE", "datenelement": "EMMA_CTYPE", "datentyp": "CHAR", "laenge": 4, "kurztext": "Fallart", "schluesselfeld": true},
+        {"feldname": "CTTXT", "datenelement": "EMMA_CTTXT", "datentyp": "CHAR", "laenge": 50, "kurztext": "Text zur Fallart", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CWL_BTN": {
+      "beschreibung": "Fallliste: Schnellwahlknoepfe",
+      "anzahl_felder": 5,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "LAYOUT", "datenelement": "EMMA_CWL_LAY", "datentyp": "CHAR", "laenge": 4, "kurztext": "Layout Fallliste", "schluesselfeld": true},
+        {"feldname": "BTNID", "datenelement": "EMMA_CWL_BTNID", "datentyp": "CHAR", "laenge": 5, "kurztext": "Schnellwahlknopf-ID", "schluesselfeld": true},
+        {"feldname": "ICON", "datenelement": "ICON_D", "datentyp": "CHAR", "laenge": 4, "kurztext": "Ikone in Textfeldern", "schluesselfeld": false},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CWL_BTNT": {
+      "beschreibung": "Texte zu Schnellwahlknoepfen",
+      "anzahl_felder": 5,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "LAYOUT", "datenelement": "EMMA_CWL_LAY", "datentyp": "CHAR", "laenge": 4, "kurztext": "Layout Fallliste", "schluesselfeld": true},
+        {"feldname": "BTNID", "datenelement": "EMMA_CWL_BTNID", "datentyp": "CHAR", "laenge": 5, "kurztext": "Schnellwahlknopf-ID", "schluesselfeld": true},
+        {"feldname": "LANGU", "datenelement": "SPRAS", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "BTNTXT", "datenelement": "TXT50", "datentyp": "CHAR", "laenge": 50, "kurztext": "Name", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_CWL_SHL": {
+      "beschreibung": "Layout Fallbearbeitungsliste",
+      "anzahl_felder": 2,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "LAYOUT", "datenelement": "EMMA_CWL_LAY", "datentyp": "CHAR", "laenge": 4, "kurztext": "Layout Fallliste", "schluesselfeld": true}
+      ]
+    },
+    "EMMAC_CWL_SHLT": {
+      "beschreibung": "Text zum Layout Fallbearbeitungsliste",
+      "anzahl_felder": 4,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "LAYOUT", "datenelement": "EMMA_CWL_LAY", "datentyp": "CHAR", "laenge": 4, "kurztext": "Layout Fallliste", "schluesselfeld": true},
+        {"feldname": "LANGU", "datenelement": "SPRAS", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "LYTXT", "datenelement": "TXT50", "datentyp": "CHAR", "laenge": 50, "kurztext": "Name", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_FWM": {
+      "beschreibung": "Methoden zur Weiterleitung von Faellen",
+      "anzahl_felder": 3,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "FWM", "datenelement": "EMMA_FWM", "datentyp": "CHAR", "laenge": 4, "kurztext": "Methode zur Weiterleitung von Klaerungsfaellen", "schluesselfeld": true},
+        {"feldname": "CLASS", "datenelement": "EMMA_FWM_CLASS", "datentyp": "CHAR", "laenge": 30, "kurztext": "Klasse zur Weiterleitung von Klaerungsfaellen", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_FWMT": {
+      "beschreibung": "Kurzbeschreibung der Methoden zur Weiterleitung von Faellen",
+      "anzahl_felder": 4,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "LANGU", "datenelement": "LANGU", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "FWM", "datenelement": "EMMA_FWM", "datentyp": "CHAR", "laenge": 4, "kurztext": "Methode zur Weiterleitung von Klaerungsfaellen", "schluesselfeld": true},
+        {"feldname": "FWMTXT", "datenelement": "TXT50", "datentyp": "CHAR", "laenge": 50, "kurztext": "Name", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_FWM_ACTION": {
+      "beschreibung": "Ausfuehrung der Weiterleitungsmethode im Dialog",
+      "anzahl_felder": 4,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "FWM_ACTION", "datenelement": "EMMA_FWM_ACTION", "datentyp": "CHAR", "laenge": 10, "kurztext": "Zeitpunkt fuer die Ausfuehrung der Weiterleitungsmethode", "schluesselfeld": true},
+        {"feldname": "BPCODE", "datenelement": "EMMA_BPCODE", "datentyp": "CHAR", "laenge": 8, "kurztext": "Business-Prozess-Code", "schluesselfeld": true},
+        {"feldname": "FORWARD", "datenelement": "EMMA_FWM_EXEC", "datentyp": "CHAR", "laenge": 1, "kurztext": "Weiterleitungsmethode ausfuehren", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_MSGSUPRS": {
+      "beschreibung": "Nachrichtenunterdrueckung bei der Vorbereitung",
+      "anzahl_felder": 6,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "MSGID", "datenelement": "SYMSGID", "datentyp": "CHAR", "laenge": 20, "kurztext": "Nachrichtenklasse", "schluesselfeld": true},
+        {"feldname": "MSGNO", "datenelement": "SYMSGNO", "datentyp": "NUMC", "laenge": 3, "kurztext": "Nachrichtennummer", "schluesselfeld": true},
+        {"feldname": "BPAREA", "datenelement": "EMMA_BPAREA", "datentyp": "CHAR", "laenge": 4, "kurztext": "Business-Prozess-Bereich", "schluesselfeld": true},
+        {"feldname": "MSGSUP", "datenelement": "EMMA_MSGSUP", "datentyp": "NUMC", "laenge": 1, "kurztext": "Indikator fuer die Nachrichtenbehandlung", "schluesselfeld": false},
+        {"feldname": "MSGTY", "datenelement": "EDI_SYMSTY", "datentyp": "CHAR", "laenge": 1, "kurztext": "Typ der Systemfehlermeldung (A, W, E, S, I)", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_MSG_OBJ": {
+      "beschreibung": "Nachrichtenobjekte",
+      "anzahl_felder": 6,
+      "felder": [
+        {"feldname": "MSGID", "datenelement": "SYMSGID", "datentyp": "CHAR", "laenge": 20, "kurztext": "Nachrichtenklasse", "schluesselfeld": true},
+        {"feldname": "MSGNO", "datenelement": "SYMSGNO", "datentyp": "NUMC", "laenge": 3, "kurztext": "Nachrichtennummer", "schluesselfeld": true},
+        {"feldname": "VARNR", "datenelement": "EMMA_VARNO", "datentyp": "CHAR", "laenge": 10, "kurztext": "Nachrichtenvariable oder Parameter zur Nachricht", "schluesselfeld": true},
+        {"feldname": "REFOBJTYPE", "datenelement": "SWO_REFOBJ", "datentyp": "CHAR", "laenge": 10, "kurztext": "Referenzobjekttyp", "schluesselfeld": false},
+        {"feldname": "REFSTRUCT", "datenelement": "SWC_REFSTR", "datentyp": "CHAR", "laenge": 30, "kurztext": "Bezugstabelle", "schluesselfeld": false},
+        {"feldname": "REFFIELD", "datenelement": "SWC_REFFLD", "datentyp": "CHAR", "laenge": 30, "kurztext": "Bezugsfeld", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_MSG_SUPRES": {
+      "beschreibung": "Nachrichtenunterdrueckung bei der Vorbereitung (OLD not use)",
+      "anzahl_felder": 4,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "MSGID", "datenelement": "SYMSGID", "datentyp": "CHAR", "laenge": 20, "kurztext": "Nachrichtenklasse", "schluesselfeld": true},
+        {"feldname": "MSGNO", "datenelement": "SYMSGNO", "datentyp": "NUMC", "laenge": 3, "kurztext": "Nachrichtennummer", "schluesselfeld": true},
+        {"feldname": "TCODE", "datenelement": "TCODE", "datentyp": "CHAR", "laenge": 20, "kurztext": "Transaktionscode", "schluesselfeld": true}
+      ]
+    },
+    "EMMAC_SOPTXTID": {
+      "beschreibung": "Loesungsprozesse",
+      "anzahl_felder": 2,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "SOPTEXTID", "datenelement": "EMMA_SOPTXTID", "datentyp": "CHAR", "laenge": 10, "kurztext": "Bezeichnung des Loesungsprozesses", "schluesselfeld": true}
+      ]
+    },
+    "EMMAC_SOPTXTIDT": {
+      "beschreibung": "Texte Loesungsprozesse",
+      "anzahl_felder": 4,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "LANGU", "datenelement": "LANGU", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "SOPTEXTID", "datenelement": "EMMA_SOPTXTID", "datentyp": "CHAR", "laenge": 10, "kurztext": "Bezeichnung des Loesungsprozesses", "schluesselfeld": true},
+        {"feldname": "SOPTEXT", "datenelement": "EMMA_SOPTXT", "datentyp": "CHAR", "laenge": 132, "kurztext": "Bezeichnung eines Loesungsprozess", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_WUI_CCAT": {
+      "beschreibung": "BPEM: Web-UI-Customizing fuer Fallkategorie",
+      "anzahl_felder": 6,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true},
+        {"feldname": "STEPID", "datenelement": "EMMA_SOPGUID", "datentyp": "CHAR", "laenge": 32, "kurztext": "GUID des Loesungsprozesses", "schluesselfeld": true},
+        {"feldname": "PROCESSNAVID", "datenelement": "EMMA_PROCESSNAVID", "datentyp": "CHAR", "laenge": 20, "kurztext": "ID zum Navigieren zum Prozess", "schluesselfeld": false},
+        {"feldname": "PROCESSNAVTITLE", "datenelement": "EMMA_PROCNAVTITLE", "datentyp": "CHAR", "laenge": 40, "kurztext": "Titel des Prozessnavigationsschrittes", "schluesselfeld": false},
+        {"feldname": "PROCESSNAVOBJ", "datenelement": "EMMA_PROCESSNAVOBJ", "datentyp": "CHAR", "laenge": 30, "kurztext": "Objektname zur Prozessnavigation", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_WUI_OBJ": {
+      "beschreibung": "BPEM: Objekte fuer Navigation",
+      "anzahl_felder": 3,
+      "felder": [
+        {"feldname": "OBJTYPE", "datenelement": "SWO_OBJTYP", "datentyp": "CHAR", "laenge": 10, "kurztext": "Objekttyp", "schluesselfeld": true},
+        {"feldname": "PROCESSNAVID", "datenelement": "EMMA_PROCESSNAVID", "datentyp": "CHAR", "laenge": 20, "kurztext": "ID zum Navigieren zum Prozess", "schluesselfeld": false},
+        {"feldname": "PROCESSNAVOBJ", "datenelement": "EMMA_PROCESSNAVOBJ", "datentyp": "CHAR", "laenge": 30, "kurztext": "Objektname zur Prozessnavigation", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_WUI_PROC": {
+      "beschreibung": "BPEM: Web-UI-Prozess-Customizing",
+      "anzahl_felder": 15,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "CCAT", "datenelement": "EMMA_CCAT", "datentyp": "CHAR", "laenge": 4, "kurztext": "Klaerungsfallkategorie", "schluesselfeld": true},
+        {"feldname": "STEPID", "datenelement": "EMMA_SOPGUID", "datentyp": "CHAR", "laenge": 32, "kurztext": "GUID des Loesungsprozesses", "schluesselfeld": true},
+        {"feldname": "SEQNR", "datenelement": "EMMA_SEQNR", "datentyp": "NUMC", "laenge": 3, "kurztext": "Sequenznummer", "schluesselfeld": true},
+        {"feldname": "XCONFIRM", "datenelement": "EMMA_FLAG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Erweitertes Nachrichten-Management", "schluesselfeld": false},
+        {"feldname": "XOPEN", "datenelement": "EMMA_FLAG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Erweitertes Nachrichten-Management", "schluesselfeld": false},
+        {"feldname": "XPOSTPONED", "datenelement": "EMMA_FLAG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Erweitertes Nachrichten-Management", "schluesselfeld": false},
+        {"feldname": "XASSIGN", "datenelement": "EMMA_FLAG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Erweitertes Nachrichten-Management", "schluesselfeld": false},
+        {"feldname": "XEXEC", "datenelement": "EMMA_FLAG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Erweitertes Nachrichten-Management", "schluesselfeld": false},
+        {"feldname": "XCANCEL", "datenelement": "EMMA_FLAG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Erweitertes Nachrichten-Management", "schluesselfeld": false},
+        {"feldname": "XDISMISS", "datenelement": "EMMA_FLAG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Erweitertes Nachrichten-Management", "schluesselfeld": false},
+        {"feldname": "PROCESSNAVID", "datenelement": "EMMA_PROCESSNAVID", "datentyp": "CHAR", "laenge": 20, "kurztext": "ID zum Navigieren zum Prozess", "schluesselfeld": false},
+        {"feldname": "PROCESSNAVTITLE", "datenelement": "EMMA_PROCNAVTITLE", "datentyp": "CHAR", "laenge": 40, "kurztext": "Titel des Prozessnavigationsschrittes", "schluesselfeld": false},
+        {"feldname": "PROCESSNAVOBJ", "datenelement": "EMMA_PROCESSNAVOBJ", "datentyp": "CHAR", "laenge": 30, "kurztext": "Objektname zur Prozessnavigation", "schluesselfeld": false},
+        {"feldname": "CBCLS", "datenelement": "EMMA_CBCLS", "datentyp": "CHAR", "laenge": 30, "kurztext": "Callback-Klasse", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_WUI_REP": {
+      "beschreibung": "BPEM: Navigation Repository",
+      "anzahl_felder": 6,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "PROCESSNAVID", "datenelement": "EMMA_PROCESSNAVID", "datentyp": "CHAR", "laenge": 20, "kurztext": "ID zum Navigieren zum Prozess", "schluesselfeld": true},
+        {"feldname": "UIBBCOMPNAME", "datenelement": "EMMA_UIBBCOMPNAME", "datentyp": "CHAR", "laenge": 30, "kurztext": "Name der UIBBComposite-Komponente", "schluesselfeld": false},
+        {"feldname": "UIBBCONFIG", "datenelement": "EMMA_UIBBCONFIG", "datentyp": "CHAR", "laenge": 32, "kurztext": "UIBBComposite-Konfiguration", "schluesselfeld": false},
+        {"feldname": "XLAUNCHPAD", "datenelement": "EMMA_FLAG", "datentyp": "CHAR", "laenge": 1, "kurztext": "Erweitertes Nachrichten-Management", "schluesselfeld": false},
+        {"feldname": "PROCESSNAVOBJ", "datenelement": "EMMA_PROCESSNAVOBJ", "datentyp": "CHAR", "laenge": 30, "kurztext": "Objektname zur Prozessnavigation", "schluesselfeld": false}
+      ]
+    },
+    "EMMAC_WUI_REPT": {
+      "beschreibung": "BPEM: Texttabelle zum Navigation Repository",
+      "anzahl_felder": 4,
+      "felder": [
+        {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "kurztext": "Mandant", "schluesselfeld": true},
+        {"feldname": "PROCESSNAVID", "datenelement": "EMMA_PROCESSNAVID", "datentyp": "CHAR", "laenge": 20, "kurztext": "ID zum Navigieren zum Prozess", "schluesselfeld": true},
+        {"feldname": "SPRAS", "datenelement": "SPRAS", "datentyp": "LANG", "laenge": 1, "kurztext": "Sprachenschluessel", "schluesselfeld": true},
+        {"feldname": "TEXT", "datenelement": "TXT50", "datentyp": "CHAR", "laenge": 50, "kurztext": "Name", "schluesselfeld": false}
+      ]
+    }
+  },
+  "statistik": {
+    "transaktionsdaten_tabellen": 17,
+    "customizing_tabellen": 40,
+    "cross_client_tabellen": 10,
+    "text_tabellen": 15
+  },
+  "hinweis": "EMMA = Exception Management for Mass Activities - BPEM Komponente fuer SAP Utilities und branchenneutrale Prozesse"
+}
