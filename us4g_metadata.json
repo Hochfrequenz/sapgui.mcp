@@ -3,7 +3,7 @@
   "quelle": "SAP SE11 - ABAP Dictionary",
   "beschreibung": "S/4 Utilities /US4G/ Tabellen-Feldmetadaten",
   "fortschritt": {
-    "extrahiert": 358,
+    "extrahiert": 362,
     "gesamt": 613
   },
   "tabellen": {
@@ -16578,6 +16578,524 @@
         },
         {
           "feldname": "MI_DEV_EXTENDED"
+        }
+      ]
+    },
+    "C:/Program Files/Git/US4G/EDN_AMI": {
+      "beschreibung": "OBSOLET",
+      "anzahl_felder": 82,
+      "felder": []
+    },
+    "/US4G/EDN_AMI": {
+      "beschreibung": "OBSOLET",
+      "anzahl_felder": 82,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ROOT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_EDN_DEV_POS",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "OBSOLET",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "OWNERSHIP_ID",
+          "datenelement": "/US4G/DE_OWNERSHIP_ID",
+          "datentyp": "CHAR",
+          "laenge": 60,
+          "dezimalstellen": 0,
+          "kurztext": "Eigentumsnummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "RFID",
+          "datenelement": "/US4G/DE_RFID",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "RFID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "OVERALL_MANU_ID",
+          "datenelement": "/US4G/DE_OVERALL_ID",
+          "datentyp": "CHAR",
+          "laenge": 14,
+          "dezimalstellen": 0,
+          "kurztext": "Hauptidentifikationsnummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "FABRICATION_NO",
+          "datenelement": "/US4G/DE_FABRICATION_NO",
+          "datentyp": "CHAR",
+          "laenge": 60,
+          "dezimalstellen": 0,
+          "kurztext": "Herstellernummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "BATCH",
+          "datenelement": "/US4G/DE_BATCH",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Charge",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "FABRICATION_DATE",
+          "datenelement": "/US4G/DE_FABRICATION_DATE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Herstellungsdatum",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MID",
+          "datenelement": "/US4G/DE_MEASURE_INST_DIR",
+          "datentyp": "CHAR",
+          "laenge": 60,
+          "dezimalstellen": 0,
+          "kurztext": "Messgeraeterichtlinie",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EXP_CALIBRATION_NO",
+          "datenelement": "/US4G/DE_EXP_CALIBR_NO",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Eichmarkennummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MEASURING_PRESSURE",
+          "datenelement": "/US4G/DE_MEASURING_PRESSURE",
+          "datentyp": "NUMC",
+          "laenge": 4,
+          "dezimalstellen": 0,
+          "kurztext": "Messdruck",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CHECK_DATE",
+          "datenelement": "/US4G/DE_CHECK_DATE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Datum der Pruefung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EXP_CALIBRATION_YEAR",
+          "datenelement": "/US4G/DE_EXP_CALIBR_YEAR",
+          "datentyp": "NUMC",
+          "laenge": 4,
+          "dezimalstellen": 0,
+          "kurztext": "Ablaufjahr der Eichung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "KEYM",
+          "datenelement": "/US4G/DE_KEYM",
+          "datentyp": "STRING",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Initial-Schluessel M",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ASSEMBLY_FLAG",
+          "datenelement": "/US4G/DE_ASSEMBLY_FLAG",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Zusammenbau-Flag",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ASSEMBLY_ID",
+          "datenelement": "/US4G/DE_ASSEMBLY_ID",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Zusammenbaugruppen-ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "PARAM_VERSION",
+          "datenelement": "/US4G/DE_PARAM_VERS",
+          "datentyp": "CHAR",
+          "laenge": 60,
+          "dezimalstellen": 0,
+          "kurztext": "Parametrierte Version",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "HARDWARE_VERSION",
+          "datenelement": "/US4G/DE_HARDWARE_VERS",
+          "datentyp": "CHAR",
+          "laenge": 60,
+          "dezimalstellen": 0,
+          "kurztext": "Hardware-Version",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIM_CARD_NO",
+          "datenelement": "/US4G/DE_SIM_CARD_NO",
+          "datentyp": "CHAR",
+          "laenge": 30,
+          "dezimalstellen": 0,
+          "kurztext": "SIM-Kartennummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIM_PHONE_NUMBER",
+          "datenelement": "/US4G/DE_PHONE_NUMBER",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Telefonnummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIM_IP_ADD_TYPE",
+          "datenelement": "/US4G/DE_IP_ADD_TYPE",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "IP-Adressart",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIM_IP_NUMBER",
+          "datenelement": "/US4G/DE_IP_NUMBER",
+          "datentyp": "CHAR",
+          "laenge": 255,
+          "dezimalstellen": 0,
+          "kurztext": "IP-Nummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIM_CARD_SIZE",
+          "datenelement": "/US4G/DE_CARD_SIZE",
+          "datentyp": "CHAR",
+          "laenge": 30,
+          "dezimalstellen": 0,
+          "kurztext": "SIM-Kartengroesse",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIM_PUK1",
+          "datenelement": "/US4G/DE_PUK1",
+          "datentyp": "CHAR",
+          "laenge": 30,
+          "dezimalstellen": 0,
+          "kurztext": "PUK 1",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIM_PUK2",
+          "datenelement": "/US4G/DE_PUK2",
+          "datentyp": "CHAR",
+          "laenge": 30,
+          "dezimalstellen": 0,
+          "kurztext": "PUK 2",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIM_PIN",
+          "datenelement": "/US4G/DE_PIN1",
+          "datentyp": "CHAR",
+          "laenge": 4,
+          "dezimalstellen": 0,
+          "kurztext": "PIN 1",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIM_DATA_NUMBER",
+          "datenelement": "/US4G/DE_DATA_NUMBER",
+          "datentyp": "CHAR",
+          "laenge": 4,
+          "dezimalstellen": 0,
+          "kurztext": "Datennummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIM_FAX_NUMBER",
+          "datenelement": "/US4G/DE_SIM_IMEI",
+          "datentyp": "CHAR",
+          "laenge": 30,
+          "dezimalstellen": 0,
+          "kurztext": "SIM-IMEI",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIM_KARTE_IMEI",
+          "datenelement": "/US4G/DE_SIM_AUTH",
+          "datentyp": "CHAR",
+          "laenge": 30,
+          "dezimalstellen": 0,
+          "kurztext": "SIM-Auth",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/EDN_CLA": {
+      "beschreibung": "Elektronische Lieferscheinklasse",
+      "anzahl_felder": 10,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ROOT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_PROCREF_COUNTER",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Prozessreferenz mit Zaehler",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "PROC_REF",
+          "datenelement": "/APE/DE_APPL_DB_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "Schluessel",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "COUNTER",
+          "datenelement": "/APE/DE_COUNT",
+          "datentyp": "INT4",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Anzahl",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_EDN_CLASS",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Elektronische Lieferscheinklasse",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CLASS",
+          "datenelement": "/US4G/DE_EDN_CLASS",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Elektronische Lieferscheinklasse",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "CI_US4G_EDN_CLASS",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/EDN_CLAD": {
+      "beschreibung": "/US4G/I_EDN_HEAD_TP /US4G/I_EDN_DEL_CLA_TP",
+      "anzahl_felder": 13,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ROOT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CLASS",
+          "datenelement": "/US4G/DE_EDN_CLASS",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Elektronische Lieferscheinklasse",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ACTIVEUUID",
+          "datenelement": "/BOBF/UUID",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "UUID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "HASACTIVEENTITY",
+          "datenelement": "SDRAFT_HAS_ACTIVE",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Entwurf Kennzeichen",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "SDRAFT_WRITE_DRAFT_ADMIN",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Entwurf Verwaltungsdaten",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYCREATIONDATETIME",
+          "datenelement": "SDRAFT_CREATED_AT",
+          "datentyp": "DEC",
+          "laenge": 21,
+          "dezimalstellen": 7,
+          "kurztext": "Entwurf angelegt am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYLASTCHANGEDATETIME",
+          "datenelement": "SDRAFT_LAST_CHANGED_AT",
+          "datentyp": "DEC",
+          "laenge": 21,
+          "dezimalstellen": 7,
+          "kurztext": "Entwurf zuletzt geaendert am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTADMINISTRATIVEDATAUUID",
+          "datenelement": "SDRAFT_ADMIN_UUID",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "Technische ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYCONSISTENCYSTATUS",
+          "datenelement": "SDRAFT_CONSISTENCY_STATUS",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Entwurf Konsistenzstatus",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYOPERATIONCODE",
+          "datenelement": "SDRAFT_OPERATION_CODE",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Entwurf Befehlscode",
+          "schluesselfeld": false
         }
       ]
     }
