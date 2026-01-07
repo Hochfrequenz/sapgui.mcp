@@ -1,0 +1,344 @@
+{
+  "extraction_date": "2026-01-06",
+  "system": "S4U (100)",
+  "user": "KLEINK",
+  "source_table": "DD02V",
+  "transaction": "SE16N",
+  "market_communication": {
+    "pdoc_tables": {
+      "pattern": "EPDOC*",
+      "result": "keine_ergebnisse",
+      "tabellen": []
+    },
+    "idxgc_tables": {
+      "pattern": "/IDXGC/*",
+      "result": "keine_ergebnisse",
+      "tabellen": []
+    },
+    "idxgl_tables": {
+      "pattern": "/IDXGL/*",
+      "result": "keine_ergebnisse",
+      "tabellen": []
+    },
+    "eedmbd_tables": {
+      "pattern": "EEDMBD*",
+      "result": "keine_ergebnisse",
+      "tabellen": []
+    }
+  },
+  "serviceanbieter": {
+    "eservice_tables": {
+      "pattern": "ESERV*",
+      "result": "gefunden",
+      "tabellen": [
+        {
+          "name": "ESERVICE",
+          "beschreibung": "Zaehlpunktservice",
+          "tabellenart": "TRANSP",
+          "sprachabhangig": true
+        },
+        {
+          "name": "ESERVICED",
+          "beschreibung": "Dynprofelder Zaehlpunktservice",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "ESERVICEDET",
+          "beschreibung": "Bestimmung der Servicearten",
+          "tabellenart": "TRANSP",
+          "sprachabhangig": false
+        },
+        {
+          "name": "ESERVICEDOCITM",
+          "beschreibung": "Generated Table for View",
+          "tabellenart": "VIEW",
+          "sprachabhangig": false
+        },
+        {
+          "name": "ESERVICEDOCUMENT",
+          "beschreibung": "Generated Table for View",
+          "tabellenart": "VIEW",
+          "sprachabhangig": false
+        },
+        {
+          "name": "ESERVICEKEY",
+          "beschreibung": "Modifizierte oder geaenderte nichtabrechenbare Services",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": false
+        },
+        {
+          "name": "ESERVICE_DEFAULTING",
+          "beschreibung": "Information zur Bestimmung der Vorschlagswerte fuer Services",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": false
+        },
+        {
+          "name": "ESERVPROV",
+          "beschreibung": "Serviceanbieter",
+          "tabellenart": "TRANSP",
+          "sprachabhangig": true
+        },
+        {
+          "name": "ESERVPROV001QR",
+          "beschreibung": "Serviceanbieterdaten zum Service SERVPROV001QR",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "ESERVPROV001QR_APPLDATA_IN",
+          "beschreibung": "Inbound-Anwendungsdaten fuer Service SERVPROV001QR",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": false
+        },
+        {
+          "name": "ESERVPROV001QR_APPLDATA_OUT",
+          "beschreibung": "Outbound-Anwendungsdaten zum Service SERVPROV001QR",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": false
+        },
+        {
+          "name": "ESERVPROVBDIDQR_APPLDATA_IN",
+          "beschreibung": "Inbound-Anwendungsdaten zum Service SERVPROVBDIDQR",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": false
+        }
+      ]
+    }
+  },
+  "versorgungsszenarien": {
+    "evbs_tables": {
+      "pattern": "EVBS*",
+      "result": "gefunden",
+      "beschreibung": "Verbrauchsstelle (Premise)",
+      "tabellen": [
+        {
+          "name": "EVBS",
+          "beschreibung": "Verbrauchsstelle",
+          "tabellenart": "TRANSP",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EVBSCOND",
+          "beschreibung": "Dynprofelder ES64",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": false
+        },
+        {
+          "name": "EVBSD",
+          "beschreibung": "Dynprofelder Verbrauchsstelle",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EVBSD1",
+          "beschreibung": "Struktur der aenderbaren Felder der Verbrauchsstelle",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": false
+        },
+        {
+          "name": "EVBST",
+          "beschreibung": "Verbrauchsstelle sprachabhaengiger Teil",
+          "tabellenart": "TRANSP",
+          "sprachabhangig": false
+        },
+        {
+          "name": "EVBS_OHNE_CI_INCLUDE",
+          "beschreibung": "Struktur wie evbs, allerdings ohne CI-Include",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        }
+      ]
+    }
+  },
+  "malo_melo": {
+    "euiinstln_tables": {
+      "pattern": "EUIINSTLN*",
+      "result": "gefunden",
+      "beschreibung": "POD Installation Assignment",
+      "tabellen": [
+        {
+          "name": "EUIINSTLN",
+          "beschreibung": "Zuordnung Anlage zu Zaehlpunkt",
+          "tabellenart": "TRANSP",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EUIINSTLN_DATA",
+          "beschreibung": "Zuordnung Anlage zu Zaehlpunkt - Daten",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EUIINSTLN_DATA_PROFSEL",
+          "beschreibung": "EUIINSTLN Data-Struktur fuer Profilselektion",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EUIINSTLN_KEY",
+          "beschreibung": "Zuordnung Anlage zu Zaehlpunkt - Schluessel",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EUIINSTLN_KEY_PROFSEL",
+          "beschreibung": "EUIINSTLN Key-Struktur fuer Profilselektion",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EUIINSTLN_PROFSEL",
+          "beschreibung": "EUIINSTLN Struktur fuer Profilselektion",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        }
+      ]
+    },
+    "euitrans_tables": {
+      "pattern": "EUITRANS*",
+      "result": "gefunden",
+      "beschreibung": "Transformation interne/externe Zaehlpunktnummer",
+      "tabellen": [
+        {
+          "name": "EUITRANS",
+          "beschreibung": "Transformation interne/externe Zaehlpunktnummer",
+          "tabellenart": "TRANSP",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EUITRANS_DATA",
+          "beschreibung": "Transformation interner/externer Zaehlpunkt - Daten",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EUITRANS_DATA_OP",
+          "beschreibung": "Operationale Daten Transformation int./externer Zaehlpunkt",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": false
+        },
+        {
+          "name": "EUITRANS_DATA_PROFSEL",
+          "beschreibung": "EUITRANS Data-Struktur fuer Profilselektion",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EUITRANS_KEY",
+          "beschreibung": "Transformation interne/externe Zaehlpunktnummer - Schluessel",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EUITRANS_KEY_PROFSEL",
+          "beschreibung": "EUITRANS Key-Struktur fuer Profilselektion",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EUITRANS_PROFSEL",
+          "beschreibung": "EUITRANS Struktur fuer Profilselektion",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        }
+      ]
+    }
+  },
+  "zusaetzliche_utilities_tabellen": {
+    "eanl_tables": {
+      "pattern": "EANL*",
+      "result": "gefunden",
+      "beschreibung": "Anlage (Installation)",
+      "tabellen": [
+        {
+          "name": "EANL",
+          "beschreibung": "Anlage",
+          "tabellenart": "TRANSP",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EANLD",
+          "beschreibung": "Dynprofelder fuer Anlagentransaktion",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EANLD1",
+          "beschreibung": "Dynprofelder fuer Anlagentransaktion",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EANLDATA",
+          "beschreibung": "Anlage: Datenfelder (ohne Schluessel)",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EANLDATASAP",
+          "beschreibung": "Anlage: SAP-Datenfelder (ohne Schluessel)",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": false
+        },
+        {
+          "name": "EANLH",
+          "beschreibung": "Anlagenzeitscheibe",
+          "tabellenart": "TRANSP",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EANLHD",
+          "beschreibung": "Dynprofelder fuer Anlagentransaktion (historische Felder)",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EANLHDATA",
+          "beschreibung": "Anlagenzeitscheibe: Datenfelder (ohne Schluessel)",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        },
+        {
+          "name": "EANLHDATASAP",
+          "beschreibung": "Anlagenzeitscheibe: Datenfelder SAP (ohne Schluessel)",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": false
+        },
+        {
+          "name": "EANLHKEY",
+          "beschreibung": "Anlagenzeitscheiben: Schluessel",
+          "tabellenart": "INTTAB",
+          "sprachabhangig": true
+        }
+      ]
+    }
+  },
+  "zusammenfassung": {
+    "gesuchte_patterns": [
+      "EPDOC*",
+      "/IDXGC/*",
+      "/IDXGL/*",
+      "EEDMBD*",
+      "ESERV*",
+      "EVBS*",
+      "EUIINSTLN*",
+      "EUITRANS*",
+      "EANL*"
+    ],
+    "gefunden": [
+      "ESERV* (12 Tabellen)",
+      "EVBS* (6 Tabellen)",
+      "EUIINSTLN* (6 Tabellen)",
+      "EUITRANS* (7 Tabellen)",
+      "EANL* (10 Tabellen)"
+    ],
+    "nicht_gefunden": [
+      "EPDOC* - Process Document Tabellen (nicht im System vorhanden)",
+      "/IDXGC/* - Market Process Management (nicht im System vorhanden)",
+      "/IDXGL/* - German Locale Market Communication (nicht im System vorhanden)",
+      "EEDMBD* - EDM Billing Documents (nicht im System vorhanden)"
+    ],
+    "hinweis": "Die /IDXGC/ und /IDXGL/ Namespaces sowie EPDOC Tabellen sind typischerweise spezifisch fuer deutsche Marktkommunikation (MaKo) und muessen ggf. separat installiert oder lizenziert werden. EEDMBD Tabellen gehoeren zum EDM (Energy Data Management)."
+  }
+}

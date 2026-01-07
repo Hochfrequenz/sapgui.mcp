@@ -1,0 +1,152 @@
+{
+  "extraction_date": "2026-01-06",
+  "extraction_method": "SE93 - Transaktionspflege",
+  "sap_system": "S4U (100)",
+  "transactions": {
+    "ES31": {
+      "titel": "Anlage aendern",
+      "programm": "SAPLES30",
+      "dynpro": "110",
+      "typ": "Dialog",
+      "paket": "EE01",
+      "kategorie": "installation",
+      "status": "vorhanden",
+      "hinweis": "Laut SE93 ist der Transaktionstext 'Anlage aendern', nicht 'Anlage anzeigen' wie erwartet"
+    },
+    "ES32": {
+      "titel": "Anlage anzeigen",
+      "programm": "SAPLES30",
+      "dynpro": "110",
+      "typ": "Dialog",
+      "paket": "EE01",
+      "kategorie": "installation",
+      "status": "vorhanden",
+      "hinweis": "Laut SE93 ist der Transaktionstext 'Anlage anzeigen', nicht 'Anlage aendern' wie erwartet"
+    },
+    "EC30": {
+      "titel": "Tarifdaten pflegen",
+      "programm": "SAPLEC30",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "EE05",
+      "kategorie": "tariff",
+      "status": "vorhanden",
+      "hinweis": "Nicht 'Vertrag anzeigen' wie erwartet, sondern Tarifdatenpflege"
+    },
+    "EC50": {
+      "titel": "Einzugsbeleg anlegen",
+      "programm": "SAPLEC50",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "EE06",
+      "kategorie": "move_in_out",
+      "status": "vorhanden",
+      "hinweis": "Einzugsbeleg statt Einzug/Auszug wie erwartet"
+    },
+    "EL01": {
+      "titel": "Auftragserstellung ausfuehren",
+      "programm": "SAPLEL01",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "EE16",
+      "kategorie": "order",
+      "status": "vorhanden",
+      "hinweis": "Auftragserstellung, nicht Ablesung erfassen wie erwartet"
+    },
+    "EA00": {
+      "titel": "Test-Abrechnung eines Vertrages",
+      "programm": "SAPLEA02",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "EE20",
+      "kategorie": "billing",
+      "status": "vorhanden"
+    },
+    "EG31": {
+      "titel": "Einbau gesamt",
+      "programm": "SAPLE30D",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "EE07",
+      "kategorie": "device",
+      "status": "vorhanden",
+      "hinweis": "Einbau gesamt, nicht 'Geraet anzeigen' wie erwartet"
+    },
+    "FPL9": {
+      "titel": "Kontenstand",
+      "programm": "SAPMFKL9",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "FKK_ACCBAL",
+      "kategorie": "fica_account",
+      "status": "vorhanden",
+      "hinweis": "Zeigt Kontenstand/offene Posten an"
+    },
+    "FP02": {
+      "titel": null,
+      "programm": null,
+      "dynpro": null,
+      "typ": null,
+      "paket": null,
+      "kategorie": "fica_contract_account",
+      "status": "nicht_vorhanden",
+      "hinweis": "Transaktionscode FP02 ist nicht angelegt in diesem System"
+    },
+    "FP03": {
+      "titel": "Inkassopositionen bearbeiten",
+      "programm": "SAPLFKA6",
+      "dynpro": "200",
+      "typ": "Dialog",
+      "paket": "FKK_COLL_AGENCY",
+      "kategorie": "fica_collection",
+      "status": "vorhanden",
+      "hinweis": "Inkassopositionen, nicht 'Anzeigen Vertragskonto' wie erwartet"
+    },
+    "FPVA": {
+      "titel": "Mahnvorschlag",
+      "programm": "SAPLFKKAKTIV2",
+      "dynpro": "999",
+      "typ": "Dialog",
+      "paket": "FKK_DUNNING",
+      "kategorie": "fica_dunning",
+      "status": "vorhanden",
+      "hinweis": "Mahnvorschlag, nicht Zahllauf wie erwartet"
+    },
+    "FPM1": {
+      "titel": null,
+      "programm": null,
+      "dynpro": null,
+      "typ": null,
+      "paket": null,
+      "kategorie": "fica_dunning",
+      "status": "nicht_vorhanden",
+      "hinweis": "Transaktionscode FPM1 ist nicht angelegt in diesem System"
+    },
+    "/IDXGC/MM01": {
+      "titel": null,
+      "programm": null,
+      "dynpro": null,
+      "typ": null,
+      "paket": null,
+      "kategorie": "market_communication",
+      "status": "nicht_vorhanden",
+      "hinweis": "Transaktionscode /IDXGC/MM01 ist nicht angelegt - Marktkommunikation evtl. nicht installiert"
+    },
+    "/IDXGC/GP01": {
+      "titel": null,
+      "programm": null,
+      "dynpro": null,
+      "typ": null,
+      "paket": null,
+      "kategorie": "market_communication",
+      "status": "nicht_vorhanden",
+      "hinweis": "Transaktionscode /IDXGC/GP01 ist nicht angelegt - Marktkommunikation evtl. nicht installiert"
+    }
+  },
+  "summary": {
+    "total_transactions": 14,
+    "vorhanden": 10,
+    "nicht_vorhanden": 4,
+    "nicht_vorhandene_tcodes": ["FP02", "FPM1", "/IDXGC/MM01", "/IDXGC/GP01"]
+  }
+}

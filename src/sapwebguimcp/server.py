@@ -17,7 +17,11 @@ from sapwebguimcp.loghandlers import IntentFileHandler
 from sapwebguimcp.middleware import ToolCallLoggingMiddleware
 from sapwebguimcp.models import close_browser_manager
 from sapwebguimcp.models.config import get_settings
-from sapwebguimcp.resources import register_feedback_resources, register_intent_resources
+from sapwebguimcp.resources import (
+    register_bapi_catalog_resources,
+    register_feedback_resources,
+    register_intent_resources,
+)
 from sapwebguimcp.tools import (
     register_browser_tools,
     register_feedback_tools,
@@ -90,6 +94,7 @@ register_workflow_tools(mcp)
 # Register resources
 register_intent_resources(mcp)
 register_feedback_resources(mcp)
+register_bapi_catalog_resources(mcp)
 
 
 def main() -> None:

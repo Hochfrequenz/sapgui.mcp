@@ -1,0 +1,28 @@
+- textbox "Kurzbeschreibung": "eLS Lieferung: Ladungstraeger"
+- button "1"
+- button /
+- button "13"
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. MANDT   MANDT CLNT 3 0 0 Mandant":
+  - checkbox "" [checked] [disabled]
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. DB_KEY   /BOBF/CONF_KEY RAW 16 0 0 NodeID":
+  - checkbox "" [checked] [disabled]
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. PARENT_KEY /BOBF/CONF_KEY RAW 16 0 0 NodeID":
+  - checkbox [disabled]
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. ROOT_KEY /BOBF/CONF_KEY RAW 16 0 0 NodeID":
+  - checkbox [disabled]
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. CARRIER_TYPE_HL /US4G/DE_CARRIER_TYPE CHAR 100 0 0 Ladungstraegerart":
+  - checkbox [disabled]
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. CARRIER_TYPE /US4G/DE_CARRIER_TYPE CHAR 100 0 0 Ladungstraegerart":
+  - checkbox [disabled]
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. ARTICLE_TYPE_ID /US4G/DE_ARTICLE_TYPE_ID CHAR 20 0 0 Artikelart-ID":
+  - checkbox [disabled]
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. CARRIER_NO /US4G/DE_CARRIER_NO CHAR 20 0 0 Ladungstraegernummer":
+  - checkbox [disabled]
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. WEIGHT /US4G/DE_WEIGHT NUMC 10 0 0 Gewicht":
+  - checkbox [disabled]
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. TRACKING_NO /US4G/DE_TRACKING_NO CHAR 100 0 0 Tracking-Nummer":
+  - checkbox [disabled]
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. TRACKING_WEB_SIDE /US4G/DE_TRACK_WEB_SITE CHAR 250 0 0 Website fuer Tracking-Nummer":
+  - checkbox [disabled]
+- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. RFID /US4G/DE_RFID CHAR 20 0 0 RFID":
+  - checkbox [disabled]

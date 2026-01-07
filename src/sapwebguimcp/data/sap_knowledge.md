@@ -133,6 +133,96 @@ If you see that online research failed when accessing `help.sap.com`, use this w
 
 USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 
+## IS-U / S/4 Utilities Object Catalog (MCP Resources)
+
+This MCP server includes a comprehensive catalog of IS-U and S/4HANA Utilities objects as **searchable MCP resources**.
+Use these resources to quickly find BAPIs, function modules, classes, reports, tables, and namespaces.
+
+### Available Resources
+
+| Resource URI | Description |
+|--------------|-------------|
+| `bapi://catalog` | Full catalog with all objects |
+| `bapi://catalog/search/{pattern}` | **Search across all object types** - use this! |
+| `bapi://catalog/categories` | Functional categories (equipment, billing, etc.) |
+| `bapi://catalog/category/{id}` | Details for a specific category |
+| `bapi://catalog/bapi/{name}` | Details for a specific BAPI/FM |
+| `bapi://catalog/classes` | ABAP classes (3,161 verified from SAP) |
+| `bapi://catalog/reports` | Reports grouped by functional area |
+| `bapi://catalog/tables` | All IS-U/FI-CA tables by domain |
+| `bapi://catalog/tables/{domain}` | Tables for specific domain (contracts, billing, etc.) |
+| `bapi://catalog/customizing` | IS-U (TE*) and FI-CA (TFK*) customizing tables |
+| `bapi://catalog/namespaces` | SAP namespaces (/IDXGC/, /APE/, etc.) |
+| `bapi://catalog/workflows` | Common workflow patterns |
+| `bapi://catalog/data_model` | IS-U data model hierarchy |
+| `bapi://catalog/transactions` | IS-U/FI-CA transactions (10 verified via SE93) |
+| `bapi://catalog/field_types` | Field data types for key tables (EVER, DFKKKO, ERCH, EVBS) |
+| `bapi://catalog/metadata` | Version, statistics, update instructions |
+
+### Table Domains
+
+The tables are organized into these domains:
+
+| Domain | Description | Key Tables |
+|--------|-------------|------------|
+| `contracts` | Utility contracts | EVER, EVERH |
+| `installations` | Installations | EANL, EANLH, EASTL |
+| `point_of_delivery` | POD / MaLo/MeLo | EUIINSTLN, EUITRANS |
+| `meter_reading` | Meter reading docs | EABL, EABLG |
+| `billing` | Billing documents | ERCH, DBERCHZ |
+| `fica_documents` | FI-CA documents | DFKKKO, DFKKOP |
+| `contract_account` | Contract accounts | FKKVK, FKKVKP |
+| `devices` | Devices/meters | EGERH, EGERS, EQUI |
+| `premise` | Premises | EVBS |
+| `connection_object` | Connection objects | IFLOT, EHAUISU |
+| `tariffs` | Rates and prices | ETTA, ETRF, EPREI |
+| `serviceanbieter` | Service providers | ESERVICE, ESERVPROV ✓ |
+| `versorgungsszenarien` | Supply scenarios | EVERSREASON, EVERSW ✓ |
+| `abrechnung_erweitert` | Extended billing | ERCHARC, ERCHO, ERCHP ✓ |
+| `customizing_isu` | IS-U config | TE069, TE221, TE835 |
+| `customizing_fica` | FI-CA config | TFK047A, TFK056A |
+
+> ✓ = verified in SAP system
+
+### How to Search
+
+Use `bapi://catalog/search/{pattern}` to search across **all object types** at once:
+
+- `search/meter` - Find all meter-related objects
+- `search/billing` - Find billing BAPIs, reports, tables
+- `search/partner` - Find business partner objects
+- `search/fkk` - Find FI-CA objects
+
+### Verification Status
+
+Objects in the catalog are marked with their verification status:
+
+- **`verified_in_system: true`** - Extracted directly from SAP system via SE16N
+- **`source: online_research`** - From documentation, may not exist in your system
+
+Always verify unverified objects in your SAP system before relying on them.
+
+### Extraction Statistics (from SAP)
+
+| Pattern | Count | Status |
+|---------|-------|--------|
+| BAPI_ISU* | 52 | Complete |
+| BAPI_CTRAC* | 73 | Complete |
+| BAPI_BUPA* | 194 | Complete |
+| /APE/* | 21 | Complete |
+| ISU_* | 9,999+ | Exceeded limit |
+| FKK* | 9,999+ | Exceeded limit |
+| CL_ISU_* | 1,634 | Complete |
+| CL_FKK_* | 1,265 | Complete |
+| CL_BUPA_* | 262 | Complete |
+
+### Updating the Catalog
+
+See `docs/bapi_catalog_update.md` for instructions on how to:
+1. Extract new objects from SAP using SE16N
+2. Add objects from documentation
+3. Verify unverified objects
+
 ## Transaction Code Tips
 
 <!-- Add your transaction-specific knowledge here -->

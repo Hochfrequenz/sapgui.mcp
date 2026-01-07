@@ -1,0 +1,119 @@
+{
+  "meta": {
+    "extraktionsdatum": "2026-01-07",
+    "quelle": "SAP SE11 - ABAP Dictionary",
+    "system": "S4U (100)",
+    "sprache": "DE",
+    "beschreibung": "IS-U / S/4 Utilities Tabellen-Metadaten"
+  },
+  "fortschritt": {
+    "us4g_mit_feldern": {"extrahiert": 380, "gesamt": 613},
+    "emma_nur_namen": {"extrahiert": 57, "gesamt": 57},
+    "klassische_isu_nur_namen": {"extrahiert": 75, "gesamt": "unbekannt"}
+  },
+  "tabellen_gruppen": {
+    "/US4G/*": {
+      "beschreibung": "S/4HANA Utilities Tabellen",
+      "anzahl": 613,
+      "status": "380 mit Feld-Metadaten, 233 nur Namen",
+      "beispiele": [
+        "/US4G/ART_MALO - Marktlokation",
+        "/US4G/CAL_MALO - Kalender MALO",
+        "/US4G/SETTL_MALO - Settlement MALO",
+        "/US4G/BILL_CYC - Abrechnungszyklus",
+        "/US4G/MESPRD - Messprodukt"
+      ]
+    },
+    "EMMA*": {
+      "beschreibung": "Business Process Exception Management",
+      "anzahl": 57,
+      "status": "nur Namen extrahiert",
+      "beispiele": [
+        "EMMA_CASE - Klaerungsfall",
+        "EMMA_CACTOR - Fallbearbeiter",
+        "EMMAC_CCAT_HDR - Klaerungsfallkategorien"
+      ]
+    },
+    "EANL*": {
+      "beschreibung": "IS-U Anlage (Installation)",
+      "anzahl": 10,
+      "status": "nur Namen extrahiert",
+      "tabellen": ["EANL", "EANLD", "EANLD1", "EANLDATA", "EANLDATASAP", "EANLH", "EANLHD", "EANLHDATA", "EANLHDATASAP", "EANLHKEY"]
+    },
+    "EUIINSTLN*": {
+      "beschreibung": "POD Installation (Zaehlpunkt-Zuordnung)",
+      "anzahl": 6,
+      "status": "nur Namen extrahiert",
+      "tabellen": ["EUIINSTLN", "EUIINSTLN_DATA", "EUIINSTLN_DATA_PROFSEL", "EUIINSTLN_KEY", "EUIINSTLN_KEY_PROFSEL", "EUIINSTLN_PROFSEL"]
+    },
+    "EUITRANS*": {
+      "beschreibung": "Transformation interne/externe Zaehlpunktnummer",
+      "anzahl": 7,
+      "status": "nur Namen extrahiert",
+      "tabellen": ["EUITRANS", "EUITRANS_DATA", "EUITRANS_DATA_OP", "EUITRANS_DATA_PROFSEL", "EUITRANS_KEY", "EUITRANS_KEY_PROFSEL", "EUITRANS_PROFSEL"]
+    },
+    "EVBS*": {
+      "beschreibung": "Verbrauchsstelle (Premise)",
+      "anzahl": 6,
+      "status": "nur Namen extrahiert",
+      "tabellen": ["EVBS", "EVBSCOND", "EVBSD", "EVBSD1", "EVBST", "EVBS_OHNE_CI_INCLUDE"]
+    },
+    "ESERV*": {
+      "beschreibung": "Serviceanbieter und Zaehlpunktservice",
+      "anzahl": 12,
+      "status": "nur Namen extrahiert",
+      "tabellen": ["ESERVICE", "ESERVICED", "ESERVICEDET", "ESERVICEDOCITM", "ESERVICEDOCUMENT", "ESERVICEKEY", "ESERVICE_DEFAULTING", "ESERVPROV", "ESERVPROV001QR", "ESERVPROV001QR_APPLDATA_IN", "ESERVPROV001QR_APPLDATA_OUT", "ESERVPROVBDIDQR_APPLDATA_IN"]
+    },
+    "ERCH*": {
+      "beschreibung": "Rechnungsbelege (Billing Documents)",
+      "anzahl": 21,
+      "status": "nur Namen extrahiert",
+      "tabellen": ["ERCH", "ERCHARC", "ERCHC", "ERCHC_DISP", "ERCHC_DISP_SEL", "ERCHC_SHORT", "ERCHC_STABLE", "ERCHE", "ERCHE_I1", "ERCHE_M18", "ERCHE_STABLE", "ERCHH", "ERCHO", "ERCHOD", "ERCHO_STABLE", "ERCHP", "ERCHP_STABLE", "ERCHR", "ERCHR_I", "ERCHR_STABLE", "ERCHT"]
+    }
+  },
+  "alle_us4g_tabellen": [
+    "/US4G/ADDR_CHGTY", "/US4G/AD_TYPE", "/US4G/ALLOC_HDR", "/US4G/ALLOC_ITEM",
+    "/US4G/AMI_DATA", "/US4G/APPLINTE_T", "/US4G/APPL_INTER", "/US4G/APP_INTRP",
+    "/US4G/APP_INTRPT", "/US4G/ARTBLMAP", "/US4G/ART_APGP", "/US4G/ART_CARE",
+    "/US4G/ART_ID", "/US4G/ART_ID_D", "/US4G/ART_ID_MAP", "/US4G/ART_ID_T",
+    "/US4G/ART_IND", "/US4G/ART_IND1", "/US4G/ART_IND2", "/US4G/ART_JAHR",
+    "/US4G/ART_MALO", "/US4G/ART_MEIR", "/US4G/ART_MESE", "/US4G/ART_MONAT",
+    "/US4G/ART_PRICE", "/US4G/ART_SET_ID", "/US4G/ART_STRS", "/US4G/ART_TAG",
+    "/US4G/AT_SOR_H", "/US4G/AT_SOR_I", "/US4G/BETITG_COM", "/US4G/BETITG_LOG",
+    "/US4G/BETITG_MAP", "/US4G/BET_AMCSS", "/US4G/BET_COM", "/US4G/BET_EVENT",
+    "/US4G/BILL_CYC", "/US4G/BIRE_OPR", "/US4G/BITCAT_DF", "/US4G/BITCAT_RD",
+    "/US4G/BKSUP", "/US4G/BPID_ET", "/US4G/BPID_RC", "/US4G/BPI_TYPE",
+    "/US4G/BP_COPY", "/US4G/BP_TYPE", "/US4G/BP_VENDOR", "/US4G/BSCF_MAP",
+    "/US4G/CAL_FTX", "/US4G/CAL_FTXD", "/US4G/CAL_GRPAS", "/US4G/CAL_GRPID",
+    "/US4G/CAL_GRPIDT", "/US4G/CAL_MALO", "/US4G/CAL_MALOD", "/US4G/CAL_NODAT",
+    "/US4G/CAL_NODATD", "/US4G/CAL_RULE", "/US4G/CAL_RULEAS", "/US4G/CAL_RULEPA",
+    "/US4G/CAL_RULET", "/US4G/CAL_STEP", "/US4G/CAL_STEPD", "/US4G/CAL_USE",
+    "/US4G/CARE_OPR", "/US4G/CDLIST_D", "/US4G/CFEFLOWTXT", "/US4G/CFEFLOWVAL",
+    "/US4G/CFOPERATOR", "/US4G/CFOPER_VAL", "/US4G/CFSTAVALT", "/US4G/CFSTA_VAL",
+    "/US4G/CFVALPRPST", "/US4G/CFVLPURPOS", "/US4G/CI_F_ENH", "/US4G/CMDS_EC",
+    "/US4G/CMDS_EC_T", "/US4G/CMDS_FTX", "/US4G/CMDS_FTX_C", "/US4G/CMDS_FTX_T",
+    "/US4G/CMDS_R", "/US4G/CMDS_RU", "/US4G/CMDS_RU_T", "/US4G/COAREA",
+    "/US4G/COAREAT", "/US4G/COMM_PROF", "/US4G/COMM_PROT", "/US4G/COMPL_R",
+    "/US4G/COMPL_RU", "/US4G/COMPL_RU_T", "/US4G/CONF_ACC", "/US4G/CONF_BIT",
+    "/US4G/CONSCALHIS", "/US4G/CONSTYPE_T", "/US4G/CONS_TYPE", "/US4G/CTR_HEAD",
+    "/US4G/CTR_POS", "/US4G/CTR_TS", "/US4G/CTR_TYPE", "/US4G/CTR_TYPE_T",
+    "/US4G/CUSTINS_UC", "/US4G/CUST_EXT"
+  ],
+  "alle_emma_tabellen": [
+    "EMMAC_BASIC", "EMMAC_BPA", "EMMAC_BPC", "EMMAC_BPC_PROCID", "EMMAC_CANCODE",
+    "EMMAC_CANCODET", "EMMAC_CCAT_BND", "EMMAC_CCAT_CND", "EMMAC_CCAT_COB",
+    "EMMAC_CCAT_HDR", "EMMAC_CCAT_HDRT", "EMMAC_CCAT_MOB", "EMMAC_CCAT_MSG",
+    "EMMAC_CCAT_PRI", "EMMAC_CCAT_SOP", "EMMAC_CCAT_SOP_B", "EMMAC_CCSTATUS",
+    "EMMAC_CCSTATUST", "EMMAC_CREACODE", "EMMAC_CREACODET", "EMMAC_CSTAT_ASS",
+    "EMMAC_CTYPE", "EMMAC_CTYPET", "EMMAC_CWL_BTN", "EMMAC_CWL_BTNT",
+    "EMMAC_CWL_SHL", "EMMAC_CWL_SHLT", "EMMAC_FWM", "EMMAC_FWMT",
+    "EMMAC_FWM_ACTION", "EMMAC_MSGSUPRS", "EMMAC_MSG_OBJ", "EMMAC_MSG_SUPRES",
+    "EMMAC_SOPTXTID", "EMMAC_SOPTXTIDT", "EMMAC_WUI_CCAT", "EMMAC_WUI_OBJ",
+    "EMMAC_WUI_PROC", "EMMAC_WUI_REP", "EMMAC_WUI_REPT", "EMMA_BPA",
+    "EMMA_BPAT", "EMMA_BPC", "EMMA_BPCT", "EMMA_CACTOR", "EMMA_CACTOR_CD",
+    "EMMA_CASE", "EMMA_CMSG_LINK", "EMMA_CMSG_LNK_CD", "EMMA_COBJECT",
+    "EMMA_COBJECT_CD", "EMMA_CSOLP", "EMMA_HDR", "EMMA_INT",
+    "EMMA_JOBRUNIDMSG", "EMMA_MASSACT_INF", "EMMA_TCODE"
+  ],
+  "hinweis": "Die vollstaendigen Feld-Metadaten fuer 380 /US4G/* Tabellen befinden sich in us4g_metadata.json im stale branch sapknowledge"
+}

@@ -1,0 +1,1162 @@
+{
+  "extraktionsdatum": "2026-01-07",
+  "quelle": "SAP DD03L via ABAP Report",
+  "beschreibung": "S/4 Utilities /US4G/ Tabellen-Feldmetadaten",
+  "fortschritt": {
+    "extrahiert": 46,
+    "gesamt": 46
+  },
+  "tabellen": {
+    "1": {
+      "beschreibung": "",
+      "anzahl_felder": 6,
+      "felder": [
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "10": {
+      "beschreibung": "",
+      "anzahl_felder": 4,
+      "felder": [
+        {
+          "feldname": "STATUS",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY2",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "STATUS",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY2",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "11": {
+      "beschreibung": "",
+      "anzahl_felder": 4,
+      "felder": [
+        {
+          "feldname": "CREATIONDATETIME",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 7,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY3",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": ".INCLUDE",
+          "schluesselfeld": false,
+          "datentyp": "",
+          "laenge": 0,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY3",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "12": {
+      "beschreibung": "",
+      "anzahl_felder": 4,
+      "felder": [
+        {
+          "feldname": "CREATEDBYUSER",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY4",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "CREATIONDATETIME",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 7,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY4",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "13": {
+      "beschreibung": "",
+      "anzahl_felder": 4,
+      "felder": [
+        {
+          "feldname": "LASTCHANGEDATETIME",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 7,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY5",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "CREATEDBYUSER",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY5",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "14": {
+      "beschreibung": "",
+      "anzahl_felder": 4,
+      "felder": [
+        {
+          "feldname": "LASTCHANGEDBYUSER",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY6",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "LASTCHANGEDATETIME",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 7,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY6",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "15": {
+      "beschreibung": "",
+      "anzahl_felder": 3,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY7",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "LASTCHANGEDBYUSER",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY7",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "16": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY8",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY8",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "17": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY9",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY9",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "18": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY10",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY10",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "19": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY11",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY11",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "2": {
+      "beschreibung": "",
+      "anzahl_felder": 6,
+      "felder": [
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 5,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "20": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY12",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY12",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "21": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY13",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY13",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "22": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY14",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY14",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "23": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY15",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY15",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "24": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY16",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY16",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "25": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY17",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY17",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "26": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY18",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY18",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "27": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY19",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY19",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "28": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY20",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY20",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "29": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY21",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY21",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "3": {
+      "beschreibung": "",
+      "anzahl_felder": 6,
+      "felder": [
+        {
+          "feldname": "X",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 40,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "REVREC_TYPE",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 4,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "OWNSRVCPRO",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTHDRUUID",
+          "schluesselfeld": false,
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "OWNSRVCPRO",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTHDRUUID",
+          "schluesselfeld": false,
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "30": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY22",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY22",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "31": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY23",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY23",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "32": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY24",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY24",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "33": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY25",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY25",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "34": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY26",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY26",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "35": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY27",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY27",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "36": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY28",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY28",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "37": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY29",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY29",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "38": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY30",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY30",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "39": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYDAY31",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY31",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "4": {
+      "beschreibung": "",
+      "anzahl_felder": 5,
+      "felder": [
+        {
+          "feldname": "CHANGE_TYPE",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 40,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ASSOCSRVCPRO",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTITEMNO",
+          "schluesselfeld": false,
+          "datentyp": "NUMC",
+          "laenge": 6,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ASSOCSRVCPRO",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTITEMNO",
+          "schluesselfeld": false,
+          "datentyp": "NUMC",
+          "laenge": 6,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "40": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTQTYUOM",
+          "schluesselfeld": false,
+          "datentyp": "UNIT",
+          "laenge": 3,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYUOM",
+          "schluesselfeld": false,
+          "datentyp": "UNIT",
+          "laenge": 3,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "41": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "OBISCODE",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 35,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "OBISCODE",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 35,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "42": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "STATUS",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "STATUS",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "43": {
+      "beschreibung": "",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "CREATIONDATETIME",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 7,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": ".INCLUDE",
+          "schluesselfeld": false,
+          "datentyp": "",
+          "laenge": 0,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "44": {
+      "beschreibung": "",
+      "anzahl_felder": 1,
+      "felder": [
+        {
+          "feldname": "CREATEDBYUSER",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "45": {
+      "beschreibung": "",
+      "anzahl_felder": 1,
+      "felder": [
+        {
+          "feldname": "LASTCHANGEDATETIME",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 7,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "46": {
+      "beschreibung": "",
+      "anzahl_felder": 1,
+      "felder": [
+        {
+          "feldname": "LASTCHANGEDBYUSER",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "5": {
+      "beschreibung": "",
+      "anzahl_felder": 4,
+      "felder": [
+        {
+          "feldname": "ALLOCREFMONTHYEAR",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 6,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "PODEXT",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCREFMONTHYEAR",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 6,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "PODEXT",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "6": {
+      "beschreibung": "",
+      "anzahl_felder": 4,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTVERSION",
+          "schluesselfeld": false,
+          "datentyp": "NUMC",
+          "laenge": 4,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "PODINT",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 22,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTVERSION",
+          "schluesselfeld": false,
+          "datentyp": "NUMC",
+          "laenge": 4,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "PODINT",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 22,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "7": {
+      "beschreibung": "",
+      "anzahl_felder": 4,
+      "felder": [
+        {
+          "feldname": "ALLOCLISTORIGINALMSGREF",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 70,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTIDREFNO",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 35,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTORIGINALMSGREF",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 70,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTIDREFNO",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 35,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "8": {
+      "beschreibung": "",
+      "anzahl_felder": 4,
+      "felder": [
+        {
+          "feldname": "SOURCEDSO",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTTRANSSEQ",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "SOURCEDSO",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTTRANSSEQ",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0
+        }
+      ]
+    },
+    "9": {
+      "beschreibung": "",
+      "anzahl_felder": 4,
+      "felder": [
+        {
+          "feldname": "PDOCID",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY1",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "PDOCID",
+          "schluesselfeld": false,
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0
+        },
+        {
+          "feldname": "ALLOCLISTQTYDAY1",
+          "schluesselfeld": false,
+          "datentyp": "DEC",
+          "laenge": 14,
+          "dezimalstellen": 0
+        }
+      ]
+    }
+  }
+}

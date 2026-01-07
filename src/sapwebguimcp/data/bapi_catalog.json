@@ -1,0 +1,1511 @@
+{
+  "metadata": {
+    "version": "2.2.0",
+    "description": "IS-U / S/4 Utilities comprehensive catalog for AI-assisted SAP development. Contains BAPIs, function modules, classes, reports, CDS views, tables with field types, transactions, and customizing.",
+    "last_updated": "2026-01-06",
+    "source_system": "S4U",
+    "source_client": "100",
+    "extraction_statistics": {
+      "function_modules_from_sap": {
+        "BAPI_ISU*": 52,
+        "BAPI_MTRREAD*": 2,
+        "ISU_*": "9999+ (exceeded limit - use specific patterns ISU_A*, ISU_B*, etc.)",
+        "FKK*": "9999+ (exceeded limit - use specific patterns FKK_A*, FKK_B*, etc.)",
+        "/APE/*": 21,
+        "BAPI_CTRAC*": 73,
+        "BAPI_BUPA*": 194
+      },
+      "classes_from_sap": {
+        "CL_ISU_*": 1634,
+        "CL_FKK_*": 1265,
+        "CL_BUPA_*": 262
+      },
+      "tables_from_sap": {
+        "ESERV*": 12,
+        "EVBS*": 6,
+        "EUIINSTLN*": 6,
+        "EUITRANS*": 7,
+        "EANL*": 10,
+        "ERCH*": 21,
+        "EVERS*": 3
+      },
+      "transactions_from_sap": 10,
+      "field_types_extracted": ["EVER", "DFKKKO", "ERCH", "EVBS"]
+    },
+    "how_to_update": "1. Run SE16N with TFDIR table for function modules (search on FUNCNAME). 2. Run SE16N with SEOCLASS for classes (search on CLSNAME). 3. For table field details: SE11 or SE16N on DD03VV/DD04T. 4. For transactions: SE93. 5. Update version and last_updated."
+  },
+  "namespaces": {
+    "/IDXGC/": {
+      "name": "Market Process Management (Common Layer)",
+      "full_name": "Intercompany Data Exchange - Common",
+      "description": "Unified technical basis for market processes in deregulated energy markets. Controls PDOC (Process Documents) and data containers.",
+      "system_requirements": "S/4HANA Utilities",
+      "typical_objects": ["PDOCMON01", "PDOCMON02", "MASS"],
+      "tables": ["/IDXGC/PDOC_HDR"],
+      "replaced_by": "/APE/ in S/4HANA 2208+",
+      "source": "online_research"
+    },
+    "/IDXGL/": {
+      "name": "German Locale",
+      "full_name": "Intercompany Data Exchange - German Locale",
+      "description": "Germany-specific implementations for electricity and gas markets. Contains German EDIFACT message formats, IDoc structures, and business rules for GPKE, MaBiS, GeLi Gas, WiM.",
+      "system_requirements": "S/4HANA Utilities with German market add-ons",
+      "typical_objects": ["PRICAT_H_MIG_CORR", "PRISHEET_H_MIG_CORR"],
+      "sap_notes": ["2859288", "3416238"],
+      "source": "online_research"
+    },
+    "/APE/": {
+      "name": "Application Process Engine",
+      "full_name": "Application Process Engine",
+      "description": "Modern framework for market processes in S/4HANA 2208+. Uses RESTful ABAP Programming Model with OData HTTP REST APIs and Fiori UI.",
+      "system_requirements": "S/4HANA 2208+",
+      "typical_objects": ["RP_TRIGGER_PDOC_MASS", "RP_TRIGGER_TRDOC_MASS"],
+      "concepts": {
+        "TDOC": "Transfer Document - tracks market message transfers",
+        "PDOC": "Process Document - tracks market process execution"
+      },
+      "replaces": "/IDXGC/ Common Layer",
+      "sap_notes": ["2708496"],
+      "verified_count": 21,
+      "source": "sap_extraction + online_research"
+    },
+    "/APEU/": {
+      "name": "APE Utilities Extension",
+      "full_name": "Application Process Engine Utilities Extension",
+      "description": "Extension for Measurement Concept Management (MCM) and Cloud integration",
+      "system_requirements": "S/4HANA 2208+",
+      "typical_tables": ["INST_ACTOR", "INST_FORMU", "INST_MEAS", "INST_MODEL", "INST_POD"],
+      "sap_notes": ["2708496"],
+      "source": "online_research"
+    },
+    "/UCOM/": {
+      "name": "Utilities Common Layer",
+      "full_name": "Utilities Common Layer",
+      "description": "Common components connecting S/4HANA Utilities with MaCo Cloud",
+      "system_requirements": "S/4HANA Utilities",
+      "typical_tables": ["MR_CONTACT", "POD_REL", "POD_REL_AT"],
+      "sap_notes": ["2708497"],
+      "source": "online_research"
+    },
+    "/US4G/": {
+      "name": "Utilities Solution Germany",
+      "full_name": "Utilities Solution for Germany",
+      "description": "Successor to IDEX for German regulatory requirements. Replaces /ID* namespace in S/4HANA.",
+      "system_requirements": "S/4HANA Utilities",
+      "supported_processes": ["GPKE", "WIM", "Start-of-Supply", "Start-of-Meter Operation"],
+      "sap_notes": ["2708509"],
+      "source": "online_research"
+    },
+    "/IDXPF/": {
+      "name": "Exchange Framework (Legacy)",
+      "full_name": "Process and Data-Exchange Framework for Utilities",
+      "description": "Original IDEX solution for SAP ECC. Predecessor of /IDXGC/.",
+      "system_requirements": "SAP ECC with IS-U",
+      "typical_objects": ["MAIN", "PDOCMON01", "COS_DEMO", "RP_API_TRIGG_PROC_MASS"],
+      "status": "legacy - replaced by /IDXGC/ in S/4HANA",
+      "source": "online_research"
+    },
+    "EAMI_": {
+      "name": "Advanced Metering Infrastructure",
+      "full_name": "AMI - Smart Metering",
+      "description": "Support for smart meters with remote capabilities",
+      "typical_objects": ["EAMI_EM_EVENT_DATA_DESC", "EAMI_EM_EVENT_CATEGORY", "EAMI_EM_EVENTTYPE"],
+      "badi": "ISU_SE_DEVICESMREGCRTRCO_ASYNC",
+      "source": "online_research"
+    },
+    "ISU_EDM_": {
+      "name": "Energy Data Management",
+      "full_name": "EDM - Energy Data Management",
+      "description": "Management, settlement and billing of equidistant time series data (load profiles)",
+      "packages": ["EE_EDM_UI", "EE_EDM_PRO", "EE_EDM_SET"],
+      "typical_objects": ["ISU_EDM_FORMPROF"],
+      "source": "online_research"
+    }
+  },
+  "tables": {
+    "contracts": {
+      "EVER": {
+        "description": "IS-U Contract master data",
+        "module": "IS-U-MD",
+        "package": "EE01",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "VERTRAG"],
+        "important_fields": ["VKONTO", "BUKRS", "SPARTE", "EIGENVERBR", "ANLAGE"],
+        "related": ["EVERH", "EVERU", "FKKVK", "EANL", "BUT000"],
+        "source": "online_research"
+      },
+      "EVERH": {
+        "description": "IS-U Contract History (time-sliced)",
+        "module": "IS-U-MD",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "VERTRAG", "BIS", "NUM"],
+        "important_fields": ["AB", "VKONTO", "ANLAGE"],
+        "related": ["EVER"],
+        "source": "online_research"
+      },
+      "EVERU": {
+        "description": "Contract Move-In/Out Data",
+        "module": "IS-U-MD",
+        "key_fields": ["VERTRAG"],
+        "source": "online_research"
+      }
+    },
+    "installations": {
+      "EANL": {
+        "description": "Installation master data - central link between technical and commercial",
+        "module": "IS-U-MD",
+        "package": "EE01",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "ANLAGE"],
+        "important_fields": ["SPARTE", "VSTELLE", "HAUS"],
+        "related": ["EANLH", "EASTL", "EUIINSTLN", "EVBS", "EVER"],
+        "enhancement": "CI_EANL",
+        "source": "online_research"
+      },
+      "EANLH": {
+        "description": "Installation History (time-dependent data)",
+        "module": "IS-U-MD",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "ANLAGE", "BIS"],
+        "important_fields": ["AB", "MAININST"],
+        "related": ["EANL"],
+        "source": "online_research"
+      },
+      "EASTL": {
+        "description": "Installation structure at device level",
+        "module": "IS-U-DM-DI",
+        "package": "EE07",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "ANLAGE", "LOGIKNR"],
+        "related": ["EANL", "EGERH", "EASTS", "ETDZ"],
+        "source": "online_research"
+      },
+      "EASTS": {
+        "description": "Installation structure at register level",
+        "module": "IS-U-DM-DI",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "ANLAGE", "LOGIKNR", "LOGNRZW"],
+        "source": "online_research"
+      }
+    },
+    "point_of_delivery": {
+      "EUIINSTLN": {
+        "description": "Allocation of Installation to Point of Delivery",
+        "module": "IS-U-MD-POD",
+        "package": "EE_EDM_UI",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "ANLAGE", "INT_UI"],
+        "important_fields": ["DATEFROM", "DATETO"],
+        "related": ["EANL", "EUITRANS"],
+        "field_count": 11,
+        "note": "INT_UI is internal key; use EUITRANS to get external POD number (EXT_UI)",
+        "source": "online_research"
+      },
+      "EUITRANS": {
+        "description": "Transformation of internal/external POD number",
+        "module": "IS-U-MD-POD",
+        "package": "EE_EDM_UI",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "INT_UI"],
+        "important_fields": ["EXT_UI"],
+        "related": ["EUIINSTLN", "EUIHEAD"],
+        "field_count": 10,
+        "source": "online_research"
+      },
+      "EUIHEAD": {
+        "description": "Point of Delivery Header",
+        "module": "IS-U-MD-POD",
+        "key_fields": ["MANDT", "INT_UI"],
+        "source": "online_research"
+      },
+      "EUIGRID": {
+        "description": "Allocation of PODs to Grid",
+        "module": "IS-U-MD-POD",
+        "key_fields": ["MANDT", "INT_UI", "GRIDID"],
+        "source": "online_research"
+      },
+      "EUILZW": {
+        "description": "Register to POD allocation",
+        "module": "IS-U-MD-POD",
+        "key_fields": ["MANDT", "INT_UI"],
+        "source": "online_research"
+      },
+      "EGRID": {
+        "description": "Grids",
+        "module": "IS-U-MD-POD",
+        "key_fields": ["MANDT", "GRIDID"],
+        "source": "online_research"
+      }
+    },
+    "meter_reading": {
+      "EABL": {
+        "description": "Meter Reading Document (MR orders and results)",
+        "module": "IS-U-MR",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "ABLBELNR"],
+        "important_fields": ["GERNR", "EQUNR", "ZWNUMMER", "ANLAGE", "ADATSOLL", "ADATTATS", "ABLSTAT", "ABRESSION"],
+        "related": ["EABLG", "EABLC", "ETRG"],
+        "enhancement": "CI_EABL",
+        "status_values": {
+          "0": "Reading order created",
+          "1": "Ready for billing",
+          "2": "Automatically blocked",
+          "3": "Blocked by user",
+          "4": "Released by user",
+          "5": "Independently checked",
+          "7": "Billed (determined at runtime)"
+        },
+        "source": "online_research"
+      },
+      "EABLG": {
+        "description": "Meter Reading Reasons in MR Document",
+        "module": "IS-U-MR",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "ABLBELNR"],
+        "important_fields": ["ABLESGR", "ANLAGE", "ABRDATS"],
+        "related": ["EABL"],
+        "source": "online_research"
+      },
+      "EABLC": {
+        "description": "Temporary MR in AMI (Smart Metering)",
+        "module": "IS-U-MR",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "EABLDEL": {
+        "description": "Deleted Meter Reading Documents",
+        "module": "IS-U-MR",
+        "delivery_class": "A",
+        "source": "online_research"
+      }
+    },
+    "billing": {
+      "ERCH": {
+        "description": "Billing Document Header",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "BELNR"],
+        "important_fields": ["BUKRS", "SPARTE", "GPARTNER", "VERTRAG", "BILLINGRUNO", "SC_BELNR_N", "ERDAT", "ERNAM"],
+        "related": ["DBERCHZ", "ERCHC", "ERDK", "ETRG", "EVER", "BUT000"],
+        "source": "online_research"
+      },
+      "DBERCHZ": {
+        "description": "Billing Document Line Items",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "BELNR", "BELZEILE"],
+        "important_fields": ["BELZART", "NETTOBTR", "CSNO"],
+        "related": ["ERCH", "DBERCHZ1", "DBERCHV", "DBERCHT", "DBERCHR", "DBERCHE"],
+        "source": "online_research"
+      },
+      "DBERCHV": {
+        "description": "Consumption History",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "DBERCHR": {
+        "description": "Discounts per position",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "DBERCHE": {
+        "description": "Condition data",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "DBERCHT": {
+        "description": "Billing Document Texts",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "ERCHC": {
+        "description": "Billing Invoicing History",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "ERDK": {
+        "description": "Print Document Header",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "ETRG": {
+        "description": "Billing Orders",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "ANLAGE"],
+        "important_fields": ["ABRDATS", "ABRVORG", "BUKRS"],
+        "source": "online_research"
+      }
+    },
+    "fica_documents": {
+      "DFKKKO": {
+        "description": "FI-CA Document Header",
+        "module": "FI-CA",
+        "package": "FKKB",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "OPBEL"],
+        "important_fields": ["FIKEY", "APPLK", "BLART", "HERKF", "ERNAM"],
+        "related": ["DFKKOP", "DFKKOPK"],
+        "source": "online_research"
+      },
+      "DFKKOP": {
+        "description": "FI-CA Document Line Items",
+        "module": "FI-CA",
+        "package": "FKKB",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "OPBEL", "OPUPW", "OPUPK", "OPUPZ"],
+        "important_fields": ["VKONT", "APPLK", "HVORG", "TVORG", "KOFIZ", "SPART"],
+        "related": ["DFKKKO", "DFKKOPK", "DFKKOPW", "FKKVK"],
+        "note": "DFKKOP.AUGBL = DFKKKO.OPBEL for cleared items",
+        "source": "online_research"
+      },
+      "DFKKOPK": {
+        "description": "FI-CA GL Line Items",
+        "module": "FI-CA",
+        "package": "FKKB",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "DFKKOPW": {
+        "description": "FI-CA Repetition Items",
+        "module": "FI-CA",
+        "delivery_class": "A",
+        "source": "online_research"
+      }
+    },
+    "contract_account": {
+      "FKKVK": {
+        "description": "Contract Account Header",
+        "module": "FI-CA",
+        "package": "FKKB",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "VKONT"],
+        "important_fields": ["ERDAT", "ERNAM"],
+        "related": ["FKKVKP", "DFKKOP", "BUT000"],
+        "source": "online_research"
+      },
+      "FKKVKP": {
+        "description": "Contract Account Partner-Specific Data",
+        "module": "FI-CA",
+        "package": "FKKB",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "VKONT", "GPART"],
+        "important_fields": ["LOEVM", "GPARV", "ABWRE", "ABWRA", "ABWMA", "ABWRH", "MNDID", "DEF_REC"],
+        "related": ["FKKVK", "T000", "TFK001G", "TFK047A", "TFK056A", "TFK070B"],
+        "source": "online_research"
+      }
+    },
+    "devices": {
+      "EGERH": {
+        "description": "Historical Data of IS-U Device Master Record",
+        "module": "IS-U-DM",
+        "package": "EE10",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "EQUNR", "BIS"],
+        "important_fields": ["AB", "KOMBINAT"],
+        "related": ["EGERS", "EQUI", "EASTL"],
+        "source": "online_research"
+      },
+      "EGERS": {
+        "description": "IS-U Device Master Data",
+        "module": "IS-U-DM",
+        "package": "EE10",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "EQUNR"],
+        "important_fields": ["EAGRUPPE", "KOMGRP", "LOS"],
+        "related": ["EGERH", "EQUI", "EASTL"],
+        "source": "online_research"
+      },
+      "EQUI": {
+        "description": "Equipment Master Data (PM module, shared with IS-U)",
+        "module": "PM-EQM",
+        "package": "IEQM",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "EQUNR"],
+        "important_fields": ["MATNR", "SERNR", "ERDAT", "ERNAM", "EQASP", "EQART"],
+        "related": ["EGERS", "EGERH", "EQKT", "EQBS"],
+        "text_table": "EQKT",
+        "source": "online_research"
+      },
+      "EQUZ": {
+        "description": "Equipment Time Segment",
+        "module": "PM-EQM",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "EZWG": {
+        "description": "Register Group",
+        "module": "IS-U-DM",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "ETDZ": {
+        "description": "Technical Data of Installed Register",
+        "module": "IS-U-DM",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "EZUG": {
+        "description": "Device Allocations for Device (non-metering)",
+        "module": "IS-U-DM",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "EZUZ": {
+        "description": "Device Allocations for Register (metering)",
+        "module": "IS-U-DM",
+        "delivery_class": "A",
+        "source": "online_research"
+      }
+    },
+    "premise": {
+      "EVBS": {
+        "description": "Premise (enclosed spatial unit for supply/service)",
+        "module": "IS-U-MD",
+        "package": "EE01",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "VSTELLE"],
+        "important_fields": ["HAUS", "VBSART", "STR_ERG2", "HAUS_NUM2"],
+        "related": ["EANL", "EHAUISU", "IFLOT"],
+        "text_table": "EVBST",
+        "enhancement": "CI_EVBS (via EMDP0001)",
+        "source": "online_research"
+      },
+      "EVBST": {
+        "description": "Premise Texts",
+        "module": "IS-U-MD",
+        "delivery_class": "A",
+        "source": "online_research"
+      }
+    },
+    "connection_object": {
+      "IFLOT": {
+        "description": "Functional Location / Connection Object",
+        "module": "PM-EQM",
+        "package": "ILOM",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "TPLNR"],
+        "important_fields": ["MLANG", "TPLKZ", "FLTYP", "PM_OBJTY", "ILOAN", "EQART"],
+        "related": ["ILOA", "EVBS", "EHAUISU"],
+        "enhancement": "CI_IFLOT (via ES550001)",
+        "transactions": ["ES55", "ES56", "ES57"],
+        "source": "online_research"
+      },
+      "EHAUISU": {
+        "description": "IS-U Connection Object Data",
+        "module": "IS-U-MD",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "HAUS"],
+        "related": ["IFLOT", "ILOA"],
+        "source": "online_research"
+      },
+      "ILOA": {
+        "description": "PM Object Location/Account Assignment",
+        "module": "PM-EQM",
+        "delivery_class": "A",
+        "source": "online_research"
+      }
+    },
+    "business_partner": {
+      "BUT000": {
+        "description": "Business Partner General Data",
+        "key_fields": ["PARTNER"]
+      },
+      "BUT100": {
+        "description": "Business Partner Roles",
+        "key_fields": ["PARTNER", "RLTYP"]
+      },
+      "BUT050": {"description": "Business Partner Relationships"},
+      "BUT0BK": {"description": "Bank Connections"}
+    },
+    "tariffs": {
+      "ETTA": {
+        "description": "General Rate Category Header",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "key_fields": ["MANDT", "TAESSION"],
+        "text_table": "ETTAT",
+        "related": ["ETTAF"],
+        "maintenance": "SM30",
+        "source": "online_research"
+      },
+      "ETTAF": {
+        "description": "Rate Category Facts",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "related": ["ETTA", "EKDI"],
+        "source": "online_research"
+      },
+      "ETRF": {
+        "description": "Rate Header Data",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "key_fields": ["MANDT", "TARIFNR", "SPARTE"],
+        "important_fields": ["AKLASSE", "OPERAND"],
+        "related": ["EKDI", "EPREI", "ESCHS"],
+        "maintenance": "SM30",
+        "source": "online_research"
+      },
+      "EKDI": {
+        "description": "Rate Facts",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "EPREI": {
+        "description": "Prices Header",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "EPREIH": {
+        "description": "Price History",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "source": "online_research"
+      },
+      "ESCHS": {
+        "description": "Billing Schema Steps",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "ESCH": {
+        "description": "Billing Schema Header",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "ERTFND": {
+        "description": "Rate Determination",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "ETTIF": {
+        "description": "Installation Facts",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "ETTIFN": {
+        "description": "Installation Facts (Normal)",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "source": "online_research"
+      }
+    },
+    "customizing_isu": {
+      "TE069": {
+        "description": "Rate Types",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "text_table": "TE069T",
+        "maintenance": "SM30",
+        "source": "online_research"
+      },
+      "TE221": {
+        "description": "Operands for Billing",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "key_fields": ["MANDT", "OPERAND"],
+        "important_fields": ["SPARTE", "OPTYP", "MASS"],
+        "text_table": "TE221T",
+        "note": "BW Relevant flag must be set for BW extraction",
+        "source": "online_research"
+      },
+      "TE835": {
+        "description": "Line Item Types for Billing",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "key_fields": ["MANDT", "BELZART"],
+        "text_table": "TE835T",
+        "note": "Allocated via EA88 to variant programs",
+        "source": "online_research"
+      },
+      "TE810": {
+        "description": "Billing Schema Configuration",
+        "module": "IS-U-BI",
+        "delivery_class": "C",
+        "source": "online_research"
+      }
+    },
+    "customizing_fica": {
+      "TFK001G": {
+        "description": "Company Code Group for FI-CA",
+        "module": "FI-CA",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "TFK012A": {
+        "description": "Payment Method to Bank Transaction Allocation",
+        "module": "FI-CA",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "TFK020K": {
+        "description": "Short Account Assignments for Transfer Postings",
+        "module": "FI-CA",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "TFK047A": {
+        "description": "Dunning Procedure",
+        "module": "FI-CA",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "TFK056A": {
+        "description": "Interest Key",
+        "module": "FI-CA",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "TFK070B": {
+        "description": "Correspondence Procedure",
+        "module": "FI-CA",
+        "delivery_class": "C",
+        "source": "online_research"
+      },
+      "TFKCOD": {
+        "description": "CO Account Assignment Key",
+        "module": "FI-CA",
+        "package": "FKKB",
+        "delivery_class": "C",
+        "related": ["TFKCOT", "TFKCOK"],
+        "source": "online_research"
+      }
+    },
+    "serviceanbieter": {
+      "ESERVICE": {
+        "description": "Zählpunktservice (POD Service)",
+        "module": "IS-U-MD-POD",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "SERVICE"],
+        "verified_in_system": true,
+        "source": "sap_extraction"
+      },
+      "ESERVICEDET": {
+        "description": "Bestimmung der Servicearten (Service Type Determination)",
+        "module": "IS-U-MD-POD",
+        "delivery_class": "A",
+        "verified_in_system": true,
+        "source": "sap_extraction"
+      },
+      "ESERVPROV": {
+        "description": "Serviceanbieter (Service Provider)",
+        "module": "IS-U-MD-POD",
+        "delivery_class": "A",
+        "key_fields": ["MANDT", "SERVPROV"],
+        "verified_in_system": true,
+        "source": "sap_extraction"
+      }
+    },
+    "versorgungsszenarien": {
+      "_hinweis": "Für Versorgungsszenario-Aufbau müssen mehrere Tabellen gepflegt werden",
+      "EVERSREASON": {
+        "beschreibung": "Grund zur Erstellung einer Profilversion",
+        "modul": "IS-U-EDM",
+        "lieferklasse": "A",
+        "verifiziert": true,
+        "quelle": "sap_extraktion"
+      },
+      "EVERSREASONT": {
+        "beschreibung": "Grund zur Erstellung einer Profilversion (Text)",
+        "modul": "IS-U-EDM",
+        "lieferklasse": "A",
+        "verifiziert": true,
+        "quelle": "sap_extraktion"
+      },
+      "EVERSW": {
+        "beschreibung": "Übergabestruktur Vertragswechsel",
+        "modul": "IS-U-MD",
+        "lieferklasse": "A",
+        "verifiziert": true,
+        "quelle": "sap_extraktion"
+      },
+      "/US4G/V_ST": {
+        "beschreibung": "Bilanzierungsgebiet - Basisdaten für Versorgungsszenario",
+        "modul": "S/4 Utilities Germany",
+        "lieferklasse": "C",
+        "pflege": "SM30",
+        "quelle": "fachwissen"
+      },
+      "/US4G/SETTL_MALO": {
+        "beschreibung": "Bilanzierungsdaten für MaLo - jeder Zählpunkt muss hier gepflegt werden",
+        "modul": "S/4 Utilities Germany",
+        "transaktion": "/US4G/SETTL_MALO",
+        "hinweis": "Im Neuanlageprozess berücksichtigen!",
+        "quelle": "fachwissen"
+      },
+      "/US4G/SETTL_DATE": {
+        "beschreibung": "Zuordnung der Abrechnungseinheit - jeder Zählpunkt muss hier gepflegt werden",
+        "modul": "S/4 Utilities Germany",
+        "hinweis": "Sollte im Lieferbeginn automatisch angelegt werden",
+        "quelle": "fachwissen"
+      },
+      "/US4G/V_DEF_SP": {
+        "beschreibung": "Standard-Serviceanbieter für Netzbetreiber definieren",
+        "modul": "S/4 Utilities Germany",
+        "pflege": "SM30",
+        "hinweis": "Bei neuem SA (auch Gas) pflegen",
+        "quelle": "fachwissen"
+      },
+      "/US4G/BKSUP": {
+        "beschreibung": "Ersatzversorgerdefinition",
+        "modul": "S/4 Utilities Germany",
+        "quelle": "fachwissen"
+      },
+      "/US4G/WIM_SUSC": {
+        "beschreibung": "Bestimmung des Zielversorgerszenarios für den WiM-Prozess",
+        "modul": "S/4 Utilities Germany",
+        "quelle": "fachwissen"
+      },
+      "/US4G/SETTLVIEW": {
+        "beschreibung": "Settlement View - zu pflegen über /US4G/V_STLDATE",
+        "modul": "S/4 Utilities Germany",
+        "pflege": "/US4G/V_STLDATE",
+        "quelle": "fachwissen"
+      },
+      "EEDMSUNITCAT": {
+        "beschreibung": "Settlement Unit Kategorien",
+        "modul": "IS-U-EDM",
+        "hinweis": "Eintrag 05 (Fremdbelieferte ZP im eigenen Netz): USESUPPLIER von 04 auf 01 ändern für Lieferbeginn-Reiter Bilanzierung",
+        "quelle": "fachwissen"
+      },
+      "EEDMSETTLUNIT": {
+        "beschreibung": "Bilanzierungseinheiten - mit SETTLVIEW-Eintrag (001) versehen",
+        "modul": "IS-U-EDM",
+        "quelle": "fachwissen"
+      },
+      "EDDMSETTLVIEW": {
+        "beschreibung": "Settlement View Definitionen",
+        "modul": "IS-U-EDM",
+        "quelle": "fachwissen"
+      },
+      "EEDMUISETTLUNIT": {
+        "beschreibung": "UI Settlement Unit - Einträge werden automatisch im Lieferbeginn angelegt",
+        "modul": "IS-U-EDM",
+        "quelle": "fachwissen"
+      }
+    },
+    "abrechnung_erweitert": {
+      "ERCHARC": {
+        "description": "Index für archivierbare Abrechnungsbelege",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "verified_in_system": true,
+        "source": "sap_extraction"
+      },
+      "ERCHO": {
+        "description": "Aussteuerungstabelle für Abrechnung",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "verified_in_system": true,
+        "source": "sap_extraction"
+      },
+      "ERCHP": {
+        "description": "Analysezeiträume der dynamischen Periodensteuerung",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "verified_in_system": true,
+        "source": "sap_extraction"
+      },
+      "ERCHR": {
+        "description": "Rabatt für Rechnungszeile",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "verified_in_system": true,
+        "source": "sap_extraction"
+      },
+      "ERCHT": {
+        "description": "Texte zu einer Abrechnungszeile",
+        "module": "IS-U-BI",
+        "delivery_class": "A",
+        "verified_in_system": true,
+        "source": "sap_extraction"
+      }
+    },
+    "maintenance_views": {
+      "_summary": {
+        "V_TE*": "270 IS-U customizing views (verified in SAP)",
+        "V_TFK*": "200+ FI-CA views (verified in SAP)",
+        "V_E*": "441 views including EAM (verified in SAP)",
+        "access": "SM30 (Table/View Maintenance) or SM34 (View Clusters)"
+      },
+      "V_TE001": {
+        "description": "Zuordnung Buchungskreis - Sparte (Company Code to Division)",
+        "area": "Basic Settings",
+        "verified_in_system": true
+      },
+      "V_TE003": {
+        "description": "Pflege Nummernkreise für Einzelbearbeitung (Number ranges)",
+        "area": "Number Ranges",
+        "verified_in_system": true
+      },
+      "V_TE003B": {
+        "description": "Pflege Nummernkreise für Massenbearbeitung",
+        "area": "Number Ranges",
+        "verified_in_system": true
+      },
+      "V_TE014_COMP_IND": {
+        "description": "Komponenten für LPC, PPI, Zinsen (Interest components)",
+        "area": "Billing",
+        "verified_in_system": true
+      },
+      "V_TE014_EXEM_IND": {
+        "description": "LPC-Befreiungen (Late Payment Charge exemptions)",
+        "area": "Billing",
+        "verified_in_system": true
+      },
+      "V_TE026_VERWDAUR": {
+        "description": "IS-U Archivierung: Verweildauer (Archiving retention)",
+        "area": "Archiving",
+        "verified_in_system": true
+      },
+      "V_TE339": {
+        "description": "Meter Reading customizing",
+        "area": "Meter Reading",
+        "verified_in_system": true
+      },
+      "V_TFK000S": {
+        "description": "FI-CA System settings",
+        "function_group": "FKV2",
+        "package": "FKKB",
+        "verified_in_system": true
+      },
+      "V_TFK001AG": {
+        "description": "FI-CA Account groups",
+        "function_group": "FKV2",
+        "package": "FKKB",
+        "verified_in_system": true
+      },
+      "V_TFK003": {
+        "description": "FI-CA Document types",
+        "function_group": "FKV0",
+        "package": "FKKB",
+        "verified_in_system": true
+      },
+      "V_TFK004B": {
+        "description": "FI-CA Business transactions",
+        "function_group": "FKV1",
+        "package": "FKKB",
+        "verified_in_system": true
+      }
+    }
+  },
+  "search_patterns": {
+    "function_modules": [
+      "BAPI_ISU*", "BAPI_DEVICE*", "BAPI_MTRREAD*", "BAPI_CTRAC*", "BAPI_BUPA*",
+      "BAPI_EQUI*", "BAPI_FLOC*", "BAPI_BILLDOC*", "BAPI_INSTMNTPLN*",
+      "ISU_*", "ISU_S_*", "ISU_M_*", "ISU_O_*", "ISU_DB_*",
+      "FKK*", "FKKBAPI*", "FKK_*",
+      "/IDXGC/*", "/IDXGL/*", "/APE/*", "/APEU/*", "/UCOM/*", "/US4G/*"
+    ],
+    "classes": [
+      "CL_ISU_*", "CL_FKK_*", "CL_BUPA_*", "CL_IDXGC_*", "CL_MD_BP_*", "CL_UKM_*",
+      "/IDXGC/CL_*", "/IDXGL/CL_*", "/APE/CL_*"
+    ],
+    "interfaces": [
+      "IF_ISU_*", "IF_FKK_*", "IF_BUPA_*"
+    ],
+    "reports": [
+      "EA*", "EL*", "EG*", "ES*", "EC*",
+      "RFKK*", "RFKKBI*", "RFKKMA*", "RFKKOP*", "RFKKGL*",
+      "RISU*", "RELEABL*",
+      "/IDXGC/*", "/IDXGL/*", "/APE/*"
+    ]
+  },
+  "categories": {
+    "equipment": {
+      "name": "Equipment / Anlagen",
+      "description": "Technical objects - equipment management (PM integration)",
+      "prefix_patterns": ["BAPI_EQUI*"],
+      "related_tables": ["EQUI", "EGERH", "EGERS"],
+      "verified_bapis": ["BAPI_EQUI_CREATE", "BAPI_EQUI_CHANGE", "BAPI_EQUI_GETLIST", "BAPI_EQUI_GETDETAIL", "BAPI_EQUI_GETSTATUS", "BAPI_EQUI_INSTALL", "BAPI_EQUI_DISMANTLE", "BAPI_EQUI_CREATE_BY_REFERENCE", "BAPI_EQMT_MODIFY"]
+    },
+    "device": {
+      "name": "Devices / Geraete (Meters)",
+      "description": "IS-U device and meter management",
+      "prefix_patterns": ["BAPI_DEVICE*", "BAPI_ISUDEVICE*", "ISU_*DEVICE*"],
+      "related_tables": ["EGERH", "EGERS", "EQUI", "EASTL"],
+      "key_function_modules": ["ISU_S_SMALL_DEVICE_CREATE", "ISU_S_WORKLIST_INSTALL", "ISU_M_EQUI_INSERT", "ISU_EQUIPMENT_SET_EQUI"],
+      "transactions": ["EG01", "EG02", "EG35", "IE01", "IE4N"]
+    },
+    "meter_reading": {
+      "name": "Meter Reading / Ablesung",
+      "description": "Meter reading orders and results",
+      "prefix_patterns": ["BAPI_MTRREAD*", "BAPI_ISUMR*", "ISU_*METERREAD*"],
+      "related_tables": ["EABL", "EABLG"],
+      "key_function_modules": ["BAPI_MTRREADDOC_UPLOAD", "BAPI_MTRREADDOC_GETLIST", "ISU_O_METERREAD_ACTION", "ISU_O_METERREAD_OPEN", "ISU_MR_ORDER_FILL", "ISU_S_METERREAD_CREATE", "ISU_S_METERREAD_CHANGE", "ISU_REGISTER_ESTIMATE", "ISU_DETERM_MRSTAT_BILLPERIOD", "ISU_CONSUMPTION_DETERMINE"],
+      "transactions": ["EL01", "EL06", "EL16", "EL18", "EL20", "EL22", "EL27"],
+      "user_exits": ["EXIT_SAPLEL01_001", "EXIT_SAPLEL01_004", "EXIT_SAPLEL01_005", "EXIT_SAPLEL01_020"]
+    },
+    "installation": {
+      "name": "Installation / Anlage",
+      "description": "IS-U installations - connection between contract and POD",
+      "prefix_patterns": ["BAPI_ISUINSTLN*", "BAPI_INSTLN*", "ISU_INSTLN*"],
+      "related_tables": ["EANL", "EANLH"],
+      "key_function_modules": ["ISU_INSTLN_CREATE", "ISU_S_INSTLN_CREATE", "ISU_S_INSTLN_PROVIDE", "ISU_S_INSTLN_CHANGE", "ISU_DB_INSTALL_STRUC_SELECT", "BAPI_UTILINSTALLATION_CHANFACT"]
+    },
+    "premise": {
+      "name": "Premise / Verbrauchsstelle",
+      "description": "Physical location where energy is consumed",
+      "prefix_patterns": ["BAPI_ISUPREMISE*", "BAPI_PREMISE*", "ISU_*PREMISE*"],
+      "related_tables": ["EVBS"],
+      "key_function_modules": ["ISU_S_PREMISE_CREATE"]
+    },
+    "connection_object": {
+      "name": "Connection Object / Anschlussobjekt",
+      "description": "Physical connection point to the grid",
+      "prefix_patterns": ["BAPI_ISUCONNOBJ*", "BAPI_CONNOBJ*", "ISU_*CONNOBJ*"],
+      "key_function_modules": ["ISU_S_CONNOBJ_CREATE", "ISU_S_CONNOBJ_DISPLAY", "ISU_S_CONNOBJ_CHANGE"],
+      "transactions": ["EC*"]
+    },
+    "point_of_delivery": {
+      "name": "Point of Delivery (POD)",
+      "description": "Regulatory delivery point identification (MaLo/MeLo in Germany)",
+      "prefix_patterns": ["BAPI_ISUPOD*", "BAPI_POD*"],
+      "related_tables": ["EUIINSTLN", "EUITRANS"],
+      "key_function_modules": ["BAPI_ISUPOD_GETFROMPREMISE", "BAPI_ISUPOD_GETFROMINSTLN", "BAPI_ISUPOD_GETDEVICE"]
+    },
+    "business_partner": {
+      "name": "Business Partner / Geschaeftspartner",
+      "description": "Customer and partner management",
+      "prefix_patterns": ["BAPI_ISUPARTNER*", "BAPI_BUPA*"],
+      "related_tables": ["BUT000", "BUT100", "BUT050", "BUT0BK"],
+      "verified_count": 194,
+      "key_bapis": ["BAPI_ISUPARTNER_CREATEFROMDATA", "BAPI_ISUPARTNER_CHANGE", "BAPI_ISUPARTNER_GETLIST", "BAPI_ISUPARTNER_GETDETAIL", "BAPI_BUPA_CREATE_FROM_DATA"],
+      "key_classes": ["CL_MD_BP_MAINTAIN", "CL_BUP_CENT", "CL_UKM_BUPA_FACTORY", "CL_UKM_BUSINESS_PARTNER"]
+    },
+    "contract_account": {
+      "name": "Contract Account / Vertragskonto",
+      "description": "FI-CA contract accounts for billing and receivables",
+      "prefix_patterns": ["BAPI_ISUACCOUNT*", "BAPI_CTRACCONTRACT*", "BAPI_CTRAC*", "FKK*"],
+      "related_tables": ["FKKVK", "FKKVKP", "DFKKKO", "DFKKOPK"],
+      "verified_count": 73,
+      "key_bapis": [
+        "BAPI_ISUACCOUNT_CREATEFROMDATA", "BAPI_ISUACCOUNT_CHANGE", "BAPI_ISUACCOUNT_GETDETAIL",
+        "BAPI_CTRACCONTRACTACCOUNT_CR1", "BAPI_CTRACCONTRACTACCOUNT_CH1", "BAPI_CTRACCONTRACTACCOUNT_GETL", "BAPI_CTRACCONTRACTACCOUNT_GBAL", "BAPI_CTRACCONTRACTACCOUNT_CLR"
+      ],
+      "bapi_structures": ["BAPIDFKKKO", "BAPIDFKKOP", "BAPIDFKKOPK", "BAPIDFKKOPW", "BAPIDFKKLOCKS", "BAPIFKKVK"]
+    },
+    "fica_document": {
+      "name": "FI-CA Documents",
+      "description": "Contract accounting documents, postings, and clearing",
+      "prefix_patterns": ["BAPI_CTRACDOC*", "FKKBAPI*", "FKK_*"],
+      "related_tables": ["DFKKKO", "DFKKOPK"],
+      "key_bapis": [
+        "BAPI_CTRACDOCUMENT_CREATE", "BAPI_CTRACDOCUMENT_CHANGE", "BAPI_CTRACDOCUMENT_GETLIST", "BAPI_CTRACDOCUMENT_GETDETAIL",
+        "BAPI_CTRACDOCUMENT_EXISTCHECK", "BAPI_CTRACDOCUMENT_REVERSE", "BAPI_CTRACDOCUMENT_REVERSECLR", "BAPI_CTRACDOCUMENT_TRANSFER", "BAPI_CTRACDOCUMENT_WRITEOFF"
+      ],
+      "key_function_modules": ["FKK_CREATE_DOC_AND_CLEAR", "FKK_CREATE_DOC_MASS_AND_CLEAR", "FKK_DOCUMENT_CHANGE"],
+      "note": "FKK_* function modules are not officially released - use BAPI_CTRAC* instead"
+    },
+    "fica_payment": {
+      "name": "FI-CA Payment Processing",
+      "description": "Payment lots and incoming payments",
+      "prefix_patterns": ["BAPI_CTRACPAYM*"],
+      "key_bapis": [
+        "BAPI_CTRACPAYMINC_CREATE", "BAPI_CTRACPAYMINC_APPEND", "BAPI_CTRACPAYMINC_CLOSE", "BAPI_CTRACPAYMINC_RELEASE", "BAPI_CTRACPAYMINC_SCHEDULE",
+        "BAPI_CTRACCTRCTACCNT_PAYBYCARD"
+      ]
+    },
+    "contract": {
+      "name": "Contract / Vertrag",
+      "description": "IS-U utility contracts",
+      "prefix_patterns": ["BAPI_ISUCONTRACT*", "ISU_*CONTRACT*"],
+      "related_tables": ["EVER", "EVERH"],
+      "key_bapis": ["BAPI_ISUCONTRCT_CHANGEFROMDATA"]
+    },
+    "move_in_out": {
+      "name": "Move-In / Move-Out",
+      "description": "Customer move processes",
+      "prefix_patterns": ["BAPI_ISUMOVEIN*", "BAPI_ISUMOVEOUT*", "ISU_*MOVE*"],
+      "key_bapis": ["BAPI_ISUMOVEIN_CREATEFROMDATA", "BAPI_ISUMOVEOUT_CREATEFROMDATA"],
+      "key_function_modules": ["ISU_MOVE_IN_BAPI_GET_DEFAULTS", "ISU_S_MOVE_IN_CREATE", "ISU_S_MOVE_OUT_CREATE"],
+      "transactions": ["EC50E", "EC51E", "EC52E"],
+      "bor_objects": ["MOVEINDOC", "MOVEOUTDOC"],
+      "tables": ["ISU_EAUS_DOC"]
+    },
+    "billing": {
+      "name": "Billing / Abrechnung",
+      "description": "Invoice and billing document management",
+      "prefix_patterns": ["BAPI_ISUBILLING*", "BAPI_BILLDOC*", "BAPI_ISTBILLDOC*", "ISU_*BILL*"],
+      "related_tables": ["ERCH", "DBERCHZ", "ETRG"],
+      "key_bapis": [
+        "BAPI_ISTBILLDOC_CREATEMULTIPLE", "BAPI_ISTBILLDOC_ADJUST", "BAPI_ISTBILLDOC_CANCEL",
+        "BAPI_BILLDOC_CREATEMULTIPLE", "BAPI_BILLDOC_ADJUST", "BAPI_BILLDOC_CANCEL",
+        "BAPI_FMCABILLDOC_CREATE_MULT"
+      ],
+      "transactions": ["EA00", "EA05", "EA10", "EA11", "EA13", "EA19", "EA20", "EA21", "EA22", "EA25", "EA26", "EA38", "EASIBI"]
+    },
+    "installment_plan": {
+      "name": "Installment Plans / Ratenzahlung",
+      "description": "Payment installment plans",
+      "prefix_patterns": ["BAPI_INSTMNTPLN*"],
+      "key_bapis": ["BAPI_INSTMNTPLN_CHANGE"]
+    },
+    "market_communication": {
+      "name": "Market Communication / Marktkommunikation",
+      "description": "IDEX, MPM, APE - market process management for deregulated energy markets",
+      "prefix_patterns": ["/IDXGC/*", "/IDXGL/*", "/APE/*", "/US4G/*"],
+      "german_processes": ["GPKE", "MaBiS", "GeLi Gas", "WiM", "GABi Gas"],
+      "message_formats": ["EDIFACT", "AS4"],
+      "key_reports": ["/IDXGC/MASS", "/APE/RP_TRIGGER_PDOC_MASS", "/APE/RP_TRIGGER_TRDOC_MASS", "/IDXGL/PRICAT_H_MIG_CORR", "/IDXGL/PRISHEET_H_MIG_CORR"],
+      "transactions": ["/IDXGC/PDOCMON01", "/IDXGC/PDOCMON02"]
+    },
+    "smart_metering": {
+      "name": "Smart Metering / AMI",
+      "description": "Advanced Metering Infrastructure for smart meters",
+      "prefix_patterns": ["EAMI_*", "ISU_AMI_*"],
+      "typical_tables": ["EAMI_EM_EVENT_DATA_DESC", "EAMI_EM_EVENT_CATEGORY", "EAMI_EM_EVENTTYPE"],
+      "badi": "ISU_SE_DEVICESMREGCRTRCO_ASYNC"
+    },
+    "energy_data_management": {
+      "name": "Energy Data Management (EDM)",
+      "description": "Management of equidistant time series data (load profiles)",
+      "prefix_patterns": ["ISU_EDM_*", "EE_EDM_*"],
+      "packages": ["EE_EDM_UI", "EE_EDM_PRO", "EE_EDM_SET"],
+      "tables": ["EUITRANS", "EPROFVAL"],
+      "key_classes": ["CL_ISU_EDM_PROFILE", "CL_ISU_EDM_SETTLUNIT", "CL_ISU_EDM_UI_SETTLUNIT"]
+    }
+  },
+  "bapis": [
+    {
+      "name": "BAPI_EQUI_CREATE",
+      "category": "equipment",
+      "description": "Create equipment master data",
+      "function_group": "ITOB_BAPI_EQ",
+      "verified_in_system": true,
+      "import_parameters": [
+        {"name": "EXTERNAL_NUMBER", "type": "BAPI_ITOB_PARMS-EQUIPMENT", "optional": true},
+        {"name": "DATA_GENERAL", "type": "BAPI_ITOB", "optional": false},
+        {"name": "DATA_SPECIFIC", "type": "BAPI_ITOB_EQ_ONLY", "optional": false},
+        {"name": "VALID_DATE", "type": "BAPI_ITOB_PARMS-INST_DATE", "optional": true},
+        {"name": "DATA_INSTALL", "type": "BAPI_ITOB_EQ_INSTALL", "optional": true}
+      ],
+      "usage_notes": "Use BAPI_TRANSACTION_COMMIT after successful call."
+    },
+    {"name": "BAPI_EQUI_CHANGE", "category": "equipment", "description": "Change equipment master data", "verified_in_system": true},
+    {"name": "BAPI_EQUI_GETLIST", "category": "equipment", "description": "Get list of equipment", "verified_in_system": true},
+    {"name": "BAPI_EQUI_GETDETAIL", "category": "equipment", "description": "Get equipment details", "verified_in_system": true},
+    {"name": "BAPI_EQUI_GETSTATUS", "category": "equipment", "description": "Get equipment status", "verified_in_system": true},
+    {"name": "BAPI_EQUI_INSTALL", "category": "equipment", "description": "Install equipment at functional location", "verified_in_system": true},
+    {"name": "BAPI_EQUI_DISMANTLE", "category": "equipment", "description": "Dismantle equipment from functional location", "verified_in_system": true},
+    {"name": "BAPI_EQUI_CREATE_BY_REFERENCE", "category": "equipment", "description": "Create equipment using reference as template", "verified_in_system": true},
+    {"name": "BAPI_EQMT_MODIFY", "category": "equipment", "description": "Universal function to create/change equipment", "verified_in_system": true},
+    {"name": "BAPI_MTRREADDOC_UPLOAD", "category": "meter_reading", "description": "Upload meter reading results from external systems", "verified_in_system": true},
+    {"name": "BAPI_MTRREADDOC_GETLIST", "category": "meter_reading", "description": "Select meter reading orders and results", "verified_in_system": true},
+    {"name": "BAPI_ISUPARTNER_CREATEFROMDATA", "category": "business_partner", "description": "Create business partner with all master data", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISUPARTNER_CHANGE", "category": "business_partner", "description": "Change business partner master data", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISUPARTNER_GETLIST", "category": "business_partner", "description": "Get list of business partners by search criteria", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISUPARTNER_GETDETAIL", "category": "business_partner", "description": "Get business partner details", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISUACCOUNT_CREATEFROMDATA", "category": "contract_account", "description": "Create contract account (FKKVK)", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISUACCOUNT_CHANGE", "category": "contract_account", "description": "Change contract account master data", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISUACCOUNT_GETDETAIL", "category": "contract_account", "description": "Read contract account details", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_CTRACCONTRACTACCOUNT_CR1", "category": "contract_account", "description": "Create contract account in FI-CA", "verified_in_system": true},
+    {"name": "BAPI_CTRACCONTRACTACCOUNT_CH1", "category": "contract_account", "description": "Change contract account in FI-CA", "verified_in_system": true},
+    {"name": "BAPI_CTRACCONTRACTACCOUNT_GETL", "category": "contract_account", "description": "Get list of contract accounts", "verified_in_system": true},
+    {"name": "BAPI_CTRACCONTRACTACCOUNT_GBAL", "category": "contract_account", "description": "Get account balance at key date", "verified_in_system": true},
+    {"name": "BAPI_CTRACCONTRACTACCOUNT_CLR", "category": "contract_account", "description": "Clear open items", "verified_in_system": true},
+    {"name": "BAPI_CTRACDOCUMENT_CREATE", "category": "fica_document", "description": "Post FI-CA document", "verified_in_system": true},
+    {"name": "BAPI_CTRACDOCUMENT_CHANGE", "category": "fica_document", "description": "Change FI-CA document", "verified_in_system": true},
+    {"name": "BAPI_CTRACDOCUMENT_GETLIST", "category": "fica_document", "description": "Get list of FI-CA documents", "verified_in_system": true},
+    {"name": "BAPI_CTRACDOCUMENT_GETDETAIL", "category": "fica_document", "description": "Get FI-CA document details", "verified_in_system": true},
+    {"name": "BAPI_CTRACDOCUMENT_EXISTCHECK", "category": "fica_document", "description": "Check if FI-CA document exists", "verified_in_system": true},
+    {"name": "BAPI_CTRACDOCUMENT_REVERSE", "category": "fica_document", "description": "Reverse FI-CA document", "verified_in_system": true},
+    {"name": "BAPI_CTRACDOCUMENT_REVERSECLR", "category": "fica_document", "description": "Reset document clearing", "verified_in_system": true},
+    {"name": "BAPI_CTRACDOCUMENT_TRANSFER", "category": "fica_document", "description": "Transfer open FI-CA items", "verified_in_system": true},
+    {"name": "BAPI_CTRACDOCUMENT_WRITEOFF", "category": "fica_document", "description": "Write off FI-CA document", "verified_in_system": true},
+    {"name": "BAPI_CTRACPAYMINC_CREATE", "category": "fica_payment", "description": "Create payment lot", "verified_in_system": true},
+    {"name": "BAPI_CTRACPAYMINC_APPEND", "category": "fica_payment", "description": "Append payments to lot", "verified_in_system": true},
+    {"name": "BAPI_CTRACPAYMINC_CLOSE", "category": "fica_payment", "description": "Close payment lot", "verified_in_system": true},
+    {"name": "BAPI_CTRACPAYMINC_RELEASE", "category": "fica_payment", "description": "Release payment lot", "verified_in_system": true},
+    {"name": "BAPI_CTRACPAYMINC_SCHEDULE", "category": "fica_payment", "description": "Schedule payment lot posting", "verified_in_system": true},
+    {"name": "BAPI_ISUMOVEIN_CREATEFROMDATA", "category": "move_in_out", "description": "Create move-in document", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISUMOVEOUT_CREATEFROMDATA", "category": "move_in_out", "description": "Create move-out document", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISTBILLDOC_CREATEMULTIPLE", "category": "billing", "description": "Create multiple billing documents", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISTBILLDOC_ADJUST", "category": "billing", "description": "Adjust billing documents", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISTBILLDOC_CANCEL", "category": "billing", "description": "Cancel billing documents", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISUPOD_GETFROMPREMISE", "category": "point_of_delivery", "description": "Get PODs from premise", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISUPOD_GETFROMINSTLN", "category": "point_of_delivery", "description": "Get PODs from installation", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISUPOD_GETDEVICE", "category": "point_of_delivery", "description": "Get devices from POD", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_ISUFINDER_FINDOBJOFDATA", "category": "search", "description": "Search IS-U objects by criteria", "verified_in_system": false, "source": "online_research"},
+    {"name": "BAPI_CTRACRECKEY_CREATE", "category": "fica_document", "description": "Create FI-CA reconciliation key", "verified_in_system": true},
+    {"name": "BAPI_CTRACRECKEY_EXISTCHECK", "category": "fica_document", "description": "Check reconciliation key existence", "verified_in_system": true},
+    {"name": "BAPI_INSTMNTPLN_CHANGE", "category": "installment_plan", "description": "Change installment plan", "verified_in_system": false, "source": "online_research"}
+  ],
+  "function_modules": [
+    {"name": "ISU_S_CONNOBJ_CREATE", "category": "connection_object", "description": "Create connection object", "source": "online_research"},
+    {"name": "ISU_S_CONNOBJ_DISPLAY", "category": "connection_object", "description": "Display connection object", "source": "online_research"},
+    {"name": "ISU_S_CONNOBJ_CHANGE", "category": "connection_object", "description": "Change connection object", "source": "online_research"},
+    {"name": "ISU_S_PREMISE_CREATE", "category": "premise", "description": "Create premise", "source": "online_research"},
+    {"name": "ISU_INSTLN_CREATE", "category": "installation", "description": "Create installation", "source": "online_research"},
+    {"name": "ISU_S_INSTLN_CREATE", "category": "installation", "description": "Create installation (S variant)", "source": "online_research"},
+    {"name": "ISU_S_INSTLN_PROVIDE", "category": "installation", "description": "Provide installation data for changes", "source": "online_research"},
+    {"name": "ISU_S_INSTLN_CHANGE", "category": "installation", "description": "Change existing installations", "source": "online_research"},
+    {"name": "ISU_DB_INSTALL_STRUC_SELECT", "category": "installation", "description": "Read installation structure with device info", "source": "online_research"},
+    {"name": "ISU_S_DEVLOC_CREATE", "category": "device", "description": "Create device location", "source": "online_research"},
+    {"name": "ISU_M_EQUI_INSERT", "category": "device", "description": "Create device/equipment (migration)", "source": "online_research"},
+    {"name": "ISU_S_SMALL_DEVICE_CREATE", "category": "device", "description": "Create serial number for devices in batch", "source": "online_research"},
+    {"name": "ISU_S_WORKLIST_INSTALL", "category": "device", "description": "Install device (full installation)", "source": "online_research"},
+    {"name": "ISU_EQUIPMENT_SET_EQUI", "category": "device", "description": "Set equipment data in global buffer", "source": "online_research"},
+    {"name": "ISU_DB_V_EGER_UPDATE", "category": "device", "description": "Update device view", "source": "online_research"},
+    {"name": "ISU_O_METERREAD_ACTION", "category": "meter_reading", "description": "Main function for meter reading actions", "source": "online_research"},
+    {"name": "ISU_O_METERREAD_OPEN", "category": "meter_reading", "description": "Open meter reading documents", "source": "online_research"},
+    {"name": "ISU_MR_ORDER_FILL", "category": "meter_reading", "description": "Read print and download data of meter reading docs", "source": "online_research"},
+    {"name": "ISU_S_METERREAD_CREATE", "category": "meter_reading", "description": "Create meter reading results directly", "source": "online_research"},
+    {"name": "ISU_S_METERREAD_CHANGE", "category": "meter_reading", "description": "Change meter reading results", "source": "online_research"},
+    {"name": "ISU_REGISTER_ESTIMATE", "category": "meter_reading", "description": "Estimate meter readings on installation", "source": "online_research"},
+    {"name": "ISU_DETERM_MRSTAT_BILLPERIOD", "category": "meter_reading", "description": "Determine meter reading status for billing period", "source": "online_research"},
+    {"name": "ISU_CONSUMPTION_DETERMINE", "category": "meter_reading", "description": "Determine consumption", "source": "online_research"},
+    {"name": "ISU_MOVE_IN_BAPI_GET_DEFAULTS", "category": "move_in_out", "description": "Get defaults for move-in BAPI", "source": "online_research"},
+    {"name": "ISU_S_MOVE_IN_CREATE", "category": "move_in_out", "description": "Create move-in (S variant)", "source": "online_research"},
+    {"name": "ISU_S_MOVE_OUT_CREATE", "category": "move_in_out", "description": "Create move-out (S variant)", "source": "online_research"},
+    {"name": "ISU_NAVIGATOR", "category": "navigation", "description": "IS-U Navigator for object navigation", "source": "online_research"},
+    {"name": "FKK_CREATE_DOC_AND_CLEAR", "category": "fica_document", "description": "Post single document with clearing (not SAP released)", "source": "online_research", "warning": "Not officially released"},
+    {"name": "FKK_CREATE_DOC_MASS_AND_CLEAR", "category": "fica_document", "description": "Mass posting with clearing (not SAP released)", "source": "online_research", "warning": "Not officially released"},
+    {"name": "FKK_DOCUMENT_CHANGE", "category": "fica_document", "description": "Change FI-CA document", "source": "online_research"},
+    {"name": "FKK_FUNC_MODULE_DETERMINE", "category": "fica_events", "description": "Determine function module for FI-CA event", "source": "online_research"}
+  ],
+  "classes": {
+    "verified_counts": {
+      "CL_ISU_*": 1634,
+      "CL_FKK_*": 1265,
+      "CL_BUPA_*": 262,
+      "total": 3161
+    },
+    "important_classes": [
+      {"name": "CL_ISU_DATE_CHECK", "package": "EE00", "description": "IS-U date validations"},
+      {"name": "CL_ISU_SWITCHDOC", "package": "EE_IDE_SWITCH", "description": "Switch document for supplier changes", "methods": ["CREATE_FROM_MSG", "CREATE_NEW", "DETERMINE_MESSAGECREATETYPE"]},
+      {"name": "CL_ISU_SERVICEPROVIDER", "package": "EE_EDM_IDE_INT", "description": "Service provider management", "methods": ["ACTION", "ACTION_DELETE_SERVPROV", "CHECK_AUTHORITY"]},
+      {"name": "CL_ISU_EDM_PROFILE", "package": "EE_EDM_PRO", "description": "Load profile management", "methods": ["CHANGE_PROFHEAD_DATA", "CHECK_AUTHORIZATION"]},
+      {"name": "CL_ISU_PRICE", "package": "EE20", "description": "Price management for billing", "methods": ["ADJUST_TIMESLICES", "AUTHORITY_CHECK"]},
+      {"name": "CL_ISU_DATEX_PROCESS", "package": "EE_DATEX", "description": "Data exchange at POD level (abstract)"},
+      {"name": "CL_ISU_EDM_SETTLUNIT", "package": "EE_EDM_SET", "description": "EDM settlement unit", "methods": ["ASSIGN_SETTLUNIT", "SELECT_POD"]},
+      {"name": "CL_ISU_POD_INST_REASSIGN", "package": "EE_EDM_UI", "description": "Installation to POD reassignment"},
+      {"name": "CL_ISU_EABLDEL", "description": "Deleted meter reading documents", "methods": ["SELECT_DELETED_MRDOCS"]},
+      {"name": "CL_FKK_ORDER_CONTROL", "package": "FKK_ORDER", "description": "FI-CA request control", "methods": ["ALV_POS_BUILD", "PROCESS_ORDERHIST_UPDATE"]},
+      {"name": "CL_FKK_XI_FACADE", "package": "FKKXI", "description": "FI-CA to XI/PI integration", "methods": ["CREDIT_INFO_CONVERT_INBOUND", "OPBEL_2_XI"]},
+      {"name": "CL_FKK_EXTERNAL_CASH_DESK", "description": "External cash desk for offline branches"},
+      {"name": "CL_FKK_CR_CREDITDATA", "description": "Credit exposure for business partner"},
+      {"name": "CL_MD_BP_MAINTAIN", "description": "API class for BP maintenance (S/4HANA recommended)", "methods": ["MAINTAIN", "VALIDATE_SINGLE"]},
+      {"name": "CL_BUP_CENT", "description": "Business partner central data segment"},
+      {"name": "CL_UKM_BUPA_FACTORY", "description": "BP manager for credit management", "methods": ["GET_BUSINESS_PARTNER", "GET_CREDIT_ACCOUNT"]},
+      {"name": "CL_UKM_BUSINESS_PARTNER", "description": "BP from credit management view"},
+      {"name": "CL_UDM_BUPA_TRANSACTION_DATA", "description": "Transaction data for business partner"}
+    ]
+  },
+  "reports": {
+    "billing": {
+      "EA00": {"description": "Test billing of a contract (simulation)", "program": "REAINV01"},
+      "EA05": {"description": "Display and release outsortings"},
+      "EA10": {"description": "Document invoicing", "program": "REAINV01"},
+      "EA11": {"description": "Budget billing invoicing"},
+      "EA13": {"description": "Print/Billing document reversal"},
+      "EA19": {"description": "Create bill (individual)"},
+      "EA20": {"description": "Reverse billing document"},
+      "EA21": {"description": "Adjustment reversal billing docs"},
+      "EA22": {"description": "Display billing document"},
+      "EA25": {"description": "Create partial bill (individual)"},
+      "EA26": {"description": "Mass processing: Create bill"},
+      "EA38": {"description": "Mass activity: Billing", "program": "RFKK_MASS_ACT_SINGLE_JOB", "note": "Multi-thread parallel processing"},
+      "EASIBI": {"description": "Individual billing/invoicing"}
+    },
+    "meter_reading": {
+      "EL01": {"description": "Execute order creation (unplanned)", "program": "SAPLEL01"},
+      "EL06": {"description": "Execute mass order creation", "program": "RELAUFT0"},
+      "EL16": {"description": "Execute order output", "program": "SAPLFKKAKTIV2"},
+      "EL18": {"description": "Execute estimation", "program": "SAPLFKKAKTIV2"},
+      "EL20": {"description": "Fast entry", "program": "SAPLEL01"},
+      "EL22": {"description": "Fast entry with correction", "program": "SAPLEL01"},
+      "EL27": {"description": "Correction of implausible results", "program": "SAPLEL01"},
+      "RELEABL3": {"description": "Display meter reading orders/results"},
+      "RELEABL6": {"description": "Reverse meter reading order/result"}
+    },
+    "device": {
+      "EG01": {"description": "Create device category", "program": "SAPLE10J"},
+      "EG02": {"description": "Change device category"},
+      "EG35": {"description": "Billing-related removal"},
+      "IE01": {"description": "Create equipment (PM standard)"},
+      "IE4N": {"description": "Equipment installation/dismantlement"},
+      "EM10": {"description": "Goods movement via serial numbers (IS-UT)"}
+    },
+    "fica": {
+      "RFKKMA09": {"description": "Dunning history archiving, deletion"},
+      "SAPF150D": {"description": "Dunning notice print with update"},
+      "RFCORR14": {"description": "Reset dunning run (via MHNK/MHND)"},
+      "RFKK_MA_SCHEDULER": {"description": "Execute mass activity (scheduling)"},
+      "RFKK_MASS_ACT_SINGLE_JOB": {"description": "Single job for mass activity (parallel)"},
+      "RFKK_MASS_ACT_PARAMETER": {"description": "Move/copy parameter records"},
+      "RFKKOP04": {"description": "Key-date open items list"},
+      "RFKKABS30": {"description": "Document itemization (reconciliation key)"},
+      "RFKKGL00": {"description": "Transfer totals records to G/L"},
+      "RFKKGL20": {"description": "Reconcile FI-CA and G/L"},
+      "RFKKABS1": {"description": "Reconcile inside FI-CA"},
+      "RFKKGL30": {"description": "Display transferred documents"},
+      "RFKKABS6": {"description": "Reconcile G/L accounts"},
+      "RFKKAR10": {"description": "Archiving of FI-CA documents: Write"},
+      "RFKKAR12": {"description": "Archiving of FI-CA documents: Reload"}
+    },
+    "market_communication": {
+      "/IDXGC/MASS": {"description": "Mass processing (legacy)", "replaced_by": "/APE/RP_TRIGGER_PDOC_MASS"},
+      "/APE/RP_TRIGGER_PDOC_MASS": {"description": "Mass triggering of process documents (S/4HANA)"},
+      "/APE/RP_TRIGGER_TRDOC_MASS": {"description": "Mass triggering of transfer documents"},
+      "/IDXGL/PRICAT_H_MIG_CORR": {"description": "Generate GUID IDs for outbound (SAP Note 2859288)"},
+      "/IDXGL/PRISHEET_H_MIG_CORR": {"description": "Generate GUID IDs for inbound (SAP Note 3416238)"}
+    },
+    "master_data": {
+      "RESHAU00": {"description": "Evaluation of connection objects"},
+      "EMIGALL": {"description": "IS-U Migration Workbench (ISMW)"}
+    }
+  },
+  "transactions": {
+    "billing": ["EA00", "EA05", "EA10", "EA11", "EA13", "EA19", "EA20", "EA21", "EA22", "EA25", "EA26", "EA38", "EASIBI"],
+    "meter_reading": ["EL01", "EL06", "EL16", "EL18", "EL20", "EL22", "EL27"],
+    "device": ["EG01", "EG02", "EG35", "IE01", "IE4N", "IQ01", "IQ02", "IQ03", "IQ04", "EM10"],
+    "move_in_out": ["EC50E", "EC51E", "EC52E"],
+    "market_communication": ["/IDXGC/PDOCMON01", "/IDXGC/PDOCMON02"],
+    "fica": ["FQEVENTS"],
+    "development": ["SE37", "SE24", "SE80", "SE16N", "BAPI"]
+  },
+  "cds_views": {
+    "note": "Specific CDS view names are not publicly documented by SAP. Use SE11/SE16N with DDLSRC table or Eclipse ADT to discover CDS views in your system.",
+    "search_patterns": ["I_Utlty*", "I_ISU*", "I_Device*", "I_Meter*", "I_Premise*", "I_Installation*", "I_ContractAccount*", "C_*"],
+    "recommended_discovery": {
+      "transaction": "SE16N",
+      "table": "DDLSRC",
+      "filter": "SOURCE like '%UTLTY%' or SOURCE like '%ISU%'"
+    }
+  },
+  "data_model_hierarchy": {
+    "description": "IS-U Object Hierarchy",
+    "hierarchy": [
+      "BUT000 (Business Partner)",
+      "  -> FKKVK/FKKVKP (Contract Account)",
+      "      -> EVER (Contract)",
+      "          -> EANL (Installation)",
+      "              -> EVBS (Premise)",
+      "                  -> Connection Object (HAUS)",
+      "              -> EUIINSTLN -> EUITRANS (Point of Delivery)",
+      "              -> EGERH/EGERS (Device)",
+      "                  -> EABL/EABLG (Meter Reading)",
+      "          -> ERCH/DBERCHZ (Billing)"
+    ]
+  },
+  "workflows": {
+    "payment_processing": {
+      "description": "Typical payment lot workflow",
+      "steps": [
+        "1. BAPI_CTRACPAYMINC_CREATE - Create payment lot",
+        "2. BAPI_CTRACPAYMINC_APPEND - Add payments",
+        "3. BAPI_CTRACPAYMINC_SCHEDULE - Post payment lot",
+        "4. BAPI_TRANSACTION_COMMIT - Commit transaction"
+      ]
+    },
+    "contract_account_clearing": {
+      "description": "Document posting with clearing",
+      "steps": [
+        "1. BAPI_CTRACDOCUMENT_CREATE - Post document",
+        "2. BAPI_TRANSACTION_COMMIT - Commit",
+        "3. BAPI_CTRACCONTRACTACCOUNT_CLR - Clear open items",
+        "4. BAPI_TRANSACTION_COMMIT - Commit"
+      ]
+    },
+    "full_installation": {
+      "description": "Create complete installation structure",
+      "steps": [
+        "1. ISU_S_CONNOBJ_CREATE - Connection Object",
+        "2. ISU_S_PREMISE_CREATE - Premise",
+        "3. ISU_S_INSTLN_CREATE - Installation",
+        "4. ISU_S_DEVLOC_CREATE - Device Location",
+        "5. ISU_M_EQUI_INSERT - Device",
+        "6. ISU_S_WORKLIST_INSTALL - Install device"
+      ]
+    }
+  },
+  "important_notes": {
+    "bapi_commit": "Always call BAPI_TRANSACTION_COMMIT after successful BAPI calls that modify data",
+    "unreleased_fms": "Avoid using non-released function modules (like FKK_ACCOUNT_UPDATE) - SAP may change them without notice",
+    "remote_enabled": "Not all ISU_S_* function modules are remote-enabled (RFC). They may require an RFC wrapper.",
+    "master_data_templates": "For complex device creation, use Master Data Templates (MDT) via EPRODCUST and ISU_PRODUCT_IMPLEMENT",
+    "s4hana_migration": "Namespaces /ID* do not exist in S/4HANA - use /US4G/ instead"
+  },
+  "transactions": {
+    "_extraktionsinfo": {
+      "methode": "SE93 - Transaktionspflege",
+      "datum": "2026-01-06",
+      "anzahl_verifiziert": 10,
+      "hinweis": "Nur im System vorhandene Transaktionen sind aufgeführt"
+    },
+    "ES31": {
+      "titel": "Anlage ändern",
+      "programm": "SAPLES30",
+      "dynpro": "110",
+      "typ": "Dialog",
+      "paket": "EE01",
+      "kategorie": "installation",
+      "verified_in_system": true
+    },
+    "ES32": {
+      "titel": "Anlage anzeigen",
+      "programm": "SAPLES30",
+      "dynpro": "110",
+      "typ": "Dialog",
+      "paket": "EE01",
+      "kategorie": "installation",
+      "verified_in_system": true
+    },
+    "EC30": {
+      "titel": "Tarifdaten pflegen",
+      "programm": "SAPLEC30",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "EE05",
+      "kategorie": "tariff",
+      "verified_in_system": true
+    },
+    "EC50": {
+      "titel": "Einzugsbeleg anlegen",
+      "programm": "SAPLEC50",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "EE06",
+      "kategorie": "move_in_out",
+      "verified_in_system": true
+    },
+    "EL01": {
+      "titel": "Auftragserstellung ausführen",
+      "programm": "SAPLEL01",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "EE16",
+      "kategorie": "order",
+      "verified_in_system": true
+    },
+    "EA00": {
+      "titel": "Test-Abrechnung eines Vertrages",
+      "programm": "SAPLEA02",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "EE20",
+      "kategorie": "billing",
+      "verified_in_system": true
+    },
+    "EG31": {
+      "titel": "Einbau gesamt",
+      "programm": "SAPLE30D",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "EE07",
+      "kategorie": "device",
+      "verified_in_system": true
+    },
+    "FPL9": {
+      "titel": "Kontenstand",
+      "programm": "SAPMFKL9",
+      "dynpro": "100",
+      "typ": "Dialog",
+      "paket": "FKK_ACCBAL",
+      "kategorie": "fica_account",
+      "verified_in_system": true
+    },
+    "FP03": {
+      "titel": "Inkassopositionen bearbeiten",
+      "programm": "SAPLFKA6",
+      "dynpro": "200",
+      "typ": "Dialog",
+      "paket": "FKK_COLL_AGENCY",
+      "kategorie": "fica_collection",
+      "verified_in_system": true
+    },
+    "FPVA": {
+      "titel": "Mahnvorschlag",
+      "programm": "SAPLFKKAKTIV2",
+      "dynpro": "999",
+      "typ": "Dialog",
+      "paket": "FKK_DUNNING",
+      "kategorie": "fica_dunning",
+      "verified_in_system": true
+    }
+  },
+  "field_types": {
+    "_extraction_info": {
+      "method": "SE11 - ABAP Dictionary",
+      "date": "2026-01-06",
+      "note": "ABAP-Datentypen: CLNT=Mandant, CHAR=Zeichenkette, NUMC=Numerisch, DATS=Datum, TIMS=Zeit, DEC=Dezimal, CURR=Währung, CUKY=Währungsschlüssel, LANG=Sprache"
+    },
+    "EVER": {
+      "_description": "IS-U Vertrag",
+      "_field_count": 133,
+      "key_fields": {
+        "MANDT": {"datentyp": "CLNT", "laenge": 3, "langtext": "Mandant"},
+        "VERTRAG": {"datentyp": "CHAR", "laenge": 10, "langtext": "Vertrag"}
+      },
+      "important_fields": {
+        "BUKRS": {"datentyp": "CHAR", "laenge": 4, "langtext": "Buchungskreis"},
+        "SPARTE": {"datentyp": "CHAR", "laenge": 2, "langtext": "Sparte"},
+        "VBEGINN": {"datentyp": "DATS", "laenge": 8, "langtext": "Beginn des Vertrags"},
+        "KOFIZ": {"datentyp": "CHAR", "laenge": 2, "langtext": "Kontenfindungsmerkmal"},
+        "KOSTL": {"datentyp": "CHAR", "laenge": 10, "langtext": "Kostenstelle"},
+        "ABRSPERR": {"datentyp": "CHAR", "laenge": 2, "langtext": "Abrechnungssperrgrund"}
+      }
+    },
+    "DFKKKO": {
+      "_description": "FI-CA Belegkopf",
+      "_field_count": 66,
+      "key_fields": {
+        "MANDT": {"datentyp": "CLNT", "laenge": 3, "langtext": "Mandant"},
+        "OPBEL": {"datentyp": "CHAR", "laenge": 12, "langtext": "Belegnummer Vertragskonto"}
+      },
+      "important_fields": {
+        "FIKEY": {"datentyp": "CHAR", "laenge": 12, "langtext": "Abstimmschlüssel für Hauptbuchhaltung"},
+        "BLART": {"datentyp": "CHAR", "laenge": 2, "langtext": "Belegart"},
+        "CPUDT": {"datentyp": "DATS", "laenge": 8, "langtext": "Tag der Erfassung"},
+        "CPUTM": {"datentyp": "TIMS", "laenge": 6, "langtext": "Uhrzeit der Erfassung"},
+        "WAERS": {"datentyp": "CUKY", "laenge": 5, "langtext": "Transaktionswährung"},
+        "BUDAT": {"datentyp": "DATS", "laenge": 8, "langtext": "Buchungsdatum"}
+      }
+    },
+    "ERCH": {
+      "_description": "Rechnungsbelegdaten (IS-U Billing)",
+      "_field_count": 112,
+      "key_fields": {
+        "MANDT": {"datentyp": "CLNT", "laenge": 3, "langtext": "Mandant"},
+        "BELNR": {"datentyp": "CHAR", "laenge": 12, "langtext": "Nummer eines Abrechnungsbelegs"}
+      },
+      "important_fields": {
+        "BUKRS": {"datentyp": "CHAR", "laenge": 4, "langtext": "Buchungskreis"},
+        "SPARTE": {"datentyp": "CHAR", "laenge": 2, "langtext": "Sparte"},
+        "GPARTNER": {"datentyp": "CHAR", "laenge": 10, "langtext": "Geschäftspartnernummer"},
+        "VKONT": {"datentyp": "CHAR", "laenge": 12, "langtext": "Vertragskontonummer"},
+        "VERTRAG": {"datentyp": "CHAR", "laenge": 10, "langtext": "Vertrag"},
+        "BEGABRPE": {"datentyp": "DATS", "laenge": 8, "langtext": "Beginn des Abrechnungszeitraums"},
+        "ENDABRPE": {"datentyp": "DATS", "laenge": 8, "langtext": "Ende des Abrechnungszeitraums"}
+      }
+    },
+    "EVBS": {
+      "_description": "Verbrauchsstelle (IS-U Premise)",
+      "_field_count": 27,
+      "key_fields": {
+        "MANDT": {"datentyp": "CLNT", "laenge": 3, "langtext": "Mandant"},
+        "VSTELLE": {"datentyp": "CHAR", "laenge": 10, "langtext": "Verbrauchsstelle"}
+      },
+      "important_fields": {
+        "HAUS": {"datentyp": "CHAR", "laenge": 30, "langtext": "Anschlussobjekt"},
+        "VBSART": {"datentyp": "CHAR", "laenge": 8, "langtext": "Verbrauchsstellenart"},
+        "EIGENT": {"datentyp": "CHAR", "laenge": 10, "langtext": "Eigentümer"},
+        "TPLNUMMER": {"datentyp": "CHAR", "laenge": 30, "langtext": "Nummer des Technischen Platzes"},
+        "ERDAT": {"datentyp": "DATS", "laenge": 8, "langtext": "Erstellungsdatum"},
+        "TXTLANGU": {"datentyp": "LANG", "laenge": 1, "langtext": "Sprachenschlüssel"}
+      }
+    }
+  }
+}

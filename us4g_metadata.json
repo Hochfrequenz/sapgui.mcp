@@ -3,7 +3,7 @@
   "quelle": "SAP SE11 - ABAP Dictionary",
   "beschreibung": "S/4 Utilities /US4G/ Tabellen-Feldmetadaten",
   "fortschritt": {
-    "extrahiert": 362,
+    "extrahiert": 380,
     "gesamt": 613
   },
   "tabellen": {
@@ -16581,11 +16581,6 @@
         }
       ]
     },
-    "C:/Program Files/Git/US4G/EDN_AMI": {
-      "beschreibung": "OBSOLET",
-      "anzahl_felder": 82,
-      "felder": []
-    },
     "/US4G/EDN_AMI": {
       "beschreibung": "OBSOLET",
       "anzahl_felder": 82,
@@ -17095,6 +17090,2694 @@
           "laenge": 1,
           "dezimalstellen": 0,
           "kurztext": "Entwurf Befehlscode",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/EDN_CP": {
+      "beschreibung": "eLS Upload-Parameter",
+      "anzahl_felder": 1,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        }
+      ]
+    },
+    "/US4G/EDN_DELCAD": {
+      "beschreibung": "/US4G/I_EDN_HEAD_TP /US4G/I_EDN_DEL_CA_TP",
+      "anzahl_felder": 20,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ROOT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CARRIER_TYPE_HL",
+          "datenelement": "/US4G/DE_CARRIER_TYPE",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Ladungsträgerart",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CARRIER_TYPE",
+          "datenelement": "/US4G/DE_CARRIER_TYPE",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Ladungsträgerart",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ARTICLE_TYPE_ID",
+          "datenelement": "/US4G/DE_ARTICLE_TYPE_ID",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Artikelart-ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CARRIER_NO",
+          "datenelement": "/US4G/DE_CARRIER_NO",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Ladungsträgernummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "WEIGHT",
+          "datenelement": "/US4G/DE_WEIGHT",
+          "datentyp": "NUMC",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Gewicht",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TRACKING_NO",
+          "datenelement": "/US4G/DE_TRACKING_NO",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Tracking-Nummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TRACKING_WEB_SIDE",
+          "datenelement": "/US4G/DE_TRACK_WEB_SITE",
+          "datentyp": "CHAR",
+          "laenge": 250,
+          "dezimalstellen": 0,
+          "kurztext": "Website fuer Tracking-Nummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "RFID",
+          "datenelement": "/US4G/DE_RFID",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "RFID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ACTIVEUUID",
+          "datenelement": "/BOBF/UUID",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "Als Schluessel dienender UUID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "HASACTIVEENTITY",
+          "datenelement": "SDRAFT_HAS_ACTIVE",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Entwurf - Kennzeichen - Hat aktives Dokument",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYCREATIONDATETIME",
+          "datenelement": "SDRAFT_CREATED_AT",
+          "datentyp": "DEC",
+          "laenge": 21,
+          "dezimalstellen": 7,
+          "kurztext": "Entwurf angelegt am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYLASTCHANGEDATETIME",
+          "datenelement": "SDRAFT_LAST_CHANGED_AT",
+          "datentyp": "DEC",
+          "laenge": 21,
+          "dezimalstellen": 7,
+          "kurztext": "Entwurf zuletzt geaendert am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTADMINISTRATIVEDATAUUID",
+          "datenelement": "SDRAFT_ADMIN_UUID",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "Technische ID fuer Verwaltungsdaten eines Entwurfsdokuments",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYCONSISTENCYSTATUS",
+          "datenelement": "SDRAFT_CONSISTENCY_STATUS",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Entwurf - Konsistenzstatus",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYOPERATIONCODE",
+          "datenelement": "SDRAFT_OPERATION_CODE",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Entwurf - Befehlscode",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/EDN_DELT_D": {
+      "beschreibung": "/US4G/I_EDN_HEAD_TP /US4G/I_EDN_DEL_TK_TP",
+      "anzahl_felder": 27,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ROOT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "KEY_ID",
+          "datenelement": "/US4G/DE_DN_ID",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselter Abschnitt - Schluessel-ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EM_KEYSIZE",
+          "datenelement": "/US4G/DE_KEY_SIZE",
+          "datentyp": "NUMC",
+          "laenge": 4,
+          "dezimalstellen": 0,
+          "kurztext": "Schluesselgroesse",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EM_ALGORITHM",
+          "datenelement": "/US4G/DE_DN_ALGORITHM",
+          "datentyp": "CHAR",
+          "laenge": 80,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselter Abschnitt - Algorithmus",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "KI_KEYNAME",
+          "datenelement": "/US4G/DE_DN_KEYNAME",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselter Abschnitt - Schluesselname",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "KI_ID",
+          "datenelement": "/US4G/DE_DN_ID",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselter Abschnitt - Schluessel-ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CUSTCRYPT",
+          "datenelement": "/US4G/DE_DN_CC",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "ELS-Schluessel - Benutzerdefinierte Kryptomethode",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CD_CIPER_VALUE",
+          "datenelement": "/US4G/DE_DN_CIPHERVALUE",
+          "datentyp": "STRING",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselungswert fuer ELS-Daten",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CIPER_VAL_KEYINFO",
+          "datenelement": "/US4G/DE_DN_CIPHERVALUE",
+          "datentyp": "STRING",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselungswert fuer ELS-Daten",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CARRIED_KEYNAME",
+          "datenelement": "/US4G/DE_DN_KEYNAME",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselter Abschnitt - Schluesselname",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIG_INFO_ID",
+          "datenelement": "/US4G/DE_DN_ID",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselter Abschnitt - Schluessel-ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIG_CANONICALIZATION_METHOD",
+          "datenelement": "/US4G/DE_DN_ALGORITHM",
+          "datentyp": "CHAR",
+          "laenge": 80,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselter Abschnitt - Algorithmus",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIG_SIGNATURE_METHOD",
+          "datenelement": "/US4G/DE_DN_ALGORITHM",
+          "datentyp": "CHAR",
+          "laenge": 80,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselter Abschnitt - Algorithmus",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIG_KEYINFO",
+          "datenelement": "/US4G/DE_DN_KEYNAME",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselter Abschnitt - Schluesselname",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIG_SIGNATUREVALUE",
+          "datenelement": "/US4G/DE_DN_SIGNATUREVALUE",
+          "datentyp": "STRING",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Verschluesselter Abschnitt - Signaturwert",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "KEY_INFO",
+          "datenelement": "/US4G/DE_KEY_INFO",
+          "datentyp": "STRING",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Schluesselinfo zum verschluesselten Abschnitt",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ACTIVEUUID",
+          "datenelement": "/BOBF/UUID",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "Als Schluessel dienender UUID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "HASACTIVEENTITY",
+          "datenelement": "SDRAFT_HAS_ACTIVE",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Entwurf - Kennzeichen - Hat aktives Dokument",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYCREATIONDATETIME",
+          "datenelement": "SDRAFT_CREATED_AT",
+          "datentyp": "DEC",
+          "laenge": 21,
+          "dezimalstellen": 7,
+          "kurztext": "Entwurf angelegt am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYLASTCHANGEDATETIME",
+          "datenelement": "SDRAFT_LAST_CHANGED_AT",
+          "datentyp": "DEC",
+          "laenge": 21,
+          "dezimalstellen": 7,
+          "kurztext": "Entwurf zuletzt geaendert am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTADMINISTRATIVEDATAUUID",
+          "datenelement": "SDRAFT_ADMIN_UUID",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "Technische ID fuer Verwaltungsdaten eines Entwurfsdokuments",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYCONSISTENCYSTATUS",
+          "datenelement": "SDRAFT_CONSISTENCY_STATUS",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Entwurf - Konsistenzstatus",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DRAFTENTITYOPERATIONCODE",
+          "datenelement": "SDRAFT_OPERATION_CODE",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Entwurf - Befehlscode",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/EDN_DEL_CA": {
+      "beschreibung": "eLS Lieferung: Ladungstraeger",
+      "anzahl_felder": 13,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ROOT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CARRIER_TYPE_HL",
+          "datenelement": "/US4G/DE_CARRIER_TYPE",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Ladungstraegerart",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CARRIER_TYPE",
+          "datenelement": "/US4G/DE_CARRIER_TYPE",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Ladungstraegerart",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ARTICLE_TYPE_ID",
+          "datenelement": "/US4G/DE_ARTICLE_TYPE_ID",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Artikelart-ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CARRIER_NO",
+          "datenelement": "/US4G/DE_CARRIER_NO",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Ladungstraegernummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "WEIGHT",
+          "datenelement": "/US4G/DE_WEIGHT",
+          "datentyp": "NUMC",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Gewicht",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TRACKING_NO",
+          "datenelement": "/US4G/DE_TRACKING_NO",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Tracking-Nummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TRACKING_WEB_SIDE",
+          "datenelement": "/US4G/DE_TRACK_WEB_SITE",
+          "datentyp": "CHAR",
+          "laenge": 250,
+          "dezimalstellen": 0,
+          "kurztext": "Website fuer Tracking-Nummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "RFID",
+          "datenelement": "/US4G/DE_RFID",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "RFID",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/EDN_DEL_H": {
+      "beschreibung": "eLS Lieferung: Kopf",
+      "anzahl_felder": 31,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_ORDER_NO",
+          "datenelement": "/US4G/DE_ORDER_NO",
+          "datentyp": "CHAR",
+          "laenge": 60,
+          "dezimalstellen": 0,
+          "kurztext": "Auftragsnummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_DEL_NO",
+          "datenelement": "/US4G/DE_DEL_NO",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Liefernummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_COUNT_CARRIER",
+          "datenelement": "/US4G/DE_COUNT_CARRIER",
+          "datentyp": "NUMC",
+          "laenge": 4,
+          "dezimalstellen": 0,
+          "kurztext": "Anzahl der Ladungstraeger",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_TITLE_LOG",
+          "datenelement": "/US4G/DE_EDN_TITLE_LOG",
+          "datentyp": "CHAR",
+          "laenge": 255,
+          "dezimalstellen": 0,
+          "kurztext": "Titel des logistischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_LASTNAME_LOG",
+          "datenelement": "/US4G/DE_EDN_LASTNAME_LOG",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Nachname des logistischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_FIRSTNAME_LOG",
+          "datenelement": "/US4G/DE_EDN_FIRSTNAME_LOG",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Vorname des logistischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_PHONE_LOG",
+          "datenelement": "/US4G/DE_EDN_PHONE_LOG",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Telefonnummer des logistischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_EMAIL_LOG",
+          "datenelement": "/US4G/DE_EDN_EMAIL_LOG",
+          "datentyp": "CHAR",
+          "laenge": 255,
+          "dezimalstellen": 0,
+          "kurztext": "E-Mail-Adresse des logistischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_TITLE_TEC",
+          "datenelement": "/US4G/DE_EDN_TITLE_TEC",
+          "datentyp": "CHAR",
+          "laenge": 255,
+          "dezimalstellen": 0,
+          "kurztext": "Titel des technischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_LASTNAME_TEC",
+          "datenelement": "/US4G/DE_EDN_LASTNAME_TEC",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Nachname des technischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_FIRSTNAME_TEC",
+          "datenelement": "/US4G/DE_EDN_FIRSTNAME_TEC",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Vorname des technischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_PHONE_TEC",
+          "datenelement": "/US4G/DE_EDN_PHONE_TEC",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Telefonnummer des technischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_EMAIL_TEC",
+          "datenelement": "/US4G/DE_EDN_EMAIL_TEC",
+          "datentyp": "CHAR",
+          "laenge": 255,
+          "dezimalstellen": 0,
+          "kurztext": "E-Mail-Adresse des technischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_TITLE_BUS",
+          "datenelement": "/US4G/DE_EDN_TITLE_BUS",
+          "datentyp": "CHAR",
+          "laenge": 255,
+          "dezimalstellen": 0,
+          "kurztext": "Titel des kaufmaennischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_LASTNAME_BUS",
+          "datenelement": "/US4G/DE_EDN_LASTNAME_BUS",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Nachname des kaufmaennischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_FIRSTNAME_BUS",
+          "datenelement": "/US4G/DE_EDN_FIRSTNAME_BUS",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Vorname des kaufmaennischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_PHONE_BUS",
+          "datenelement": "/US4G/DE_EDN_PHONE_BUS",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Telefonnummer des kaufmaennischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_EMAIL_BUS",
+          "datenelement": "/US4G/DE_EDN_EMAIL_BUS",
+          "datentyp": "CHAR",
+          "laenge": 255,
+          "dezimalstellen": 0,
+          "kurztext": "E-Mail-Adresse des kaufmaennischen Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_TITLE_LOG_GW",
+          "datenelement": "/US4G/DE_EDN_TITLE_LOG_GW",
+          "datentyp": "CHAR",
+          "laenge": 255,
+          "dezimalstellen": 0,
+          "kurztext": "Titel des logistischen SMGW-Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_LASTNAME_LOG_GW",
+          "datenelement": "/US4G/DE_EDN_LASTNAME_LOG_GW",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Nachname des logistischen SMGW-Ansprechnpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_FIRSTNAME_LOG_GW",
+          "datenelement": "/US4G/DE_EDN_FIRSTNAME_LOG_GW",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Vorname des logistischen SMGW-Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_PHONE_LOG_GW",
+          "datenelement": "/US4G/DE_EDN_PHONE_LOG_GW",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Telefonnummer des logistischen SMGW-Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_EMAIL_LOG_GW",
+          "datenelement": "/US4G/DE_EDN_EMAIL_LOG_GW",
+          "datentyp": "CHAR",
+          "laenge": 255,
+          "dezimalstellen": 0,
+          "kurztext": "E-Mail-Adresse des logistischen SMGW-Ansprechpartners",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_CONTACT_TEC_PUR",
+          "datenelement": "/US4G/DE_CONTACT_TEC_PROD",
+          "datentyp": "CHAR",
+          "laenge": 768,
+          "dezimalstellen": 0,
+          "kurztext": "Technischer Ansprechpartner bei Hersteller",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_CONTACT_BUS_PUR",
+          "datenelement": "/US4G/DE_CONTACT_BUS_PROD",
+          "datentyp": "CHAR",
+          "laenge": 768,
+          "dezimalstellen": 0,
+          "kurztext": "Kaufmaennischer Ansprechpartner bei Hersteller",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_CONTACT_LOG_PUR",
+          "datenelement": "/US4G/DE_CONTACT_LOG_PROD",
+          "datentyp": "CHAR",
+          "laenge": 768,
+          "dezimalstellen": 0,
+          "kurztext": "Logistikansprechpartner bei Hersteller",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/EDN_DEL_HD": {
+      "beschreibung": "/US4G/I_EDN_HEAD_TP /US4G/I_EDN_DEL_HEAD_TP",
+      "anzahl_felder": 37,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_ORDER_NO",
+          "datenelement": "/US4G/DE_ORDER_NO",
+          "datentyp": "CHAR",
+          "laenge": 60,
+          "dezimalstellen": 0,
+          "kurztext": "Auftragsnummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_DEL_NO",
+          "datenelement": "/US4G/DE_DEL_NO",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Liefernummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EDN_COUNT_CARRIER",
+          "datenelement": "/US4G/DE_COUNT_CARRIER",
+          "datentyp": "NUMC",
+          "laenge": 4,
+          "dezimalstellen": 0,
+          "kurztext": "Anzahl der Ladungstraeger",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/INVLIST_IT": {
+      "beschreibung": "Gasbestandsliste: Positionsdaten",
+      "anzahl_felder": 48,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "INV_LIST_ID",
+          "datenelement": "/US4G/DE_GUID_INVLIST",
+          "datentyp": "CHAR",
+          "laenge": 22,
+          "dezimalstellen": 0,
+          "kurztext": "GUID: Gasbestandsliste",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "INV_LIST_ITEM_ID",
+          "datenelement": "/US4G/DE_INVLIST_ITEM_NO",
+          "datentyp": "CHAR",
+          "laenge": 35,
+          "dezimalstellen": 0,
+          "kurztext": "Gasbestandsliste: Positions-ID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "INV_LIST_ITEM_TYPE",
+          "datenelement": "/US4G/DE_INVLIST_ITEM_TYPE",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Gasbestandsliste: Positionsart",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "ITEM_NO",
+          "datenelement": "/US4G/DE_INVLIST_ITEM_NUM",
+          "datentyp": "CHAR",
+          "laenge": 35,
+          "dezimalstellen": 0,
+          "kurztext": "Gasbestandsliste: Positionsnr",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "REF_ITEM_NO",
+          "datenelement": "/US4G/DE_INVLIST_ITEM_NO_REF",
+          "datentyp": "CHAR",
+          "laenge": 35,
+          "dezimalstellen": 0,
+          "kurztext": "Gasbestandsliste: Nummer referenzierte Position",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "PDOC_REF_RESP",
+          "datenelement": "/APE/DE_DOC_NO",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Dokumentennummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MALO",
+          "datenelement": "EXT_UI",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Zaehlpunktbezeichnung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "INT_UI",
+          "datenelement": "INT_UI",
+          "datentyp": "CHAR",
+          "laenge": 22,
+          "dezimalstellen": 0,
+          "kurztext": "Interner Schluessel des Zaehlpunkts",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "INVALID",
+          "datenelement": "/US4G/DE_INVLIST_ITEM_INVALID",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Kennzeichen ungueltige Listenposition",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "RESPONSE_STATUS",
+          "datenelement": "/US4G/DE_INVLIST_RESP_STATUS",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Antwortstatus",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DEVIATION_INFO_CODE",
+          "datenelement": "/US4G/DE_INVLIST_DEVI_INF_CODE",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Abweichungscode",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DEVIATION_INFO_TEXT",
+          "datenelement": "/US4G/DE_INVLIST_DEVI_INF_TEXT",
+          "datentyp": "CHAR",
+          "laenge": 512,
+          "dezimalstellen": 0,
+          "kurztext": "Abweichungsinformationen",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CONTRACT_START_DATE",
+          "datenelement": "/US4G/DE_CONTR_START_DATE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Datum Vertragsbeginn",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CONTRACT_END_DATE",
+          "datenelement": "/US4G/DE_CONTR_END_DATE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Datum Vertragsende",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SETTL_START_DATE",
+          "datenelement": "/US4G/DE_SETTL_START_DATE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Datum Bilanzierungsbeginn",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SETTL_END_DATE",
+          "datenelement": "/US4G/DE_SETTL_END_DATE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Datum Bilanzierungsende",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ESTIMATED_ANNUAL_QUAN",
+          "datenelement": "/US4G/DE_ESTIMATED_ANNUAL_QUAN",
+          "datentyp": "DEC",
+          "laenge": 31,
+          "dezimalstellen": 0,
+          "kurztext": "Veranschlagte Jahresmenge",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CUSTOMER_QUANTITY",
+          "datenelement": "/US4G/DE_QUANTITY",
+          "datentyp": "CHAR",
+          "laenge": 35,
+          "dezimalstellen": 0,
+          "kurztext": "Menge",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SETTLUNIT",
+          "datenelement": "E_EDMSETTLUNIT",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Bilanzierungseinheit",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SETTLUNIT_EXT",
+          "datenelement": "E_EDMSETTLUNITEXT",
+          "datentyp": "CHAR",
+          "laenge": 40,
+          "dezimalstellen": 0,
+          "kurztext": "Externe Bezeichung der Bilanzierungseinheit",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/MEMICHKPA": {
+      "beschreibung": "Pruefe Parameter waehrend Erstell. von MeMi-Bel. mit Netznutz.",
+      "anzahl_felder": 10,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "VERTRAG",
+          "datenelement": "VERTRAG",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Vertrag",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "MALO_INT",
+          "datenelement": "/US4G/DE_MALO_INT",
+          "datentyp": "CHAR",
+          "laenge": 22,
+          "dezimalstellen": 0,
+          "kurztext": "Interner Schluessel der Marktlokation",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "CHECK_OPTION",
+          "datenelement": "/US4G/DE_CHECK_OPTION",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Pruefoption",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "COMMENTS",
+          "datenelement": "/US4G/DE_MEMI_COMMENTS",
+          "datentyp": "CHAR",
+          "laenge": 128,
+          "dezimalstellen": 0,
+          "kurztext": "Kommentare",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/BOFU/S_ADMIN_DATA",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Verwaltungsdaten",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CREATED_BY",
+          "datenelement": "/BOFU/USER_ID_CREATED_BY",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Angelegt von",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CREATED_ON",
+          "datenelement": "/BOFU/TSTMP_CREATION_TIME",
+          "datentyp": "DEC",
+          "laenge": 15,
+          "dezimalstellen": 0,
+          "kurztext": "Angelegt am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CHANGED_BY",
+          "datenelement": "/BOFU/USER_ID_CHANGED_BY",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Geaendert von",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CHANGED_ON",
+          "datenelement": "/BOFU/TSTMP_CHANGED_TIME",
+          "datentyp": "DEC",
+          "laenge": 15,
+          "dezimalstellen": 0,
+          "kurztext": "Geaendert am",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/MEMISTLLNK": {
+      "beschreibung": "Bilanzierungsverknuepfung von MeMi-Belegen",
+      "anzahl_felder": 15,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_SETTL_DATE_KEY",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Struktur fuer Zuordnungsschluessel",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "INT_UI",
+          "datenelement": "INT_UI",
+          "datentyp": "CHAR",
+          "laenge": 22,
+          "dezimalstellen": 0,
+          "kurztext": "Interner Schluessel des Zaehlpunkts",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "SETTLVIEW",
+          "datenelement": "E_EDMSETTLVIEW",
+          "datentyp": "NUMC",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Bilanzierungssicht",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "VERTRAG",
+          "datenelement": "VERTRAG",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Vertrag",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "REASON",
+          "datenelement": "/US4G/DE_SETTL_DATE_REASON",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0,
+          "kurztext": "Grund der Bilanzkreiszuordnung",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "LFNDR",
+          "datenelement": "E_LFDNR",
+          "datentyp": "NUMC",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Laufende Nummer",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": ".INCLUDE2",
+          "datenelement": "/BOFU/S_ADMIN_DATA",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Verwaltungsdaten",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CREATED_BY",
+          "datenelement": "/BOFU/USER_ID_CREATED_BY",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Angelegt von",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CREATED_ON",
+          "datenelement": "/BOFU/TSTMP_CREATION_TIME",
+          "datentyp": "DEC",
+          "laenge": 15,
+          "dezimalstellen": 0,
+          "kurztext": "Angelegt am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CHANGED_BY",
+          "datenelement": "/BOFU/USER_ID_CHANGED_BY",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Geaendert von",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CHANGED_ON",
+          "datenelement": "/BOFU/TSTMP_CHANGED_TIME",
+          "datentyp": "DEC",
+          "laenge": 15,
+          "dezimalstellen": 0,
+          "kurztext": "Geaendert am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE3",
+          "datenelement": "/US4G/S_MEMISTLLNK_EXT",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Erweiterung fuer Bilanzierungsverknuepfung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MEMISTLLNK_EXTENDED",
+          "datenelement": "/US4G/DE_TABLE_EXTENDED",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Tabelle erweitert",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/MEMI_BPEM": {
+      "beschreibung": "BPEM-Fall - Verknuepfung mit MeMi-Beleg",
+      "anzahl_felder": 13,
+      "felder": [
+        {
+          "feldname": "CLIENT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MEMI_BPEM_DATA",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "BPEM-Fall - Verknuepfung mit MeMi-Beleg",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "BPEM_CASE_S",
+          "datenelement": "/US4G/DE_MEMI_BPEM_CASE_S",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Einzelner BPEM-Fall MeMi-Beleg",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "BPEM_CASE_M",
+          "datenelement": "/US4G/DE_MEMI_BPEM_CASE_M",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Massen-BPEM-Fall MeMi-Beleg",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE2",
+          "datenelement": "/BOFU/S_ADMIN_DATA",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Verwaltungsdaten",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CREATED_BY",
+          "datenelement": "/BOFU/USER_ID_CREATED_BY",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Angelegt von",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CREATED_ON",
+          "datenelement": "/BOFU/TSTMP_CREATION_TIME",
+          "datentyp": "DEC",
+          "laenge": 15,
+          "dezimalstellen": 0,
+          "kurztext": "Angelegt am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CHANGED_BY",
+          "datenelement": "/BOFU/USER_ID_CHANGED_BY",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Geaendert von",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CHANGED_ON",
+          "datenelement": "/BOFU/TSTMP_CHANGED_TIME",
+          "datentyp": "DEC",
+          "laenge": 15,
+          "dezimalstellen": 0,
+          "kurztext": "Geaendert am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE3",
+          "datenelement": "/US4G/S_MEMI_BPEM_DATA_EXT",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Erweiterung fuer BPEM-Verknuepfung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MEMI_BPEM_EXTENDED",
+          "datenelement": "/US4G/DE_TABLE_EXTENDED",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Tabelle erweitert",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/MEMI_DOC": {
+      "beschreibung": "Mehr- und Mindermengenabrechnungsbeleg",
+      "anzahl_felder": 102,
+      "felder": [
+        {
+          "feldname": "CLIENT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MEMI_DATA",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "MeMi-Belegdaten MEMI_DATA",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DOC_ID",
+          "datenelement": "/US4G/DE_MEMI_DOC_ID",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "ID des Mehr- und Mindermengenabrechnungsbelegs",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "STATUS",
+          "datenelement": "/US4G/DE_MEMI_STATUS",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0,
+          "kurztext": "Status für Mehr- und Mindermengenabrechnungsbeleg",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SIMULATION",
+          "datenelement": "/US4G/DE_SIMULATION",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Simulationskennzeichen",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DIVISION",
+          "datenelement": "SPARTE",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0,
+          "kurztext": "Sparte",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MALO_INT",
+          "datenelement": "/US4G/DE_MALO_INT",
+          "datentyp": "CHAR",
+          "laenge": 22,
+          "dezimalstellen": 0,
+          "kurztext": "Interner Schlüssel der Marktlokation",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "METER_PROC",
+          "datenelement": "/US4G/DE_METER_PROC",
+          "datentyp": "CHAR",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Zählverfahren",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SUPPL_DIR",
+          "datenelement": "/US4G/DE_SUPPL_DIR",
+          "datentyp": "CHAR",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Lieferrichtung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DIST_SP",
+          "datenelement": "E_EDMSETTLTRANSCO",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Netzbetreiber als Serviceanbieter",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SUPPL_SP",
+          "datenelement": "SERVICE_PROV",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Serviceanbieter",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SUPPL_BP",
+          "datenelement": "BU_PARTNER",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Geschäftspartnernummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CONTRACT_ACC",
+          "datenelement": "VKONT_KK",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Vertragskontonummer",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "COMPANY_CODE",
+          "datenelement": "BUKRS",
+          "datentyp": "CHAR",
+          "laenge": 4,
+          "dezimalstellen": 0,
+          "kurztext": "Buchungskreis",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "INSTALLATION",
+          "datenelement": "ANLAGE",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Anlage",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "VERTRAG",
+          "datenelement": "VERTRAG",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Vertrag",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "GU_DOC_REF",
+          "datenelement": "E_BELNR",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Nummer eines Abrechnungsbelegs",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "GU_TRANS",
+          "datenelement": "ABRVORG",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0,
+          "kurztext": "Abrechnungsvorgang",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "GU_ORIG_START_DATE",
+          "datenelement": "/US4G/DE_GU_ORIG_START_DATE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Ursprüngliches Beginndatum für die Netznutzungsabrechnung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "GU_ORIG_END_DATE",
+          "datenelement": "/US4G/DE_GU_ORIG_END_DATE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Ursprüngliches Endedatum für die Netznutzungsabrechnung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "GU_START_DATE",
+          "datenelement": "/US4G/DE_GU_START_DATE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Beginndatum für die Netznutzungsabrechnung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "GU_END_DATE",
+          "datenelement": "/US4G/DE_GU_END_DATE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Endedatum für die Netznutzungsabrechnung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "GU_QUANTITY",
+          "datenelement": "/US4G/DE_GU_QUANTITY",
+          "datentyp": "DEC",
+          "laenge": 31,
+          "dezimalstellen": 14,
+          "kurztext": "Menge für die Netznutzungsabrechnung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "GU_MEASURE_UNIT",
+          "datenelement": "/US4G/DE_GU_MEASURE_UNIT",
+          "datentyp": "UNIT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Maßeinheit für die Netznutzungsabrechnung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "GU_TRANS_PREV",
+          "datenelement": "ABRVORG",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0,
+          "kurztext": "Abrechnungsvorgang",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "GU_SPLIT",
+          "datenelement": "/US4G/DE_GU_SPLIT",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Mehr- und Mindermengenabrechnung aufteilen",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "GU_WEIGHTING_KEY",
+          "datenelement": "/US4G/DE_GEWKEY",
+          "datentyp": "CHAR",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Gewichtungsschlüssel",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "SC_SP",
+          "datenelement": "E_EDMSETTLCOORD",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Bilanzkoordinator als Serviceanbieter",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/MEMI_LT": {
+      "beschreibung": "Belegzeilenart für die Mehr- und Mindermengenabrechnung",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "BELZART",
+          "datenelement": "BELZART",
+          "datentyp": "CHAR",
+          "laenge": 6,
+          "dezimalstellen": 0,
+          "kurztext": "Belegzeilenart",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/MEMI_SIM": {
+      "beschreibung": "Simulation für Mehr- und Mindermengenabrechnungsbeleg",
+      "anzahl_felder": 2,
+      "felder": [
+        {
+          "feldname": "MANDT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "SIMULATION",
+          "datenelement": "SIMULATION",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0,
+          "kurztext": "Kennzeichen: Simulation der Abrechnung",
+          "schluesselfeld": true
+        }
+      ]
+    },
+    "/US4G/MEMI_STAT": {
+      "beschreibung": "Status für Mehr- und Mindermengenabrechnungsbeleg",
+      "anzahl_felder": 18,
+      "felder": [
+        {
+          "feldname": "CLIENT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MEMI_STATUS_DATA",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Statusdaten für Mehr- und Mindermengenabrechnungsbeleg",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "STATUS",
+          "datenelement": "/US4G/DE_MEMI_STATUS",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0,
+          "kurztext": "Status für Mehr- und Mindermengenabrechnungsbeleg",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "BO_TYPE",
+          "datenelement": "/APE/DE_BO_TYPE",
+          "datentyp": "CHAR",
+          "laenge": 40,
+          "dezimalstellen": 0,
+          "kurztext": "Business-Objekttyp",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "BO_UUID",
+          "datenelement": "/APE/DE_BO_UUID_EXT",
+          "datentyp": "CHAR",
+          "laenge": 70,
+          "dezimalstellen": 0,
+          "kurztext": "Externe Referenz von BO",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TEXT_ATTR1",
+          "datenelement": "/APE/DE_EVENT_TEXT_ATTR",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Prozessaktivitätsattribut",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TEXT_ATTR2",
+          "datenelement": "/APE/DE_EVENT_TEXT_ATTR",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Prozessaktivitätsattribut",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TEXT_ATTR3",
+          "datenelement": "/APE/DE_EVENT_TEXT_ATTR",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Prozessaktivitätsattribut",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TEXT_ATTR4",
+          "datenelement": "/APE/DE_EVENT_TEXT_ATTR",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Prozessaktivitätsattribut",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/BOFU/S_ADMIN_DATA",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Verwaltungsdaten",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CREATED_BY",
+          "datenelement": "/BOFU/USER_ID_CREATED_BY",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Angelegt von",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CREATED_ON",
+          "datenelement": "/BOFU/TSTMP_CREATION_TIME",
+          "datentyp": "DEC",
+          "laenge": 15,
+          "dezimalstellen": 0,
+          "kurztext": "Angelegt am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CHANGED_BY",
+          "datenelement": "/BOFU/USER_ID_CHANGED_BY",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Geändert von",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CHANGED_ON",
+          "datenelement": "/BOFU/TSTMP_CHANGED_TIME",
+          "datentyp": "DEC",
+          "laenge": 15,
+          "dezimalstellen": 0,
+          "kurztext": "Geändert am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MEMI_STATUS_DATA_EXT",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Erweiterung für Dokument zum MeMi-Belegstatus",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MEMI_STATUS_EXTENDED",
+          "datenelement": "/US4G/DE_TABLE_EXTENDED",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Tabelle erweitert",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/MI_HEAD": {
+      "beschreibung": "Parametrierungsinstanz - Kopf",
+      "anzahl_felder": 12,
+      "felder": [
+        {
+          "feldname": "CLIENT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MI_HEAD",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Messinstanz-Kopfdaten",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MI_ID",
+          "datenelement": "/US4G/DE_MI_ID",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Parametrierungsinstanz-ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MI_TEXT",
+          "datenelement": "/US4G/DE_MI_TXT",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "Beschreibung der Parametrierungsinstanz",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "INSTALLATION",
+          "datenelement": "ANLAGE",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Anlage",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MALO_MELO",
+          "datenelement": "/US4G/DE_MI_MALO_MELO",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0,
+          "kurztext": "Parametrierungsinstanz ist für MaLo/MeLo",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DIVISION",
+          "datenelement": "SPARTE",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0,
+          "kurztext": "Sparte",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EMOS",
+          "datenelement": "/US4G/DE_IM_EMOS",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Externer MSB für Intelligent Metering",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "RIGHT_TO_CHOOSE",
+          "datenelement": "/US4G/DE_MI_RIGHT_TO_CHOOSE",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Freie Wahl (RUC7)",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MI_HEAD_DATA_EXT",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Erweiterung für MI-Kopf",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MI_HEAD_EXTENDED",
+          "datenelement": "/US4G/DE_TABLE_EXTENDED",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Tabelle erweitert",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/MI_PAR": {
+      "beschreibung": "Parametrierungsinstanz - Parametrierungszeitscheibe",
+      "anzahl_felder": 34,
+      "felder": [
+        {
+          "feldname": "CLIENT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ROOT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MI_PAR",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Messinstanz-Parametrierungszeitscheiben",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MI_VIEW",
+          "datenelement": "/US4G/DE_MI_VIEW",
+          "datentyp": "NUMC",
+          "laenge": 2,
+          "dezimalstellen": 0,
+          "kurztext": "Sicht Messprodukt/Parametrierungsinstanz",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MP_ID",
+          "datenelement": "/US4G/DE_MP_ID",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Messprodukt-ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MP_HEAD_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CATEGORY",
+          "datenelement": "/US4G/DE_PARAM_CATEGORY",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalstellen": 0,
+          "kurztext": "Parametrisierungskategorie",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DATE_FROM",
+          "datenelement": "/US4G/DE_MI_DATEFROM",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Beginndatum für MI-PAR-Zeitscheibe",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TIME_FROM",
+          "datenelement": "/US4G/DE_MI_TIMEFROM",
+          "datentyp": "TIMS",
+          "laenge": 6,
+          "dezimalstellen": 0,
+          "kurztext": "Startzeit",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DATE_TO",
+          "datenelement": "/US4G/DE_MI_DATETO",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Endedatum",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TIME_TO",
+          "datenelement": "/US4G/DE_MI_TIMETO",
+          "datentyp": "TIMS",
+          "laenge": 6,
+          "dezimalstellen": 0,
+          "kurztext": "Endezeit",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DATE_FROM_ACTUAL",
+          "datenelement": "/US4G/DE_MI_DATEFROM_ACTUAL",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Ist-Startdatum",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TIME_FROM_ACTUAL",
+          "datenelement": "/US4G/DE_MI_TIMEFROM_ACTUAL",
+          "datentyp": "TIMS",
+          "laenge": 6,
+          "dezimalstellen": 0,
+          "kurztext": "Ist-Startzeit",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DATE_TO_ACTUAL",
+          "datenelement": "/US4G/DE_MI_DATETO_ACTUAL",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Ist-Endedatum",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TIME_TO_ACTUAL",
+          "datenelement": "/US4G/DE_MI_TIMETO_ACTUAL",
+          "datentyp": "TIMS",
+          "laenge": 6,
+          "dezimalstellen": 0,
+          "kurztext": "Ist-Endezeit",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DATE_PARAM",
+          "datenelement": "/US4G/DE_MI_DATE_PARAM",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Datum der Parametrierung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TIME_PARAM",
+          "datenelement": "/US4G/DE_MI_TIME_PARAM",
+          "datentyp": "TIMS",
+          "laenge": 6,
+          "dezimalstellen": 0,
+          "kurztext": "Uhrzeit der Parametrierung",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DIR_EQUNR",
+          "datenelement": "/US4G/DE_MI_DIR_EQUNR",
+          "datentyp": "CHAR",
+          "laenge": 18,
+          "dezimalstellen": 0,
+          "kurztext": "Equipmentnummer des Geräteinfosatzes",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DIR_EQUNR_MOS",
+          "datenelement": "/US4G/DE_MI_DIR_IM_MOS",
+          "datentyp": "CHAR",
+          "laenge": 18,
+          "dezimalstellen": 0,
+          "kurztext": "Geräteinosatz zu intelligentem Zähler im MSB-System",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "BILLING_CLASS",
+          "datenelement": "E_AKLASSE",
+          "datentyp": "CHAR",
+          "laenge": 4,
+          "dezimalstellen": 0,
+          "kurztext": "Abrechnungsklasse",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "RATE_CAT",
+          "datenelement": "TARIFTYP_ANL",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Tariftyp",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TR_GROUP",
+          "datenelement": "/US4G/DE_MI_TR_GROUP",
+          "datentyp": "CHAR",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Versandgruppe",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "STATUS",
+          "datenelement": "/US4G/DE_MI_STATUS",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Zeitscheibenstatus der Parametrierungsinstanz",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ETIMEZONE",
+          "datenelement": "EDM_TIMEZONE",
+          "datentyp": "CHAR",
+          "laenge": 6,
+          "dezimalstellen": 0,
+          "kurztext": "Zeitzone für EDM-Objekte",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MELO_INSTL",
+          "datenelement": "/US4G/DE_MI_MELO_INSTL",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "MeLo-Anlage für eine MaLo-MI_PAR-Zeitscheibe",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/BOFU/S_ADMIN_DATA",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Verwaltungsdaten",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CREATED_BY",
+          "datenelement": "/BOFU/USER_ID_CREATED_BY",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Angelegt von",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CREATED_ON",
+          "datenelement": "/BOFU/TSTMP_CREATION_TIME",
+          "datentyp": "DEC",
+          "laenge": 15,
+          "dezimalstellen": 0,
+          "kurztext": "Angelegt am",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CHANGED_BY",
+          "datenelement": "/BOFU/USER_ID_CHANGED_BY",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalstellen": 0,
+          "kurztext": "Geändert von",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CHANGED_ON",
+          "datenelement": "/BOFU/TSTMP_CHANGED_TIME",
+          "datentyp": "DEC",
+          "laenge": 15,
+          "dezimalstellen": 0,
+          "kurztext": "Geändert am",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/MI_PROD": {
+      "beschreibung": "Parametrierungsinstanz - Produktcode",
+      "anzahl_felder": 9,
+      "felder": [
+        {
+          "feldname": "CLIENT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ROOT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MI_PROD",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Messinstanzproduktcodes",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EXTERNAL_ID",
+          "datenelement": "/US4G/DE_EXTERNAL_ID",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Externe ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "DEF_HEAD_KEY",
+          "datenelement": "/US4G/DE_TOU_UUID_HEAD",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "UUID Definitionskopf",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MI_PROD_DATA_EXT",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Erweiterung für MI_PROD",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MI_PROD_EXTENDED",
+          "datenelement": "/US4G/DE_TABLE_EXTENDED",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Tabelle erweitert",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/MI_P_ITEM": {
+      "beschreibung": "Parametrierungsinstanz - Produktcodeposition",
+      "anzahl_felder": 10,
+      "felder": [
+        {
+          "feldname": "CLIENT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ROOT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MI_P_ITEM",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Messinstanzproduktcode-Positionen",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ITEM_EXTERNAL_ID",
+          "datenelement": "/US4G/DE_EXTERNAL_ID",
+          "datentyp": "CHAR",
+          "laenge": 20,
+          "dezimalstellen": 0,
+          "kurztext": "Externe ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "THRESHOLD1",
+          "datenelement": "/US4G/DE_THRESHOLD_VALUE",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Schwellw.",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "THRESHOLD2",
+          "datenelement": "/US4G/DE_THRESHOLD_VALUE",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Schwellw.",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MI_P_ITEM_DATA_EXT",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Erweiterung für MI_P_ITEM",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MI_P_ITEM_EXTENDED",
+          "datenelement": "/US4G/DE_TABLE_EXTENDED",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Tabelle erweitert",
+          "schluesselfeld": false
+        }
+      ]
+    },
+    "/US4G/MI_RUC": {
+      "beschreibung": "Parametrierungsinstanz - Tarifanwendungsfall",
+      "anzahl_felder": 20,
+      "felder": [
+        {
+          "feldname": "CLIENT",
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalstellen": 0,
+          "kurztext": "Mandant",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "DB_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": true
+        },
+        {
+          "feldname": "PARENT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ROOT_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MI_RUC",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Messinstanz - TAF-Ebene",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MP_RUC_KEY",
+          "datenelement": "/BOBF/CONF_KEY",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "NodeID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "COMM_PROFILE",
+          "datenelement": "/US4G/DE_COMM_PROFILE",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Kommunikationsprofilname",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EVAL_PROFILE",
+          "datenelement": "/US4G/DE_EVAL_PROFILE",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Name des von Intelligent Metering gener. Auswertungsprofils",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "COMM_PROFILE_ID",
+          "datenelement": "/US4G/DE_COMM_PROFILE_ID",
+          "datentyp": "CHAR",
+          "laenge": 50,
+          "dezimalstellen": 0,
+          "kurztext": "Kommunikationsprofil-ID",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "EVAL_PROFILE_ID",
+          "datenelement": "/US4G/DE_EVAL_PROFILE_ID",
+          "datentyp": "CHAR",
+          "laenge": 100,
+          "dezimalstellen": 0,
+          "kurztext": "ID des GWA-Auswertungsprofils",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "CONFIG_ID",
+          "datenelement": "/US4G/DE_CONFIGURATION_ID",
+          "datentyp": "CHAR",
+          "laenge": 70,
+          "dezimalstellen": 0,
+          "kurztext": "Konfig.-ID für Tarifanwendungsfall f. intelligente Messungen",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MEAS_START",
+          "datenelement": "/US4G/DE_MI_DATE_MEAS",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Datum Messbeginn",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TR_START_DATE",
+          "datenelement": "/US4G/DE_MI_DATE_TR",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Startdatum Versand",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TR_START_TIME",
+          "datenelement": "/US4G/DE_MI_TIME_TR",
+          "datentyp": "TIMS",
+          "laenge": 6,
+          "dezimalstellen": 0,
+          "kurztext": "Startzeit Versand",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TR_PERIOD",
+          "datenelement": "/US4G/DE_TRPERIOD",
+          "datentyp": "CHAR",
+          "laenge": 8,
+          "dezimalstellen": 0,
+          "kurztext": "Versandintervall",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MDUSIFACE",
+          "datenelement": "E_MDUSIFACE",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalstellen": 0,
+          "kurztext": "Time-of-Use-Schnittstelle",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "ETIMEZONE",
+          "datenelement": "EDM_TIMEZONE",
+          "datentyp": "CHAR",
+          "laenge": 6,
+          "dezimalstellen": 0,
+          "kurztext": "Zeitzone für EDM-Objekte",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "TOU_HEAD_KEY",
+          "datenelement": "/US4G/DE_TOU_UUID_HEAD",
+          "datentyp": "RAW",
+          "laenge": 16,
+          "dezimalstellen": 0,
+          "kurztext": "UUID Definitionskopf",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": ".INCLUDE",
+          "datenelement": "/US4G/S_MI_RUC_DATA_EXT",
+          "datentyp": "STRU",
+          "laenge": 0,
+          "dezimalstellen": 0,
+          "kurztext": "Erweiterung für MI-TAF",
+          "schluesselfeld": false
+        },
+        {
+          "feldname": "MI_RUC_EXTENDED",
+          "datenelement": "/US4G/DE_TABLE_EXTENDED",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalstellen": 0,
+          "kurztext": "Tabelle erweitert",
           "schluesselfeld": false
         }
       ]

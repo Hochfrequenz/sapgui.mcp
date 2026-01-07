@@ -1,0 +1,54 @@
+{
+  "/US4G/MI_RUC_CP": {
+    "beschreibung": "PI-Kommunikationsprofil - Massenänderung",
+    "anzahl_felder": 14,
+    "felder": [
+      {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "dezimalstellen": 0, "kurztext": "Mandant", "schluesselfeld": true},
+      {"feldname": "CP_CHANGE_ID", "datenelement": "/US4G/DE_CP_CHANGE_ID", "datentyp": "CHAR", "laenge": 10, "dezimalstellen": 0, "kurztext": "ID der Kommunikationsprofil-Massenänderung", "schluesselfeld": true},
+      {"feldname": "MI_RUC_KEY", "datenelement": "/BOBF/CONF_KEY", "datentyp": "RAW", "laenge": 16, "dezimalstellen": 0, "kurztext": "NodeID", "schluesselfeld": true},
+      {"feldname": "MI_ID", "datenelement": "/US4G/DE_MI_ID", "datentyp": "CHAR", "laenge": 10, "dezimalstellen": 0, "kurztext": "Parametrierungsinstanz-ID", "schluesselfeld": false},
+      {"feldname": "MI_PAR_START", "datenelement": "/US4G/DE_MI_DATEFROM", "datentyp": "DATS", "laenge": 8, "dezimalstellen": 0, "kurztext": "Beginndatum für MI-PAR-Zeitscheibe", "schluesselfeld": false},
+      {"feldname": "RUC_ID", "datenelement": "/US4G/DE_RUC_ID", "datentyp": "CHAR", "laenge": 5, "dezimalstellen": 0, "kurztext": "Tarifanwendungsfall", "schluesselfeld": false},
+      {"feldname": "PROC_DOC_NO", "datenelement": "/APE/DE_DOC_NO", "datentyp": "CHAR", "laenge": 20, "dezimalstellen": 0, "kurztext": "Dokumentennummer", "schluesselfeld": false},
+      {"feldname": "EVAL_PROFILE", "datenelement": "/US4G/DE_EVAL_PROFILE", "datentyp": "CHAR", "laenge": 50, "dezimalstellen": 0, "kurztext": "Name des von Intelligent Metering gener. Auswertungsprofils", "schluesselfeld": false},
+      {"feldname": "COMM_PROFILE_OLD", "datenelement": "/US4G/DE_COMM_PROFILE", "datentyp": "CHAR", "laenge": 50, "dezimalstellen": 0, "kurztext": "Kommunikationsprofilname", "schluesselfeld": false},
+      {"feldname": "COMM_PROFILE_NEW", "datenelement": "/US4G/DE_COMM_PROFILE", "datentyp": "CHAR", "laenge": 50, "dezimalstellen": 0, "kurztext": "Kommunikationsprofilname", "schluesselfeld": false},
+      {"feldname": "PROC_STATUS", "datenelement": "/APE/DE_PROC_STATUS", "datentyp": "CHAR", "laenge": 10, "dezimalstellen": 0, "kurztext": "Prozessstatus", "schluesselfeld": false},
+      {"feldname": "ACTION_STATUS", "datenelement": "/US4G/DE_ACTION_STATUS", "datentyp": "CHAR", "laenge": 1, "dezimalstellen": 0, "kurztext": "Aktionsstatus", "schluesselfeld": false},
+      {"feldname": "WS_STATUS", "datenelement": "/US4G/DE_WS_STATUS", "datentyp": "CHAR", "laenge": 10, "dezimalstellen": 0, "kurztext": "Status der Antwort vom Web-Service", "schluesselfeld": false},
+      {"feldname": "WS_STATUS_ICON", "datenelement": "/US4G/DE_WS_STATUS_ICON", "datentyp": "CHAR", "laenge": 4, "dezimalstellen": 0, "kurztext": "Symbol für Antwortstatus", "schluesselfeld": false}
+    ]
+  },
+  "/US4G/MI_RUC_TR": {
+    "beschreibung": "Reorganisation von PI-Versandzeitpunkt",
+    "anzahl_felder": 17,
+    "felder": [
+      {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "dezimalstellen": 0, "kurztext": "Mandant", "schluesselfeld": true},
+      {"feldname": "TR_REORG_ID", "datenelement": "/US4G/DE_TR_REORG_ID", "datentyp": "CHAR", "laenge": 10, "dezimalstellen": 0, "kurztext": "Versandzeitpunkt-Reorg-ID", "schluesselfeld": true},
+      {"feldname": "MI_RUC_KEY", "datenelement": "/BOBF/CONF_KEY", "datentyp": "RAW", "laenge": 16, "dezimalstellen": 0, "kurztext": "NodeID", "schluesselfeld": true},
+      {"feldname": "MI_ID", "datenelement": "/US4G/DE_MI_ID", "datentyp": "CHAR", "laenge": 10, "dezimalstellen": 0, "kurztext": "Parametrierungsinstanz-ID", "schluesselfeld": false},
+      {"feldname": "MI_PAR_START", "datenelement": "/US4G/DE_MI_DATEFROM", "datentyp": "DATS", "laenge": 8, "dezimalstellen": 0, "kurztext": "Beginndatum für MI-PAR-Zeitscheibe", "schluesselfeld": false},
+      {"feldname": "RUC_ID", "datenelement": "/US4G/DE_RUC_ID", "datentyp": "CHAR", "laenge": 5, "dezimalstellen": 0, "kurztext": "Tarifanwendungsfall", "schluesselfeld": false},
+      {"feldname": "PROC_DOC_NO", "datenelement": "/APE/DE_DOC_NO", "datentyp": "CHAR", "laenge": 20, "dezimalstellen": 0, "kurztext": "Dokumentennummer", "schluesselfeld": false},
+      {"feldname": "EVAL_PROFILE", "datenelement": "/US4G/DE_EVAL_PROFILE", "datentyp": "CHAR", "laenge": 50, "dezimalstellen": 0, "kurztext": "Name des von Intelligent Metering gener. Auswertungsprofils", "schluesselfeld": false},
+      {"feldname": "TR_START_DATE_OLD", "datenelement": "/US4G/DE_MI_DISTR_DATE_OLD", "datentyp": "DATS", "laenge": 8, "dezimalstellen": 0, "kurztext": "Versanddatum alt", "schluesselfeld": false},
+      {"feldname": "TR_START_TIME_OLD", "datenelement": "/US4G/DE_MI_DISTR_TIME_OLD", "datentyp": "TIMS", "laenge": 6, "dezimalstellen": 0, "kurztext": "Versandzeitpunkt alt", "schluesselfeld": false},
+      {"feldname": "TR_START_DATE_NEW", "datenelement": "/US4G/DE_MI_DISTR_DATE", "datentyp": "DATS", "laenge": 8, "dezimalstellen": 0, "kurztext": "Versanddatum", "schluesselfeld": false},
+      {"feldname": "TR_START_TIME_NEW", "datenelement": "/US4G/DE_MI_DISTR_TIME", "datentyp": "TIMS", "laenge": 6, "dezimalstellen": 0, "kurztext": "Versandzeitpunkt", "schluesselfeld": false},
+      {"feldname": "ETIMEZONE", "datenelement": "EDM_TIMEZONE", "datentyp": "CHAR", "laenge": 6, "dezimalstellen": 0, "kurztext": "Zeitzone für EDM-Objekte", "schluesselfeld": false},
+      {"feldname": "PROC_STATUS", "datenelement": "/APE/DE_PROC_STATUS", "datentyp": "CHAR", "laenge": 10, "dezimalstellen": 0, "kurztext": "Prozessstatus", "schluesselfeld": false},
+      {"feldname": "ACTION_STATUS", "datenelement": "/US4G/DE_ACTION_STATUS", "datentyp": "CHAR", "laenge": 1, "dezimalstellen": 0, "kurztext": "Aktionsstatus", "schluesselfeld": false},
+      {"feldname": "WS_STATUS", "datenelement": "/US4G/DE_WS_STATUS", "datentyp": "CHAR", "laenge": 10, "dezimalstellen": 0, "kurztext": "Status der Antwort vom Web-Service", "schluesselfeld": false},
+      {"feldname": "WS_STATUS_ICON", "datenelement": "/US4G/DE_WS_STATUS_ICON", "datentyp": "CHAR", "laenge": 4, "dezimalstellen": 0, "kurztext": "Symbol für Antwortstatus", "schluesselfeld": false}
+    ]
+  },
+  "/US4G/MI_VIEW": {
+    "beschreibung": "Sicht für Messprodukt/Messinstanz",
+    "anzahl_felder": 3,
+    "felder": [
+      {"feldname": "CLIENT", "datenelement": "MANDT", "datentyp": "CLNT", "laenge": 3, "dezimalstellen": 0, "kurztext": "Mandant", "schluesselfeld": true},
+      {"feldname": "MI_VIEW", "datenelement": "/US4G/DE_MI_VIEW", "datentyp": "NUMC", "laenge": 2, "dezimalstellen": 0, "kurztext": "Sicht Messprodukt/Parametrierungsinstanz", "schluesselfeld": true},
+      {"feldname": "FEED_IN", "datenelement": "/US4G/DE_FEED_IN", "datentyp": "CHAR", "laenge": 1, "dezimalstellen": 0, "kurztext": "Einspeisung", "schluesselfeld": false}
+    ]
+  }
+}

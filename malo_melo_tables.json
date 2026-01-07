@@ -1,0 +1,477 @@
+{
+  "extraction_date": "2026-01-06",
+  "patterns_searched": ["EMALO*", "EMELO*", "MALO*", "MELO*", "*MALO*", "*MELO*", "EUIINSTLN*", "EUITRANS*"],
+  "search_details": {
+    "view_used": "DD02V",
+    "language_filter": "D",
+    "transaction": "SE16"
+  },
+  "summary": {
+    "EMALO_pattern": "0 tables found",
+    "EMELO_pattern": "0 tables found",
+    "MALO_pattern": "0 tables found (no tables starting with MALO)",
+    "MELO_pattern": "0 tables found (no tables starting with MELO)",
+    "wildcard_MALO_pattern": "58 tables found",
+    "wildcard_MELO_pattern": "31 tables found",
+    "EUIINSTLN_pattern": "6 tables found",
+    "EUITRANS_pattern": "7 tables found"
+  },
+  "tables": [
+    {
+      "name": "/APEU/S_MCM_CLOUD_MALO_MIGR",
+      "tabclass": "INTTAB",
+      "beschreibung": "MCM Cloud MALO Migration Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/ENBI4/S_NN_ART_MALO_EXT_UI",
+      "tabclass": "INTTAB",
+      "beschreibung": "ART MALO Extended UI Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/HFQ/V_BO_MALO",
+      "tabclass": "VIEW",
+      "beschreibung": "Business Object MALO View",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/SAPAPO/MALOSA",
+      "tabclass": "TRANSP",
+      "beschreibung": "APO MALO SA Table",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/SAPAPO/RRP_MALO_EXT_STR",
+      "tabclass": "INTTAB",
+      "beschreibung": "APO RRP MALO Extended Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/SAPAPO/SH_SDP_OBJ_MALOSA_STR",
+      "tabclass": "INTTAB",
+      "beschreibung": "APO SDP Object MALOSA Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/SAPAPO/TS_MALOSA_STR",
+      "tabclass": "INTTAB",
+      "beschreibung": "APO TS MALOSA Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/UCOM/S_EUITRANS_MALO",
+      "tabclass": "INTTAB",
+      "beschreibung": "UCOM EUITRANS MALO Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/UCOM/S_EUITRANS_MALO_MELO",
+      "tabclass": "INTTAB",
+      "beschreibung": "UCOM EUITRANS MALO/MELO Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/ART_MALO",
+      "tabclass": "TRANSP",
+      "beschreibung": "IS-U S/4 ART Marktlokation Tabelle",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/CAL_MALO",
+      "tabclass": "TRANSP",
+      "beschreibung": "IS-U S/4 Calendar MALO Tabelle",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/CAL_MALOD",
+      "tabclass": "TRANSP",
+      "beschreibung": "IS-U S/4 Calendar MALO Details",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/C_MALO_ATR",
+      "tabclass": "TRANSP",
+      "beschreibung": "IS-U S/4 MALO Attribute Customizing",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/MALO_NR",
+      "tabclass": "TRANSP",
+      "beschreibung": "IS-U S/4 MALO Nummernkreis",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/SETTL_MALO",
+      "tabclass": "TRANSP",
+      "beschreibung": "IS-U S/4 Settlement MALO",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_ART_MALO_ADDITION_DATA",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 ART MALO Additional Data Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_ART_MALO_ALV",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 ART MALO ALV Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_ART_MALO_MASTER_DATA",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 ART MALO Master Data Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_ART_MALO_OPERAND_DATA",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 ART MALO Operand Data Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_ART_MALO_UI",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 ART MALO UI Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_BADI_MALO_PROFILE_REQ",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 BAdI MALO Profile Request",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_BADI_MALO_REFMOD_REQ",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 BAdI MALO RefMod Request",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_BADI_REFMOD_MALO_REQ",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 BAdI RefMod MALO Request",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_BADI_SETTL_MALO_REQ",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 BAdI Settlement MALO Request",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_CAL_MALO_DATA",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 Calendar MALO Data Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_CAL_MALO_KEY",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 Calendar MALO Key Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_CAL_MALO_NODAT_KEY",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 Calendar MALO No Date Key",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_CLF_MALO_POD",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 Classification MALO POD",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_DEREG_MALO_POD",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 Deregistration MALO POD",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_DEV_ART_MALO",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 Device ART MALO Structure",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/US4G/S_DEV_CON_CHG_MALO_MP_ID",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 Device Connection Change MALO MP ID",
+      "pattern": "*MALO*"
+    },
+    {
+      "name": "/APEU/S_MCM_CLOUD_MELO_MIGR",
+      "tabclass": "INTTAB",
+      "beschreibung": "MCM Cloud MELO Migration Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/ENBIL/S_MELO_INCL_TIMESLICE",
+      "tabclass": "INTTAB",
+      "beschreibung": "MELO Include Timeslice Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/HFQ/BO4E_MELO",
+      "tabclass": "VIEW",
+      "beschreibung": "BO4E MELO View",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/HFQ/V_COM_MELOZ",
+      "tabclass": "VIEW",
+      "beschreibung": "Communication MELO Z View",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/UCOM/S_EUITRANS_MALO_MELO",
+      "tabclass": "INTTAB",
+      "beschreibung": "UCOM EUITRANS MALO/MELO Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/UCOM/S_EUITRANS_MELO",
+      "tabclass": "INTTAB",
+      "beschreibung": "UCOM EUITRANS MELO Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/UCOM/S_EUITRANS_NELO_MELO",
+      "tabclass": "INTTAB",
+      "beschreibung": "UCOM EUITRANS NELO/MELO Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_ENERGY_MELO",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 Energy MELO Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_ENERGY_MELO_ITEM",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 Energy MELO Item Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_EUITRANS_MELO",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 EUITRANS MELO Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_GPKE_MELO_ID",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 GPKE MELO ID Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_IM_MELO_MALOS",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 IM MELO MALOs Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_MELOID",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 MELO ID Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_MELO_EXT_RANGE",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 MELO External Range Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_MELO_INT",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 MELO Internal Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_MELO_INT_RANGE",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 MELO Internal Range Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_MELO_LIST",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 MELO List Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_MELO_RESULT",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 MELO Result Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_MELO_SUP_DIRECTION",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 MELO Supply Direction Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_MOS_INTG_MALO_MELO",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 MOS Integration MALO/MELO Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_MOS_INTG_MELO",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 MOS Integration MELO Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_REL_MALO_MELO",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 Relation MALO/MELO Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "/US4G/S_UBD_MELO_DATA",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U S/4 UBD MELO Data Structure",
+      "pattern": "*MELO*"
+    },
+    {
+      "name": "EUIINSTLN",
+      "tabclass": "TRANSP",
+      "beschreibung": "IS-U Installation (POD) Haupttabelle",
+      "pattern": "EUIINSTLN*"
+    },
+    {
+      "name": "EUIINSTLN_DATA",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U Installation Data Structure",
+      "pattern": "EUIINSTLN*"
+    },
+    {
+      "name": "EUIINSTLN_DATA_PROFSEL",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U Installation Data Profile Selection",
+      "pattern": "EUIINSTLN*"
+    },
+    {
+      "name": "EUIINSTLN_KEY",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U Installation Key Structure",
+      "pattern": "EUIINSTLN*"
+    },
+    {
+      "name": "EUIINSTLN_KEY_PROFSEL",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U Installation Key Profile Selection",
+      "pattern": "EUIINSTLN*"
+    },
+    {
+      "name": "EUIINSTLN_PROFSEL",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U Installation Profile Selection",
+      "pattern": "EUIINSTLN*"
+    },
+    {
+      "name": "EUITRANS",
+      "tabclass": "TRANSP",
+      "beschreibung": "IS-U Uebertragung Haupttabelle",
+      "pattern": "EUITRANS*"
+    },
+    {
+      "name": "EUITRANS_DATA",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U Uebertragung Data Structure",
+      "pattern": "EUITRANS*"
+    },
+    {
+      "name": "EUITRANS_DATA_OP",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U Uebertragung Data Operation",
+      "pattern": "EUITRANS*"
+    },
+    {
+      "name": "EUITRANS_DATA_PROFSEL",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U Uebertragung Data Profile Selection",
+      "pattern": "EUITRANS*"
+    },
+    {
+      "name": "EUITRANS_KEY",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U Uebertragung Key Structure",
+      "pattern": "EUITRANS*"
+    },
+    {
+      "name": "EUITRANS_KEY_PROFSEL",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U Uebertragung Key Profile Selection",
+      "pattern": "EUITRANS*"
+    },
+    {
+      "name": "EUITRANS_PROFSEL",
+      "tabclass": "INTTAB",
+      "beschreibung": "IS-U Uebertragung Profile Selection",
+      "pattern": "EUITRANS*"
+    }
+  ],
+  "important_tables": {
+    "marktlokation": [
+      {
+        "name": "/US4G/ART_MALO",
+        "tabclass": "TRANSP",
+        "beschreibung": "IS-U S/4 ART Marktlokation - Haupttabelle fuer Marktlokationen"
+      },
+      {
+        "name": "/US4G/CAL_MALO",
+        "tabclass": "TRANSP",
+        "beschreibung": "IS-U S/4 Calendar MALO - Kalender fuer Marktlokationen"
+      },
+      {
+        "name": "/US4G/SETTL_MALO",
+        "tabclass": "TRANSP",
+        "beschreibung": "IS-U S/4 Settlement MALO - Abrechnungsrelevante MALO-Daten"
+      }
+    ],
+    "messlokation": [
+      {
+        "name": "/US4G/S_MELO_INT",
+        "tabclass": "INTTAB",
+        "beschreibung": "IS-U S/4 MELO Internal - Interne Messlokation-Struktur"
+      },
+      {
+        "name": "/US4G/S_REL_MALO_MELO",
+        "tabclass": "INTTAB",
+        "beschreibung": "IS-U S/4 Relation MALO/MELO - Beziehung MaLo zu MeLo"
+      }
+    ],
+    "installation_pod": [
+      {
+        "name": "EUIINSTLN",
+        "tabclass": "TRANSP",
+        "beschreibung": "IS-U Installation (POD) - Haupttabelle fuer Installationen/Points of Delivery"
+      }
+    ],
+    "uebertragung": [
+      {
+        "name": "EUITRANS",
+        "tabclass": "TRANSP",
+        "beschreibung": "IS-U Uebertragung - Haupttabelle fuer Uebertragungsnetz"
+      }
+    ]
+  },
+  "notes": [
+    "EMALO* und EMELO* Patterns lieferten keine Ergebnisse",
+    "Die meisten MaLo/MeLo-Tabellen befinden sich im /US4G/ Namensraum (S/4HANA Utilities)",
+    "TRANSP = Transparente Datenbanktabelle (persistente Daten)",
+    "INTTAB = Interne Tabellenstruktur (nur zur Laufzeit)",
+    "VIEW = Datenbankview",
+    "EUIINSTLN und EUITRANS sind klassische IS-U Tabellen",
+    "/UCOM/ Namensraum enthaelt Utility Communication Strukturen"
+  ]
+}

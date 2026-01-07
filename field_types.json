@@ -1,0 +1,623 @@
+{
+  "extraction_date": "2026-01-06",
+  "extraction_method": "SAP SE11 via browser_snapshot parsing",
+  "tables": {
+    "EVER": {
+      "_description": "IS-U Vertrag",
+      "_field_count": 133,
+      "fields": {
+        "MANDT": {
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalen": 0,
+          "langtext": "Mandant",
+          "ist_schluessel": true
+        },
+        "VERTRAG": {
+          "datenelement": "VERTRAG",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalen": 0,
+          "langtext": "Vertrag",
+          "ist_schluessel": true
+        },
+        "BUKRS": {
+          "datenelement": "BUKRS",
+          "datentyp": "CHAR",
+          "laenge": 4,
+          "dezimalen": 0,
+          "langtext": "Buchungskreis",
+          "ist_schluessel": false
+        },
+        "SPARTE": {
+          "datenelement": "SPARTE",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Sparte",
+          "ist_schluessel": false
+        },
+        "EIGENVERBR": {
+          "datenelement": "EIGENVERBR",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalen": 0,
+          "langtext": "Eigen- oder Betriebsverbrauch",
+          "ist_schluessel": false
+        },
+        "KOFIZ": {
+          "datenelement": "E_KOFIZ",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Kontenfindungsmerkmal fuer Vertraege der Versorgungsindustrie",
+          "ist_schluessel": false
+        },
+        "PORTION": {
+          "datenelement": "PORTIONABW",
+          "datentyp": "CHAR",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Abweichende Portion",
+          "ist_schluessel": false
+        },
+        "ABSLANFO": {
+          "datenelement": "ABSLANFO",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalen": 0,
+          "langtext": "Abschlagsanforderung fuer Abbucher",
+          "ist_schluessel": false
+        },
+        "ABSZYK": {
+          "datenelement": "ABSZYKV",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Uebersteuernder Abschlagszyklus auf Vertragsebene",
+          "ist_schluessel": false
+        },
+        "ABSMNANP": {
+          "datenelement": "ABSMNANP",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalen": 0,
+          "langtext": "Abschlag maschinell nicht anpassen",
+          "ist_schluessel": false
+        },
+        "GEMFAKT": {
+          "datenelement": "E_GEMFAKT",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalen": 0,
+          "langtext": "Vertraege gemeinsam fakturieren (sog. Mussvertraege)",
+          "ist_schluessel": false
+        },
+        "MANABR": {
+          "datenelement": "MANABR",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalen": 0,
+          "langtext": "Vertrag manuell abrechnen",
+          "ist_schluessel": false
+        },
+        "ABRSPERR": {
+          "datenelement": "ABRSPERR",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Abrechnungsperrgrund",
+          "ist_schluessel": false
+        },
+        "ABRFREIG": {
+          "datenelement": "ABRFREIG",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Abrechnungsfreigabegrund",
+          "ist_schluessel": false
+        },
+        "BSTATUS": {
+          "datenelement": "BEARKZ",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Bearbeitungsstatus",
+          "ist_schluessel": false
+        },
+        "KOSTL": {
+          "datenelement": "KOSTL",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalen": 0,
+          "langtext": "Kostenstelle",
+          "ist_schluessel": false
+        },
+        "VBEZ": {
+          "datenelement": "E_VBEZ",
+          "datentyp": "CHAR",
+          "laenge": 35,
+          "dezimalen": 0,
+          "langtext": "Text zum Vertrag",
+          "ist_schluessel": false
+        },
+        "VBEGINN": {
+          "datenelement": "E_VBEGINN",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Beginn des Vertrags",
+          "ist_schluessel": false
+        },
+        "EINZDAT_ALT": {
+          "datenelement": "EINZDAT_ALT",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Einzugsdatum aus Altsystem",
+          "ist_schluessel": false
+        }
+      }
+    },
+    "DFKKKO": {
+      "_description": "Kopfdaten zum Kontokorrentbeleg (FI-CA)",
+      "_field_count": 66,
+      "fields": {
+        "MANDT": {
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalen": 0,
+          "langtext": "Mandant",
+          "ist_schluessel": true
+        },
+        "OPBEL": {
+          "datenelement": "OPBEL_KK",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalen": 0,
+          "langtext": "Nummer eines Belegs des Vertragskontokorrents",
+          "ist_schluessel": true
+        },
+        "FIKEY": {
+          "datenelement": "FIKEY_KK",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalen": 0,
+          "langtext": "Abstimmschluessel fuer Hauptbuchhaltung",
+          "ist_schluessel": false
+        },
+        "APPLK": {
+          "datenelement": "APPLK_KK",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalen": 0,
+          "langtext": "Anwendungsbereich",
+          "ist_schluessel": false
+        },
+        "BLART": {
+          "datenelement": "BLART_KK",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Belegart",
+          "ist_schluessel": false
+        },
+        "HERKF": {
+          "datenelement": "HERKF_KK",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Herkunftsschluessel des Belegs",
+          "ist_schluessel": false
+        },
+        "ERNAM": {
+          "datenelement": "ERNAM",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalen": 0,
+          "langtext": "Name des Sachbearbeiters, der das Objekt hinzugefuegt hat",
+          "ist_schluessel": false
+        },
+        "CPUDT": {
+          "datenelement": "CPUDT",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Tag der Erfassung des Buchhaltungsbelegs",
+          "ist_schluessel": false
+        },
+        "CPUTM": {
+          "datenelement": "CPUTM",
+          "datentyp": "TIMS",
+          "laenge": 6,
+          "dezimalen": 0,
+          "langtext": "Uhrzeit der Erfassung",
+          "ist_schluessel": false
+        },
+        "WAERS": {
+          "datenelement": "BLWAE_KK",
+          "datentyp": "CUKY",
+          "laenge": 5,
+          "dezimalen": 0,
+          "langtext": "Transaktionswaehrung",
+          "ist_schluessel": false
+        },
+        "BLDAT": {
+          "datenelement": "BLDAT",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Belegdatum im Beleg",
+          "ist_schluessel": false
+        },
+        "BUDAT": {
+          "datenelement": "BUDAT_KK",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Buchungsdatum im Beleg",
+          "ist_schluessel": false
+        },
+        "WWERT": {
+          "datenelement": "WWERT_D",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Umrechnungsdatum",
+          "ist_schluessel": false
+        },
+        "XBLNR": {
+          "datenelement": "XBLNR_KK",
+          "datentyp": "CHAR",
+          "laenge": 16,
+          "dezimalen": 0,
+          "langtext": "Referenzbelegnummer",
+          "ist_schluessel": false
+        },
+        "RLGRD": {
+          "datenelement": "RLGRD_KK",
+          "datentyp": "CHAR",
+          "laenge": 3,
+          "dezimalen": 0,
+          "langtext": "Ruecklaufergrund",
+          "ist_schluessel": false
+        },
+        "ABGRD": {
+          "datenelement": "BUGRD_KK",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Buchungsgrund (fuer Ausbuchungen und Umbuchungen)",
+          "ist_schluessel": false
+        },
+        "XEIBH": {
+          "datenelement": "XEIBH_KK",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalen": 0,
+          "langtext": "Im Hauptbuch separaten Beleg erstellen",
+          "ist_schluessel": false
+        },
+        "XBWER": {
+          "datenelement": "XBWER_KK",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalen": 0,
+          "langtext": "Beleg aus Fremdwaehrungsbewertung oder Umgliederung",
+          "ist_schluessel": false
+        },
+        "AWTYP": {
+          "datenelement": "AWTYP",
+          "datentyp": "CHAR",
+          "laenge": 5,
+          "dezimalen": 0,
+          "langtext": "Referenzvorgang",
+          "ist_schluessel": false
+        }
+      }
+    },
+    "ERCH": {
+      "_description": "Rechnungsbelegdaten (IS-U Billing)",
+      "_field_count": 112,
+      "fields": {
+        "MANDT": {
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalen": 0,
+          "langtext": "Mandant",
+          "ist_schluessel": true
+        },
+        "BELNR": {
+          "datenelement": "E_BELNR",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalen": 0,
+          "langtext": "Nummer eines Abrechnungsbelegs",
+          "ist_schluessel": true
+        },
+        "BUKRS": {
+          "datenelement": "BUKRS",
+          "datentyp": "CHAR",
+          "laenge": 4,
+          "dezimalen": 0,
+          "langtext": "Buchungskreis",
+          "ist_schluessel": false
+        },
+        "SPARTE": {
+          "datenelement": "SPARTE",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Sparte",
+          "ist_schluessel": false
+        },
+        "GPARTNER": {
+          "datenelement": "BU_PARTNER",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalen": 0,
+          "langtext": "Geschaeftspartnernummer",
+          "ist_schluessel": false
+        },
+        "VKONT": {
+          "datenelement": "VKONT_KK",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalen": 0,
+          "langtext": "Vertragskontonummer",
+          "ist_schluessel": false
+        },
+        "VERTRAG": {
+          "datenelement": "VERTRAG",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalen": 0,
+          "langtext": "Vertrag",
+          "ist_schluessel": false
+        },
+        "BEGABRPE": {
+          "datenelement": "BEGABRPE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Beginn des Abrechnungszeitraums",
+          "ist_schluessel": false
+        },
+        "ENDABRPE": {
+          "datenelement": "ENDABRPE",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Ende des Abrechnungszeitraums",
+          "ist_schluessel": false
+        },
+        "ABRDATS": {
+          "datenelement": "ABRDATS",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Geplantes Abrechnungsdatum",
+          "ist_schluessel": false
+        },
+        "ADATSOLL": {
+          "datenelement": "ADATSOLL",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Geplantes Ablesedatum",
+          "ist_schluessel": false
+        },
+        "PTERMTDAT": {
+          "datenelement": "PTERMTDAT",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Ende der Abrechnungsperiode aus dem Terminsatz der Portion",
+          "ist_schluessel": false
+        },
+        "BELEGDAT": {
+          "datenelement": "BELEGDAT",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Erstellungsdatum des Rechnungsbelegs",
+          "ist_schluessel": false
+        },
+        "ABWVK": {
+          "datenelement": "ABWVK_KK",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalen": 0,
+          "langtext": "Abweichendes Vertragskonto fuer Sammelrechnungen",
+          "ist_schluessel": false
+        },
+        "BELNRALT": {
+          "datenelement": "BELNRALT",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalen": 0,
+          "langtext": "Belegnummer des vorhergehenden Belegs",
+          "ist_schluessel": false
+        },
+        "STORNODAT": {
+          "datenelement": "STORNODAT",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Stornodatum",
+          "ist_schluessel": false
+        },
+        "ABRVORG": {
+          "datenelement": "ABRVORG",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Abrechnungsvorgang",
+          "ist_schluessel": false
+        },
+        "HVORG": {
+          "datenelement": "HVORG_KK",
+          "datentyp": "CHAR",
+          "laenge": 4,
+          "dezimalen": 0,
+          "langtext": "Hauptvorgang zur Belegposition",
+          "ist_schluessel": false
+        },
+        "KOFIZ": {
+          "datenelement": "E_KOFIZ",
+          "datentyp": "CHAR",
+          "laenge": 2,
+          "dezimalen": 0,
+          "langtext": "Kontenfindungsmerkmal fuer Vertraege der Versorgungsindustrie",
+          "ist_schluessel": false
+        }
+      }
+    },
+    "EVBS": {
+      "_description": "Verbrauchsstelle (IS-U Premise)",
+      "_field_count": 27,
+      "fields": {
+        "MANDT": {
+          "datenelement": "MANDT",
+          "datentyp": "CLNT",
+          "laenge": 3,
+          "dezimalen": 0,
+          "langtext": "Mandant",
+          "ist_schluessel": true
+        },
+        "VSTELLE": {
+          "datenelement": "VSTELLE",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalen": 0,
+          "langtext": "Verbrauchsstelle",
+          "ist_schluessel": true
+        },
+        "HAUS": {
+          "datenelement": "HAUS",
+          "datentyp": "CHAR",
+          "laenge": 30,
+          "dezimalen": 0,
+          "langtext": "Anschlussobjekt",
+          "ist_schluessel": false
+        },
+        "STR_ERG2": {
+          "datenelement": "AD_STRSPP2",
+          "datentyp": "CHAR",
+          "laenge": 40,
+          "dezimalen": 0,
+          "langtext": "Strasse 3",
+          "ist_schluessel": false
+        },
+        "HAUS_NUM2": {
+          "datenelement": "AD_HSNM2",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalen": 0,
+          "langtext": "Ergaenzung zur Hausnummer",
+          "ist_schluessel": false
+        },
+        "TXTLANGU": {
+          "datenelement": "SPRAS",
+          "datentyp": "LANG",
+          "laenge": 1,
+          "dezimalen": 0,
+          "langtext": "Sprachenschluessel",
+          "ist_schluessel": false
+        },
+        "LGZUSATZ": {
+          "datenelement": "LGZUSATZ",
+          "datentyp": "CHAR",
+          "laenge": 40,
+          "dezimalen": 0,
+          "langtext": "Zusaetzliche Information zur Lage",
+          "ist_schluessel": false
+        },
+        "VBSART": {
+          "datenelement": "VBSART",
+          "datentyp": "CHAR",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Verbrauchsstellenart",
+          "ist_schluessel": false
+        },
+        "EIGENT": {
+          "datenelement": "E_GPARTNER",
+          "datentyp": "CHAR",
+          "laenge": 10,
+          "dezimalen": 0,
+          "langtext": "Eigentuemer",
+          "ist_schluessel": false
+        },
+        "OBJNR": {
+          "datenelement": "J_OBJNR",
+          "datentyp": "CHAR",
+          "laenge": 22,
+          "dezimalen": 0,
+          "langtext": "Objektnummer",
+          "ist_schluessel": false
+        },
+        "TPLNUMMER": {
+          "datenelement": "TPLNUMMER",
+          "datentyp": "CHAR",
+          "laenge": 30,
+          "dezimalen": 0,
+          "langtext": "Nummer des Technischen Platzes",
+          "ist_schluessel": false
+        },
+        "ERDAT": {
+          "datenelement": "ERDAT",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Datum, an dem der Satz hinzugefuegt wurde",
+          "ist_schluessel": false
+        },
+        "ERNAM": {
+          "datenelement": "ERNAM",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalen": 0,
+          "langtext": "Name des Sachbearbeiters, der das Objekt hinzugefuegt hat",
+          "ist_schluessel": false
+        },
+        "AEDAT": {
+          "datenelement": "AEDAT",
+          "datentyp": "DATS",
+          "laenge": 8,
+          "dezimalen": 0,
+          "langtext": "Datum der letzten Aenderung",
+          "ist_schluessel": false
+        },
+        "AENAM": {
+          "datenelement": "AENAM",
+          "datentyp": "CHAR",
+          "laenge": 12,
+          "dezimalen": 0,
+          "langtext": "Name des Sachbearbeiters, der das Objekt geaendert hat",
+          "ist_schluessel": false
+        },
+        "BEGRU": {
+          "datenelement": "BEGRU",
+          "datentyp": "CHAR",
+          "laenge": 4,
+          "dezimalen": 0,
+          "langtext": "Berechtigungsgruppe",
+          "ist_schluessel": false
+        },
+        "LOEVM": {
+          "datenelement": "LOEVM",
+          "datentyp": "CHAR",
+          "laenge": 1,
+          "dezimalen": 0,
+          "langtext": "Loeschkennzeichen",
+          "ist_schluessel": false
+        }
+      }
+    }
+  },
+  "_note": "Extrahiert via SAP SE11 Transaktion. Virtual Scrolling in SAP WebGUI limitiert die sichtbaren Felder pro Snapshot auf ca. 20. Vollstaendige Tabellen-Feldlisten koennen durch mehrfaches Scrollen oder direkt via DDIC APIs extrahiert werden."
+}

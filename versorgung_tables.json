@@ -1,0 +1,190 @@
+{
+  "extraction_date": "2026-01-06",
+  "sap_system": "S4U (100)",
+  "user": "KLEINK",
+  "search_method": "SE16N mit DD02V, Sprache = DE",
+  "summary": {
+    "total_patterns_searched": 15,
+    "patterns_with_results": 2,
+    "total_tables_found": 24
+  },
+  "versorgung": {
+    "versorgungsszenarien": {
+      "pattern_searched": ["EVERS*", "EVSSL*", "EVSZEN*"],
+      "count": 3,
+      "tables": [
+        {
+          "name": "EVERSREASON",
+          "description": "Grund zur Erstellung einer Profilversion",
+          "type": "TRANSP"
+        },
+        {
+          "name": "EVERSREASONT",
+          "description": "Grund zur Erstellung einer Profilversion (Text)",
+          "type": "TRANSP"
+        },
+        {
+          "name": "EVERSW",
+          "description": "Uebergabestruktur Vertragswechsel",
+          "type": "INTTAB"
+        }
+      ]
+    },
+    "tarifierung": {
+      "pattern_searched": ["ETARIF*", "EPREIS*", "ETTA*", "ETRF*"],
+      "count": 0,
+      "tables": [],
+      "note": "Keine Tabellen mit diesen Patterns im System gefunden"
+    },
+    "abrechnung_erweitert": {
+      "pattern_searched": ["DBERCH*", "ETRG*", "ERCH*"],
+      "count": 21,
+      "tables": [
+        {
+          "name": "ERCH",
+          "description": "Rechnungsbelegdaten",
+          "type": "TRANSP"
+        },
+        {
+          "name": "ERCHARC",
+          "description": "Index fuer archivierbare Abrechnungsbelege",
+          "type": "TRANSP"
+        },
+        {
+          "name": "ERCHC",
+          "description": "Fakturierungs-/Stornierungshistorie ERCH",
+          "type": "TRANSP"
+        },
+        {
+          "name": "ERCHC_DISP",
+          "description": "Struktur fuer Quellbelege in der Druckbeleganzeige",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHC_DISP_SEL",
+          "description": "ERCHC Anzeigestruktur fuer ALV Dialoge",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHC_SHORT",
+          "description": "Fakturierungs-/Stornierungshistorie ERCH - Extraktdaten",
+          "type": "TRANSP"
+        },
+        {
+          "name": "ERCHC_STABLE",
+          "description": "Fakturierungs-/Stornierungshistorie",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHE",
+          "description": "Daten der abgerechneten Ereignisse",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHE_I1",
+          "description": "Unterstruktur: Die Ereignisse Daten von TOU Ausnahmeabr.",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHE_M18",
+          "description": "Daten der abgerechneten Ereignisse",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHE_STABLE",
+          "description": "Daten der abgerechneten Ereignisse",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHH",
+          "description": "Hilfsfelder Abrechnungsbeleg",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHO",
+          "description": "Aussteuerungstabelle fuer Abrechnung",
+          "type": "TRANSP"
+        },
+        {
+          "name": "ERCHOD",
+          "description": "Dynprofelder zum Detailanzeige Aussteuerung Abrechnung",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHO_STABLE",
+          "description": "Aussteuerungsstruktur fuer die Abrechnung",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHP",
+          "description": "Analysezeitraeume der dynamischen Periodensteuerung",
+          "type": "TRANSP"
+        },
+        {
+          "name": "ERCHP_STABLE",
+          "description": "Analyseperioden fuer dynamische Periodensteuerung",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHR",
+          "description": "Rabatt fuer Rechnungszeile",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHR_I",
+          "description": "Rabatt fuer Rechnungszeile",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHR_STABLE",
+          "description": "Rabatt fuer Rechnungszeile",
+          "type": "INTTAB"
+        },
+        {
+          "name": "ERCHT",
+          "description": "Texte zu einer Abrechnungszeile",
+          "type": "INTTAB"
+        }
+      ]
+    },
+    "geraete": {
+      "pattern_searched": ["EGER*", "EZWG*", "ETDZ*"],
+      "count": 0,
+      "tables": [],
+      "note": "Keine Tabellen mit diesen Patterns im System gefunden"
+    },
+    "abrechnungseinheiten": {
+      "pattern_searched": ["EABE*", "EASTL*"],
+      "count": 0,
+      "tables": [],
+      "note": "Keine Tabellen mit diesen Patterns im System gefunden"
+    }
+  },
+  "additional_patterns_searched": {
+    "no_results": [
+      "EVSSL*",
+      "EVSZEN*",
+      "ETARIF*",
+      "EPREIS*",
+      "ETTA*",
+      "ETRF*",
+      "DBERCH*",
+      "ETRG*",
+      "EGER*",
+      "EZWG*",
+      "ETDZ*",
+      "EABE*",
+      "EASTL*",
+      "ISU*",
+      "EANLAGE*",
+      "EGPL*"
+    ]
+  },
+  "notes": [
+    "Das System ist ein S/4HANA Utilities System (S4U)",
+    "Viele klassische IS-U Tabellennamen wurden nicht gefunden",
+    "Die gefundenen ERCH* Tabellen sind zentrale Abrechnungsbelege",
+    "EVERS* Tabellen beziehen sich auf Profilversionen und Vertragswechsel",
+    "Weitere IS-U spezifische Tabellen koennten andere Praefix-Patterns haben"
+  ]
+}
