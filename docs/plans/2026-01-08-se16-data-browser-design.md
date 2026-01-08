@@ -7,25 +7,34 @@ Build an MCP tool for querying SAP table data via SE16N transaction, returning s
 ## Findings from Exploration
 
 - **ARIA snapshots work for small tables** (tested T000 with 6 rows - all captured)
-- **Lazy loading limits visible rows to ~14-15** (tested TSTC with 500 rows - only 14 visible)
-- **PageDown/Ctrl+End don't change visible rows in snapshot** - lazy loading is server-side rendering
-- **Clipboard export (Ctrl+A/C) doesn't work** - Ctrl+A only selects first row
+- **Each snapshot shows ~13 visible rows** due to lazy loading
+- **PageDown DOES work for pagination** when grid is focused first
+- **Pagination is gapless** - verified by comparing SAP's "Number of Hits" to collected rows (50/50 match)
+- **Clipboard export doesn't work** - Ctrl+A only selects first row
 - **File export doesn't work** in user's environment (confirmed by user)
 
-## Design Decision
+## Design Decision: Pagination-Based Collection
 
-Use **Max Hits Limit + Warning** approach:
+Use **iterative pagination** to collect all rows:
 
-1. Set `Max. Number of Hits` field before executing query
-2. Execute query (F8)
-3. Check `Number of Hits` textbox for actual count
-4. If count equals max hits, include warning that results may be truncated
-5. Parse visible rows from ARIA snapshot
+1. Navigate to SE16N, set table name and optional filters
+2. Set `Max. Number of Hits` to limit results
+3. Execute query (F8)
+4. **Focus the grid** (click on `[role='grid']` selector)
+5. Loop: snapshot → parse rows → PageDown → wait 1.5s → repeat
+6. Stop when: collected rows == "Number of Hits" OR no new rows found
+7. Return all collected rows
+
+**Verified behavior:**
+- ~13 rows visible per page
+- PageDown scrolls to next set of rows
+- Pages are contiguous (e.g., page ends at row 22, next page starts at row 23)
+- **100% data integrity**: SAP says 50 rows, we collect exactly 50 rows
 
 This approach:
-- Works reliably for common use cases (LLM needs representative sample, not millions of rows)
-- Simple implementation similar to SE11 parsing
-- Clear feedback to user about truncation
+- Can collect 100+ rows reliably (tested)
+- No data loss between pages (verified)
+- Each page takes ~2-3 seconds (acceptable for reasonable limits)
 
 ## Tool Signature
 
@@ -131,6 +140,18 @@ Complex filters (wildcards, multiple values) deferred to future enhancement.
 
 ## Limitations
 
-- Maximum ~14-15 rows visible in single snapshot (lazy loading)
+- ~13 rows per page, requires pagination for larger result sets
+- Each page adds ~2-3 seconds to collection time
+- Practical limit ~500 rows (38 pages × 2s = ~76 seconds)
 - Setting max_hits > 500 may trigger SAP warnings
 - Filter syntax limited to simple equality and ranges
+
+## Performance Estimates
+
+| Rows | Pages | Time |
+|------|-------|------|
+| 13   | 1     | ~3s  |
+| 50   | 4     | ~10s |
+| 100  | 8     | ~20s |
+| 200  | 16    | ~40s |
+| 500  | 39    | ~90s |
