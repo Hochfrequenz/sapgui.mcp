@@ -7,7 +7,7 @@ returning structured row data with automatic pagination for large result sets.
 
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -32,8 +32,8 @@ DEFAULT_MAX_HITS = 100
 # Rows per page (approximate, based on ALV grid lazy loading)
 ROWS_PER_PAGE = 13
 
-# Wait time between pages (seconds)
-PAGE_WAIT_TIME = 1.0
+# Wait time between pages
+PAGE_WAIT_TIME = timedelta(seconds=1)
 
 # Maximum pages to traverse (safety limit)
 MAX_PAGES = 500
@@ -141,7 +141,7 @@ async def _collect_rows_with_pagination(
             if stuck_count >= 3:
                 logger.warning("SE16: No rows found for 3 consecutive pages, stopping")
                 break
-            await page.wait_for_timeout(int(PAGE_WAIT_TIME * 2000))
+            await page.wait_for_timeout(int(PAGE_WAIT_TIME.total_seconds() * 2000))
             continue
 
         stuck_count = 0
@@ -188,7 +188,7 @@ async def _collect_rows_with_pagination(
 
         # PageDown to next page
         await sap_keyboard_impl("PageDown")
-        await page.wait_for_timeout(int(PAGE_WAIT_TIME * 1000))
+        await page.wait_for_timeout(int(PAGE_WAIT_TIME.total_seconds() * 1000))
         page_num += 1
 
     return all_rows

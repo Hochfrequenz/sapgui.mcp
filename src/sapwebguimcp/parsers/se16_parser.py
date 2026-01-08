@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 # Match "Number of Hits" field - handles German locale (e.g., "5.000" = 5000)
-_HIT_COUNT_PATTERN = re.compile(r'textbox "Number of Hits": "([0-9.]+)"')
+_HIT_COUNT_PATTERN = re.compile(r'textbox "Number of Hits": "(?P<count>[0-9.]+)"')
 
 # Match data rows - handles BOTH formats:
 # - row "To select a row..."  (no colons in row text)
@@ -28,17 +28,21 @@ _HIT_COUNT_PATTERN = re.compile(r'textbox "Number of Hits": "([0-9.]+)"')
 _ROW_START_PATTERN = re.compile(r"- '?row \"To select a row")
 
 # Extract gridcell values - matches both "gridcell "value"" and "gridcell:"
-_GRIDCELL_WITH_VALUE_PATTERN = re.compile(r'gridcell "([^"]*)"')
+_GRIDCELL_WITH_VALUE_PATTERN = re.compile(r'gridcell "(?P<value>[^"]*)"')
 _GRIDCELL_EMPTY_PATTERN = re.compile(r"^\s*- gridcell:\s*$")
 
 # Match column headers
-_COLUMNHEADER_PATTERN = re.compile(r'columnheader "([^"]+)"')
+_COLUMNHEADER_PATTERN = re.compile(r'columnheader "(?P<name>[^"]+)"')
 
 # Match header row (contains columnheader elements) - flexible multiline matching
 _HEADER_ROW_PATTERN = re.compile(
     r'- row "[^"]*":\s*\n(?:\s*- columnheader "[^"]+"[^\n]*\n?)+',
     re.MULTILINE,
 )
+
+# Type coercion patterns
+_INTEGER_PATTERN = re.compile(r"^-?\d+$")
+_FLOAT_PATTERN = re.compile(r"^-?\d+\.\d+$")
 
 
 # =============================================================================
@@ -81,14 +85,14 @@ def _coerce_value(value: str) -> Any:
         return value
 
     # Try integer first (more common in SAP data)
-    if re.match(r"^-?\d+$", value):
+    if _INTEGER_PATTERN.match(value):
         try:
             return int(value)
         except ValueError:
             pass
 
     # Try float (with decimal point)
-    if re.match(r"^-?\d+\.\d+$", value):
+    if _FLOAT_PATTERN.match(value):
         try:
             return float(value)
         except ValueError:
@@ -120,9 +124,8 @@ def parse_se16_hit_count(snapshot: str) -> int:
     """
     match = _HIT_COUNT_PATTERN.search(snapshot)
     if match:
-        raw_value = match.group(1)
         # Remove dots (German thousands separator) and convert to int
-        return int(raw_value.replace(".", ""))
+        return int(match.group("count").replace(".", ""))
     return 0
 
 
@@ -168,7 +171,7 @@ def parse_se16_columns(snapshot: str) -> list[str]:
 
     # Extract all columnheader values
     for match in _COLUMNHEADER_PATTERN.finditer(header_section):
-        col_name = match.group(1)
+        col_name = match.group("name")
         # Skip the row selection column
         if col_name != "Column for row selection":
             columns.append(col_name)
@@ -192,7 +195,7 @@ def _extract_gridcell_value(line: str) -> str | None:
     """Extract value from a gridcell line, returning None if not a gridcell."""
     match = _GRIDCELL_WITH_VALUE_PATTERN.search(line)
     if match:
-        return match.group(1)
+        return match.group("value")
     if _GRIDCELL_EMPTY_PATTERN.match(line):
         return ""
     return None

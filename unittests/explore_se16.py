@@ -42,10 +42,7 @@ async def test_explore_se16n_small_table(sap_mcp_client: ClientSession) -> None:
     print(f"\nSaved initial snapshot ({len(snapshot)} chars)")
 
     # Fill table name T000
-    result = await sap_mcp_client.call_tool(
-        "sap_set_field",
-        {"label": "Table", "value": "T000"}
-    )
+    result = await sap_mcp_client.call_tool("sap_set_field", {"label": "Table", "value": "T000"})
     text = _get_content_text(result.content[0])
     print(f"\nSet field result: {text[:200]}")
 
@@ -85,16 +82,10 @@ async def test_explore_se16n_larger_table(sap_mcp_client: ClientSession) -> None
             print(line.encode("ascii", "replace").decode("ascii"))
 
     # Fill table name TSTC
-    result = await sap_mcp_client.call_tool(
-        "sap_set_field",
-        {"label": "Table", "value": "TSTC"}
-    )
+    result = await sap_mcp_client.call_tool("sap_set_field", {"label": "Table", "value": "TSTC"})
 
     # Try to set max rows if field exists
-    result = await sap_mcp_client.call_tool(
-        "sap_set_field",
-        {"label": "Maximum No. of Hits", "value": "100"}
-    )
+    result = await sap_mcp_client.call_tool("sap_set_field", {"label": "Maximum No. of Hits", "value": "100"})
     text = _get_content_text(result.content[0])
     print(f"\nSet max hits result: {text[:200]}")
 
@@ -207,7 +198,13 @@ async def test_explore_se16n_export_button(sap_mcp_client: ClientSession) -> Non
     # Look for menu items
     print("\n=== Export menu options ===")
     for line in snapshot.split("\n"):
-        if "menuitem" in line.lower() or "menu" in line.lower() or "spreadsheet" in line.lower() or "clipboard" in line.lower() or "local" in line.lower():
+        if (
+            "menuitem" in line.lower()
+            or "menu" in line.lower()
+            or "spreadsheet" in line.lower()
+            or "clipboard" in line.lower()
+            or "local" in line.lower()
+        ):
             print(line.encode("ascii", "replace").decode("ascii"))
 
 
@@ -398,7 +395,8 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
     try:
         result = await sap_mcp_client.call_tool(
             "browser_evaluate",
-            {"script": """(() => {
+            {
+                "script": """(() => {
                 const grid = document.querySelector('[role="grid"]');
                 if (grid) {
                     grid.scrollTop = 5000;
@@ -411,7 +409,8 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
                 }
                 window.scrollBy(0, 2000);
                 return 'scrolled window';
-            })()"""}
+            })()"""
+            },
         )
         text = _get_content_text(result.content[0])
         print(f"JS scroll result: {text[:200]}")
@@ -469,7 +468,7 @@ async def test_explore_se16n_collect_100_rows(sap_mcp_client: ClientSession) -> 
         # Pattern to match gridcells with data
         cell_pattern = re.compile(r'gridcell "([^"]*)"')
 
-        lines = snapshot.split('\n')
+        lines = snapshot.split("\n")
         in_data_row = False
         current_row_cells = []
 
@@ -484,7 +483,7 @@ async def test_explore_se16n_collect_100_rows(sap_mcp_client: ClientSession) -> 
                 match = cell_pattern.search(line)
                 if match:
                     current_row_cells.append(match.group(1))
-                elif '- rowgroup' in line or '- menu:' in line:
+                elif "- rowgroup" in line or "- menu:" in line:
                     # End of grid data
                     if current_row_cells and len(current_row_cells) > 1:
                         rows.append(current_row_cells[1:])
@@ -580,14 +579,8 @@ async def test_explore_se16n_collect_100_rows(sap_mcp_client: ClientSession) -> 
     assert len(all_rows) >= 50, f"Expected at least 50 rows, got {len(all_rows)}"
 
     # Save results
-    result_data = {
-        "total_rows": len(all_rows),
-        "pages_traversed": page_num + 1,
-        "sample_rows": all_rows[:20]
-    }
-    (SNAPSHOTS_DIR / "se16n_collected_rows.json").write_text(
-        json.dumps(result_data, indent=2), encoding="utf-8"
-    )
+    result_data = {"total_rows": len(all_rows), "pages_traversed": page_num + 1, "sample_rows": all_rows[:20]}
+    (SNAPSHOTS_DIR / "se16n_collected_rows.json").write_text(json.dumps(result_data, indent=2), encoding="utf-8")
     print(f"\nSaved results to se16n_collected_rows.json")
 
 
@@ -618,7 +611,7 @@ async def test_explore_se16n_verify_no_gaps(sap_mcp_client: ClientSession) -> No
         rows = []
         row_pattern = re.compile(r'- row "To select a row[^"]*"')
         cell_pattern = re.compile(r'gridcell "([^"]*)"')
-        lines = snapshot.split('\n')
+        lines = snapshot.split("\n")
         in_data_row = False
         current_row_cells = []
 
@@ -632,7 +625,7 @@ async def test_explore_se16n_verify_no_gaps(sap_mcp_client: ClientSession) -> No
                 match = cell_pattern.search(line)
                 if match:
                     current_row_cells.append(match.group(1))
-                elif '- rowgroup' in line or '- menu:' in line:
+                elif "- rowgroup" in line or "- menu:" in line:
                     if current_row_cells and len(current_row_cells) > 1:
                         rows.append(current_row_cells[1:])
                     in_data_row = False
@@ -753,7 +746,7 @@ async def test_explore_se16n_collect_all_with_limit(sap_mcp_client: ClientSessio
         rows = []
         row_pattern = re.compile(r'- row "To select a row[^"]*"')
         cell_pattern = re.compile(r'gridcell "([^"]*)"')
-        lines = snapshot.split('\n')
+        lines = snapshot.split("\n")
         in_data_row = False
         current_row_cells = []
 
@@ -767,7 +760,7 @@ async def test_explore_se16n_collect_all_with_limit(sap_mcp_client: ClientSessio
                 match = cell_pattern.search(line)
                 if match:
                     current_row_cells.append(match.group(1))
-                elif '- rowgroup' in line or '- menu:' in line:
+                elif "- rowgroup" in line or "- menu:" in line:
                     if current_row_cells and len(current_row_cells) > 1:
                         rows.append(current_row_cells[1:])
                     in_data_row = False
@@ -843,3 +836,207 @@ async def test_explore_se16n_collect_all_with_limit(sap_mcp_client: ClientSessio
     # This is the key assertion - we should have collected ALL rows
     assert len(all_rows) == total_hits, f"Mismatch! SAP says {total_hits}, we collected {len(all_rows)}"
     print(f"SUCCESS: Collected exactly {total_hits} rows - no gaps!")
+
+
+@pytest.mark.anyio
+async def test_explore_se16n_stress_test_5000_rows(sap_mcp_client: ClientSession) -> None:
+    """Stress test: Try to collect up to 5000 rows to find the practical limit."""
+    import json
+    import re
+    import time
+
+    # Login
+    result = await sap_mcp_client.call_tool("sap_login", {})
+    assert result.content, "Login failed"
+
+    # Navigate to SE16N and query TSTC with HIGH limit
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16N"})
+    await sap_mcp_client.call_tool("sap_set_field", {"label": "Table", "value": "TSTC"})
+    # Set max hits to 5000
+    await sap_mcp_client.call_tool("sap_set_field", {"label": "Max. Number of Hits", "value": "5000"})
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await asyncio.sleep(5)  # Longer wait for large query
+
+    def parse_snapshot(raw: str) -> str:
+        try:
+            data = json.loads(raw)
+            return data.get("snapshot", raw)
+        except (json.JSONDecodeError, TypeError):
+            return raw
+
+    def extract_hit_count(snapshot: str) -> int:
+        # Handle German locale: "5.000" means 5000 (dot as thousands separator)
+        match = re.search(r'textbox "Number of Hits": "([0-9.]+)"', snapshot)
+        if match:
+            # Remove thousand separators and convert to int
+            return int(match.group(1).replace(".", ""))
+        return 0
+
+    def extract_row_data(snapshot: str) -> list[list[str]]:
+        rows = []
+        # Match both formats:
+        # - row "To select a row..."  (no colons in row text)
+        # - 'row "To select a row..."':  (has colons, YAML quotes the whole line)
+        row_pattern = re.compile(r"- '?row \"To select a row")
+        cell_pattern = re.compile(r'gridcell "([^"]*)"')
+        lines = snapshot.split("\n")
+        in_data_row = False
+        current_row_cells = []
+
+        for line in lines:
+            if row_pattern.search(line):
+                if current_row_cells and len(current_row_cells) > 1:
+                    rows.append(current_row_cells[1:])
+                current_row_cells = []
+                in_data_row = True
+            elif in_data_row:
+                match = cell_pattern.search(line)
+                if match:
+                    current_row_cells.append(match.group(1))
+                elif "- rowgroup" in line or "- menu:" in line:
+                    if current_row_cells and len(current_row_cells) > 1:
+                        rows.append(current_row_cells[1:])
+                    in_data_row = False
+                    current_row_cells = []
+        return rows
+
+    # Get initial snapshot to see total hits - wait for results to load
+    result = await sap_mcp_client.call_tool("browser_snapshot", {})
+    raw = _get_content_text(result.content[0])
+    snapshot = parse_snapshot(raw)
+
+    # Debug: print screen title and key fields
+    print(f"\n=== Snapshot preview (first 30 lines) ===")
+    lines = snapshot.split("\n")
+    for line in lines[:30]:
+        safe_line = line.encode("ascii", "replace").decode("ascii")
+        print(f"  {safe_line}")
+
+    # Save full snapshot for analysis
+    (SNAPSHOTS_DIR / "se16n_5000_debug.yaml").write_text(snapshot, encoding="utf-8")
+    print(f"\nSaved full snapshot to se16n_5000_debug.yaml ({len(snapshot)} chars)")
+
+    total_hits = extract_hit_count(snapshot)
+
+    # Debug: search for hit-related text
+    print(f"\n=== Searching for 'Hit' or 'Number' in snapshot ===")
+    for i, line in enumerate(lines):
+        if "Hit" in line or "Number" in line:
+            safe_line = line.encode("ascii", "replace").decode("ascii")
+            print(f"  Line {i}: {safe_line}")
+
+    print(f"\n=== SAP reports {total_hits} total hits ===")
+
+    # If we got 0, try waiting and re-reading
+    if total_hits == 0:
+        print("Hit count is 0 - waiting and re-reading...")
+        await asyncio.sleep(2)
+        result = await sap_mcp_client.call_tool("browser_snapshot", {})
+        raw = _get_content_text(result.content[0])
+        snapshot = parse_snapshot(raw)
+        total_hits = extract_hit_count(snapshot)
+        print(f"After wait: SAP reports {total_hits} total hits")
+
+    # Focus grid
+    await sap_mcp_client.call_tool("browser_click", {"selector": "[role='grid']"})
+    await asyncio.sleep(0.5)
+
+    # Collect all rows with timing
+    start_time = time.time()
+    all_keys = set()
+    all_rows = []
+    page_num = 0
+    max_pages = 500  # Allow up to 500 pages (~6500 rows)
+    prev_first_key = None
+    stuck_count = 0
+    errors = 0
+
+    print(f"\n=== Starting collection (target: {total_hits} rows) ===")
+
+    while page_num < max_pages:
+        try:
+            result = await sap_mcp_client.call_tool("browser_snapshot", {})
+            raw = _get_content_text(result.content[0])
+            snapshot = parse_snapshot(raw)
+            rows = extract_row_data(snapshot)
+        except Exception as e:
+            print(f"Error on page {page_num}: {e}")
+            errors += 1
+            if errors > 3:
+                print("Too many errors, stopping")
+                break
+            await asyncio.sleep(2)
+            continue
+
+        if not rows:
+            print(f"Page {page_num}: No rows found")
+            # Save debug snapshot when no rows found
+            (SNAPSHOTS_DIR / f"se16n_norows_page{page_num}.yaml").write_text(snapshot, encoding="utf-8")
+            print(f"  Saved debug snapshot to se16n_norows_page{page_num}.yaml")
+            # Try one more time with longer wait
+            await asyncio.sleep(2)
+            result = await sap_mcp_client.call_tool("browser_snapshot", {})
+            raw = _get_content_text(result.content[0])
+            snapshot = parse_snapshot(raw)
+            rows = extract_row_data(snapshot)
+            if not rows:
+                print(f"  Still no rows after retry")
+                break
+            else:
+                print(f"  Recovered {len(rows)} rows after retry")
+
+        first_key = rows[0][0] if rows else None
+
+        # Progress update every 10 pages
+        if page_num % 10 == 0:
+            elapsed = time.time() - start_time
+            rate = len(all_rows) / elapsed if elapsed > 0 else 0
+            print(f"Page {page_num}: {len(all_rows)}/{total_hits} rows ({rate:.1f} rows/sec)")
+
+        # Detect stuck
+        if first_key == prev_first_key:
+            stuck_count += 1
+            if stuck_count >= 3:
+                print(f"Stuck on same page after {page_num} pages")
+                break
+        else:
+            stuck_count = 0
+        prev_first_key = first_key
+
+        # Collect new rows
+        new_count = 0
+        for row in rows:
+            if row and row[0] not in all_keys:
+                all_keys.add(row[0])
+                all_rows.append(row)
+                new_count += 1
+
+        if new_count == 0:
+            print(f"No new rows on page {page_num}, stopping")
+            break
+
+        if len(all_rows) >= total_hits:
+            print(f"Collected all {total_hits} rows!")
+            break
+
+        # Navigate to next page
+        await sap_mcp_client.call_tool("sap_keyboard", {"key": "PageDown"})
+        await asyncio.sleep(1)  # Slightly faster for stress test
+        page_num += 1
+
+    end_time = time.time()
+    duration = end_time - start_time
+
+    print(f"\n=== STRESS TEST RESULTS ===")
+    print(f"SAP Number of Hits: {total_hits}")
+    print(f"Rows collected: {len(all_rows)}")
+    print(f"Pages traversed: {page_num + 1}")
+    print(f"Total time: {duration:.1f} seconds")
+    print(f"Rate: {len(all_rows) / duration:.1f} rows/second")
+    print(f"Match: {len(all_rows) == total_hits}")
+
+    if len(all_rows) != total_hits:
+        print(f"WARNING: Collected {len(all_rows)} but SAP reported {total_hits}")
+        print(f"Difference: {total_hits - len(all_rows)} rows")
+    else:
+        print(f"SUCCESS: Collected all {total_hits} rows!")
