@@ -24,6 +24,7 @@ from sapwebguimcp.tools import (
     register_intent_tools,
     register_sap_tools,
     register_se11_tools,
+    register_se16_tools,
     register_workflow_tools,
 )
 
@@ -84,6 +85,7 @@ mcp.add_middleware(LoggingMiddleware(include_payloads=True, max_payload_length=1
 # Register all tools
 register_sap_tools(mcp)
 register_se11_tools(mcp)
+register_se16_tools(mcp)
 register_browser_tools(mcp)
 register_intent_tools(mcp)
 register_feedback_tools(mcp)
