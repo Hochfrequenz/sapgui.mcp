@@ -150,7 +150,7 @@ async def test_se11_capture_table_snapshot(sap_mcp_client: ClientSession) -> Non
 
     # Capture the result screen
     await capture_html_snapshot(sap_mcp_client, "se11_t000_fields", overwrite=True)
-    yaml_content = await capture_yaml_snapshot(sap_mcp_client, "se11_t000_fields", overwrite=True)
+    await capture_yaml_snapshot(sap_mcp_client, "se11_t000_fields", overwrite=True)
 
     # YAML snapshot saved to file
     print("=" * 80)
@@ -200,7 +200,7 @@ async def test_se11_capture_structure_snapshot(sap_mcp_client: ClientSession) ->
 
     # Capture the result screen
     await capture_html_snapshot(sap_mcp_client, "se11_bapiret2_fields", overwrite=True)
-    yaml_content = await capture_yaml_snapshot(sap_mcp_client, "se11_bapiret2_fields", overwrite=True)
+    await capture_yaml_snapshot(sap_mcp_client, "se11_bapiret2_fields", overwrite=True)
 
     # YAML snapshot saved to file
     print("=" * 80)
@@ -233,7 +233,7 @@ async def test_se11_table_not_found(sap_mcp_client: ClientSession) -> None:
     assert_tool_success(result, "sap_fill_form")
 
     # Press F7 (Display)
-    result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F7"})
+    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F7"})
     # This might return an error - that's expected
 
     # Wait a moment
