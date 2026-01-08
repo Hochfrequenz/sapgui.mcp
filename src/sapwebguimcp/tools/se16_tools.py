@@ -35,8 +35,8 @@ ROWS_PER_PAGE = 13
 # Wait time between pages
 PAGE_WAIT_TIME = timedelta(seconds=1)
 
-# Maximum pages to traverse (safety limit)
-MAX_PAGES = 500
+# Maximum pages to traverse (supports SE16N's 9999 row limit at ~13 rows/page)
+MAX_PAGES = 800
 
 
 # =============================================================================
