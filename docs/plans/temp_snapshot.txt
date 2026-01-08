@@ -1,0 +1,23 @@
+- textbox "Transp.Tabelle": /US4G/ART_IND1
+- textbox "Kurzbeschreibung": Artikel-ID-Zuordnung für individuelle Vereinbarungen 1
+- grid:
+    - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. CLIENT   MANDT CLNT 3 0 0 Mandant":
+      - gridcell "CLIENT":
+        - textbox
+      - gridcell "":
+        - checkbox "" [checked] [disabled]
+    - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. DATE_FROM   /US4G/DE_FROM_DATE DATS 8 0 0 Startdatum":
+      - gridcell "DATE_FROM":
+        - textbox
+      - gridcell "":
+        - checkbox "" [checked] [disabled]
+    - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. DATE_TO /US4G/DE_TO_DATE DATS 8 0 0 Enddatum":
+      - gridcell "DATE_TO":
+        - textbox
+      - gridcell "":
+        - checkbox "" [disabled]
+    - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. GROUP_ARTICLE_NO /US4G/DE_GROUP_ARTICLE_NUMBER CHAR 35 0 0 Gruppenartikelnummer":
+      - gridcell "GROUP_ARTICLE_NO":
+        - textbox
+      - gridcell "":
+        - checkbox "" [disabled]

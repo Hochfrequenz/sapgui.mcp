@@ -98,3 +98,5 @@ src/_sapwebguimcp_version.py
 
 # Node.js (for prettier)
 node_modules/
+
+nul
