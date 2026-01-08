@@ -97,7 +97,27 @@
     "/US4G/PFLCUSTHDT",
     "/US4G/PFLCUSTITM",
     "/US4G/PFSET_HD",
-    "/US4G/PFSET_HDT"
+    "/US4G/PFSET_HDT",
+    "/US4G/PFSET_IT",
+    "/US4G/POD_ATTR",
+    "/US4G/POG_PERIOD",
+    "/US4G/PRC_REASON",
+    "/US4G/PRES_LEV",
+    "/US4G/PRES_LEV_T",
+    "/US4G/PRES_MAP",
+    "/US4G/PRES_MAPEX",
+    "/US4G/PRFDM_DV",
+    "/US4G/PRFDM_HD",
+    "/US4G/PRFDM_HDT",
+    "/US4G/PRFDM_MD",
+    "/US4G/PRFDM_PR",
+    "/US4G/PRICAT_H",
+    "/US4G/PRICE",
+    "/US4G/PRICE_GASB",
+    "/US4G/PRICLS_A_U",
+    "/US4G/PRI_CAT",
+    "/US4G/PRI_CATT",
+    "/US4G/PRI_CAT_V"
   ],
   "tables_failed": [
     "/US4G/MP_ASE_NAM"
@@ -105,5 +125,5 @@
   "transactions_completed": [],
   "transactions_failed": [],
   "current_batch": null,
-  "last_updated": "2026-01-08T01:06:46.545823"
+  "last_updated": "2026-01-08T01:32:10.045362"
 }
