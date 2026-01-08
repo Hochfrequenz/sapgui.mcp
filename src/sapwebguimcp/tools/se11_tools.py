@@ -11,7 +11,7 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.models import (
@@ -52,10 +52,10 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entr
     # Extract table/structure name
     # Format: textbox "Transp.Tabelle": T000
     # or: textbox "Struktur": BAPIRET2
-    name_match = re.search(r'textbox "(?:Transp\.Tabelle|Struktur)":\s*(\S+)', yaml_content)
+    name_match = re.search(r'textbox "(?:Transp\.Tabelle|Struktur)":\s*(?P<name>\S+)', yaml_content)
     if not name_match:
         # Try English labels
-        name_match = re.search(r'textbox "(?:Transparent Table|Structure)":\s*(\S+)', yaml_content)
+        name_match = re.search(r'textbox "(?:Transparent Table|Structure)":\s*(?P<name>\S+)', yaml_content)
 
     if not name_match:
         return SE11Error(
@@ -65,12 +65,14 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entr
             retrieved_at=now,
         )
 
-    name = name_match.group(1).strip()
+    name = name_match.group("name").strip()
 
     # Extract description
     # Format: textbox "Kurzbeschreibung": Mandanten
-    desc_match = re.search(r'textbox "(?:Kurzbeschreibung|Short Description)":\s*(.+?)(?:\n|$)', yaml_content)
-    description = desc_match.group(1).strip() if desc_match else ""
+    desc_match = re.search(
+        r'textbox "(?:Kurzbeschreibung|Short Description)":\s*(?P<description>.+?)(?:\n|$)', yaml_content
+    )
+    description = desc_match.group("description").strip() if desc_match else ""
 
     # Parse fields from the grid
     fields = _parse_se11_fields(yaml_content)
@@ -129,13 +131,13 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
         # German: "Zum Auswählen...Leertaste. FIELDNAME"
         # English: "To select a row, press the space bar. FIELDNAME"
         row_match = re.search(
-            r'row "(?:Zum Auswählen[^"]*Leertaste\.|To select a row, press the space bar\.)\s+([A-Z_0-9/]+)',
-            block
+            r'row "(?:Zum Auswählen[^"]*Leertaste\.|To select a row, press the space bar\.)\s+(?P<field_name>[A-Z_0-9/]+)',
+            block,
         )
         if not row_match:
             continue
 
-        field_name = row_match.group(1)
+        field_name = row_match.group("field_name")
 
         # Look for the key checkbox pattern - it's right after the field name gridcell
         # The structure is:
@@ -147,9 +149,9 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
         # but is in the next gridcell (not the same one)
         key_pattern = re.compile(
             r'gridcell "' + re.escape(field_name) + r'":\s*\n'  # Field name gridcell
-            r'\s*- textbox\s*\n'  # Its textbox child
-            r'\s*- gridcell[^:]*:\s*\n'  # Next gridcell (Key column)
-            r'\s*- checkbox[^\n]*\[checked\]',  # Key checkbox with [checked]
+            r"\s*- textbox\s*\n"  # Its textbox child
+            r"\s*- gridcell[^:]*:\s*\n"  # Next gridcell (Key column)
+            r"\s*- checkbox[^\n]*\[checked\]",  # Key checkbox with [checked]
         )
 
         if key_pattern.search(block):
@@ -160,12 +162,12 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
     # English: "To select a row, press the space bar. FIELDNAME ..."
     # The row text contains all field info as space-separated values after the selection text
     row_pattern = re.compile(
-        r'row "(?:Zum Auswählen[^"]*Leertaste\.|To select a row, press the space bar\.)\s+([^"]+)"',
+        r'row "(?:Zum Auswählen[^"]*Leertaste\.|To select a row, press the space bar\.)\s+(?P<row_data>[^"]+)"',
         re.MULTILINE,
     )
 
     for match in row_pattern.finditer(yaml_content):
-        row_data = match.group(1)
+        row_data = match.group("row_data")
 
         # Split by whitespace, filter out empty strings and checkbox Unicode chars
         # Checkbox chars are in Unicode Private Use Area (U+E000-U+F8FF)
@@ -183,7 +185,7 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
         datatype = None
         datatype_idx = -1
         for i, p in enumerate(parts[1:], 1):
-            if re.match(r'^[A-Z][A-Z0-9]{1,9}$', p) and not p.isdigit():
+            if re.match(r"^[A-Z][A-Z0-9]{1,9}$", p) and not p.isdigit():
                 # Could be data element or data type - data type is shorter
                 if datatype is None or len(p) < len(datatype):
                     datatype = p
@@ -200,7 +202,7 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
             decimals = decimals_raw if decimals_raw > 0 else None
             # Skip coord system (parts[datatype_idx + 3])
             # Description is everything after coord system
-            description = " ".join(parts[datatype_idx + 4:])
+            description = " ".join(parts[datatype_idx + 4 :])
         except (IndexError, ValueError):
             continue
 
@@ -427,10 +429,13 @@ def register_se11_tools(mcp: FastMCP) -> None:
                 # Check status bar for errors
                 status_bar = page.locator("#sapStatusBarAll, [id*='STATUSBAR']").first
                 status_text = await status_bar.text_content() if await status_bar.count() > 0 else ""
-                logger.debug("SE11: Status bar after F7 for %s: '%s'", name, status_text.strip() if status_text else "(empty)")
+                logger.debug(
+                    "SE11: Status bar after F7 for %s: '%s'", name, status_text.strip() if status_text else "(empty)"
+                )
 
                 if status_text and any(
-                    err in status_text.lower() for err in ["existiert nicht", "does not exist", "nicht gefunden", "not found"]
+                    err in status_text.lower()
+                    for err in ["existiert nicht", "does not exist", "nicht gefunden", "not found"]
                 ):
                     errors.append(
                         SE11Error(
@@ -456,7 +461,6 @@ def register_se11_tools(mcp: FastMCP) -> None:
                 if isinstance(parse_result, SE11Error):
                     logger.warning("SE11: Parse failed for %s: %s", name, parse_result.error)
                     # Save snapshot for debugging
-                    from pathlib import Path
                     debug_path = Path(f"se11_debug_{name}.yaml")
                     debug_path.write_text(snapshot, encoding="utf-8")
                     logger.warning("SE11: Saved debug snapshot to %s", debug_path)
@@ -533,8 +537,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
         # For large results without output_file, warn but still return
         if len(name_list) > MAX_INLINE_OBJECTS:
             logger.warning(
-                "Returning %d objects inline - consider using output_file parameter "
-                "to avoid context overflow",
+                "Returning %d objects inline - consider using output_file parameter " "to avoid context overflow",
                 len(name_list),
             )
 

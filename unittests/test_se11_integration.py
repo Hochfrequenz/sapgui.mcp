@@ -373,3 +373,60 @@ async def test_se11_lookup_mixed_results(sap_mcp_client: ClientSession) -> None:
 
     assert data["entries"][0]["name"] == "T000"
     assert data["errors"][0]["name"] == "ZZZNOTEXIST99"
+
+
+@pytest.mark.anyio
+async def test_se11_lookup_large_batch_to_file(sap_mcp_client: ClientSession, tmp_path: Path) -> None:
+    """Test sap_se11_lookup with >10 tables using output_file parameter."""
+    import json
+
+    # Login
+    result = await sap_mcp_client.call_tool("sap_login", {})
+    assert_tool_success(result, "sap_login")
+
+    # 11 ERCH* tables to trigger file output
+    tables = [
+        "ERCH",
+        "ERCHARC",
+        "ERCHC",
+        "ERCHC_DISP",
+        "ERCHC_DISP_SEL",
+        "ERCHC_SHORT",
+        "ERCHC_STABLE",
+        "ERCHE",
+        "ERCHE_I1",
+        "ERCHE_M18",
+        "ERCHE_STABLE",
+    ]
+    output_file = tmp_path / "se11_batch_result.json"
+
+    # Look up tables with output_file
+    result = await sap_mcp_client.call_tool(
+        "sap_se11_lookup",
+        {"names": tables, "object_type": "table", "output_file": str(output_file)},
+    )
+    assert result.content, "sap_se11_lookup returned no content"
+
+    text = _get_content_text(result.content[0])
+    summary = json.loads(text)
+
+    # Should return SE11FileSummary, not SE11Result
+    assert "output_file" in summary, "Expected SE11FileSummary with output_file"
+    assert summary["total_requested"] == 11
+    assert summary["successful"] + summary["failed"] == 11
+    assert summary["success"] is True, f"Batch lookup failed: {summary}"
+
+    # Verify file was created and contains full results
+    assert output_file.exists(), f"Output file not created: {output_file}"
+
+    with open(output_file, encoding="utf-8") as f:
+        full_result = json.load(f)
+
+    assert full_result["success"] is True
+    assert len(full_result["entries"]) == summary["successful"]
+    assert len(full_result["errors"]) == summary["failed"]
+
+    # Verify all requested tables are accounted for
+    found_names = {e["name"] for e in full_result["entries"]}
+    error_names = {e["name"] for e in full_result["errors"]}
+    assert found_names | error_names == set(tables)

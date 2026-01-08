@@ -156,11 +156,11 @@ class TestParseSeYamlErrors:
 
     def test_parse_yaml_without_fields_returns_error(self) -> None:
         """Test that YAML without field grid returns an error."""
-        yaml_content = '''
+        yaml_content = """
 - main "Dictionary: Tabelle anzeigen":
   - textbox "Transp.Tabelle": T000
   - textbox "Kurzbeschreibung": Test Table
-'''
+"""
         result = _parse_se11_yaml(yaml_content, "table")
 
         assert isinstance(result, SE11Error)
@@ -173,7 +173,7 @@ class TestParseSeYamlStructure:
     def test_parse_structure_placeholder(self) -> None:
         """Placeholder test for structure parsing - needs snapshot."""
         # This will be filled in when we have a structure snapshot
-        yaml_content = '''
+        yaml_content = """
 - main "Dictionary: Struktur anzeigen":
   - textbox "Struktur": BAPIRET2
   - textbox "Kurzbeschreibung": Return Parameter
@@ -201,7 +201,7 @@ class TestParseSeYamlStructure:
           - textbox
         - gridcell "Meldungstyp":
           - textbox
-'''
+"""
         result = _parse_se11_yaml(yaml_content, "structure")
 
         # For now, this may fail parsing - that's expected until we have real snapshots
