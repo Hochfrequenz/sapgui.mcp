@@ -8119,5 +8119,3020 @@
         "description": "Zuordnung v. OBIS-Knnz zu Schwachlast od. Nicht-Schwachlast"
       }
     ]
+  },
+  {
+    "tabname": "/US4G/OPR_VALUE",
+    "description": "Zuordnung Operandenwerte",
+    "extracted_at": "2026-01-08T00:41:59.026675",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "OPERAND",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "E_OPERAND",
+        "domname": "",
+        "description": "Operand"
+      },
+      {
+        "fieldname": "PRIORITY",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SEQUNCE",
+        "domname": "",
+        "description": "Reihenfolge"
+      },
+      {
+        "fieldname": "OPERAND_VALUE",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/OPERAND_VALUE",
+        "domname": "",
+        "description": "Operandenwert"
+      },
+      {
+        "fieldname": "FACTOR",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 17,
+        "decimals": 8,
+        "rollname": "USEFACTOR",
+        "domname": "",
+        "description": "Verbrauchsfaktor"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PCAT_RHH",
+    "description": "Preiskatalog-Empfangshistorienkopf",
+    "extracted_at": "2026-01-08T00:43:08.472392",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_PCAT_RH_HEAD_DATA",
+        "domname": "",
+        "description": "Preiskatalog Empfangshistorie Kopfdaten PCAT_RH_HEAD_DATA"
+      },
+      {
+        "fieldname": "SENDER",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "SERVICE_PROV_SEND",
+        "domname": "",
+        "description": "Serviceanbieter, der eine Nachricht sendet"
+      },
+      {
+        "fieldname": "RECEIVER",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "SERVICE_PROV_RECEIVE",
+        "domname": "",
+        "description": "Serviceanbieter, der eine Nachricht empfängt"
+      },
+      {
+        "fieldname": "START_DATE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "DATUM",
+        "domname": "",
+        "description": "Datum"
+      },
+      {
+        "fieldname": "START_TIME",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "UZEIT",
+        "domname": "",
+        "description": "Tageszeit"
+      },
+      {
+        "fieldname": "END_DATE",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "DATUM",
+        "domname": "",
+        "description": "Datum"
+      },
+      {
+        "fieldname": "DOCUMENT_IDENT",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DOCUMENT_IDENT",
+        "domname": "",
+        "description": "Dokument-ID"
+      },
+      {
+        "fieldname": "MSG_DATE",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "DATUM",
+        "domname": "",
+        "description": "Datum"
+      },
+      {
+        "fieldname": "MSG_TIME",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "UZEIT",
+        "domname": "",
+        "description": "Tageszeit"
+      },
+      {
+        "fieldname": "PREV_DOCUMENT_IDENT",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 70,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DOCUMENT_IDENT",
+        "domname": "",
+        "description": "Dokument-ID"
+      },
+      {
+        "fieldname": "CURRENCY",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CUKY",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "WAERS",
+        "domname": "",
+        "description": "Währungsschlüssel"
+      },
+      {
+        "fieldname": "PRICAT_TYPE",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PRICAT_TYPE",
+        "domname": "",
+        "description": "Preiskatalogart"
+      },
+      {
+        "fieldname": "PROC_UUID",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/APE/DE_APPL_DB_KEY",
+        "domname": "",
+        "description": "Schlüssel Anwendungstabellen-Datenbank"
+      },
+      {
+        "fieldname": "DIVISION_CAT",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTYP",
+        "domname": "",
+        "description": "Spartentyp"
+      },
+      {
+        "fieldname": "REVERSED",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_REVERSED",
+        "domname": "",
+        "description": "Stornokennzeichen"
+      },
+      {
+        "fieldname": "TAKEOVER_DSO_SP_EXT",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 35,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TAKEOVER_DSO_SP_EXT",
+        "domname": "",
+        "description": "Externe ID von Übernahme VNB-Serviceanbieter"
+      },
+      {
+        "fieldname": "TAKEOVER_DSO_SP_INT",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "E_EDMSETTLTRANSCO",
+        "domname": "",
+        "description": "Netzbetreiber als Serviceanbieter"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 20,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/BOFU/S_ADMIN_DATA",
+        "domname": "",
+        "description": "Verwaltungsdaten ADMIN_DATA"
+      },
+      {
+        "fieldname": "CREATED_BY",
+        "position": 21,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOFU/USER_ID_CREATED_BY",
+        "domname": "",
+        "description": "Angelegt von"
+      },
+      {
+        "fieldname": "CREATED_ON",
+        "position": 22,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/BOFU/TSTMP_CREATION_TIME",
+        "domname": "",
+        "description": "Angelegt am"
+      },
+      {
+        "fieldname": "CHANGED_BY",
+        "position": 23,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOFU/USER_ID_CHANGED_BY",
+        "domname": "",
+        "description": "Geändert von"
+      },
+      {
+        "fieldname": "CHANGED_ON",
+        "position": 24,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/BOFU/TSTMP_CHANGED_TIME",
+        "domname": "",
+        "description": "Geändert am"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PCAT_RHI",
+    "description": "Preiskatalog Empfangshistorie Positionsdaten",
+    "extracted_at": "2026-01-08T00:44:17.446557",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "DB_KEY",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": "PARENT_KEY",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "RAW",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/BOBF/CONF_KEY",
+        "domname": "",
+        "description": "NodeID"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_PCAT_RH_ITEM_DATA",
+        "domname": "",
+        "description": "Preiskatalog Empfangshistorie Positionsdaten PCAT_RH_ITEM_DATA"
+      },
+      {
+        "fieldname": "ITEM_COUNTER",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ITEM_COUNTER",
+        "domname": "",
+        "description": "Positionszähler"
+      },
+      {
+        "fieldname": "ARTICLE_NUMBER",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 35,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ARTICLE_NUMBER",
+        "domname": "",
+        "description": "Artikelnummer"
+      },
+      {
+        "fieldname": "ARTICLE_TYPE",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ARTICLE_TYPE_CODE",
+        "domname": "",
+        "description": "Artikelart-Code"
+      },
+      {
+        "fieldname": "PRICE_KEY_GROUP",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 35,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PRICE_KEY_GROUP",
+        "domname": "",
+        "description": "Preisschlüsselstamm"
+      },
+      {
+        "fieldname": "FORMAT_CODE",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_FORMAT_CODE",
+        "domname": "",
+        "description": "Formatcode"
+      },
+      {
+        "fieldname": "PRICE",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 20,
+        "decimals": 11,
+        "rollname": "/US4G/DE_PRICE_GASB",
+        "domname": "",
+        "description": "Preis"
+      },
+      {
+        "fieldname": "PRICE_UNIT",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "UNIT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "INV_PRICE_UNIT",
+        "domname": "",
+        "description": "Maßeinheit des Preises"
+      },
+      {
+        "fieldname": "PRICE_CLASS",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PRICE_CLASS",
+        "domname": "",
+        "description": "Preisklassifikation"
+      },
+      {
+        "fieldname": "PRICE_CLASS_ADD",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 17,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PRICE_CLASS_ADD",
+        "domname": "",
+        "description": "Zusätzliche Preisklassifikation"
+      },
+      {
+        "fieldname": "PRICE_CLASS_TXT",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 256,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PRICE_CLASS_TXT",
+        "domname": "",
+        "description": "Beschreibung der Preisklassifikation"
+      },
+      {
+        "fieldname": "PRICE_CLASS_TXT_ADD",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 256,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PRICE_CLASS_TXT_ADD",
+        "domname": "",
+        "description": "Beschreibung der zusätzlichen Preisklassifikation"
+      },
+      {
+        "fieldname": "ANN_VOLUME_LOW",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ANN_VOLUME_LOW",
+        "domname": "",
+        "description": "Untergrenze Jahresvolumen"
+      },
+      {
+        "fieldname": "ANN_VOLUME_HIGH",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ANN_VOLUME_HIGH",
+        "domname": "",
+        "description": "Obergrenze Jahresvolumen"
+      },
+      {
+        "fieldname": "ANN_VOLUME_UNIT",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_ANN_VOLUME_UNIT",
+        "domname": "",
+        "description": "Jahresvolumeneinheit"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/BOFU/S_ADMIN_DATA",
+        "domname": "",
+        "description": "Verwaltungsdaten ADMIN_DATA"
+      },
+      {
+        "fieldname": "CREATED_BY",
+        "position": 20,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOFU/USER_ID_CREATED_BY",
+        "domname": "",
+        "description": "Angelegt von"
+      },
+      {
+        "fieldname": "CREATED_ON",
+        "position": 21,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/BOFU/TSTMP_CREATION_TIME",
+        "domname": "",
+        "description": "Angelegt am"
+      },
+      {
+        "fieldname": "CHANGED_BY",
+        "position": 22,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "/BOFU/USER_ID_CHANGED_BY",
+        "domname": "",
+        "description": "Geändert von"
+      },
+      {
+        "fieldname": "CHANGED_ON",
+        "position": 23,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 15,
+        "decimals": 0,
+        "rollname": "/BOFU/TSTMP_CHANGED_TIME",
+        "domname": "",
+        "description": "Geändert am"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PERIOD",
+    "description": "Perioden",
+    "extracted_at": "2026-01-08T00:45:10.337245",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PERIOD",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PERIOD",
+        "domname": "",
+        "description": "Intervall-ID"
+      },
+      {
+        "fieldname": "INTSIZE",
+        "position": 3,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "INTSIZE",
+        "domname": "",
+        "description": "Intervalllänge"
+      },
+      {
+        "fieldname": "INTSIZETYPE",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_METERING_INTSIZETYPE",
+        "domname": "",
+        "description": "Typ der Intervalllänge für Messperioden"
+      },
+      {
+        "fieldname": "DEFAULT_FLAG",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PERIOD_STANDARD",
+        "domname": "",
+        "description": "Standard"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PERIODT",
+    "description": "Texte zu Perioden",
+    "extracted_at": "2026-01-08T00:46:10.205561",
+    "fields": [
+      {
+        "fieldname": "CLIENT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PERIOD",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PERIOD",
+        "domname": "",
+        "description": "Intervall-ID"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschlüssel"
+      },
+      {
+        "fieldname": "DESCR",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 60,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PERIOD_TXT",
+        "domname": "",
+        "description": "Beschreibung Intervall"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFDEF",
+    "description": "Profildefinitionsattribute",
+    "extracted_at": "2026-01-08T00:47:28.795050",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "SERVICEID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "SERVICE_PROV",
+        "domname": "",
+        "description": "Serviceanbieter"
+      },
+      {
+        "fieldname": "EXTSYNPROFID",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "E_EXTSYNPROFID",
+        "domname": "",
+        "description": "Externe synthetische Profilbezeichnung"
+      },
+      {
+        "fieldname": "VALIDITY_YM",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "/US4G/DE_VALIDITY_YM",
+        "domname": "",
+        "description": "Gültig ab (Jahr und Monat)"
+      },
+      {
+        "fieldname": "VALIDITY_YM_TO",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "/US4G/DE_VALIDITY_YM_TO",
+        "domname": "",
+        "description": "Gültig bis (Jahr und Monat)"
+      },
+      {
+        "fieldname": "TEMP_MP_CODE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TEMP_MP_CODE",
+        "domname": "",
+        "description": "Code für Temperaturmessstelle/Klimazone"
+      },
+      {
+        "fieldname": "CLIME_TMP_REF",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_KIND_MEASURE",
+        "domname": "",
+        "description": "Messart"
+      },
+      {
+        "fieldname": "TEMP_MP",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 35,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TEMP_MP",
+        "domname": "",
+        "description": "Temperaturmessstelle/Klimazone"
+      },
+      {
+        "fieldname": "CODE_LIST",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 17,
+        "decimals": 0,
+        "rollname": "/US4G/DE_CODE_LIST",
+        "domname": "",
+        "description": "Code für Codeliste"
+      },
+      {
+        "fieldname": "CODE_LIST_AGENCY",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_CODE_LIST_AGENCY",
+        "domname": "",
+        "description": "Stelle für die Codepflege"
+      },
+      {
+        "fieldname": "PROFILE_GROUP",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROFILE_GROUP",
+        "domname": "",
+        "description": "Profilgruppe (Obs. für DE)"
+      },
+      {
+        "fieldname": "PROF_CAT",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_CAT",
+        "domname": "",
+        "description": "Profiltyp (Obs. für DE)"
+      },
+      {
+        "fieldname": "PROF_PROCEDURE",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_PROCEDURE",
+        "domname": "",
+        "description": "Profilverfahren"
+      },
+      {
+        "fieldname": "NORM_FACTOR",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_NORM_FACTOR",
+        "domname": "",
+        "description": "Normierungsfaktor (Obs. für DE)"
+      },
+      {
+        "fieldname": "PROFILE_SET",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROFILE_SET",
+        "domname": "",
+        "description": "Profilschar (Obs. für DE)"
+      },
+      {
+        "fieldname": "REF_OBJECTKEY",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 32,
+        "decimals": 0,
+        "rollname": "/US4G/DE_OBJKEY",
+        "domname": "",
+        "description": "Objektschlüssel"
+      },
+      {
+        "fieldname": "OBJECTTYPE",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "SWO_OBJTYP",
+        "domname": "",
+        "description": "Objekttyp"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_CALC_DAT_DETAILS_DATA",
+        "domname": "",
+        "description": "Detaildaten zur Berechnung der Tagesmitteltemperatur CALC_DAT_DATA"
+      },
+      {
+        "fieldname": "CALC_DAY_AVG_TMP",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_CALC_DAY_AVG_TMP",
+        "domname": "",
+        "description": "Berechnung der Tagesmitteltemperatur"
+      },
+      {
+        "fieldname": "DAVTMP_PART_A",
+        "position": 20,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DAVTMP_PART_A",
+        "domname": "",
+        "description": "Tagesmitteltemperatur vom Tag Anteil A (in Prozent)"
+      },
+      {
+        "fieldname": "DAVTMP_PART_B",
+        "position": 21,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DAVTMP_PART_B",
+        "domname": "",
+        "description": "Tagesmitteltemperatur vom Tag Anteil B (in Prozent)"
+      },
+      {
+        "fieldname": "DAVTMP_PART_C",
+        "position": 22,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DAVTMP_PART_C",
+        "domname": "",
+        "description": "Tagesmitteltemperatur vom Tag Anteil C (in Prozent)"
+      },
+      {
+        "fieldname": "DAVTMP_PART_D",
+        "position": 23,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 5,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DAVTMP_PART_D",
+        "domname": "",
+        "description": "Tagesmitteltemperatur vom Tag Anteil D (in Prozent)"
+      },
+      {
+        "fieldname": "DAVTMP_LIMIT_TMP",
+        "position": 24,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DAVTMP_LIMIT_TMP",
+        "domname": "",
+        "description": "Tagesmitteltemperatur Bezugstemperatur"
+      },
+      {
+        "fieldname": "DAVTMP_LIMIT_CON",
+        "position": 25,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DAVTMP_LIMIT_CONS",
+        "domname": "",
+        "description": "Begrenzungskonstante für Tagesmitteltemperatur"
+      },
+      {
+        "fieldname": "PFDEF_COMMENT",
+        "position": 26,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 255,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PFDEF_COMMENT",
+        "domname": "",
+        "description": "Kommentar zur Profildefinition"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 27,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_ADMIN",
+        "domname": "",
+        "description": "Allgemeine Verwaltungsstruktur (Anlegen, Ändern) ADMIN"
+      },
+      {
+        "fieldname": "CR_DATE",
+        "position": 28,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ERDAT",
+        "domname": "",
+        "description": "Datum, an dem der Satz hinzugefügt wurde"
+      },
+      {
+        "fieldname": "CR_TIME",
+        "position": 29,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "ERZET",
+        "domname": "",
+        "description": "Erfassungszeit"
+      },
+      {
+        "fieldname": "CR_NAME",
+        "position": 30,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "ERNAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt hinzugefügt hat"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFDEF2ST",
+    "description": "Zuordnung von Profil und Bilanzierungsgebiet",
+    "extracted_at": "2026-01-08T00:48:34.806073",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "EXTSYNPROFID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "E_EXTSYNPROFID",
+        "domname": "",
+        "description": "Externe synthetische Profilbezeichnung"
+      },
+      {
+        "fieldname": "SERVICEID",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "SERVICE_PROV",
+        "domname": "",
+        "description": "Serviceanbieter"
+      },
+      {
+        "fieldname": "SETTLTERRITORY_E",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EQS_ST_EXT",
+        "domname": "",
+        "description": "MaBiS: Externe ID des Bilanzierungsgebiets"
+      },
+      {
+        "fieldname": "DATE_FROM",
+        "position": 5,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "E_EDMDATEFROM",
+        "domname": "",
+        "description": "Ab-Datum"
+      },
+      {
+        "fieldname": "DATE_TO",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "E_EDMDATETO",
+        "domname": "",
+        "description": "Bis-Datum"
+      },
+      {
+        "fieldname": "SETTLTERRITORY",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EQS_SETTLTERRITORY",
+        "domname": "",
+        "description": "MaBiS: Bilanzierungsgebiet"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_ADMIN",
+        "domname": "",
+        "description": "Allgemeine Verwaltungsstruktur (Anlegen, Ändern) ADMIN"
+      },
+      {
+        "fieldname": "CR_DATE",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ERDAT",
+        "domname": "",
+        "description": "Datum, an dem der Satz hinzugefügt wurde"
+      },
+      {
+        "fieldname": "CR_TIME",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "ERZET",
+        "domname": "",
+        "description": "Erfassungszeit"
+      },
+      {
+        "fieldname": "CR_NAME",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "ERNAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt hinzugefügt hat"
+      },
+      {
+        "fieldname": "CH_DATE",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "AEDAT",
+        "domname": "",
+        "description": "Datum der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_TIME",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "AEZET",
+        "domname": "",
+        "description": "Zeitpunkt der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_NAME",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "AENAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt geändert hat."
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFDEF_CHK",
+    "description": "\"Profildefinition: Prüfungen\"",
+    "extracted_at": "2026-01-08T00:49:38.527501",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PFDEF_INT_ID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PFDEF_INT_ID",
+        "domname": "",
+        "description": "Profildef.: interner Schlüssel für Profildefinition"
+      },
+      {
+        "fieldname": "DATEFROM",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PERIOD_DATEFROM",
+        "domname": "",
+        "description": "Startdatum der Periode"
+      },
+      {
+        "fieldname": "VALID_FROM_CONSUMPTION",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 22,
+        "decimals": 4,
+        "rollname": "/US4G/DE_LOWER_LIMIT_QUANTITY",
+        "domname": "",
+        "description": "Untergrenze der UTILMD-Menge"
+      },
+      {
+        "fieldname": "VALID_TO_CONSUMPTION",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 22,
+        "decimals": 4,
+        "rollname": "/US4G/DE_UPPER_LIMIT_QUANTITY",
+        "domname": "",
+        "description": "Obergrenze der UTILMD-Menge"
+      },
+      {
+        "fieldname": "LOWER_REL_LIMIT",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 5,
+        "decimals": 1,
+        "rollname": "/US4G/DE_LOWER_REL_LIMIT",
+        "domname": "",
+        "description": "Profildef.: Grenze für max. untere Abweichung vom Istwert"
+      },
+      {
+        "fieldname": "UPPER_REL_LIMIT",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 5,
+        "decimals": 1,
+        "rollname": "/US4G/DE_UPPER_REL_LIMIT",
+        "domname": "",
+        "description": "Profildef.: max. obere Abweichungsgrenze"
+      },
+      {
+        "fieldname": "PROTECTED",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROFILE_PROTECTED",
+        "domname": "",
+        "description": "Profildef.: Profil wird nie geändert"
+      },
+      {
+        "fieldname": "CHECK_CAT",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_CHCK_CAT",
+        "domname": "",
+        "description": "Profildefinition: Prüfungstyp"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_ADMIN",
+        "domname": "",
+        "description": "Allgemeine Verwaltungsstruktur (Anlegen, Ändern)"
+      },
+      {
+        "fieldname": "CR_DATE",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ERDAT",
+        "domname": "",
+        "description": "Datum, an dem der Satz hinzugefügt wurde"
+      },
+      {
+        "fieldname": "CR_TIME",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "ERZET",
+        "domname": "",
+        "description": "Erfassungszeit"
+      },
+      {
+        "fieldname": "CR_NAME",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "ERNAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt hinzugefügt hat"
+      },
+      {
+        "fieldname": "CH_DATE",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "AEDAT",
+        "domname": "",
+        "description": "Datum der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_TIME",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "AEZET",
+        "domname": "",
+        "description": "Zeitpunkt der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_NAME",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "AENAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt geändert hat."
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFDEF_EL",
+    "description": "\"Profildefinition: Stromdetails\"",
+    "extracted_at": "2026-01-08T00:50:47.012302",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PFDEF_INT_ID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PFDEF_INT_ID",
+        "domname": "",
+        "description": "Profildef.: interner Schlüssel für Profildefinition"
+      },
+      {
+        "fieldname": "DATEFROM",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PERIOD_DATEFROM",
+        "domname": "",
+        "description": "Startdatum der Periode"
+      },
+      {
+        "fieldname": "PROF_GRP_INT",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_GRP_INT",
+        "domname": "",
+        "description": "Profildef: Profilgruppe"
+      },
+      {
+        "fieldname": "PROF_CAT_INT",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_CAT_INT",
+        "domname": "",
+        "description": "Profildef.: Profiltyp"
+      },
+      {
+        "fieldname": "NORM_FACT_INT",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_NORM_FACTOR_INT",
+        "domname": "",
+        "description": "Profildef.: Normierungsfaktor"
+      },
+      {
+        "fieldname": "PROF_SET_EXTID",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_SET_EXTID",
+        "domname": "",
+        "description": "Profildef.: Profilschar ext. ID"
+      },
+      {
+        "fieldname": "PROF_REF_TYPE",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_REF_TYPE",
+        "domname": "",
+        "description": "Profildef.: Profilreferenzart"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_ADMIN",
+        "domname": "",
+        "description": "Allgemeine Verwaltungsstruktur (Anlegen, Ändern)"
+      },
+      {
+        "fieldname": "CR_DATE",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ERDAT",
+        "domname": "",
+        "description": "Datum, an dem der Satz hinzugefügt wurde"
+      },
+      {
+        "fieldname": "CR_TIME",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "ERZET",
+        "domname": "",
+        "description": "Erfassungszeit"
+      },
+      {
+        "fieldname": "CR_NAME",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "ERNAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt hinzugefügt hat"
+      },
+      {
+        "fieldname": "CH_DATE",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "AEDAT",
+        "domname": "",
+        "description": "Datum der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_TIME",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "AEZET",
+        "domname": "",
+        "description": "Zeitpunkt der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_NAME",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "AENAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt geändert hat."
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFDEF_GA",
+    "description": "\"Profildefinition: Gasdetails\"",
+    "extracted_at": "2026-01-08T00:52:12.475579",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PFDEF_INT_ID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PFDEF_INT_ID",
+        "domname": "",
+        "description": "Profildef.: interner Schlüssel für Profildefinition"
+      },
+      {
+        "fieldname": "DATEFROM",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PERIOD_DATEFROM",
+        "domname": "",
+        "description": "Startdatum der Periode"
+      },
+      {
+        "fieldname": "TYPE",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_GA_BASICTYPE",
+        "domname": "",
+        "description": "PrfDef.: Basistyp Gas"
+      },
+      {
+        "fieldname": "SIGMOID_A",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 9,
+        "decimals": 7,
+        "rollname": "/US4G/DE_PROF_GA_SIG_FUNC_A",
+        "domname": "",
+        "description": "PrfDef.: Gas - Sigmoid-Funktion - Parameter A"
+      },
+      {
+        "fieldname": "SIGMOID_B",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 9,
+        "decimals": 7,
+        "rollname": "/US4G/DE_PROF_GA_SIG_FUNC_B",
+        "domname": "",
+        "description": "PrfDef.: Gas - Sigmoid-Funktion - Parameter B"
+      },
+      {
+        "fieldname": "SIGMOID_C",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 9,
+        "decimals": 7,
+        "rollname": "/US4G/DE_PROF_GA_SIG_FUNC_C",
+        "domname": "",
+        "description": "PrfDef.: Gas - Sigmoid-Funktion - Parameter C"
+      },
+      {
+        "fieldname": "SIGMOID_D",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 9,
+        "decimals": 7,
+        "rollname": "/US4G/DE_PROF_GA_SIG_FUNC_D",
+        "domname": "",
+        "description": "PrfDef.: Gas - Sigmoid-Funktion - Parameter D"
+      },
+      {
+        "fieldname": "SIGMOID_V0",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "INT1",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_GA_SIG_FUNC_V0",
+        "domname": "",
+        "description": "PrfDef.: Gas - Sigmoid-Funktion - Parameter V0"
+      },
+      {
+        "fieldname": "LINEAR_MH",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 9,
+        "decimals": 7,
+        "rollname": "/US4G/DE_PROF_GA_REG_LINE_MH",
+        "domname": "",
+        "description": "PrfDef.: Gasregressionsgerade - Koeffizient MH"
+      },
+      {
+        "fieldname": "LINEAR_BH",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 9,
+        "decimals": 7,
+        "rollname": "/US4G/DE_PROF_GA_REG_LINE_BH",
+        "domname": "",
+        "description": "PrfDef.: Gasregressionsgerade - Koeffizient BH"
+      },
+      {
+        "fieldname": "LINEAR_MW",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 9,
+        "decimals": 7,
+        "rollname": "/US4G/DE_PROF_GA_REG_LINE_MW",
+        "domname": "",
+        "description": "PrfDef.: Gasregressionsgerade - Koeffizient MW"
+      },
+      {
+        "fieldname": "LINEAR_BW",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 9,
+        "decimals": 7,
+        "rollname": "/US4G/DE_PROF_GA_REG_LINE_BW",
+        "domname": "",
+        "description": "PrfDef.: Gasregressionsgerade - Koeffizient BW"
+      },
+      {
+        "fieldname": "WDF_MON",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 5,
+        "decimals": 4,
+        "rollname": "/US4G/DE_PROF_GA_WDF_MO",
+        "domname": "",
+        "description": "PrfDef.: Gas - Werktagfaktoren - Montag"
+      },
+      {
+        "fieldname": "WDF_TUE",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 5,
+        "decimals": 4,
+        "rollname": "/US4G/DE_PROF_GA_WDF_TU",
+        "domname": "",
+        "description": "PrfDef.: Gas - Werktagfaktoren - Dienstag"
+      },
+      {
+        "fieldname": "WDF_WED",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 5,
+        "decimals": 4,
+        "rollname": "/US4G/DE_PROF_GA_WDF_WE",
+        "domname": "",
+        "description": "PrfDef.: Gas - Werktagfaktoren - Mittwoch"
+      },
+      {
+        "fieldname": "WDF_THU",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 5,
+        "decimals": 4,
+        "rollname": "/US4G/DE_PROF_GA_WDF_TH",
+        "domname": "",
+        "description": "PrfDef.: Gas - Werktagfaktoren - Donnerstag"
+      },
+      {
+        "fieldname": "WDF_FRI",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 5,
+        "decimals": 4,
+        "rollname": "/US4G/DE_PROF_GA_WDF_FR",
+        "domname": "",
+        "description": "PrfDef.: Gas - Werktagfaktoren - Freitag"
+      },
+      {
+        "fieldname": "WDF_SAT",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 5,
+        "decimals": 4,
+        "rollname": "/US4G/DE_PROF_GA_WDF_SA",
+        "domname": "",
+        "description": "PrfDef.: Gas - Werktagfaktoren - Samstag"
+      },
+      {
+        "fieldname": "WDF_SUN",
+        "position": 20,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 5,
+        "decimals": 4,
+        "rollname": "/US4G/DE_PROF_GA_WDF_SU",
+        "domname": "",
+        "description": "PrfDef.: Gas - Werktagfaktoren - Sonntag"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 21,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_ADMIN",
+        "domname": "",
+        "description": "Allgemeine Verwaltungsstruktur (Anlegen, Ändern)"
+      },
+      {
+        "fieldname": "CR_DATE",
+        "position": 22,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ERDAT",
+        "domname": "",
+        "description": "Datum, an dem der Satz hinzugefügt wurde"
+      },
+      {
+        "fieldname": "CR_TIME",
+        "position": 23,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "ERZET",
+        "domname": "",
+        "description": "Erfassungszeit"
+      },
+      {
+        "fieldname": "CR_NAME",
+        "position": 24,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "ERNAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt hinzugefügt hat"
+      },
+      {
+        "fieldname": "CH_DATE",
+        "position": 25,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "AEDAT",
+        "domname": "",
+        "description": "Datum der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_TIME",
+        "position": 26,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "AEZET",
+        "domname": "",
+        "description": "Zeitpunkt der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_NAME",
+        "position": 27,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "AENAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt geändert hat."
+      },
+      {
+        "fieldname": "PROF_CALC_MTHD",
+        "position": 28,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_CALC_MTHD",
+        "domname": "",
+        "description": "Berechnungsmethode Profil"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFDEF_HD",
+    "description": "\"Profildefinition: Kopfdaten\"",
+    "extracted_at": "2026-01-08T00:59:22.264293",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PFDEF_INT_ID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PFDEF_INT_ID",
+        "domname": "",
+        "description": "Profildef.: interner Schlüssel für Profildefinition"
+      },
+      {
+        "fieldname": "DATEFROM",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PERIOD_DATEFROM",
+        "domname": "",
+        "description": "Startdatum der Periode"
+      },
+      {
+        "fieldname": "DATETO",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PERIOD_DATETO",
+        "domname": "",
+        "description": "Enddatum der Periode"
+      },
+      {
+        "fieldname": "DISTRIBUTOR",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SERVPROV_DISTRIBUTOR",
+        "domname": "",
+        "description": "Serviceanbieter: Verteilnetzbetreiber"
+      },
+      {
+        "fieldname": "EXTSYNPROFID",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "E_EXTSYNPROFID",
+        "domname": "",
+        "description": "Externe synthetische Profilbezeichnung"
+      },
+      {
+        "fieldname": "WTHRST_ID_INT",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_WTHRST_ID_INT",
+        "domname": "",
+        "description": "Wetterstation: ID (intern)"
+      },
+      {
+        "fieldname": "PROF_PROC_INT",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PROF_PROCEDURE",
+        "domname": "",
+        "description": "Profildef.: Profilverfahren"
+      },
+      {
+        "fieldname": "PROF_ORIGIN_INT",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_ORIGIN_INT",
+        "domname": "",
+        "description": "Herkunft des Profils"
+      },
+      {
+        "fieldname": "CALENDAR",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "WFCID",
+        "domname": "",
+        "description": "Fabrikkalender"
+      },
+      {
+        "fieldname": "PFDEF_DESCR",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 100,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PFDEF_COMMENT",
+        "domname": "",
+        "description": "Profildef.: Kommentar"
+      },
+      {
+        "fieldname": "INVALID",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PFDEF_INVALID",
+        "domname": "",
+        "description": "Profildefinition wird nicht mehr verwendet"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_ADMIN",
+        "domname": "",
+        "description": "Allgemeine Verwaltungsstruktur (Anlegen, Ändern)"
+      },
+      {
+        "fieldname": "CR_DATE",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ERDAT",
+        "domname": "",
+        "description": "Datum, an dem der Satz hinzugefügt wurde"
+      },
+      {
+        "fieldname": "CR_TIME",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "ERZET",
+        "domname": "",
+        "description": "Erfassungszeit"
+      },
+      {
+        "fieldname": "CR_NAME",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "ERNAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt hinzugefügt hat"
+      },
+      {
+        "fieldname": "CH_DATE",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "AEDAT",
+        "domname": "",
+        "description": "Datum der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_TIME",
+        "position": 18,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "AEZET",
+        "domname": "",
+        "description": "Zeitpunkt der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_NAME",
+        "position": 19,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "AENAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt geändert hat."
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFDEF_PRF",
+    "description": "\"Profildefinition: interne Profilfindung\"",
+    "extracted_at": "2026-01-08T01:00:20.865925",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PFDEF_INT_ID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PFDEF_INT_ID",
+        "domname": "",
+        "description": "Profildef.: interner Schlüssel für Profildefinition"
+      },
+      {
+        "fieldname": "DATEFROM",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PERIOD_DATEFROM",
+        "domname": "",
+        "description": "Startdatum der Periode"
+      },
+      {
+        "fieldname": "PROFILE_FCST",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PROF_FCST",
+        "domname": "",
+        "description": "Profildef.: Prognoseprofil"
+      },
+      {
+        "fieldname": "PROFILE_MEAS",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PROF_MEAS",
+        "domname": "",
+        "description": "Profildef.: Messprofil"
+      },
+      {
+        "fieldname": "PROFILE_BASE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 18,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PROF_BASE",
+        "domname": "",
+        "description": "PFDef: Baseline-Profil"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_ADMIN",
+        "domname": "",
+        "description": "Allgemeine Verwaltungsstruktur (Anlegen, Ändern)"
+      },
+      {
+        "fieldname": "CR_DATE",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ERDAT",
+        "domname": "",
+        "description": "Datum, an dem der Satz hinzugefügt wurde"
+      },
+      {
+        "fieldname": "CR_TIME",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "ERZET",
+        "domname": "",
+        "description": "Erfassungszeit"
+      },
+      {
+        "fieldname": "CR_NAME",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "ERNAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt hinzugefügt hat"
+      },
+      {
+        "fieldname": "CH_DATE",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "AEDAT",
+        "domname": "",
+        "description": "Datum der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_TIME",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "AEZET",
+        "domname": "",
+        "description": "Zeitpunkt der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_NAME",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "AENAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt geändert hat."
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFDEF_ST",
+    "description": "\"Profildefinition: Bilanzierungsgebietszuordnung\"",
+    "extracted_at": "2026-01-08T01:01:18.755239",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PFDEF_INT_ID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PFDEF_INT_ID",
+        "domname": "",
+        "description": "Profildef.: interner Schlüssel für Profildefinition"
+      },
+      {
+        "fieldname": "DATEFROM",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PERIOD_DATEFROM",
+        "domname": "",
+        "description": "Startdatum der Periode"
+      },
+      {
+        "fieldname": "SETTLTERRITORY",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EQS_SETTLTERRITORY",
+        "domname": "",
+        "description": "MaBiS: Bilanzierungsgebiet"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_ADMIN",
+        "domname": "",
+        "description": "Allgemeine Verwaltungsstruktur (Anlegen, Ändern)"
+      },
+      {
+        "fieldname": "CR_DATE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ERDAT",
+        "domname": "",
+        "description": "Datum, an dem der Satz hinzugefügt wurde"
+      },
+      {
+        "fieldname": "CR_TIME",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "ERZET",
+        "domname": "",
+        "description": "Erfassungszeit"
+      },
+      {
+        "fieldname": "CR_NAME",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "ERNAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt hinzugefügt hat"
+      },
+      {
+        "fieldname": "CH_DATE",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "AEDAT",
+        "domname": "",
+        "description": "Datum der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_TIME",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "AEZET",
+        "domname": "",
+        "description": "Zeitpunkt der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_NAME",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "AENAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt geändert hat."
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFDEF_TMP",
+    "description": "\"Profildefinition: Temperaturdetails\"",
+    "extracted_at": "2026-01-08T01:02:14.612544",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PFDEF_INT_ID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PFDEF_INT_ID",
+        "domname": "",
+        "description": "Profildef.: interner Schlüssel für Profildefinition"
+      },
+      {
+        "fieldname": "DATEFROM",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "/US4G/DE_EDM_PERIOD_DATEFROM",
+        "domname": "",
+        "description": "Startdatum der Periode"
+      },
+      {
+        "fieldname": "DT_AVG_APPR",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_CALC_DAY_AVG_TEMP",
+        "domname": "",
+        "description": "Berechnung der Tagesmitteltemperatur"
+      },
+      {
+        "fieldname": "DT_PCT_DAY0_A",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 10,
+        "decimals": 5,
+        "rollname": "/US4G/DE_DAVTEMP_PART_A",
+        "domname": "",
+        "description": "PrfDef.: Tagesmitteltemperatur vom Tag Anteil A (in Prozent)"
+      },
+      {
+        "fieldname": "DT_PCT_DAY1_B",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 10,
+        "decimals": 5,
+        "rollname": "/US4G/DE_DAVTEMP_PART_B",
+        "domname": "",
+        "description": "PrfDef.: Tagesmitteltemperatur vom Tag Anteil B (in Prozent)"
+      },
+      {
+        "fieldname": "DT_PCT_DAY2_C",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 10,
+        "decimals": 5,
+        "rollname": "/US4G/DE_DAVTEMP_PART_C",
+        "domname": "",
+        "description": "PrfDef.: Tagesmitteltemperatur vom Tag Anteil C (in Prozent)"
+      },
+      {
+        "fieldname": "DT_PCT_DAY3_D",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 10,
+        "decimals": 5,
+        "rollname": "/US4G/DE_DAVTEMP_PART_D",
+        "domname": "",
+        "description": "PrfDef.: Tagesmitteltemperatur vom Tag Anteil D (in Prozent)"
+      },
+      {
+        "fieldname": "REF_TMP",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 10,
+        "decimals": 3,
+        "rollname": "/US4G/DE_DAVTMP_LIMIT_TEMP",
+        "domname": "",
+        "description": "Profildef.: Tagesmitteltemperatur Bezugstemperatur"
+      },
+      {
+        "fieldname": "LIMIT_CON",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_DAVTEMP_LIMIT_CONS",
+        "domname": "",
+        "description": "Profildef.: Begrenzungskonstante für Tagesmitteltemperatur"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 11,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_ADMIN",
+        "domname": "",
+        "description": "Allgemeine Verwaltungsstruktur (Anlegen, Ändern)"
+      },
+      {
+        "fieldname": "CR_DATE",
+        "position": 12,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ERDAT",
+        "domname": "",
+        "description": "Datum, an dem der Satz hinzugefügt wurde"
+      },
+      {
+        "fieldname": "CR_TIME",
+        "position": 13,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "ERZET",
+        "domname": "",
+        "description": "Erfassungszeit"
+      },
+      {
+        "fieldname": "CR_NAME",
+        "position": 14,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "ERNAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt hinzugefügt hat"
+      },
+      {
+        "fieldname": "CH_DATE",
+        "position": 15,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "AEDAT",
+        "domname": "",
+        "description": "Datum der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_TIME",
+        "position": 16,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "AEZET",
+        "domname": "",
+        "description": "Zeitpunkt der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_NAME",
+        "position": 17,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "AENAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt geändert hat."
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFLCUSTHDR",
+    "description": "Kundenprofildefinition - Kopf",
+    "extracted_at": "2026-01-08T01:03:09.774541",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PROFDEF",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PRFDM_ID",
+        "domname": "",
+        "description": "Profilreferenz-Datenmodell - Schlüssel"
+      },
+      {
+        "fieldname": "AGGRESP",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_AGGRESP",
+        "domname": "",
+        "description": "Aggregationsverantwortung VNB/ÜNB"
+      },
+      {
+        "fieldname": "SPARTE",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "SPARTE",
+        "domname": "",
+        "description": "Sparte"
+      },
+      {
+        "fieldname": "METER_PROC",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_METER_PROC",
+        "domname": "",
+        "description": "Zählverfahren"
+      },
+      {
+        "fieldname": "DATEFROM",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "E_EDMDATEFROM",
+        "domname": "",
+        "description": "Ab-Datum"
+      },
+      {
+        "fieldname": "DATETO",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "E_EDMDATETO",
+        "domname": "",
+        "description": "Bis-Datum"
+      },
+      {
+        "fieldname": "GAS_LOAD_PROF",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_LOAD_PROF",
+        "domname": "",
+        "description": "Gaslastprofilverfahren"
+      },
+      {
+        "fieldname": "TIME_SERIES_TYPE",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_TIME_SERIES_TYPE",
+        "domname": "",
+        "description": "Zeitreihentyp"
+      },
+      {
+        "fieldname": "FEEDING_FLAG",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_FEED_FLAG",
+        "domname": "",
+        "description": "Erzeugungskennzeichen"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFLCUSTHDT",
+    "description": "Texttabelle von /UCOM/MDX_PFLHDR",
+    "extracted_at": "2026-01-08T01:04:03.554171",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PROFDEF",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PRFDM_ID",
+        "domname": "",
+        "description": "Profilreferenz-Datenmodell - Schlüssel"
+      },
+      {
+        "fieldname": "AGGRESP",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_AGGRESP",
+        "domname": "",
+        "description": "Aggregationsverantwortung VNB/ÜNB"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschlüssel"
+      },
+      {
+        "fieldname": "DESCRIPTION",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 255,
+        "decimals": 0,
+        "rollname": "/US4G/DE_FREE_DESCRIPTION",
+        "domname": "",
+        "description": "Beschreibung"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFLCUSTITM",
+    "description": "Benutzerdef. Profildefinition - Position",
+    "extracted_at": "2026-01-08T01:04:55.145844",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PROFDEF",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "NUMC",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PRFDM_ID",
+        "domname": "",
+        "description": "Profilreferenz-Datenmodell - Schlüssel"
+      },
+      {
+        "fieldname": "AGGRESP",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "/US4G/DE_AGGRESP",
+        "domname": "",
+        "description": "Aggregationsverantwortung VNB/ÜNB"
+      },
+      {
+        "fieldname": "PROFROLE",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 4,
+        "decimals": 0,
+        "rollname": "PROFROLE",
+        "domname": "",
+        "description": "Rolle einer Profilzuordnung"
+      },
+      {
+        "fieldname": "PROFILE_GROUP",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROFILE_GROUP",
+        "domname": "",
+        "description": "Profilgruppe (Obs. für DE)"
+      },
+      {
+        "fieldname": "REFVALUE",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "DEC",
+        "length": 16,
+        "decimals": 0,
+        "rollname": "/US4G/SYNPROFREFVALUE",
+        "domname": "",
+        "description": "(Obsolet) Referenzwert für Standardisierung von Profilwerten"
+      },
+      {
+        "fieldname": "STANZNAC",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "NUMC",
+        "length": 2,
+        "decimals": 0,
+        "rollname": "/US4G/STANZNAC",
+        "domname": "",
+        "description": "(Obsolet) Nachkommastellen in einem Zählwerk"
+      },
+      {
+        "fieldname": "PROFILE_QUALITY",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROFILE_QUALITY",
+        "domname": "",
+        "description": "Profilqualität"
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFSET_HD",
+    "description": "\"Profilschar: Kopfdaten\"",
+    "extracted_at": "2026-01-08T01:05:56.219208",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PROF_SET_EXTID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_SET_EXTID",
+        "domname": "",
+        "description": "Profildef.: Profilschar ext. ID"
+      },
+      {
+        "fieldname": "DISTRIBUTOR",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SERVPROV_DISTRIBUTOR",
+        "domname": "",
+        "description": "Serviceanbieter: Verteilnetzbetreiber"
+      },
+      {
+        "fieldname": ".INCLUDE",
+        "position": 4,
+        "keyflag": "",
+        "datatype": "STRU",
+        "length": 0,
+        "decimals": 0,
+        "rollname": "/US4G/S_ADMIN",
+        "domname": "",
+        "description": "Allgemeine Verwaltungsstruktur (Anlegen, Ändern)"
+      },
+      {
+        "fieldname": "CR_DATE",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "ERDAT",
+        "domname": "",
+        "description": "Datum, an dem der Satz hinzugefügt wurde"
+      },
+      {
+        "fieldname": "CR_TIME",
+        "position": 6,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "ERZET",
+        "domname": "",
+        "description": "Erfassungszeit"
+      },
+      {
+        "fieldname": "CR_NAME",
+        "position": 7,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "ERNAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt hinzugefügt hat"
+      },
+      {
+        "fieldname": "CH_DATE",
+        "position": 8,
+        "keyflag": "",
+        "datatype": "DATS",
+        "length": 8,
+        "decimals": 0,
+        "rollname": "AEDAT",
+        "domname": "",
+        "description": "Datum der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_TIME",
+        "position": 9,
+        "keyflag": "",
+        "datatype": "TIMS",
+        "length": 6,
+        "decimals": 0,
+        "rollname": "AEZET",
+        "domname": "",
+        "description": "Zeitpunkt der letzten Änderung"
+      },
+      {
+        "fieldname": "CH_NAME",
+        "position": 10,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 12,
+        "decimals": 0,
+        "rollname": "AENAM",
+        "domname": "",
+        "description": "Name des Sachbearbeiters, der das Objekt geändert hat."
+      }
+    ]
+  },
+  {
+    "tabname": "/US4G/PFSET_HDT",
+    "description": "\"Profilschar: Kopfdatentext\"",
+    "extracted_at": "2026-01-08T01:06:46.535388",
+    "fields": [
+      {
+        "fieldname": "MANDT",
+        "position": 1,
+        "keyflag": "X",
+        "datatype": "CLNT",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "MANDT",
+        "domname": "",
+        "description": "Mandant"
+      },
+      {
+        "fieldname": "PROF_SET_EXTID",
+        "position": 2,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 3,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_SET_EXTID",
+        "domname": "",
+        "description": "Profildef.: Profilschar ext. ID"
+      },
+      {
+        "fieldname": "DISTRIBUTOR",
+        "position": 3,
+        "keyflag": "X",
+        "datatype": "CHAR",
+        "length": 10,
+        "decimals": 0,
+        "rollname": "/US4G/DE_SERVPROV_DISTRIBUTOR",
+        "domname": "",
+        "description": "Serviceanbieter: Verteilnetzbetreiber"
+      },
+      {
+        "fieldname": "SPRAS",
+        "position": 4,
+        "keyflag": "X",
+        "datatype": "LANG",
+        "length": 1,
+        "decimals": 0,
+        "rollname": "SPRAS",
+        "domname": "",
+        "description": "Sprachenschlüssel"
+      },
+      {
+        "fieldname": "DESCRIPTION",
+        "position": 5,
+        "keyflag": "",
+        "datatype": "CHAR",
+        "length": 60,
+        "decimals": 0,
+        "rollname": "/US4G/DE_PROF_SET_DESC",
+        "domname": "",
+        "description": "PFDef: Beschreibung der Profilschar"
+      }
+    ]
   }
 ]
