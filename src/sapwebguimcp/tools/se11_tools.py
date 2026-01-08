@@ -308,7 +308,7 @@ async def _check_object_not_found(page: Any, name: str, object_type: SE11ObjectT
     status_bar = page.locator("#sapStatusBarAll, [id*='STATUSBAR']").first
     status_text = await status_bar.text_content() if await status_bar.count() > 0 else ""
 
-    not_found_msgs = ["existiert nicht", "does not exist", "nicht gefunden", "not found"]
+    not_found_msgs = {"existiert nicht", "does not exist", "nicht gefunden", "not found"}
     if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
         await page.keyboard.press("F3")
         await page.wait_for_load_state("networkidle")
