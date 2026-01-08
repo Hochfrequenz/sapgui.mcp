@@ -142,14 +142,14 @@ unittests/
 
 ## Integration Tests
 
-| Test | Input | Erwartung |
-|------|-------|-----------|
-| `test_se11_single_table` | `names="T000", type="table"` | 1 Entry mit Feldern MANDT, etc. |
-| `test_se11_single_structure` | `names="BAPIRET2", type="structure"` | 1 Entry mit TYPE, MESSAGE, etc. |
-| `test_se11_table_list` | `names=["T000", "T001"], type="table"` | 2 Entries |
-| `test_se11_structure_list` | `names=["BAPIRET2", "BAPI_MTYPE"], type="structure"` | 2 Entries |
-| `test_se11_table_not_found` | `names="DOESNOTEXIST", type="table"` | 1 Error |
-| `test_se11_mixed_results` | `names=["T000", "DOESNOTEXIST"], type="table"` | 1 Entry, 1 Error |
+| Test                         | Input                                                | Erwartung                       |
+| ---------------------------- | ---------------------------------------------------- | ------------------------------- |
+| `test_se11_single_table`     | `names="T000", type="table"`                         | 1 Entry mit Feldern MANDT, etc. |
+| `test_se11_single_structure` | `names="BAPIRET2", type="structure"`                 | 1 Entry mit TYPE, MESSAGE, etc. |
+| `test_se11_table_list`       | `names=["T000", "T001"], type="table"`               | 2 Entries                       |
+| `test_se11_structure_list`   | `names=["BAPIRET2", "BAPI_MTYPE"], type="structure"` | 2 Entries                       |
+| `test_se11_table_not_found`  | `names="DOESNOTEXIST", type="table"`                 | 1 Error                         |
+| `test_se11_mixed_results`    | `names=["T000", "DOESNOTEXIST"], type="table"`       | 1 Entry, 1 Error                |
 
 ## Implementierungsschritte
 

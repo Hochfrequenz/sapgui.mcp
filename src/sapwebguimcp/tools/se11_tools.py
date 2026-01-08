@@ -10,9 +10,11 @@ import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+from playwright.async_api import TimeoutError as PlaywrightTimeout
 
 from sapwebguimcp.models import (
     SE11Entry,
@@ -29,6 +31,16 @@ logger = logging.getLogger(__name__)
 
 # Threshold for writing to file instead of returning inline
 MAX_INLINE_OBJECTS = 10
+
+# Regex patterns for parsing - compiled once for efficiency
+_ROW_SPLIT_PATTERN = re.compile(r'(?=- row "(?:Zum Auswählen|To select a row))')
+_FIELD_NAME_PATTERN = re.compile(
+    r'row "(?:Zum Auswählen[^"]*Leertaste\.|To select a row, press the space bar\.)\s+(?P<field_name>[A-Z_0-9/]+)'
+)
+_ROW_DATA_PATTERN = re.compile(
+    r'row "(?:Zum Auswählen[^"]*Leertaste\.|To select a row, press the space bar\.)\s+(?P<row_data>[^"]+)"',
+    re.MULTILINE,
+)
 
 
 # =============================================================================
@@ -49,12 +61,9 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entr
     """
     now = datetime.now(UTC)
 
-    # Extract table/structure name
-    # Format: textbox "Transp.Tabelle": T000
-    # or: textbox "Struktur": BAPIRET2
+    # Extract table/structure name (German or English labels)
     name_match = re.search(r'textbox "(?:Transp\.Tabelle|Struktur)":\s*(?P<name>\S+)', yaml_content)
     if not name_match:
-        # Try English labels
         name_match = re.search(r'textbox "(?:Transparent Table|Structure)":\s*(?P<name>\S+)', yaml_content)
 
     if not name_match:
@@ -67,8 +76,7 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entr
 
     name = name_match.group("name").strip()
 
-    # Extract description
-    # Format: textbox "Kurzbeschreibung": Mandanten
+    # Extract description (German or English)
     desc_match = re.search(
         r'textbox "(?:Kurzbeschreibung|Short Description)":\s*(?P<description>.+?)(?:\n|$)', yaml_content
     )
@@ -94,133 +102,290 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entr
     )
 
 
-def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
-    """
-    Parse field rows from SE11 grid.
-
-    The grid format in YAML looks like (German):
-    - row "Zum Auswählen... MANDT   MANDT CLNT 3 0 0 Mandant":
-      - gridcell "Zum Auswählen..."
-      - gridcell "MANDT":
-        - textbox
-      - gridcell "":           # Key checkbox
-        - checkbox "" [checked] [disabled]
-      ...
-
-    Or in English:
-    - row "To select a row, press the space bar. MANDT   MANDT CLNT 3 0 0 Client":
-      ...
-
-    The row text contains: FIELDNAME DATA_ELEMENT DATATYPE LENGTH DECIMALS COORD DESCRIPTION
-    """
-    fields = []
-    key_fields = set()
-
-    # First pass: find key fields by looking at the row structure
-    # Key fields have [checked] on the first checkbox after the field name gridcell
-    # Pattern: gridcell "FIELDNAME" -> gridcell "" with checkbox [checked]
-    # We split by "- row" to get individual row blocks
-    # Support both German ("Zum Auswählen") and English ("To select a row")
-    row_blocks = re.split(r'(?=- row "(?:Zum Auswählen|To select a row))', yaml_content)
+def _find_key_fields(yaml_content: str) -> set[str]:
+    """Find which fields are marked as key fields in the SE11 grid."""
+    key_fields: set[str] = set()
+    row_blocks = _ROW_SPLIT_PATTERN.split(yaml_content)
 
     for block in row_blocks:
         if not block.strip():
             continue
 
-        # Extract field name from the row header (German or English)
-        # German: "Zum Auswählen...Leertaste. FIELDNAME"
-        # English: "To select a row, press the space bar. FIELDNAME"
-        row_match = re.search(
-            r'row "(?:Zum Auswählen[^"]*Leertaste\.|To select a row, press the space bar\.)\s+(?P<field_name>[A-Z_0-9/]+)',
-            block,
-        )
+        row_match = _FIELD_NAME_PATTERN.search(block)
         if not row_match:
             continue
 
         field_name = row_match.group("field_name")
 
-        # Look for the key checkbox pattern - it's right after the field name gridcell
-        # The structure is:
-        #   gridcell "FIELDNAME":
-        #     - textbox
-        #   gridcell "":
-        #     - checkbox "" [checked] [disabled]  <- KEY checkbox
-        # We need to find checkbox with [checked] that comes after gridcell "FIELDNAME"
-        # but is in the next gridcell (not the same one)
+        # Key checkbox pattern: after field name gridcell, next gridcell has [checked] checkbox
         key_pattern = re.compile(
-            r'gridcell "' + re.escape(field_name) + r'":\s*\n'  # Field name gridcell
-            r"\s*- textbox\s*\n"  # Its textbox child
-            r"\s*- gridcell[^:]*:\s*\n"  # Next gridcell (Key column)
-            r"\s*- checkbox[^\n]*\[checked\]",  # Key checkbox with [checked]
+            r'gridcell "' + re.escape(field_name) + r'":\s*\n'
+            r"\s*- textbox\s*\n"
+            r"\s*- gridcell[^:]*:\s*\n"
+            r"\s*- checkbox[^\n]*\[checked\]",
         )
 
         if key_pattern.search(block):
             key_fields.add(field_name)
 
-    # Second pass: parse field data from row text
-    # Row format: "Zum Auswählen... FIELDNAME [maybe checkboxes] DATA_ELEMENT DATATYPE LENGTH DEC COORD DESCRIPTION"
-    # English: "To select a row, press the space bar. FIELDNAME ..."
-    # The row text contains all field info as space-separated values after the selection text
-    row_pattern = re.compile(
-        r'row "(?:Zum Auswählen[^"]*Leertaste\.|To select a row, press the space bar\.)\s+(?P<row_data>[^"]+)"',
-        re.MULTILINE,
+    return key_fields
+
+
+def _parse_field_row(parts: list[str], key_fields: set[str]) -> SE11Field | None:
+    """Parse a single field row into an SE11Field, or None if parsing fails."""
+    if len(parts) < 7:
+        return None
+
+    field_name = parts[0]
+
+    # Find the data type by looking for a 2-10 char uppercase string
+    datatype = None
+    datatype_idx = -1
+    for i, part in enumerate(parts[1:], 1):
+        if re.match(r"^[A-Z][A-Z0-9]{1,9}$", part) and not part.isdigit():
+            if datatype is None or len(part) < len(datatype):
+                datatype = part
+                datatype_idx = i
+
+    if datatype is None or datatype_idx < 2:
+        return None
+
+    try:
+        length = int(parts[datatype_idx + 1])
+        decimals_raw = int(parts[datatype_idx + 2])
+        decimals = decimals_raw if decimals_raw > 0 else None
+        description = " ".join(parts[datatype_idx + 4 :]).strip()
+    except (IndexError, ValueError):
+        return None
+
+    return SE11Field(
+        name=field_name,
+        datatype=datatype,
+        length=length,
+        decimals=decimals,
+        description=description,
+        is_key=field_name in key_fields,
     )
 
-    for match in row_pattern.finditer(yaml_content):
+
+def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
+    """Parse field rows from SE11 grid."""
+    key_fields = _find_key_fields(yaml_content)
+    fields: list[SE11Field] = []
+
+    for match in _ROW_DATA_PATTERN.finditer(yaml_content):
         row_data = match.group("row_data")
 
-        # Split by whitespace, filter out empty strings and checkbox Unicode chars
-        # Checkbox chars are in Unicode Private Use Area (U+E000-U+F8FF)
+        # Filter out checkbox Unicode chars (Private Use Area U+E000-U+F8FF)
         parts = [p for p in row_data.split() if p and not (len(p) == 1 and ord(p) >= 0xE000)]
 
-        # Expected: FIELDNAME DATA_ELEMENT DATATYPE LENGTH DECIMALS COORD DESCRIPTION...
-        # But we need at least 6 parts before the description
-        if len(parts) < 7:
-            continue
-
-        field_name = parts[0]
-
-        # Find the data type by looking for a 2-10 char uppercase string
-        # Data type comes after data element, which comes after field name
-        datatype = None
-        datatype_idx = -1
-        for i, p in enumerate(parts[1:], 1):
-            if re.match(r"^[A-Z][A-Z0-9]{1,9}$", p) and not p.isdigit():
-                # Could be data element or data type - data type is shorter
-                if datatype is None or len(p) < len(datatype):
-                    datatype = p
-                    datatype_idx = i
-
-        if datatype is None or datatype_idx < 2:
-            continue
-
-        # Length and decimals follow the data type
-        try:
-            length = int(parts[datatype_idx + 1])
-            decimals_raw = int(parts[datatype_idx + 2])
-            # Use None for non-numeric types (where decimals is 0)
-            decimals = decimals_raw if decimals_raw > 0 else None
-            # Skip coord system (parts[datatype_idx + 3])
-            # Description is everything after coord system
-            description = " ".join(parts[datatype_idx + 4 :])
-        except (IndexError, ValueError):
-            continue
-
-        # Clean up description
-        description = description.strip()
-
-        fields.append(
-            SE11Field(
-                name=field_name,
-                datatype=datatype,
-                length=length,
-                decimals=decimals,
-                description=description,
-                is_key=field_name in key_fields,
-            )
-        )
+        field = _parse_field_row(parts, key_fields)
+        if field:
+            fields.append(field)
 
     return fields
+
+
+# =============================================================================
+# SE11 Navigation Helpers
+# =============================================================================
+
+
+async def _wait_for_se11_table_screen(page: Any, name: str) -> SE11Error | None:
+    """Wait for SE11 table screen and select the table radio. Returns error or None."""
+    now = datetime.now(UTC)
+    table_radio = page.get_by_role("radio", name=re.compile(r"Datenbanktabelle|Database table", re.I))
+
+    try:
+        await table_radio.wait_for(state="visible", timeout=10000)
+    except PlaywrightTimeout:
+        page_title = await page.title()
+        logger.warning("SE11: Page title when radio not found: %s", page_title)
+        return SE11Error(
+            name=name,
+            object_type="table",
+            error=(
+                f"SE11 screen did not load (page title: '{page_title}'). "
+                "Could not find 'Database table' / 'Datenbanktabelle' radio button. "
+                "This tool currently supports German (DE) and English (EN) SAP languages."
+            ),
+            retrieved_at=now,
+        )
+
+    await table_radio.click()
+    await page.wait_for_timeout(100)
+    return None
+
+
+async def _wait_for_se11_structure_screen(page: Any, name: str) -> SE11Error | None:
+    """Wait for SE11 structure screen and select the data type radio. Returns error or None."""
+    now = datetime.now(UTC)
+    type_radio = page.get_by_role("radio", name=re.compile(r"Datentyp|Data type", re.I))
+
+    try:
+        await type_radio.wait_for(state="visible", timeout=10000)
+    except PlaywrightTimeout:
+        page_title = await page.title()
+        logger.warning("SE11: Page title when radio not found: %s", page_title)
+        return SE11Error(
+            name=name,
+            object_type="structure",
+            error=(
+                f"SE11 screen did not load (page title: '{page_title}'). "
+                "Could not find 'Data type' / 'Datentyp' radio button. "
+                "This tool currently supports German (DE) and English (EN) SAP languages."
+            ),
+            retrieved_at=now,
+        )
+
+    await type_radio.click()
+    await page.wait_for_timeout(100)
+    return None
+
+
+async def _fill_table_name_field(page: Any, name: str) -> SE11Error | None:
+    """Fill the table name field in SE11. Returns error or None."""
+    now = datetime.now(UTC)
+
+    # Try multiple selectors for the table name field
+    table_field = page.locator('[id*="TBMA_VAL"], [id*="TBMA-VAL"]').first
+    if await table_field.count() == 0:
+        table_field = page.get_by_role("textbox", name=re.compile(r"Tabellenname|Table name", re.I))
+    if await table_field.count() == 0:
+        table_field = page.locator("input[title*='Tabellenname'], input[title*='Table name']").first
+
+    if await table_field.count() == 0:
+        return SE11Error(
+            name=name,
+            object_type="table",
+            error="Could not find table name field in SE11",
+            retrieved_at=now,
+        )
+
+    await table_field.click(click_count=3)
+    await page.wait_for_timeout(50)
+    await page.keyboard.type(name.upper())
+    return None
+
+
+async def _fill_structure_name_field(page: Any, name: str) -> SE11Error | None:
+    """Fill the structure/data type name field in SE11. Returns error or None."""
+    now = datetime.now(UTC)
+
+    type_field = page.get_by_role("textbox", name=re.compile(r"Dictionary.*Typ|Dictionary.*type", re.I))
+    if await type_field.count() == 0:
+        return SE11Error(
+            name=name,
+            object_type="structure",
+            error="Could not find data type name field in SE11",
+            retrieved_at=now,
+        )
+
+    await type_field.click(click_count=3)
+    await page.wait_for_timeout(50)
+    await page.keyboard.type(name.upper())
+    return None
+
+
+async def _click_display_button(page: Any, name: str) -> None:
+    """Click the Display button or fall back to F7."""
+    await page.wait_for_timeout(500)
+    display_button = page.get_by_role("button", name=re.compile(r"^Anzeigen$|^Display$", re.I))
+
+    if await display_button.count() > 0:
+        await display_button.first.click(force=True)
+    else:
+        logger.warning("SE11: Display button not found for %s, falling back to F7", name)
+        await page.keyboard.press("F7")
+
+    await page.wait_for_timeout(500)
+    await page.wait_for_load_state("networkidle")
+
+
+async def _check_object_not_found(page: Any, name: str, object_type: SE11ObjectType) -> SE11Error | None:
+    """Check if the status bar shows 'object not found'. Returns error or None."""
+    now = datetime.now(UTC)
+    status_bar = page.locator("#sapStatusBarAll, [id*='STATUSBAR']").first
+    status_text = await status_bar.text_content() if await status_bar.count() > 0 else ""
+
+    not_found_msgs = ["existiert nicht", "does not exist", "nicht gefunden", "not found"]
+    if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
+        await page.keyboard.press("F3")
+        await page.wait_for_load_state("networkidle")
+        return SE11Error(
+            name=name,
+            object_type=object_type,
+            error=f"Object '{name}' not found in ABAP Dictionary",
+            retrieved_at=now,
+        )
+
+    return None
+
+
+async def _lookup_single_object(  # pylint: disable=too-many-return-statements
+    page: Any, name: str, object_type: SE11ObjectType
+) -> SE11Entry | SE11Error:
+    """Look up a single table or structure in SE11."""
+    now = datetime.now(UTC)
+
+    # Navigate to SE11
+    await page.wait_for_timeout(300)
+    tx_result = await sap_transaction_impl("SE11")
+    if not tx_result.success:
+        return SE11Error(
+            name=name,
+            object_type=object_type,
+            error=f"Failed to navigate to SE11: {tx_result.error}",
+            retrieved_at=now,
+        )
+
+    # Wait for screen and select object type
+    if object_type == "table":
+        error = await _wait_for_se11_table_screen(page, name)
+        if error:
+            return error
+        error = await _fill_table_name_field(page, name)
+        if error:
+            return error
+    else:
+        error = await _wait_for_se11_structure_screen(page, name)
+        if error:
+            return error
+        error = await _fill_structure_name_field(page, name)
+        if error:
+            return error
+
+    # Click display and check for errors
+    await _click_display_button(page, name)
+
+    error = await _check_object_not_found(page, name, object_type)
+    if error:
+        return error
+
+    # Get and parse snapshot
+    snapshot = await page.locator("body").aria_snapshot()
+    logger.debug("SE11: Got snapshot for %s, length: %d chars", name, len(snapshot))
+
+    parse_result = _parse_se11_yaml(snapshot, object_type)
+
+    # Handle parse failure - save debug snapshot
+    if isinstance(parse_result, SE11Error):
+        logger.warning("SE11: Parse failed for %s: %s", name, parse_result.error)
+        debug_path = Path(f"se11_debug_{name}.yaml")
+        debug_path.write_text(snapshot, encoding="utf-8")
+        logger.warning("SE11: Saved debug snapshot to %s", debug_path)
+        return SE11Error(name=name, object_type=object_type, error=parse_result.error, retrieved_at=now)
+
+    # Verify parsed name matches requested name
+    if parse_result.name.upper() != name.upper():  # pylint: disable=no-member
+        return SE11Error(
+            name=name,
+            object_type=object_type,
+            error=f"Object '{name}' not found (screen showed '{parse_result.name}')",
+            retrieved_at=now,
+        )
+
+    return parse_result
 
 
 # =============================================================================
@@ -263,7 +428,6 @@ def register_se11_tools(mcp: FastMCP) -> None:
             SE11Result with entries and errors (inline), or
             SE11FileSummary with file path and statistics (when output_file provided)
         """
-        # Normalize names to list
         name_list = [names] if isinstance(names, str) else list(names)
 
         if not name_list:
@@ -276,222 +440,12 @@ def register_se11_tools(mcp: FastMCP) -> None:
         errors: list[SE11Error] = []
 
         for name in name_list:
-            now = datetime.now(UTC)
-
             try:
-                # Navigate to SE11 fresh for each lookup to avoid stale DOM issues
-                # Small wait to let page stabilize before navigation
-                await page.wait_for_timeout(300)
-                tx_result = await sap_transaction_impl("SE11")
-                if not tx_result.success:
-                    errors.append(
-                        SE11Error(
-                            name=name,
-                            object_type=object_type,
-                            error=f"Failed to navigate to SE11: {tx_result.error}",
-                            retrieved_at=now,
-                        )
-                    )
-                    continue
-
-                # Determine field label based on object type and language
-                # German: "Datenbanktabelle" / "Datentyp"
-                # English: "Database table" / "Data type"
-                if object_type == "table":
-                    # Wait for SE11 screen to load by waiting for the radio button
-                    # This handles the async nature of SAP navigation
-                    table_radio = page.get_by_role("radio", name=re.compile(r"Datenbanktabelle|Database table", re.I))
-                    try:
-                        await table_radio.wait_for(state="visible", timeout=10000)
-                    except Exception:
-                        # If wait fails, capture page state for debugging
-                        page_title = await page.title()
-                        logger.warning("SE11: Page title when radio not found: %s", page_title)
-                        all_radios = page.get_by_role("radio")
-                        all_count = await all_radios.count()
-                        logger.warning("SE11: Total radio buttons on page: %d", all_count)
-                        errors.append(
-                            SE11Error(
-                                name=name,
-                                object_type=object_type,
-                                error=(
-                                    f"SE11 screen did not load (page title: '{page_title}'). "
-                                    "Could not find 'Database table' / 'Datenbanktabelle' radio button. "
-                                    "This tool currently supports German (DE) and English (EN) SAP languages."
-                                ),
-                                retrieved_at=now,
-                            )
-                        )
-                        continue
-                    await table_radio.click()
-                    await page.wait_for_timeout(100)
-
-                    # Fill the table name field - try multiple selectors
-                    table_field = page.locator('[id*="TBMA_VAL"], [id*="TBMA-VAL"]').first
-                    field_count = await table_field.count()
-                    logger.debug("SE11: Table field locator count: %d for %s", field_count, name)
-
-                    if field_count == 0:
-                        # Try by label
-                        table_field = page.get_by_role("textbox", name=re.compile(r"Tabellenname|Table name", re.I))
-                        field_count = await table_field.count()
-                        logger.debug("SE11: Table field by role count: %d for %s", field_count, name)
-
-                    if field_count == 0:
-                        # Try a broader selector
-                        table_field = page.locator("input[title*='Tabellenname'], input[title*='Table name']").first
-                        field_count = await table_field.count()
-                        logger.debug("SE11: Table field by title count: %d for %s", field_count, name)
-
-                    if field_count == 0:
-                        errors.append(
-                            SE11Error(
-                                name=name,
-                                object_type=object_type,
-                                error="Could not find table name field in SE11",
-                                retrieved_at=now,
-                            )
-                        )
-                        continue
-
-                    # Clear and fill - triple-click to select all, then type
-                    await table_field.click(click_count=3)  # Select all
-                    await page.wait_for_timeout(50)
-                    await page.keyboard.type(name.upper())  # Type the name
-
-                    # Verify the value was set
-                    field_value = await table_field.input_value()
-                    logger.debug("SE11: Table field value after fill: '%s' (expected: '%s')", field_value, name.upper())
-
-                else:  # structure
-                    # Wait for SE11 screen to load by waiting for the radio button
-                    type_radio = page.get_by_role("radio", name=re.compile(r"Datentyp|Data type", re.I))
-                    try:
-                        await type_radio.wait_for(state="visible", timeout=10000)
-                    except Exception:
-                        page_title = await page.title()
-                        logger.warning("SE11: Page title when radio not found: %s", page_title)
-                        errors.append(
-                            SE11Error(
-                                name=name,
-                                object_type=object_type,
-                                error=(
-                                    f"SE11 screen did not load (page title: '{page_title}'). "
-                                    "Could not find 'Data type' / 'Datentyp' radio button. "
-                                    "This tool currently supports German (DE) and English (EN) SAP languages."
-                                ),
-                                retrieved_at=now,
-                            )
-                        )
-                        continue
-                    await type_radio.click()
-                    await page.wait_for_timeout(100)
-
-                    # Fill the data type field
-                    type_field = page.get_by_role("textbox", name=re.compile(r"Dictionary.*Typ|Dictionary.*type", re.I))
-                    field_count = await type_field.count()
-                    if field_count == 0:
-                        errors.append(
-                            SE11Error(
-                                name=name,
-                                object_type=object_type,
-                                error="Could not find data type name field in SE11",
-                                retrieved_at=now,
-                            )
-                        )
-                        continue
-                    await type_field.click(click_count=3)
-                    await page.wait_for_timeout(50)
-                    await page.keyboard.type(name.upper())
-
-                # Click the Display button (more reliable than F7 in WebGUI)
-                await page.wait_for_timeout(500)  # Wait for UI to stabilize
-                display_button = page.get_by_role("button", name=re.compile(r"^Anzeigen$|^Display$", re.I))
-                btn_count = await display_button.count()
-                logger.debug("SE11: Display button count for %s: %d", name, btn_count)
-                if btn_count > 0:
-                    await display_button.first.click(force=True)
+                result = await _lookup_single_object(page, name, object_type)
+                if isinstance(result, SE11Entry):
+                    entries.append(result)
                 else:
-                    # Fall back to F7 - log warning as this may indicate unsupported language
-                    logger.warning(
-                        "SE11: Display button ('Anzeigen'/'Display') not found for %s, falling back to F7. "
-                        "If this fails, the SAP language may not be supported (only DE/EN tested).",
-                        name,
-                    )
-                    await page.keyboard.press("F7")
-                await page.wait_for_timeout(500)  # Wait after click
-                await page.wait_for_load_state("networkidle")
-
-                # Debug: check page title to verify navigation
-                page_title = await page.title()
-                logger.debug("SE11: Page title after F7 for %s: %s", name, page_title)
-
-                # Check status bar for errors
-                status_bar = page.locator("#sapStatusBarAll, [id*='STATUSBAR']").first
-                status_text = await status_bar.text_content() if await status_bar.count() > 0 else ""
-                logger.debug(
-                    "SE11: Status bar after F7 for %s: '%s'", name, status_text.strip() if status_text else "(empty)"
-                )
-
-                if status_text and any(
-                    err in status_text.lower()
-                    for err in ["existiert nicht", "does not exist", "nicht gefunden", "not found"]
-                ):
-                    errors.append(
-                        SE11Error(
-                            name=name,
-                            object_type=object_type,
-                            error=f"Object '{name}' not found in ABAP Dictionary",
-                            retrieved_at=now,
-                        )
-                    )
-                    # Press F3 to go back and continue with next
-                    await page.keyboard.press("F3")
-                    await page.wait_for_load_state("networkidle")
-                    continue
-
-                # Get accessibility snapshot
-                snapshot = await page.locator("body").aria_snapshot()
-                logger.debug("SE11: Got snapshot for %s, length: %d chars", name, len(snapshot))
-
-                # Parse the snapshot
-                parse_result = _parse_se11_yaml(snapshot, object_type)
-
-                # Log if parsing failed
-                if isinstance(parse_result, SE11Error):
-                    logger.warning("SE11: Parse failed for %s: %s", name, parse_result.error)
-                    # Save snapshot for debugging
-                    debug_path = Path(f"se11_debug_{name}.yaml")
-                    debug_path.write_text(snapshot, encoding="utf-8")
-                    logger.warning("SE11: Saved debug snapshot to %s", debug_path)
-
-                if isinstance(parse_result, SE11Entry):
-                    # Verify the parsed name matches what we requested
-                    if parse_result.name.upper() == name.upper():
-                        entries.append(parse_result)
-                    else:
-                        # Wrong object displayed - likely a navigation issue
-                        errors.append(
-                            SE11Error(
-                                name=name,
-                                object_type=object_type,
-                                error=f"Object '{name}' not found (screen showed '{parse_result.name}')",
-                                retrieved_at=now,
-                            )
-                        )
-                else:
-                    # Ensure error has the requested name (not "UNKNOWN" or wrong name)
-                    if parse_result.name != name.upper():
-                        parse_result = SE11Error(
-                            name=name,
-                            object_type=object_type,
-                            error=parse_result.error,
-                            retrieved_at=parse_result.retrieved_at,
-                        )
-                    errors.append(parse_result)
-
-                # No need for F3 - we re-navigate to SE11 for each lookup
-
+                    errors.append(result)
             except Exception as e:  # pylint: disable=broad-exception-caught
                 logger.exception("Error looking up %s in SE11", name)
                 errors.append(
@@ -499,12 +453,11 @@ def register_se11_tools(mcp: FastMCP) -> None:
                         name=name,
                         object_type=object_type,
                         error=f"Error looking up '{name}': {e}",
-                        retrieved_at=now,
+                        retrieved_at=datetime.now(UTC),
                     )
                 )
-                # No need for F3 recovery - we re-navigate to SE11 for each lookup
 
-        # Build the final result
+        # Build final result
         if entries:
             final_result = SE11Result(entries=entries, errors=errors)
         else:
@@ -514,12 +467,11 @@ def register_se11_tools(mcp: FastMCP) -> None:
                 errors=errors,
             )
 
-        # If output_file provided, write to file and return summary
+        # Write to file if requested
         if output_file:
             output_path = Path(output_file)
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Write full result as JSON
             with output_path.open("w", encoding="utf-8") as f:
                 json.dump(final_result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
 
@@ -534,10 +486,9 @@ def register_se11_tools(mcp: FastMCP) -> None:
                 sample_errors=[e.name for e in errors[:5]],
             )
 
-        # For large results without output_file, warn but still return
         if len(name_list) > MAX_INLINE_OBJECTS:
             logger.warning(
-                "Returning %d objects inline - consider using output_file parameter " "to avoid context overflow",
+                "Returning %d objects inline - consider using output_file parameter to avoid context overflow",
                 len(name_list),
             )
 
