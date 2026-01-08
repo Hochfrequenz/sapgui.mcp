@@ -71,6 +71,14 @@ from sapwebguimcp.models.sap_results import (
     ToolInfo,
     TransactionResult,
 )
+from sapwebguimcp.models.se11_models import (
+    SE11Entry,
+    SE11Error,
+    SE11Field,
+    SE11FileSummary,
+    SE11ObjectType,
+    SE11Result,
+)
 from sapwebguimcp.models.workflow_models import (
     Workflow,
     WorkflowDeleteResult,
@@ -150,6 +158,13 @@ __all__ = [
     "FeedbackLogResult",
     "IntentEntry",
     "IntentLogResult",
+    # SE11 models
+    "SE11Entry",
+    "SE11Error",
+    "SE11Field",
+    "SE11FileSummary",
+    "SE11ObjectType",
+    "SE11Result",
     # Workflow models
     "Workflow",
     "WorkflowDeleteResult",
