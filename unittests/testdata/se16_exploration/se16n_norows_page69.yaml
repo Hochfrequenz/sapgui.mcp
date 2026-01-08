@@ -1,0 +1,324 @@
+- 'main "TSTC: Display of Entries Found"':
+  - banner:
+    - button "Back (F3)"
+    - img "Company Logo"
+    - 'heading "TSTC: Display of Entries Found" [level=1]'
+    - button "Open system information"
+    - toolbar:
+      - button "Table Entry"
+      - button "Edit"
+      - button "Goto"
+      - button "System"
+      - button "Help"
+      - button "GUI Actions and Settings"
+    - button "Exit"
+    - toolbar:
+      - combobox "Enter transaction code"
+      - text: 
+      - button "Refresh"
+      - button "Display Selection Criteria"
+      - 'button "Selection Criteria: Business View"'
+      - button "Display Selection as ABAP"
+  - text: Search in Table
+  - textbox "Search in Table": TSTC
+  - button "SAP Transaction Codes"
+  - text: Number of Hits
+  - textbox "Number of Hits": "5.000"
+  - text: Runtime
+  - textbox "Runtime": "0"
+  - button "Maximum No. of Hits"
+  - 'textbox "ABAP System Field: Row Index of Internal Tables"': "5.000"
+  - text: Insert Column
+  - textbox "Insert Column"
+  - button "Import List Layout"
+  - button "Export List Layout"
+  - separator "Resize split screen between horizontal pane 2 and horizontal pane 1": 
+  - grid:
+    - rowgroup:
+      - toolbar:
+        - button "Details"
+        - separator
+        - button "Sort in Ascending Order"
+        - button "Sort in Descending Order"
+        - button "Find..."
+        - button "Find Next" [disabled]
+        - button ""
+        - separator
+        - button ""
+        - button "Subtotals" [disabled]
+        - separator
+        - button "Print"
+        - button "List Output"
+        - button "Export"
+        - separator
+        - button ""
+        - separator
+        - button "End User Documentation"
+        - separator
+        - button "Details"
+        - button "Show/Hide Empty Columns"
+        - button "Toggle full screen"
+    - rowgroup:
+      - row "Column for row selection Transaction Code Program Number CHAR05 data element for SYST HEX01 data element for SYST Message Class Transaction text":
+        - columnheader "Column for row selection": To select all, press the space bar.
+        - columnheader "Transaction Code"
+        - columnheader "Program"
+        - columnheader "Number"
+        - columnheader "CHAR05 data element for SYST"
+        - columnheader "HEX01 data element for SYST"
+        - columnheader "Message Class"
+        - columnheader "Transaction text"
+      - 'row "To select a row, press the space bar. /ISDFPS/11000009 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_OR02"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000009":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_OR02"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000010 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_ORSUP01"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000010":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_ORSUP01"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000011 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_ORMNT01"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000011":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_ORMNT01"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000012 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_CFDP01"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000012":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_CFDP01"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000013 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_FE02"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000013":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_FE02"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000014 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/MB_DELIV"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000014":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell [selected]:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/MB_DELIV"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000020 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_OPPE02"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000020":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_OPPE02"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000021 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_OPPE03"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000021":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_OPPE03"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000022 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_OPPE04"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000022":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_OPPE04"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000023 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_OPPE05"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000023":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_OPPE05"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000024 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_OPPE06"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000024":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_OPPE06"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000025 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_OPPE11"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000025":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_OPPE11"':
+          - textbox
+      - 'row "To select a row, press the space bar. /ISDFPS/11000026 SAPLS_CUS_IMG_ACTIVITY 200 00 IMG Activity: /ISDFPS/_OPPE13"':
+        - gridcell "To select a row, press the space bar."
+        - gridcell "/ISDFPS/11000026":
+          - textbox
+        - gridcell "SAPLS_CUS_IMG_ACTIVITY":
+          - textbox
+        - gridcell "200":
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell "00":
+          - textbox
+        - gridcell:
+          - textbox
+        - 'gridcell "IMG Activity: /ISDFPS/_OPPE13"':
+          - textbox
+    - rowgroup
+    - rowgroup
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Client 100":
+        - cell
+        - cell
+        - cell "Client"
+        - cell "100"
+        - cell
+      - menuitemradio "User KLEINK":
+        - cell
+        - cell
+        - cell "User"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Screen SAPLSE16N/0200":
+        - cell
+        - cell
+        - cell "Screen"
+        - cell "SAPLSE16N/0200"
+        - cell
+      - menuitemradio "Transaction SE16N":
+        - cell
+        - cell
+        - cell "Transaction"
+        - cell "SE16N"
+        - cell
+      - row "E2E Time 200 ms":
+        - cell
+        - cell
+        - cell "E2E Time"
+        - cell "200 ms"
+        - cell
+      - row "WebGUI Time 129 ms":
+        - cell
+        - cell
+        - cell "WebGUI Time"
+        - cell "129 ms"
+        - cell

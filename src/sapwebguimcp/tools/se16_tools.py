@@ -1,0 +1,349 @@
+"""
+SE16 (Data Browser) query tool for SAP table data.
+
+This module provides a tool to query SAP table data via SE16N transaction,
+returning structured row data with automatic pagination for large result sets.
+"""
+
+import json
+import logging
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+from fastmcp import Context, FastMCP
+from mcp.types import ToolAnnotations
+
+from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row, get_browser_manager
+from sapwebguimcp.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
+from sapwebguimcp.tools.sap_tool_impl import sap_fill_form_impl, sap_keyboard_impl, sap_transaction_impl
+
+logger = logging.getLogger(__name__)
+
+__all__ = ["register_se16_tools"]
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+# Default maximum rows to return
+DEFAULT_MAX_HITS = 100
+
+# Rows per page (approximate, based on ALV grid lazy loading)
+ROWS_PER_PAGE = 13
+
+# Wait time between pages (seconds)
+PAGE_WAIT_TIME = 1.0
+
+# Maximum pages to traverse (safety limit)
+MAX_PAGES = 500
+
+
+# =============================================================================
+# SE16 Query Implementation
+# =============================================================================
+
+
+def _empty_failure(
+    error: str,
+    table: str,
+    retrieved_at: datetime,
+    total_hits: int = 0,
+    columns: list[str] | None = None,
+) -> SE16Result:
+    """Create a failure SE16Result with empty rows."""
+    return SE16Result.failure(
+        error=error,
+        table=table,
+        total_hits=total_hits,
+        returned_rows=0,
+        truncated=False,
+        columns=columns or [],
+        rows=[],
+        retrieved_at=retrieved_at,
+    )
+
+
+async def _fill_se16n_fields(table: str, max_hits: int) -> str | None:
+    """
+    Fill SE16N table name and max hits fields.
+
+    Tries English labels first, then German.
+
+    Returns:
+        Error message if failed, None if successful.
+    """
+    # Try English labels first
+    fill_result = await sap_fill_form_impl(
+        {"Table": table.upper(), "Max. Number of Hits": str(max_hits)},
+        strict=False,
+    )
+    if "Table" not in fill_result.not_found:
+        return None
+
+    # Try German labels
+    fill_result = await sap_fill_form_impl(
+        {"Tabelle": table.upper(), "Max. Anzahl Treffer": str(max_hits)},
+        strict=False,
+    )
+    if "Tabelle" in fill_result.not_found:
+        return f"Failed to set table name field. Not found: {fill_result.not_found}"
+
+    return None
+
+
+async def _focus_grid(page: Any) -> None:
+    """Focus the ALV grid for pagination (required for PageDown to work)."""
+    try:
+        grid = page.locator("[role='grid']").first
+        if await grid.count() > 0:
+            await grid.click()
+            await page.wait_for_timeout(500)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.warning("SE16: Could not focus grid: %s", e)
+
+
+async def _collect_rows_with_pagination(
+    page: Any,
+    total_hits: int,
+    columns: list[str],
+    ctx: Context | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Collect all rows from SE16N results using pagination.
+
+    Uses PageDown to scroll through lazy-loaded ALV grid, collecting
+    rows from each page until all are collected or no new rows found.
+
+    Args:
+        page: Playwright page object
+        total_hits: Expected total rows (from "Number of Hits")
+        columns: Column names for row parsing
+        ctx: FastMCP context for progress reporting (optional)
+
+    Returns:
+        List of row dicts
+    """
+    all_rows: list[dict[str, Any]] = []
+    seen_keys: set[str] = set()  # Track unique row keys to detect duplicates
+    page_num = 0
+    stuck_count = 0
+    last_first_key: str | None = None
+
+    while len(all_rows) < total_hits and page_num < MAX_PAGES:
+        # Get snapshot and parse rows
+        snapshot = await page.locator("body").aria_snapshot()
+        rows = parse_se16_rows(snapshot, columns)
+
+        if not rows:
+            logger.debug("SE16: Page %d - no rows found", page_num)
+            stuck_count += 1
+            if stuck_count >= 3:
+                logger.warning("SE16: No rows found for 3 consecutive pages, stopping")
+                break
+            await page.wait_for_timeout(int(PAGE_WAIT_TIME * 2000))
+            continue
+
+        stuck_count = 0
+
+        # Get first row's key (first column value) for duplicate detection
+        first_key = str(rows[0].get(columns[0], "")) if rows and columns else None
+
+        # Detect if we're stuck on the same page
+        if first_key == last_first_key:
+            logger.debug("SE16: Page %d - same first key, likely at end", page_num)
+            break
+
+        last_first_key = first_key
+
+        # Add new rows (skip duplicates)
+        new_count = 0
+        for row in rows:
+            # Create a key from all values for deduplication
+            row_key = "|".join(str(v) for v in row.values())
+            if row_key not in seen_keys:
+                seen_keys.add(row_key)
+                all_rows.append(row)
+                new_count += 1
+
+        logger.debug(
+            "SE16: Page %d - collected %d new rows (total: %d/%d)",
+            page_num,
+            new_count,
+            len(all_rows),
+            total_hits,
+        )
+
+        # Report progress if context available
+        if ctx:
+            try:
+                await ctx.report_progress(progress=len(all_rows), total=total_hits)
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass  # Progress reporting is optional, don't fail on errors
+
+        # Check if we've collected all rows
+        if len(all_rows) >= total_hits:
+            logger.info("SE16: Collected all %d rows", len(all_rows))
+            break
+
+        # PageDown to next page
+        await sap_keyboard_impl("PageDown")
+        await page.wait_for_timeout(int(PAGE_WAIT_TIME * 1000))
+        page_num += 1
+
+    return all_rows
+
+
+async def _execute_se16_query(
+    table: str,
+    filters: dict[str, str] | None,
+    max_hits: int,
+    ctx: Context | None = None,
+) -> SE16Result:
+    """
+    Execute SE16N query and collect results.
+
+    Args:
+        table: Table name to query
+        filters: Optional filter dict {field_name: value}
+        max_hits: Maximum rows to return
+        ctx: FastMCP context for progress reporting
+
+    Returns:
+        SE16Result with collected data
+    """
+    now = datetime.now(UTC)
+
+    # Navigate to SE16N
+    if not (await sap_transaction_impl("SE16N")).success:
+        return _empty_failure("Failed to navigate to SE16N", table, now)
+
+    page = await (await get_browser_manager()).get_current_page()
+    await page.wait_for_timeout(1000)  # Wait for SE16N screen to render
+
+    # Set table name and max hits
+    if fill_error := await _fill_se16n_fields(table, max_hits):
+        return _empty_failure(fill_error, table, now)
+
+    # Log warning for filters (not yet implemented)
+    for field_name, value in (filters or {}).items():
+        logger.warning("SE16: Filter %s=%s not yet implemented", field_name, value)
+
+    # Execute query (F8) and wait for results
+    await sap_keyboard_impl("F8")
+    await page.wait_for_timeout(3000)
+
+    # Get snapshot to check for errors and parse results
+    snapshot = await page.locator("body").aria_snapshot()
+
+    # Check for "not found" or error messages
+    if "does not exist" in snapshot.lower() or "existiert nicht" in snapshot.lower():
+        return _empty_failure(f"Table '{table}' not found in SAP", table, now)
+
+    # Parse hit count and columns
+    total_hits = parse_se16_hit_count(snapshot)
+    columns = parse_se16_columns(snapshot)
+
+    if not columns:
+        return _empty_failure(
+            "Could not parse column headers from SE16N results",
+            table,
+            now,
+            total_hits=total_hits,
+        )
+
+    # Handle empty results
+    if total_hits == 0:
+        return SE16Result(
+            table=table,
+            total_hits=0,
+            returned_rows=0,
+            truncated=False,
+            columns=columns,
+            rows=[],
+            retrieved_at=now,
+        )
+
+    # Focus grid and collect all rows with pagination
+    await _focus_grid(page)
+    rows = [SE16Row(data=row) for row in await _collect_rows_with_pagination(page, total_hits, columns, ctx)]
+
+    return SE16Result(
+        table=table,
+        total_hits=total_hits,
+        returned_rows=len(rows),
+        truncated=total_hits >= max_hits,
+        columns=columns,
+        rows=rows,
+        retrieved_at=now,
+    )
+
+
+# =============================================================================
+# MCP Tool Registration
+# =============================================================================
+
+
+def register_se16_tools(mcp: FastMCP) -> None:
+    """Register SE16 tools with the MCP server."""
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            readOnlyHint=True,
+            openWorldHint=False,
+        ),
+        description=(
+            "Query SAP table data via SE16N (Data Browser). Returns structured rows with column names.\n\n"
+            "**Performance:** ~7 rows/second due to pagination.\n"
+            "- 100 rows: ~14 seconds\n"
+            "- 500 rows: ~1.5 minutes\n"
+            "- 1000 rows: ~2.5 minutes\n"
+            "- 5000 rows: ~12 minutes\n\n"
+            "For large results, use `output_file` to write JSON to disk and receive a summary."
+        ),
+    )
+    async def sap_se16_query(
+        ctx: Context,
+        table: str,
+        filters: dict[str, str] | None = None,
+        max_hits: int = DEFAULT_MAX_HITS,
+        output_file: str | None = None,
+    ) -> SE16Result | SE16FileSummary:
+        """
+        Query SAP table data via SE16N.
+
+        Args:
+            ctx: FastMCP context (injected)
+            table: Table name to query (e.g., "MARA", "T000", "TSTC")
+            filters: Optional filter dict {field_name: value} (not yet implemented)
+            max_hits: Maximum rows to return (default 100)
+            output_file: If provided, write full results to this JSON file and return summary
+
+        Returns:
+            SE16Result with all rows (inline), or
+            SE16FileSummary with file path and preview (when output_file provided)
+        """
+        logger.info("SE16: Querying table %s with max_hits=%d", table, max_hits)
+
+        result = await _execute_se16_query(table, filters, max_hits, ctx)
+
+        # Write to file if requested
+        if output_file and result.success:
+            output_path = Path(output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with output_path.open("w", encoding="utf-8") as f:
+                json.dump(result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
+
+            return SE16FileSummary(
+                success=True,
+                output_file=str(output_path.absolute()),
+                table=result.table,
+                total_hits=result.total_hits,
+                returned_rows=result.returned_rows,
+                truncated=result.truncated,
+                columns=result.columns,
+                sample_rows=result.rows[:5],  # First 5 rows as preview
+            )
+
+        return result
