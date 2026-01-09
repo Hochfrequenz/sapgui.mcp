@@ -94,8 +94,20 @@ async def _click_display_button(page: Any) -> None:
 
 
 async def _check_class_not_found(page: Any, class_name: str) -> SE24Error | None:
-    """Check if status bar shows class not found. Returns error or None."""
+    """Check if class was not found by verifying page state. Returns error or None."""
     now = datetime.now(UTC)
+
+    # Primary check: Are we still on the initial screen?
+    # If we successfully displayed a class, the page title changes from "Einstieg"/"Initial"
+    page_title = await page.title()
+    is_initial_screen = "Einstieg" in page_title or "Initial" in page_title
+
+    if not is_initial_screen:
+        # We're on a display screen, so the class was found
+        return None
+
+    # We're still on initial screen - this means the class was not found
+    # Check status bar for specific error message (but don't rely solely on it)
     status_bar = page.locator("#sapStatusBarAll, [id*='STATUSBAR']").first
     status_text = await status_bar.text_content() if await status_bar.count() > 0 else ""
 
@@ -106,16 +118,21 @@ async def _check_class_not_found(page: Any, class_name: str) -> SE24Error | None
         "not found",
         "nicht vorhanden",
     }
-    if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
-        await page.keyboard.press("F3")
-        await page.wait_for_load_state("networkidle")
-        return SE24Error(
-            class_name=class_name,
-            error=f"Class/interface '{class_name}' not found",
-            retrieved_at=now,
-        )
 
-    return None
+    # If status bar confirms not found, or we're still on initial screen after F7
+    if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
+        error_msg = f"Class/interface '{class_name}' not found"
+    else:
+        # Still on initial screen but no clear error - might be a display issue
+        error_msg = f"Class/interface '{class_name}' not found (still on initial screen)"
+
+    await page.keyboard.press("F3")
+    await page.wait_for_load_state("networkidle")
+    return SE24Error(
+        class_name=class_name,
+        error=error_msg,
+        retrieved_at=now,
+    )
 
 
 async def _click_tab(page: Any, tab_name: str) -> bool:
