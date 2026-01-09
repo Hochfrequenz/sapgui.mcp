@@ -94,6 +94,19 @@ from sapwebguimcp.models.se37_models import (
     SE37Result,
     SE37TypingMethod,
 )
+from sapwebguimcp.models.se24_models import (
+    SE24Attribute,
+    SE24Entry,
+    SE24Error,
+    SE24FileSummary,
+    SE24Method,
+    SE24MethodException,
+    SE24MethodParameter,
+    SE24ObjectType,
+    SE24ParameterCategory,
+    SE24Result,
+    SE24Visibility,
+)
 from sapwebguimcp.models.se93_models import (
     SE93Entry,
     SE93Error,
@@ -200,6 +213,18 @@ __all__ = [
     "SE37ParameterCategory",
     "SE37Result",
     "SE37TypingMethod",
+    # SE24 models
+    "SE24Attribute",
+    "SE24Entry",
+    "SE24Error",
+    "SE24FileSummary",
+    "SE24Method",
+    "SE24MethodException",
+    "SE24MethodParameter",
+    "SE24ObjectType",
+    "SE24ParameterCategory",
+    "SE24Result",
+    "SE24Visibility",
     # SE93 models
     "SE93Entry",
     "SE93Error",

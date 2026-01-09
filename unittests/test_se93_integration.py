@@ -428,3 +428,170 @@ async def test_se93_transaction_not_found(sap_mcp_client: ClientSession) -> None
     print("=" * 80)
     print("Transaction not found snapshot saved")
     print("=" * 80)
+
+
+# =============================================================================
+# Integration Tests - Test the actual sap_se93_lookup tool
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_se93_lookup_single_dialog_transaction(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_se93_lookup with a single dialog transaction (VA01).
+    """
+    from sapwebguimcp.models import SE93Result
+
+    # Login first
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    # Call the SE93 lookup tool
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se93_lookup",
+        {"tcodes": "VA01"},
+        SE93Result,
+    )
+
+    assert result.success, f"SE93 lookup failed: {result.error}"
+    assert len(result.entries) == 1
+    assert len(result.errors) == 0
+
+    entry = result.entries[0]
+    assert entry.tcode == "VA01"
+    assert entry.transaction_type == "dialog"
+    assert entry.program == "SAPMV45A"
+    assert entry.package == "VA"
+    assert "Kundenauftr" in entry.description or "Sales Order" in entry.description
+
+
+@pytest.mark.anyio
+async def test_se93_lookup_single_report_transaction(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_se93_lookup with a single report transaction (SE38).
+    """
+    from sapwebguimcp.models import SE93Result
+
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se93_lookup",
+        {"tcodes": "SE38"},
+        SE93Result,
+    )
+
+    assert result.success, f"SE93 lookup failed: {result.error}"
+    assert len(result.entries) == 1
+
+    entry = result.entries[0]
+    assert entry.tcode == "SE38"
+    assert entry.transaction_type == "report"
+    assert "ABAP" in entry.description
+    assert entry.selection_screen is not None  # Report-specific field
+
+
+@pytest.mark.anyio
+async def test_se93_lookup_batch_transactions(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_se93_lookup with multiple transactions (batch lookup).
+    """
+    from sapwebguimcp.models import SE93Result
+
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se93_lookup",
+        {"tcodes": ["VA01", "SE38", "PFCG"]},
+        SE93Result,
+    )
+
+    assert result.success, f"SE93 lookup failed: {result.error}"
+    assert len(result.entries) == 3
+    assert len(result.errors) == 0
+
+    # Verify all tcodes were returned
+    tcodes = {e.tcode for e in result.entries}
+    assert tcodes == {"VA01", "SE38", "PFCG"}
+
+
+@pytest.mark.anyio
+async def test_se93_lookup_not_found(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_se93_lookup with non-existent transaction.
+    """
+    from sapwebguimcp.models import SE93Result
+
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se93_lookup",
+        {"tcodes": "ZZZNOTEXIST99"},
+        SE93Result,
+    )
+
+    # Should succeed overall but with error entry
+    assert len(result.entries) == 0
+    assert len(result.errors) == 1
+    assert result.errors[0].tcode == "ZZZNOTEXIST99"
+    assert "not found" in result.errors[0].error.lower()
+
+
+@pytest.mark.anyio
+async def test_se93_lookup_mixed_success_and_failure(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_se93_lookup with mix of valid and invalid transactions.
+    """
+    from sapwebguimcp.models import SE93Result
+
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se93_lookup",
+        {"tcodes": ["VA01", "ZZZNOTEXIST99", "SE38"]},
+        SE93Result,
+    )
+
+    # Should have partial success
+    assert result.success  # At least one succeeded
+    assert len(result.entries) == 2  # VA01 and SE38
+    assert len(result.errors) == 1  # ZZZNOTEXIST99
+
+    # Verify correct entries
+    tcodes = {e.tcode for e in result.entries}
+    assert tcodes == {"VA01", "SE38"}
+    assert result.errors[0].tcode == "ZZZNOTEXIST99"
+
+
+@pytest.mark.anyio
+async def test_se93_lookup_gui_capabilities(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that GUI capabilities are correctly parsed.
+    """
+    from sapwebguimcp.models import SE93Result
+
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se93_lookup",
+        {"tcodes": "VA01"},
+        SE93Result,
+    )
+
+    assert result.success
+    entry = result.entries[0]
+
+    # VA01 should support all GUI types
+    assert entry.gui_windows is True
+    assert entry.gui_java is True
+    # gui_html may vary by system configuration
