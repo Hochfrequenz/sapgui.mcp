@@ -116,85 +116,46 @@ which raise RuntimeError on failures.
 """
 
 import asyncio
-import json
 import os
-import re
 from pathlib import Path
-from typing import Any
 
 import pytest
+from conftest import call_tool_typed
 from mcp import ClientSession
+
+from sapwebguimcp.models import (
+    CapabilitiesResult,
+    ClickResult,
+    ClosePopupResult,
+    DiscoveredButtons,
+    DiscoveredFields,
+    EvaluateResult,
+    FillFormResult,
+    FillResult,
+    FormFieldsResult,
+    HtmlResult,
+    IntentLogResult,
+    KeepaliveResult,
+    KeyboardResult,
+    LoginResult,
+    ScreenInfo,
+    ScreenText,
+    SessionStatus,
+    SetFieldResult,
+    ShortcutsResult,
+    SnapshotResult,
+    StatusBarInfo,
+    TableCellClickResult,
+    TableData,
+    TransactionResult,
+    WaitResult,
+    WorkflowDeleteResult,
+    WorkflowListResult,
+    WorkflowSaveResult,
+)
 
 # HTML snapshot directory for offline selector tests
 HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
-
-
-def _get_content_text(content_item: Any) -> str:
-    """
-    Extract text from a content item, handling both TextContent and EmbeddedResource.
-
-    browser_get_html returns EmbeddedResource with base64-encoded blob for large HTML,
-    while other tools return TextContent with a .text attribute.
-
-    Args:
-        content_item: A content item from result.content[0]
-
-    Returns:
-        The text content as a string
-    """
-    import base64
-
-    if hasattr(content_item, "text"):
-        return content_item.text
-    elif hasattr(content_item, "resource") and hasattr(content_item.resource, "blob"):
-        return base64.b64decode(content_item.resource.blob).decode("utf-8")
-    else:
-        return str(content_item)
-
-
-def parse_tool_response(result: Any) -> dict[str, Any]:
-    """
-    Parse a tool result that returns a JSON-serialized Pydantic model.
-
-    All SAP and browser tools now return Pydantic models that get JSON-serialized
-    in the MCP response. This helper parses the JSON and returns the dict.
-
-    Args:
-        result: The CallToolResult from client.call_tool()
-
-    Returns:
-        Parsed dict from the JSON response
-
-    Raises:
-        AssertionError: If result is empty or not valid JSON
-    """
-    assert result.content, "Expected non-empty response from tool"
-    text = _get_content_text(result.content[0])
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        # If not JSON, return a dict with the text (for backward compatibility)
-        return {"_raw_text": text, "success": "error" not in text.lower()}
-
-
-def assert_tool_success(result: Any, context: str = "") -> dict[str, Any]:
-    """
-    Assert that a tool call was successful and return the parsed response.
-
-    Args:
-        result: The CallToolResult from client.call_tool()
-        context: Optional context for error messages
-
-    Returns:
-        Parsed dict from the JSON response
-
-    Raises:
-        AssertionError: If the tool returned an error
-    """
-    data = parse_tool_response(result)
-    ctx = f" ({context})" if context else ""
-    assert data.get("success", True), f"Tool failed{ctx}: {data.get('error', data)}"
-    return data
 
 
 async def capture_html_snapshot(
@@ -216,27 +177,8 @@ async def capture_html_snapshot(
     Returns:
         The captured HTML content.
     """
-    result = await client.call_tool("browser_get_html", {})
-    if not result.content:
-        raise RuntimeError("browser_get_html returned empty content")
-
-    # Handle both TextContent and EmbeddedResource (base64 encoded)
-    content_item = result.content[0]
-    if hasattr(content_item, "text"):
-        html_content = content_item.text
-    elif hasattr(content_item, "resource") and hasattr(content_item.resource, "blob"):
-        import base64
-
-        html_content = base64.b64decode(content_item.resource.blob).decode("utf-8")
-    else:
-        # Try to get JSON response and extract html
-        import json
-
-        try:
-            data = json.loads(str(content_item))
-            html_content = data.get("html", str(content_item))
-        except (json.JSONDecodeError, TypeError):
-            html_content = str(content_item)
+    result = await call_tool_typed(client, "browser_get_html", {}, HtmlResult)
+    html_content = result.html
 
     # Include language in filename for multi-language snapshots
     language = os.environ.get("SAP_LANGUAGE", "EN").lower()
@@ -296,10 +238,9 @@ async def _wait_for_transaction_screen(
         )
 
     selector = _TRANSACTION_WAIT_SELECTORS[tcode_upper]
-    result = await client.call_tool("browser_wait", {"selector": selector, "timeout": timeout})
-    data = parse_tool_response(result)
-    if not data.get("success", True):
-        raise RuntimeError(f"Wait for {tcode} failed: {data.get('error', data)}")
+    result = await call_tool_typed(client, "browser_wait", {"selector": selector, "timeout": timeout}, WaitResult)
+    if not result.success:
+        raise RuntimeError(f"Wait for {tcode} failed: {result.error}")
 
 
 async def _wait_for_easy_access(client: ClientSession, timeout: int = 5000) -> None:
@@ -315,10 +256,9 @@ async def _wait_for_easy_access(client: ClientSession, timeout: int = 5000) -> N
     Raises:
         RuntimeError: If the wait times out or fails
     """
-    result = await client.call_tool("browser_wait", {"selector": "#ToolbarOkCode", "timeout": timeout})
-    data = parse_tool_response(result)
-    if not data.get("success", True):
-        raise RuntimeError(f"Wait for Easy Access failed: {data.get('error', data)}")
+    result = await call_tool_typed(client, "browser_wait", {"selector": "#ToolbarOkCode", "timeout": timeout}, WaitResult)
+    if not result.success:
+        raise RuntimeError(f"Wait for Easy Access failed: {result.error}")
 
 
 @pytest.mark.anyio
@@ -348,26 +288,13 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "EN")
 
-    result = await sap_mcp_client.call_tool("sap_login", {})
-
-    # Tool now returns structured JSON with success/error fields
-    data = assert_tool_success(result, "sap_login")
-    assert data.get("url"), "Expected URL in login response"
+    result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert result.success, f"Login failed: {result.error}"
+    assert result.url, "Expected URL in login response"
 
     # Verify browser state: check that SAP Easy Access loaded
-    html_result = await sap_mcp_client.call_tool("browser_get_html", {})
-    assert html_result.content, "Expected HTML response"
-
-    # Handle both TextContent and EmbeddedResource (base64 encoded)
-    content_item = html_result.content[0]
-    if hasattr(content_item, "text"):
-        page_html = content_item.text
-    elif hasattr(content_item, "resource") and hasattr(content_item.resource, "blob"):
-        import base64
-
-        page_html = base64.b64decode(content_item.resource.blob).decode("utf-8")
-    else:
-        page_html = str(content_item)
+    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
+    page_html = html_result.html
 
     # SAP Easy Access page should have the OK-Code field
     assert "toolbarokcode" in page_html.lower(), (
@@ -397,65 +324,59 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
     This allows unit tests to verify selectors for settings_button,
     okcode_checkbox, save_settings, and close_dialog.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Try to find and click the settings button using browser_evaluate
     # This mirrors the logic in _enable_okcode_field
-    settings_clicked = await sap_mcp_client.call_tool(
-        "browser_evaluate",
-        {
-            "expression": """
-            (function() {
-                // Try various settings button selectors
-                var selectors = [
-                    '[id*="settingsButton"]',
-                    '[title*="Setting" i]',
-                    '[title*="Einstellung" i]',
-                    'button[id*="gear" i]',
-                    '[aria-label*="Setting" i]'
-                ];
-                for (var i = 0; i < selectors.length; i++) {
-                    var btn = document.querySelector(selectors[i]);
-                    if (btn) {
-                        btn.click();
-                        return 'clicked: ' + selectors[i];
-                    }
+    settings_eval = await call_tool_typed(sap_mcp_client, "browser_evaluate", {
+        "expression": """
+        (function() {
+            // Try various settings button selectors
+            var selectors = [
+                '[id*="settingsButton"]',
+                '[title*="Setting" i]',
+                '[title*="Einstellung" i]',
+                'button[id*="gear" i]',
+                '[aria-label*="Setting" i]'
+            ];
+            for (var i = 0; i < selectors.length; i++) {
+                var btn = document.querySelector(selectors[i]);
+                if (btn) {
+                    btn.click();
+                    return 'clicked: ' + selectors[i];
                 }
-                return 'not found';
-            })()
-            """
-        },
-    )
+            }
+            return 'not found';
+        })()
+        """
+    }, EvaluateResult)
 
-    if settings_clicked.content and "clicked" in _get_content_text(settings_clicked.content[0]):
+    if settings_eval.result and "clicked" in str(settings_eval.result):
         await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
         await capture_html_snapshot(sap_mcp_client, "settings_dialog")
 
         # Close the dialog
-        await sap_mcp_client.call_tool(
-            "browser_evaluate",
-            {
-                "expression": """
-                (function() {
-                    var selectors = [
-                        'button:contains("Close")',
-                        'button:contains("Schließen")',
-                        '[id*="closeButton"]',
-                        'button[aria-label*="Close" i]'
-                    ];
-                    for (var i = 0; i < selectors.length; i++) {
-                        try {
-                            var btn = document.querySelector(selectors[i]);
-                            if (btn) { btn.click(); return 'closed'; }
-                        } catch(e) {}
-                    }
-                    // Try pressing Escape
-                    return 'escape';
-                })()
-                """
-            },
-        )
-        await sap_mcp_client.call_tool("sap_keyboard", {"key": "Escape"})
+        await call_tool_typed(sap_mcp_client, "browser_evaluate", {
+            "expression": """
+            (function() {
+                var selectors = [
+                    'button:contains("Close")',
+                    'button:contains("Schließen")',
+                    '[id*="closeButton"]',
+                    'button[aria-label*="Close" i]'
+                ];
+                for (var i = 0; i < selectors.length; i++) {
+                    try {
+                        var btn = document.querySelector(selectors[i]);
+                        if (btn) { btn.click(); return 'closed'; }
+                    } catch(e) {}
+                }
+                // Try pressing Escape
+                return 'escape';
+            })()
+            """
+        }, EvaluateResult)
+        await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Escape"}, KeyboardResult)
 
 
 @pytest.mark.anyio
@@ -468,23 +389,20 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
     sap_language = os.environ.get("SAP_LANGUAGE", "EN")
 
     # Login (auto-login with credentials from environment, or skip if already logged in)
-    login_result = await sap_mcp_client.call_tool("sap_login", {})
-    assert_tool_success(login_result, "sap_login")
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
 
     # Test the sap_transaction tool with SU3 (user profile)
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SU3"})
-
-    # Tool returns structured JSON with success/error fields
-    data = assert_tool_success(result, "sap_transaction SU3")
-    assert data.get("tcode", "").upper() == "SU3", f"Expected tcode SU3: {data}"
+    result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SU3"}, TransactionResult)
+    assert result.success, f"Transaction failed: {result.error}"
+    assert result.tcode and result.tcode.upper() == "SU3", f"Expected tcode SU3: {result}"
 
     # Wait for SU3 screen to load (user profile has address-related fields)
     await _wait_for_transaction_screen(sap_mcp_client, "SU3")
 
     # Verify SU3 actually opened by checking the page content
-    html_result = await sap_mcp_client.call_tool("browser_get_html", {})
-    assert html_result.content, "Expected HTML response"
-    page_html = _get_content_text(html_result.content[0]).lower()
+    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
+    page_html = html_result.html.lower()
 
     # Check that we're no longer on the Easy Access menu (SMEN)
     assert "sap easy access" not in page_html, "Still on SAP Easy Access menu. Transaction SU3 did not open."
@@ -512,15 +430,14 @@ async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> N
     This is a negative test to verify the transaction entry mechanism works.
     If SAP shows an error message, it means the transaction code was received.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "INVALIDTCODE123"})
-    assert result.content, "Expected response from sap_transaction"
+    result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "INVALIDTCODE123"}, TransactionResult)
+    # Note: result may or may not be success - we just check page content
 
     # Get the page HTML to check for error message in the status bar
-    html_result = await sap_mcp_client.call_tool("browser_get_html", {})
-    assert html_result.content, "Expected HTML response"
-    page_html = _get_content_text(html_result.content[0]).lower()
+    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
+    page_html = html_result.html.lower()
 
     # SAP should show an error message about invalid transaction code
     # - German: "Transaktion INVALIDTCODE123 existiert nicht"
@@ -545,17 +462,17 @@ async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) 
     - They should become /n/IWFND/GW_CLIENT (not just /IWFND/GW_CLIENT)
     - The /n prefix tells SAP to open a new transaction
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Test with a namespace transaction (starts with /)
     # /IWFND/GW_CLIENT is the SAP Gateway Client for testing OData services
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "/IWFND/GW_CLIENT"})
-
-    assert result.content, "Expected response from sap_transaction"
-    response_text = _get_content_text(result.content[0]).lower()
+    result = await call_tool_typed(
+        sap_mcp_client, "sap_transaction", {"tcode": "/IWFND/GW_CLIENT"}, TransactionResult
+    )
 
     # Should indicate transaction executed (or error if not authorized)
-    assert "executed" in response_text or "error" in response_text, f"Unexpected response: {response_text}"
+    # TransactionResult has success, tcode, error fields
+    assert result.success or result.error, f"Expected success or error in response: {result}"
 
 
 @pytest.mark.anyio
@@ -571,20 +488,21 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "EN")
 
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Step 1: Open SE11 (ABAP Dictionary)
-    result1 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE11", "new_window": False})
-    data1 = assert_tool_success(result1, "sap_transaction SE11")
-    assert not data1.get("new_window"), f"SE11 should open in current window: {data1}"
+    result1 = await call_tool_typed(
+        sap_mcp_client, "sap_transaction", {"tcode": "SE11", "new_window": False}, TransactionResult
+    )
+    assert result1.success, f"SE11 transaction failed: {result1.error}"
+    assert not result1.new_window, f"SE11 should open in current window: {result1}"
 
     # Wait for SE11 to load (has "Database table" radio button)
     await _wait_for_transaction_screen(sap_mcp_client, "SE11")
 
     # Verify SE11 is displayed (ABAP Dictionary / Data Dictionary)
-    html1 = await sap_mcp_client.call_tool("browser_get_html", {})
-    html1_data = parse_tool_response(html1)
-    page_html1 = html1_data.get("html", html1_data.get("_raw_text", "")).lower()
+    html1_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
+    page_html1 = html1_result.html.lower()
     if sap_language == "DE":
         assert any(
             phrase in page_html1 for phrase in ["dictionary", "wörterbuch", "se11"]
@@ -595,17 +513,18 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
         ), "SE11 (ABAP Dictionary) should be displayed"
 
     # Step 2: Open SE16 (Data Browser) - this should REPLACE SE11
-    result2 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16", "new_window": False})
-    data2 = assert_tool_success(result2, "sap_transaction SE16")
-    assert not data2.get("new_window"), f"SE16 should open in current window: {data2}"
+    result2 = await call_tool_typed(
+        sap_mcp_client, "sap_transaction", {"tcode": "SE16", "new_window": False}, TransactionResult
+    )
+    assert result2.success, f"SE16 transaction failed: {result2.error}"
+    assert not result2.new_window, f"SE16 should open in current window: {result2}"
 
     # Wait for SE16 to load (has table name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Verify SE16 is displayed and SE11 is gone
-    html2 = await sap_mcp_client.call_tool("browser_get_html", {})
-    html2_data = parse_tool_response(html2)
-    page_html2 = html2_data.get("html", html2_data.get("_raw_text", "")).lower()
+    html2_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
+    page_html2 = html2_result.html.lower()
 
     # SE16 should be visible (Data Browser / Table Contents)
     if sap_language == "DE":
@@ -628,29 +547,34 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
 
     The /o prefix opens a new SAP session without affecting the current one.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Step 1: Open SE11 (ABAP Dictionary) in current window
-    result1 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE11", "new_window": False})
-    data1 = assert_tool_success(result1, "sap_transaction SE11")
-    assert not data1.get("new_window"), f"SE11 should open in current window: {data1}"
+    result1 = await call_tool_typed(
+        sap_mcp_client, "sap_transaction", {"tcode": "SE11", "new_window": False}, TransactionResult
+    )
+    assert result1.success, f"SE11 transaction failed: {result1.error}"
+    assert not result1.new_window, f"SE11 should open in current window: {result1}"
 
     # Wait for SE11 to load (has "Database table" radio button)
     await _wait_for_transaction_screen(sap_mcp_client, "SE11")
 
     # Step 2: Open SE16 in NEW window - this should NOT replace SE11
-    result2 = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16", "new_window": True})
-    data2 = assert_tool_success(result2, "sap_transaction SE16 new_window")
+    result2 = await call_tool_typed(
+        sap_mcp_client, "sap_transaction", {"tcode": "SE16", "new_window": True}, TransactionResult
+    )
+    assert result2.success, f"SE16 new_window transaction failed: {result2.error}"
 
     # Should indicate new session was opened
-    assert data2.get("new_window"), f"Response should indicate new window mode: {data2}"
+    assert result2.new_window, f"Response should indicate new window mode: {result2}"
 
     # Should report session count
-    session_count = data2.get("session_count")
-    assert session_count is not None, f"Response should report session count: {data2}"
+    assert result2.session_count is not None, f"Response should report session count: {result2}"
 
     # Should have at least 2 sessions (original + new)
-    assert session_count >= 2, f"Expected at least 2 SAP sessions after opening new window, got {session_count}"
+    assert result2.session_count >= 2, (
+        f"Expected at least 2 SAP sessions after opening new window, got {result2.session_count}"
+    )
 
 
 # =============================================================================
@@ -662,49 +586,41 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
 @pytest.mark.anyio
 async def test_sap_session_status_after_login(sap_mcp_client: ClientSession) -> None:
     """Test that session status is 'active' after successful login."""
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
-    result = await sap_mcp_client.call_tool("sap_session_status", {})
-    assert result.content, "Expected response from sap_session_status"
-    response_text = _get_content_text(result.content[0]).lower()
-
-    assert "active" in response_text, f"Expected active session after login: {response_text}"
+    result = await call_tool_typed(sap_mcp_client, "sap_session_status", {}, SessionStatus)
+    assert result.status == "active", f"Expected active session after login: {result}"
 
 
 @pytest.mark.anyio
 async def test_sap_session_status_returns_valid_state(sap_mcp_client: ClientSession) -> None:
     """Test that session status returns a recognized state."""
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
-    result = await sap_mcp_client.call_tool("sap_session_status", {})
-    response_text = _get_content_text(result.content[0]).lower()
-
+    result = await call_tool_typed(sap_mcp_client, "sap_session_status", {}, SessionStatus)
     valid_states = ["active", "timed_out", "logged_off", "no_page", "unknown"]
-    assert any(
-        state in response_text for state in valid_states
-    ), f"Expected one of {valid_states}, got: {response_text}"
+    assert result.status in valid_states, f"Expected one of {valid_states}, got: {result.status}"
 
 
 @pytest.mark.anyio
 async def test_sap_keyboard_f3_navigates_back(sap_mcp_client: ClientSession) -> None:
     """Test F3 (Back) returns from transaction to previous screen."""
-    await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
     # Wait for SE16 to load (has table name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Press F3 to go back
-    result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
-    data = assert_tool_success(result, "sap_keyboard F3")
-    assert data.get("key") == "F3", f"Expected key F3: {data}"
+    result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F3"}, KeyboardResult)
+    assert result.success, f"Keyboard F3 failed: {result.error}"
+    assert result.key == "F3", f"Expected key F3: {result}"
 
     # Wait for Easy Access (OK-Code field visible means we're back on main menu)
     await _wait_for_easy_access(sap_mcp_client)
 
     # Should be back on Easy Access or previous screen
-    html_result = await sap_mcp_client.call_tool("browser_get_html", {})
-    html_data = parse_tool_response(html_result)
-    page_html = html_data.get("html", html_data.get("_raw_text", "")).lower()
+    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
+    page_html = html_result.html.lower()
 
     # SE16 specific content should be gone or we should be on Easy Access
     se16_gone = "data browser" not in page_html and "tabelleninhalt" not in page_html
@@ -722,20 +638,19 @@ async def test_sap_keyboard_f8_triggers_execution(sap_mcp_client: ClientSession)
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "EN")
 
-    await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
     # Wait for SE16 to load (has table name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Try to execute without entering a table name - should trigger error
-    result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
-    assert result.content, "Expected response from sap_keyboard"
+    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Check for error message in page or status bar
-    html_result = await sap_mcp_client.call_tool("browser_get_html", {})
-    page_html = _get_content_text(html_result.content[0]).lower()
+    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
+    page_html = html_result.html.lower()
 
     # SAP should show error about missing table name
     if sap_language == "DE":
@@ -753,24 +668,26 @@ async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> N
     """Test reading screen text from SE16 initial screen."""
     sap_language = os.environ.get("SAP_LANGUAGE", "EN")
 
-    await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
     # Wait for SE16 to load (has table name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
-    result = await sap_mcp_client.call_tool("sap_get_screen_text", {})
-    assert result.content, "Expected response from sap_get_screen_text"
-    response_text = _get_content_text(result.content[0]).lower()
+    result = await call_tool_typed(sap_mcp_client, "sap_get_screen_text", {}, ScreenText)
 
-    # SE16 should show table name prompt
+    # SE16 should show table name prompt - check title or labels
+    response_text = (result.title or "").lower()
+    labels_text = " ".join(result.labels or []).lower()
+    combined_text = response_text + " " + labels_text
+
     if sap_language == "DE":
         expected_phrases = ["tabellenname", "tabelle", "data browser"]
     else:
         expected_phrases = ["table name", "table", "data browser"]
 
     assert any(
-        phrase in response_text for phrase in expected_phrases
-    ), f"SE16 screen text should contain table-related labels. Language: {sap_language}. Got: {response_text[:500]}"
+        phrase in combined_text for phrase in expected_phrases
+    ), f"SE16 screen text should contain table-related labels. Language: {sap_language}. Got: {combined_text[:500]}"
 
     # Capture HTML snapshot for offline selector testing
     await capture_html_snapshot(sap_mcp_client, "se16_initial")
@@ -779,25 +696,25 @@ async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> N
 @pytest.mark.anyio
 async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> None:
     """Test that sap_get_screen_text returns structured output."""
-    await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SU3"})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SU3"}, TransactionResult)
     # Wait for SU3 screen to load (user profile has address-related fields)
     await _wait_for_transaction_screen(sap_mcp_client, "SU3")
 
-    result = await sap_mcp_client.call_tool("sap_get_screen_text", {})
-    data = assert_tool_success(result, "sap_get_screen_text")
+    result = await call_tool_typed(sap_mcp_client, "sap_get_screen_text", {}, ScreenText)
+    assert result.success, f"sap_get_screen_text failed: {result.error}"
 
-    # Check for expected structure in JSON response
-    assert "title" in data, "Should contain title"
+    # Check for expected structure
+    assert result.title, "Should contain title"
 
     # Should have some labels or content
-    has_labels = bool(data.get("labels"))
-    has_content = bool(data.get("main_content"))
-    has_buttons = bool(data.get("buttons"))
+    has_labels = bool(result.labels)
+    has_content = bool(result.main_content)
+    has_buttons = bool(result.buttons)
 
     assert (
         has_labels or has_content or has_buttons
-    ), f"Screen text should contain labels, content, or buttons. Got: {data}"
+    ), f"Screen text should contain labels, content, or buttons. Got: {result}"
 
 
 @pytest.mark.anyio
@@ -807,8 +724,8 @@ async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -
     Uses current user (default) which typically has no scheduled jobs,
     resulting in "Kein Job entspricht den Selektionsbedingungen" message.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SM37"}, TransactionResult)
     # Wait for SM37 to load (has job name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SM37")
 
@@ -816,16 +733,17 @@ async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -
     await capture_html_snapshot(sap_mcp_client, "sm37_initial")
 
     # Use defaults (current user) - typically no jobs
-    fill_result = await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='JOBNAME']", "value": "*"})
-    fill_text = _get_content_text(fill_result.content[0]) if fill_result.content else ""
-    assert "Error" not in fill_text, f"Failed to fill JOBNAME field: {fill_text}"
+    fill_result = await call_tool_typed(
+        sap_mcp_client, "browser_fill", {"selector": "input[lsdata*='JOBNAME']", "value": "*"}, FillResult
+    )
+    assert fill_result.success, f"Failed to fill JOBNAME field: {fill_result.error}"
 
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Check status bar for "no jobs" message
-    status_result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
-    status_text = _get_content_text(status_result.content[0]).lower() if status_result.content else ""
+    status_result = await call_tool_typed(sap_mcp_client, "sap_read_status_bar", {}, StatusBarInfo)
+    status_text = (status_result.message or "").lower()
 
     # German: "Kein Job entspricht den Selektionsbedingungen"
     # English: "No job meets the selection conditions"
@@ -835,10 +753,9 @@ async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -
     assert no_jobs_de or no_jobs_en, f"Expected 'no jobs' status message, got: {status_text}"
 
 
-async def assert_fill_success(result: Any, field_name: str) -> None:
+async def assert_fill_success(result: FillResult, field_name: str) -> None:
     """Assert that browser_fill succeeded for a field."""
-    data = parse_tool_response(result)
-    assert data.get("success", True), f"Failed to fill {field_name}: {data.get('error', data)}"
+    assert result.success, f"Failed to fill {field_name}: {result.error}"
 
 
 @pytest.mark.anyio
@@ -850,17 +767,21 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
     """
     from datetime import datetime, timedelta
 
-    await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SM37"}, TransactionResult)
     # Wait for SM37 to load (has job name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SM37")
 
     # Fill job selection with wildcards and clear username restriction
     # SM37 fields use SID in lsdata: BTCH2170-JOBNAME, BTCH2170-USERNAME
-    result = await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='JOBNAME']", "value": "*"})
+    result = await call_tool_typed(
+        sap_mcp_client, "browser_fill", {"selector": "input[lsdata*='JOBNAME']", "value": "*"}, FillResult
+    )
     await assert_fill_success(result, "JOBNAME")
 
-    result = await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='USERNAME']", "value": "*"})
+    result = await call_tool_typed(
+        sap_mcp_client, "browser_fill", {"selector": "input[lsdata*='USERNAME']", "value": "*"}, FillResult
+    )
     await assert_fill_success(result, "USERNAME")
 
     # Set broad date range (last 365 days) to find jobs
@@ -869,31 +790,35 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
     from_date = (today - timedelta(days=365)).strftime("%d.%m.%Y")
     to_date = today.strftime("%d.%m.%Y")
 
-    result = await sap_mcp_client.call_tool(
-        "browser_fill", {"selector": "input[lsdata*='FROM_DATE']", "value": from_date}
+    result = await call_tool_typed(
+        sap_mcp_client, "browser_fill", {"selector": "input[lsdata*='FROM_DATE']", "value": from_date}, FillResult
     )
     await assert_fill_success(result, f"FROM_DATE={from_date}")
 
-    result = await sap_mcp_client.call_tool("browser_fill", {"selector": "input[lsdata*='TO_DATE']", "value": to_date})
+    result = await call_tool_typed(
+        sap_mcp_client, "browser_fill", {"selector": "input[lsdata*='TO_DATE']", "value": to_date}, FillResult
+    )
     await assert_fill_success(result, f"TO_DATE={to_date}")
 
     # Execute (F8) and wait for list output to complete (can take a while with many jobs)
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 30000})
 
     # Capture table results HTML for unit tests
     await capture_html_snapshot(sap_mcp_client, "sm37_results")
 
-    result = await sap_mcp_client.call_tool("sap_read_table", {"start_row": 1, "end_row": 5})
-    table_data = assert_tool_success(result, "sap_read_table")
+    table_result = await call_tool_typed(
+        sap_mcp_client, "sap_read_table", {"start_row": 1, "end_row": 5}, TableData
+    )
+    assert table_result.success, f"sap_read_table failed: {table_result.error}"
 
     # Assert that we got actual table data with rows
-    assert "rows" in table_data, f"Expected table with 'rows', got: {table_data}"
-    assert "total_rows" in table_data, f"Expected 'total_rows' in response, got: {table_data}"
+    assert table_result.rows is not None, f"Expected table with 'rows', got: {table_result}"
+    assert table_result.total_rows is not None, f"Expected 'total_rows' in response, got: {table_result}"
 
     # Verify we got some jobs
-    assert table_data.get("total_rows", 0) > 0, f"Expected some jobs in SM37, got total_rows=0"
-    assert len(table_data.get("rows", [])) > 0, "Expected at least one row in SM37 results"
+    assert table_result.total_rows > 0, f"Expected some jobs in SM37, got total_rows=0"
+    assert len(table_result.rows) > 0, "Expected at least one row in SM37 results"
 
 
 @pytest.mark.anyio
@@ -902,8 +827,8 @@ async def test_sap_read_table_from_se93(sap_mcp_client: ClientSession) -> None:
 
     SE93 with wildcard 'SE*' will always return results (SE11, SE16, etc.).
     """
-    await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE93"})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE93"}, TransactionResult)
     # Wait for SE93 to load (has transaction code input field with TSTC-TCODE in lsdata)
     await _wait_for_transaction_screen(sap_mcp_client, "SE93")
 
@@ -911,27 +836,25 @@ async def test_sap_read_table_from_se93(sap_mcp_client: ClientSession) -> None:
     await capture_html_snapshot(sap_mcp_client, "se93_initial")
 
     # Search for transactions starting with SE - use lsdata selector
-    fill_result = await sap_mcp_client.call_tool(
-        "browser_fill", {"selector": "input[lsdata*='TSTC-TCODE']", "value": "SE*"}
+    fill_result = await call_tool_typed(
+        sap_mcp_client, "browser_fill", {"selector": "input[lsdata*='TSTC-TCODE']", "value": "SE*"}, FillResult
     )
-    fill_text = _get_content_text(fill_result.content[0]) if fill_result.content else ""
-    assert "Error" not in fill_text, f"Failed to fill SE93 transaction code field: {fill_text}"
+    assert fill_result.success, f"Failed to fill SE93 transaction code field: {fill_result.error}"
 
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
-    result = await sap_mcp_client.call_tool("sap_read_table", {})
-    assert result.content, "Expected response from sap_read_table"
-    response_text = _get_content_text(result.content[0]).lower()
+    table_result = await call_tool_typed(sap_mcp_client, "sap_read_table", {}, TableData)
 
     # Should find standard SE* transactions
     # Check for either transaction codes in data or valid table structure
-    has_se_transactions = "se11" in response_text or "se16" in response_text or "se80" in response_text
-    has_table_structure = "rows" in response_text or "headers" in response_text
+    rows_str = str(table_result.rows).lower() if table_result.rows else ""
+    has_se_transactions = "se11" in rows_str or "se16" in rows_str or "se80" in rows_str
+    has_table_structure = table_result.rows is not None or table_result.headers is not None
 
     assert (
         has_se_transactions or has_table_structure
-    ), f"Expected to find standard SE* transactions or table structure: {response_text[:500]}"
+    ), f"Expected to find standard SE* transactions or table structure: {table_result}"
 
 
 @pytest.mark.anyio
@@ -947,38 +870,38 @@ async def test_se16_table_content_t000(sap_mcp_client: ClientSession) -> None:
     - The table has at least one row
     - We can capture the HTML for unit tests
     """
-    await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
     # Wait for SE16 to load (has table name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Enter table name T000 (Clients table - always exists, always small)
     # Use lsdata selector which is reliable for SAP Web GUI elements
-    fill_result = await sap_mcp_client.call_tool(
-        "browser_fill", {"selector": "input[lsdata*='TABLENAME']", "value": "T000"}
+    fill_result = await call_tool_typed(
+        sap_mcp_client, "browser_fill", {"selector": "input[lsdata*='TABLENAME']", "value": "T000"}, FillResult
     )
-    fill_text = _get_content_text(fill_result.content[0]) if fill_result.content else ""
-    assert "Error" not in fill_text, f"Failed to fill table name field: {fill_text}"
+    assert fill_result.success, f"Failed to fill table name field: {fill_result.error}"
 
     # Execute to show table content
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Capture table content HTML for unit tests
     await capture_html_snapshot(sap_mcp_client, "se16_t000_content")
 
     # Read the table data
-    result = await sap_mcp_client.call_tool("sap_read_table", {"start_row": 1, "end_row": 10})
-    assert result.content, "Expected response from sap_read_table"
-    response_text = _get_content_text(result.content[0])
+    table_result = await call_tool_typed(
+        sap_mcp_client, "sap_read_table", {"start_row": 1, "end_row": 10}, TableData
+    )
 
     # T000 must have at least one row (the current client)
     # Check for table data indicators
-    has_rows = "rows" in response_text.lower() or "mandt" in response_text.lower()
-    has_content = len(response_text) > 50  # More than just an error message
+    rows_str = str(table_result.rows).lower() if table_result.rows else ""
+    has_rows = table_result.rows is not None or "mandt" in rows_str
+    has_content = table_result.total_rows is not None and table_result.total_rows > 0
 
     assert has_rows and has_content, (
-        f"SE16 T000 should return table content with at least one client. " f"Response: {response_text[:500]}"
+        f"SE16 T000 should return table content with at least one client. " f"Response: {table_result}"
     )
 
 
@@ -994,8 +917,8 @@ async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None
     - The table fields are shown
     - We can capture the HTML for unit tests
     """
-    await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE11"})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE11"}, TransactionResult)
     # Wait for SE11 to load (has "Database table" radio button)
     await _wait_for_transaction_screen(sap_mcp_client, "SE11")
 
@@ -1003,22 +926,21 @@ async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None
     await capture_html_snapshot(sap_mcp_client, "se11_initial")
 
     # "Datenbanktabelle" is a radio button, click it then Tab to the text field
-    await sap_mcp_client.call_tool("browser_click", {"selector": "text=Datenbanktabelle"})
+    await call_tool_typed(sap_mcp_client, "browser_click", {"selector": "text=Datenbanktabelle"}, ClickResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 300})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "Tab"})
+    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Tab"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_keyboard", {"text": "T000"})
 
     # Press F7 (Anzeigen/Display) to view table definition
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F7"})
+    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Capture table structure HTML
     await capture_html_snapshot(sap_mcp_client, "se11_t000_content")
 
     # Verify we're on the table definition screen
-    html_result = await sap_mcp_client.call_tool("browser_get_html", {})
-    assert html_result.content, "Expected HTML response"
-    page_html = _get_content_text(html_result.content[0]).upper()
+    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
+    page_html = html_result.html.upper()
 
     # T000 definition should show field names like MANDT, CCCATEGORY
     has_mandt = "MANDT" in page_html
@@ -1032,79 +954,76 @@ async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None
 @pytest.mark.anyio
 async def test_sap_read_status_bar_after_navigation(sap_mcp_client: ClientSession) -> None:
     """Test reading status bar after successful navigation."""
-    await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SU3"})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SU3"}, TransactionResult)
     # Wait for SU3 screen to load (user profile has address-related fields)
     await _wait_for_transaction_screen(sap_mcp_client, "SU3")
 
-    result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
-    assert result.content, "Expected response from sap_read_status_bar"
-    response_text = _get_content_text(result.content[0])
+    result = await call_tool_typed(sap_mcp_client, "sap_read_status_bar", {}, StatusBarInfo)
 
-    # Should return JSON with type and message fields
+    # Should return with type or message fields
     assert (
-        "type" in response_text.lower() or "message" in response_text.lower()
-    ), f"Status bar should return type/message info: {response_text}"
+        result.type is not None or result.message is not None
+    ), f"Status bar should return type/message info: {result}"
 
 
 @pytest.mark.anyio
 async def test_sap_read_status_bar_after_error(sap_mcp_client: ClientSession) -> None:
     """Test reading status bar after triggering an error."""
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Try invalid transaction to trigger error
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "ZZZZINVALID999"})
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "ZZZZINVALID999"}, TransactionResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
-    result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
-    assert result.content, "Expected response from sap_read_status_bar"
-    response_text = _get_content_text(result.content[0]).lower()
+    result = await call_tool_typed(sap_mcp_client, "sap_read_status_bar", {}, StatusBarInfo)
 
     # Should indicate error type or contain error message
-    error_indicators = ['"e"', '"type": "e"', "error", "fehler", "existiert nicht", "does not exist"]
-    assert any(
-        indicator in response_text for indicator in error_indicators
-    ), f"Status bar should indicate error after invalid transaction: {response_text}"
+    is_error = result.type == "E"
+    has_error_msg = result.message and any(
+        ind in result.message.lower()
+        for ind in ["error", "fehler", "existiert nicht", "does not exist"]
+    )
+
+    assert is_error or has_error_msg, f"Status bar should indicate error after invalid transaction: {result}"
 
 
 @pytest.mark.anyio
 async def test_sap_get_screen_info_from_se16(sap_mcp_client: ClientSession) -> None:
     """Test getting screen info from SE16."""
-    await sap_mcp_client.call_tool("sap_login", {})
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
     # Wait for SE16 to load (has table name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
-    result = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-    assert result.content, "Expected response from sap_get_screen_info"
-    response_text = _get_content_text(result.content[0]).lower()
+    result = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
 
     # Should contain basic screen info
-    assert "title" in response_text, "Screen info should contain title"
-    assert "url" in response_text, "Screen info should contain url"
+    assert result.title, "Screen info should contain title"
+    assert result.url, "Screen info should contain url"
 
 
 @pytest.mark.anyio
 async def test_sap_get_screen_info_different_transactions(sap_mcp_client: ClientSession) -> None:
     """Test that screen info changes between transactions."""
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Get info from SE16
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
     # Wait for SE16 to load (has table name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
-    result1 = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-    info1 = _get_content_text(result1.content[0]).lower()
+    result1 = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
 
     # Get info from SM37
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SM37"}, TransactionResult)
     # Wait for SM37 to load (has job name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SM37")
-    result2 = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-    info2 = _get_content_text(result2.content[0]).lower()
+    result2 = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
 
     # The title or content should be different
-    assert info1 != info2, "Screen info should differ between SE16 and SM37"
+    assert result1.title != result2.title or result1.url != result2.url, (
+        "Screen info should differ between SE16 and SM37"
+    )
 
 
 @pytest.mark.anyio
@@ -1117,12 +1036,12 @@ async def test_browser_reconnect_after_idle(sap_mcp_client: ClientSession) -> No
     The server should automatically reconnect and continue working.
     """
     # Step 1: Login and verify we have a working session
-    login_result = await sap_mcp_client.call_tool("sap_login", {})
-    login_data = assert_tool_success(login_result, "sap_login")
-    assert login_data.get("url"), "Expected URL in login response"
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
+    assert login_result.url, "Expected URL in login response"
 
     # Step 2: Navigate to a transaction
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
     # Wait for SE16 to load (has table name input field)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
@@ -1131,18 +1050,15 @@ async def test_browser_reconnect_after_idle(sap_mcp_client: ClientSession) -> No
     await asyncio.sleep(5)
 
     # Step 4: Try to use the browser again - this should reconnect if stale
-    result = await sap_mcp_client.call_tool("sap_session_status", {})
-    status_data = parse_tool_response(result)
+    status_result = await call_tool_typed(sap_mcp_client, "sap_session_status", {}, SessionStatus)
 
     # Should be able to get status (either connected or reconnected)
-    assert "status" in status_data or status_data.get(
-        "success", True
-    ), f"Should get valid session status after idle period: {status_data}"
+    assert status_result.status is not None, f"Should get valid session status after idle period: {status_result}"
 
     # Step 5: Verify we can still execute transactions
-    tx_result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM37"})
-    tx_data = assert_tool_success(tx_result, "sap_transaction after idle")
-    assert tx_data.get("tcode"), f"Transaction should work after idle: {tx_data}"
+    tx_result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SM37"}, TransactionResult)
+    assert tx_result.success, f"Transaction after idle failed: {tx_result.error}"
+    assert tx_result.tcode, f"Transaction should work after idle: {tx_result}"
 
 
 @pytest.mark.anyio
@@ -1153,7 +1069,7 @@ async def test_browser_reconnect_multiple_times(sap_mcp_client: ClientSession) -
     This verifies the reconnection logic is robust and doesn't leave
     the browser manager in a bad state after reconnecting.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     transactions = ["SE16", "SM37", "SU3", "SE16"]
 
@@ -1162,14 +1078,13 @@ async def test_browser_reconnect_multiple_times(sap_mcp_client: ClientSession) -
         await asyncio.sleep(2)
 
         # Execute transaction
-        result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": tcode})
-        tx_data = assert_tool_success(result, f"sap_transaction {tcode}")
-        assert tx_data.get("tcode"), f"Transaction {tcode} should work: {tx_data}"
+        result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": tcode}, TransactionResult)
+        assert result.success, f"Transaction {tcode} failed: {result.error}"
+        assert result.tcode, f"Transaction {tcode} should work: {result}"
 
         # Verify session is still valid
-        status = await sap_mcp_client.call_tool("sap_session_status", {})
-        status_data = parse_tool_response(status)
-        assert status_data.get("success", True), f"Expected valid status after transaction {i+1}: {status_data}"
+        status = await call_tool_typed(sap_mcp_client, "sap_session_status", {}, SessionStatus)
+        assert status.status is not None, f"Expected valid status after transaction {i+1}: {status}"
 
 
 # =============================================================================
@@ -1195,11 +1110,11 @@ async def test_bp_fill_form_batch_fill(sap_mcp_client: ClientSession) -> None:
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "DE")
 
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Step 1: Open BP transaction
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
-    assert_tool_success(result, "sap_transaction BP")
+    result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "BP"}, TransactionResult)
+    assert result.success, f"sap_transaction BP failed: {result.error}"
 
     # Wait for BP initial screen (has Person/Organisation buttons)
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
@@ -1218,9 +1133,10 @@ async def test_bp_fill_form_batch_fill(sap_mcp_client: ClientSession) -> None:
     # Without these waits, the form may not have all labels visible when sap_fill_form runs.
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
-    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
-    click_data = parse_tool_response(click_result)
-    assert click_data.get("success", True), f"Failed to click Person button: {click_data}"
+    click_result = await call_tool_typed(
+        sap_mcp_client, "browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"}, ClickResult
+    )
+    assert click_result.success, f"Failed to click Person button: {click_result.error}"
 
     # Wait for SAP backend to process and return form HTML
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
@@ -1250,13 +1166,13 @@ async def test_bp_fill_form_batch_fill(sap_mcp_client: ClientSession) -> None:
             "Last Name": "Mustermann",
         }
 
-    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": fields_to_fill})
-    fill_data = assert_tool_success(fill_result, "sap_fill_form")
+    fill_result = await call_tool_typed(sap_mcp_client, "sap_fill_form", {"fields": fields_to_fill}, FillFormResult)
+    assert fill_result.success, f"sap_fill_form failed: {fill_result.error}"
 
     # Verify ALL fields were filled successfully
-    filled_fields = set(fill_data.get("filled", []))
-    not_found_fields = fill_data.get("not_found", [])
-    error_fields = fill_data.get("errors", [])
+    filled_fields = set(fill_result.filled or [])
+    not_found_fields = fill_result.not_found or []
+    error_fields = fill_result.errors or []
     expected_fields = set(fields_to_fill.keys())
 
     # No fields should be missing or have errors
@@ -1280,11 +1196,11 @@ async def test_bp_fill_form_with_css_selectors(sap_mcp_client: ClientSession) ->
     This test verifies that sap_fill_form can fill fields using direct
     CSS selectors (e.g., [attribute*='value'] selectors) that match SAP lsdata attributes.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open BP transaction
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
-    assert_tool_success(result, "sap_transaction BP")
+    result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "BP"}, TransactionResult)
+    assert result.success, f"sap_transaction BP failed: {result.error}"
 
     # Wait for BP initial screen
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
@@ -1294,9 +1210,10 @@ async def test_bp_fill_form_with_css_selectors(sap_mcp_client: ClientSession) ->
     # See test_bp_fill_form_batch_fill for detailed explanation.
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
-    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"})
-    click_data = parse_tool_response(click_result)
-    assert click_data.get("success", True), f"Failed to click Person button: {click_data}"
+    click_result = await call_tool_typed(
+        sap_mcp_client, "browser_click", {"selector": "#M0\\:48\\:\\:btn\\[5\\]"}, ClickResult
+    )
+    assert click_result.success, f"Failed to click Person button: {click_result.error}"
 
     # Wait for SAP backend to process and return form HTML
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
@@ -1321,13 +1238,13 @@ async def test_bp_fill_form_with_css_selectors(sap_mcp_client: ClientSession) ->
         "input[lsdata*='CITY1']": "Berlin",
     }
 
-    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": fields_to_fill})
-    fill_data = assert_tool_success(fill_result, "sap_fill_form with CSS selectors")
+    fill_result = await call_tool_typed(sap_mcp_client, "sap_fill_form", {"fields": fields_to_fill}, FillFormResult)
+    assert fill_result.success, f"sap_fill_form with CSS selectors failed: {fill_result.error}"
 
     # Verify ALL fields were filled successfully
-    filled_fields = set(fill_data.get("filled", []))
-    not_found_fields = fill_data.get("not_found", [])
-    error_fields = fill_data.get("errors", [])
+    filled_fields = set(fill_result.filled or [])
+    not_found_fields = fill_result.not_found or []
+    error_fields = fill_result.errors or []
     expected_fields = set(fields_to_fill.keys())
 
     # No fields should be missing or have errors
@@ -1351,14 +1268,15 @@ async def test_sap_fill_form_strict_mode(sap_mcp_client: ClientSession) -> None:
     In strict mode (strict=True), the tool should return success=False
     if any field cannot be found or filled.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open a simple transaction
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Try to fill with an invalid field label in strict mode
-    fill_result = await sap_mcp_client.call_tool(
+    fill_result = await call_tool_typed(
+        sap_mcp_client,
         "sap_fill_form",
         {
             "fields": {
@@ -1366,14 +1284,14 @@ async def test_sap_fill_form_strict_mode(sap_mcp_client: ClientSession) -> None:
             },
             "strict": True,
         },
+        FillFormResult,
     )
-    fill_data = parse_tool_response(fill_result)
 
     # Strict mode should report failure when field not found
-    assert not fill_data.get("success", True), f"Strict mode should fail when field not found. Response: {fill_data}"
-    assert "NONEXISTENT_FIELD_12345" in fill_data.get(
-        "not_found", []
-    ), f"Field should be in not_found list: {fill_data}"
+    assert not fill_result.success, f"Strict mode should fail when field not found. Response: {fill_result}"
+    assert fill_result.not_found and "NONEXISTENT_FIELD_12345" in fill_result.not_found, (
+        f"Field should be in not_found list: {fill_result}"
+    )
 
 
 @pytest.mark.anyio
@@ -1391,20 +1309,19 @@ async def test_bp_fill_form_ambiguous_label_rejected(sap_mcp_client: ClientSessi
     This test verifies the fix for the bug where sap_fill_form silently matched
     the first field when multiple fields shared the same label.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open BP transaction
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "BP"}, TransactionResult)
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
     # Press F5 to create a Person (uses sap_keyboard which reads status bar)
-    keyboard_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F5"})
-    keyboard_data = parse_tool_response(keyboard_result)
+    keyboard_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
 
     # Handle category selection popup if it appears
-    if keyboard_data.get("popup"):
+    if keyboard_result.popup:
         # Click "Ja" (Yes) or confirm button to proceed
-        await sap_mcp_client.call_tool("sap_keyboard", {"key": "Enter"})
+        await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Enter"}, KeyboardResult)
         await asyncio.sleep(0.5)
 
     # Wait for Person form to load
@@ -1412,29 +1329,30 @@ async def test_bp_fill_form_ambiguous_label_rejected(sap_mcp_client: ClientSessi
 
     # Try to fill using the ambiguous "Postleitzahl" label
     # This should fail because there are 2 fields with this label
-    fill_result = await sap_mcp_client.call_tool(
+    fill_result = await call_tool_typed(
+        sap_mcp_client,
         "sap_fill_form",
         {
             "fields": {
                 "Postleitzahl": "12345",  # Ambiguous - matches POST_CODE1 and POST_CODE2
             },
         },
+        FillFormResult,
     )
-    fill_data = parse_tool_response(fill_result)
 
     # The field should NOT be filled successfully
-    filled_fields = [f.get("field") if isinstance(f, dict) else f for f in fill_data.get("filled", [])]
+    filled_fields = fill_result.filled or []
     assert "Postleitzahl" not in filled_fields, (
-        f"Ambiguous label 'Postleitzahl' should NOT be filled. " f"Response: {fill_data}"
+        f"Ambiguous label 'Postleitzahl' should NOT be filled. " f"Response: {fill_result}"
     )
 
     # There should be an error about the ambiguous label
-    errors = fill_data.get("errors", [])
-    error_messages = [e.get("error", "") if isinstance(e, dict) else str(e) for e in errors]
+    errors = fill_result.errors or []
+    error_messages = [str(e) for e in errors]
     error_text = " ".join(error_messages)
 
     assert any("Postleitzahl" in msg or "matches" in msg.lower() for msg in error_messages), (
-        f"Expected an error mentioning 'Postleitzahl' ambiguity. " f"Errors: {errors}, Response: {fill_data}"
+        f"Expected an error mentioning 'Postleitzahl' ambiguity. " f"Errors: {errors}, Response: {fill_result}"
     )
 
     # The error should mention POST_CODE1 and/or POST_CODE2 as alternatives
@@ -1451,41 +1369,41 @@ async def test_bp_set_field_ambiguous_label_rejected(sap_mcp_client: ClientSessi
     Similar to test_bp_fill_form_ambiguous_label_rejected but tests the
     single-field sap_set_field tool instead of sap_fill_form.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open BP transaction
-    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "BP"}, TransactionResult)
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
     # Press F5 to create a Person
-    keyboard_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F5"})
-    keyboard_data = parse_tool_response(keyboard_result)
+    keyboard_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
 
     # Handle category selection popup if it appears
-    if keyboard_data.get("popup"):
-        await sap_mcp_client.call_tool("sap_keyboard", {"key": "Enter"})
+    if keyboard_result.popup:
+        await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Enter"}, KeyboardResult)
         await asyncio.sleep(0.5)
 
     # Wait for Person form to load
     await asyncio.sleep(1.0)
 
     # Try to set the ambiguous "Postleitzahl" field
-    set_result = await sap_mcp_client.call_tool(
+    set_result = await call_tool_typed(
+        sap_mcp_client,
         "sap_set_field",
         {
             "label": "Postleitzahl",
             "value": "12345",
         },
+        SetFieldResult,
     )
-    set_data = parse_tool_response(set_result)
 
     # Should fail due to ambiguity
-    assert not set_data.get("success", True), (
-        f"sap_set_field should fail for ambiguous label 'Postleitzahl'. " f"Response: {set_data}"
+    assert not set_result.success, (
+        f"sap_set_field should fail for ambiguous label 'Postleitzahl'. " f"Response: {set_result}"
     )
 
     # Error should mention the ambiguity
-    error = set_data.get("error", "")
+    error = set_result.error or ""
     assert (
         "Postleitzahl" in error or "matches" in error.lower() or "ambiguous" in error.lower()
     ), f"Error should mention ambiguity. Error: {error}"
@@ -1510,11 +1428,11 @@ async def test_emmacl_discover_fields(sap_mcp_client: ClientSession) -> None:
     3. Uses sap_discover_fields to find all fields
     4. Verifies fields are discovered with proper structure
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open EMMACL transaction
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
-    assert_tool_success(result, "sap_transaction EMMACL")
+    result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "EMMACL"}, TransactionResult)
+    assert result.success, f"sap_transaction EMMACL failed: {result.error}"
 
     # Wait for the screen to load
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
@@ -1523,20 +1441,20 @@ async def test_emmacl_discover_fields(sap_mcp_client: ClientSession) -> None:
     await capture_html_snapshot(sap_mcp_client, "emmacl_initial")
 
     # Discover all fields on the screen
-    discover_result = await sap_mcp_client.call_tool("sap_discover_fields", {})
-    discover_data = assert_tool_success(discover_result, "sap_discover_fields")
+    discover_result = await call_tool_typed(sap_mcp_client, "sap_discover_fields", {}, DiscoveredFields)
+    assert discover_result.success, f"sap_discover_fields failed: {discover_result.error}"
 
     # Verify we found some fields
-    field_count = discover_data.get("field_count", 0)
-    fields = discover_data.get("fields", [])
+    field_count = discover_result.field_count or 0
+    fields = discover_result.fields or []
 
-    assert field_count > 0, f"EMMACL should have input fields. Got: {discover_data}"
-    assert len(fields) > 0, f"Fields list should not be empty. Got: {discover_data}"
+    assert field_count > 0, f"EMMACL should have input fields. Got: {discover_result}"
+    assert len(fields) > 0, f"Fields list should not be empty. Got: {discover_result}"
 
     # Print discovered fields for debugging (visible in test output)
     print(f"\nDiscovered {field_count} fields in EMMACL:")
     for field in fields[:20]:  # Show first 20
-        print(f"  - {field.get('label', 'no-label')}: {field.get('selector', 'no-selector')}")
+        print(f"  - {field.label or 'no-label'}: {field.selector or 'no-selector'}")
 
 
 @pytest.mark.anyio
@@ -1550,22 +1468,22 @@ async def test_emmacl_fill_form_with_discovered_fields(sap_mcp_client: ClientSes
     3. Uses sap_fill_form to fill some of the discovered fields
     4. Verifies all specified fields were filled
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open EMMACL transaction
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
-    assert_tool_success(result, "sap_transaction EMMACL")
+    result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "EMMACL"}, TransactionResult)
+    assert result.success, f"sap_transaction EMMACL failed: {result.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # First discover fields to find valid selectors
-    discover_result = await sap_mcp_client.call_tool("sap_discover_fields", {})
-    discover_data = assert_tool_success(discover_result, "sap_discover_fields")
+    discover_result = await call_tool_typed(sap_mcp_client, "sap_discover_fields", {}, DiscoveredFields)
+    assert discover_result.success, f"sap_discover_fields failed: {discover_result.error}"
 
-    fields = discover_data.get("fields", [])
+    fields = discover_result.fields or []
 
     # Find text input fields (not readonly, not checkboxes)
-    fillable_fields = [f for f in fields if f.get("type") in ("text", None) and f.get("selector")]
+    fillable_fields = [f for f in fields if f.type in ("text", None) and f.selector]
 
     if len(fillable_fields) < 2:
         pytest.skip("Not enough fillable fields found in EMMACL")
@@ -1573,23 +1491,22 @@ async def test_emmacl_fill_form_with_discovered_fields(sap_mcp_client: ClientSes
     # Pick first 2 fillable fields and try to fill them
     fields_to_fill = {}
     for i, field in enumerate(fillable_fields[:2]):
-        selector = field.get("selector")
+        selector = field.selector
         if selector:
             fields_to_fill[selector] = f"TEST{i}"
 
     print(f"\nTrying to fill {len(fields_to_fill)} fields: {list(fields_to_fill.keys())}")
 
-    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": fields_to_fill})
-    fill_data = parse_tool_response(fill_result)
+    fill_result = await call_tool_typed(sap_mcp_client, "sap_fill_form", {"fields": fields_to_fill}, FillFormResult)
 
     # Log results
-    print(f"Filled: {fill_data.get('filled', [])}")
-    print(f"Not found: {fill_data.get('not_found', [])}")
-    print(f"Errors: {fill_data.get('errors', [])}")
+    print(f"Filled: {fill_result.filled}")
+    print(f"Not found: {fill_result.not_found}")
+    print(f"Errors: {fill_result.errors}")
 
     # At least some fields should have been filled
-    filled = fill_data.get("filled", [])
-    assert len(filled) > 0, f"Expected at least one field to be filled. Result: {fill_data}"
+    filled = fill_result.filled or []
+    assert len(filled) > 0, f"Expected at least one field to be filled. Result: {fill_result}"
 
 
 @pytest.mark.anyio
@@ -1603,17 +1520,17 @@ async def test_emmacl_execute_without_filter(sap_mcp_client: ClientSession) -> N
     3. Captures result table
     4. Saves HTML snapshot of results
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open EMMACL transaction
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
-    assert_tool_success(result, "sap_transaction EMMACL")
+    result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "EMMACL"}, TransactionResult)
+    assert result.success, f"sap_transaction EMMACL failed: {result.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Execute without any filters (F8)
-    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
-    assert_tool_success(kb_result, "sap_keyboard F8")
+    kb_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    assert kb_result.success, f"sap_keyboard F8 failed: {kb_result.error}"
 
     # Wait for results to load
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
@@ -1622,18 +1539,17 @@ async def test_emmacl_execute_without_filter(sap_mcp_client: ClientSession) -> N
     await capture_html_snapshot(sap_mcp_client, "emmacl_results_no_filter")
 
     # Read result table
-    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 20})
-    table_data = parse_tool_response(table_result)
+    table_result = await call_tool_typed(sap_mcp_client, "sap_read_table", {"max_rows": 20}, TableData)
 
     # Print results for debugging
     print(f"\nEMMACL results without filter:")
-    print(f"Headers: {table_data.get('headers', [])}")
-    print(f"Total rows: {table_data.get('total_rows', 0)}")
-    for row in table_data.get("rows", [])[:5]:
-        print(f"  Row {row.get('row')}: {row.get('data')}")
+    print(f"Headers: {table_result.headers}")
+    print(f"Total rows: {table_result.total_rows}")
+    for row in (table_result.rows or [])[:5]:
+        print(f"  Row {row.row}: {row.data}")
 
     # Verify we got some results (or at least the table was read)
-    assert table_data.get("success", True), f"Table read failed: {table_data}"
+    assert table_result.success, f"Table read failed: {table_result}"
 
 
 @pytest.mark.anyio
@@ -1647,11 +1563,11 @@ async def test_emmacl_execute_with_filter(sap_mcp_client: ClientSession) -> None
     3. Presses F8 to execute
     4. Verifies the search was executed (got results or "no data" message)
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open EMMACL transaction
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
-    assert_tool_success(result, "sap_transaction EMMACL")
+    result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "EMMACL"}, TransactionResult)
+    assert result.success, f"sap_transaction EMMACL failed: {result.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
@@ -1661,19 +1577,19 @@ async def test_emmacl_execute_with_filter(sap_mcp_client: ClientSession) -> None
         "input[lsdata*='BPCODE-LOW']": "ZTEST",  # Business Process Code (likely no matches)
     }
 
-    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": filter_values})
-    fill_data = assert_tool_success(fill_result, "sap_fill_form")
+    fill_result = await call_tool_typed(sap_mcp_client, "sap_fill_form", {"fields": filter_values}, FillFormResult)
+    assert fill_result.success, f"sap_fill_form failed: {fill_result.error}"
 
-    print(f"\nFilled filter fields: {fill_data.get('filled', [])}")
+    print(f"\nFilled filter fields: {fill_result.filled}")
 
     # Verify filter field was filled
-    assert len(fill_data.get("filled", [])) == len(
+    assert len(fill_result.filled or []) == len(
         filter_values
-    ), f"Expected {len(filter_values)} fields filled, got: {fill_data}"
+    ), f"Expected {len(filter_values)} fields filled, got: {fill_result}"
 
     # Execute with filter (F8)
-    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
-    assert_tool_success(kb_result, "sap_keyboard F8")
+    kb_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    assert kb_result.success, f"sap_keyboard F8 failed: {kb_result.error}"
 
     # Wait for results to load
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
@@ -1682,23 +1598,21 @@ async def test_emmacl_execute_with_filter(sap_mcp_client: ClientSession) -> None
     await capture_html_snapshot(sap_mcp_client, "emmacl_results_filtered")
 
     # Check status bar for result message (works in DE and EN)
-    status_result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
-    status_data = parse_tool_response(status_result)
+    status_result = await call_tool_typed(sap_mcp_client, "sap_read_status_bar", {}, StatusBarInfo)
 
-    print(f"\nStatus bar after F8: {status_data.get('message', '')}")
+    print(f"\nStatus bar after F8: {status_result.message or ''}")
 
     # Also try reading table (may show 0 rows if filter matched nothing)
-    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 5})
-    table_data = parse_tool_response(table_result)
+    table_result = await call_tool_typed(sap_mcp_client, "sap_read_table", {"max_rows": 5}, TableData)
 
-    print(f"Table rows: {table_data.get('total_rows', 0)}")
+    print(f"Table rows: {table_result.total_rows or 0}")
 
     # The test passes if:
     # 1. Filter was filled successfully (already verified above)
     # 2. F8 was executed (already verified)
     # 3. We got either results or a "no data" status message
-    status_msg = status_data.get("message", "").lower()
-    total_rows = table_data.get("total_rows", 0)
+    status_msg = (status_result.message or "").lower()
+    total_rows = table_result.total_rows or 0
 
     # Either we got some rows, or we got a status message about no data
     assert (
@@ -1721,39 +1635,39 @@ async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None
     This is a critical test for the ALV grid click support feature.
     The test MUST succeed with an actual click + navigation for the feature to work.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Step 1: Open EMMACL transaction
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
-    assert_tool_success(result, "sap_transaction EMMACL")
+    result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "EMMACL"}, TransactionResult)
+    assert result.success, f"sap_transaction EMMACL failed: {result.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Step 2: Execute without filters (F8) to get the results table
-    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
-    assert_tool_success(kb_result, "sap_keyboard F8")
+    kb_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    assert kb_result.success, f"sap_keyboard F8 failed: {kb_result.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Step 3: Read the table - should get ALV metadata with cell selectors
-    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 10})
-    table_data = assert_tool_success(table_result, "sap_read_table")
+    table_result = await call_tool_typed(sap_mcp_client, "sap_read_table", {"max_rows": 10}, TableData)
+    assert table_result.success, f"sap_read_table failed: {table_result.error}"
 
     print(f"\nTable data structure:")
-    print(f"  Headers: {table_data.get('headers', [])}")
-    print(f"  Total rows: {table_data.get('total_rows', 0)}")
-    print(f"  ALV metadata: {table_data.get('alv', 'NOT PRESENT')}")
+    print(f"  Headers: {table_result.headers}")
+    print(f"  Total rows: {table_result.total_rows}")
+    print(f"  ALV metadata: {table_result.alv or 'NOT PRESENT'}")
 
     # Verify we have ALV metadata (proves ALV grid detection worked)
-    assert "alv" in table_data, (
-        "sap_read_table should return ALV metadata for EMMACL results. " f"Got: {list(table_data.keys())}"
+    assert table_result.alv is not None, (
+        f"sap_read_table should return ALV metadata for EMMACL results."
     )
 
-    alv_meta = table_data.get("alv", {})
-    assert alv_meta.get("table_id"), f"ALV metadata should have table_id: {alv_meta}"
+    alv_meta = table_result.alv
+    assert alv_meta.table_id, f"ALV metadata should have table_id: {alv_meta}"
 
     # Verify we have at least one row
-    rows = table_data.get("rows", [])
+    rows = table_result.rows or []
     assert len(rows) >= 1, f"Expected at least one row in EMMACL results: {table_data}"
 
     # Verify first row has cell metadata with selectors
