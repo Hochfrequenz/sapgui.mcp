@@ -607,16 +607,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and codin
 │  - Calls tools to interact with SAP                     │
 └─────────────────────────────────────────────────────────┘
 ```
-
-## Publishing to PyPI
-
-This repository uses trusted publishing workflow:
-
-1. Create a release environment in GitHub repository settings
-2. Set up trusted publisher in PyPI account
-3. Uncomment the publish job in `.github/workflows/python-publish.yml`
-4. Create a GitHub release to trigger publishing
-
-## License
-
-MIT
