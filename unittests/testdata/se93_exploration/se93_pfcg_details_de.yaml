@@ -1,0 +1,101 @@
+- main "Dialogtransaktion anzeigen":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "Dialogtransaktion anzeigen" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Transaktionscode"
+      - button "Bearbeiten"
+      - button "Springen"
+      - button "Hilfsmittel"
+      - button "Umfeld"
+      - button "System"
+      - button "Hilfe"
+      - button "GUI-Aktionen und -Einstellungen"
+    - button "Beenden"
+    - toolbar:
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Anzeigen<->Ändern"
+      - button "Anderes Objekt..."
+      - button "Prüfen"
+      - button "Testen"
+      - button "Verwendungsnachweis"
+      - button "Objektliste anzeigen"
+      - button "Navigationsfenster anzeigen"
+      - button "Mehr"
+  - text: Transaktionscode
+  - textbox "Transaktionscode": PFCG
+  - text: Paket
+  - textbox "Paket": S_PROFGEN
+  - text: Transaktionstext
+  - textbox "Transaktionstext": Pflege von Rollen
+  - group "Startoptionen":
+    - heading "Startoptionen" [level=2]
+    - text: Programm
+    - textbox "Programm": SAPLPRGN_TREE
+    - text: Dynpronummer
+    - textbox "Dynpronummer": "121"
+    - text: Berechtigungsobjekt
+    - textbox "Berechtigungsobjekt": S_USER_AGR
+    - button "Werte"
+    - checkbox "Pflege der Standardtransaktionsvariante erlaubt" [checked] [disabled]:  Pflege der Standardtransaktionsvariante erlaubt
+  - group "Klassifikation":
+    - heading "Klassifikation" [level=2]
+    - group "Transaktionsklassifikation":
+      - heading "Transaktionsklassifikation" [level=3]
+      - radio "Professional User Transaction" [checked] [disabled]
+      - radio "Easy Web Transaction" [disabled]
+      - text: Service
+      - textbox "Service"
+      - checkbox "Pervasive enabled" [disabled]
+    - group "GUI-Fähigkeit":
+      - heading "GUI-Fähigkeit" [level=3]
+      - checkbox "SAP GUI für HTML" [checked] [disabled]:  SAP GUI für HTML
+      - checkbox "SAP GUI für Java" [checked] [disabled]:  SAP GUI für Java
+      - checkbox "SAP GUI für Windows" [checked] [disabled]:  SAP GUI für Windows
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSEUK/0310":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSEUK/0310"
+        - cell
+      - menuitemradio "Transaktion SE93":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE93"
+        - cell
+      - row "E2E-Zeit 107 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "107 ms"
+        - cell
+      - row "WebGUI-Zeit 47 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "47 ms"
+        - cell

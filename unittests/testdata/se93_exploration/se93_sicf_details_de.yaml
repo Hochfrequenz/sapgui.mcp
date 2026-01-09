@@ -1,0 +1,102 @@
+- main "Reporttransaktion anzeigen":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "Reporttransaktion anzeigen" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Transaktionscode"
+      - button "Bearbeiten"
+      - button "Springen"
+      - button "Hilfsmittel"
+      - button "Umfeld"
+      - button "System"
+      - button "Hilfe"
+      - button "GUI-Aktionen und -Einstellungen"
+    - button "Beenden"
+    - toolbar:
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Anzeigen<->Ändern"
+      - button "Anderes Objekt..."
+      - button "Prüfen"
+      - button "Testen"
+      - button "Verwendungsnachweis"
+      - button "Objektliste anzeigen"
+      - button "Navigationsfenster anzeigen"
+      - button "Mehr"
+  - text: Transaktionscode
+  - textbox "Transaktionscode": SICF
+  - text: Paket
+  - textbox "Paket": SHTTP
+  - text: Transaktionstext
+  - textbox "Transaktionstext": Pflege des HTTP-Service-Baums
+  - group "Startoptionen":
+    - heading "Startoptionen" [level=2]
+    - text: Programm
+    - textbox "Programm": RSICFTREE
+    - text: Selektionsbild
+    - textbox "Selektionsbild": "1000"
+    - text: Start mit Variante
+    - textbox "Start mit Variante"
+    - text: Berechtigungsobjekt
+    - textbox "Berechtigungsobjekt"
+    - button "Werte"
+  - group "Klassifikation":
+    - heading "Klassifikation" [level=2]
+    - group "Transaktionsklassifikation":
+      - heading "Transaktionsklassifikation" [level=3]
+      - radio "Professional User Transaction" [checked] [disabled]
+      - radio "Easy Web Transaction" [disabled]
+      - text: Service
+      - textbox "Service"
+      - checkbox "Pervasive enabled" [disabled]
+    - group "GUI-Fähigkeit":
+      - heading "GUI-Fähigkeit" [level=3]
+      - checkbox "SAP GUI für HTML" [disabled]
+      - checkbox "SAP GUI für Java" [disabled]
+      - checkbox "SAP GUI für Windows" [checked] [disabled]:  SAP GUI für Windows
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSEUK/0320":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSEUK/0320"
+        - cell
+      - menuitemradio "Transaktion SE93":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE93"
+        - cell
+      - row "E2E-Zeit 123 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "123 ms"
+        - cell
+      - row "WebGUI-Zeit 57 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "57 ms"
+        - cell

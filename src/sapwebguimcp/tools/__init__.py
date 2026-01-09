@@ -22,6 +22,7 @@ from sapwebguimcp.tools.intent_tools import (
 from sapwebguimcp.tools.sap_tools import register_sap_tools
 from sapwebguimcp.tools.se11_tools import register_se11_tools
 from sapwebguimcp.tools.se16_tools import register_se16_tools
+from sapwebguimcp.tools.se93_tools import register_se93_tools
 from sapwebguimcp.tools.workflow_tools import register_workflow_tools
 
 __all__ = [
@@ -31,6 +32,7 @@ __all__ = [
     "register_sap_tools",
     "register_se11_tools",
     "register_se16_tools",
+    "register_se93_tools",
     "register_workflow_tools",
     "get_session_feedback",
     "clear_session_feedback",

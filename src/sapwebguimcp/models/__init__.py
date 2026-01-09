@@ -84,6 +84,13 @@ from sapwebguimcp.models.se16_models import (
     SE16Result,
     SE16Row,
 )
+from sapwebguimcp.models.se93_models import (
+    SE93Entry,
+    SE93Error,
+    SE93FileSummary,
+    SE93Result,
+    SE93TransactionType,
+)
 from sapwebguimcp.models.workflow_models import (
     Workflow,
     WorkflowDeleteResult,
@@ -174,6 +181,12 @@ __all__ = [
     "SE16FileSummary",
     "SE16Result",
     "SE16Row",
+    # SE93 models
+    "SE93Entry",
+    "SE93Error",
+    "SE93FileSummary",
+    "SE93Result",
+    "SE93TransactionType",
     # Workflow models
     "Workflow",
     "WorkflowDeleteResult",

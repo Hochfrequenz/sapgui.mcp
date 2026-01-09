@@ -1,0 +1,78 @@
+- main "Transaktionspflege":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "Transaktionspflege" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Transaktionscode"
+      - button "Bearbeiten"
+      - button "Springen"
+      - button "Hilfsmittel"
+      - button "Umfeld"
+      - button "System"
+      - button "Hilfe"
+      - button "GUI-Aktionen und -Einstellungen"
+    - button "Beenden"
+    - button "Suchen (Strg+F)"
+    - toolbar:
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Prüfen"
+      - button "Testen"
+      - button "Verwendungsnachweis"
+      - button "Umfeldermittlung"
+      - button "Online Handbuch"
+      - button "Löschen"
+      - button "Kopieren"
+      - button "Umbenennen"
+  - text: Transaktionscode
+  - textbox "Transaktionscode": ZZZNOTEXIST99
+  - button "Anzeigen"
+  - button "Ändern"
+  - button "Anlegen"
+  - text: 
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSEUK/0390":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSEUK/0390"
+        - cell
+      - menuitemradio "Transaktion SE93":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE93"
+        - cell
+      - row "E2E-Zeit 85 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "85 ms"
+        - cell
+      - row "WebGUI-Zeit 40 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "40 ms"
+        - cell
