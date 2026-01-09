@@ -7,13 +7,13 @@ returning strongly-typed Pydantic models with transaction details.
 
 import json
 import logging
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-from playwright.async_api import TimeoutError as PlaywrightTimeout
 
 from sapwebguimcp.models import (
     SE93Entry,
@@ -38,25 +38,54 @@ MAX_INLINE_OBJECTS = 10
 # =============================================================================
 
 
+async def _find_tcode_field(page: Any) -> Any:
+    """Find the transaction code input field in SE93 using multiple strategies."""
+    # Build list of locator strategies to try in order
+    strategies = [
+        # Strategy 1: Try by role with exact name matches
+        *[
+            page.get_by_role("textbox", name=name)
+            for name in ["Transaktionscode", "Transaction code", "Transaction Code"]
+        ],
+        # Strategy 2: Try regex pattern for transaction code field
+        page.get_by_role("textbox", name=re.compile(r"Transaktion|Transaction", re.I)),
+        # Strategy 3: Try by input title attribute (common in SAP Web GUI)
+        page.locator("input[title*='Transaktionscode'], input[title*='Transaction code']").first,
+        # Strategy 4: Try by placeholder or aria-label
+        page.locator("[aria-label*='Transaktion'], [aria-label*='Transaction']").first,
+        # Strategy 5: First visible input field on the page (last resort)
+        page.locator("input:visible").first,
+    ]
+
+    for field in strategies:
+        if await field.count() > 0:
+            return field
+
+    return None
+
+
 async def _fill_tcode_field(page: Any, tcode: str) -> SE93Error | None:
     """Fill the transaction code field in SE93. Returns error or None."""
     now = datetime.now(UTC)
 
-    # Try German label first, then English
-    tcode_field = page.get_by_role("textbox", name="Transaktionscode")
-    if await tcode_field.count() == 0:
-        tcode_field = page.get_by_role("textbox", name="Transaction code")
+    tcode_field = await _find_tcode_field(page)
 
-    if await tcode_field.count() == 0:
+    if tcode_field is None or await tcode_field.count() == 0:
         return SE93Error(
             tcode=tcode,
             error="Could not find transaction code field in SE93",
             retrieved_at=now,
         )
 
+    # Clear the field first by selecting all and deleting
     await tcode_field.click(click_count=3)
+    await page.wait_for_timeout(100)
+    await page.keyboard.press("Delete")
     await page.wait_for_timeout(50)
+
+    # Type the transaction code
     await page.keyboard.type(tcode.upper())
+    await page.wait_for_timeout(100)
     return None
 
 
@@ -64,27 +93,48 @@ async def _click_display_button(page: Any) -> None:
     """Click the Display button (F7)."""
     await page.wait_for_timeout(300)
     await page.keyboard.press("F7")
-    await page.wait_for_timeout(500)
+    await page.wait_for_timeout(1000)  # Wait longer for SAP to process
     await page.wait_for_load_state("networkidle")
+    await page.wait_for_timeout(500)  # Additional wait for page state to settle
 
 
 async def _check_tcode_not_found(page: Any, tcode: str) -> SE93Error | None:
-    """Check if status bar shows transaction not found. Returns error or None."""
+    """Check if transaction was not found by verifying page state. Returns error or None."""
     now = datetime.now(UTC)
+
+    # Primary check: Are we still on the initial screen?
+    # If we successfully displayed a transaction, the page title changes
+    page_title = await page.title()
+    is_initial_screen = "Transaktionspflege" in page_title or "Transaction Maintenance" in page_title
+
+    if not is_initial_screen:
+        # We're on a display screen, so the transaction was found
+        return None
+
+    # We're still on initial screen - check status bar for specific error message
     status_bar = page.locator("#sapStatusBarAll, [id*='STATUSBAR']").first
     status_text = await status_bar.text_content() if await status_bar.count() > 0 else ""
 
-    not_found_msgs = {"existiert nicht", "does not exist", "nicht gefunden", "not found", "nicht vorhanden"}
-    if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
-        await page.keyboard.press("F3")
-        await page.wait_for_load_state("networkidle")
-        return SE93Error(
-            tcode=tcode,
-            error=f"Transaction '{tcode}' not found",
-            retrieved_at=now,
-        )
+    not_found_msgs = {
+        "existiert nicht",
+        "does not exist",
+        "nicht gefunden",
+        "not found",
+        "nicht vorhanden",
+    }
 
-    return None
+    if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
+        error_msg = f"Transaction '{tcode}' not found"
+    else:
+        # Still on initial screen but no clear error
+        error_msg = f"Transaction '{tcode}' not found (still on initial screen)"
+
+    # Don't press F3 here - the next /nSE93 will handle navigation
+    return SE93Error(
+        tcode=tcode,
+        error=error_msg,
+        retrieved_at=now,
+    )
 
 
 async def _lookup_single_tcode(page: Any, tcode: str) -> SE93Entry | SE93Error:
@@ -101,17 +151,17 @@ async def _lookup_single_tcode(page: Any, tcode: str) -> SE93Entry | SE93Error:
             retrieved_at=now,
         )
 
-    # Wait for SE93 screen
-    try:
-        tcode_field = page.get_by_role("textbox", name="Transaktionscode")
-        if await tcode_field.count() == 0:
-            tcode_field = page.get_by_role("textbox", name="Transaction code")
-        await tcode_field.wait_for(state="visible", timeout=10000)
-    except PlaywrightTimeout:
+    # Wait for SE93 screen to be ready
+    await page.wait_for_timeout(500)
+    await page.wait_for_load_state("networkidle")
+
+    # Try to find the transaction code field with multiple strategies
+    tcode_field = await _find_tcode_field(page)
+    if tcode_field is None or await tcode_field.count() == 0:
         page_title = await page.title()
         return SE93Error(
             tcode=tcode,
-            error=f"SE93 screen did not load (page title: '{page_title}')",
+            error=f"SE93 screen did not load or field not found (page title: '{page_title}')",
             retrieved_at=now,
         )
 

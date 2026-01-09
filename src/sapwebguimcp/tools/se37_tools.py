@@ -7,13 +7,13 @@ returning strongly-typed Pydantic models with parameter and exception details.
 
 import json
 import logging
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-from playwright.async_api import TimeoutError as PlaywrightTimeout
 
 from sapwebguimcp.models import (
     SE37Entry,
@@ -38,27 +38,54 @@ MAX_INLINE_OBJECTS = 5
 # =============================================================================
 
 
+async def _find_fm_field(page: Any) -> Any:
+    """Find the function module input field in SE37 using multiple strategies."""
+    # Build list of locator strategies to try in order
+    strategies = [
+        # Strategy 1: Try by role with exact name matches
+        *[
+            page.get_by_role("textbox", name=name)
+            for name in ["Funktionsbaustein", "Function module", "Function Module"]
+        ],
+        # Strategy 2: Try regex pattern for function module field
+        page.get_by_role("textbox", name=re.compile(r"Funktionsbaustein|Function\s+[Mm]odule", re.I)),
+        # Strategy 3: Try by input title attribute (common in SAP Web GUI)
+        page.locator("input[title*='Funktionsbaustein'], input[title*='Function module']").first,
+        # Strategy 4: Try by placeholder or aria-label
+        page.locator("[aria-label*='Funktionsbaustein'], [aria-label*='Function']").first,
+        # Strategy 5: First visible input field on the page (last resort)
+        page.locator("input:visible").first,
+    ]
+
+    for field in strategies:
+        if await field.count() > 0:
+            return field
+
+    return None
+
+
 async def _fill_fm_field(page: Any, fm_name: str) -> SE37Error | None:
     """Fill the function module name field in SE37. Returns error or None."""
     now = datetime.now(UTC)
 
-    # Try German label first, then English
-    fm_field = page.get_by_role("textbox", name="Funktionsbaustein")
-    if await fm_field.count() == 0:
-        fm_field = page.get_by_role("textbox", name="Function module")
-    if await fm_field.count() == 0:
-        fm_field = page.get_by_role("textbox", name="Function Module")
+    fm_field = await _find_fm_field(page)
 
-    if await fm_field.count() == 0:
+    if fm_field is None or await fm_field.count() == 0:
         return SE37Error(
             function_module=fm_name,
             error="Could not find function module field in SE37",
             retrieved_at=now,
         )
 
+    # Clear the field first by selecting all and deleting
     await fm_field.click(click_count=3)
+    await page.wait_for_timeout(100)
+    await page.keyboard.press("Delete")
     await page.wait_for_timeout(50)
+
+    # Type the function module name
     await page.keyboard.type(fm_name.upper())
+    await page.wait_for_timeout(100)
     return None
 
 
@@ -66,13 +93,25 @@ async def _click_display_button(page: Any) -> None:
     """Click the Display button (F7)."""
     await page.wait_for_timeout(300)
     await page.keyboard.press("F7")
-    await page.wait_for_timeout(500)
+    await page.wait_for_timeout(1000)  # Wait longer for SAP to process
     await page.wait_for_load_state("networkidle")
+    await page.wait_for_timeout(500)  # Additional wait for page state to settle
 
 
 async def _check_fm_not_found(page: Any, fm_name: str) -> SE37Error | None:
-    """Check if status bar shows function module not found. Returns error or None."""
+    """Check if function module was not found by verifying page state. Returns error or None."""
     now = datetime.now(UTC)
+
+    # Primary check: Are we still on the initial screen?
+    # If we successfully displayed a function module, the page title changes
+    page_title = await page.title()
+    is_initial_screen = "Einstieg" in page_title or "Initial" in page_title
+
+    if not is_initial_screen:
+        # We're on a display screen, so the function module was found
+        return None
+
+    # We're still on initial screen - check status bar for specific error message
     status_bar = page.locator("#sapStatusBarAll, [id*='STATUSBAR']").first
     status_text = await status_bar.text_content() if await status_bar.count() > 0 else ""
 
@@ -82,17 +121,21 @@ async def _check_fm_not_found(page: Any, fm_name: str) -> SE37Error | None:
         "nicht gefunden",
         "not found",
         "nicht vorhanden",
+        "existiert nicht",
     }
-    if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
-        await page.keyboard.press("F3")
-        await page.wait_for_load_state("networkidle")
-        return SE37Error(
-            function_module=fm_name,
-            error=f"Function module '{fm_name}' not found",
-            retrieved_at=now,
-        )
 
-    return None
+    if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
+        error_msg = f"Function module '{fm_name}' not found"
+    else:
+        # Still on initial screen but no clear error
+        error_msg = f"Function module '{fm_name}' not found (still on initial screen)"
+
+    # Don't press F3 here - the next /nSE37 will handle navigation
+    return SE37Error(
+        function_module=fm_name,
+        error=error_msg,
+        retrieved_at=now,
+    )
 
 
 async def _click_tab(page: Any, tab_name: str) -> bool:
@@ -144,17 +187,17 @@ async def _lookup_single_fm(page: Any, fm_name: str) -> SE37Entry | SE37Error:
             retrieved_at=now,
         )
 
-    # Wait for SE37 screen
-    try:
-        fm_field = page.get_by_role("textbox", name="Funktionsbaustein")
-        if await fm_field.count() == 0:
-            fm_field = page.get_by_role("textbox", name="Function module")
-        await fm_field.wait_for(state="visible", timeout=10000)
-    except PlaywrightTimeout:
+    # Wait for SE37 screen to be ready
+    await page.wait_for_timeout(500)
+    await page.wait_for_load_state("networkidle")
+
+    # Try to find the function module field with multiple strategies
+    fm_field = await _find_fm_field(page)
+    if fm_field is None or await fm_field.count() == 0:
         page_title = await page.title()
         return SE37Error(
             function_module=fm_name,
-            error=f"SE37 screen did not load (page title: '{page_title}')",
+            error=f"SE37 screen did not load or field not found (page title: '{page_title}')",
             retrieved_at=now,
         )
 
