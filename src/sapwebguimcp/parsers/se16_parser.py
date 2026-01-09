@@ -19,13 +19,18 @@ logger = logging.getLogger(__name__)
 # Regex Patterns (compiled once for efficiency)
 # =============================================================================
 
-# Match "Number of Hits" field - handles German locale (e.g., "5.000" = 5000)
-_HIT_COUNT_PATTERN = re.compile(r'textbox "Number of Hits": "(?P<count>[0-9.]+)"')
+# Match "Number of Hits" field - handles both English and German labels
+# German locale uses dot as thousands separator (e.g., "5.000" = 5000)
+# English: "Number of Hits"
+# German: "Anzahl Treffer" (literal translation)
+_HIT_COUNT_PATTERN = re.compile(r'textbox "(?:Number of Hits|Anzahl Treffer)": "(?P<count>[0-9.]+)"')
 
 # Match data rows - handles BOTH formats:
 # - row "To select a row..."  (no colons in row text)
 # - 'row "To select a row..."':  (has colons, YAML quotes the whole line)
-_ROW_START_PATTERN = re.compile(r"- '?row \"To select a row")
+# English: "To select a row"
+# German: "Zum Auswählen einer Zeile drücken Sie die Leertaste"
+_ROW_START_PATTERN = re.compile(r"- '?row \"(?:To select a row|Zum Auswählen einer Zeile)")
 
 # Extract gridcell values - matches both "gridcell "value"" and "gridcell:"
 _GRIDCELL_WITH_VALUE_PATTERN = re.compile(r'gridcell "(?P<value>[^"]*)"')
@@ -158,10 +163,14 @@ def parse_se16_columns(snapshot: str) -> list[str]:
             logger.warning("SE16 parser: No grid found in snapshot")
             return columns
 
-        # Find the first data row (starts with "To select a row")
+        # Find the first data row (English: "To select a row", German: "Zum Auswählen einer Zeile")
         first_row = snapshot.find('row "To select a row', grid_start)
         if first_row == -1:
             first_row = snapshot.find("'row \"To select a row", grid_start)
+        if first_row == -1:
+            first_row = snapshot.find('row "Zum Auswählen einer Zeile', grid_start)
+        if first_row == -1:
+            first_row = snapshot.find("'row \"Zum Auswählen einer Zeile", grid_start)
 
         if first_row == -1:
             # No data rows, use everything after grid
@@ -172,8 +181,9 @@ def parse_se16_columns(snapshot: str) -> list[str]:
     # Extract all columnheader values
     for match in _COLUMNHEADER_PATTERN.finditer(header_section):
         col_name = match.group("name")
-        # Skip the row selection column
-        if col_name != "Column for row selection":
+        # Skip the row selection column (English: "Column for row selection",
+        # German: "Spalte für Zeilenauswahl")
+        if col_name not in ("Column for row selection", "Spalte für Zeilenauswahl"):
             columns.append(col_name)
 
     return columns

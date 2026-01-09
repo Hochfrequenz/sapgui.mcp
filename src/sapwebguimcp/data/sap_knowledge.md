@@ -3,6 +3,13 @@
 This file contains domain knowledge, tips, and best practices for working with SAP Web GUI.
 The content is loaded by `sap_get_capabilities()` and provided to the AI model.
 
+## MCP-Tools are Faster than manual evaluation
+
+ALWAYS, before trying to use `browser_evaluate` or any other `browser_` tool, check if there is a dedicated MCP tool that does what you want.
+MCP tools are optimized to work with SAP Web GUI and will be much faster and more reliable.
+You can still manually evaluate JavaScript code if no MCP tool exists for your use case or if the tools don't work, but this should be the exception, not the rule.
+In case it doesn't work use the respetive tool to submit feedback to improve the MCP tools.
+
 ## Keyboard Shortcuts
 
 Always check `sap_get_shortcuts` before clicking buttons - shortcuts are faster and more reliable.

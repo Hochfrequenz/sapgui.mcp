@@ -1,15 +1,19 @@
 """Pytest configuration and fixtures for SAP Web GUI MCP Server tests."""
 
+import base64
+import json
 import os
 import socket
 import sys
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
+from typing import Any, TypeVar
 
 import pytest
 from dotenv import load_dotenv
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
+from pydantic import BaseModel
 
 # Load .env file if it exists (for local development and integration tests)
 load_dotenv()
@@ -77,6 +81,142 @@ def clean_environment() -> Generator[None, None, None]:
             os.environ[var] = value
         elif var in os.environ:
             del os.environ[var]
+
+
+# =============================================================================
+# TYPED TEST HELPERS
+# =============================================================================
+#
+# IMPORTANT: These helpers assume tools return JSON-serialized Pydantic models.
+#
+# DO NOT use call_tool_typed() for tools that may return non-JSON content:
+#   - browser_get_html: Returns raw HTML as File when content > 80KB
+#   - browser_screenshot: Returns binary image data
+#   - Any tool returning File or binary content
+#
+# For browser_get_html, use get_html_content() instead which handles both
+# JSON (HtmlResult) and File (raw HTML) response formats.
+# =============================================================================
+
+T = TypeVar("T", bound=BaseModel)
+E = TypeVar("E", bound=BaseModel)
+
+
+def _extract_content_text(content_item: Any) -> str:
+    """Extract text from MCP content item (TextContent or EmbeddedResource)."""
+    if hasattr(content_item, "text"):
+        return content_item.text
+    elif hasattr(content_item, "resource") and hasattr(content_item.resource, "blob"):
+        return base64.b64decode(content_item.resource.blob).decode("utf-8")
+    return str(content_item)
+
+
+def _is_json_content(text: str) -> bool:
+    """Check if text looks like JSON (starts with { or [)."""
+    stripped = text.lstrip()
+    return stripped.startswith("{") or stripped.startswith("[")
+
+
+async def call_tool_typed(
+    client: ClientSession,
+    tool_name: str,
+    args: dict[str, Any],
+    result_type: type[T],
+    error_type: type[E] | None = None,
+) -> T | E:
+    """
+    Call an MCP tool and return a typed Pydantic model.
+
+    IMPORTANT: Only use for tools that ALWAYS return JSON. For tools that may
+    return File/binary content (browser_get_html, browser_screenshot), use
+    the specialized helpers instead.
+
+    Discriminates using:
+    - success=False -> parse as error_type (if provided)
+    - presence of 'error' field with non-None value -> parse as error_type
+    - otherwise -> parse as result_type
+
+    Args:
+        client: MCP ClientSession
+        tool_name: Name of the tool to call
+        args: Arguments to pass to the tool
+        result_type: Pydantic model type for success responses
+        error_type: Optional Pydantic model type for error responses
+
+    Returns:
+        Parsed and validated Pydantic model instance
+
+    Raises:
+        json.JSONDecodeError: If the response is not valid JSON (e.g., raw HTML)
+    """
+    result = await client.call_tool(tool_name, args)
+    assert result.content, f"{tool_name} returned no content"
+
+    text = _extract_content_text(result.content[0])
+    data = json.loads(text)
+
+    # Discriminate between success/error
+    if error_type is not None:
+        is_error = data.get("success") is False or data.get("error") is not None
+        if is_error:
+            return error_type.model_validate(data)
+
+    return result_type.model_validate(data)
+
+
+async def get_html_content(
+    client: ClientSession,
+    selector: str | None = None,
+    outer: bool = True,
+) -> str:
+    """
+    Get HTML content from the browser, handling both JSON and File responses.
+
+    browser_get_html returns HtmlResult (JSON) for small pages but returns
+    the HTML as a File (binary) when content exceeds ~80KB. This helper
+    handles both cases transparently.
+
+    Args:
+        client: MCP ClientSession
+        selector: Optional CSS selector to scope the HTML
+        outer: True for outerHTML, False for innerHTML
+
+    Returns:
+        HTML content as string
+    """
+    args: dict[str, Any] = {"outer": outer}
+    if selector:
+        args["selector"] = selector
+
+    result = await client.call_tool("browser_get_html", args)
+    assert result.content, "browser_get_html returned no content"
+
+    # Extract text from first content item
+    text = _extract_content_text(result.content[0])
+
+    # Check if it's JSON (HtmlResult) or raw HTML (from File)
+    if _is_json_content(text):
+        data = json.loads(text)
+        if data.get("success") is False:
+            raise RuntimeError(f"browser_get_html failed: {data.get('error')}")
+        return data.get("html", "")
+    else:
+        # Raw HTML content from File response
+        return text
+
+
+async def assert_tool_success_untyped(
+    client: ClientSession,
+    tool_name: str,
+    args: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Call tool, assert success=True, return raw dict. For simple cases."""
+    result = await client.call_tool(tool_name, args or {})
+    assert result.content, f"{tool_name} returned no content"
+    text = _extract_content_text(result.content[0])
+    data = json.loads(text)
+    assert data.get("success", True), f"{tool_name} failed: {data.get('error')}"
+    return data
 
 
 @pytest.fixture

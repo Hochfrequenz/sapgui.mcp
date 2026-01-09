@@ -27,7 +27,7 @@
       - button "Löschen"
       - button "Kopieren..."
   - radio "Datenbanktabelle" [checked]
-  - textbox "Tabellenname, 16-stellig"
+  - textbox "Tabellenname, 16-stellig": ZZZNOTEXIST99
   - radio "View"
   - textbox "Name eines SAP-Tabellenviews"
   - radio "Datentyp"
@@ -44,6 +44,8 @@
   - button "Ändern"
   - button "Anlegen"
   - text: 
+  - note "Erfolgreich Meldungsleiste ZZZNOTEXIST99 ist nicht vorhanden":
+    - link "Details anzeigen"
   - menu:
     - rowgroup:
       - menuitemradio "System S4U (100)" [checked]:
@@ -76,15 +78,16 @@
         - cell "Transaktion"
         - cell "SE11"
         - cell
-      - row "E2E-Zeit 135 ms":
+      - row "E2E-Zeit 105 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "135 ms"
+        - cell "105 ms"
         - cell
-      - row "WebGUI-Zeit 55 ms":
+      - row "WebGUI-Zeit 53 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "55 ms"
+        - cell "53 ms"
         - cell
+- alert "Der Meldungsbereich enthält Meldungen. Um den Fokus zu aktivieren oder deaktivieren, drücken Sie Strg + Umschalt + M.": "Erfolgreich: ZZZNOTEXIST99 ist nicht vorhanden"

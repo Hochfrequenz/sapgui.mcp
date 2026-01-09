@@ -81,13 +81,35 @@ async def _fill_se16n_fields(table: str, max_hits: int) -> str | None:
     if "Table" not in fill_result.not_found:
         return None
 
-    # Try German labels
+    # Try German labels (SAP SE16N uses "Maximale Trefferzahl" for max hits)
     fill_result = await sap_fill_form_impl(
-        {"Tabelle": table.upper(), "Max. Anzahl Treffer": str(max_hits)},
+        {"Tabelle": table.upper(), "Maximale Trefferzahl": str(max_hits)},
         strict=False,
     )
     if "Tabelle" in fill_result.not_found:
         return f"Failed to set table name field. Not found: {fill_result.not_found}"
+
+    return None
+
+
+def _check_table_not_found(snapshot: str, table: str) -> str | None:
+    """
+    Check if snapshot indicates table not found error.
+
+    Returns:
+        Error message if table not found, None if table exists.
+    """
+    # Check for explicit "not found" error messages
+    snapshot_lower = snapshot.lower()
+    if "does not exist" in snapshot_lower or "existiert nicht" in snapshot_lower:
+        return f"Table '{table}' not found in SAP"
+
+    # Check if still on selection screen (table doesn't exist or error occurred)
+    # Selection screen has columns like "Feldname", "Option", "Von-Wert" (German) or
+    # "Field Name", "Option", "From-Value" (English) - not data columns
+    selection_screen_columns = {"Feldname", "Field Name", "Option", "Von-Wert", "From-Value"}
+    if any(col in snapshot for col in selection_screen_columns):
+        return f"Table '{table}' not found in SAP (still on selection screen)"
 
     return None
 
@@ -236,9 +258,9 @@ async def _execute_se16_query(
     # Get snapshot to check for errors and parse results
     snapshot = await page.locator("body").aria_snapshot()
 
-    # Check for "not found" or error messages
-    if "does not exist" in snapshot.lower() or "existiert nicht" in snapshot.lower():
-        return _empty_failure(f"Table '{table}' not found in SAP", table, now)
+    # Check for table not found errors
+    if table_error := _check_table_not_found(snapshot, table):
+        return _empty_failure(table_error, table, now)
 
     # Parse hit count and columns
     total_hits = parse_se16_hit_count(snapshot)
