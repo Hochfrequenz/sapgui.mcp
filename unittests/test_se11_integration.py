@@ -57,7 +57,7 @@ async def capture_yaml_snapshot(
 ) -> str:
     """Capture YAML accessibility snapshot for parser development."""
     result = await call_tool_typed(client, "browser_snapshot", {}, SnapshotResult)
-    yaml_content = result.yaml
+    yaml_content = result.snapshot
 
     language = os.environ.get("SAP_LANGUAGE", "de").lower()
     filename = f"{base_name}_{language}.yaml"
