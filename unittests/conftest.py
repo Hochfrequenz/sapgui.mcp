@@ -1,15 +1,19 @@
 """Pytest configuration and fixtures for SAP Web GUI MCP Server tests."""
 
+import base64
+import json
 import os
 import socket
 import sys
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
+from typing import Any, TypeVar
 
 import pytest
 from dotenv import load_dotenv
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
+from pydantic import BaseModel
 
 # Load .env file if it exists (for local development and integration tests)
 load_dotenv()
@@ -77,6 +81,73 @@ def clean_environment() -> Generator[None, None, None]:
             os.environ[var] = value
         elif var in os.environ:
             del os.environ[var]
+
+
+T = TypeVar("T", bound=BaseModel)
+E = TypeVar("E", bound=BaseModel)
+
+
+def _extract_content_text(content_item: Any) -> str:
+    """Extract text from MCP content item (TextContent or EmbeddedResource)."""
+    if hasattr(content_item, "text"):
+        return content_item.text
+    elif hasattr(content_item, "resource") and hasattr(content_item.resource, "blob"):
+        return base64.b64decode(content_item.resource.blob).decode("utf-8")
+    return str(content_item)
+
+
+async def call_tool_typed(
+    client: ClientSession,
+    tool_name: str,
+    args: dict[str, Any],
+    result_type: type[T],
+    error_type: type[E] | None = None,
+) -> T | E:
+    """
+    Call an MCP tool and return a typed Pydantic model.
+
+    Discriminates using:
+    - success=False -> parse as error_type (if provided)
+    - presence of 'error' field with non-None value -> parse as error_type
+    - otherwise -> parse as result_type
+
+    Args:
+        client: MCP ClientSession
+        tool_name: Name of the tool to call
+        args: Arguments to pass to the tool
+        result_type: Pydantic model type for success responses
+        error_type: Optional Pydantic model type for error responses
+
+    Returns:
+        Parsed and validated Pydantic model instance
+    """
+    result = await client.call_tool(tool_name, args)
+    assert result.content, f"{tool_name} returned no content"
+
+    text = _extract_content_text(result.content[0])
+    data = json.loads(text)
+
+    # Discriminate between success/error
+    if error_type is not None:
+        is_error = data.get("success") is False or data.get("error") is not None
+        if is_error:
+            return error_type.model_validate(data)
+
+    return result_type.model_validate(data)
+
+
+async def assert_tool_success_untyped(
+    client: ClientSession,
+    tool_name: str,
+    args: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Call tool, assert success=True, return raw dict. For simple cases."""
+    result = await client.call_tool(tool_name, args or {})
+    assert result.content, f"{tool_name} returned no content"
+    text = _extract_content_text(result.content[0])
+    data = json.loads(text)
+    assert data.get("success", True), f"{tool_name} failed: {data.get('error')}"
+    return data
 
 
 @pytest.fixture
