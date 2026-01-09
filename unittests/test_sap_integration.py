@@ -120,7 +120,6 @@ import os
 from pathlib import Path
 
 import pytest
-from conftest import call_tool_typed
 from mcp import ClientSession
 
 from sapwebguimcp.models import (
@@ -133,7 +132,6 @@ from sapwebguimcp.models import (
     FillFormResult,
     FillResult,
     FormFieldsResult,
-    HtmlResult,
     IntentLogResult,
     KeepaliveResult,
     KeyboardResult,
@@ -153,6 +151,8 @@ from sapwebguimcp.models import (
     WorkflowListResult,
     WorkflowSaveResult,
 )
+
+from .conftest import call_tool_typed, get_html_content
 
 # HTML snapshot directory for offline selector tests
 HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
@@ -177,8 +177,7 @@ async def capture_html_snapshot(
     Returns:
         The captured HTML content.
     """
-    result = await call_tool_typed(client, "browser_get_html", {}, HtmlResult)
-    html_content = result.html
+    html_content = await get_html_content(client)
 
     # Include language in filename for multi-language snapshots
     language = os.environ.get("SAP_LANGUAGE", "EN").lower()
@@ -295,8 +294,7 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     assert result.url, "Expected URL in login response"
 
     # Verify browser state: check that SAP Easy Access loaded
-    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
-    page_html = html_result.html
+    page_html = await get_html_content(sap_mcp_client)
 
     # SAP Easy Access page should have the OK-Code field
     assert "toolbarokcode" in page_html.lower(), (
@@ -413,8 +411,7 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
     await _wait_for_transaction_screen(sap_mcp_client, "SU3")
 
     # Verify SU3 actually opened by checking the page content
-    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
-    page_html = html_result.html.lower()
+    page_html = (await get_html_content(sap_mcp_client)).lower()
 
     # Check that we're no longer on the Easy Access menu (SMEN)
     assert "sap easy access" not in page_html, "Still on SAP Easy Access menu. Transaction SU3 did not open."
@@ -448,8 +445,7 @@ async def test_sap_transaction_invalid_tcode(sap_mcp_client: ClientSession) -> N
     # Note: result may or may not be success - we just check page content
 
     # Get the page HTML to check for error message in the status bar
-    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
-    page_html = html_result.html.lower()
+    page_html = (await get_html_content(sap_mcp_client)).lower()
 
     # SAP should show an error message about invalid transaction code
     # - German: "Transaktion INVALIDTCODE123 existiert nicht"
@@ -511,8 +507,7 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     await _wait_for_transaction_screen(sap_mcp_client, "SE11")
 
     # Verify SE11 is displayed (ABAP Dictionary / Data Dictionary)
-    html1_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
-    page_html1 = html1_result.html.lower()
+    page_html1 = (await get_html_content(sap_mcp_client)).lower()
     if sap_language == "DE":
         assert any(
             phrase in page_html1 for phrase in ["dictionary", "wörterbuch", "se11"]
@@ -533,8 +528,7 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Verify SE16 is displayed and SE11 is gone
-    html2_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
-    page_html2 = html2_result.html.lower()
+    page_html2 = (await get_html_content(sap_mcp_client)).lower()
 
     # SE16 should be visible (Data Browser / Table Contents)
     if sap_language == "DE":
@@ -629,8 +623,7 @@ async def test_sap_keyboard_f3_navigates_back(sap_mcp_client: ClientSession) -> 
     await _wait_for_easy_access(sap_mcp_client)
 
     # Should be back on Easy Access or previous screen
-    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
-    page_html = html_result.html.lower()
+    page_html = (await get_html_content(sap_mcp_client)).lower()
 
     # SE16 specific content should be gone or we should be on Easy Access
     se16_gone = "data browser" not in page_html and "tabelleninhalt" not in page_html
@@ -659,8 +652,7 @@ async def test_sap_keyboard_f8_triggers_execution(sap_mcp_client: ClientSession)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Check for error message in page or status bar
-    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
-    page_html = html_result.html.lower()
+    page_html = (await get_html_content(sap_mcp_client)).lower()
 
     # SAP should show error about missing table name
     if sap_language == "DE":
@@ -945,8 +937,7 @@ async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None
     await capture_html_snapshot(sap_mcp_client, "se11_t000_content")
 
     # Verify we're on the table definition screen
-    html_result = await call_tool_typed(sap_mcp_client, "browser_get_html", {}, HtmlResult)
-    page_html = html_result.html.upper()
+    page_html = (await get_html_content(sap_mcp_client)).upper()
 
     # T000 definition should show field names like MANDT, CCCATEGORY
     has_mandt = "MANDT" in page_html

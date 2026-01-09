@@ -11,7 +11,6 @@ import os
 from pathlib import Path
 
 import pytest
-from conftest import call_tool_typed
 from mcp import ClientSession
 
 from sapwebguimcp.models import (
@@ -23,6 +22,8 @@ from sapwebguimcp.models import (
     SnapshotResult,
     TransactionResult,
 )
+
+from .conftest import call_tool_typed
 
 SE16_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se16_exploration"
 

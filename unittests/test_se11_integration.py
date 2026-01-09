@@ -11,12 +11,10 @@ import os
 from pathlib import Path
 
 import pytest
-from conftest import call_tool_typed
 from mcp import ClientSession
 
 from sapwebguimcp.models import (
     FillFormResult,
-    HtmlResult,
     KeyboardResult,
     LoginResult,
     SE11FileSummary,
@@ -25,6 +23,8 @@ from sapwebguimcp.models import (
     StatusBarInfo,
     TransactionResult,
 )
+
+from .conftest import call_tool_typed, get_html_content
 
 HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
 YAML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "yaml_snapshots"
@@ -36,8 +36,7 @@ async def capture_html_snapshot(
     overwrite: bool = False,
 ) -> str:
     """Capture HTML snapshot for unit tests."""
-    result = await call_tool_typed(client, "browser_get_html", {}, HtmlResult)
-    html_content = result.html
+    html_content = await get_html_content(client)
 
     language = os.environ.get("SAP_LANGUAGE", "de").lower()
     filename = f"{base_name}_{language}.html"
