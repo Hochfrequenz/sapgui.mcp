@@ -23,9 +23,7 @@ logger = logging.getLogger(__name__)
 # German locale uses dot as thousands separator (e.g., "5.000" = 5000)
 # English: "Number of Hits"
 # German: "Anzahl Treffer" (literal translation)
-_HIT_COUNT_PATTERN = re.compile(
-    r'textbox "(?:Number of Hits|Anzahl Treffer)": "(?P<count>[0-9.]+)"'
-)
+_HIT_COUNT_PATTERN = re.compile(r'textbox "(?:Number of Hits|Anzahl Treffer)": "(?P<count>[0-9.]+)"')
 
 # Match data rows - handles BOTH formats:
 # - row "To select a row..."  (no colons in row text)

@@ -254,10 +254,10 @@ async def _execute_se16_query(
 
     # DEBUG: Log parsing details (temporary for German locale debugging)
     # Log textbox lines to find correct German labels
-    textbox_lines = [line.strip() for line in snapshot.split('\n') if 'textbox "' in line and '": "' in line]
+    textbox_lines = [line.strip() for line in snapshot.split("\n") if 'textbox "' in line and '": "' in line]
     logger.warning("SE16 DEBUG: total_hits=%d, textbox lines with values: %s", total_hits, textbox_lines[:15])
     # Log row lines to find German row text pattern
-    row_lines = [line.strip() for line in snapshot.split('\n') if '- row "' in line or "- 'row \"" in line][:5]
+    row_lines = [line.strip() for line in snapshot.split("\n") if '- row "' in line or "- 'row \"" in line][:5]
     logger.warning("SE16 DEBUG: First 5 row lines: %s", row_lines)
 
     if not columns:

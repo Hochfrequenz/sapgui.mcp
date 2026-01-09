@@ -154,7 +154,9 @@ async def test_se16_query_small_table(sap_mcp_client: ClientSession) -> None:
     assert result.truncated is False, "Should not be truncated"
     assert len(result.columns) > 0, "Expected columns"
     # Column name varies by language: English "Client", German "Mandant" or abbreviated "Mdt"
-    assert "Client" in result.columns or "Mandant" in result.columns or "Mdt" in result.columns, "Expected Client/Mandant/Mdt column"
+    assert (
+        "Client" in result.columns or "Mandant" in result.columns or "Mdt" in result.columns
+    ), "Expected Client/Mandant/Mdt column"
     assert len(result.rows) == result.returned_rows
 
     # Verify row structure - column name varies by language
@@ -228,7 +230,9 @@ async def test_se16_query_table_not_found(sap_mcp_client: ClientSession) -> None
     assert result.success is False, "Expected failure for non-existent table"
     assert result.error is not None
     error_lower = result.error.lower()
-    assert any(x in error_lower for x in ["not found", "existiert nicht", "nicht gefunden", "not exist"]), f"Unexpected error: {result.error}"
+    assert any(
+        x in error_lower for x in ["not found", "existiert nicht", "nicht gefunden", "not exist"]
+    ), f"Unexpected error: {result.error}"
 
 
 @pytest.mark.anyio
