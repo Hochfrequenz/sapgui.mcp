@@ -244,6 +244,13 @@ async def _execute_se16_query(
     total_hits = parse_se16_hit_count(snapshot)
     columns = parse_se16_columns(snapshot)
 
+    # DEBUG: Log hit count parsing (temporary for German locale debugging)
+    if total_hits == 0:
+        # Log textbox lines to find German hit count label
+        import re
+        textbox_lines = [line for line in snapshot.split('\n') if 'textbox' in line.lower() and ':' in line]
+        logger.warning("SE16 DEBUG: Hit count=0, textbox lines: %s", textbox_lines[:10])
+
     if not columns:
         return _empty_failure(
             "Could not parse column headers from SE16N results",
