@@ -18,6 +18,10 @@ alle
 sie
 offen
 variante
+abstrakt
+paket
+programm
+methoden
 
 # Technical terms
 stdin
