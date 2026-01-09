@@ -78,15 +78,15 @@
         - cell "Transaktion"
         - cell "SE11"
         - cell
-      - row "E2E-Zeit 136 ms":
+      - row "E2E-Zeit 107 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "136 ms"
+        - cell "107 ms"
         - cell
-      - row "WebGUI-Zeit 42 ms":
+      - row "WebGUI-Zeit 57 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "42 ms"
+        - cell "57 ms"
         - cell

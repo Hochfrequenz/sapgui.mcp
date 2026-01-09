@@ -92,6 +92,28 @@ async def _fill_se16n_fields(table: str, max_hits: int) -> str | None:
     return None
 
 
+def _check_table_not_found(snapshot: str, table: str) -> str | None:
+    """
+    Check if snapshot indicates table not found error.
+
+    Returns:
+        Error message if table not found, None if table exists.
+    """
+    # Check for explicit "not found" error messages
+    snapshot_lower = snapshot.lower()
+    if "does not exist" in snapshot_lower or "existiert nicht" in snapshot_lower:
+        return f"Table '{table}' not found in SAP"
+
+    # Check if still on selection screen (table doesn't exist or error occurred)
+    # Selection screen has columns like "Feldname", "Option", "Von-Wert" (German) or
+    # "Field Name", "Option", "From-Value" (English) - not data columns
+    selection_screen_columns = {"Feldname", "Field Name", "Option", "Von-Wert", "From-Value"}
+    if any(col in snapshot for col in selection_screen_columns):
+        return f"Table '{table}' not found in SAP (still on selection screen)"
+
+    return None
+
+
 async def _focus_grid(page: Any) -> None:
     """Focus the ALV grid for pagination (required for PageDown to work)."""
     try:
@@ -236,29 +258,13 @@ async def _execute_se16_query(
     # Get snapshot to check for errors and parse results
     snapshot = await page.locator("body").aria_snapshot()
 
-    # Check for "not found" or error messages in snapshot
-    if "does not exist" in snapshot.lower() or "existiert nicht" in snapshot.lower():
-        return _empty_failure(f"Table '{table}' not found in SAP", table, now)
-
-    # Check if we're still on the selection screen (table doesn't exist or error occurred)
-    # Selection screen has columns like "Feldname", "Option", "Von-Wert" (German) or
-    # "Field Name", "Option", "From-Value" (English) - not data columns
-    selection_screen_columns = {"Feldname", "Field Name", "Option", "Von-Wert", "From-Value"}
-    if any(col in snapshot for col in selection_screen_columns):
-        # Still on selection screen - table likely doesn't exist
-        return _empty_failure(f"Table '{table}' not found in SAP (still on selection screen)", table, now)
+    # Check for table not found errors
+    if table_error := _check_table_not_found(snapshot, table):
+        return _empty_failure(table_error, table, now)
 
     # Parse hit count and columns
     total_hits = parse_se16_hit_count(snapshot)
     columns = parse_se16_columns(snapshot)
-
-    # DEBUG: Log parsing details (temporary for German locale debugging)
-    # Log textbox lines to find correct German labels
-    textbox_lines = [line.strip() for line in snapshot.split("\n") if 'textbox "' in line and '": "' in line]
-    logger.warning("SE16 DEBUG: total_hits=%d, textbox lines with values: %s", total_hits, textbox_lines[:15])
-    # Log row lines to find German row text pattern
-    row_lines = [line.strip() for line in snapshot.split("\n") if '- row "' in line or "- 'row \"" in line][:5]
-    logger.warning("SE16 DEBUG: First 5 row lines: %s", row_lines)
 
     if not columns:
         return _empty_failure(
