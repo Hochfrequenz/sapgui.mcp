@@ -13,6 +13,7 @@ assert data["success"] is True, f"Query failed: {data.get('error')}"
 ```
 
 Issues:
+
 - No type safety - `data` is `dict[str, Any]`
 - Duplicate utility functions across 3 test files
 - Manual JSON parsing and error checking
@@ -106,23 +107,23 @@ async def do_login(client: ClientSession) -> LoginResult:
 ## Edge Cases
 
 1. **Non-JSON responses** (e.g., `browser_get_html`, `browser_screenshot`)
-   - Keep as raw `call_tool` calls - don't use `call_tool_typed`
+    - Keep as raw `call_tool` calls - don't use `call_tool_typed`
 
 2. **Multiple content items**
-   - Always use `result.content[0]` - no tools return multiple items
+    - Always use `result.content[0]` - no tools return multiple items
 
 3. **Union types** (success/error)
-   - Pass both `result_type` and `error_type`
-   - Discrimination via `success=False` or presence of `error` field
+    - Pass both `result_type` and `error_type`
+    - Discrimination via `success=False` or presence of `error` field
 
 ## Migration Scope
 
-| File | Calls | Change |
-|------|-------|--------|
-| `unittests/conftest.py` | - | Add helpers |
-| `unittests/test_sap_integration.py` | ~342 | Remove duplicates, migrate calls |
-| `unittests/test_se16_integration.py` | ~25 | Remove duplicates, migrate calls |
-| `unittests/test_se11_integration.py` | ~32 | Remove duplicates, migrate calls |
+| File                                 | Calls | Change                           |
+| ------------------------------------ | ----- | -------------------------------- |
+| `unittests/conftest.py`              | -     | Add helpers                      |
+| `unittests/test_sap_integration.py`  | ~342  | Remove duplicates, migrate calls |
+| `unittests/test_se16_integration.py` | ~25   | Remove duplicates, migrate calls |
+| `unittests/test_se11_integration.py` | ~32   | Remove duplicates, migrate calls |
 
 ## What Stays Unchanged
 

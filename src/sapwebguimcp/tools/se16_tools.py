@@ -236,9 +236,17 @@ async def _execute_se16_query(
     # Get snapshot to check for errors and parse results
     snapshot = await page.locator("body").aria_snapshot()
 
-    # Check for "not found" or error messages
+    # Check for "not found" or error messages in snapshot
     if "does not exist" in snapshot.lower() or "existiert nicht" in snapshot.lower():
         return _empty_failure(f"Table '{table}' not found in SAP", table, now)
+
+    # Check if we're still on the selection screen (table doesn't exist or error occurred)
+    # Selection screen has columns like "Feldname", "Option", "Von-Wert" (German) or
+    # "Field Name", "Option", "From-Value" (English) - not data columns
+    selection_screen_columns = {"Feldname", "Field Name", "Option", "Von-Wert", "From-Value"}
+    if any(col in snapshot for col in selection_screen_columns):
+        # Still on selection screen - table likely doesn't exist
+        return _empty_failure(f"Table '{table}' not found in SAP (still on selection screen)", table, now)
 
     # Parse hit count and columns
     total_hits = parse_se16_hit_count(snapshot)

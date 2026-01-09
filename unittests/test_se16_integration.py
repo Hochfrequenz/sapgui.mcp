@@ -153,12 +153,13 @@ async def test_se16_query_small_table(sap_mcp_client: ClientSession) -> None:
     assert result.total_hits == result.returned_rows, "All rows should be returned"
     assert result.truncated is False, "Should not be truncated"
     assert len(result.columns) > 0, "Expected columns"
-    assert "Client" in result.columns or "Mandant" in result.columns, "Expected Client/Mandant column"
+    # Column name varies by language: English "Client", German "Mandant" or abbreviated "Mdt"
+    assert "Client" in result.columns or "Mandant" in result.columns or "Mdt" in result.columns, "Expected Client/Mandant/Mdt column"
     assert len(result.rows) == result.returned_rows
 
-    # Verify row structure
+    # Verify row structure - column name varies by language
     first_row = result.rows[0].data
-    assert "Client" in first_row or "Mandant" in first_row or "MANDT" in first_row
+    assert "Client" in first_row or "Mandant" in first_row or "MANDT" in first_row or "Mdt" in first_row
 
 
 @pytest.mark.anyio
@@ -223,10 +224,11 @@ async def test_se16_query_table_not_found(sap_mcp_client: ClientSession) -> None
         SE16Result,
     )
 
-    # Should fail gracefully
+    # Should fail gracefully - error message varies by language
     assert result.success is False, "Expected failure for non-existent table"
     assert result.error is not None
-    assert "not found" in result.error.lower() or "existiert nicht" in result.error.lower()
+    error_lower = result.error.lower()
+    assert any(x in error_lower for x in ["not found", "existiert nicht", "nicht gefunden", "not exist"]), f"Unexpected error: {result.error}"
 
 
 @pytest.mark.anyio

@@ -209,7 +209,7 @@ async def sap_discover_buttons() -> DiscoveredButtons:
 Use strict typing:
 
 - Pydantic models for data structures instead of plain dicts, tuples or dataclasses
-  - Pydantic model fields should have descriptions
+    - Pydantic model fields should have descriptions
 - Proper type hints for function parameters and return types
 
 ### MCP

@@ -31,8 +31,8 @@ _HIT_COUNT_PATTERN = re.compile(
 # - row "To select a row..."  (no colons in row text)
 # - 'row "To select a row..."':  (has colons, YAML quotes the whole line)
 # English: "To select a row"
-# German: "Um Zeile auszuwählen" or "Zeile auswählen"
-_ROW_START_PATTERN = re.compile(r"- '?row \"(?:To select a row|Um Zeile auszuwählen|Zeile auswählen)")
+# German: "Zum Auswählen einer Zeile drücken Sie die Leertaste"
+_ROW_START_PATTERN = re.compile(r"- '?row \"(?:To select a row|Zum Auswählen einer Zeile)")
 
 # Extract gridcell values - matches both "gridcell "value"" and "gridcell:"
 _GRIDCELL_WITH_VALUE_PATTERN = re.compile(r'gridcell "(?P<value>[^"]*)"')
@@ -165,18 +165,14 @@ def parse_se16_columns(snapshot: str) -> list[str]:
             logger.warning("SE16 parser: No grid found in snapshot")
             return columns
 
-        # Find the first data row (English: "To select a row", German: "Um Zeile auszuwählen")
+        # Find the first data row (English: "To select a row", German: "Zum Auswählen einer Zeile")
         first_row = snapshot.find('row "To select a row', grid_start)
         if first_row == -1:
             first_row = snapshot.find("'row \"To select a row", grid_start)
         if first_row == -1:
-            first_row = snapshot.find('row "Um Zeile auszuwählen', grid_start)
+            first_row = snapshot.find('row "Zum Auswählen einer Zeile', grid_start)
         if first_row == -1:
-            first_row = snapshot.find("'row \"Um Zeile auszuwählen", grid_start)
-        if first_row == -1:
-            first_row = snapshot.find('row "Zeile auswählen', grid_start)
-        if first_row == -1:
-            first_row = snapshot.find("'row \"Zeile auswählen", grid_start)
+            first_row = snapshot.find("'row \"Zum Auswählen einer Zeile", grid_start)
 
         if first_row == -1:
             # No data rows, use everything after grid

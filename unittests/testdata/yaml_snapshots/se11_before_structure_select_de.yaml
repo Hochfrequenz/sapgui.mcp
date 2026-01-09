@@ -1,1 +1,90 @@
-{"success":true,"error":null,"popup":null,"snapshot":"- 'main \"ABAP Dictionary: Einstieg\"':\n  - banner:\n    - button \"Zurück (F3)\"\n    - img \"Unternehmenslogo\"\n    - 'heading \"ABAP Dictionary: Einstieg\" [level=1]'\n    - button \"Systeminformationen öffnen\"\n    - toolbar:\n      - button \"Dictionary Objekt\"\n      - button \"Bearbeiten\"\n      - button \"Springen\"\n      - button \"Hilfsmittel\"\n      - button \"Umfeld\"\n      - button \"System\"\n      - button \"Hilfe\"\n      - button \"GUI-Aktionen und -Einstellungen\"\n    - button \"Beenden\"\n    - button \"Suchen (Strg+F)\"\n    - button \"Drucken... (Strg+P)\"\n    - toolbar:\n      - combobox \"Bitte Transaktionscode eingeben\"\n      - text: \n      - button \"Prüfen\"\n      - button \"Aktivieren\"\n      - button \"Verwendungsnachweis\"\n      - button \"Umfeldermittlung\"\n      - button \"Online Handbuch\"\n      - button \"Löschen\"\n      - button \"Kopieren...\"\n  - radio \"Datenbanktabelle\" [checked]\n  - textbox \"Tabellenname, 16-stellig\"\n  - radio \"View\"\n  - textbox \"Name eines SAP-Tabellenviews\"\n  - radio \"Datentyp\"\n  - textbox \"Name des Dictionary Typs\"\n  - radio \"Typgruppe\"\n  - textbox \"Typgruppe\"\n  - radio \"Domäne\"\n  - textbox \"Bezeichnung einer Domäne\"\n  - radio \"Suchhilfe\"\n  - textbox \"Name einer Suchhilfe\"\n  - radio \"Sperrobjekt\"\n  - textbox \"Name eines Sperrobjektes\"\n  - button \"Anzeigen\"\n  - button \"Ändern\"\n  - button \"Anlegen\"\n  - text: \n  - menu:\n    - rowgroup:\n      - menuitemradio \"System S4U (100)\" [checked]:\n        - cell \"\"\n        - cell\n        - cell \"System\"\n        - cell \"S4U (100)\"\n        - cell\n      - menuitemradio \"Mandant 100\":\n        - cell\n        - cell\n        - cell \"Mandant\"\n        - cell \"100\"\n        - cell\n      - menuitemradio \"Benutzer KLEINK\":\n        - cell\n        - cell\n        - cell \"Benutzer\"\n        - cell \"KLEINK\"\n        - cell\n      - menuitemradio \"Dynpro SAPLSD_ENTRY/1000\":\n        - cell\n        - cell\n        - cell \"Dynpro\"\n        - cell \"SAPLSD_ENTRY/1000\"\n        - cell\n      - menuitemradio \"Transaktion SE11\":\n        - cell\n        - cell\n        - cell \"Transaktion\"\n        - cell \"SE11\"\n        - cell\n      - row \"E2E-Zeit 195 ms\":\n        - cell\n        - cell\n        - cell \"E2E-Zeit\"\n        - cell \"195 ms\"\n        - cell\n      - row \"WebGUI-Zeit 104 ms\":\n        - cell\n        - cell\n        - cell \"WebGUI-Zeit\"\n        - cell \"104 ms\"\n        - cell","selector":null}
+- 'main "ABAP Dictionary: Einstieg"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "ABAP Dictionary: Einstieg" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Dictionary Objekt"
+      - button "Bearbeiten"
+      - button "Springen"
+      - button "Hilfsmittel"
+      - button "Umfeld"
+      - button "System"
+      - button "Hilfe"
+      - button "GUI-Aktionen und -Einstellungen"
+    - button "Beenden"
+    - button "Suchen (Strg+F)"
+    - button "Drucken... (Strg+P)"
+    - toolbar:
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Prüfen"
+      - button "Aktivieren"
+      - button "Verwendungsnachweis"
+      - button "Umfeldermittlung"
+      - button "Online Handbuch"
+      - button "Löschen"
+      - button "Kopieren..."
+  - radio "Datenbanktabelle" [checked]
+  - textbox "Tabellenname, 16-stellig"
+  - radio "View"
+  - textbox "Name eines SAP-Tabellenviews"
+  - radio "Datentyp"
+  - textbox "Name des Dictionary Typs"
+  - radio "Typgruppe"
+  - textbox "Typgruppe"
+  - radio "Domäne"
+  - textbox "Bezeichnung einer Domäne"
+  - radio "Suchhilfe"
+  - textbox "Name einer Suchhilfe"
+  - radio "Sperrobjekt"
+  - textbox "Name eines Sperrobjektes"
+  - button "Anzeigen"
+  - button "Ändern"
+  - button "Anlegen"
+  - text: 
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSD_ENTRY/1000":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSD_ENTRY/1000"
+        - cell
+      - menuitemradio "Transaktion SE11":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE11"
+        - cell
+      - row "E2E-Zeit 179 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "179 ms"
+        - cell
+      - row "WebGUI-Zeit 88 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "88 ms"
+        - cell

@@ -13,6 +13,7 @@
 ### Task 1: Add Typed Helpers to conftest.py
 
 **Files:**
+
 - Modify: `unittests/conftest.py` (add after line 139)
 
 **Step 1: Add imports and type vars**
@@ -116,6 +117,7 @@ git commit -m "feat(tests): add typed MCP tool call helpers to conftest"
 ### Task 2: Migrate test_se16_integration.py
 
 **Files:**
+
 - Modify: `unittests/test_se16_integration.py`
 
 **Step 1: Update imports**
@@ -155,6 +157,7 @@ SE16_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se16_exploration"
 **Step 2: Remove duplicate utility functions**
 
 Delete the following functions (lines ~20-74 in original):
+
 - `_get_content_text()`
 - `capture_yaml_snapshot()`
 - `assert_tool_success()`
@@ -579,6 +582,7 @@ git commit -m "refactor(tests): migrate test_se16_integration to typed helpers"
 ### Task 3: Migrate test_se11_integration.py
 
 **Files:**
+
 - Modify: `unittests/test_se11_integration.py`
 
 **Step 1: Update imports**
@@ -620,6 +624,7 @@ YAML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "yaml_snapshots"
 **Step 2: Remove duplicate utility functions**
 
 Delete the following functions (lines ~20-99 in original):
+
 - `_get_content_text()`
 - `capture_html_snapshot()`
 - `capture_yaml_snapshot()`
@@ -1007,6 +1012,7 @@ git commit -m "refactor(tests): migrate test_se11_integration to typed helpers"
 ### Task 4: Migrate test_sap_integration.py (Large File)
 
 **Files:**
+
 - Modify: `unittests/test_sap_integration.py`
 
 This file is large (~3,271 lines, ~342 call_tool invocations). The migration follows the same pattern as Tasks 2-3 but at larger scale.
@@ -1045,6 +1051,7 @@ from conftest import _extract_content_text, call_tool_typed
 **Step 2: Remove duplicate utility functions**
 
 Delete these functions from test_sap_integration.py (they're now in conftest.py):
+
 - `_get_content_text()` (lines ~132-153)
 - `parse_tool_response()` (lines ~155-178)
 - `assert_tool_success()` (lines ~180-197)
@@ -1055,15 +1062,16 @@ Keep `capture_html_snapshot()` but update it to use `call_tool_typed`.
 
 Due to the file size, migrate tests in batches:
 
-1. First batch: Login and basic transaction tests (test_sap_login, test_sap_transaction_*)
-2. Second batch: Form and field tests (test_sap_fill_form_*, test_sap_discover_fields_*)
-3. Third batch: Table and data tests (test_sap_read_table_*)
+1. First batch: Login and basic transaction tests (test*sap_login, test_sap_transaction*\*)
+2. Second batch: Form and field tests (test*sap_fill_form*_, test*sap_discover_fields*_)
+3. Third batch: Table and data tests (test*sap_read_table*\*)
 4. Fourth batch: Keyboard and navigation tests
 5. Fifth batch: Popup and special case tests
 
 **Migration pattern for each test:**
 
 Before:
+
 ```python
 result = await sap_mcp_client.call_tool("sap_login", {})
 data = assert_tool_success(result, "sap_login")
@@ -1071,6 +1079,7 @@ assert data.get("url"), "Expected URL in login response"
 ```
 
 After:
+
 ```python
 result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 assert result.success, f"Login failed: {result.error}"

@@ -1,0 +1,317 @@
+- main "Allgemeine Tabellenanzeige":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "Allgemeine Tabellenanzeige" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Tabellenanzeige"
+      - button "Bearbeiten"
+      - button "Springen"
+      - button "Zusätze"
+      - button "System"
+      - button "Hilfe"
+      - button "GUI-Aktionen und -Einstellungen"
+    - button "Beenden"
+    - button "Suchen (Strg+F)"
+    - button "Weiter suchen (Strg+G)"
+    - toolbar:
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Online"
+      - button "Hintergrund"
+      - button "Anzahl Einträge"
+      - button "Alle markieren"
+      - button "Schlüsselfelder für Ausgabe markieren"
+      - button "Alle Mark. löschen"
+      - button "Zeile löschen"
+      - button "Alle Eingaben"
+      - button "Mehr"
+  - text: Tabelle
+  - textbox "Tabelle"
+  - button "More Information"
+  - button "Erweiterte Suche"
+  - text: Texttabelle
+  - textbox "Texttabelle"
+  - checkbox "Ohne Texte" [disabled]
+  - text: Anzeigevariante
+  - textbox "Anzeigevariante"
+  - text: Maximale Trefferzahl
+  - textbox "Maximale Trefferzahl": "500"
+  - checkbox "Einträge pflegen" [disabled]
+  - text: Feld holen
+  - textbox "Feld holen"
+  - button "Feldauswahl importieren"
+  - button "Feldauswahl exportieren"
+  - grid "Selektionskriterien":
+    - rowgroup:
+      - text: Selektionskriterien
+      - button "Konfiguration"
+    - rowgroup:
+      - row "Feldname Option Von-Wert Bis-Wert Mehr Ausgabe Technischer Name":
+        - columnheader "Feldname"
+        - columnheader "Option"
+        - columnheader "Von-Wert"
+        - columnheader "Bis-Wert"
+        - columnheader "Mehr"
+        - columnheader "Ausgabe"
+        - columnheader "Technischer Name"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+      - row "Leer Leer":
+        - gridcell "Leer"
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+        - gridcell:
+          - button [disabled]
+        - gridcell:
+          - checkbox [disabled]
+        - gridcell "Leer"
+    - rowgroup
+    - rowgroup
+  - text: 
+  - toolbar:
+    - note "Fehler Meldungsleiste Tabelle ist nicht aktiv im Dictionary vorhanden"
+    - button "Sichern Hervorgehoben"
+    - button "Abbrechen"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSE16N/0120":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSE16N/0120"
+        - cell
+      - menuitemradio "Transaktion SE16N":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE16N"
+        - cell
+      - row "E2E-Zeit 145 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "145 ms"
+        - cell
+      - row "WebGUI-Zeit 88 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "88 ms"
+        - cell
