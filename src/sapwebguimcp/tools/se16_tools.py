@@ -81,9 +81,9 @@ async def _fill_se16n_fields(table: str, max_hits: int) -> str | None:
     if "Table" not in fill_result.not_found:
         return None
 
-    # Try German labels
+    # Try German labels (SAP SE16N uses "Maximale Trefferzahl" for max hits)
     fill_result = await sap_fill_form_impl(
-        {"Tabelle": table.upper(), "Max. Anzahl Treffer": str(max_hits)},
+        {"Tabelle": table.upper(), "Maximale Trefferzahl": str(max_hits)},
         strict=False,
     )
     if "Tabelle" in fill_result.not_found:
@@ -244,12 +244,13 @@ async def _execute_se16_query(
     total_hits = parse_se16_hit_count(snapshot)
     columns = parse_se16_columns(snapshot)
 
-    # DEBUG: Log hit count parsing (temporary for German locale debugging)
-    if total_hits == 0:
-        # Log textbox lines to find German hit count label
-        import re
-        textbox_lines = [line for line in snapshot.split('\n') if 'textbox' in line.lower() and ':' in line]
-        logger.warning("SE16 DEBUG: Hit count=0, textbox lines: %s", textbox_lines[:10])
+    # DEBUG: Log parsing details (temporary for German locale debugging)
+    # Log textbox lines to find correct German labels
+    textbox_lines = [line.strip() for line in snapshot.split('\n') if 'textbox "' in line and '": "' in line]
+    logger.warning("SE16 DEBUG: total_hits=%d, textbox lines with values: %s", total_hits, textbox_lines[:15])
+    # Log row lines to find German row text pattern
+    row_lines = [line.strip() for line in snapshot.split('\n') if '- row "' in line or "- 'row \"" in line][:5]
+    logger.warning("SE16 DEBUG: First 5 row lines: %s", row_lines)
 
     if not columns:
         return _empty_failure(
