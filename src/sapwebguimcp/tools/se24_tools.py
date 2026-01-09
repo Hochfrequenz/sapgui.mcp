@@ -7,13 +7,13 @@ returning strongly-typed Pydantic models with method and attribute details.
 
 import json
 import logging
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-from playwright.async_api import TimeoutError as PlaywrightTimeout
 
 from sapwebguimcp.models import (
     SE24Entry,
@@ -38,23 +38,41 @@ MAX_INLINE_OBJECTS = 5
 # =============================================================================
 
 
+async def _find_class_field(page: Any) -> Any:
+    """Find the class/interface input field in SE24 using multiple strategies."""
+    # Build list of locator strategies to try in order
+    strategies = [
+        # Strategy 1: Try by role with exact name matches
+        *[
+            page.get_by_role("textbox", name=name)
+            for name in ["Objekttyp", "Object type", "Object Type", "Klasse/Interface", "Class/Interface"]
+        ],
+        # Strategy 2: Try regex pattern for object type field
+        page.get_by_role("textbox", name=re.compile(r"Objekt|Object|Klasse|Class", re.I)),
+        # Strategy 3: Try by input title attribute (common in SAP Web GUI)
+        page.locator("input[title*='Objekttyp'], input[title*='Object type']").first,
+        # Strategy 4: Try by placeholder or aria-label
+        page.locator("[aria-label*='Objekt'], [aria-label*='Object'], [aria-label*='Klasse']").first,
+        # Strategy 5: Look for input field near the "Objekttyp" label
+        page.locator("text=Objekttyp >> xpath=../following-sibling::*//input").first,
+        # Strategy 6: First visible input field on the page (last resort)
+        page.locator("input:visible").first,
+    ]
+
+    for field in strategies:
+        if await field.count() > 0:
+            return field
+
+    return None
+
+
 async def _fill_class_field(page: Any, class_name: str) -> SE24Error | None:
     """Fill the class/interface name field in SE24. Returns error or None."""
     now = datetime.now(UTC)
 
-    # Try German label first, then English
-    # German: "Objekttyp" or "Klasse/Interface"
-    class_field = page.get_by_role("textbox", name="Objekttyp")
-    if await class_field.count() == 0:
-        class_field = page.get_by_role("textbox", name="Object type")
-    if await class_field.count() == 0:
-        class_field = page.get_by_role("textbox", name="Object Type")
-    if await class_field.count() == 0:
-        class_field = page.get_by_role("textbox", name="Klasse/Interface")
-    if await class_field.count() == 0:
-        class_field = page.get_by_role("textbox", name="Class/Interface")
+    class_field = await _find_class_field(page)
 
-    if await class_field.count() == 0:
+    if class_field is None or await class_field.count() == 0:
         return SE24Error(
             class_name=class_name,
             error="Could not find class/interface field in SE24",
@@ -147,17 +165,17 @@ async def _lookup_single_class(page: Any, class_name: str) -> SE24Entry | SE24Er
             retrieved_at=now,
         )
 
-    # Wait for SE24 screen
-    try:
-        class_field = page.get_by_role("textbox", name="Objekttyp")
-        if await class_field.count() == 0:
-            class_field = page.get_by_role("textbox", name="Object type")
-        await class_field.wait_for(state="visible", timeout=10000)
-    except PlaywrightTimeout:
+    # Wait for SE24 screen to be ready
+    await page.wait_for_timeout(500)
+    await page.wait_for_load_state("networkidle")
+
+    # Try to find the class field with multiple strategies
+    class_field = await _find_class_field(page)
+    if class_field is None or await class_field.count() == 0:
         page_title = await page.title()
         return SE24Error(
             class_name=class_name,
-            error=f"SE24 screen did not load (page title: '{page_title}')",
+            error=f"SE24 screen did not load or field not found (page title: '{page_title}')",
             retrieved_at=now,
         )
 
