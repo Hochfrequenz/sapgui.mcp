@@ -84,6 +84,16 @@ from sapwebguimcp.models.se16_models import (
     SE16Result,
     SE16Row,
 )
+from sapwebguimcp.models.se37_models import (
+    SE37Entry,
+    SE37Error,
+    SE37Exception,
+    SE37FileSummary,
+    SE37Parameter,
+    SE37ParameterCategory,
+    SE37Result,
+    SE37TypingMethod,
+)
 from sapwebguimcp.models.se93_models import (
     SE93Entry,
     SE93Error,
@@ -181,6 +191,15 @@ __all__ = [
     "SE16FileSummary",
     "SE16Result",
     "SE16Row",
+    # SE37 models
+    "SE37Entry",
+    "SE37Error",
+    "SE37Exception",
+    "SE37FileSummary",
+    "SE37Parameter",
+    "SE37ParameterCategory",
+    "SE37Result",
+    "SE37TypingMethod",
     # SE93 models
     "SE93Entry",
     "SE93Error",

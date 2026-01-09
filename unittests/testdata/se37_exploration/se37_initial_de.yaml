@@ -1,0 +1,80 @@
+- 'main "Function Builder: Einstieg"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "Function Builder: Einstieg" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Funktionsbaustein"
+      - button "Bearbeiten"
+      - button "Springen"
+      - button "Hilfsmittel"
+      - button "Umfeld"
+      - button "System"
+      - button "Hilfe"
+      - button "GUI-Aktionen und -Einstellungen"
+    - button "Beenden"
+    - button "Suchen (Strg+F)"
+    - button "Drucken (Strg+P)"
+    - toolbar:
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Prüfen"
+      - button "Aktivieren"
+      - button "Testen/Ausführen"
+      - button "Verwendungsnachweis"
+      - button "Online-Handbuch"
+      - button "Löschen"
+      - button "Kopieren..."
+      - button "Umbenennen..."
+      - button "Umhängen..."
+  - text: Funktionsbaustein
+  - textbox "Funktionsbaustein"
+  - button "Anzeigen"
+  - button "Ändern"
+  - button "Anlegen"
+  - text: 
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSFUNCTION_BUILDER/1008":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSFUNCTION_BUILDER/1008"
+        - cell
+      - menuitemradio "Transaktion SE37":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE37"
+        - cell
+      - row "E2E-Zeit 120 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "120 ms"
+        - cell
+      - row "WebGUI-Zeit 43 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "43 ms"
+        - cell
