@@ -79,9 +79,15 @@ async def _fill_class_field(page: Any, class_name: str) -> SE24Error | None:
             retrieved_at=now,
         )
 
+    # Clear the field first by selecting all and deleting
     await class_field.click(click_count=3)
+    await page.wait_for_timeout(100)
+    await page.keyboard.press("Delete")
     await page.wait_for_timeout(50)
+
+    # Type the class name
     await page.keyboard.type(class_name.upper())
+    await page.wait_for_timeout(100)
     return None
 
 
@@ -89,8 +95,9 @@ async def _click_display_button(page: Any) -> None:
     """Click the Display button (F7)."""
     await page.wait_for_timeout(300)
     await page.keyboard.press("F7")
-    await page.wait_for_timeout(500)
+    await page.wait_for_timeout(1000)  # Wait longer for SAP to process
     await page.wait_for_load_state("networkidle")
+    await page.wait_for_timeout(500)  # Additional wait for page state to settle
 
 
 async def _check_class_not_found(page: Any, class_name: str) -> SE24Error | None:
@@ -126,8 +133,8 @@ async def _check_class_not_found(page: Any, class_name: str) -> SE24Error | None
         # Still on initial screen but no clear error - might be a display issue
         error_msg = f"Class/interface '{class_name}' not found (still on initial screen)"
 
-    await page.keyboard.press("F3")
-    await page.wait_for_load_state("networkidle")
+    # Don't press F3 here - the next /nSE24 will handle navigation
+    # Pressing F3 can leave us in unexpected states
     return SE24Error(
         class_name=class_name,
         error=error_msg,
