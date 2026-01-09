@@ -332,7 +332,7 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
         sap_mcp_client,
         "browser_evaluate",
         {
-            "expression": """
+            "script": """
         (function() {
             // Try various settings button selectors
             var selectors = [
@@ -365,7 +365,7 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
             sap_mcp_client,
             "browser_evaluate",
             {
-                "expression": """
+                "script": """
             (function() {
                 var selectors = [
                     'button:contains("Close")',
@@ -1666,7 +1666,7 @@ async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None
 
     # Verify first row has cell metadata with selectors
     first_row = rows[0]
-    cells = first_row.get("cells", {})
+    cells = first_row.cells or {}
     print(f"  First row cells metadata: {cells}")
 
     assert cells, "First row should have cells metadata with click selectors. " f"Got row: {first_row}"
@@ -1675,7 +1675,7 @@ async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None
     hotspot_cell = None
     hotspot_column = None
     for col_name, cell_info in cells.items():
-        if cell_info.get("hotspot"):
+        if cell_info.hotspot:
             hotspot_cell = cell_info
             hotspot_column = col_name
             break
@@ -1697,7 +1697,7 @@ async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None
     click_data = await call_tool_typed(
         sap_mcp_client,
         "sap_click_table_cell",
-        {"row": first_row.get("row", 1), "column": hotspot_column},
+        {"row": first_row.row, "column": hotspot_column},
         TableCellClickResult,
     )
     assert click_data.success, f"sap_click_table_cell failed: {click_data.error}"
@@ -1766,12 +1766,12 @@ async def test_emmacl_alv_click_with_browser_click(sap_mcp_client: ClientSession
 
     # Find a hotspot cell selector
     first_row = rows[0]
-    cells = first_row.get("cells", {})
+    cells = first_row.cells or {}
 
     hotspot_selector = None
     for col_name, cell_info in cells.items():
-        if cell_info.get("hotspot"):
-            hotspot_selector = cell_info.get("selector")
+        if cell_info.hotspot:
+            hotspot_selector = cell_info.selector
             print(f"Found hotspot selector for '{col_name}': {hotspot_selector}")
             break
 
@@ -2163,13 +2163,13 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
     # Process each case: click -> verify navigation -> go back
     for i in range(cases_to_process):
         row = rows[i]
-        row_num = row.get("row", i + 1)
-        cells = row.get("cells", {})
+        row_num = row.row
+        cells = row.cells or {}
 
         # Find a hotspot column (typically "Fall" or similar)
         hotspot_col = None
         for col_name, cell_info in cells.items():
-            if cell_info.get("hotspot"):
+            if cell_info.hotspot:
                 hotspot_col = col_name
                 break
 
