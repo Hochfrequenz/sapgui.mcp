@@ -256,7 +256,9 @@ async def _wait_for_easy_access(client: ClientSession, timeout: int = 5000) -> N
     Raises:
         RuntimeError: If the wait times out or fails
     """
-    result = await call_tool_typed(client, "browser_wait", {"selector": "#ToolbarOkCode", "timeout": timeout}, WaitResult)
+    result = await call_tool_typed(
+        client, "browser_wait", {"selector": "#ToolbarOkCode", "timeout": timeout}, WaitResult
+    )
     if not result.success:
         raise RuntimeError(f"Wait for Easy Access failed: {result.error}")
 
@@ -328,8 +330,11 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
 
     # Try to find and click the settings button using browser_evaluate
     # This mirrors the logic in _enable_okcode_field
-    settings_eval = await call_tool_typed(sap_mcp_client, "browser_evaluate", {
-        "expression": """
+    settings_eval = await call_tool_typed(
+        sap_mcp_client,
+        "browser_evaluate",
+        {
+            "expression": """
         (function() {
             // Try various settings button selectors
             var selectors = [
@@ -349,15 +354,20 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
             return 'not found';
         })()
         """
-    }, EvaluateResult)
+        },
+        EvaluateResult,
+    )
 
     if settings_eval.result and "clicked" in str(settings_eval.result):
         await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
         await capture_html_snapshot(sap_mcp_client, "settings_dialog")
 
         # Close the dialog
-        await call_tool_typed(sap_mcp_client, "browser_evaluate", {
-            "expression": """
+        await call_tool_typed(
+            sap_mcp_client,
+            "browser_evaluate",
+            {
+                "expression": """
             (function() {
                 var selectors = [
                     'button:contains("Close")',
@@ -375,7 +385,9 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
                 return 'escape';
             })()
             """
-        }, EvaluateResult)
+            },
+            EvaluateResult,
+        )
         await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Escape"}, KeyboardResult)
 
 
@@ -466,9 +478,7 @@ async def test_sap_transaction_with_slash_prefix(sap_mcp_client: ClientSession) 
 
     # Test with a namespace transaction (starts with /)
     # /IWFND/GW_CLIENT is the SAP Gateway Client for testing OData services
-    result = await call_tool_typed(
-        sap_mcp_client, "sap_transaction", {"tcode": "/IWFND/GW_CLIENT"}, TransactionResult
-    )
+    result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "/IWFND/GW_CLIENT"}, TransactionResult)
 
     # Should indicate transaction executed (or error if not authorized)
     # TransactionResult has success, tcode, error fields
@@ -572,9 +582,9 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
     assert result2.session_count is not None, f"Response should report session count: {result2}"
 
     # Should have at least 2 sessions (original + new)
-    assert result2.session_count >= 2, (
-        f"Expected at least 2 SAP sessions after opening new window, got {result2.session_count}"
-    )
+    assert (
+        result2.session_count >= 2
+    ), f"Expected at least 2 SAP sessions after opening new window, got {result2.session_count}"
 
 
 # =============================================================================
@@ -807,9 +817,7 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
     # Capture table results HTML for unit tests
     await capture_html_snapshot(sap_mcp_client, "sm37_results")
 
-    table_result = await call_tool_typed(
-        sap_mcp_client, "sap_read_table", {"start_row": 1, "end_row": 5}, TableData
-    )
+    table_result = await call_tool_typed(sap_mcp_client, "sap_read_table", {"start_row": 1, "end_row": 5}, TableData)
     assert table_result.success, f"sap_read_table failed: {table_result.error}"
 
     # Assert that we got actual table data with rows
@@ -890,9 +898,7 @@ async def test_se16_table_content_t000(sap_mcp_client: ClientSession) -> None:
     await capture_html_snapshot(sap_mcp_client, "se16_t000_content")
 
     # Read the table data
-    table_result = await call_tool_typed(
-        sap_mcp_client, "sap_read_table", {"start_row": 1, "end_row": 10}, TableData
-    )
+    table_result = await call_tool_typed(sap_mcp_client, "sap_read_table", {"start_row": 1, "end_row": 10}, TableData)
 
     # T000 must have at least one row (the current client)
     # Check for table data indicators
@@ -981,8 +987,7 @@ async def test_sap_read_status_bar_after_error(sap_mcp_client: ClientSession) ->
     # Should indicate error type or contain error message
     is_error = result.type == "E"
     has_error_msg = result.message and any(
-        ind in result.message.lower()
-        for ind in ["error", "fehler", "existiert nicht", "does not exist"]
+        ind in result.message.lower() for ind in ["error", "fehler", "existiert nicht", "does not exist"]
     )
 
     assert is_error or has_error_msg, f"Status bar should indicate error after invalid transaction: {result}"
@@ -1021,9 +1026,9 @@ async def test_sap_get_screen_info_different_transactions(sap_mcp_client: Client
     result2 = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
 
     # The title or content should be different
-    assert result1.title != result2.title or result1.url != result2.url, (
-        "Screen info should differ between SE16 and SM37"
-    )
+    assert (
+        result1.title != result2.title or result1.url != result2.url
+    ), "Screen info should differ between SE16 and SM37"
 
 
 @pytest.mark.anyio
@@ -1289,9 +1294,9 @@ async def test_sap_fill_form_strict_mode(sap_mcp_client: ClientSession) -> None:
 
     # Strict mode should report failure when field not found
     assert not fill_result.success, f"Strict mode should fail when field not found. Response: {fill_result}"
-    assert fill_result.not_found and "NONEXISTENT_FIELD_12345" in fill_result.not_found, (
-        f"Field should be in not_found list: {fill_result}"
-    )
+    assert (
+        fill_result.not_found and "NONEXISTENT_FIELD_12345" in fill_result.not_found
+    ), f"Field should be in not_found list: {fill_result}"
 
 
 @pytest.mark.anyio
@@ -1659,9 +1664,7 @@ async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None
     print(f"  ALV metadata: {table_result.alv or 'NOT PRESENT'}")
 
     # Verify we have ALV metadata (proves ALV grid detection worked)
-    assert table_result.alv is not None, (
-        f"sap_read_table should return ALV metadata for EMMACL results."
-    )
+    assert table_result.alv is not None, f"sap_read_table should return ALV metadata for EMMACL results."
 
     alv_meta = table_result.alv
     assert alv_meta.table_id, f"ALV metadata should have table_id: {alv_meta}"
@@ -2105,9 +2108,7 @@ async def test_workflow_delete_bundled_fails(sap_mcp_client: ClientSession) -> N
     print(f"\nAttempting to delete bundled workflow: {bundled_name}")
 
     # Try to delete it
-    delete_data = await call_tool_typed(
-        sap_mcp_client, "workflow_delete", {"name": bundled_name}, WorkflowDeleteResult
-    )
+    delete_data = await call_tool_typed(sap_mcp_client, "workflow_delete", {"name": bundled_name}, WorkflowDeleteResult)
 
     # Should fail
     assert not delete_data.success, f"Should not be able to delete bundled workflow: {delete_data}"
@@ -2393,9 +2394,9 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
         popup = kb_data.popup
         assert popup.message, f"F5 popup should have a message. Got: {popup}"
         # Message should mention "Person" or "Wechsel" (switch)
-        assert "Person" in popup.message or "Wechsel" in popup.message, (
-            f"F5 popup should mention 'Person' or 'Wechsel'. Got: {popup.message}"
-        )
+        assert (
+            "Person" in popup.message or "Wechsel" in popup.message
+        ), f"F5 popup should mention 'Person' or 'Wechsel'. Got: {popup.message}"
 
         # Dismiss with "Ja" to proceed to person creation
         dismiss_data = await call_tool_typed(sap_mcp_client, "sap_close_popup", {"button": "Ja"}, ClosePopupResult)
@@ -2541,9 +2542,9 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
 
         # Verify status bar shows "Aktion wurde abgebrochen" after closing via X
         status_message = dismiss_data.status_bar_message or ""
-        assert "abgebrochen" in status_message.lower() or "cancelled" in status_message.lower(), (
-            f"After closing popup with X, status bar should say 'Aktion wurde abgebrochen'. Got: {status_message}"
-        )
+        assert (
+            "abgebrochen" in status_message.lower() or "cancelled" in status_message.lower()
+        ), f"After closing popup with X, status bar should say 'Aktion wurde abgebrochen'. Got: {status_message}"
     else:
         # Dismiss using "Weiter" button
         dismiss_data = await call_tool_typed(sap_mcp_client, "sap_close_popup", {"button": "Weiter"}, ClosePopupResult)
@@ -2723,9 +2724,7 @@ async def test_bp_get_screen_text_with_dropdown_options(sap_mcp_client: ClientSe
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Call sap_get_screen_text with dropdown options
-    data = await call_tool_typed(
-        sap_mcp_client, "sap_get_screen_text", {"include_dropdown_options": True}, ScreenText
-    )
+    data = await call_tool_typed(sap_mcp_client, "sap_get_screen_text", {"include_dropdown_options": True}, ScreenText)
     assert data.success, f"sap_get_screen_text with dropdowns failed: {data.error}"
 
     # Check that dropdowns field is populated
