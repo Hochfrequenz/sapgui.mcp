@@ -1693,29 +1693,31 @@ async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None
     print(f"\n  Found hotspot in column '{hotspot_column}': {hotspot_cell}")
 
     # Get the page title before clicking
-    screen_info_before = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-    info_before = parse_tool_response(screen_info_before)
-    title_before = info_before.get("title", "")
+    info_before = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
+    assert info_before.success, f"sap_get_screen_info failed: {info_before.error}"
+    title_before = info_before.title
     print(f"  Title before click: {title_before}")
 
     # Step 4: Click on the hotspot cell using sap_click_table_cell
     # This should navigate to the detail view
-    click_result = await sap_mcp_client.call_tool(
+    click_data = await call_tool_typed(
+        sap_mcp_client,
         "sap_click_table_cell",
         {"row": first_row.get("row", 1), "column": hotspot_column},
+        TableCellClickResult,
     )
-    click_data = assert_tool_success(click_result, "sap_click_table_cell")
+    assert click_data.success, f"sap_click_table_cell failed: {click_data.error}"
 
     print(f"\n  Click result:")
-    print(f"    Selector used: {click_data.get('selector_used')}")
-    print(f"    Was hotspot: {click_data.get('was_hotspot')}")
-    print(f"    Page title after: {click_data.get('page_title')}")
+    print(f"    Selector used: {click_data.selector_used}")
+    print(f"    Was hotspot: {click_data.was_hotspot}")
+    print(f"    Page title after: {click_data.page_title}")
 
     # Verify the click was on a hotspot
-    assert click_data.get("was_hotspot"), f"Click should have been on a hotspot cell. Result: {click_data}"
+    assert click_data.was_hotspot, f"Click should have been on a hotspot cell. Result: {click_data}"
 
     # Step 5: Verify navigation happened (title should change)
-    title_after = click_data.get("page_title", "")
+    title_after = click_data.page_title
 
     # The title should change to show the detail view
     # German: "Klärungsfall XXXXXXXXX anzeigen" (Show case XXXXXXXXX)
@@ -1762,10 +1764,10 @@ async def test_emmacl_alv_click_with_browser_click(sap_mcp_client: ClientSession
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Read table with ALV metadata
-    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 5})
-    table_data = assert_tool_success(table_result, "sap_read_table")
+    table_data = await call_tool_typed(sap_mcp_client, "sap_read_table", {"max_rows": 5}, TableData)
+    assert table_data.success, f"sap_read_table failed: {table_data.error}"
 
-    rows = table_data.get("rows", [])
+    rows = table_data.rows or []
     assert len(rows) >= 1, "Expected at least one row"
 
     # Find a hotspot cell selector
@@ -1782,19 +1784,21 @@ async def test_emmacl_alv_click_with_browser_click(sap_mcp_client: ClientSession
     assert hotspot_selector, "Expected a hotspot cell with selector"
 
     # Get title before click
-    screen_info = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-    title_before = parse_tool_response(screen_info).get("title", "")
+    screen_info = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
+    assert screen_info.success, f"sap_get_screen_info failed: {screen_info.error}"
+    title_before = screen_info.title
 
     # Use browser_click with the selector directly
-    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": hotspot_selector})
-    click_data = assert_tool_success(click_result, "browser_click with ALV selector")
+    click_data = await call_tool_typed(sap_mcp_client, "browser_click", {"selector": hotspot_selector}, ClickResult)
+    assert click_data.success, f"browser_click with ALV selector failed: {click_data.error}"
 
     # Wait for navigation
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Verify navigation
-    screen_info_after = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-    title_after = parse_tool_response(screen_info_after).get("title", "")
+    screen_info_after = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
+    assert screen_info_after.success, f"sap_get_screen_info failed: {screen_info_after.error}"
+    title_after = screen_info_after.title
 
     print(f"Title before: {title_before}")
     print(f"Title after: {title_after}")
@@ -1825,28 +1829,32 @@ async def test_intent_logging_with_bp_transaction(
     - Press F5 to start creating a person
     - Log intents and verify log messages
     """
+    import json
+
     # Login to SAP
-    login_result = await sap_mcp_client.call_tool("sap_login", {})
-    assert_tool_success(login_result, "sap_login")
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"sap_login failed: {login_result.error}"
 
     # Log intent at start
-    intent_result = await sap_mcp_client.call_tool(
+    intent_data = await call_tool_typed(
+        sap_mcp_client,
         "log_intent",
         {
             "intent": "Create a new business partner of type Person",
             "context": {"tcode": "BP", "action": "create_person"},
         },
+        IntentLogResult,
     )
-    intent_data = assert_tool_success(intent_result, "log_intent")
-    assert intent_data.get("logged") is True, "Intent should be logged"
-    entry_id = intent_data.get("entry_id")
+    assert intent_data.success, f"log_intent failed: {intent_data.error}"
+    assert intent_data.logged is True, "Intent should be logged"
+    entry_id = intent_data.entry_id
     assert entry_id, "Intent should have an entry_id"
-    session_id = intent_data.get("session_id")
+    session_id = intent_data.session_id
     assert session_id, "Intent should have a session_id"
 
     # Run transaction BP
-    tx_result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
-    assert_tool_success(tx_result, "sap_transaction BP")
+    tx_result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "BP"}, TransactionResult)
+    assert tx_result.success, f"sap_transaction BP failed: {tx_result.error}"
 
     # Wait for BP screen (has Person/Organisation buttons)
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
@@ -1855,8 +1863,8 @@ async def test_intent_logging_with_bp_transaction(
     await capture_html_snapshot(sap_mcp_client, "bp_initial")
 
     # Press F5 to start creating (opens new partner creation)
-    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F5"})
-    assert_tool_success(kb_result, "sap_keyboard F5")
+    kb_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    assert kb_result.success, f"sap_keyboard F5 failed: {kb_result.error}"
 
     # Wait a moment for the dialog to open
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -1865,14 +1873,16 @@ async def test_intent_logging_with_bp_transaction(
     await capture_html_snapshot(sap_mcp_client, "bp_create_person")
 
     # Log another intent for the milestone
-    intent2_result = await sap_mcp_client.call_tool(
+    intent2_data = await call_tool_typed(
+        sap_mcp_client,
         "log_intent",
         {
             "intent": "Opened person creation dialog",
             "context": {"step": "dialog_open"},
         },
+        IntentLogResult,
     )
-    intent2_data = assert_tool_success(intent2_result, "log_intent 2")
+    assert intent2_data.success, f"log_intent 2 failed: {intent2_data.error}"
 
     # Verify the intent resource template is available
     templates = await sap_mcp_client.list_resource_templates()
@@ -1906,11 +1916,11 @@ async def test_intent_logging_with_bp_transaction(
     # Verify entry_ids match what we received from the tool
     entry_ids = [e["entry_id"] for e in entries]
     assert entry_id in entry_ids, f"First entry_id {entry_id} not in log: {entry_ids}"
-    assert intent2_data.get("entry_id") in entry_ids, "Second entry_id not in log"
+    assert intent2_data.entry_id in entry_ids, "Second entry_id not in log"
 
     # Press F3 to go back/cancel (avoid creating an actual partner)
-    back_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
-    print(f"\nBack result: {_get_content_text(back_result.content[0]) if back_result.content else 'N/A'}")
+    back_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F3"}, KeyboardResult)
+    print(f"\nBack result: {back_result}")
 
 
 # =============================================================================
@@ -1994,12 +2004,11 @@ async def test_workflow_list_returns_bundled_workflows(sap_mcp_client: ClientSes
     2. Bundled workflows (shipped with the package) are listed
     3. The response has expected structure with workflow metadata
     """
-    result = await sap_mcp_client.call_tool("workflow_list", {})
-    data = assert_tool_success(result, "workflow_list")
+    data = await call_tool_typed(sap_mcp_client, "workflow_list", {}, WorkflowListResult)
+    assert data.success, f"workflow_list failed: {data.error}"
 
     # Should have a workflows list
-    assert "workflows" in data, f"Expected 'workflows' in response: {data}"
-    workflows = data.get("workflows", [])
+    workflows = data.workflows
 
     # Should have at least one bundled workflow
     assert len(workflows) >= 1, f"Expected at least one bundled workflow: {workflows}"
@@ -2008,11 +2017,11 @@ async def test_workflow_list_returns_bundled_workflows(sap_mcp_client: ClientSes
     first_workflow = workflows[0]
     required_fields = ["name", "description", "author", "prompt", "applicable_when"]
     for field in required_fields:
-        assert field in first_workflow, f"Workflow missing '{field}': {first_workflow}"
+        assert hasattr(first_workflow, field), f"Workflow missing '{field}': {first_workflow}"
 
     print(f"\nFound {len(workflows)} workflows:")
     for wf in workflows:
-        print(f"  - {wf.get('name')}: {wf.get('description')}")
+        print(f"  - {wf.name}: {wf.description}")
 
 
 @pytest.mark.anyio
@@ -2029,7 +2038,8 @@ async def test_workflow_save_and_delete(sap_mcp_client: ClientSession) -> None:
     test_workflow_name = "test-integration-workflow-12345"
 
     # Save a test workflow
-    save_result = await sap_mcp_client.call_tool(
+    save_data = await call_tool_typed(
+        sap_mcp_client,
         "workflow_save",
         {
             "workflow_input": {
@@ -2041,32 +2051,35 @@ async def test_workflow_save_and_delete(sap_mcp_client: ClientSession) -> None:
                 "author": "integration-test",
             }
         },
+        WorkflowSaveResult,
     )
-    save_data = assert_tool_success(save_result, "workflow_save")
+    assert save_data.success, f"workflow_save failed: {save_data.error}"
 
-    assert save_data.get("name") == test_workflow_name, f"Name mismatch: {save_data}"
-    assert save_data.get("path"), f"Expected path in response: {save_data}"
+    assert save_data.name == test_workflow_name, f"Name mismatch: {save_data}"
+    assert save_data.path, f"Expected path in response: {save_data}"
 
-    print(f"\nSaved workflow to: {save_data.get('path')}")
+    print(f"\nSaved workflow to: {save_data.path}")
 
     # Verify it appears in list
-    list_result = await sap_mcp_client.call_tool("workflow_list", {})
-    list_data = assert_tool_success(list_result, "workflow_list after save")
+    list_data = await call_tool_typed(sap_mcp_client, "workflow_list", {}, WorkflowListResult)
+    assert list_data.success, f"workflow_list after save failed: {list_data.error}"
 
-    workflow_names = [w.get("name") for w in list_data.get("workflows", [])]
+    workflow_names = [w.name for w in list_data.workflows]
     assert test_workflow_name in workflow_names, f"Saved workflow not in list: {workflow_names}"
 
     # Delete the workflow
-    delete_result = await sap_mcp_client.call_tool("workflow_delete", {"name": test_workflow_name})
-    delete_data = assert_tool_success(delete_result, "workflow_delete")
+    delete_data = await call_tool_typed(
+        sap_mcp_client, "workflow_delete", {"name": test_workflow_name}, WorkflowDeleteResult
+    )
+    assert delete_data.success, f"workflow_delete failed: {delete_data.error}"
 
-    assert delete_data.get("name") == test_workflow_name, f"Name mismatch: {delete_data}"
+    assert delete_data.name == test_workflow_name, f"Name mismatch: {delete_data}"
 
     # Verify it's gone from list
-    list_result2 = await sap_mcp_client.call_tool("workflow_list", {})
-    list_data2 = assert_tool_success(list_result2, "workflow_list after delete")
+    list_data2 = await call_tool_typed(sap_mcp_client, "workflow_list", {}, WorkflowListResult)
+    assert list_data2.success, f"workflow_list after delete failed: {list_data2.error}"
 
-    workflow_names2 = [w.get("name") for w in list_data2.get("workflows", [])]
+    workflow_names2 = [w.name for w in list_data2.workflows]
     assert test_workflow_name not in workflow_names2, f"Deleted workflow still in list: {workflow_names2}"
 
     print("Workflow save/delete cycle completed successfully")
@@ -2081,27 +2094,29 @@ async def test_workflow_delete_bundled_fails(sap_mcp_client: ClientSession) -> N
     Only user-created workflows can be deleted.
     """
     # First get a bundled workflow name
-    list_result = await sap_mcp_client.call_tool("workflow_list", {})
-    list_data = assert_tool_success(list_result, "workflow_list")
+    list_data = await call_tool_typed(sap_mcp_client, "workflow_list", {}, WorkflowListResult)
+    assert list_data.success, f"workflow_list failed: {list_data.error}"
 
-    workflows = list_data.get("workflows", [])
+    workflows = list_data.workflows
     if not workflows:
         pytest.skip("No bundled workflows to test with")
 
-    bundled_name = workflows[0].get("name")
+    bundled_name = workflows[0].name
     print(f"\nAttempting to delete bundled workflow: {bundled_name}")
 
     # Try to delete it
-    delete_result = await sap_mcp_client.call_tool("workflow_delete", {"name": bundled_name})
-    delete_data = parse_tool_response(delete_result)
+    delete_data = await call_tool_typed(
+        sap_mcp_client, "workflow_delete", {"name": bundled_name}, WorkflowDeleteResult
+    )
 
     # Should fail
-    assert not delete_data.get("success", True), f"Should not be able to delete bundled workflow: {delete_data}"
+    assert not delete_data.success, f"Should not be able to delete bundled workflow: {delete_data}"
+    error_msg = delete_data.error or ""
     assert (
-        "bundled" in delete_data.get("error", "").lower() or "cannot delete" in delete_data.get("error", "").lower()
+        "bundled" in error_msg.lower() or "cannot delete" in error_msg.lower()
     ), f"Error should mention bundled: {delete_data}"
 
-    print(f"Correctly rejected: {delete_data.get('error')}")
+    print(f"Correctly rejected: {delete_data.error}")
 
 
 # =============================================================================
@@ -2127,7 +2142,7 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
     the test client doesn't support MCP Sampling. This manual test
     documents the behavior that workflow_run would automate.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open EMMACL and execute without filters
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
@@ -2136,10 +2151,10 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Read table to get available cases
-    table_result = await sap_mcp_client.call_tool("sap_read_table", {"max_rows": 20})
-    table_data = assert_tool_success(table_result, "sap_read_table")
+    table_data = await call_tool_typed(sap_mcp_client, "sap_read_table", {"max_rows": 20}, TableData)
+    assert table_data.success, f"sap_read_table failed: {table_data.error}"
 
-    rows = table_data.get("rows", [])
+    rows = table_data.rows or []
     total_available = len(rows)
 
     if total_available < 1:
@@ -2172,19 +2187,20 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
             continue
 
         # Get title before click
-        screen_before = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-        title_before = parse_tool_response(screen_before).get("title", "")
+        screen_before = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
+        title_before = screen_before.title if screen_before.success else ""
 
         # Click on the hotspot cell
         try:
-            click_result = await sap_mcp_client.call_tool(
+            click_data = await call_tool_typed(
+                sap_mcp_client,
                 "sap_click_table_cell",
                 {"row": row_num, "column": hotspot_col},
+                TableCellClickResult,
             )
-            click_data = parse_tool_response(click_result)
 
-            if not click_data.get("success", True):
-                print(f"  Row {row_num}: Click failed - {click_data.get('error')}")
+            if not click_data.success:
+                print(f"  Row {row_num}: Click failed - {click_data.error}")
                 failed_clicks += 1
                 continue
 
@@ -2192,8 +2208,8 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
             await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
             # Get title after click
-            screen_after = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-            title_after = parse_tool_response(screen_after).get("title", "")
+            screen_after = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
+            title_after = screen_after.title if screen_after.success else ""
 
             # Verify navigation happened
             if title_before != title_after:
@@ -2250,20 +2266,19 @@ async def test_sap_get_shortcuts_returns_shortcuts(sap_mcp_client: ClientSession
     SAP screens have toolbar buttons with keyboard shortcuts like F5, F8, Strg+S.
     These are exposed in the button's title attribute as "Action (Shortcut)".
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
-    result = await sap_mcp_client.call_tool("sap_get_shortcuts", {})
-    data = assert_tool_success(result, "sap_get_shortcuts")
+    data = await call_tool_typed(sap_mcp_client, "sap_get_shortcuts", {}, ShortcutsResult)
+    assert data.success, f"sap_get_shortcuts failed: {data.error}"
 
     # Should return list of shortcuts
-    assert "shortcuts" in data, f"Expected 'shortcuts' in response: {data}"
-    shortcuts = data["shortcuts"]
+    shortcuts = data.shortcuts
     assert isinstance(shortcuts, list), f"Expected list of shortcuts: {shortcuts}"
 
     # SE16 should have at least some common shortcuts (F3=Back, F8=Execute)
-    shortcut_keys = [s.get("shortcut", "") for s in shortcuts]
+    shortcut_keys = [s.shortcut for s in shortcuts]
     assert any(
         "F" in k for k in shortcut_keys
     ), f"Expected at least one F-key shortcut on SE16 screen. Found: {shortcut_keys}"
@@ -2280,55 +2295,55 @@ async def test_sap_get_shortcuts_has_execute_f8(sap_mcp_client: ClientSession) -
     if sap_language != "DE":
         pytest.skip("Skipping F8 Execute test in non-DE language environments")
 
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
-    result = await sap_mcp_client.call_tool("sap_get_shortcuts", {})
-    data = assert_tool_success(result, "sap_get_shortcuts")
+    data = await call_tool_typed(sap_mcp_client, "sap_get_shortcuts", {}, ShortcutsResult)
+    assert data.success, f"sap_get_shortcuts failed: {data.error}"
 
-    shortcuts = data.get("shortcuts", [])
+    shortcuts = data.shortcuts
     # Accept any shortcut containing "F8" (plain F8, Strg+F8, Ctrl+F8, etc.)
     print(shortcuts)
-    assert any(sc for sc in shortcuts if sc.get("shortcut") == "Strg+F8" and sc.get("action") == "Online Handbuch")
-    assert any(sc for sc in shortcuts if sc.get("shortcut") == "Eingabe" and sc.get("action") == "Tabelleninhalt")
-    assert any(sc for sc in shortcuts if sc.get("shortcut") == "F7" and sc.get("action") == "Tabelleninhalt")
+    assert any(sc for sc in shortcuts if sc.shortcut == "Strg+F8" and sc.action == "Online Handbuch")
+    assert any(sc for sc in shortcuts if sc.shortcut == "Eingabe" and sc.action == "Tabelleninhalt")
+    assert any(sc for sc in shortcuts if sc.shortcut == "F7" and sc.action == "Tabelleninhalt")
 
 
 @pytest.mark.anyio
 async def test_sap_get_shortcuts_has_back_f3(sap_mcp_client: ClientSession) -> None:
     """Test that screens have F3 (Back) shortcut."""
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
-    result = await sap_mcp_client.call_tool("sap_get_shortcuts", {})
-    data = assert_tool_success(result, "sap_get_shortcuts")
+    data = await call_tool_typed(sap_mcp_client, "sap_get_shortcuts", {}, ShortcutsResult)
+    assert data.success, f"sap_get_shortcuts failed: {data.error}"
 
-    shortcuts = data.get("shortcuts", [])
-    f3_shortcuts = [s for s in shortcuts if s.get("shortcut") == "F3"]
+    shortcuts = data.shortcuts
+    f3_shortcuts = [s for s in shortcuts if s.shortcut == "F3"]
 
     assert (
         len(f3_shortcuts) >= 1
-    ), f"Screen should have F3 (Back) shortcut. Found shortcuts: {[s.get('shortcut') for s in shortcuts]}"
+    ), f"Screen should have F3 (Back) shortcut. Found shortcuts: {[s.shortcut for s in shortcuts]}"
 
 
 @pytest.mark.anyio
 async def test_sap_get_shortcuts_no_duplicates(sap_mcp_client: ClientSession) -> None:
     """Test that duplicate shortcuts are not returned."""
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
-    result = await sap_mcp_client.call_tool("sap_get_shortcuts", {})
-    data = assert_tool_success(result, "sap_get_shortcuts")
+    data = await call_tool_typed(sap_mcp_client, "sap_get_shortcuts", {}, ShortcutsResult)
+    assert data.success, f"sap_get_shortcuts failed: {data.error}"
 
-    shortcuts = data.get("shortcuts", [])
+    shortcuts = data.shortcuts
 
     # Check for uniqueness
     seen = set()
     for s in shortcuts:
-        key = (s.get("action", "").lower(), s.get("shortcut", "").lower())
+        key = (s.action.lower(), s.shortcut.lower())
         assert key not in seen, f"Duplicate shortcut found: {s}"
         seen.add(key)
 
@@ -2358,35 +2373,33 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     - #44: "Daten geändert" (Data changed) popup blocks navigation
     - #57: Dialog closed unexpectedly - reliable popup interaction
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open BP transaction
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
-    assert_tool_success(result, "sap_transaction BP")
+    tx_result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "BP"}, TransactionResult)
+    assert tx_result.success, f"sap_transaction BP failed: {tx_result.error}"
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
     # Press F5 to create a new person - this triggers a confirmation popup
     # "Wechsel in das Anlegen einer Person" (Switch to creating a person)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
-    kb_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F5"})
-    kb_data = parse_tool_response(kb_result)
+    kb_data = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
 
     # Capture the F5 confirmation popup for debugging
     await capture_html_snapshot(sap_mcp_client, "bp_switch_to_person_popup", overwrite=True)
 
     # F5 should trigger the "Switch to Person" confirmation popup
-    if kb_data.get("popup"):
-        popup = kb_data["popup"]
-        assert popup.get("message"), f"F5 popup should have a message. Got: {popup}"
+    if kb_data.popup:
+        popup = kb_data.popup
+        assert popup.message, f"F5 popup should have a message. Got: {popup}"
         # Message should mention "Person" or "Wechsel" (switch)
-        assert "Person" in popup.get("message", "") or "Wechsel" in popup.get(
-            "message", ""
-        ), f"F5 popup should mention 'Person' or 'Wechsel'. Got: {popup['message']}"
+        assert "Person" in popup.message or "Wechsel" in popup.message, (
+            f"F5 popup should mention 'Person' or 'Wechsel'. Got: {popup.message}"
+        )
 
         # Dismiss with "Ja" to proceed to person creation
-        dismiss_result = await sap_mcp_client.call_tool("sap_close_popup", {"button": "Ja"})
-        dismiss_data = parse_tool_response(dismiss_result)
-        assert dismiss_data.get("success", False), f"Dismiss should succeed. Result: {dismiss_data}"
+        dismiss_data = await call_tool_typed(sap_mcp_client, "sap_close_popup", {"button": "Ja"}, ClosePopupResult)
+        assert dismiss_data.success, f"Dismiss should succeed. Result: {dismiss_data}"
         await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Wait for person form to load (name fields appear)
@@ -2398,50 +2411,48 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     # Press F3 (Back) WITHOUT filling any data - this triggers validation popup
     # Message: "Die Daten des Geschäftspartners sind fehlerhaft..."
     # Buttons: "Ja", "Nein"
-    back_result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
-    back_data = parse_tool_response(back_result)
+    back_data = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F3"}, KeyboardResult)
 
     # Always capture HTML to debug popup detection
     await capture_html_snapshot(sap_mcp_client, "bp_validation_popup", overwrite=True)
 
     # The popup should be detected
-    assert back_data.get("popup"), (
+    assert back_data.popup, (
         f"Expected popup after F3 from empty BP form. Got: {back_data}. "
         "The popup should show a validation error. "
         "Check bp_validation_popup_*.html for the actual page state."
     )
 
-    popup = back_data["popup"]
+    popup = back_data.popup
 
     # Verify popup has message (could be header title like "Beenden" or body text)
-    assert popup.get("message"), f"Popup should have a message. Got: {popup}"
+    assert popup.message, f"Popup should have a message. Got: {popup}"
     # Message should be at least a few characters (not empty)
     # Some popups just have a short title like "Beenden" (Exit) without body text
-    assert len(popup.get("message", "")) >= 3, f"Popup message should not be empty. Got: {popup['message']}"
+    assert len(popup.message) >= 3, f"Popup message should not be empty. Got: {popup.message}"
 
     # Should have "Ja" and "Nein" buttons
-    buttons = popup.get("buttons", [])
-    button_labels = [b.get("label", "") for b in buttons]
+    buttons = popup.buttons or []
+    button_labels = [b.label for b in buttons]
     assert len(buttons) >= 2, f"Popup should have at least 2 buttons. Got: {button_labels}"
     assert any("Ja" in label for label in button_labels), f"Should have 'Ja' button. Got: {button_labels}"
     assert any("Nein" in label for label in button_labels), f"Should have 'Nein' button. Got: {button_labels}"
 
     # Dismiss with "Ja" to go back without saving
-    dismiss_result = await sap_mcp_client.call_tool("sap_close_popup", {"button": "Ja"})
-    dismiss_data = parse_tool_response(dismiss_result)
+    dismiss_data = await call_tool_typed(sap_mcp_client, "sap_close_popup", {"button": "Ja"}, ClosePopupResult)
 
     # Check dismiss result
-    assert dismiss_data.get("success", False), f"Dismiss should succeed. Result: {dismiss_data}"
-    assert dismiss_data.get("popup_closed", False), f"Popup should be dismissed. Result: {dismiss_data}"
-    assert dismiss_data.get("button_clicked") == "Ja", f"Should have clicked 'Ja'. Result: {dismiss_data}"
+    assert dismiss_data.success, f"Dismiss should succeed. Result: {dismiss_data}"
+    assert dismiss_data.popup_closed, f"Popup should be dismissed. Result: {dismiss_data}"
+    assert dismiss_data.button_clicked == "Ja", f"Should have clicked 'Ja'. Result: {dismiss_data}"
 
     # Verify we're back to BP initial screen or SAP Easy Access
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Check the page title - should be BP or Easy Access
-    screen_result = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-    screen_data = parse_tool_response(screen_result)
-    title = screen_data.get("title", "")
+    screen_data = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
+    assert screen_data.success, f"sap_get_screen_info failed: {screen_data.error}"
+    title = screen_data.title
     assert (
         "SAP" in title or "Geschäftspartner" in title or "Easy Access" in title or "Einstieg" in title
     ), f"Should be back to BP or SAP landing page. Got title: {title}"
@@ -2464,38 +2475,41 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
     3. Close button is detected
     4. Popup can be dismissed via close button
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open SE38 (ABAP Editor)
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE38"})
-    assert_tool_success(result, "sap_transaction SE38")
+    tx_result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE38"}, TransactionResult)
+    assert tx_result.success, f"sap_transaction SE38 failed: {tx_result.error}"
     await _wait_for_transaction_screen(sap_mcp_client, "SE38")
 
     # Capture initial SE38 screen
     await capture_html_snapshot(sap_mcp_client, "se38_initial", overwrite=True)
 
     # Enter an invalid program name
-    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": {"Programm": "AAAAAAAAAAAAAAAAAAAA"}})
-    assert_tool_success(fill_result, "Fill program name")
+    fill_result = await call_tool_typed(
+        sap_mcp_client, "sap_fill_form", {"fields": {"Programm": "AAAAAAAAAAAAAAAAAAAA"}}, FillFormResult
+    )
+    assert fill_result.success, f"Fill program name failed: {fill_result.error}"
 
     # Click "Anlegen" (Create) button - this triggers the error popup
-    click_result = await sap_mcp_client.call_tool(
-        "browser_click", {"selector": "span:has-text('Anlegen'), button:has-text('Anlegen')"}
+    click_data = await call_tool_typed(
+        sap_mcp_client,
+        "browser_click",
+        {"selector": "span:has-text('Anlegen'), button:has-text('Anlegen')"},
+        ClickResult,
     )
-    click_data = parse_tool_response(click_result)
 
     # Capture the popup HTML for debugging
     await capture_html_snapshot(sap_mcp_client, "se38_error_popup", overwrite=True)
 
     # Check if popup was detected via the click result or needs manual check
-    popup = click_data.get("popup")
+    popup = click_data.popup
     if not popup:
         # Popup might not be in click result, check via sap_get_screen_info
         await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
         # Try to detect popup by checking screen info
-        screen_result = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-        screen_data = parse_tool_response(screen_result)
-        popup = screen_data.get("popup")
+        screen_data = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
+        popup = screen_data.popup
 
     assert popup, (
         f"Expected error popup after clicking Anlegen with invalid program name. "
@@ -2503,14 +2517,14 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
     )
 
     # Verify popup has a message (title + body)
-    message = popup.get("message", "")
+    message = popup.message
     assert message, f"Popup should have a message. Got: {popup}"
     # The message should contain either the title or body text
     assert len(message) > 10, f"Popup message should be descriptive. Got: {message}"
 
     # Should have buttons "Weiter" and "Langdokumentation"
-    buttons = popup.get("buttons", [])
-    button_labels = [b.get("label", "") for b in buttons]
+    buttons = popup.buttons or []
+    button_labels = [b.label for b in buttons]
     assert len(buttons) >= 1, f"Popup should have buttons. Got: {button_labels}"
     # Check for expected buttons (German)
     has_weiter = any("Weiter" in label or "weiter" in label.lower() for label in button_labels)
@@ -2518,30 +2532,28 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
     assert has_weiter or has_langdoku, f"Expected 'Weiter' or 'Langdokumentation' button. Got: {button_labels}"
 
     # Should have a close button (X)
-    close_button_id = popup.get("close_button_id")
+    close_button_id = popup.close_button_id
     # Note: close button may not always be present, so we just log it
     if close_button_id:
         # Dismiss using close button
-        dismiss_result = await sap_mcp_client.call_tool("sap_close_popup", {"close": True})
-        dismiss_data = parse_tool_response(dismiss_result)
-        assert dismiss_data.get("success", False), f"Close should succeed. Result: {dismiss_data}"
+        dismiss_data = await call_tool_typed(sap_mcp_client, "sap_close_popup", {"close": True}, ClosePopupResult)
+        assert dismiss_data.success, f"Close should succeed. Result: {dismiss_data}"
 
         # Verify status bar shows "Aktion wurde abgebrochen" after closing via X
-        status_message = dismiss_data.get("status_bar_message", "")
+        status_message = dismiss_data.status_bar_message or ""
         assert "abgebrochen" in status_message.lower() or "cancelled" in status_message.lower(), (
-            f"After closing popup with X, status bar should say 'Aktion wurde abgebrochen'. " f"Got: {status_message}"
+            f"After closing popup with X, status bar should say 'Aktion wurde abgebrochen'. Got: {status_message}"
         )
     else:
         # Dismiss using "Weiter" button
-        dismiss_result = await sap_mcp_client.call_tool("sap_close_popup", {"button": "Weiter"})
-        dismiss_data = parse_tool_response(dismiss_result)
-        assert dismiss_data.get("success", False), f"Dismiss should succeed. Result: {dismiss_data}"
+        dismiss_data = await call_tool_typed(sap_mcp_client, "sap_close_popup", {"button": "Weiter"}, ClosePopupResult)
+        assert dismiss_data.success, f"Dismiss should succeed. Result: {dismiss_data}"
 
     # Verify we're back to SE38
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
-    screen_result = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-    screen_data = parse_tool_response(screen_result)
-    title = screen_data.get("title", "")
+    screen_data = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
+    assert screen_data.success, f"sap_get_screen_info failed: {screen_data.error}"
+    title = screen_data.title
     assert "ABAP" in title or "SE38" in title or "Editor" in title, f"Should be back to SE38. Got title: {title}"
 
 
@@ -2552,14 +2564,14 @@ async def test_popup_detection_without_popup(sap_mcp_client: ClientSession) -> N
 
     Verifies that the popup detection doesn't interfere with normal operation.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Navigate to SE16 - should work without any popup
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
-    data = assert_tool_success(result, "sap_transaction SE16")
+    data = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
+    assert data.success, f"sap_transaction SE16 failed: {data.error}"
 
     # Should NOT have popup
-    assert data.get("popup") is None, f"No popup expected on clean navigation. Got: {data}"
+    assert data.popup is None, f"No popup expected on clean navigation. Got: {data}"
 
 
 @pytest.mark.anyio
@@ -2569,17 +2581,16 @@ async def test_sap_close_popup_no_popup_present(sap_mcp_client: ClientSession) -
 
     Should return an error message, not crash.
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Try to dismiss when no popup is present
-    result = await sap_mcp_client.call_tool("sap_close_popup", {"button": "Ja"})
-    data = parse_tool_response(result)
+    data = await call_tool_typed(sap_mcp_client, "sap_close_popup", {"button": "Ja"}, ClosePopupResult)
 
     # Should fail gracefully
-    assert not data.get("success", True), f"Should fail when no popup present: {data}"
-    assert "no popup" in data.get("error", "").lower(), f"Error should mention no popup: {data}"
+    assert not data.success, f"Should fail when no popup present: {data}"
+    assert "no popup" in (data.error or "").lower(), f"Error should mention no popup: {data}"
 
 
 @pytest.mark.anyio
@@ -2595,7 +2606,7 @@ async def test_bp_get_form_fields_discovers_dropdowns(sap_mcp_client: ClientSess
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "DE")
 
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
@@ -2612,28 +2623,28 @@ async def test_bp_get_form_fields_discovers_dropdowns(sap_mcp_client: ClientSess
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Call sap_get_form_fields
-    result = await sap_mcp_client.call_tool("sap_get_form_fields", {})
-    data = assert_tool_success(result, "sap_get_form_fields")
+    data = await call_tool_typed(sap_mcp_client, "sap_get_form_fields", {}, FormFieldsResult)
+    assert data.success, f"sap_get_form_fields failed: {data.error}"
 
     # Check that fields were found
-    fields = data.get("fields", [])
+    fields = data.fields
     assert len(fields) > 0, "Expected to find form fields"
 
     # Find dropdown fields
-    dropdown_fields = [f for f in fields if f.get("field_type") == "dropdown"]
+    dropdown_fields = [f for f in fields if f.field_type == "dropdown"]
     assert (
         len(dropdown_fields) >= 2
     ), f"Expected at least 2 dropdowns (GP-Rolle, Gruppierung), found {len(dropdown_fields)}"
 
     # Check for GP-Rolle dropdown
     gp_rolle_dropdown = next(
-        (f for f in dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        (f for f in dropdown_fields if "GP-Rolle" in f.label or "Role" in f.label),
         None,
     )
     assert (
         gp_rolle_dropdown is not None
-    ), f"Expected GP-Rolle dropdown. Found dropdowns: {[f.get('label') for f in dropdown_fields]}"
-    assert gp_rolle_dropdown.get("id"), "Dropdown should have an ID"
+    ), f"Expected GP-Rolle dropdown. Found dropdowns: {[f.label for f in dropdown_fields]}"
+    assert gp_rolle_dropdown.id, "Dropdown should have an ID"
 
 
 @pytest.mark.anyio
@@ -2646,7 +2657,7 @@ async def test_bp_get_form_fields_with_dropdown_options(sap_mcp_client: ClientSe
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "DE")
 
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
@@ -2662,21 +2673,23 @@ async def test_bp_get_form_fields_with_dropdown_options(sap_mcp_client: ClientSe
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Call sap_get_form_fields with dropdown options
-    result = await sap_mcp_client.call_tool("sap_get_form_fields", {"include_dropdown_options": True})
-    data = assert_tool_success(result, "sap_get_form_fields with options")
+    data = await call_tool_typed(
+        sap_mcp_client, "sap_get_form_fields", {"include_dropdown_options": True}, FormFieldsResult
+    )
+    assert data.success, f"sap_get_form_fields with options failed: {data.error}"
 
     # Find dropdown fields with options
-    dropdown_fields = [f for f in data.get("fields", []) if f.get("field_type") == "dropdown"]
+    dropdown_fields = [f for f in data.fields if f.field_type == "dropdown"]
     assert len(dropdown_fields) >= 2, "Expected at least 2 dropdowns"
 
     # GP-Rolle should have options populated
     gp_rolle_dropdown = next(
-        (f for f in dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        (f for f in dropdown_fields if "GP-Rolle" in f.label or "Role" in f.label),
         None,
     )
     assert gp_rolle_dropdown is not None, "Expected GP-Rolle dropdown"
 
-    options = gp_rolle_dropdown.get("options")
+    options = gp_rolle_dropdown.options
     assert options is not None, "Expected options to be populated when include_dropdown_options=True"
     assert len(options) > 0, "Expected GP-Rolle to have available options"
 
@@ -2694,7 +2707,7 @@ async def test_bp_get_screen_text_with_dropdown_options(sap_mcp_client: ClientSe
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "DE")
 
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
@@ -2710,19 +2723,21 @@ async def test_bp_get_screen_text_with_dropdown_options(sap_mcp_client: ClientSe
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Call sap_get_screen_text with dropdown options
-    result = await sap_mcp_client.call_tool("sap_get_screen_text", {"include_dropdown_options": True})
-    data = assert_tool_success(result, "sap_get_screen_text with dropdowns")
+    data = await call_tool_typed(
+        sap_mcp_client, "sap_get_screen_text", {"include_dropdown_options": True}, ScreenText
+    )
+    assert data.success, f"sap_get_screen_text with dropdowns failed: {data.error}"
 
     # Check that dropdowns field is populated
-    dropdowns = data.get("dropdowns")
+    dropdowns = data.dropdowns
     assert dropdowns is not None, "Expected dropdowns field when include_dropdown_options=True"
     assert len(dropdowns) >= 2, f"Expected at least 2 dropdowns, found {len(dropdowns)}"
 
     # Each dropdown should have id, label, and options
     for dd in dropdowns:
-        assert dd.get("id"), f"Dropdown should have id: {dd}"
-        assert dd.get("label"), f"Dropdown should have label: {dd}"
-        assert isinstance(dd.get("options"), list), f"Dropdown should have options list: {dd}"
+        assert dd.id, f"Dropdown should have id: {dd}"
+        assert dd.label, f"Dropdown should have label: {dd}"
+        assert isinstance(dd.options, list), f"Dropdown should have options list: {dd}"
 
 
 @pytest.mark.anyio
@@ -2735,7 +2750,7 @@ async def test_bp_fill_form_dropdown_selection(sap_mcp_client: ClientSession) ->
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "DE")
 
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
@@ -2751,31 +2766,35 @@ async def test_bp_fill_form_dropdown_selection(sap_mcp_client: ClientSession) ->
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # First, get the dropdown options to know valid values
-    form_result = await sap_mcp_client.call_tool("sap_get_form_fields", {"include_dropdown_options": True})
-    form_data = assert_tool_success(form_result, "sap_get_form_fields")
+    form_data = await call_tool_typed(
+        sap_mcp_client, "sap_get_form_fields", {"include_dropdown_options": True}, FormFieldsResult
+    )
+    assert form_data.success, f"sap_get_form_fields failed: {form_data.error}"
 
     # Find GP-Rolle dropdown and get first option
-    dropdown_fields = [f for f in form_data.get("fields", []) if f.get("field_type") == "dropdown"]
+    dropdown_fields = [f for f in form_data.fields if f.field_type == "dropdown"]
     gp_rolle = next(
-        (f for f in dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        (f for f in dropdown_fields if "GP-Rolle" in f.label or "Role" in f.label),
         None,
     )
     assert gp_rolle is not None, "Expected GP-Rolle dropdown"
 
-    options = gp_rolle.get("options", [])
+    options = gp_rolle.options or []
     assert len(options) > 0, "Expected GP-Rolle to have options"
 
     # Select the first option (should be the default, so no popup)
     option_to_select = options[0]
-    element_id = gp_rolle.get("id")
+    element_id = gp_rolle.id
 
     # Use CSS selector with element ID
     selector = f"#{element_id}"
-    fill_result = await sap_mcp_client.call_tool("sap_fill_form", {"fields": {selector: option_to_select}})
-    fill_data = assert_tool_success(fill_result, "sap_fill_form dropdown")
+    fill_data = await call_tool_typed(
+        sap_mcp_client, "sap_fill_form", {"fields": {selector: option_to_select}}, FillFormResult
+    )
+    assert fill_data.success, f"sap_fill_form dropdown failed: {fill_data.error}"
 
     # Verify the field was filled (selector should be in filled list)
-    filled = fill_data.get("filled", [])
+    filled = fill_data.filled
     assert selector in filled, f"Expected {selector} to be filled. Result: {fill_data}"
 
 
@@ -2789,7 +2808,7 @@ async def test_bp_fill_form_dropdown_invalid_value(sap_mcp_client: ClientSession
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "DE")
 
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
@@ -2806,18 +2825,17 @@ async def test_bp_fill_form_dropdown_invalid_value(sap_mcp_client: ClientSession
 
     # Try to fill with invalid dropdown value
     label = "GP-Rolle" if sap_language == "DE" else "BP Role"
-    fill_result = await sap_mcp_client.call_tool(
-        "sap_fill_form", {"fields": {label: "INVALID_NONEXISTENT_VALUE_12345"}}
+    fill_data = await call_tool_typed(
+        sap_mcp_client, "sap_fill_form", {"fields": {label: "INVALID_NONEXISTENT_VALUE_12345"}}, FillFormResult
     )
-    fill_data = parse_tool_response(fill_result)
 
     # Should have an error
-    errors = fill_data.get("errors", [])
+    errors = fill_data.errors or []
     assert len(errors) > 0, f"Expected error for invalid dropdown value. Result: {fill_data}"
 
     # Error should contain available options
     error = errors[0]
-    available = error.get("available_options")
+    available = error.available_options
     assert available is not None, f"Expected available_options in error: {error}"
     assert len(available) > 0, f"Expected non-empty available_options: {error}"
 
@@ -2847,31 +2865,35 @@ async def test_bp_set_field_dropdown_selection(sap_mcp_client: ClientSession) ->
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # First, get the dropdown options to know valid values
-    form_result = await sap_mcp_client.call_tool("sap_get_form_fields", {"include_dropdown_options": True})
-    form_data = assert_tool_success(form_result, "sap_get_form_fields")
+    form_data = await call_tool_typed(
+        sap_mcp_client, "sap_get_form_fields", {"include_dropdown_options": True}, FormFieldsResult
+    )
+    assert form_data.success, f"sap_get_form_fields failed: {form_data.error}"
 
     # Find GP-Rolle dropdown and get first option
-    dropdown_fields = [f for f in form_data.get("fields", []) if f.get("field_type") == "dropdown"]
+    dropdown_fields = [f for f in form_data.fields if f.field_type == "dropdown"]
     gp_rolle = next(
-        (f for f in dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        (f for f in dropdown_fields if "GP-Rolle" in f.label or "Role" in f.label),
         None,
     )
     assert gp_rolle is not None, "Expected GP-Rolle dropdown"
 
-    options = gp_rolle.get("options", [])
+    options = gp_rolle.options or []
     assert len(options) > 0, "Expected GP-Rolle to have options"
 
     # Select the first option using sap_set_field
     option_to_select = options[0]
-    label = gp_rolle.get("label")
+    label = gp_rolle.label
 
-    set_result = await sap_mcp_client.call_tool("sap_set_field", {"label": label, "value": option_to_select})
-    set_data = assert_tool_success(set_result, "sap_set_field dropdown")
+    set_data = await call_tool_typed(
+        sap_mcp_client, "sap_set_field", {"label": label, "value": option_to_select}, SetFieldResult
+    )
+    assert set_data.success, f"sap_set_field dropdown failed: {set_data.error}"
 
     # Verify the field was set
-    assert set_data.get("label") == label, f"Expected label {label}. Result: {set_data}"
-    assert set_data.get("value") == option_to_select, f"Expected value {option_to_select}. Result: {set_data}"
-    assert set_data.get("selector_used"), f"Expected selector_used. Result: {set_data}"
+    assert set_data.label == label, f"Expected label {label}. Result: {set_data}"
+    assert set_data.value == option_to_select, f"Expected value {option_to_select}. Result: {set_data}"
+    assert set_data.selector_used, f"Expected selector_used. Result: {set_data}"
 
 
 @pytest.mark.anyio
@@ -2883,7 +2905,7 @@ async def test_bp_set_field_dropdown_invalid_value(sap_mcp_client: ClientSession
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "DE")
 
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
@@ -2900,16 +2922,15 @@ async def test_bp_set_field_dropdown_invalid_value(sap_mcp_client: ClientSession
 
     # Try to set invalid dropdown value
     label = "GP-Rolle" if sap_language == "DE" else "BP Role"
-    set_result = await sap_mcp_client.call_tool(
-        "sap_set_field", {"label": label, "value": "INVALID_NONEXISTENT_VALUE_12345"}
+    set_data = await call_tool_typed(
+        sap_mcp_client, "sap_set_field", {"label": label, "value": "INVALID_NONEXISTENT_VALUE_12345"}, SetFieldResult
     )
-    set_data = parse_tool_response(set_result)
 
     # Should have failed
-    assert not set_data.get("success", True), f"Expected failure for invalid dropdown value. Result: {set_data}"
+    assert not set_data.success, f"Expected failure for invalid dropdown value. Result: {set_data}"
 
     # Error should contain available options
-    available = set_data.get("available_options")
+    available = set_data.available_options
     assert available is not None, f"Expected available_options in result: {set_data}"
     assert len(available) > 0, f"Expected non-empty available_options: {set_data}"
 
@@ -2932,7 +2953,7 @@ async def test_bp_dropdown_value_actually_applied(sap_mcp_client: ClientSession)
     """
     sap_language = os.environ.get("SAP_LANGUAGE", "DE")
 
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "BP"})
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
@@ -2948,20 +2969,22 @@ async def test_bp_dropdown_value_actually_applied(sap_mcp_client: ClientSession)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Get form fields with dropdown options
-    form_result = await sap_mcp_client.call_tool("sap_get_form_fields", {"include_dropdown_options": True})
-    form_data = assert_tool_success(form_result, "sap_get_form_fields")
+    form_data = await call_tool_typed(
+        sap_mcp_client, "sap_get_form_fields", {"include_dropdown_options": True}, FormFieldsResult
+    )
+    assert form_data.success, f"sap_get_form_fields failed: {form_data.error}"
 
     # Find GP-Rolle dropdown
-    dropdown_fields = [f for f in form_data.get("fields", []) if f.get("field_type") == "dropdown"]
+    dropdown_fields = [f for f in form_data.fields if f.field_type == "dropdown"]
     gp_rolle = next(
-        (f for f in dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        (f for f in dropdown_fields if "GP-Rolle" in f.label or "Role" in f.label),
         None,
     )
     assert gp_rolle is not None, "Expected GP-Rolle dropdown"
 
     # Get current value and available options
-    original_value = gp_rolle.get("current_value", "")
-    options = gp_rolle.get("options", [])
+    original_value = gp_rolle.current_value or ""
+    options = gp_rolle.options or []
     assert len(options) >= 2, "Need at least 2 options to test value change"
 
     # Find a different option than the current value
@@ -2980,30 +3003,31 @@ async def test_bp_dropdown_value_actually_applied(sap_mcp_client: ClientSession)
     option_key = option_to_select.split(" - ")[0].strip() if " - " in option_to_select else option_to_select
 
     # Select the new option
-    label = gp_rolle.get("label")
-    set_result = await sap_mcp_client.call_tool("sap_set_field", {"label": label, "value": option_key})
-    set_data = assert_tool_success(set_result, "sap_set_field dropdown selection")
-
-    # Verify the selection was successful
-    assert set_data.get("success", False), f"Expected successful selection. Result: {set_data}"
+    label = gp_rolle.label
+    set_data = await call_tool_typed(
+        sap_mcp_client, "sap_set_field", {"label": label, "value": option_key}, SetFieldResult
+    )
+    assert set_data.success, f"sap_set_field dropdown selection failed: {set_data.error}"
 
     # Wait for SAP to process the selection
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     # Read the form fields again to verify the value changed
-    verify_result = await sap_mcp_client.call_tool("sap_get_form_fields", {"include_dropdown_options": False})
-    verify_data = assert_tool_success(verify_result, "sap_get_form_fields verification")
+    verify_data = await call_tool_typed(
+        sap_mcp_client, "sap_get_form_fields", {"include_dropdown_options": False}, FormFieldsResult
+    )
+    assert verify_data.success, f"sap_get_form_fields verification failed: {verify_data.error}"
 
     # Find the GP-Rolle field again
-    verify_dropdown_fields = [f for f in verify_data.get("fields", []) if f.get("field_type") == "dropdown"]
+    verify_dropdown_fields = [f for f in verify_data.fields if f.field_type == "dropdown"]
     verify_gp_rolle = next(
-        (f for f in verify_dropdown_fields if "GP-Rolle" in f.get("label", "") or "Role" in f.get("label", "")),
+        (f for f in verify_dropdown_fields if "GP-Rolle" in f.label or "Role" in f.label),
         None,
     )
     assert verify_gp_rolle is not None, "Expected GP-Rolle dropdown in verification"
 
     # Check that the value actually changed
-    new_value = verify_gp_rolle.get("current_value", "")
+    new_value = verify_gp_rolle.current_value or ""
 
     # The new value should contain the selected option key (not the original value)
     assert option_key in new_value or new_value != original_value, (
@@ -3030,11 +3054,11 @@ async def test_sm30_discover_buttons(sap_mcp_client: ClientSession) -> None:
     This test is foundational for issue #99 (sap_discover_fields doesn't return buttons)
     and issue #101 (browser_click doesn't work for SAP buttons).
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open SM30 transaction
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM30"})
-    assert_tool_success(result, "sap_transaction SM30")
+    tx_result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SM30"}, TransactionResult)
+    assert tx_result.success, f"sap_transaction SM30 failed: {tx_result.error}"
 
     # Wait for SM30 to load - look for a more generic selector first
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
@@ -3044,11 +3068,12 @@ async def test_sm30_discover_buttons(sap_mcp_client: ClientSession) -> None:
 
     # Find and fill the table name field
     # SM30 has a field for "Table/View" (Tabelle/Sicht)
-    fill_result = await sap_mcp_client.call_tool(
+    fill_data = await call_tool_typed(
+        sap_mcp_client,
         "sap_fill_form",
         {"fields": {"Tabelle/Sicht": "EIPO", "Table/View": "EIPO"}},
+        FillFormResult,
     )
-    fill_data = parse_tool_response(fill_result)
     print(f"\nFill result for table name: {fill_data}")
 
     # Wait briefly for SAP to process
@@ -3059,18 +3084,18 @@ async def test_sm30_discover_buttons(sap_mcp_client: ClientSession) -> None:
 
     # Discover buttons using the sap_discover_buttons tool
     # This tests the new tool (addresses issue #99)
-    button_result = await sap_mcp_client.call_tool("sap_discover_buttons", {})
-    buttons_data = assert_tool_success(button_result, "sap_discover_buttons")
+    buttons_data = await call_tool_typed(sap_mcp_client, "sap_discover_buttons", {}, DiscoveredButtons)
+    assert buttons_data.success, f"sap_discover_buttons failed: {buttons_data.error}"
 
-    buttons = buttons_data.get("buttons", [])
+    buttons = buttons_data.buttons
     print(f"\nDiscovered {len(buttons)} buttons on SM30 screen:")
     for btn in buttons[:20]:  # Show first 20 buttons
-        print(f"  - {btn.get('label', 'no-label')}: id={btn.get('id')}, selector={btn.get('selector')}")
+        print(f"  - {btn.label or 'no-label'}: id={btn.id}, selector={btn.selector}")
 
     # Look for the "Pflegen" or "Maintain" button
     maintain_button = None
     for btn in buttons:
-        label = (btn.get("label") or "").lower()
+        label = (btn.label or "").lower()
         if "pflegen" in label or "maintain" in label:
             maintain_button = btn
             break
@@ -3078,7 +3103,7 @@ async def test_sm30_discover_buttons(sap_mcp_client: ClientSession) -> None:
     # Also look for "Anzeigen" / "Display" button as alternative
     display_button = None
     for btn in buttons:
-        label = (btn.get("label") or "").lower()
+        label = (btn.label or "").lower()
         if "anzeigen" in label or "display" in label:
             display_button = btn
             break
@@ -3090,13 +3115,13 @@ async def test_sm30_discover_buttons(sap_mcp_client: ClientSession) -> None:
     # This is the critical assertion for issues #99, #101
     assert maintain_button is not None or display_button is not None, (
         f"Expected to find 'Pflegen'/'Maintain' or 'Anzeigen'/'Display' button in SM30. "
-        f"Found buttons: {[b.get('label') for b in buttons[:20]]}"
+        f"Found buttons: {[b.label for b in buttons[:20]]}"
     )
 
     # Verify button has required properties for clicking
     target_btn = maintain_button or display_button
-    assert target_btn.get("id"), f"Button should have an ID: {target_btn}"
-    assert target_btn.get("selector"), f"Button should have a selector: {target_btn}"
+    assert target_btn.id, f"Button should have an ID: {target_btn}"
+    assert target_btn.selector, f"Button should have a selector: {target_btn}"
 
 
 @pytest.mark.anyio
@@ -3113,54 +3138,54 @@ async def test_sm30_click_pflegen_button(sap_mcp_client: ClientSession) -> None:
     - #99 (sap_discover_fields doesn't return buttons -> use sap_discover_buttons)
     - #101 (browser_click doesn't work for SAP buttons with text selectors)
     """
-    await sap_mcp_client.call_tool("sap_login", {})
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     # Open SM30 transaction
-    result = await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SM30"})
-    assert_tool_success(result, "sap_transaction SM30")
+    tx_result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SM30"}, TransactionResult)
+    assert tx_result.success, f"sap_transaction SM30 failed: {tx_result.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Fill the table name field
-    fill_result = await sap_mcp_client.call_tool(
+    fill_data = await call_tool_typed(
+        sap_mcp_client,
         "sap_fill_form",
         {"fields": {"Tabelle/Sicht": "EIPO", "Table/View": "EIPO"}},
+        FillFormResult,
     )
-    fill_data = parse_tool_response(fill_result)
-    assert fill_data.get("success", True), f"Fill failed: {fill_data}"
+    assert fill_data.success, f"Fill failed: {fill_data.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     # Discover buttons using the sap_discover_buttons tool
-    button_result = await sap_mcp_client.call_tool("sap_discover_buttons", {})
-    buttons_data = assert_tool_success(button_result, "sap_discover_buttons")
-    buttons = buttons_data.get("buttons", [])
+    buttons_data = await call_tool_typed(sap_mcp_client, "sap_discover_buttons", {}, DiscoveredButtons)
+    assert buttons_data.success, f"sap_discover_buttons failed: {buttons_data.error}"
+    buttons = buttons_data.buttons
 
     # Find the Pflegen/Maintain button
     pflegen_button = None
     for btn in buttons:
-        label = (btn.get("label") or "").lower()
+        label = (btn.label or "").lower()
         if "pflegen" in label or "maintain" in label:
             pflegen_button = btn
             break
 
-    assert pflegen_button is not None, f"Pflegen button not found. Buttons: {[b.get('label') for b in buttons]}"
-    assert pflegen_button.get("id"), f"Pflegen button should have ID: {pflegen_button}"
-    assert pflegen_button.get("selector"), f"Pflegen button should have selector: {pflegen_button}"
+    assert pflegen_button is not None, f"Pflegen button not found. Buttons: {[b.label for b in buttons]}"
+    assert pflegen_button.id, f"Pflegen button should have ID: {pflegen_button}"
+    assert pflegen_button.selector, f"Pflegen button should have selector: {pflegen_button}"
 
     print(f"\nFound Pflegen button: {pflegen_button}")
 
     # Get screen info before clicking
-    screen_before = await sap_mcp_client.call_tool("sap_get_screen_info", {})
-    info_before = parse_tool_response(screen_before)
-    title_before = info_before.get("title", "")
+    info_before = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
+    assert info_before.success, f"sap_get_screen_info failed: {info_before.error}"
+    title_before = info_before.title
     print(f"Screen title before click: {title_before}")
 
     # Click the Pflegen button using its selector (from sap_discover_buttons)
-    btn_selector = pflegen_button["selector"]
-    click_result = await sap_mcp_client.call_tool("browser_click", {"selector": btn_selector})
-    click_data = parse_tool_response(click_result)
+    btn_selector = pflegen_button.selector
+    click_data = await call_tool_typed(sap_mcp_client, "browser_click", {"selector": btn_selector}, ClickResult)
 
     print(f"Click result: {click_data}")
-    assert click_data.get("success", True), f"Click failed: {click_data}"
+    assert click_data.success, f"Click failed: {click_data.error}"
 
     # Wait for SAP to process the click
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
@@ -3169,11 +3194,11 @@ async def test_sm30_click_pflegen_button(sap_mcp_client: ClientSession) -> None:
     await capture_html_snapshot(sap_mcp_client, "sm30_after_click_pflegen")
 
     # Read the status bar - SAP shows a message about the table after clicking Pflegen
-    status_result = await sap_mcp_client.call_tool("sap_read_status_bar", {})
-    status_data = parse_tool_response(status_result)
+    status_data = await call_tool_typed(sap_mcp_client, "sap_read_status_bar", {}, StatusBarInfo)
+    assert status_data.success, f"sap_read_status_bar failed: {status_data.error}"
 
-    status_type = status_data.get("type", "none")
-    status_message = (status_data.get("message") or "").lower()
+    status_type = status_data.type or "none"
+    status_message = (status_data.message or "").lower()
 
     print(f"Status bar after click: type={status_type}, message={status_message}")
 
