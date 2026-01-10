@@ -25,6 +25,19 @@ High-level, SAP-specific operations:
 | `sap_keepalive_start` | Starts background task to prevent session timeout                   |
 | `sap_keepalive_stop`  | Stops the keepalive background task                                 |
 
+### Specialized Transaction Tools (faster, return structured data)
+
+| Tool              | File               | Description                                         |
+| ----------------- | ------------------ | --------------------------------------------------- |
+| `sap_se11_lookup` | `se11_tools.py`    | Look up table/structure metadata from ABAP Dictionary |
+| `sap_se16_query`  | `se16_tools.py`    | Query table data via SE16N with pagination          |
+| `sap_se24_lookup` | `se24_tools.py`    | Look up class/interface metadata from Class Builder |
+| `sap_se37_lookup` | `se37_tools.py`    | Look up function module signatures from Function Builder |
+| `sap_se93_lookup` | `se93_tools.py`    | Look up transaction metadata from Transaction Maintenance |
+
+**Note:** Use these specialized tools instead of `sap_transaction('SExx')` - they are faster
+and return structured Pydantic models instead of requiring manual screen parsing.
+
 ### Browser Tools (`browser_tools.py`)
 
 Low-level escape hatches when SAP tools don't work:
