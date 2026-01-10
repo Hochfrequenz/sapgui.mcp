@@ -7,7 +7,7 @@ import socket
 import sys
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 import pytest
 from dotenv import load_dotenv
@@ -17,6 +17,76 @@ from pydantic import BaseModel
 
 # Load .env file if it exists (for local development and integration tests)
 load_dotenv()
+
+# =============================================================================
+# LANGUAGE HANDLING
+# =============================================================================
+
+SapLanguage = Literal["DE", "EN"]
+
+
+@pytest.fixture
+def sap_language() -> SapLanguage:
+    """Get current SAP language from environment (default: DE)."""
+    lang = os.environ.get("SAP_LANGUAGE", "DE").upper()
+    if lang not in ("DE", "EN"):
+        return "DE"
+    return lang  # type: ignore[return-value]
+
+
+@pytest.fixture
+def lang_strings(sap_language: SapLanguage) -> dict[str, str]:
+    """
+    Get language-specific test strings based on SAP_LANGUAGE.
+
+    Usage in tests:
+        def test_something(lang_strings):
+            assert lang_strings["yes"] in button_text
+    """
+    from unittests.testdata.lang_test import (
+        BP_GP_ROLE_DEFAULT_DE,
+        BP_GP_ROLE_DEFAULT_EN,
+        BP_GP_ROLE_LABEL_DE,
+        BP_GP_ROLE_LABEL_EN,
+        BP_GROUPING_LABEL_DE,
+        BP_GROUPING_LABEL_EN,
+        BP_NO_BUTTON_DE,
+        BP_NO_BUTTON_EN,
+        BP_POSTAL_CODE_DE,
+        BP_POSTAL_CODE_EN,
+        BP_YES_BUTTON_DE,
+        BP_YES_BUTTON_EN,
+        SE38_CONTINUE_BUTTON_DE,
+        SE38_CONTINUE_BUTTON_EN,
+        SE38_LONG_DOC_BUTTON_DE,
+        SE38_LONG_DOC_BUTTON_EN,
+        SM30_MAINTAIN_BUTTON_DE,
+        SM30_MAINTAIN_BUTTON_EN,
+    )
+
+    if sap_language == "DE":
+        return {
+            "postal_code": BP_POSTAL_CODE_DE,
+            "yes": BP_YES_BUTTON_DE,
+            "no": BP_NO_BUTTON_DE,
+            "gp_role_label": BP_GP_ROLE_LABEL_DE,
+            "gp_role_default": BP_GP_ROLE_DEFAULT_DE,
+            "grouping_label": BP_GROUPING_LABEL_DE,
+            "continue": SE38_CONTINUE_BUTTON_DE,
+            "long_doc": SE38_LONG_DOC_BUTTON_DE,
+            "maintain": SM30_MAINTAIN_BUTTON_DE,
+        }
+    return {
+        "postal_code": BP_POSTAL_CODE_EN,
+        "yes": BP_YES_BUTTON_EN,
+        "no": BP_NO_BUTTON_EN,
+        "gp_role_label": BP_GP_ROLE_LABEL_EN,
+        "gp_role_default": BP_GP_ROLE_DEFAULT_EN,
+        "grouping_label": BP_GROUPING_LABEL_EN,
+        "continue": SE38_CONTINUE_BUTTON_EN,
+        "long_doc": SE38_LONG_DOC_BUTTON_EN,
+        "maintain": SM30_MAINTAIN_BUTTON_EN,
+    }
 
 # Path to HTML snapshots directory for selector unit tests
 HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
