@@ -52,6 +52,9 @@ SM30_TABLE_VIEW_LABEL_EN = "Table/View"
 # SE38 Transaction - ABAP Editor
 # =============================================================================
 
+SE38_CREATE_BUTTON_DE = "Anlegen"
+SE38_CREATE_BUTTON_EN = "Create"
+
 SE38_CONTINUE_BUTTON_DE = "Weiter"
 SE38_CONTINUE_BUTTON_EN = "Continue"
 

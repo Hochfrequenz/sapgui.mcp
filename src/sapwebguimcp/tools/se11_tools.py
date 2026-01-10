@@ -66,9 +66,7 @@ _ROW_SPLIT_PATTERN = re.compile(
 )
 # Uses explicit constants: SE11_ROW_SELECT_FULL_DE, SE11_ROW_SELECT_FULL_EN (regex patterns)
 _ROW_SELECT_FULL = bilingual_pattern(SE11_ROW_SELECT_FULL_DE, SE11_ROW_SELECT_FULL_EN, escape=False)
-_FIELD_NAME_PATTERN = re.compile(
-    rf'row "{_ROW_SELECT_FULL}\s+(?P<field_name>[A-Z_0-9/]+)'
-)
+_FIELD_NAME_PATTERN = re.compile(rf'row "{_ROW_SELECT_FULL}\s+(?P<field_name>[A-Z_0-9/]+)')
 _ROW_DATA_PATTERN = re.compile(
     rf'row "{_ROW_SELECT_FULL}\s+(?P<row_data>[^"]+)"',
     re.MULTILINE,

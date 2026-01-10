@@ -84,8 +84,7 @@ _OBJECT_TYPE_PATTERN = re.compile(
 
 # Visibility pattern for methods and attributes (Public/Private/Protected in DE/EN)
 _VISIBILITY_PATTERN = (
-    f"{SE24_PUBLIC_EN}|{SE24_PRIVATE_EN}|{SE24_PROTECTED_EN}"
-    f"|{SE24_PUBLIC_DE}|{SE24_PRIVATE_DE}|{SE24_PROTECTED_DE}"
+    f"{SE24_PUBLIC_EN}|{SE24_PRIVATE_EN}|{SE24_PROTECTED_EN}" f"|{SE24_PUBLIC_DE}|{SE24_PRIVATE_DE}|{SE24_PROTECTED_DE}"
 )
 
 # Method row pattern - extract method info from grid row
