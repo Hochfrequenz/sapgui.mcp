@@ -78,16 +78,16 @@
         - cell "Transaktion"
         - cell "SE11"
         - cell
-      - row "E2E-Zeit 105 ms":
+      - row "E2E-Zeit 75 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "105 ms"
+        - cell "75 ms"
         - cell
-      - row "WebGUI-Zeit 53 ms":
+      - row "WebGUI-Zeit 26 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "53 ms"
+        - cell "26 ms"
         - cell
 - alert "Der Meldungsbereich enthält Meldungen. Um den Fokus zu aktivieren oder deaktivieren, drücken Sie Strg + Umschalt + M.": "Erfolgreich: ZZZNOTEXIST99 ist nicht vorhanden"

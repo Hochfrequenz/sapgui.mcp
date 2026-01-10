@@ -1,11 +1,11 @@
-- 'main "Function Builder: Einstieg"':
+- main "Transaktionspflege":
   - banner:
     - button "Zurück (F3)"
     - img "Unternehmenslogo"
-    - 'heading "Function Builder: Einstieg" [level=1]'
+    - heading "Transaktionspflege" [level=1]
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Funktionsbaustein"
+      - button "Transaktionscode"
       - button "Bearbeiten"
       - button "Springen"
       - button "Hilfsmittel"
@@ -15,27 +15,23 @@
       - button "GUI-Aktionen und -Einstellungen"
     - button "Beenden"
     - button "Suchen (Strg+F)"
-    - button "Drucken (Strg+P)"
     - toolbar:
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Prüfen"
-      - button "Aktivieren"
-      - button "Testen/Ausführen"
+      - button "Testen"
       - button "Verwendungsnachweis"
-      - button "Online-Handbuch"
+      - button "Umfeldermittlung"
+      - button "Online Handbuch"
       - button "Löschen"
-      - button "Kopieren..."
-      - button "Umbenennen..."
-      - button "Umhängen..."
-  - text: Funktionsbaustein
-  - textbox "Funktionsbaustein": ZZZNOTEXIST_FM_99
+      - button "Kopieren"
+      - button "Umbenennen"
+  - text: Transaktionscode
+  - textbox "Transaktionscode": MM01
   - button "Anzeigen"
   - button "Ändern"
   - button "Anlegen"
   - text: 
-  - note "Erfolgreich Meldungsleiste Funktionsbaustein ZZZNOTEXIST_FM_99 ist noch nicht vorhanden":
-    - link "Details anzeigen"
   - menu:
     - rowgroup:
       - menuitemradio "System S4U (100)" [checked]:
@@ -56,17 +52,17 @@
         - cell "Benutzer"
         - cell "KLEINK"
         - cell
-      - menuitemradio "Dynpro SAPLSFUNCTION_BUILDER/1008":
+      - menuitemradio "Dynpro SAPLSEUK/0390":
         - cell
         - cell
         - cell "Dynpro"
-        - cell "SAPLSFUNCTION_BUILDER/1008"
+        - cell "SAPLSEUK/0390"
         - cell
-      - menuitemradio "Transaktion SE37":
+      - menuitemradio "Transaktion SE93":
         - cell
         - cell
         - cell "Transaktion"
-        - cell "SE37"
+        - cell "SE93"
         - cell
       - row "E2E-Zeit 81 ms":
         - cell
@@ -74,9 +70,9 @@
         - cell "E2E-Zeit"
         - cell "81 ms"
         - cell
-      - row "WebGUI-Zeit 27 ms":
+      - row "WebGUI-Zeit 28 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "27 ms"
+        - cell "28 ms"
         - cell

@@ -1,11 +1,11 @@
-- 'main "Function Builder: Einstieg"':
+- 'main "Class Builder: Einstieg"':
   - banner:
     - button "Zurück (F3)"
     - img "Unternehmenslogo"
-    - 'heading "Function Builder: Einstieg" [level=1]'
+    - 'heading "Class Builder: Einstieg" [level=1]'
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Funktionsbaustein"
+      - button "Objekttyp"
       - button "Bearbeiten"
       - button "Springen"
       - button "Hilfsmittel"
@@ -15,27 +15,25 @@
       - button "GUI-Aktionen und -Einstellungen"
     - button "Beenden"
     - button "Suchen (Strg+F)"
-    - button "Drucken (Strg+P)"
+    - button "Drucken... (Strg+P)"
     - toolbar:
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
-      - button "Prüfen"
+      - button "Syntax"
       - button "Aktivieren"
-      - button "Testen/Ausführen"
-      - button "Verwendungsnachweis"
-      - button "Online-Handbuch"
-      - button "Löschen"
-      - button "Kopieren..."
-      - button "Umbenennen..."
-      - button "Umhängen..."
-  - text: Funktionsbaustein
-  - textbox "Funktionsbaustein": ZZZNOTEXIST_FM_99
+      - button "In der Testumgebung"
+      - button "Verwendung Klasse / Interface"
+      - button "Hilfe zur Anwendung"
+      - button "Klasse/Interface löschen"
+      - button "Klasse/Interface kopieren"
+      - button "Mehr"
+  - text: Objekttyp
+  - textbox "Objekttyp": ZZZNOTEXIST_CLASS_99
   - button "Anzeigen"
   - button "Ändern"
   - button "Anlegen"
   - text: 
-  - note "Erfolgreich Meldungsleiste Funktionsbaustein ZZZNOTEXIST_FM_99 ist noch nicht vorhanden":
-    - link "Details anzeigen"
+  - note "Erfolgreich Meldungsleiste Objekttyp ZZZNOTEXIST_CLASS_99 ist nicht vorhanden"
   - menu:
     - rowgroup:
       - menuitemradio "System S4U (100)" [checked]:
@@ -56,27 +54,27 @@
         - cell "Benutzer"
         - cell "KLEINK"
         - cell
-      - menuitemradio "Dynpro SAPLSFUNCTION_BUILDER/1008":
+      - menuitemradio "Dynpro SAPLSEOD/1000":
         - cell
         - cell
         - cell "Dynpro"
-        - cell "SAPLSFUNCTION_BUILDER/1008"
+        - cell "SAPLSEOD/1000"
         - cell
-      - menuitemradio "Transaktion SE37":
+      - menuitemradio "Transaktion SE24":
         - cell
         - cell
         - cell "Transaktion"
-        - cell "SE37"
+        - cell "SE24"
         - cell
-      - row "E2E-Zeit 81 ms":
+      - row "E2E-Zeit 70 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "81 ms"
+        - cell "70 ms"
         - cell
-      - row "WebGUI-Zeit 27 ms":
+      - row "WebGUI-Zeit 26 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "27 ms"
+        - cell "26 ms"
         - cell

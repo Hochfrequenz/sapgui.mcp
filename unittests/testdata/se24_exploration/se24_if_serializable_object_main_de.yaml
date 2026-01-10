@@ -1,0 +1,224 @@
+- 'main "Class Builder: Interface IF_SERIALIZABLE_OBJECT anzeigen"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "Class Builder: Interface IF_SERIALIZABLE_OBJECT anzeigen" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Interface"
+      - button "Bearbeiten"
+      - button "Springen"
+      - button "Hilfsmittel"
+      - button "Umfeld"
+      - button "System"
+      - button "Hilfe"
+      - button "GUI-Aktionen und -Einstellungen"
+    - button "Beenden"
+    - button "Drucken (Strg+P)"
+    - toolbar:
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Anzeigen <-> Ändern"
+      - button "Aktiv <-> Inaktiv"
+      - button "Anderes Objekt"
+      - button "Erweitern"
+      - button "Prüfen"
+      - button "Aktivieren"
+      - button "Verwendung Klasse / Interface"
+      - button "Objektliste anzeigen"
+      - button "Mehr"
+  - text: Interface
+  - textbox "Interface": IF_SERIALIZABLE_OBJECT
+  - button "realisiert / Aktiv"
+  - tablist:
+    - tab "Eigenschaften"
+    - tab "Interfaces"
+    - tab "Attribute"
+    - tab "Methoden" [selected]
+    - tab "Ereignisse"
+    - tab "Typen"
+    - tab "Aliasse"
+  - tabpanel:
+    - button "Parameter"
+    - button "Ausnahmen"
+    - button "Zu Eigenschaften wechseln"
+    - button "Dokumentation"
+    - button "Verwendungsnachweis"
+    - button "Methode einfügen" [disabled]
+    - button "Methode löschen" [disabled]
+    - button "Ausschn." [disabled]
+    - button "Kopieren" [disabled]
+    - button "Einfügen" [disabled]
+    - button "Sortieren"
+    - button "Suchen"
+    - button "Weiter suchen"
+    - checkbox "Filter":  Filter
+    - grid:
+      - rowgroup
+      - rowgroup:
+        - row "Methode Art Methodentyp Beschreibung":
+          - columnheader "Methode"
+          - columnheader "Art"
+          - columnheader "Methodentyp"
+          - columnheader "Beschreibung"
+        - button ""
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+      - rowgroup
+      - rowgroup
+  - note "Erfolgreich Meldungsleiste Änderungen werden vom quellbasierten Class Builder nicht unterstützt":
+    - link "Details anzeigen"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSEOD/2001":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSEOD/2001"
+        - cell
+      - menuitemradio "Transaktion SE24":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE24"
+        - cell
+      - row "E2E-Zeit 161 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "161 ms"
+        - cell
+      - row "WebGUI-Zeit 49 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "49 ms"
+        - cell
