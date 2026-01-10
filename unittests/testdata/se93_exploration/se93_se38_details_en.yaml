@@ -1,0 +1,79 @@
+- main "Maintain Transaction":
+  - banner:
+    - button "Back (F3)"
+    - img "Company Logo"
+    - heading "Maintain Transaction" [level=1]
+    - button "Open system information"
+    - toolbar:
+      - button "Transaction Code"
+      - button "Edit"
+      - button "Goto"
+      - button "Utilities"
+      - button "Environment"
+      - button "System"
+      - button "Help"
+      - button "GUI Actions and Settings"
+    - button "Exit"
+    - button "Find (Ctrl+F)"
+    - toolbar:
+      - combobox "Enter transaction code"
+      - text: 
+      - button "Check"
+      - button "Test"
+      - button "Where-used list"
+      - button "Environment Analysis"
+      - button "Online manual"
+      - button "Delete"
+      - button "Copy"
+      - button "Rename"
+  - text: Transaction Code
+  - textbox "Transaction Code"
+  - button "Display"
+  - button "Change"
+  - button "Create"
+  - text: 
+  - note "Error Message Bar Transaction code has not been created"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Client 100":
+        - cell
+        - cell
+        - cell "Client"
+        - cell "100"
+        - cell
+      - menuitemradio "User KLEINK":
+        - cell
+        - cell
+        - cell "User"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Screen SAPLSEUK/0390":
+        - cell
+        - cell
+        - cell "Screen"
+        - cell "SAPLSEUK/0390"
+        - cell
+      - menuitemradio "Transaction SE93":
+        - cell
+        - cell
+        - cell "Transaction"
+        - cell "SE93"
+        - cell
+      - row "E2E Time 93 ms":
+        - cell
+        - cell
+        - cell "E2E Time"
+        - cell "93 ms"
+        - cell
+      - row "WebGUI Time 43 ms":
+        - cell
+        - cell
+        - cell "WebGUI Time"
+        - cell "43 ms"
+        - cell

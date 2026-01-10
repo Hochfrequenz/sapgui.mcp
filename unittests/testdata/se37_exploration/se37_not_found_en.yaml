@@ -1,0 +1,82 @@
+- 'main "Function Builder: Initial Screen"':
+  - banner:
+    - button "Back (F3)"
+    - img "Company Logo"
+    - 'heading "Function Builder: Initial Screen" [level=1]'
+    - button "Open system information"
+    - toolbar:
+      - button "Function Module"
+      - button "Edit"
+      - button "Goto"
+      - button "Utilities"
+      - button "Environment"
+      - button "System"
+      - button "Help"
+      - button "GUI Actions and Settings"
+    - button "Exit"
+    - button "Find (Ctrl+F)"
+    - button "Print (Ctrl+P)"
+    - toolbar:
+      - combobox "Enter transaction code"
+      - text: 
+      - button "Check"
+      - button "Activate"
+      - button "Test/Execute"
+      - button "Where-Used List"
+      - button "Application Help"
+      - button "Delete"
+      - button "Copy..."
+      - button "Rename..."
+      - button "Reassign..."
+  - text: Function Module
+  - textbox "Function Module"
+  - button "Display"
+  - button "Change"
+  - button "Create"
+  - text: 
+  - note "Success Message Bar Function module does not exist":
+    - link "View Details"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Client 100":
+        - cell
+        - cell
+        - cell "Client"
+        - cell "100"
+        - cell
+      - menuitemradio "User KLEINK":
+        - cell
+        - cell
+        - cell "User"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Screen SAPLSFUNCTION_BUILDER/1008":
+        - cell
+        - cell
+        - cell "Screen"
+        - cell "SAPLSFUNCTION_BUILDER/1008"
+        - cell
+      - menuitemradio "Transaction SE37":
+        - cell
+        - cell
+        - cell "Transaction"
+        - cell "SE37"
+        - cell
+      - row "E2E Time 114 ms":
+        - cell
+        - cell
+        - cell "E2E Time"
+        - cell "114 ms"
+        - cell
+      - row "WebGUI Time 52 ms":
+        - cell
+        - cell
+        - cell "WebGUI Time"
+        - cell "52 ms"
+        - cell

@@ -1,1 +1,92 @@
-{"success":true,"error":null,"popup":null,"snapshot":"- 'main \"ABAP Dictionary: Initial Screen\"':\n  - banner:\n    - button \"Back (F3)\"\n    - img \"Company Logo\"\n    - 'heading \"ABAP Dictionary: Initial Screen\" [level=1]'\n    - button \"Open system information\"\n    - toolbar:\n      - button \"Dictionary Object\"\n      - button \"Edit\"\n      - button \"Goto\"\n      - button \"Utilities\"\n      - button \"Environment\"\n      - button \"System\"\n      - button \"Help\"\n      - button \"GUI Actions and Settings\"\n    - button \"Exit\"\n    - button \"Find (Ctrl+F)\"\n    - button \"Print... (Ctrl+P)\"\n    - toolbar:\n      - combobox \"Enter transaction code\"\n      - text: \n      - button \"Check\"\n      - button \"Activate\"\n      - button \"Where-Used List\"\n      - button \"Environment Analysis\"\n      - button \"Online Manual\"\n      - button \"Delete\"\n      - button \"Copy...\"\n  - radio \"Database table\" [checked]\n  - textbox \"Table name, 16 characters\"\n  - radio \"View\"\n  - textbox \"Name of SAP Table View\"\n  - radio \"Data type\"\n  - textbox \"Name of Dictionary Type\"\n  - radio \"Type Group\"\n  - textbox \"Type Group\"\n  - radio \"Domain\"\n  - textbox \"Domain Name\"\n  - radio \"Search help\"\n  - textbox \"Name of a Search Help\"\n  - radio \"Lock object\"\n  - textbox \"Lock object name\"\n  - button \"Display\"\n  - button \"Change\"\n  - button \"Create\"\n  - text: \n  - note \"Success Message Bar Object name missing (enter a name)\":\n    - link \"View Details\"\n  - menu:\n    - rowgroup:\n      - menuitemradio \"System S4U (100)\" [checked]:\n        - cell \"\"\n        - cell\n        - cell \"System\"\n        - cell \"S4U (100)\"\n        - cell\n      - menuitemradio \"Client 100\":\n        - cell\n        - cell\n        - cell \"Client\"\n        - cell \"100\"\n        - cell\n      - menuitemradio \"User KLEINK\":\n        - cell\n        - cell\n        - cell \"User\"\n        - cell \"KLEINK\"\n        - cell\n      - menuitemradio \"Screen SAPLSD_ENTRY/1000\":\n        - cell\n        - cell\n        - cell \"Screen\"\n        - cell \"SAPLSD_ENTRY/1000\"\n        - cell\n      - menuitemradio \"Transaction SE11\":\n        - cell\n        - cell\n        - cell \"Transaction\"\n        - cell \"SE11\"\n        - cell\n      - row \"E2E Time 141 ms\":\n        - cell\n        - cell\n        - cell \"E2E Time\"\n        - cell \"141 ms\"\n        - cell\n      - row \"WebGUI Time 89 ms\":\n        - cell\n        - cell\n        - cell \"WebGUI Time\"\n        - cell \"89 ms\"\n        - cell","selector":null}
+- 'main "ABAP Dictionary: Initial Screen"':
+  - banner:
+    - button "Back (F3)"
+    - img "Company Logo"
+    - 'heading "ABAP Dictionary: Initial Screen" [level=1]'
+    - button "Open system information"
+    - toolbar:
+      - button "Dictionary Object"
+      - button "Edit"
+      - button "Goto"
+      - button "Utilities"
+      - button "Environment"
+      - button "System"
+      - button "Help"
+      - button "GUI Actions and Settings"
+    - button "Exit"
+    - button "Find (Ctrl+F)"
+    - button "Print... (Ctrl+P)"
+    - toolbar:
+      - combobox "Enter transaction code"
+      - text: 
+      - button "Check"
+      - button "Activate"
+      - button "Where-Used List"
+      - button "Environment Analysis"
+      - button "Online Manual"
+      - button "Delete"
+      - button "Copy..."
+  - radio "Database table" [checked]
+  - textbox "Table name, 16 characters"
+  - radio "View"
+  - textbox "Name of SAP Table View"
+  - radio "Data type"
+  - textbox "Name of Dictionary Type"
+  - radio "Type Group"
+  - textbox "Type Group"
+  - radio "Domain"
+  - textbox "Domain Name"
+  - radio "Search help"
+  - textbox "Name of a Search Help"
+  - radio "Lock object"
+  - textbox "Lock object name"
+  - button "Display"
+  - button "Change"
+  - button "Create"
+  - text: 
+  - note "Success Message Bar Object name missing (enter a name)":
+    - link "View Details"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Client 100":
+        - cell
+        - cell
+        - cell "Client"
+        - cell "100"
+        - cell
+      - menuitemradio "User KLEINK":
+        - cell
+        - cell
+        - cell "User"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Screen SAPLSD_ENTRY/1000":
+        - cell
+        - cell
+        - cell "Screen"
+        - cell "SAPLSD_ENTRY/1000"
+        - cell
+      - menuitemradio "Transaction SE11":
+        - cell
+        - cell
+        - cell "Transaction"
+        - cell "SE11"
+        - cell
+      - row "E2E Time 94 ms":
+        - cell
+        - cell
+        - cell "E2E Time"
+        - cell "94 ms"
+        - cell
+      - row "WebGUI Time 47 ms":
+        - cell
+        - cell
+        - cell "WebGUI Time"
+        - cell "47 ms"
+        - cell

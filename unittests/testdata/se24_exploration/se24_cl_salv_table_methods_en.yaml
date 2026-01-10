@@ -1,0 +1,80 @@
+- 'main "Class Builder: Initial Screen"':
+  - banner:
+    - button "Back (F3)"
+    - img "Company Logo"
+    - 'heading "Class Builder: Initial Screen" [level=1]'
+    - button "Open system information"
+    - toolbar:
+      - button "Object type"
+      - button "Edit"
+      - button "Goto"
+      - button "Utilities"
+      - button "Environment"
+      - button "System"
+      - button "Help"
+      - button "GUI Actions and Settings"
+    - button "Exit"
+    - button "Find (Ctrl+F)"
+    - button "Print... (Ctrl+P)"
+    - toolbar:
+      - combobox "Enter transaction code"
+      - text: 
+      - button "Syntax"
+      - button "Activate"
+      - button "In the Test Environment"
+      - button "Use of class / interface"
+      - button "Application help"
+      - button "Delete Class/Interface"
+      - button "Copy Class/Interface"
+      - button "More"
+  - text: Object Type
+  - textbox "Object Type"
+  - button "Display"
+  - button "Change"
+  - button "Create"
+  - text: 
+  - note "Success Message Bar Object type does not exist"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Client 100":
+        - cell
+        - cell
+        - cell "Client"
+        - cell "100"
+        - cell
+      - menuitemradio "User KLEINK":
+        - cell
+        - cell
+        - cell "User"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Screen SAPLSEOD/1000":
+        - cell
+        - cell
+        - cell "Screen"
+        - cell "SAPLSEOD/1000"
+        - cell
+      - menuitemradio "Transaction SE24":
+        - cell
+        - cell
+        - cell "Transaction"
+        - cell "SE24"
+        - cell
+      - row "E2E Time 84 ms":
+        - cell
+        - cell
+        - cell "E2E Time"
+        - cell "84 ms"
+        - cell
+      - row "WebGUI Time 37 ms":
+        - cell
+        - cell
+        - cell "WebGUI Time"
+        - cell "37 ms"
+        - cell
