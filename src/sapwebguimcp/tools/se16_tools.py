@@ -315,7 +315,8 @@ def register_se16_tools(mcp: FastMCP) -> None:
             openWorldHint=False,
         ),
         description=(
-            "Query SAP table data via SE16N (Data Browser). Returns structured rows with column names.\n\n"
+            "Query SAP table data via SE16N (Data Browser). "
+            "USE THIS instead of sap_transaction('SE16') - returns structured data.\n\n"
             "**Performance:** ~7 rows/second due to pagination.\n"
             "- 100 rows: ~14 seconds\n"
             "- 500 rows: ~1.5 minutes\n"

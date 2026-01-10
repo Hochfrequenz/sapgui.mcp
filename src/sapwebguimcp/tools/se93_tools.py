@@ -200,6 +200,7 @@ def register_se93_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Look up transaction metadata from SE93 (Transaction Maintenance). "
+            "USE THIS instead of sap_transaction('SE93') - returns structured data. "
             "Returns transaction description, program, screen/selection info, and GUI capabilities. "
             "Supports single tcode or list of tcodes. "
             "Currently supports 'dialog' and 'report' transaction types."

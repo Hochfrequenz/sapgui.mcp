@@ -637,12 +637,26 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Error during SAP login")
             return LoginResult.failure(f"Error during SAP login: {e}", url=effective_url)
 
-    @mcp.tool(description="Enter and execute an SAP transaction code")
+    @mcp.tool(
+        description=(
+            "Enter and execute an SAP transaction code. "
+            "IMPORTANT: Do NOT use this for SE11, SE16, SE24, SE37, or SE93 - "
+            "use the dedicated sap_se11_lookup, sap_se16_query, sap_se24_lookup, "
+            "sap_se37_lookup, or sap_se93_lookup tools instead, which return structured data."
+        )
+    )
     async def sap_transaction(  # pylint: disable=too-many-return-statements
         tcode: str, new_window: bool = False
     ) -> TransactionResult:
         """
         Enter and execute an SAP transaction code.
+
+        IMPORTANT: For the following transactions, use dedicated tools instead:
+        - SE11 (Data Dictionary): Use sap_se11_lookup for structured table/structure metadata
+        - SE16 (Data Browser): Use sap_se16_query for reading table data
+        - SE24 (Class Builder): Use sap_se24_lookup for class/interface metadata
+        - SE37 (Function Builder): Use sap_se37_lookup for function module signatures
+        - SE93 (Transaction Maintenance): Use sap_se93_lookup for transaction metadata
 
         This tool will:
         1. Check if the OK-Code field is visible
