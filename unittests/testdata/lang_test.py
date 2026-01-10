@@ -27,8 +27,9 @@ BP_GROUPING_LABEL_DE = "Gruppierung"
 BP_GROUPING_LABEL_EN = "Grouping"
 
 # Dropdown default values
+# Note: Full EN value from SAP is "Business Partner (Gen.)" but we match partial
 BP_GP_ROLE_DEFAULT_DE = "GPartner allgemein"
-BP_GP_ROLE_DEFAULT_EN = "General BP"
+BP_GP_ROLE_DEFAULT_EN = "Business Partner"
 
 # Popup buttons
 BP_YES_BUTTON_DE = "Ja"
