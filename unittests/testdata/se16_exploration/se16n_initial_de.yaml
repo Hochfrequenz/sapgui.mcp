@@ -302,15 +302,15 @@
         - cell "Transaktion"
         - cell "SE16N"
         - cell
-      - row "E2E-Zeit 157 ms":
+      - row "E2E-Zeit 153 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "157 ms"
+        - cell "153 ms"
         - cell
-      - row "WebGUI-Zeit 58 ms":
+      - row "WebGUI-Zeit 61 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "58 ms"
+        - cell "61 ms"
         - cell

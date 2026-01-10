@@ -244,15 +244,15 @@
         - cell "Transaktion"
         - cell "SE24"
         - cell
-      - row "E2E-Zeit 716 ms":
+      - row "E2E-Zeit 218 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "716 ms"
+        - cell "218 ms"
         - cell
-      - row "WebGUI-Zeit 55 ms":
+      - row "WebGUI-Zeit 54 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "55 ms"
+        - cell "54 ms"
         - cell
