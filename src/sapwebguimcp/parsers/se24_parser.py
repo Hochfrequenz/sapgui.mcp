@@ -29,7 +29,6 @@ from sapwebguimcp.lang import (
     SE24_NOT_EXIST_DE,
     SE24_NOT_EXIST_EN,
     SE24_NOT_FOUND_DE,
-    SE24_NOT_FOUND_EN,
     SE24_OBJECT_TYPE_DE,
     SE24_OBJECT_TYPE_EN,
     SE24_PRIVATE_DE,
@@ -76,9 +75,17 @@ _CLASS_HEADING_PATTERN = re.compile(
 
 # Determine if class or interface from screen content
 # Uses explicit constants: SE24_OBJECT_TYPE_DE/EN, SE24_CLASS_DE/EN, SE24_INTERFACE_DE/EN
+_OBJECT_TYPE_LABEL = bilingual_pattern(SE24_OBJECT_TYPE_DE, SE24_OBJECT_TYPE_EN)
+_CLASS_OR_INTERFACE = f"{SE24_CLASS_EN}|{SE24_CLASS_DE}|{SE24_INTERFACE_EN}"
 _OBJECT_TYPE_PATTERN = re.compile(
-    rf'{bilingual_pattern(SE24_OBJECT_TYPE_DE, SE24_OBJECT_TYPE_EN)}[^"]*"(?P<type>{SE24_CLASS_EN}|{SE24_CLASS_DE}|{SE24_INTERFACE_EN})"',
+    rf'{_OBJECT_TYPE_LABEL}[^"]*"(?P<type>{_CLASS_OR_INTERFACE})"',
     re.IGNORECASE,
+)
+
+# Visibility pattern for methods and attributes (Public/Private/Protected in DE/EN)
+_VISIBILITY_PATTERN = (
+    f"{SE24_PUBLIC_EN}|{SE24_PRIVATE_EN}|{SE24_PROTECTED_EN}"
+    f"|{SE24_PUBLIC_DE}|{SE24_PRIVATE_DE}|{SE24_PROTECTED_DE}"
 )
 
 # Method row pattern - extract method info from grid row
@@ -86,7 +93,7 @@ _OBJECT_TYPE_PATTERN = re.compile(
 # Format varies, but typically: "METHOD_NAME visibility [static] [abstract] Description"
 _METHOD_ROW_PATTERN = re.compile(
     r'row "(?P<name>[A-Z0-9_]+)'
-    rf"(?:\\s+(?P<visibility>{SE24_PUBLIC_EN}|{SE24_PRIVATE_EN}|{SE24_PROTECTED_EN}|{SE24_PUBLIC_DE}|{SE24_PRIVATE_DE}|{SE24_PROTECTED_DE}))?"
+    rf"(?:\\s+(?P<visibility>{_VISIBILITY_PATTERN}))?"
     rf"(?:\\s+(?P<static>{SE24_STATIC_EN}|{SE24_STATIC_DE}))?"
     rf"(?:\\s+(?P<abstract>{SE24_ABSTRACT_EN}|{SE24_ABSTRACT_DE}))?"
     r'(?:\\s+(?P<desc>[^"]*))?"\\s*:',
@@ -97,7 +104,7 @@ _METHOD_ROW_PATTERN = re.compile(
 # Uses explicit constants: SE24_PUBLIC/PRIVATE/PROTECTED_DE/EN
 _ATTRIBUTE_ROW_PATTERN = re.compile(
     r'row "(?P<name>[A-Z0-9_]+)'
-    rf"(?:\\s+(?P<visibility>{SE24_PUBLIC_EN}|{SE24_PRIVATE_EN}|{SE24_PROTECTED_EN}|{SE24_PUBLIC_DE}|{SE24_PRIVATE_DE}|{SE24_PROTECTED_DE}))?"
+    rf"(?:\\s+(?P<visibility>{_VISIBILITY_PATTERN}))?"
     r"(?:\\s+(?P<type_ref>[A-Z0-9_]+))?"
     r'(?:\\s+(?P<desc>[^"]*))?"\\s*:',
     re.IGNORECASE,

@@ -1041,7 +1041,9 @@ class TestPopupDetection:
         # Should have continue and/or long_doc button (DE: Weiter/Langdokumentation, EN: Continue/Long text)
         has_continue = any(lang_strings["continue"] in text for text in button_texts)
         has_longdoc = any(lang_strings["long_doc"] in text or "Langdoku" in text for text in button_texts)
-        assert has_continue or has_longdoc, f"Expected {lang_strings['continue']}/{lang_strings['long_doc']}. Got: {button_texts}"
+        assert (
+            has_continue or has_longdoc
+        ), f"Expected {lang_strings['continue']}/{lang_strings['long_doc']}. Got: {button_texts}"
 
     def test_se38_error_popup_has_header_title(self, html_snapshots_path: Path) -> None:
         """Verify SE38 error popup has a header title."""
@@ -1076,7 +1078,9 @@ class TestPopupDetection:
         blocking_layer = soup.select_one("#urPopupWindowBlockLayer, .lsBlockLayer")
         assert blocking_layer is not None, "Expected blocking layer element"
 
-    def test_bp_validation_popup_has_ja_nein_buttons(self, html_snapshots_path: Path, lang_strings: dict[str, str]) -> None:
+    def test_bp_validation_popup_has_ja_nein_buttons(
+        self, html_snapshots_path: Path, lang_strings: dict[str, str]
+    ) -> None:
         """Verify BP validation popup has Yes/No buttons."""
         snapshot_path = get_snapshot_path(html_snapshots_path, "bp_validation_popup")
         if not snapshot_path:
@@ -1177,7 +1181,9 @@ class TestDropdownDetection:
 
         assert gp_role_found, f"Expected dropdown with '{expected_value}' default value"
 
-    def test_bp_create_person_gruppierung_dropdown_empty(self, html_snapshots_path: Path, lang_strings: dict[str, str]) -> None:
+    def test_bp_create_person_gruppierung_dropdown_empty(
+        self, html_snapshots_path: Path, lang_strings: dict[str, str]
+    ) -> None:
         """Verify Gruppierung/Grouping dropdown exists and is empty by default."""
         snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
         if not snapshot_path:

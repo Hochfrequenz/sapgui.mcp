@@ -51,7 +51,8 @@ __all__ = [
 # German: "Function Builder: RFC_READ_TABLE anzeigen"
 # English: "Function Builder: Display RFC_READ_TABLE"
 _FM_HEADING_PATTERN = re.compile(
-    rf'heading "Function Builder:\s*(?:(?P<fm_de>[A-Z0-9_/]+)\s+{SE37_DISPLAY_SUFFIX_DE}|{SE37_DISPLAY_PREFIX_EN}\s+(?P<fm_en>[A-Z0-9_/]+))"',
+    rf'heading "Function Builder:\s*(?:(?P<fm_de>[A-Z0-9_/]+)\s+{SE37_DISPLAY_SUFFIX_DE}'
+    rf"|{SE37_DISPLAY_PREFIX_EN}\s+(?P<fm_en>[A-Z0-9_/]+))\"",
     re.IGNORECASE,
 )
 
@@ -70,8 +71,9 @@ _PARAM_ROW_PATTERN = re.compile(
 # Exception row pattern
 # Uses explicit constants: SE37_DISPLAY_SUFFIX_DE, SE37_DISPLAY_PREFIX_EN
 # Format: "EXCEPTION_NAME Description Button"
+_DISPLAY_BUTTON = bilingual_pattern(SE37_DISPLAY_SUFFIX_DE, SE37_DISPLAY_PREFIX_EN)
 _EXCEPTION_ROW_PATTERN = re.compile(
-    rf'row "(?P<name>[A-Z0-9_]+)\s+(?P<desc>[^"]+?)(?:\s+{bilingual_pattern(SE37_DISPLAY_SUFFIX_DE, SE37_DISPLAY_PREFIX_EN)})?"\s*:',
+    rf'row "(?P<name>[A-Z0-9_]+)\s+(?P<desc>[^"]+?)(?:\s+{_DISPLAY_BUTTON})?"\s*:',
     re.IGNORECASE,
 )
 

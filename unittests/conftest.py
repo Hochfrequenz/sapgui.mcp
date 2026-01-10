@@ -88,6 +88,7 @@ def lang_strings(sap_language: SapLanguage) -> dict[str, str]:
         "maintain": SM30_MAINTAIN_BUTTON_EN,
     }
 
+
 # Path to HTML snapshots directory for selector unit tests
 HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
 

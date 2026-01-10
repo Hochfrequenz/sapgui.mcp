@@ -40,9 +40,7 @@ _HIT_COUNT_PATTERN = re.compile(
 # - row "To select a row..."  (no colons in row text)
 # - 'row "To select a row..."':  (has colons, YAML quotes the whole line)
 # Uses explicit constants: SE16_ROW_SELECT_HINT_DE, SE16_ROW_SELECT_HINT_EN
-_ROW_START_PATTERN = re.compile(
-    rf"- '?row \"{bilingual_pattern(SE16_ROW_SELECT_HINT_DE, SE16_ROW_SELECT_HINT_EN)}"
-)
+_ROW_START_PATTERN = re.compile(rf"- '?row \"{bilingual_pattern(SE16_ROW_SELECT_HINT_DE, SE16_ROW_SELECT_HINT_EN)}")
 
 # Extract gridcell values - matches both "gridcell "value"" and "gridcell:"
 _GRIDCELL_WITH_VALUE_PATTERN = re.compile(r'gridcell "(?P<value>[^"]*)"')

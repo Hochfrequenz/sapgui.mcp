@@ -17,10 +17,10 @@ from mcp.types import ToolAnnotations
 from playwright.async_api import TimeoutError as PlaywrightTimeout
 
 from sapwebguimcp.lang import (
-    SE11_DATABASE_TABLE_DE,
-    SE11_DATABASE_TABLE_EN,
     SE11_DATA_TYPE_DE,
     SE11_DATA_TYPE_EN,
+    SE11_DATABASE_TABLE_DE,
+    SE11_DATABASE_TABLE_EN,
     SE11_DICTIONARY_TYPE_DE,
     SE11_DICTIONARY_TYPE_EN,
     SE11_DISPLAY_BUTTON_DE,
@@ -65,11 +65,12 @@ _ROW_SPLIT_PATTERN = re.compile(
     rf'(?=- row "{bilingual_pattern(SE11_ROW_SELECT_PREFIX_DE, SE11_ROW_SELECT_PREFIX_EN)})'
 )
 # Uses explicit constants: SE11_ROW_SELECT_FULL_DE, SE11_ROW_SELECT_FULL_EN (regex patterns)
+_ROW_SELECT_FULL = bilingual_pattern(SE11_ROW_SELECT_FULL_DE, SE11_ROW_SELECT_FULL_EN, escape=False)
 _FIELD_NAME_PATTERN = re.compile(
-    rf'row "{bilingual_pattern(SE11_ROW_SELECT_FULL_DE, SE11_ROW_SELECT_FULL_EN, escape=False)}\s+(?P<field_name>[A-Z_0-9/]+)'
+    rf'row "{_ROW_SELECT_FULL}\s+(?P<field_name>[A-Z_0-9/]+)'
 )
 _ROW_DATA_PATTERN = re.compile(
-    rf'row "{bilingual_pattern(SE11_ROW_SELECT_FULL_DE, SE11_ROW_SELECT_FULL_EN, escape=False)}\s+(?P<row_data>[^"]+)"',
+    rf'row "{_ROW_SELECT_FULL}\s+(?P<row_data>[^"]+)"',
     re.MULTILINE,
 )
 
@@ -297,9 +298,7 @@ async def _fill_table_name_field(page: Any, name: str) -> SE11Error | None:
             "textbox", name=re.compile(bilingual_pattern(SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN), re.I)
         )
     if await table_field.count() == 0:
-        table_field = page.locator(
-            f"input[title*='{SE11_TABLE_NAME_DE}'], input[title*='{SE11_TABLE_NAME_EN}']"
-        ).first
+        table_field = page.locator(f"input[title*='{SE11_TABLE_NAME_DE}'], input[title*='{SE11_TABLE_NAME_EN}']").first
 
     if await table_field.count() == 0:
         return SE11Error(
