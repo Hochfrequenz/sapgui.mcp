@@ -22,6 +22,7 @@ abstrakt
 paket
 programm
 methoden
+objekt
 
 # Technical terms
 stdin
