@@ -73,7 +73,7 @@ _ATTRIBUTE_ROW_PATTERN = re.compile(
 )
 
 # Check if checkbox is checked (for static, constant, etc.)
-_CHECKBOX_CHECKED_PATTERN = re.compile(r"checkbox[^]]*\\[checked\\]", re.IGNORECASE)
+_CHECKBOX_CHECKED_PATTERN = re.compile(r"checkbox[^]]*\[checked\]", re.IGNORECASE)
 
 
 # =============================================================================

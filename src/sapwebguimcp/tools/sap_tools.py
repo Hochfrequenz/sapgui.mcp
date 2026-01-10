@@ -642,7 +642,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Enter and execute an SAP transaction code. "
             "IMPORTANT: Do NOT use this for SE11, SE16, SE24, SE37, or SE93 - "
             "use the dedicated sap_se11_lookup, sap_se16_query, sap_se24_lookup, "
-            "sap_se37_lookup, or sap_se93_lookup tools instead, which return structured data."
+            "sap_se37_lookup, or sap_se93_lookup tools instead, which are faster and return structured data."
         )
     )
     async def sap_transaction(  # pylint: disable=too-many-return-statements

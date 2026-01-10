@@ -250,7 +250,7 @@ def register_se24_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Look up class/interface metadata from SE24 (Class Builder). "
-            "USE THIS instead of sap_transaction('SE24') - returns structured data. "
+            "USE THIS instead of sap_transaction('SE24') - faster and returns structured data. "
             "Returns class structure including methods with parameters, "
             "attributes, and implemented interfaces. Supports single class or list of classes. "
             "Each method includes: name, visibility, parameters, exceptions, and description."
