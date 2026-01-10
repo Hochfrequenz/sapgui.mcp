@@ -16,6 +16,33 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import TimeoutError as PlaywrightTimeout
 
+from sapwebguimcp.lang import (
+    SE11_DATABASE_TABLE_DE,
+    SE11_DATABASE_TABLE_EN,
+    SE11_DATA_TYPE_DE,
+    SE11_DATA_TYPE_EN,
+    SE11_DICTIONARY_TYPE_DE,
+    SE11_DICTIONARY_TYPE_EN,
+    SE11_DISPLAY_BUTTON_DE,
+    SE11_DISPLAY_BUTTON_EN,
+    SE11_NOT_EXIST_DE,
+    SE11_NOT_EXIST_EN,
+    SE11_NOT_FOUND_DE,
+    SE11_NOT_FOUND_EN,
+    SE11_ROW_SELECT_FULL_DE,
+    SE11_ROW_SELECT_FULL_EN,
+    SE11_ROW_SELECT_PREFIX_DE,
+    SE11_ROW_SELECT_PREFIX_EN,
+    SE11_SHORT_DESC_DE,
+    SE11_SHORT_DESC_EN,
+    SE11_STRUCTURE_DE,
+    SE11_STRUCTURE_EN,
+    SE11_TABLE_NAME_DE,
+    SE11_TABLE_NAME_EN,
+    SE11_TRANSPARENT_TABLE_DE,
+    SE11_TRANSPARENT_TABLE_EN,
+    bilingual_pattern,
+)
 from sapwebguimcp.models import (
     SE11Entry,
     SE11Error,
@@ -33,12 +60,16 @@ logger = logging.getLogger(__name__)
 MAX_INLINE_OBJECTS = 10
 
 # Regex patterns for parsing - compiled once for efficiency
-_ROW_SPLIT_PATTERN = re.compile(r'(?=- row "(?:Zum Auswählen|To select a row))')
+# Uses explicit constants: SE11_ROW_SELECT_PREFIX_DE, SE11_ROW_SELECT_PREFIX_EN
+_ROW_SPLIT_PATTERN = re.compile(
+    rf'(?=- row "{bilingual_pattern(SE11_ROW_SELECT_PREFIX_DE, SE11_ROW_SELECT_PREFIX_EN)})'
+)
+# Uses explicit constants: SE11_ROW_SELECT_FULL_DE, SE11_ROW_SELECT_FULL_EN (regex patterns)
 _FIELD_NAME_PATTERN = re.compile(
-    r'row "(?:Zum Auswählen[^"]*Leertaste\.|To select a row, press the space bar\.)\s+(?P<field_name>[A-Z_0-9/]+)'
+    rf'row "{bilingual_pattern(SE11_ROW_SELECT_FULL_DE, SE11_ROW_SELECT_FULL_EN, escape=False)}\s+(?P<field_name>[A-Z_0-9/]+)'
 )
 _ROW_DATA_PATTERN = re.compile(
-    r'row "(?:Zum Auswählen[^"]*Leertaste\.|To select a row, press the space bar\.)\s+(?P<row_data>[^"]+)"',
+    rf'row "{bilingual_pattern(SE11_ROW_SELECT_FULL_DE, SE11_ROW_SELECT_FULL_EN, escape=False)}\s+(?P<row_data>[^"]+)"',
     re.MULTILINE,
 )
 
@@ -61,10 +92,13 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entr
     """
     now = datetime.now(UTC)
 
-    # Extract table/structure name (German or English labels)
-    name_match = re.search(r'textbox "(?:Transp\.Tabelle|Struktur)":\s*(?P<name>\S+)', yaml_content)
+    # Extract table/structure name
+    # Uses explicit constants: SE11_TRANSPARENT_TABLE_DE/EN, SE11_STRUCTURE_DE/EN
+    de_pattern = bilingual_pattern(SE11_TRANSPARENT_TABLE_DE, SE11_STRUCTURE_DE)
+    en_pattern = bilingual_pattern(SE11_TRANSPARENT_TABLE_EN, SE11_STRUCTURE_EN)
+    name_match = re.search(rf'textbox "{de_pattern}":\s*(?P<name>\S+)', yaml_content)
     if not name_match:
-        name_match = re.search(r'textbox "(?:Transparent Table|Structure)":\s*(?P<name>\S+)', yaml_content)
+        name_match = re.search(rf'textbox "{en_pattern}":\s*(?P<name>\S+)', yaml_content)
 
     if not name_match:
         return SE11Error(
@@ -76,9 +110,11 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entr
 
     name = name_match.group("name").strip()
 
-    # Extract description (German or English)
+    # Extract description
+    # Uses explicit constants: SE11_SHORT_DESC_DE, SE11_SHORT_DESC_EN
     desc_match = re.search(
-        r'textbox "(?:Kurzbeschreibung|Short Description)":\s*(?P<description>.+?)(?:\n|$)', yaml_content
+        rf'textbox "{bilingual_pattern(SE11_SHORT_DESC_DE, SE11_SHORT_DESC_EN)}":\s*(?P<description>.+?)(?:\n|$)',
+        yaml_content,
     )
     description = desc_match.group("description").strip() if desc_match else ""
 
@@ -194,7 +230,10 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
 async def _wait_for_se11_table_screen(page: Any, name: str) -> SE11Error | None:
     """Wait for SE11 table screen and select the table radio. Returns error or None."""
     now = datetime.now(UTC)
-    table_radio = page.get_by_role("radio", name=re.compile(r"Datenbanktabelle|Database table", re.I))
+    # Uses explicit constants: SE11_DATABASE_TABLE_DE, SE11_DATABASE_TABLE_EN
+    table_radio = page.get_by_role(
+        "radio", name=re.compile(bilingual_pattern(SE11_DATABASE_TABLE_DE, SE11_DATABASE_TABLE_EN), re.I)
+    )
 
     try:
         await table_radio.wait_for(state="visible", timeout=10000)
@@ -220,7 +259,10 @@ async def _wait_for_se11_table_screen(page: Any, name: str) -> SE11Error | None:
 async def _wait_for_se11_structure_screen(page: Any, name: str) -> SE11Error | None:
     """Wait for SE11 structure screen and select the data type radio. Returns error or None."""
     now = datetime.now(UTC)
-    type_radio = page.get_by_role("radio", name=re.compile(r"Datentyp|Data type", re.I))
+    # Uses explicit constants: SE11_DATA_TYPE_DE, SE11_DATA_TYPE_EN
+    type_radio = page.get_by_role(
+        "radio", name=re.compile(bilingual_pattern(SE11_DATA_TYPE_DE, SE11_DATA_TYPE_EN), re.I)
+    )
 
     try:
         await type_radio.wait_for(state="visible", timeout=10000)
@@ -248,11 +290,16 @@ async def _fill_table_name_field(page: Any, name: str) -> SE11Error | None:
     now = datetime.now(UTC)
 
     # Try multiple selectors for the table name field
+    # Uses explicit constants: SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN
     table_field = page.locator('[id*="TBMA_VAL"], [id*="TBMA-VAL"]').first
     if await table_field.count() == 0:
-        table_field = page.get_by_role("textbox", name=re.compile(r"Tabellenname|Table name", re.I))
+        table_field = page.get_by_role(
+            "textbox", name=re.compile(bilingual_pattern(SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN), re.I)
+        )
     if await table_field.count() == 0:
-        table_field = page.locator("input[title*='Tabellenname'], input[title*='Table name']").first
+        table_field = page.locator(
+            f"input[title*='{SE11_TABLE_NAME_DE}'], input[title*='{SE11_TABLE_NAME_EN}']"
+        ).first
 
     if await table_field.count() == 0:
         return SE11Error(
@@ -272,7 +319,11 @@ async def _fill_structure_name_field(page: Any, name: str) -> SE11Error | None:
     """Fill the structure/data type name field in SE11. Returns error or None."""
     now = datetime.now(UTC)
 
-    type_field = page.get_by_role("textbox", name=re.compile(r"Dictionary.*Typ|Dictionary.*type", re.I))
+    # Uses explicit constants: SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN (regex patterns)
+    type_field = page.get_by_role(
+        "textbox",
+        name=re.compile(bilingual_pattern(SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN, escape=False), re.I),
+    )
     if await type_field.count() == 0:
         return SE11Error(
             name=name,
@@ -290,7 +341,10 @@ async def _fill_structure_name_field(page: Any, name: str) -> SE11Error | None:
 async def _click_display_button(page: Any, name: str) -> None:
     """Click the Display button or fall back to F7."""
     await page.wait_for_timeout(500)
-    display_button = page.get_by_role("button", name=re.compile(r"^Anzeigen$|^Display$", re.I))
+    # Uses explicit constants: SE11_DISPLAY_BUTTON_DE, SE11_DISPLAY_BUTTON_EN
+    display_button = page.get_by_role(
+        "button", name=re.compile(rf"^{SE11_DISPLAY_BUTTON_DE}$|^{SE11_DISPLAY_BUTTON_EN}$", re.I)
+    )
 
     if await display_button.count() > 0:
         await display_button.first.click(force=True)
@@ -308,7 +362,8 @@ async def _check_object_not_found(page: Any, name: str, object_type: SE11ObjectT
     status_bar = page.locator("#sapStatusBarAll, [id*='STATUSBAR']").first
     status_text = await status_bar.text_content() if await status_bar.count() > 0 else ""
 
-    not_found_msgs = {"existiert nicht", "does not exist", "nicht gefunden", "not found"}
+    # Uses explicit constants: SE11_NOT_EXIST_DE/EN, SE11_NOT_FOUND_DE/EN
+    not_found_msgs = {SE11_NOT_EXIST_DE, SE11_NOT_EXIST_EN, SE11_NOT_FOUND_DE, SE11_NOT_FOUND_EN}
     if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
         await page.keyboard.press("F3")
         await page.wait_for_load_state("networkidle")

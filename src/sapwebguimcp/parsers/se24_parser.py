@@ -13,6 +13,35 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from sapwebguimcp.lang import (
+    SE24_ABSTRACT_DE,
+    SE24_ABSTRACT_EN,
+    SE24_CLASS_BUILDER_DE,
+    SE24_CLASS_BUILDER_EN,
+    SE24_CLASS_DE,
+    SE24_CLASS_EN,
+    SE24_DISPLAY_PREFIX_EN,
+    SE24_DISPLAY_SUFFIX_DE,
+    SE24_INITIAL_SCREEN_DE,
+    SE24_INITIAL_SCREEN_EN,
+    SE24_INTERFACE_DE,
+    SE24_INTERFACE_EN,
+    SE24_NOT_EXIST_DE,
+    SE24_NOT_EXIST_EN,
+    SE24_NOT_FOUND_DE,
+    SE24_NOT_FOUND_EN,
+    SE24_OBJECT_TYPE_DE,
+    SE24_OBJECT_TYPE_EN,
+    SE24_PRIVATE_DE,
+    SE24_PRIVATE_EN,
+    SE24_PROTECTED_DE,
+    SE24_PROTECTED_EN,
+    SE24_PUBLIC_DE,
+    SE24_PUBLIC_EN,
+    SE24_STATIC_DE,
+    SE24_STATIC_EN,
+    bilingual_pattern,
+)
 from sapwebguimcp.models.se24_models import (
     SE24Attribute,
     SE24Entry,
@@ -36,37 +65,39 @@ __all__ = [
 # =============================================================================
 
 # Class/Interface name from heading
-# German: "Class Builder: CL_SALV_TABLE anzeigen"
+# Uses explicit constants: SE24_CLASS_BUILDER_DE/EN, SE24_DISPLAY_SUFFIX_DE, SE24_DISPLAY_PREFIX_EN
+# German: "Klassenpflege: CL_SALV_TABLE anzeigen"
 # English: "Class Builder: Display CL_SALV_TABLE"
 _CLASS_HEADING_PATTERN = re.compile(
-    r'heading "(?:Class Builder|Klassenpflege):\s*'
-    r"(?:(?P<name_de>[A-Z0-9_/]+)\\s+anzeigen|Display\\s+(?P<name_en>[A-Z0-9_/]+))\"",
+    rf'heading "{bilingual_pattern(SE24_CLASS_BUILDER_DE, SE24_CLASS_BUILDER_EN)}:\s*'
+    rf"(?:(?P<name_de>[A-Z0-9_/]+)\\s+{SE24_DISPLAY_SUFFIX_DE}|{SE24_DISPLAY_PREFIX_EN}\\s+(?P<name_en>[A-Z0-9_/]+))\"",
     re.IGNORECASE,
 )
 
 # Determine if class or interface from screen content
-# German: "Klasse" / "Interface"
-# English: "Class" / "Interface"
+# Uses explicit constants: SE24_OBJECT_TYPE_DE/EN, SE24_CLASS_DE/EN, SE24_INTERFACE_DE/EN
 _OBJECT_TYPE_PATTERN = re.compile(
-    r'(?:Object\\s+Type|Objekttyp)[^"]*"(?P<type>Class|Klasse|Interface)"',
+    rf'{bilingual_pattern(SE24_OBJECT_TYPE_DE, SE24_OBJECT_TYPE_EN)}[^"]*"(?P<type>{SE24_CLASS_EN}|{SE24_CLASS_DE}|{SE24_INTERFACE_EN})"',
     re.IGNORECASE,
 )
 
 # Method row pattern - extract method info from grid row
+# Uses explicit constants: SE24_PUBLIC/PRIVATE/PROTECTED_DE/EN, SE24_STATIC_DE/EN, SE24_ABSTRACT_DE/EN
 # Format varies, but typically: "METHOD_NAME visibility [static] [abstract] Description"
 _METHOD_ROW_PATTERN = re.compile(
     r'row "(?P<name>[A-Z0-9_]+)'
-    r"(?:\\s+(?P<visibility>Public|Private|Protected|Öffentlich|Privat|Geschützt))?"
-    r"(?:\\s+(?P<static>Static|Statisch))?"
-    r"(?:\\s+(?P<abstract>Abstract|Abstrakt))?"
+    rf"(?:\\s+(?P<visibility>{SE24_PUBLIC_EN}|{SE24_PRIVATE_EN}|{SE24_PROTECTED_EN}|{SE24_PUBLIC_DE}|{SE24_PRIVATE_DE}|{SE24_PROTECTED_DE}))?"
+    rf"(?:\\s+(?P<static>{SE24_STATIC_EN}|{SE24_STATIC_DE}))?"
+    rf"(?:\\s+(?P<abstract>{SE24_ABSTRACT_EN}|{SE24_ABSTRACT_DE}))?"
     r'(?:\\s+(?P<desc>[^"]*))?"\\s*:',
     re.IGNORECASE,
 )
 
 # Attribute row pattern
+# Uses explicit constants: SE24_PUBLIC/PRIVATE/PROTECTED_DE/EN
 _ATTRIBUTE_ROW_PATTERN = re.compile(
     r'row "(?P<name>[A-Z0-9_]+)'
-    r"(?:\\s+(?P<visibility>Public|Private|Protected|Öffentlich|Privat|Geschützt))?"
+    rf"(?:\\s+(?P<visibility>{SE24_PUBLIC_EN}|{SE24_PRIVATE_EN}|{SE24_PROTECTED_EN}|{SE24_PUBLIC_DE}|{SE24_PRIVATE_DE}|{SE24_PROTECTED_DE}))?"
     r"(?:\\s+(?P<type_ref>[A-Z0-9_]+))?"
     r'(?:\\s+(?P<desc>[^"]*))?"\\s*:',
     re.IGNORECASE,
@@ -83,12 +114,13 @@ _CHECKBOX_CHECKED_PATTERN = re.compile(r"checkbox[^]]*\[checked\]", re.IGNORECAS
 
 def _map_visibility(visibility_str: str | None) -> SE24Visibility:
     """Map German/English visibility to standard value."""
+    # Uses explicit constants: SE24_PRIVATE_DE/EN, SE24_PROTECTED_DE/EN
     if not visibility_str:
         return "public"
     visibility_lower = visibility_str.lower()
-    if visibility_lower in ("private", "privat"):
+    if visibility_lower in (SE24_PRIVATE_EN.lower(), SE24_PRIVATE_DE.lower()):
         return "private"
-    if visibility_lower in ("protected", "geschützt"):
+    if visibility_lower in (SE24_PROTECTED_EN.lower(), SE24_PROTECTED_DE.lower()):
         return "protected"
     return "public"
 
@@ -103,34 +135,36 @@ def _extract_class_name(snapshot: str) -> str | None:
 
 def _determine_object_type(snapshot: str) -> SE24ObjectType:
     """Determine if this is a class or interface."""
+    # Uses explicit constants: SE24_INTERFACE_DE/EN
     match = _OBJECT_TYPE_PATTERN.search(snapshot)
     if match:
         type_str = match.group("type").lower()
-        if type_str == "interface":
+        if type_str in (SE24_INTERFACE_EN.lower(), SE24_INTERFACE_DE.lower()):
             return "interface"
     return "class"
 
 
 def _is_initial_se24_screen(snapshot: str) -> bool:
     """Check if we're on the initial SE24 screen (no class displayed)."""
+    # Uses explicit constants: SE24_INITIAL_SCREEN_DE, SE24_INITIAL_SCREEN_EN
     header_section = "\\n".join(snapshot.split("\\n")[:10])
     has_initial_heading = (
-        'heading "Class Builder: Initial"' in header_section
-        or 'heading "Klassenpflege: Einstieg"' in header_section
-        or 'heading "Class Builder: Einstieg"' in header_section
+        f'heading "{SE24_INITIAL_SCREEN_EN}"' in header_section
+        or f'heading "{SE24_INITIAL_SCREEN_DE}"' in header_section
     )
     return has_initial_heading
 
 
 def _is_class_not_found(snapshot: str, class_name: str) -> bool:
     """Check if class/interface was not found (status bar message)."""
+    # Uses explicit constants: SE24_NOT_EXIST_DE/EN, SE24_NOT_FOUND_DE/EN
     not_found_patterns = [
-        f"{class_name} does not exist",
-        f"{class_name} nicht vorhanden",
-        f"{class_name} existiert nicht",
-        "does not exist",
-        "nicht vorhanden",
-        "existiert nicht",
+        f"{class_name} {SE24_NOT_EXIST_EN}",
+        f"{class_name} {SE24_NOT_FOUND_DE}",
+        f"{class_name} {SE24_NOT_EXIST_DE}",
+        SE24_NOT_EXIST_EN,
+        SE24_NOT_FOUND_DE,
+        SE24_NOT_EXIST_DE,
     ]
     snapshot_lower = snapshot.lower()
     return any(pattern.lower() in snapshot_lower for pattern in not_found_patterns)
