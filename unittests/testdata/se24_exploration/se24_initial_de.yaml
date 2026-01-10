@@ -1,0 +1,79 @@
+- 'main "Class Builder: Einstieg"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "Class Builder: Einstieg" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Objekttyp"
+      - button "Bearbeiten"
+      - button "Springen"
+      - button "Hilfsmittel"
+      - button "Umfeld"
+      - button "System"
+      - button "Hilfe"
+      - button "GUI-Aktionen und -Einstellungen"
+    - button "Beenden"
+    - button "Suchen (Strg+F)"
+    - button "Drucken... (Strg+P)"
+    - toolbar:
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Syntax"
+      - button "Aktivieren"
+      - button "In der Testumgebung"
+      - button "Verwendung Klasse / Interface"
+      - button "Hilfe zur Anwendung"
+      - button "Klasse/Interface löschen"
+      - button "Klasse/Interface kopieren"
+      - button "Mehr"
+  - text: Objekttyp
+  - textbox "Objekttyp"
+  - button "Anzeigen"
+  - button "Ändern"
+  - button "Anlegen"
+  - text: 
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSEOD/1000":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSEOD/1000"
+        - cell
+      - menuitemradio "Transaktion SE24":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE24"
+        - cell
+      - row "E2E-Zeit 115 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "115 ms"
+        - cell
+      - row "WebGUI-Zeit 36 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "36 ms"
+        - cell

@@ -403,6 +403,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Look up table or structure metadata from SE11 (ABAP Dictionary). "
+            "USE THIS instead of sap_transaction('SE11') - faster and returns structured data. "
             "Returns field names, data types, lengths, and descriptions. "
             "Supports single name or list of names. Always queries live from SAP. "
             "Use object_type='table' for database tables, 'structure' for data structures. "

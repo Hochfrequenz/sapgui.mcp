@@ -1,0 +1,258 @@
+- 'main "Class Builder: Klasse CL_ABAP_CHAR_UTILITIES anzeigen"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "Class Builder: Klasse CL_ABAP_CHAR_UTILITIES anzeigen" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Klasse"
+      - button "Bearbeiten"
+      - button "Springen"
+      - button "Hilfsmittel"
+      - button "Umfeld"
+      - button "System"
+      - button "Hilfe"
+      - button "GUI-Aktionen und -Einstellungen"
+    - button "Beenden"
+    - button "Suchen (Strg+F)"
+    - button "Drucken (Strg+P)"
+    - toolbar:
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Anzeigen <-> Ändern"
+      - button "Aktiv <-> Inaktiv"
+      - button "Anderes Objekt..."
+      - button "Erweitern"
+      - button "Prüfen"
+      - button "Aktivieren"
+      - button "In der Testumgebung"
+      - button "Verwendung Klasse / Interface"
+      - button "Mehr"
+  - text: Klasse/Interface
+  - textbox "Klasse/Interface": CL_ABAP_CHAR_UTILITIES
+  - button "realisiert / Aktiv"
+  - tablist:
+    - tab "Eigenschaften"
+    - tab "Interfaces"
+    - tab "Friends"
+    - tab "Attribute"
+    - tab "Methoden" [selected]
+    - tab "Ereignisse"
+    - tab "Typen"
+    - tab "Aliasse"
+  - tabpanel:
+    - button "Parameter"
+    - button "Ausnahmen"
+    - button "Quelltext"
+    - button "Zu Eigenschaften wechseln"
+    - button "Dokumentation"
+    - button "Verwendungsnachweis"
+    - button "Methode einfügen" [disabled]
+    - button "Methode löschen" [disabled]
+    - button "Ausschn." [disabled]
+    - button "Kopieren" [disabled]
+    - button "Einfügen" [disabled]
+    - button "Sortieren"
+    - button "Suchen"
+    - button "Weiter suchen"
+    - button "Methode neu definieren" [disabled]
+    - button "Redefinition aufheben" [disabled]
+    - checkbox "Filter":  Filter
+    - grid:
+      - rowgroup
+      - rowgroup:
+        - row "Methode Art Sichtbarkeit Methodentyp Beschreibung":
+          - columnheader "Methode"
+          - columnheader "Art"
+          - columnheader "Sichtbarkeit"
+          - columnheader "Methodentyp"
+          - columnheader "Beschreibung"
+        - button ""
+        - row "ENDIAN_TO_NUMBER_FORMAT Static Method Public Leer Ermittelt Zahlenformat zu Bytereihenfolge":
+          - gridcell "ENDIAN_TO_NUMBER_FORMAT":
+            - textbox
+          - gridcell "Static Method":
+            - textbox
+          - gridcell "Public":
+            - textbox
+          - gridcell "Leer"
+          - gridcell "Ermittelt Zahlenformat zu Bytereihenfolge":
+            - textbox
+        - row "NUMBER_FORMAT_TO_ENDIAN Static Method Public Leer Ermittelt Bytereihenfolge zu Zahlenformat":
+          - gridcell "NUMBER_FORMAT_TO_ENDIAN":
+            - textbox
+          - gridcell "Static Method":
+            - textbox
+          - gridcell "Public":
+            - textbox
+          - gridcell "Leer"
+          - gridcell "Ermittelt Bytereihenfolge zu Zahlenformat":
+            - textbox
+        - row "GET_SIMPLE_SPACES_FOR_CUR_CP Static Method Public Leer Liefert einen String mit Whitespace-Zeichen":
+          - gridcell "GET_SIMPLE_SPACES_FOR_CUR_CP":
+            - textbox
+          - gridcell "Static Method":
+            - textbox
+          - gridcell "Public":
+            - textbox
+          - gridcell "Leer"
+          - gridcell "Liefert einen String mit Whitespace-Zeichen":
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+      - rowgroup
+      - rowgroup
+  - note "Erfolgreich Meldungsleiste Änderungen werden vom quellbasierten Class Builder nicht unterstützt":
+    - link "Details anzeigen"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSEOD/2000":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSEOD/2000"
+        - cell
+      - menuitemradio "Transaktion SE24":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE24"
+        - cell
+      - row "E2E-Zeit 178 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "178 ms"
+        - cell
+      - row "WebGUI-Zeit 56 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "56 ms"
+        - cell

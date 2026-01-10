@@ -146,4 +146,26 @@ USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 
 ## Common Patterns
 
-<!-- Add patterns you've learned over time -->
+### ALV Grid Pagination (Feature Request)
+
+**Problem:** ALV grids in SAP Web GUI use lazy loading - only visible rows (~7-13) are in the DOM at a time. To read all rows, you need to paginate through the grid using PageDown.
+
+**Current Solution:** The `sap_se16_query` tool in `se16_tools.py` implements a pagination pattern that:
+1. Focuses the grid (required for PageDown to work)
+2. Uses PageDown to scroll through pages
+3. Deduplicates rows (pages can overlap)
+4. Detects end-of-data via first-row key comparison
+5. Handles stuck/empty pages gracefully
+
+**Key Techniques:**
+- Focus grid before pagination: `page.locator("[role='grid']").first.click()`
+- Row deduplication via set with composite keys
+- First-row key comparison to detect end
+- Stuck counter (stop after 3 empty pages)
+- ~1 second wait between pages for lazy loading
+
+**Performance:** ~7 rows/second due to pagination overhead.
+
+**Reuse Opportunity:** Consider extracting a reusable `alv_collect_rows()` helper that other transaction tools can use. Currently each tool would need to copy this pattern.
+
+Use `log_feedback` to report if you encounter a transaction that needs pagination support.
