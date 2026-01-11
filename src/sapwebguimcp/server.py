@@ -20,6 +20,7 @@ from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.resources import register_feedback_resources, register_intent_resources
 from sapwebguimcp.tools import (
     register_browser_tools,
+    register_catalog_tools,
     register_feedback_tools,
     register_intent_tools,
     register_sap_tools,
@@ -92,6 +93,7 @@ register_se16_tools(mcp)
 register_se24_tools(mcp)
 register_se37_tools(mcp)
 register_se93_tools(mcp)
+register_catalog_tools(mcp)
 register_browser_tools(mcp)
 register_intent_tools(mcp)
 register_feedback_tools(mcp)
