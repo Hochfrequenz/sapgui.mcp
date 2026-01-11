@@ -13,7 +13,6 @@ from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 
 from sapwebguimcp.catalog.loader import catalog_exists, get_catalog, get_catalog_stats
-from sapwebguimcp.catalog.models import TransactionInfo
 from sapwebguimcp.catalog.search import search_transactions as do_search
 
 logger = logging.getLogger(__name__)

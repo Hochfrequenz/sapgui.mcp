@@ -81,17 +81,12 @@ def search_transactions(
             score = 100.0
             match_type = "exact_tcode"
 
-        # 2. Tcode prefix match
+        # 2. Tcode prefix match (query is start of tcode)
         elif tcode_upper.startswith(query_normalized):
             score = 80.0
             match_type = "prefix_tcode"
 
-        # 3. Query is prefix of tcode (user typing partial)
-        elif query_normalized and tcode_upper.startswith(query_normalized):
-            score = 75.0
-            match_type = "prefix_tcode"
-
-        # 4. Description matching
+        # 3. Description matching
         elif txn.description and query_tokens:
             desc_upper = txn.description.upper()
             desc_tokens = tokenize(txn.description)
@@ -109,7 +104,7 @@ def search_transactions(
                 score = 40.0 * match_ratio
                 match_type = "description"
 
-        # 5. Program name match
+        # 4. Program name match
         if score == 0 and txn.program and query_normalized in txn.program.upper():
             score = 20.0
             match_type = "program"
