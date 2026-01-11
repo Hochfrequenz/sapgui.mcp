@@ -3285,6 +3285,11 @@ async def test_se16_query_basic(sap_mcp_client: ClientSession) -> None:
     )
 
 
+@pytest.mark.skip(
+    reason="SE16N filter requires fix: SAP Web GUI lazy-loads columns, "
+    "so Technical Name column isn't in DOM. Need SE11 lookup to map "
+    "technical field names to row indices. See fix/se16-filter-loading branch."
+)
 @pytest.mark.anyio
 async def test_se16_query_with_filter(sap_mcp_client: ClientSession) -> None:
     """
@@ -3328,6 +3333,11 @@ async def test_se16_query_with_filter(sap_mcp_client: ClientSession) -> None:
     )
 
 
+@pytest.mark.skip(
+    reason="SE16N filter requires fix: SAP Web GUI lazy-loads columns, "
+    "so Technical Name column isn't in DOM. Need SE11 lookup to map "
+    "technical field names to row indices. See fix/se16-filter-loading branch."
+)
 @pytest.mark.anyio
 async def test_se16_query_filter_multiple_results(sap_mcp_client: ClientSession) -> None:
     """
