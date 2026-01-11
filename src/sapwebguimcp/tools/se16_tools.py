@@ -121,6 +121,15 @@ async def _fill_se16n_filters(filters: dict[str, str] | None) -> list[str]:
             result = await page.evaluate(js_code, {"fieldName": field_name.upper(), "value": value})
             if not result.get("success"):
                 error_msg = result.get("error", f"Unknown error for field {field_name}")
+                debug_info = result.get("debug", {})
+                if debug_info:
+                    logger.warning(
+                        "SE16: Filter debug - grids=%d, rows=%d, fields=%s, buttons=%s",
+                        debug_info.get("gridsFound", 0),
+                        debug_info.get("rowsScanned", 0),
+                        debug_info.get("fieldsAvailable", []),
+                        debug_info.get("buttonsFound", [])[:10],  # First 10 buttons
+                    )
                 errors.append(error_msg)
                 logger.warning("SE16: Filter error: %s", error_msg)
             else:

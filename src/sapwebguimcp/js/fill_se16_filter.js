@@ -3,21 +3,31 @@
     // Finds the row with matching technical field name (button text) and fills the From-Value input
     const fieldName = args.fieldName;
     const value = args.value;
+    const debug = { gridsFound: 0, rowsScanned: 0, buttonsFound: [], fieldsAvailable: [] };
 
     // Find the selection criteria grid - look for the grid containing field names
     const grids = document.querySelectorAll('[role="grid"]');
+    debug.gridsFound = grids.length;
 
     for (const grid of grids) {
         // Find all rows in this grid
         const rows = grid.querySelectorAll('[role="row"]');
 
         for (const row of rows) {
+            debug.rowsScanned++;
             // Look for button with the technical field name in the last cell
             const buttons = row.querySelectorAll('button');
             let fieldNameButton = null;
 
             for (const btn of buttons) {
                 const text = btn.textContent?.trim();
+                if (text) {
+                    debug.buttonsFound.push(text);
+                    // Collect field names that look like technical names (all caps)
+                    if (/^[A-Z0-9_]+$/.test(text)) {
+                        debug.fieldsAvailable.push(text);
+                    }
+                }
                 if (text === fieldName) {
                     fieldNameButton = btn;
                     break;
@@ -45,9 +55,12 @@
                         }
                     }
                 }
-                return { success: false, error: 'Input not found in row for field: ' + fieldName };
+                return { success: false, error: 'Input not found in row for field: ' + fieldName, debug };
             }
         }
     }
-    return { success: false, error: 'Field not found: ' + fieldName };
+    // Limit debug output to first 20 fields
+    debug.fieldsAvailable = debug.fieldsAvailable.slice(0, 20);
+    debug.buttonsFound = debug.buttonsFound.slice(0, 30);
+    return { success: false, error: 'Field not found: ' + fieldName, debug };
 };
