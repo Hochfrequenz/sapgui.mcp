@@ -301,9 +301,15 @@ async def _execute_se16_query(
         return _empty_failure(fill_error, table, now)
 
     # Apply filters to selection criteria grid
-    filter_errors = await _fill_se16n_filters(filters)
-    if filter_errors:
-        logger.warning("SE16: Some filters could not be applied: %s", filter_errors)
+    if filters:
+        # Press Enter to trigger field loading in the selection criteria grid
+        # SE16N only populates the grid with table fields after the table name is confirmed
+        await sap_keyboard_impl("Enter")
+        await page.wait_for_timeout(2000)  # Wait for SAP to load table structure and populate grid
+
+        filter_errors = await _fill_se16n_filters(filters)
+        if filter_errors:
+            logger.warning("SE16: Some filters could not be applied: %s", filter_errors)
 
     # Execute query (F8) and wait for results
     await sap_keyboard_impl("F8")
