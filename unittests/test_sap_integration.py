@@ -2397,7 +2397,9 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
         ), f"F5 popup should mention 'Person', 'Wechsel' or 'Switch'. Got: {popup.message}"
 
         # Dismiss with "Ja"/"Yes" to proceed to person creation
-        dismiss_data = await call_tool_typed(sap_mcp_client, "sap_close_popup", {"button": yes_button}, ClosePopupResult)
+        dismiss_data = await call_tool_typed(
+            sap_mcp_client, "sap_close_popup", {"button": yes_button}, ClosePopupResult
+        )
         assert dismiss_data.success, f"Dismiss should succeed. Result: {dismiss_data}"
         await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
@@ -2457,8 +2459,11 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     assert screen_data.success, f"sap_get_screen_info failed: {screen_data.error}"
     title = screen_data.title
     assert (
-        "SAP" in title or "Geschäftspartner" in title or "Business Partner" in title
-        or "Easy Access" in title or "Einstieg" in title
+        "SAP" in title
+        or "Geschäftspartner" in title
+        or "Business Partner" in title
+        or "Easy Access" in title
+        or "Einstieg" in title
     ), f"Should be back to BP or SAP landing page. Got title: {title}"
 
 
@@ -2706,9 +2711,7 @@ async def test_bp_get_form_fields_with_dropdown_options(sap_mcp_client: ClientSe
     assert len(options) > 0, "Expected GP-Rolle to have available options"
 
     # Verify it has the default option (GPartner allgemein / Business Partner (Gen.))
-    has_general_bp = any(
-        "GPartner" in opt or "General" in opt or "Business Partner" in opt for opt in options
-    )
+    has_general_bp = any("GPartner" in opt or "General" in opt or "Business Partner" in opt for opt in options)
     assert has_general_bp, f"Expected 'GPartner allgemein' or 'Business Partner' in options: {options}"
 
 
