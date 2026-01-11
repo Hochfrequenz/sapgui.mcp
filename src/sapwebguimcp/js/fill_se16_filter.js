@@ -55,7 +55,11 @@
                         }
                     }
                 }
-                return { success: false, error: 'Input not found in row for field: ' + fieldName, debug };
+                return {
+                    success: false,
+                    error: 'Input not found in row for field: ' + fieldName,
+                    debug,
+                };
             }
         }
     }

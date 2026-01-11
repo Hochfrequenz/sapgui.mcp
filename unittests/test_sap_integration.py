@@ -3281,8 +3281,7 @@ async def test_se16_query_basic(sap_mcp_client: ClientSession) -> None:
     # T000's MANDT field is shown as "Mdt" (DE) or "Clnt" (EN)
     first_col = result.columns[0].lower()
     assert first_col in ("mdt", "clnt", "mandt", "client"), (
-        f"T000 should have client/mandt as first column, got '{result.columns[0]}'. "
-        f"All columns: {result.columns}"
+        f"T000 should have client/mandt as first column, got '{result.columns[0]}'. " f"All columns: {result.columns}"
     )
 
 
@@ -3332,8 +3331,7 @@ async def test_se16_query_with_filter(sap_mcp_client: ClientSession) -> None:
     first_col_name = result.columns[0]
     first_col_value = row_data.get(first_col_name, "")
     assert first_col_value == "SE16", (
-        f"Expected first column to contain 'SE16', got '{first_col_value}'. "
-        f"Row data: {row_data}"
+        f"Expected first column to contain 'SE16', got '{first_col_value}'. " f"Row data: {row_data}"
     )
 
 
@@ -3379,6 +3377,5 @@ async def test_se16_query_filter_multiple_results(sap_mcp_client: ClientSession)
     for row in result.rows:
         tcode = str(row.data.get(first_col_name, ""))
         assert tcode.startswith("SE1"), (
-            f"Expected transaction code starting with 'SE1', got '{tcode}'. "
-            f"Row data: {row.data}"
+            f"Expected transaction code starting with 'SE1', got '{tcode}'. " f"Row data: {row.data}"
         )
