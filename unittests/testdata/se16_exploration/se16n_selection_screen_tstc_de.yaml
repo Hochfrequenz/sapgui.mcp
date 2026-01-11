@@ -1,0 +1,163 @@
+snapshot: |
+  - main "Allgemeine Tabellenanzeige":
+    - banner:
+      - button "Zurück (F3)"
+      - img "Unternehmenslogo"
+      - heading "Allgemeine Tabellenanzeige" [level=1]
+      - button "Systeminformationen öffnen"
+      - toolbar:
+        - button "Tabellenanzeige"
+        - button "Bearbeiten"
+        - button "Springen"
+        - button "Zusätze"
+        - button "System"
+        - button "Hilfe"
+        - button "GUI-Aktionen und -Einstellungen"
+      - button "Beenden"
+      - button "Suchen (Strg+F)"
+      - button "Weiter suchen (Strg+G)"
+      - toolbar:
+        - combobox "Bitte Transaktionscode eingeben"
+        - text:
+        - button "Online"
+        - button "Hintergrund"
+        - button "Anzahl Einträge"
+        - button "Alle markieren"
+        - button "Schlüsselfelder für Ausgabe markieren"
+        - button "Alle Mark. löschen"
+        - button "Zeile löschen"
+        - button "Alle Eingaben"
+        - button "Mehr"
+    - text: Tabelle
+    - textbox "Tabelle": TSTC
+    - button "More Information"
+    - button "Erweiterte Suche"
+    - button "SAP-Transaktions-Codes"
+    - text: Texttabelle
+    - textbox "Texttabelle": TSTCT
+    - checkbox "Ohne Texte":  Ohne Texte
+    - text: Anzeigevariante
+    - textbox "Anzeigevariante"
+    - text: Maximale Trefferzahl
+    - textbox "Maximale Trefferzahl": "500"
+    - checkbox "Einträge pflegen" [disabled]
+    - text: Feld holen
+    - textbox "Feld holen"
+    - button "Feldauswahl importieren"
+    - button "Feldauswahl exportieren"
+    - grid "Selektionskriterien":
+      - rowgroup:
+        - text: Selektionskriterien
+        - button "Konfiguration"
+      - rowgroup:
+        - row "Feldname Option Von-Wert Bis-Wert Mehr Ausgabe Technischer Name":
+          - columnheader "Feldname"
+          - columnheader "Option"
+          - columnheader "Von-Wert"
+          - columnheader "Bis-Wert"
+          - columnheader "Mehr"
+          - columnheader "Ausgabe"
+          - columnheader "Technischer Name"
+        - row "Transaktionscode  TCODE":
+          - gridcell "Transaktionscode":
+            - button "Transaktionscode"
+          - gridcell:
+            - button
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - button
+          - gridcell "":
+            - checkbox "" [checked]
+          - gridcell "TCODE":
+            - button "TCODE"
+        - row "Programm  PGMNA":
+          - gridcell "Programm":
+            - button "Programm"
+          - gridcell:
+            - button
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - button
+          - gridcell "":
+            - checkbox "" [checked]
+          - gridcell "PGMNA":
+            - button "PGMNA"
+        - row "Dynpronr  DYPNO":
+          - gridcell "Dynpronr":
+            - button "Dynpronr"
+          - gridcell:
+            - button
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - button
+          - gridcell "":
+            - checkbox "" [checked]
+          - gridcell "DYPNO":
+            - button "DYPNO"
+        - row "CHAR05 fuer SYST  MENUE":
+          - gridcell "CHAR05 fuer SYST":
+            - button "CHAR05 fuer SYST"
+          - gridcell:
+            - button
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - button
+          - gridcell "":
+            - checkbox "" [checked]
+          - gridcell "MENUE":
+            - button "MENUE"
+        - row "HEX01-Datenelement f  CINFO":
+          - gridcell "HEX01-Datenelement f":
+            - button "HEX01-Datenelement f"
+          - gridcell:
+            - button
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - button
+          - gridcell "":
+            - checkbox "" [checked]
+          - gridcell "CINFO":
+            - button "CINFO"
+        - row "Nachrichten-ID  ARBGB":
+          - gridcell "Nachrichten-ID":
+            - button "Nachrichten-ID"
+          - gridcell:
+            - button
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - button
+          - gridcell "":
+            - checkbox "" [checked]
+          - gridcell "ARBGB":
+            - button "ARBGB"
+        - row "Text Leer Leer  TTEXT":
+          - gridcell "Text":
+            - button "Text"
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell "":
+            - checkbox "" [checked]
+          - gridcell "TTEXT":
+            - button "TTEXT"
