@@ -151,6 +151,7 @@ USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 **Problem:** ALV grids in SAP Web GUI use lazy loading - only visible rows (~7-13) are in the DOM at a time. To read all rows, you need to paginate through the grid using PageDown.
 
 **Current Solution:** The `sap_se16_query` tool in `se16_tools.py` implements a pagination pattern that:
+
 1. Focuses the grid (required for PageDown to work)
 2. Uses PageDown to scroll through pages
 3. Deduplicates rows (pages can overlap)
@@ -158,6 +159,7 @@ USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 5. Handles stuck/empty pages gracefully
 
 **Key Techniques:**
+
 - Focus grid before pagination: `page.locator("[role='grid']").first.click()`
 - Row deduplication via set with composite keys
 - First-row key comparison to detect end

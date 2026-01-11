@@ -2451,14 +2451,14 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
 
 
 @pytest.mark.anyio
-async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession) -> None:
+async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession, lang_strings: dict[str, str]) -> None:
     """
     Test popup detection with a detailed body message in SE38.
 
     This test triggers an error popup that has:
-    - Title: "Fehler in der Objektbearbeitung"
+    - Title: "Fehler in der Objektbearbeitung" / "Error in Object Processing"
     - Body: "Systemeinstellung erlaubt keine Änderung des Objekts PROG AAAAAAAA..."
-    - Buttons: "Weiter", "Langdokumentation"
+    - Buttons: "Weiter"/"Continue", "Langdokumentation"/"Long text"
     - Close button (X)
 
     This verifies that:
@@ -2477,17 +2477,21 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
     # Capture initial SE38 screen
     await capture_html_snapshot(sap_mcp_client, "se38_initial", overwrite=True)
 
-    # Enter an invalid program name
+    # Enter an invalid program name (use bilingual label: Programm/Program)
     fill_result = await call_tool_typed(
-        sap_mcp_client, "sap_fill_form", {"fields": {"Programm": "AAAAAAAAAAAAAAAAAAAA"}}, FillFormResult
+        sap_mcp_client,
+        "sap_fill_form",
+        {"fields": {"Programm": "AAAAAAAAAAAAAAAAAAAA", "Program": "AAAAAAAAAAAAAAAAAAAA"}},
+        FillFormResult,
     )
     assert fill_result.success, f"Fill program name failed: {fill_result.error}"
 
-    # Click "Anlegen" (Create) button - this triggers the error popup
+    # Click "Anlegen/Create" button - this triggers the error popup
+    create_label = lang_strings["create"]
     click_data = await call_tool_typed(
         sap_mcp_client,
         "browser_click",
-        {"selector": "span:has-text('Anlegen'), button:has-text('Anlegen')"},
+        {"selector": f"span:has-text('{create_label}'), button:has-text('{create_label}')"},
         ClickResult,
     )
 
@@ -2504,7 +2508,7 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
         popup = screen_data.popup
 
     assert popup, (
-        f"Expected error popup after clicking Anlegen with invalid program name. "
+        f"Expected error popup after clicking {create_label} with invalid program name. "
         f"Check se38_error_popup_*.html. Click result: {click_data}"
     )
 
@@ -2514,14 +2518,16 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
     # The message should contain either the title or body text
     assert len(message) > 10, f"Popup message should be descriptive. Got: {message}"
 
-    # Should have buttons "Weiter" and "Langdokumentation"
+    # Should have buttons "Weiter/Continue" and "Langdokumentation/Long text"
     buttons = popup.buttons or []
     button_labels = [b.label for b in buttons]
     assert len(buttons) >= 1, f"Popup should have buttons. Got: {button_labels}"
-    # Check for expected buttons (German)
-    has_weiter = any("Weiter" in label or "weiter" in label.lower() for label in button_labels)
-    has_langdoku = any("Langdoku" in label or "langdoku" in label.lower() for label in button_labels)
-    assert has_weiter or has_langdoku, f"Expected 'Weiter' or 'Langdokumentation' button. Got: {button_labels}"
+    # Check for expected buttons (DE: Weiter/Langdokumentation, EN: Continue/Long text)
+    continue_label = lang_strings["continue"]
+    longdoc_label = lang_strings["long_doc"]
+    has_continue = any(continue_label in label or continue_label.lower() in label.lower() for label in button_labels)
+    has_longdoc = any(longdoc_label in label or "Langdoku" in label for label in button_labels)
+    assert has_continue or has_longdoc, f"Expected '{continue_label}' or '{longdoc_label}' button. Got: {button_labels}"
 
     # Should have a close button (X)
     close_button_id = popup.close_button_id
@@ -2531,14 +2537,16 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession)
         dismiss_data = await call_tool_typed(sap_mcp_client, "sap_close_popup", {"close": True}, ClosePopupResult)
         assert dismiss_data.success, f"Close should succeed. Result: {dismiss_data}"
 
-        # Verify status bar shows "Aktion wurde abgebrochen" after closing via X
+        # Verify status bar shows "Aktion wurde abgebrochen" / "canceled" after closing via X
         status_message = dismiss_data.status_bar_message or ""
         assert (
-            "abgebrochen" in status_message.lower() or "cancelled" in status_message.lower()
-        ), f"After closing popup with X, status bar should say 'Aktion wurde abgebrochen'. Got: {status_message}"
+            "abgebrochen" in status_message.lower() or "cancel" in status_message.lower()
+        ), f"After closing popup with X, status bar should indicate cancellation. Got: {status_message}"
     else:
-        # Dismiss using "Weiter" button
-        dismiss_data = await call_tool_typed(sap_mcp_client, "sap_close_popup", {"button": "Weiter"}, ClosePopupResult)
+        # Dismiss using "Weiter/Continue" button
+        dismiss_data = await call_tool_typed(
+            sap_mcp_client, "sap_close_popup", {"button": continue_label}, ClosePopupResult
+        )
         assert dismiss_data.success, f"Dismiss should succeed. Result: {dismiss_data}"
 
     # Verify we're back to SE38

@@ -13,6 +13,16 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from sapwebguimcp.lang import (
+    SE16_COLUMN_SELECTION_DE,
+    SE16_COLUMN_SELECTION_EN,
+    SE16_HIT_COUNT_LABEL_DE,
+    SE16_HIT_COUNT_LABEL_EN,
+    SE16_ROW_SELECT_HINT_DE,
+    SE16_ROW_SELECT_HINT_EN,
+    bilingual_pattern,
+)
+
 logger = logging.getLogger(__name__)
 
 # =============================================================================
@@ -21,16 +31,16 @@ logger = logging.getLogger(__name__)
 
 # Match "Number of Hits" field - handles both English and German labels
 # German locale uses dot as thousands separator (e.g., "5.000" = 5000)
-# English: "Number of Hits"
-# German: "Anzahl Treffer" (literal translation)
-_HIT_COUNT_PATTERN = re.compile(r'textbox "(?:Number of Hits|Anzahl Treffer)": "(?P<count>[0-9.]+)"')
+# Uses explicit constants: SE16_HIT_COUNT_LABEL_DE, SE16_HIT_COUNT_LABEL_EN
+_HIT_COUNT_PATTERN = re.compile(
+    rf'textbox "{bilingual_pattern(SE16_HIT_COUNT_LABEL_DE, SE16_HIT_COUNT_LABEL_EN)}": "(?P<count>[0-9.]+)"'
+)
 
 # Match data rows - handles BOTH formats:
 # - row "To select a row..."  (no colons in row text)
 # - 'row "To select a row..."':  (has colons, YAML quotes the whole line)
-# English: "To select a row"
-# German: "Zum Auswählen einer Zeile drücken Sie die Leertaste"
-_ROW_START_PATTERN = re.compile(r"- '?row \"(?:To select a row|Zum Auswählen einer Zeile)")
+# Uses explicit constants: SE16_ROW_SELECT_HINT_DE, SE16_ROW_SELECT_HINT_EN
+_ROW_START_PATTERN = re.compile(rf"- '?row \"{bilingual_pattern(SE16_ROW_SELECT_HINT_DE, SE16_ROW_SELECT_HINT_EN)}")
 
 # Extract gridcell values - matches both "gridcell "value"" and "gridcell:"
 _GRIDCELL_WITH_VALUE_PATTERN = re.compile(r'gridcell "(?P<value>[^"]*)"')
@@ -163,14 +173,16 @@ def parse_se16_columns(snapshot: str) -> list[str]:
             logger.warning("SE16 parser: No grid found in snapshot")
             return columns
 
-        # Find the first data row (English: "To select a row", German: "Zum Auswählen einer Zeile")
-        first_row = snapshot.find('row "To select a row', grid_start)
+        # Find the first data row using explicit constants
+        # SE16_ROW_SELECT_HINT_EN = "To select a row"
+        # SE16_ROW_SELECT_HINT_DE = "Zum Auswählen einer Zeile"
+        first_row = snapshot.find(f'row "{SE16_ROW_SELECT_HINT_EN}', grid_start)
         if first_row == -1:
-            first_row = snapshot.find("'row \"To select a row", grid_start)
+            first_row = snapshot.find(f"'row \"{SE16_ROW_SELECT_HINT_EN}", grid_start)
         if first_row == -1:
-            first_row = snapshot.find('row "Zum Auswählen einer Zeile', grid_start)
+            first_row = snapshot.find(f'row "{SE16_ROW_SELECT_HINT_DE}', grid_start)
         if first_row == -1:
-            first_row = snapshot.find("'row \"Zum Auswählen einer Zeile", grid_start)
+            first_row = snapshot.find(f"'row \"{SE16_ROW_SELECT_HINT_DE}", grid_start)
 
         if first_row == -1:
             # No data rows, use everything after grid
@@ -181,9 +193,9 @@ def parse_se16_columns(snapshot: str) -> list[str]:
     # Extract all columnheader values
     for match in _COLUMNHEADER_PATTERN.finditer(header_section):
         col_name = match.group("name")
-        # Skip the row selection column (English: "Column for row selection",
-        # German: "Spalte für Zeilenauswahl")
-        if col_name not in ("Column for row selection", "Spalte für Zeilenauswahl"):
+        # Skip the row selection column
+        # Uses explicit constants: SE16_COLUMN_SELECTION_DE, SE16_COLUMN_SELECTION_EN
+        if col_name not in (SE16_COLUMN_SELECTION_EN, SE16_COLUMN_SELECTION_DE):
             columns.append(col_name)
 
     return columns

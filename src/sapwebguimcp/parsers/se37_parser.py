@@ -13,6 +13,17 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from sapwebguimcp.lang import (
+    SE37_DISPLAY_PREFIX_EN,
+    SE37_DISPLAY_SUFFIX_DE,
+    SE37_INITIAL_SCREEN_DE,
+    SE37_INITIAL_SCREEN_EN,
+    SE37_NOT_EXIST_DE,
+    SE37_NOT_EXIST_EN,
+    SE37_NOT_FOUND_DE,
+    SE37_NOT_FOUND_EN,
+    bilingual_pattern,
+)
 from sapwebguimcp.models.se37_models import (
     SE37Entry,
     SE37Error,
@@ -36,28 +47,33 @@ __all__ = [
 # =============================================================================
 
 # Function module name from heading
+# Uses explicit constants: SE37_DISPLAY_SUFFIX_DE, SE37_DISPLAY_PREFIX_EN
 # German: "Function Builder: RFC_READ_TABLE anzeigen"
 # English: "Function Builder: Display RFC_READ_TABLE"
 _FM_HEADING_PATTERN = re.compile(
-    r'heading "Function Builder:\s*(?:(?P<fm_de>[A-Z0-9_/]+)\s+anzeigen|Display\s+(?P<fm_en>[A-Z0-9_/]+))"',
+    rf'heading "Function Builder:\s*(?:(?P<fm_de>[A-Z0-9_/]+)\s+{SE37_DISPLAY_SUFFIX_DE}'
+    rf"|{SE37_DISPLAY_PREFIX_EN}\s+(?P<fm_en>[A-Z0-9_/]+))\"",
     re.IGNORECASE,
 )
 
 # Parameter row pattern - extracts data from row description
+# Uses explicit constants: SE37_DISPLAY_SUFFIX_DE ("anzeigen" button), SE37_DISPLAY_PREFIX_EN ("Display" button)
 # Format: "PARAM_NAME LIKE|TYPE REF_TYPE [DEFAULT] [optional_flag] Description Button"
 _PARAM_ROW_PATTERN = re.compile(
     r'row "(?P<name>[A-Z0-9_]+)\s+(?P<typing>LIKE|TYPE)\s+(?P<ref>[A-Z0-9_/-]+)'
     r"(?:\s+(?P<default>\S+))?"
     r"(?:\s+)?"
     r'(?P<desc>[^"]*?)'
-    r'(?:\s+Anzeigen)?"\s*:',
+    rf'(?:\s+{bilingual_pattern(SE37_DISPLAY_SUFFIX_DE, SE37_DISPLAY_PREFIX_EN)})?"\s*:',
     re.IGNORECASE,
 )
 
 # Exception row pattern
+# Uses explicit constants: SE37_DISPLAY_SUFFIX_DE, SE37_DISPLAY_PREFIX_EN
 # Format: "EXCEPTION_NAME Description Button"
+_DISPLAY_BUTTON = bilingual_pattern(SE37_DISPLAY_SUFFIX_DE, SE37_DISPLAY_PREFIX_EN)
 _EXCEPTION_ROW_PATTERN = re.compile(
-    r'row "(?P<name>[A-Z0-9_]+)\s+(?P<desc>[^"]+?)(?:\s+Anzeigen)?"\s*:',
+    rf'row "(?P<name>[A-Z0-9_]+)\s+(?P<desc>[^"]+?)(?:\s+{_DISPLAY_BUTTON})?"\s*:',
     re.IGNORECASE,
 )
 
@@ -162,22 +178,24 @@ def _parse_exception_rows(snapshot: str) -> list[SE37Exception]:
 
 def _is_initial_se37_screen(snapshot: str) -> bool:
     """Check if we're on the initial SE37 screen (no function module displayed)."""
+    # Uses explicit constants: SE37_INITIAL_SCREEN_DE, SE37_INITIAL_SCREEN_EN
     header_section = "\n".join(snapshot.split("\n")[:10])
     has_initial_heading = (
-        'heading "Function Builder: Einstieg"' in header_section
-        or 'heading "Function Builder: Initial Screen"' in header_section
+        f'heading "{SE37_INITIAL_SCREEN_DE}"' in header_section
+        or f'heading "{SE37_INITIAL_SCREEN_EN}"' in header_section
     )
     return has_initial_heading
 
 
 def _is_fm_not_found(snapshot: str, fm_name: str) -> bool:
     """Check if function module was not found (status bar message)."""
+    # Uses explicit constants: SE37_NOT_EXIST_DE/EN, SE37_NOT_FOUND_DE/EN
     not_found_patterns = [
-        f"{fm_name} ist noch nicht vorhanden",
-        f"{fm_name} does not exist",
+        f"{fm_name} {SE37_NOT_EXIST_DE}",
+        f"{fm_name} {SE37_NOT_EXIST_EN}",
         f"{fm_name} not found",
-        "nicht vorhanden",
-        "does not exist",
+        SE37_NOT_FOUND_DE,
+        SE37_NOT_FOUND_EN,
     ]
     snapshot_lower = snapshot.lower()
     return any(pattern.lower() in snapshot_lower for pattern in not_found_patterns)

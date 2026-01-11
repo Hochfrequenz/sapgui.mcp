@@ -13,6 +13,37 @@ import logging
 import re
 from datetime import UTC, datetime
 
+from sapwebguimcp.lang import (
+    SE93_AUTH_OBJECT_DE,
+    SE93_AUTH_OBJECT_EN,
+    SE93_DIALOG_TRANSACTION_DE,
+    SE93_DIALOG_TRANSACTION_EN,
+    SE93_GUI_HTML_DE,
+    SE93_GUI_HTML_EN,
+    SE93_GUI_JAVA_DE,
+    SE93_GUI_JAVA_EN,
+    SE93_GUI_WINDOWS_DE,
+    SE93_GUI_WINDOWS_EN,
+    SE93_INITIAL_SCREEN_DE,
+    SE93_INITIAL_SCREEN_EN,
+    SE93_PACKAGE_DE,
+    SE93_PACKAGE_EN,
+    SE93_PROGRAM_DE,
+    SE93_PROGRAM_EN,
+    SE93_REPORT_TRANSACTION_DE,
+    SE93_REPORT_TRANSACTION_EN,
+    SE93_SCREEN_NUMBER_DE,
+    SE93_SCREEN_NUMBER_EN,
+    SE93_SELECTION_SCREEN_DE,
+    SE93_SELECTION_SCREEN_EN,
+    SE93_START_WITH_VARIANT_DE,
+    SE93_START_WITH_VARIANT_EN,
+    SE93_TRANSACTION_CODE_DE,
+    SE93_TRANSACTION_CODE_EN,
+    SE93_TRANSACTION_TEXT_DE,
+    SE93_TRANSACTION_TEXT_EN,
+    bilingual_pattern,
+)
 from sapwebguimcp.models.se93_models import SE93Entry, SE93Error, SE93TransactionType
 
 logger = logging.getLogger(__name__)
@@ -22,10 +53,15 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 # Transaction type from heading
+# Uses explicit constants: SE93_DIALOG_TRANSACTION_DE/EN, SE93_REPORT_TRANSACTION_DE/EN
 # German: "Dialogtransaktion anzeigen", "Reporttransaktion anzeigen"
 # English: "Display Dialog Transaction", "Display Report Transaction"
-_DIALOG_HEADING_PATTERN = re.compile(r"Dialogtransaktion|Dialog Transaction", re.IGNORECASE)
-_REPORT_HEADING_PATTERN = re.compile(r"Reporttransaktion|Report Transaction", re.IGNORECASE)
+_DIALOG_HEADING_PATTERN = re.compile(
+    bilingual_pattern(SE93_DIALOG_TRANSACTION_DE, SE93_DIALOG_TRANSACTION_EN), re.IGNORECASE
+)
+_REPORT_HEADING_PATTERN = re.compile(
+    bilingual_pattern(SE93_REPORT_TRANSACTION_DE, SE93_REPORT_TRANSACTION_EN), re.IGNORECASE
+)
 
 # Textbox value extraction - matches: textbox "Label": Value or textbox "Label": "Value"
 _TEXTBOX_PATTERN = re.compile(r'textbox "(?P<label>[^"]+)"(?::\s*(?P<value>[^\n]*))?')
@@ -99,17 +135,20 @@ def _detect_transaction_type(snapshot: str) -> SE93TransactionType | None:
 
 def _extract_gui_capabilities(snapshot: str) -> tuple[bool, bool, bool]:
     """Extract GUI capability checkboxes (html, java, windows)."""
-    gui_html = _is_checkbox_checked(snapshot, "SAP GUI für HTML", "SAP GUI for HTML")
-    gui_java = _is_checkbox_checked(snapshot, "SAP GUI für Java", "SAP GUI for Java")
-    gui_windows = _is_checkbox_checked(snapshot, "SAP GUI für Windows", "SAP GUI for Windows")
+    # Uses explicit constants: SE93_GUI_HTML_DE/EN, SE93_GUI_JAVA_DE/EN, SE93_GUI_WINDOWS_DE/EN
+    gui_html = _is_checkbox_checked(snapshot, SE93_GUI_HTML_DE, SE93_GUI_HTML_EN)
+    gui_java = _is_checkbox_checked(snapshot, SE93_GUI_JAVA_DE, SE93_GUI_JAVA_EN)
+    gui_windows = _is_checkbox_checked(snapshot, SE93_GUI_WINDOWS_DE, SE93_GUI_WINDOWS_EN)
     return gui_html, gui_java, gui_windows
 
 
 def _is_initial_se93_screen(snapshot: str) -> bool:
     """Check if we're on the initial SE93 screen (no transaction displayed)."""
+    # Uses explicit constants: SE93_INITIAL_SCREEN_DE, SE93_INITIAL_SCREEN_EN
     header_section = "\n".join(snapshot.split("\n")[:10])
     has_initial_heading = (
-        'heading "Transaktionspflege"' in header_section or 'heading "Transaction Maintenance"' in header_section
+        f'heading "{SE93_INITIAL_SCREEN_DE}"' in header_section
+        or f'heading "{SE93_INITIAL_SCREEN_EN}"' in header_section
     )
     has_display_heading = "anzeigen" in header_section.lower() or "display" in header_section.lower()
     return has_initial_heading and not has_display_heading
@@ -119,13 +158,14 @@ def _extract_type_specific_fields(
     snapshot: str, tx_type: SE93TransactionType
 ) -> tuple[str | None, str | None, str | None]:
     """Extract type-specific fields (screen_number, selection_screen, start_variant)."""
+    # Uses explicit constants: SE93_SCREEN_NUMBER_DE/EN, SE93_SELECTION_SCREEN_DE/EN, SE93_START_WITH_VARIANT_DE/EN
     if tx_type == "dialog":
-        screen_number = _extract_textbox_value(snapshot, "Dynpronummer", "Screen number") or None
+        screen_number = _extract_textbox_value(snapshot, SE93_SCREEN_NUMBER_DE, SE93_SCREEN_NUMBER_EN) or None
         return screen_number, None, None
 
     # report
-    selection_screen = _extract_textbox_value(snapshot, "Selektionsbild", "Selection screen") or None
-    start_variant = _extract_textbox_value(snapshot, "Start mit Variante", "Start with variant") or None
+    selection_screen = _extract_textbox_value(snapshot, SE93_SELECTION_SCREEN_DE, SE93_SELECTION_SCREEN_EN) or None
+    start_variant = _extract_textbox_value(snapshot, SE93_START_WITH_VARIANT_DE, SE93_START_WITH_VARIANT_EN) or None
     return None, selection_screen, start_variant
 
 
@@ -167,11 +207,12 @@ def parse_se93_snapshot(snapshot: str, tcode: str) -> SE93Entry | SE93Error:
         )
 
     # Extract common fields
-    found_tcode = _extract_textbox_value(snapshot, "Transaktionscode", "Transaction code")
-    description = _extract_textbox_value(snapshot, "Transaktionstext", "Transaction text")
-    package = _extract_textbox_value(snapshot, "Paket", "Package")
-    program = _extract_textbox_value(snapshot, "Programm", "Program")
-    auth_object = _extract_textbox_value(snapshot, "Berechtigungsobjekt", "Authorization object") or None
+    # Uses explicit constants: SE93_TRANSACTION_CODE_DE/EN, SE93_TRANSACTION_TEXT_DE/EN, etc.
+    found_tcode = _extract_textbox_value(snapshot, SE93_TRANSACTION_CODE_DE, SE93_TRANSACTION_CODE_EN)
+    description = _extract_textbox_value(snapshot, SE93_TRANSACTION_TEXT_DE, SE93_TRANSACTION_TEXT_EN)
+    package = _extract_textbox_value(snapshot, SE93_PACKAGE_DE, SE93_PACKAGE_EN)
+    program = _extract_textbox_value(snapshot, SE93_PROGRAM_DE, SE93_PROGRAM_EN)
+    auth_object = _extract_textbox_value(snapshot, SE93_AUTH_OBJECT_DE, SE93_AUTH_OBJECT_EN) or None
 
     # Type-specific and GUI capability fields
     screen_number, selection_screen, start_variant = _extract_type_specific_fields(snapshot, tx_type)

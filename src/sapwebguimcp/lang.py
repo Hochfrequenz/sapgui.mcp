@@ -1,0 +1,205 @@
+"""
+Explicit DE/EN language constants for SAP GUI text matching.
+
+Every constant has _DE or _EN suffix - verbose but obvious.
+This module centralizes all language-dependent strings used in parsers.
+"""
+
+import re
+
+# =============================================================================
+# SE16 - Data Browser
+# =============================================================================
+SE16_HIT_COUNT_LABEL_DE = "Anzahl Treffer"
+SE16_HIT_COUNT_LABEL_EN = "Number of Hits"
+
+SE16_ROW_SELECT_HINT_DE = "Zum Auswählen einer Zeile"
+SE16_ROW_SELECT_HINT_EN = "To select a row"
+
+SE16_COLUMN_SELECTION_DE = "Spalte für Zeilenauswahl"
+SE16_COLUMN_SELECTION_EN = "Column for row selection"
+
+# =============================================================================
+# SE11 - ABAP Dictionary
+# =============================================================================
+SE11_DATABASE_TABLE_DE = "Datenbanktabelle"
+SE11_DATABASE_TABLE_EN = "Database table"
+
+SE11_DATA_TYPE_DE = "Datentyp"
+SE11_DATA_TYPE_EN = "Data type"
+
+SE11_TABLE_NAME_DE = "Tabellenname"
+SE11_TABLE_NAME_EN = "Table name"
+
+SE11_DISPLAY_BUTTON_DE = "Anzeigen"
+SE11_DISPLAY_BUTTON_EN = "Display"
+
+SE11_TRANSPARENT_TABLE_DE = "Transp.Tabelle"
+SE11_TRANSPARENT_TABLE_EN = "Transparent Table"
+
+SE11_STRUCTURE_DE = "Struktur"
+SE11_STRUCTURE_EN = "Structure"
+
+SE11_SHORT_DESC_DE = "Kurzbeschreibung"
+SE11_SHORT_DESC_EN = "Short Description"
+
+SE11_ROW_SELECT_PREFIX_DE = "Zum Auswählen"
+SE11_ROW_SELECT_PREFIX_EN = "To select a row"
+
+SE11_ROW_SELECT_FULL_DE = r"Zum Auswählen[^\"]*Leertaste\."
+SE11_ROW_SELECT_FULL_EN = r"To select a row, press the space bar\."
+
+SE11_DICTIONARY_TYPE_DE = "Dictionary.*Typ"
+SE11_DICTIONARY_TYPE_EN = "Dictionary.*type"
+
+# Error messages
+SE11_NOT_EXIST_DE = "existiert nicht"
+SE11_NOT_EXIST_EN = "does not exist"
+
+SE11_NOT_FOUND_DE = "nicht gefunden"
+SE11_NOT_FOUND_EN = "not found"
+
+# =============================================================================
+# SE37 - Function Builder
+# =============================================================================
+SE37_DISPLAY_SUFFIX_DE = "anzeigen"
+SE37_DISPLAY_PREFIX_EN = "Display"
+
+SE37_INITIAL_SCREEN_DE = "Function Builder: Einstieg"
+SE37_INITIAL_SCREEN_EN = "Function Builder: Initial Screen"
+
+SE37_NOT_EXIST_DE = "ist noch nicht vorhanden"
+SE37_NOT_EXIST_EN = "does not exist"
+
+SE37_NOT_FOUND_DE = "nicht vorhanden"
+SE37_NOT_FOUND_EN = "does not exist"
+
+# =============================================================================
+# SE24 - Class Builder
+# =============================================================================
+SE24_CLASS_BUILDER_DE = "Klassenpflege"
+SE24_CLASS_BUILDER_EN = "Class Builder"
+
+SE24_DISPLAY_SUFFIX_DE = "anzeigen"
+SE24_DISPLAY_PREFIX_EN = "Display"
+
+SE24_OBJECT_TYPE_DE = "Objekttyp"
+SE24_OBJECT_TYPE_EN = "Object Type"
+
+SE24_CLASS_DE = "Klasse"
+SE24_CLASS_EN = "Class"
+
+SE24_INTERFACE_DE = "Interface"
+SE24_INTERFACE_EN = "Interface"
+
+# Visibility keywords
+SE24_PUBLIC_DE = "Öffentlich"
+SE24_PUBLIC_EN = "Public"
+
+SE24_PRIVATE_DE = "Privat"
+SE24_PRIVATE_EN = "Private"
+
+SE24_PROTECTED_DE = "Geschützt"
+SE24_PROTECTED_EN = "Protected"
+
+# Modifier keywords
+SE24_STATIC_DE = "Statisch"
+SE24_STATIC_EN = "Static"
+
+SE24_ABSTRACT_DE = "Abstrakt"
+SE24_ABSTRACT_EN = "Abstract"
+
+# Initial screen
+SE24_INITIAL_SCREEN_DE = "Klassenpflege: Einstieg"
+SE24_INITIAL_SCREEN_EN = "Class Builder: Initial"
+
+# Error messages
+SE24_NOT_FOUND_DE = "nicht vorhanden"
+SE24_NOT_FOUND_EN = "does not exist"
+
+SE24_NOT_EXIST_DE = "existiert nicht"
+SE24_NOT_EXIST_EN = "does not exist"
+
+# =============================================================================
+# SE93 - Transaction Maintenance
+# =============================================================================
+SE93_DIALOG_TRANSACTION_DE = "Dialogtransaktion"
+SE93_DIALOG_TRANSACTION_EN = "Dialog Transaction"
+
+SE93_REPORT_TRANSACTION_DE = "Reporttransaktion"
+SE93_REPORT_TRANSACTION_EN = "Report Transaction"
+
+SE93_INITIAL_SCREEN_DE = "Transaktionspflege"
+SE93_INITIAL_SCREEN_EN = "Transaction Maintenance"
+
+# GUI capability labels
+SE93_GUI_HTML_DE = "SAP GUI für HTML"
+SE93_GUI_HTML_EN = "SAP GUI for HTML"
+
+SE93_GUI_JAVA_DE = "SAP GUI für Java"
+SE93_GUI_JAVA_EN = "SAP GUI for Java"
+
+SE93_GUI_WINDOWS_DE = "SAP GUI für Windows"
+SE93_GUI_WINDOWS_EN = "SAP GUI for Windows"
+
+# Field labels
+SE93_SCREEN_NUMBER_DE = "Dynpronummer"
+SE93_SCREEN_NUMBER_EN = "Screen number"
+
+SE93_SELECTION_SCREEN_DE = "Selektionsbild"
+SE93_SELECTION_SCREEN_EN = "Selection screen"
+
+SE93_START_WITH_VARIANT_DE = "Start mit Variante"
+SE93_START_WITH_VARIANT_EN = "Start with variant"
+
+SE93_TRANSACTION_CODE_DE = "Transaktionscode"
+SE93_TRANSACTION_CODE_EN = "Transaction code"
+
+SE93_TRANSACTION_TEXT_DE = "Transaktionstext"
+SE93_TRANSACTION_TEXT_EN = "Transaction text"
+
+SE93_PACKAGE_DE = "Paket"
+SE93_PACKAGE_EN = "Package"
+
+SE93_PROGRAM_DE = "Programm"
+SE93_PROGRAM_EN = "Program"
+
+SE93_AUTH_OBJECT_DE = "Berechtigungsobjekt"
+SE93_AUTH_OBJECT_EN = "Authorization object"
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+
+def bilingual_pattern(de: str, en: str, *, escape: bool = True) -> str:
+    """
+    Build regex alternation from DE/EN pair: (?:DE|EN)
+
+    Args:
+        de: German string
+        en: English string
+        escape: Whether to escape regex special characters (default True)
+
+    Returns:
+        Regex pattern string like (?:Anzahl Treffer|Number of Hits)
+    """
+    if escape:
+        return f"(?:{re.escape(de)}|{re.escape(en)})"
+    return f"(?:{de}|{en})"
+
+
+def bilingual_pattern_ignorecase(de: str, en: str, *, escape: bool = True) -> str:
+    """
+    Build case-insensitive regex alternation from DE/EN pair.
+
+    Args:
+        de: German string
+        en: English string
+        escape: Whether to escape regex special characters (default True)
+
+    Returns:
+        Regex pattern string (use with re.IGNORECASE flag)
+    """
+    return bilingual_pattern(de, en, escape=escape)
