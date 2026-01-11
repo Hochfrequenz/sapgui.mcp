@@ -16,7 +16,12 @@ from mcp.types import ToolAnnotations
 
 from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row, get_browser_manager
 from sapwebguimcp.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
-from sapwebguimcp.tools.sap_tool_impl import sap_fill_form_impl, sap_keyboard_impl, sap_transaction_impl
+from sapwebguimcp.tools.sap_tool_impl import (
+    _load_js,
+    sap_fill_form_impl,
+    sap_keyboard_impl,
+    sap_transaction_impl,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +95,45 @@ async def _fill_se16n_fields(table: str, max_hits: int) -> str | None:
         return f"Failed to set table name field. Not found: {fill_result.not_found}"
 
     return None
+
+
+async def _fill_se16n_filters(filters: dict[str, str] | None) -> list[str]:
+    """
+    Fill filter values in SE16N selection criteria grid.
+
+    Args:
+        filters: Dict of {field_name: value} to filter on.
+                 Field names should be technical names (e.g., "TCODE", "PGMNA").
+
+    Returns:
+        List of error messages (empty if all filters applied successfully).
+    """
+    if not filters:
+        return []
+
+    errors: list[str] = []
+    page = await (await get_browser_manager()).get_current_page()
+
+    js_code = _load_js("fill_se16_filter.js")
+
+    for field_name, value in filters.items():
+        try:
+            result = await page.evaluate(js_code, {"fieldName": field_name.upper(), "value": value})
+            if not result.get("success"):
+                error_msg = result.get("error", f"Unknown error for field {field_name}")
+                errors.append(error_msg)
+                logger.warning("SE16: Filter error: %s", error_msg)
+            else:
+                logger.info("SE16: Applied filter %s=%s", field_name, value)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            errors.append(f"Failed to apply filter {field_name}={value}: {e}")
+            logger.warning("SE16: Filter exception for %s: %s", field_name, e)
+
+    # Small delay to let SAP process the filter values
+    if filters:
+        await page.wait_for_timeout(500)
+
+    return errors
 
 
 def _check_table_not_found(snapshot: str, table: str) -> str | None:
@@ -247,9 +291,10 @@ async def _execute_se16_query(
     if fill_error := await _fill_se16n_fields(table, max_hits):
         return _empty_failure(fill_error, table, now)
 
-    # Log warning for filters (not yet implemented)
-    for field_name, value in (filters or {}).items():
-        logger.warning("SE16: Filter %s=%s not yet implemented", field_name, value)
+    # Apply filters to selection criteria grid
+    filter_errors = await _fill_se16n_filters(filters)
+    if filter_errors:
+        logger.warning("SE16: Some filters could not be applied: %s", filter_errors)
 
     # Execute query (F8) and wait for results
     await sap_keyboard_impl("F8")
@@ -338,7 +383,7 @@ def register_se16_tools(mcp: FastMCP) -> None:
         Args:
             ctx: FastMCP context (injected)
             table: Table name to query (e.g., "MARA", "T000", "TSTC")
-            filters: Optional filter dict {field_name: value} (not yet implemented)
+            filters: Optional filter dict {field_name: value} - uses technical field names
             max_hits: Maximum rows to return (default 100)
             output_file: If provided, write full results to this JSON file and return summary
 
