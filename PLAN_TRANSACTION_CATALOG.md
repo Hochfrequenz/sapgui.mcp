@@ -2,6 +2,35 @@
 
 This document describes the plan to scrape SAP transaction codes and expose them as MCP resources for AI-assisted SAP navigation.
 
+## Progress (Updated 2026-01-11)
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Phase 1: Scrape Transaction Data | ✅ Complete | `scrape_tstc()`, `enrich_with_se93()` |
+| Phase 2: Create MCP Resource | ✅ Complete | `search_transactions` tool registered |
+| Phase 3: Search Implementation | ✅ Complete | Keyword matching with scoring |
+| Phase 4: Integration & Testing | 🔄 Pending | Need to scrape initial catalog |
+
+### Files Created
+
+```
+src/sapwebguimcp/catalog/
+├── __init__.py      # Module exports
+├── models.py        # TransactionInfo, TransactionCatalog
+├── scraper.py       # scrape_tstc(), enrich_with_se93()
+├── loader.py        # load_catalog(), get_catalog()
+└── search.py        # search_transactions()
+
+src/sapwebguimcp/tools/
+└── catalog_tools.py # MCP tool registration
+```
+
+### Next Steps
+
+1. Restart MCP server to pick up new tools
+2. Run initial catalog scrape with common prefixes (VA*, ME*, MM*, etc.)
+3. Enable skipped SE16 filter tests
+
 ## Background
 
 The goal is to build a transaction catalog that helps Claude (and other LLMs) understand which SAP transactions exist and what they do, so it can suggest appropriate transactions for user tasks.
