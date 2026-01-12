@@ -36,12 +36,6 @@ from sapwebguimcp.catalog.loader import (
     reload_catalog,
 )
 from sapwebguimcp.catalog.models import TransactionCatalog, TransactionInfo, detect_area
-from sapwebguimcp.catalog.search import SearchResult, search_transactions
-
-# =============================================================================
-# DEVELOPMENT EXPORTS - For catalog building (not MCP tools)
-# =============================================================================
-
 from sapwebguimcp.catalog.scraper import (
     enrich_with_se93,
     load_catalog_for_scraping,
@@ -50,6 +44,12 @@ from sapwebguimcp.catalog.scraper import (
     scrape_catalog,
     scrape_tstc,
 )
+from sapwebguimcp.catalog.search import SearchResult, search_transactions
+
+# =============================================================================
+# DEVELOPMENT EXPORTS - For catalog building (not MCP tools)
+# =============================================================================
+
 
 __all__ = [
     # -------------------------------------------------------------------------

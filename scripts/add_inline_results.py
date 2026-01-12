@@ -16,7 +16,6 @@ sys.path.insert(0, str(project_root / "src"))
 
 from sapwebguimcp.catalog.models import TransactionCatalog, TransactionInfo, detect_area
 
-
 # Inline results from the scraping session
 INLINE_RESULTS = [
     # VL* (154 total, showing key ones)
