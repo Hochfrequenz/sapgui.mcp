@@ -5,8 +5,8 @@
     // SAP Web GUI uses lsdata attributes on elements that contain row/column indices:
     // Example: lsdata="...SELFIELDS-LOW[2,0]" means column 2, row 0
     // The row index in lsdata matches the field order from SE11.
-    const rowIndex = args.rowIndex;  // 0-based index matching SE11 field order
-    const fieldName = args.fieldName || '';  // Optional, for error messages
+    const rowIndex = args.rowIndex; // 0-based index matching SE11 field order
+    const fieldName = args.fieldName || ''; // Optional, for error messages
     const debug = { strategy: '', inputsFound: 0 };
 
     // First, find the selection criteria grid
@@ -14,9 +14,13 @@
     let selectionGrid = null;
     for (const grid of grids) {
         const gridText = grid.textContent || '';
-        if (gridText.includes('Feldname') || gridText.includes('Field') ||
-            gridText.includes('Von-Wert') || gridText.includes('From-Value') ||
-            gridText.includes('Selektionskriterien')) {
+        if (
+            gridText.includes('Feldname') ||
+            gridText.includes('Field') ||
+            gridText.includes('Von-Wert') ||
+            gridText.includes('From-Value') ||
+            gridText.includes('Selektionskriterien')
+        ) {
             selectionGrid = grid;
             break;
         }
@@ -26,7 +30,7 @@
         return {
             success: false,
             error: 'Selection criteria grid not found',
-            debug: { gridsFound: grids.length }
+            debug: { gridsFound: grids.length },
         };
     }
 
@@ -52,9 +56,11 @@
                     rowIndex,
                     fieldName,
                     strategy: 'grid-textbox-input',
-                    selector: actualInput.id ? `#${actualInput.id}` : `[lsdata*="SELFIELDS-LOW"][lsdata*=",${rowIndex}]"] input`,
+                    selector: actualInput.id
+                        ? `#${actualInput.id}`
+                        : `[lsdata*="SELFIELDS-LOW"][lsdata*=",${rowIndex}]"] input`,
                     elementId: actualInput.id || textbox.id,
-                    elementType: 'input'
+                    elementType: 'input',
                 };
             }
 
@@ -65,9 +71,11 @@
                     rowIndex,
                     fieldName,
                     strategy: 'grid-textbox-contenteditable',
-                    selector: textbox.id ? `#${textbox.id}` : `[role="textbox"][lsdata*="SELFIELDS-LOW"][lsdata*=",${rowIndex}]"]`,
+                    selector: textbox.id
+                        ? `#${textbox.id}`
+                        : `[role="textbox"][lsdata*="SELFIELDS-LOW"][lsdata*=",${rowIndex}]"]`,
                     elementId: textbox.id,
-                    elementType: 'contenteditable'
+                    elementType: 'contenteditable',
                 };
             }
 
@@ -80,7 +88,7 @@
                 selector: textbox.id ? `#${textbox.id}` : null,
                 elementId: textbox.id,
                 elementType: 'textbox',
-                lsdata: lsdata.substring(0, 100)
+                lsdata: lsdata.substring(0, 100),
             };
         }
     }
@@ -97,9 +105,11 @@
                 rowIndex,
                 fieldName,
                 strategy: 'input-lsdata',
-                selector: input.id ? `#${input.id}` : `input[lsdata*="SELFIELDS-LOW"][lsdata*=",${rowIndex}]"]`,
+                selector: input.id
+                    ? `#${input.id}`
+                    : `input[lsdata*="SELFIELDS-LOW"][lsdata*=",${rowIndex}]"]`,
                 elementId: input.id,
-                elementType: 'input'
+                elementType: 'input',
             };
         }
     }
@@ -117,7 +127,7 @@
                     strategy: 'input-lsdata-regex',
                     selector: input.id ? `#${input.id}` : null,
                     elementId: input.id,
-                    elementType: 'input'
+                    elementType: 'input',
                 };
             }
         }
@@ -129,7 +139,7 @@
         const tb = gridTextboxes[i];
         sampleTextboxes.push({
             id: tb.id,
-            lsdata: (tb.getAttribute('lsdata') || '').substring(0, 80)
+            lsdata: (tb.getAttribute('lsdata') || '').substring(0, 80),
         });
     }
     debug.sampleTextboxes = sampleTextboxes;
@@ -137,6 +147,6 @@
     return {
         success: false,
         error: `No input found for row ${rowIndex} field '${fieldName}'`,
-        debug
+        debug,
     };
 };

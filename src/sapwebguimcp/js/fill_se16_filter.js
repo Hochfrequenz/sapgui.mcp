@@ -3,7 +3,13 @@
     // Finds the row with matching technical field name and fills the From-Value input
     const fieldName = args.fieldName;
     const value = args.value;
-    const debug = { gridsFound: 0, rowsScanned: 0, buttonsFound: [], fieldsAvailable: [], rowNames: [] };
+    const debug = {
+        gridsFound: 0,
+        rowsScanned: 0,
+        buttonsFound: [],
+        fieldsAvailable: [],
+        rowNames: [],
+    };
 
     // Find the selection criteria grid - look for the grid containing field names
     const grids = document.querySelectorAll('[role="grid"]');
@@ -94,12 +100,22 @@
                         input.dispatchEvent(new Event('input', { bubbles: true }));
                         input.dispatchEvent(new Event('change', { bubbles: true }));
                         input.blur();
-                        return { success: true, field: fieldName, value: value, inputsFound: inputs.length };
+                        return {
+                            success: true,
+                            field: fieldName,
+                            value: value,
+                            inputsFound: inputs.length,
+                        };
                     }
                 }
                 return {
                     success: false,
-                    error: 'Input not found in row for field: ' + fieldName + ' (row had ' + inputs.length + ' inputs)',
+                    error:
+                        'Input not found in row for field: ' +
+                        fieldName +
+                        ' (row had ' +
+                        inputs.length +
+                        ' inputs)',
                     debug,
                     rowName: rowName.substring(0, 100),
                 };
