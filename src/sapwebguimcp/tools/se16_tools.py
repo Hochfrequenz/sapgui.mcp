@@ -64,6 +64,11 @@ async def _get_field_order_from_se11(table: str) -> dict[str, int] | None:
     try:
         result = await _lookup_single_object(page, table, "table")
 
+        # Press F3 (Back) to exit SE11 and return to clean state
+        # This prevents state issues when navigating to SE16N next
+        await page.keyboard.press("F3")
+        await page.wait_for_timeout(500)
+
         # Check if we got an SE11Entry (success) vs SE11Error
         if hasattr(result, "fields") and result.fields:
             # Build mapping: field_name -> row_index
@@ -221,7 +226,7 @@ async def _fill_filter_with_playwright(
     Fill a filter field using Playwright's native click + type.
 
     Tries element ID first, then selector. Uses Ctrl+A to clear before typing.
-    Does not press any key after typing - the next operation will naturally blur.
+    After typing, clicks on body to blur and commit the value to SAP.
 
     Returns:
         True if fill succeeded, False otherwise.
@@ -235,8 +240,9 @@ async def _fill_filter_with_playwright(
                 await page.wait_for_timeout(100)
                 await page.keyboard.press("Control+a")
                 await page.keyboard.type(value, delay=30)
-                # Don't press any key - next click will blur naturally
-                await page.wait_for_timeout(100)
+                # Click body to blur and commit the value
+                await page.locator("body").click(position={"x": 10, "y": 10})
+                await page.wait_for_timeout(300)
                 logger.info("SE16: Filled filter %s=%s via Playwright (id)", field_name, value)
                 return True
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -251,8 +257,9 @@ async def _fill_filter_with_playwright(
                 await page.wait_for_timeout(100)
                 await page.keyboard.press("Control+a")
                 await page.keyboard.type(value, delay=30)
-                # Don't press any key - next click will blur naturally
-                await page.wait_for_timeout(100)
+                # Click body to blur and commit the value
+                await page.locator("body").click(position={"x": 10, "y": 10})
+                await page.wait_for_timeout(300)
                 logger.info("SE16: Filled filter %s=%s via Playwright (selector)", field_name, value)
                 return True
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -387,13 +394,23 @@ def _check_table_not_found(snapshot: str, table: str) -> str | None:
     if "does not exist" in snapshot_lower or "existiert nicht" in snapshot_lower:
         return f"Table '{table}' not found in SAP"
 
-    # Check if still on selection screen (table doesn't exist or error occurred)
-    # Selection screen has columns like "Feldname", "Option", "Von-Wert" (German) or
-    # "Field Name", "Option", "From-Value" (English) - not data columns
-    selection_screen_columns = {"Feldname", "Field Name", "Option", "Von-Wert", "From-Value"}
-    if any(col in snapshot for col in selection_screen_columns):
-        return f"Table '{table}' not found in SAP (still on selection screen)"
+    # Check for selection screen FIRST (takes priority over results heading)
+    # Selection screen has specific filter columns that don't appear on results page:
+    # "Von-Wert"/"From-Value" (filter value column) is unique to selection screen
+    selection_only_columns = {"Von-Wert", "From-Value", "Bis-Wert", "To-Value"}
+    for col in selection_only_columns:
+        if col in snapshot:
+            logger.info("SE16: Found selection-only column '%s', still on selection screen", col)
+            return f"Table '{table}' not found in SAP (still on selection screen)"
 
+    # Check if we're on the results page by looking for the results title
+    results_titles = {"Allgemeine Tabellenanzeige", "General Table Display"}
+    for title in results_titles:
+        if title in snapshot:
+            logger.debug("SE16: Found results title '%s', table exists", title)
+            return None  # We're on results page, no error
+
+    logger.debug("SE16: No clear indicator found in snapshot")
     return None
 
 
@@ -499,7 +516,7 @@ async def _collect_rows_with_pagination(
     return all_rows
 
 
-async def _execute_se16_query(
+async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branches
     table: str,
     filters: dict[str, str] | None,
     max_hits: int,
@@ -553,7 +570,20 @@ async def _execute_se16_query(
     # Set max hits
     await _fill_se16n_max_hits(max_hits)
 
+    # Click on the table name field to ensure focus is in the main screen area
+    # (not stuck in filter grid which can interfere with F8)
+    try:
+        for field_name in ["Table", "Tabelle"]:
+            textbox = page.get_by_role("textbox", name=field_name).first
+            if await textbox.count() > 0:
+                await textbox.click()
+                await page.wait_for_timeout(200)
+                break
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass  # Best effort - continue with F8
+
     # Execute query (F8) and wait for results
+    logger.info("SE16: Executing query with F8")
     await sap_keyboard_impl("F8")
     await page.wait_for_timeout(3000)
 
@@ -562,6 +592,8 @@ async def _execute_se16_query(
 
     # Check for table not found errors
     if table_error := _check_table_not_found(snapshot, table):
+        # Log first 500 chars of snapshot for debugging
+        logger.warning("SE16: Check failed, snapshot preview: %s", snapshot[:500])
         return _empty_failure(table_error, table, now)
 
     # Parse hit count and columns
