@@ -22,6 +22,7 @@ from sapwebguimcp.tools.sap_tool_impl import (
     sap_keyboard_impl,
     sap_transaction_impl,
 )
+from sapwebguimcp.tools.se11_tools import _lookup_single_object
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,47 @@ PAGE_WAIT_TIME = timedelta(seconds=1)
 
 # Maximum pages to traverse (supports SE16N's 9999 row limit at ~13 rows/page)
 MAX_PAGES = 800
+
+
+# =============================================================================
+# SE11 Field Order Helper
+# =============================================================================
+
+
+async def _get_field_order_from_se11(table: str) -> dict[str, int] | None:
+    """
+    Get field order from SE11 for a table.
+
+    Returns a dict mapping field name (uppercase) to 0-based row index,
+    or None if SE11 lookup fails.
+
+    The order in SE11 matches the row order in SE16N's selection criteria grid.
+    """
+    page = await (await get_browser_manager()).get_current_page()
+
+    try:
+        result = await _lookup_single_object(page, table, "table")
+
+        # Press F3 (Back) to exit SE11 and return to clean state
+        # This prevents state issues when navigating to SE16N next
+        await page.keyboard.press("F3")
+        await page.wait_for_timeout(500)
+
+        # Check if we got an SE11Entry (success) vs SE11Error
+        if hasattr(result, "fields") and result.fields:
+            # Build mapping: field_name -> row_index
+            field_order: dict[str, int] = {}
+            for idx, field in enumerate(result.fields):
+                field_order[field.name.upper()] = idx
+            logger.info("SE16: Got %d fields from SE11 for table %s", len(field_order), table)
+            return field_order
+
+        logger.warning("SE16: SE11 lookup returned no fields for %s", table)
+        return None
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.warning("SE16: SE11 lookup failed for %s: %s", table, e)
+        return None
 
 
 # =============================================================================
@@ -69,41 +111,220 @@ def _empty_failure(
     )
 
 
-async def _fill_se16n_fields(table: str, max_hits: int) -> str | None:
+async def _fill_se16n_table_name(table: str) -> str | None:
     """
-    Fill SE16N table name and max hits fields.
+    Fill SE16N table name field.
 
     Tries English labels first, then German.
 
     Returns:
         Error message if failed, None if successful.
     """
-    # Try English labels first
-    fill_result = await sap_fill_form_impl(
-        {"Table": table.upper(), "Max. Number of Hits": str(max_hits)},
-        strict=False,
-    )
+    # Try English label first
+    fill_result = await sap_fill_form_impl({"Table": table.upper()}, strict=False)
     if "Table" not in fill_result.not_found:
         return None
 
-    # Try German labels (SAP SE16N uses "Maximale Trefferzahl" for max hits)
-    fill_result = await sap_fill_form_impl(
-        {"Tabelle": table.upper(), "Maximale Trefferzahl": str(max_hits)},
-        strict=False,
-    )
+    # Try German label
+    fill_result = await sap_fill_form_impl({"Tabelle": table.upper()}, strict=False)
     if "Tabelle" in fill_result.not_found:
         return f"Failed to set table name field. Not found: {fill_result.not_found}"
 
     return None
 
 
-async def _fill_se16n_filters(filters: dict[str, str] | None) -> list[str]:
+async def _type_table_name_with_validation(page: Any, table: str) -> str | None:
     """
-    Fill filter values in SE16N selection criteria grid.
+    Type table name in SE16N and trigger validation with Enter.
+
+    This approach mimics user behavior to trigger SAP's table validation
+    round-trip, which populates the selection criteria grid.
+
+    Returns:
+        Error message if failed, None if successful.
+    """
+    # Find and click on the table textbox, then type the table name
+    for textbox_name in ["Table", "Tabelle"]:
+        try:
+            textbox = page.get_by_role("textbox", name=textbox_name).first
+            if await textbox.count() > 0:
+                await textbox.click()
+                await textbox.fill("")  # Clear first
+                await textbox.type(table.upper(), delay=50)  # Type slowly
+                logger.info("SE16: Typed table name '%s' in field '%s'", table, textbox_name)
+
+                # Use sap_keyboard_impl to send Enter - waits for networkidle
+                logger.info("SE16: Pressing Enter to trigger table validation")
+                await sap_keyboard_impl("Enter")
+                return None
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.warning("SE16: Error typing in table field %s: %s", textbox_name, e)
+
+    # Fallback to fill_form approach
+    if fill_error := await _fill_se16n_table_name(table):
+        return fill_error
+    logger.warning("SE16: Used fallback fill_form for table name")
+    await sap_keyboard_impl("Enter")
+    return None
+
+
+async def _wait_for_grid_rows(page: Any, timeout_seconds: int = 5) -> bool:
+    """
+    Wait for SE16N selection criteria grid to populate with data rows.
+
+    Returns:
+        True if grid has rows, False if timeout.
+    """
+    for i in range(timeout_seconds * 2):  # Poll every 500ms
+        result = await page.evaluate(
+            """
+            () => {
+                const grids = document.querySelectorAll('[role="grid"]');
+                for (const grid of grids) {
+                    const rows = grid.querySelectorAll('[role="row"]');
+                    for (const row of rows) {
+                        if (row.querySelector('[role="columnheader"]')) continue;
+                        const text = row.textContent?.trim() || '';
+                        if (text && !text.match(/^(Leer\\s*)+$/)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+        """
+        )
+        if result:
+            logger.info("SE16: Table structure loaded (poll iteration %d)", i)
+            return True
+        await page.wait_for_timeout(500)
+
+    logger.warning("SE16: Grid not populated after %ds polling", timeout_seconds)
+    return False
+
+
+async def _fill_se16n_max_hits(max_hits: int) -> None:
+    """
+    Fill SE16N max hits field.
+
+    Tries English labels first, then German. Ignores errors since
+    the field has a default value.
+    """
+    # Try English label first
+    fill_result = await sap_fill_form_impl({"Max. Number of Hits": str(max_hits)}, strict=False)
+    if "Max. Number of Hits" not in fill_result.not_found:
+        return
+
+    # Try German label
+    await sap_fill_form_impl({"Maximale Trefferzahl": str(max_hits)}, strict=False)
+
+
+async def _fill_filter_with_playwright(
+    page: Any, element_id: str | None, selector: str | None, value: str, field_name: str
+) -> bool:
+    """
+    Fill a filter field using Playwright's native click + type.
+
+    Tries element ID first, then selector. Uses Ctrl+A to clear before typing.
+    After typing, clicks on body to blur and commit the value to SAP.
+
+    Returns:
+        True if fill succeeded, False otherwise.
+    """
+    # Try by element ID first (use attribute selector for IDs with special chars)
+    if element_id:
+        try:
+            element = page.locator(f'[id="{element_id}"]')
+            if await element.count() > 0:
+                await element.click()
+                await page.wait_for_timeout(100)
+                await page.keyboard.press("Control+a")
+                await page.keyboard.type(value, delay=30)
+                # Click body to blur and commit the value
+                await page.locator("body").click(position={"x": 10, "y": 10})
+                await page.wait_for_timeout(300)
+                logger.info("SE16: Filled filter %s=%s via Playwright (id)", field_name, value)
+                return True
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.warning("SE16: Playwright fill by ID failed: %s", e)
+
+    # Try by CSS selector
+    if selector:
+        try:
+            element = page.locator(selector)
+            if await element.count() > 0:
+                await element.click()
+                await page.wait_for_timeout(100)
+                await page.keyboard.press("Control+a")
+                await page.keyboard.type(value, delay=30)
+                # Click body to blur and commit the value
+                await page.locator("body").click(position={"x": 10, "y": 10})
+                await page.wait_for_timeout(300)
+                logger.info("SE16: Filled filter %s=%s via Playwright (selector)", field_name, value)
+                return True
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.warning("SE16: Playwright fill by selector failed: %s", e)
+
+    return False
+
+
+async def _fill_filter_by_index(page: Any, find_js: str, field_name: str, value: str, row_index: int) -> str | None:
+    """
+    Fill a single filter field using index-based approach.
+
+    Uses JS to find the element, then Playwright to fill it.
+
+    Returns:
+        Error message if failed, None if successful.
+    """
+    # Find the element using JS
+    result = await page.evaluate(find_js, {"rowIndex": row_index, "fieldName": field_name})
+
+    if not result.get("success"):
+        error_msg = str(result.get("error", f"Could not find element for {field_name}"))
+        debug_info = result.get("debug", {})
+        logger.warning("SE16: Find element failed - %s, debug=%s", error_msg, debug_info)
+        return error_msg
+
+    # Extract element info
+    element_id = result.get("elementId")
+    selector = result.get("selector")
+    strategy = result.get("strategy", "unknown")
+    element_type = result.get("elementType", "unknown")
+
+    logger.info(
+        "SE16: Found element for %s (row %d): id=%s, type=%s, strategy=%s",
+        field_name,
+        row_index,
+        element_id,
+        element_type,
+        strategy,
+    )
+
+    # Fill using Playwright
+    if await _fill_filter_with_playwright(page, element_id, selector, value, field_name):
+        return None
+
+    return f"Found element for {field_name} but Playwright fill failed"
+
+
+async def _fill_se16n_filters(filters: dict[str, str] | None, field_order: dict[str, int] | None) -> list[str]:
+    """
+    Fill filter values in SE16N selection criteria grid using row indices.
+
+    Uses SE11 field order mapping to find the correct row index for each field,
+    avoiding the need to search for field names in the DOM (which fails due to
+    SAP Web GUI's lazy column rendering).
+
+    Uses a two-step approach:
+    1. JavaScript finds the target element's ID/selector
+    2. Playwright's native click + type fills the value (triggers proper SAP events)
 
     Args:
         filters: Dict of {field_name: value} to filter on.
                  Field names should be technical names (e.g., "TCODE", "PGMNA").
+        field_order: Dict mapping field names to row indices from SE11.
+                     If None, falls back to name-based search (may fail).
 
     Returns:
         List of error messages (empty if all filters applied successfully).
@@ -114,33 +335,43 @@ async def _fill_se16n_filters(filters: dict[str, str] | None) -> list[str]:
     errors: list[str] = []
     page = await (await get_browser_manager()).get_current_page()
 
-    js_code = _load_js("fill_se16_filter.js")
+    # Load appropriate JS based on whether we have field order
+    find_js = _load_js("find_se16_filter_input.js") if field_order else None
+    fill_js = _load_js("fill_se16_filter.js") if not field_order else None
+
+    if not field_order:
+        logger.warning("SE16: No field order available, falling back to name-based filter search")
 
     for field_name, value in filters.items():
+        field_upper = field_name.upper()
+
         try:
-            result = await page.evaluate(js_code, {"fieldName": field_name.upper(), "value": value})
-            if not result.get("success"):
-                error_msg = result.get("error", f"Unknown error for field {field_name}")
-                debug_info = result.get("debug", {})
-                if debug_info:
-                    logger.warning(
-                        "SE16: Filter debug - grids=%d, rows=%d, fields=%s, buttons=%s",
-                        debug_info.get("gridsFound", 0),
-                        debug_info.get("rowsScanned", 0),
-                        debug_info.get("fieldsAvailable", []),
-                        debug_info.get("buttonsFound", [])[:10],  # First 10 buttons
-                    )
-                errors.append(error_msg)
-                logger.warning("SE16: Filter error: %s", error_msg)
-            else:
-                logger.info("SE16: Applied filter %s=%s", field_name, value)
+            if field_order and find_js:
+                # Check if field exists in table
+                if field_upper not in field_order:
+                    available = list(field_order.keys())[:10]
+                    errors.append(f"Field '{field_name}' not found in table (available: {available})")
+                    continue
+
+                # Fill using index-based approach
+                error = await _fill_filter_by_index(page, find_js, field_upper, value, field_order[field_upper])
+                if error:
+                    errors.append(error)
+
+            elif fill_js:
+                # Fall back to name-based JavaScript approach
+                result = await page.evaluate(fill_js, {"fieldName": field_upper, "value": value})
+
+                if not result.get("success"):
+                    error_msg = result.get("error", f"Unknown error for field {field_name}")
+                    errors.append(error_msg)
+                    logger.warning("SE16: Filter error (name-based): %s", error_msg)
+                else:
+                    logger.info("SE16: Applied filter %s=%s via JS (name-based)", field_name, value)
+
         except Exception as e:  # pylint: disable=broad-exception-caught
             errors.append(f"Failed to apply filter {field_name}={value}: {e}")
             logger.warning("SE16: Filter exception for %s: %s", field_name, e)
-
-    # Small delay to let SAP process the filter values
-    if filters:
-        await page.wait_for_timeout(500)
 
     return errors
 
@@ -157,14 +388,32 @@ def _check_table_not_found(snapshot: str, table: str) -> str | None:
     if "does not exist" in snapshot_lower or "existiert nicht" in snapshot_lower:
         return f"Table '{table}' not found in SAP"
 
-    # Check if still on selection screen (table doesn't exist or error occurred)
-    # Selection screen has columns like "Feldname", "Option", "Von-Wert" (German) or
-    # "Field Name", "Option", "From-Value" (English) - not data columns
-    selection_screen_columns = {"Feldname", "Field Name", "Option", "Von-Wert", "From-Value"}
-    if any(col in snapshot for col in selection_screen_columns):
-        return f"Table '{table}' not found in SAP (still on selection screen)"
-
+    # No explicit error - will check columns after parsing
     return None
+
+
+def _check_selection_screen_columns(columns: list[str]) -> bool:
+    """
+    Check if parsed columns indicate we're still on the selection screen.
+
+    SE16N selection screen has these column headers in the filter grid:
+    - DE: Feldname, Option, Von-Wert, Bis-Wert, Mehr, Ausgabe, Technischer Name
+    - EN: Field Name, Option, From-Value, To-Value, More, Output, Technical Name
+
+    Returns:
+        True if columns indicate selection screen, False otherwise.
+    """
+    # Selection screen column names (DE and EN)
+    selection_columns_de = {"Feldname", "Von-Wert", "Bis-Wert", "Technischer Name"}
+    selection_columns_en = {"Field Name", "From-Value", "To-Value", "Technical Name"}
+
+    columns_set = set(columns)
+
+    # If we see multiple selection-screen-only columns, we're on selection screen
+    de_matches = len(columns_set & selection_columns_de)
+    en_matches = len(columns_set & selection_columns_en)
+
+    return de_matches >= 2 or en_matches >= 2
 
 
 async def _focus_grid(page: Any) -> None:
@@ -269,7 +518,7 @@ async def _collect_rows_with_pagination(
     return all_rows
 
 
-async def _execute_se16_query(
+async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
     table: str,
     filters: dict[str, str] | None,
     max_hits: int,
@@ -289,6 +538,15 @@ async def _execute_se16_query(
     """
     now = datetime.now(UTC)
 
+    # If filters are provided, get field order from SE11 FIRST
+    # (before navigating to SE16N, since SE11 lookup changes the screen)
+    field_order: dict[str, int] | None = None
+    if filters:
+        logger.info("SE16: Getting field order from SE11 for table %s", table)
+        field_order = await _get_field_order_from_se11(table)
+        if field_order is None:
+            logger.warning("SE16: Could not get field order from SE11, filters may not work")
+
     # Navigate to SE16N
     if not (await sap_transaction_impl("SE16N")).success:
         return _empty_failure("Failed to navigate to SE16N", table, now)
@@ -296,22 +554,38 @@ async def _execute_se16_query(
     page = await (await get_browser_manager()).get_current_page()
     await page.wait_for_timeout(1000)  # Wait for SE16N screen to render
 
-    # Set table name and max hits
-    if fill_error := await _fill_se16n_fields(table, max_hits):
+    # Fill table name - with validation trigger if filters are provided
+    fill_error: str | None = None
+    if filters:
+        fill_error = await _type_table_name_with_validation(page, table)
+        if not fill_error:
+            await _wait_for_grid_rows(page, timeout_seconds=5)
+            filter_errors = await _fill_se16n_filters(filters, field_order)
+            if filter_errors:
+                logger.warning("SE16: Some filters could not be applied: %s", filter_errors)
+    else:
+        fill_error = await _fill_se16n_table_name(table)
+
+    if fill_error:
         return _empty_failure(fill_error, table, now)
 
-    # Apply filters to selection criteria grid
-    if filters:
-        # Press Enter to trigger field loading in the selection criteria grid
-        # SE16N only populates the grid with table fields after the table name is confirmed
-        await sap_keyboard_impl("Enter")
-        await page.wait_for_timeout(2000)  # Wait for SAP to load table structure and populate grid
+    # Set max hits
+    await _fill_se16n_max_hits(max_hits)
 
-        filter_errors = await _fill_se16n_filters(filters)
-        if filter_errors:
-            logger.warning("SE16: Some filters could not be applied: %s", filter_errors)
+    # Click on the table name field to ensure focus is in the main screen area
+    # (not stuck in filter grid which can interfere with F8)
+    try:
+        for field_name in ["Table", "Tabelle"]:
+            textbox = page.get_by_role("textbox", name=field_name).first
+            if await textbox.count() > 0:
+                await textbox.click()
+                await page.wait_for_timeout(200)
+                break
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass  # Best effort - continue with F8
 
     # Execute query (F8) and wait for results
+    logger.info("SE16: Executing query with F8")
     await sap_keyboard_impl("F8")
     await page.wait_for_timeout(3000)
 
@@ -320,6 +594,8 @@ async def _execute_se16_query(
 
     # Check for table not found errors
     if table_error := _check_table_not_found(snapshot, table):
+        # Log first 500 chars of snapshot for debugging
+        logger.warning("SE16: Check failed, snapshot preview: %s", snapshot[:500])
         return _empty_failure(table_error, table, now)
 
     # Parse hit count and columns
@@ -332,6 +608,15 @@ async def _execute_se16_query(
             table,
             now,
             total_hits=total_hits,
+        )
+
+    # Check if we're still on selection screen (parsed filter grid instead of results)
+    if _check_selection_screen_columns(columns):
+        logger.info("SE16: Parsed selection screen columns, table '%s' likely doesn't exist", table)
+        return _empty_failure(
+            f"Table '{table}' not found in SAP (still on selection screen)",
+            table,
+            now,
         )
 
     # Handle empty results
