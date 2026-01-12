@@ -5,7 +5,7 @@ This module has two distinct purposes:
 RUNTIME (Business Logic) - Used when the MCP server is running:
 -----------------------------------------------------------------
 - models: TransactionInfo, TransactionCatalog, detect_area
-- loader: load_catalog(), get_catalog(), catalog_exists(), get_catalog_stats()
+- loader: load_catalog(), get_catalog(), reload_catalog()
 - search: search_transactions(), SearchResult
 
 These are used by the `search_transactions` MCP tool to help Claude find
@@ -31,9 +31,7 @@ The resulting transactions.json is bundled with the package for runtime use.
 # =============================================================================
 
 from sapwebguimcp.catalog.loader import (
-    catalog_exists,
     get_catalog,
-    get_catalog_stats,
     load_catalog,
     reload_catalog,
 )
@@ -65,8 +63,6 @@ __all__ = [
     "load_catalog",
     "reload_catalog",
     "get_catalog",
-    "catalog_exists",
-    "get_catalog_stats",
     # Search (powers the search_transactions MCP tool)
     "search_transactions",
     "SearchResult",

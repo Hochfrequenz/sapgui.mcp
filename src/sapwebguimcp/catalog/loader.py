@@ -15,6 +15,7 @@ Design Notes:
 - scraper.py has its own load_catalog_for_scraping() for the scraping workflow,
   which does NOT use caching (scraper modifies catalog in-place)
 - We use lru_cache for singleton-like behavior in MCP tools
+- The catalog is bundled with the package - it's always available at runtime
 
 Error Handling Strategy:
 - load_catalog(): Raises RuntimeError on parse errors (fail-fast for debugging)
@@ -56,7 +57,7 @@ def load_catalog(catalog_path: Path | None = None) -> TransactionCatalog:
 
     Note:
         Returns empty catalog (no error) if file doesn't exist,
-        because catalog may not be populated yet.
+        because catalog may not be populated yet during development.
     """
     path = catalog_path or CATALOG_PATH
 
@@ -100,7 +101,7 @@ def get_catalog() -> TransactionCatalog:
     This is the recommended function for MCP tools because:
     1. It never raises exceptions (graceful degradation)
     2. MCP tools should return structured errors, not crash
-    3. An empty catalog is valid state (catalog not yet populated)
+    3. An empty catalog is valid during development
 
     For debugging/testing, use load_catalog() directly to see errors.
 
@@ -111,36 +112,4 @@ def get_catalog() -> TransactionCatalog:
         return load_catalog()
     except RuntimeError:
         # Don't propagate parse errors - return empty catalog
-        # MCP tools will see catalog_available=False in response
         return TransactionCatalog()
-
-
-def catalog_exists() -> bool:
-    """Check if the transaction catalog file exists."""
-    return CATALOG_PATH.exists()
-
-
-def get_catalog_stats() -> dict[str, int | str | None]:
-    """Get statistics about the current catalog.
-
-    Returns:
-        Dict with catalog statistics
-    """
-    if not catalog_exists():
-        return {
-            "exists": False,
-            "path": str(CATALOG_PATH),
-            "total_transactions": 0,
-            "enriched_count": 0,
-        }
-
-    catalog = get_catalog()
-    return {
-        "exists": True,
-        "path": str(CATALOG_PATH),
-        "total_transactions": len(catalog.transactions),
-        "enriched_count": catalog.enriched_count,
-        "last_updated": catalog.last_updated.isoformat() if catalog.last_updated else None,
-        "source_system": catalog.source_system,
-        "language": catalog.language,
-    }

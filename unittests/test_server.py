@@ -92,7 +92,6 @@ class TestMcpServer:
         tool_names = {tool.name for tool in mcp._tool_manager._tools.values()}
         expected_catalog_tools = {
             "search_transactions",
-            "get_transaction_catalog_status",
         }
         assert expected_catalog_tools.issubset(
             tool_names
@@ -121,10 +120,9 @@ class TestMcpServer:
         assert result.query == "VA01"
         assert isinstance(result.total_results, int)
         assert isinstance(result.results, list)
-        assert isinstance(result.catalog_available, bool)
 
-        # If catalog is available and has results, verify result structure
-        if result.catalog_available and result.total_results > 0:
+        # Verify result structure for exact match
+        if result.total_results > 0:
             first_result = result.results[0]
             assert first_result.tcode == "VA01"  # Exact match should be first
             assert first_result.score == 100.0  # Exact match score
@@ -144,7 +142,7 @@ class TestMcpServer:
         assert result.query == "order"
 
         # All results should be in SD area (if any)
-        if result.catalog_available and result.total_results > 0:
+        if result.total_results > 0:
             for r in result.results:
                 assert r.area is None or r.area.startswith("SD"), f"Expected SD area, got {r.area}"
 
@@ -172,9 +170,8 @@ class TestMcpServer:
         assert result.total_results == 0
         assert result.results == []
         # Should have a hint when no results
-        if result.catalog_available:
-            assert result.hint is not None
-            assert "no transactions found" in result.hint.lower()
+        assert result.hint is not None
+        assert "no transactions found" in result.hint.lower()
 
     def test_search_transactions_mcp_tool_german_keyword(self) -> None:
         """Test that search_transactions finds German descriptions (catalog is in German)."""
@@ -187,26 +184,8 @@ class TestMcpServer:
         assert result.success is True
         assert result.query == "anlage"
 
-        # Should find transactions with "anlage" in description (if catalog available)
-        if result.catalog_available:
-            assert result.total_results > 0, "Expected to find transactions with 'anlage' in German catalog"
-            # Verify at least one result has "anlage" in description
-            has_anlage = any("anlage" in r.description.lower() for r in result.results)
-            assert has_anlage, "Expected 'anlage' in at least one description"
-
-    def test_get_transaction_catalog_status_mcp_tool(self) -> None:
-        """Test that get_transaction_catalog_status returns valid response."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
-        status_tool = tools["get_transaction_catalog_status"]
-
-        result = asyncio.run(status_tool.fn())
-
-        # Verify response structure (CatalogStatusResponse)
-        assert result.success is True
-        assert isinstance(result.exists, bool)
-        assert isinstance(result.total_transactions, int)
-        assert isinstance(result.enriched_count, int)
-
-        # If catalog exists, should have some transactions
-        if result.exists:
-            assert result.total_transactions > 0
+        # Should find transactions with "anlage" in description
+        assert result.total_results > 0, "Expected to find transactions with 'anlage' in German catalog"
+        # Verify at least one result has "anlage" in description
+        has_anlage = any("anlage" in r.description.lower() for r in result.results)
+        assert has_anlage, "Expected 'anlage' in at least one description"

@@ -1,7 +1,7 @@
 """
 Transaction catalog search tool for SAP.
 
-This module provides MCP tools to search for SAP transactions by keyword,
+This module provides an MCP tool to search for SAP transactions by keyword,
 description, or module area. It helps Claude find relevant transactions
 for user tasks.
 
@@ -12,16 +12,19 @@ DESIGN DECISIONS:
    structured responses with `success=True` always because:
    - Consistent response shape makes client parsing easier
    - "No results" is not an error, it's valid empty data
-   - `catalog_available=False` indicates missing catalog (not a crash)
 
 2. WHY NOT RAISE EXCEPTIONS?
    MCP clients handle exceptions differently. Returning structured
    CatalogSearchResponse ensures Claude always gets usable data with
-   hints about what went wrong (empty catalog, no matches, etc.)
+   hints about what went wrong (no matches, etc.)
 
 3. WHY `readOnlyHint=True`?
-   These tools only read the bundled JSON catalog - they never modify
-   it or make SAP calls. This hint lets clients skip confirmation dialogs.
+   This tool only reads the bundled JSON catalog - it never modifies
+   it or makes SAP calls. This hint lets clients skip confirmation dialogs.
+
+4. WHY NO `catalog_exists` CHECK?
+   The catalog is bundled with the package and always available at runtime.
+   There's no scenario where it wouldn't exist in production.
 """
 
 import logging
@@ -30,7 +33,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 
-from sapwebguimcp.catalog.loader import catalog_exists, get_catalog, get_catalog_stats
+from sapwebguimcp.catalog.loader import get_catalog
 from sapwebguimcp.catalog.search import search_transactions as do_search
 
 logger = logging.getLogger(__name__)
@@ -59,29 +62,14 @@ class CatalogSearchResponse(BaseModel):
     """Response from transaction search.
 
     NOTE: `success` is always True because this tool never "fails" in the
-    traditional sense. Empty results, missing catalog, etc. are all valid
-    states represented by other fields. Check `catalog_available` and
-    `total_results` to understand the actual outcome.
+    traditional sense. Empty results are valid data, not errors.
     """
 
-    # Always True - see class docstring for why
     success: bool = Field(default=True)
     query: str = Field(description="The search query used")
     total_results: int = Field(description="Number of results found (0 is valid)")
     results: list[TransactionSearchResult] = Field(description="Matching transactions")
-    catalog_available: bool = Field(description="False if catalog file missing/empty")
     hint: str | None = Field(default=None, description="Guidance when no results")
-
-
-class CatalogStatusResponse(BaseModel):
-    """Response from catalog status check."""
-
-    success: bool = Field(default=True)
-    exists: bool = Field(description="Whether catalog file exists")
-    total_transactions: int = Field(description="Total transactions in catalog")
-    enriched_count: int = Field(description="Transactions with SE93 metadata")
-    last_updated: str | None = Field(default=None, description="When catalog was last updated")
-    source_system: str | None = Field(default=None, description="SAP system ID")
 
 
 # =============================================================================
@@ -135,32 +123,8 @@ def register_catalog_tools(mcp: FastMCP) -> None:
         # Validate limit
         limit = min(max(1, limit), 50)
 
-        # Check if catalog exists
-        if not catalog_exists():
-            return CatalogSearchResponse(
-                success=True,
-                query=query,
-                total_results=0,
-                results=[],
-                catalog_available=False,
-                hint=(
-                    "Transaction catalog not found. Run the catalog scraper first: "
-                    "scrape_catalog() or scrape_tstc() + enrich_with_se93()"
-                ),
-            )
-
         # Load catalog and search
         catalog = get_catalog()
-
-        if not catalog.transactions:
-            return CatalogSearchResponse(
-                success=True,
-                query=query,
-                total_results=0,
-                results=[],
-                catalog_available=True,
-                hint="Catalog is empty. Run the scraper to populate it.",
-            )
 
         # Perform search
         search_results = do_search(catalog, query, area=area, limit=limit)
@@ -188,37 +152,5 @@ def register_catalog_tools(mcp: FastMCP) -> None:
             query=query,
             total_results=len(results),
             results=results,
-            catalog_available=True,
             hint=hint,
-        )
-
-    @mcp.tool(
-        annotations=ToolAnnotations(
-            readOnlyHint=True,
-            openWorldHint=False,
-        ),
-        description="Get status of the transaction catalog (total transactions, last updated, etc.)",
-    )
-    async def get_transaction_catalog_status() -> CatalogStatusResponse:
-        """
-        Get information about the transaction catalog.
-
-        Returns statistics about the loaded catalog including:
-        - Whether it exists
-        - Total transaction count
-        - How many are enriched with descriptions
-        - When it was last updated
-        """
-        stats = get_catalog_stats()
-
-        total = stats.get("total_transactions", 0)
-        enriched = stats.get("enriched_count", 0)
-
-        return CatalogStatusResponse(
-            success=True,
-            exists=bool(stats.get("exists")),
-            total_transactions=int(total) if isinstance(total, (int, str)) else 0,
-            enriched_count=int(enriched) if isinstance(enriched, (int, str)) else 0,
-            last_updated=str(stats["last_updated"]) if stats.get("last_updated") else None,
-            source_system=str(stats["source_system"]) if stats.get("source_system") else None,
         )

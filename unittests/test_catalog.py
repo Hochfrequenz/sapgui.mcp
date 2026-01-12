@@ -521,25 +521,6 @@ class TestCatalogLoader:
         catalog = load_catalog(Path("/nonexistent/path/catalog.json"))
         assert len(catalog.transactions) == 0
 
-    def test_catalog_exists_check(self) -> None:
-        """Test catalog_exists function."""
-        from sapwebguimcp.catalog.loader import CATALOG_PATH, catalog_exists
-
-        # The bundled catalog may or may not exist depending on test environment
-        exists = catalog_exists()
-        assert exists == CATALOG_PATH.exists()
-
-    def test_get_catalog_stats_no_file(self) -> None:
-        """Test get_catalog_stats when file doesn't exist."""
-        from sapwebguimcp.catalog.loader import get_catalog_stats
-
-        # This test checks the stats function works even if catalog doesn't exist
-        stats = get_catalog_stats()
-
-        assert "exists" in stats
-        assert "total_transactions" in stats
-        assert "enriched_count" in stats
-
     def test_reload_catalog_clears_cache(self) -> None:
         """Test that reload_catalog clears the cache."""
         from sapwebguimcp.catalog.loader import load_catalog, reload_catalog
