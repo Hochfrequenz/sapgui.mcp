@@ -23,6 +23,26 @@ paket
 programm
 methoden
 objekt
+definit
+lief
+ressource
+manuell
+prozess
+referenz
+vor
+retriev
+archiv
+hierarchie
+dokument
+abl
+defin
+signatur
+produkt
+selektion
+lokal
+lokale
+funktion
+applikation
 
 # Technical terms
 stdin
