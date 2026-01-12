@@ -8,17 +8,20 @@ The content is loaded by `sap_get_capabilities()` and provided to the AI model.
 **BEFORE guessing transaction codes or searching online**, use the `search_transactions` tool to search the local transaction catalog.
 
 The catalog contains ~4,000 SAP transactions with descriptions, and searching it is:
+
 - **Instant** - No network latency, no SAP session needed
 - **Accurate** - Data scraped from the actual SAP system via SE93
 - **Comprehensive** - Covers common areas: SD, MM, FI, CO, PP, BC, IS-U
 
 **Example queries:**
+
 - `search_transactions("sales order")` - Find sales order transactions
 - `search_transactions("VA")` - Find all transactions starting with VA
 - `search_transactions("customer", area="SD")` - Customer transactions in Sales & Distribution
 - `search_transactions("Kundenauftrag")` - German keywords work too (catalog is in German)
 
 **Only if the catalog doesn't help**, then:
+
 1. Try online resources (help.sap.com via `browser_navigate` - see workaround below)
 2. Use SE93 to look up unknown transaction codes
 3. Ask the user for clarification

@@ -153,12 +153,8 @@ class TransactionInfo(BaseModel):
         - DESSION / Dynpro: Screen/session number
         """
         # Handle both technical names and German display names
-        tcode = str(
-            row_data.get("TCODE") or row_data.get("Transaktionscode", "")
-        ).strip()
-        program = str(
-            row_data.get("PGMNA") or row_data.get("Programm", "")
-        ).strip()
+        tcode = str(row_data.get("TCODE") or row_data.get("Transaktionscode", "")).strip()
+        program = str(row_data.get("PGMNA") or row_data.get("Programm", "")).strip()
         screen = row_data.get("DESSION") or row_data.get("Dynpro")
 
         screen_number = None
@@ -205,9 +201,7 @@ class TransactionCatalog(BaseModel):
         """
         if self._tcode_index is None:
             # Build index: tcode (uppercase) -> index in transactions list
-            self._tcode_index = {
-                txn.tcode.upper(): i for i, txn in enumerate(self.transactions)
-            }
+            self._tcode_index = {txn.tcode.upper(): i for i, txn in enumerate(self.transactions)}
         return self._tcode_index
 
     def _invalidate_index(self) -> None:

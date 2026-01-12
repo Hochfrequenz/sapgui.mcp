@@ -113,11 +113,13 @@ async def scrape_tstc(
         if tcode:  # Skip empty transaction codes
             program = row.data.get("PGMNA") or row.data.get("Programm", "")
             screen = row.data.get("DESSION") or row.data.get("Dynpro")
-            transactions.append({
-                "TCODE": str(tcode).strip(),
-                "PGMNA": str(program).strip() if program else "",
-                "DESSION": screen,
-            })
+            transactions.append(
+                {
+                    "TCODE": str(tcode).strip(),
+                    "PGMNA": str(program).strip() if program else "",
+                    "DESSION": screen,
+                }
+            )
 
     output = {
         "success": True,
@@ -329,17 +331,21 @@ async def enrich_with_se93(
                 else:
                     # SE93Error
                     failed += 1
-                    errors.append({
-                        "tcode": txn.tcode,
-                        "error": result.error,
-                    })
+                    errors.append(
+                        {
+                            "tcode": txn.tcode,
+                            "error": result.error,
+                        }
+                    )
 
             except Exception as e:  # pylint: disable=broad-exception-caught
                 failed += 1
-                errors.append({
-                    "tcode": txn.tcode,
-                    "error": str(e),
-                })
+                errors.append(
+                    {
+                        "tcode": txn.tcode,
+                        "error": str(e),
+                    }
+                )
                 logger.exception("SE93 enrichment error for %s", txn.tcode)
 
         # Save after each batch
