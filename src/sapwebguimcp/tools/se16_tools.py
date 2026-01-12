@@ -176,7 +176,8 @@ async def _wait_for_grid_rows(page: Any, timeout_seconds: int = 5) -> bool:
         True if grid has rows, False if timeout.
     """
     for i in range(timeout_seconds * 2):  # Poll every 500ms
-        result = await page.evaluate("""
+        result = await page.evaluate(
+            """
             () => {
                 const grids = document.querySelectorAll('[role="grid"]');
                 for (const grid of grids) {
@@ -191,7 +192,8 @@ async def _wait_for_grid_rows(page: Any, timeout_seconds: int = 5) -> bool:
                 }
                 return false;
             }
-        """)
+        """
+        )
         if result:
             logger.info("SE16: Table structure loaded (poll iteration %d)", i)
             return True
@@ -209,9 +211,7 @@ async def _fill_se16n_max_hits(max_hits: int) -> None:
     the field has a default value.
     """
     # Try English label first
-    fill_result = await sap_fill_form_impl(
-        {"Max. Number of Hits": str(max_hits)}, strict=False
-    )
+    fill_result = await sap_fill_form_impl({"Max. Number of Hits": str(max_hits)}, strict=False)
     if "Max. Number of Hits" not in fill_result.not_found:
         return
 
@@ -268,9 +268,7 @@ async def _fill_filter_with_playwright(
     return False
 
 
-async def _fill_filter_by_index(
-    page: Any, find_js: str, field_name: str, value: str, row_index: int
-) -> str | None:
+async def _fill_filter_by_index(page: Any, find_js: str, field_name: str, value: str, row_index: int) -> str | None:
     """
     Fill a single filter field using index-based approach.
 
@@ -310,9 +308,7 @@ async def _fill_filter_by_index(
     return f"Found element for {field_name} but Playwright fill failed"
 
 
-async def _fill_se16n_filters(
-    filters: dict[str, str] | None, field_order: dict[str, int] | None
-) -> list[str]:
+async def _fill_se16n_filters(filters: dict[str, str] | None, field_order: dict[str, int] | None) -> list[str]:
     """
     Fill filter values in SE16N selection criteria grid using row indices.
 
@@ -358,9 +354,7 @@ async def _fill_se16n_filters(
                     continue
 
                 # Fill using index-based approach
-                error = await _fill_filter_by_index(
-                    page, find_js, field_upper, value, field_order[field_upper]
-                )
+                error = await _fill_filter_by_index(page, find_js, field_upper, value, field_order[field_upper])
                 if error:
                     errors.append(error)
 
