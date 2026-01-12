@@ -92,6 +92,7 @@ class TestMcpServer:
         tool_names = {tool.name for tool in mcp._tool_manager._tools.values()}
         expected_catalog_tools = {
             "search_transactions",
+            "search_tables",
         }
         assert expected_catalog_tools.issubset(
             tool_names
@@ -189,3 +190,105 @@ class TestMcpServer:
         # Verify at least one result has "anlage" in description
         has_anlage = any("anlage" in r.description.lower() for r in result.results)
         assert has_anlage, "Expected 'anlage' in at least one description"
+
+    # =========================================================================
+    # search_tables MCP tool integration tests
+    # =========================================================================
+
+    def test_search_tables_has_description(self) -> None:
+        """Test that search_tables has a descriptive docstring."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        assert "search_tables" in tools
+        tool = tools["search_tables"]
+        assert tool.description is not None
+        assert "search" in tool.description.lower()
+        assert "table" in tool.description.lower()
+
+    def test_search_tables_mcp_tool_returns_valid_response(self) -> None:
+        """Test that search_tables MCP tool returns TableSearchResponse."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_tables"]
+
+        # Call the tool with a query
+        result = asyncio.run(search_tool.fn(query="MARA"))
+
+        # Verify response structure (TableSearchResponse)
+        assert result.success is True
+        assert result.query == "MARA"
+        assert isinstance(result.total_results, int)
+        assert isinstance(result.total_in_catalog, int)
+        assert isinstance(result.results, list)
+
+        # Verify result structure for exact match
+        if result.total_results > 0:
+            first_result = result.results[0]
+            assert first_result.name == "MARA"  # Exact match should be first
+            assert first_result.score == 100  # Exact match score
+            assert first_result.match_reason == "table name exact"
+            assert isinstance(first_result.description, str)
+            assert isinstance(first_result.fields, list)
+
+    def test_search_tables_mcp_tool_with_include_fields(self) -> None:
+        """Test that search_tables MCP tool respects include_fields parameter."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_tables"]
+
+        # Search for a field name with include_fields=True
+        result = asyncio.run(search_tool.fn(query="MATNR", include_fields=True))
+
+        assert result.success is True
+        assert result.query == "MATNR"
+
+        # Should find tables with MATNR field
+        if result.total_results > 0:
+            # At least one result should have MATNR in a field
+            has_matnr_field = any(any(f.name == "MATNR" for f in r.fields) for r in result.results)
+            assert has_matnr_field, "Expected to find tables with MATNR field"
+
+    def test_search_tables_mcp_tool_empty_query(self) -> None:
+        """Test that search_tables handles empty query gracefully."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_tables"]
+
+        # Empty query should return empty results, not crash
+        result = asyncio.run(search_tool.fn(query=""))
+
+        assert result.success is True
+        assert result.total_results == 0
+        assert result.results == []
+
+    def test_search_tables_mcp_tool_no_matches(self) -> None:
+        """Test that search_tables returns hint when no matches."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_tables"]
+
+        # Query that won't match anything
+        result = asyncio.run(search_tool.fn(query="ZZZNONEXISTENT999"))
+
+        assert result.success is True
+        assert result.total_results == 0
+        assert result.results == []
+        # Should have a hint when no results
+        assert result.hint is not None
+        assert "no tables found" in result.hint.lower()
+
+    def test_search_tables_mcp_tool_returns_fields(self) -> None:
+        """Test that search_tables returns table fields with proper structure."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_tables"]
+
+        # Search for MARA which should have fields
+        result = asyncio.run(search_tool.fn(query="MARA"))
+
+        assert result.success is True
+        if result.total_results > 0:
+            mara_result = result.results[0]
+            assert len(mara_result.fields) > 0, "MARA should have fields"
+
+            # Verify field structure
+            first_field = mara_result.fields[0]
+            assert isinstance(first_field.name, str)
+            assert isinstance(first_field.description, str)
+            assert isinstance(first_field.data_type, str)
+            assert isinstance(first_field.length, int)
+            assert isinstance(first_field.is_key, bool)

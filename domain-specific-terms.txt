@@ -8,6 +8,10 @@ webgui
 sapgui
 
 # German terms (common in SAP documentation/examples)
+branche
+beginn
+ende
+periode
 anmeld
 einstellung
 adresse
