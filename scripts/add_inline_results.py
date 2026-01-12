@@ -54,7 +54,6 @@ INLINE_RESULTS = [
     {"TCODE": "VL33N", "PGMNA": "SAPMV50A", "TTEXT": "Anlieferung anzeigen"},
     {"TCODE": "VL34", "PGMNA": "RM06EANL", "TTEXT": "Arbeitsvorrat Anlieferungen"},
     {"TCODE": "VL71", "PGMNA": "SD70AV2A", "TTEXT": "Nachrichten aus Auslieferungen"},
-
     # VF* (69 total, showing key ones)
     {"TCODE": "VF00", "PGMNA": "MENUVF00", "TTEXT": "Verkaufsorganisat. & nicht definiert"},
     {"TCODE": "VF01", "PGMNA": "SAPMV60A", "TTEXT": "Fakturen anlegen"},
@@ -69,7 +68,6 @@ INLINE_RESULTS = [
     {"TCODE": "VF22", "PGMNA": "SAPMV60A", "TTEXT": "Rechnungslisten ändern"},
     {"TCODE": "VF23", "PGMNA": "SAPMV60A", "TTEXT": "Rechnungslisten anzeigen"},
     {"TCODE": "VF31", "PGMNA": "SD70AV3A", "TTEXT": "Nachrichten aus Fakturen"},
-
     # SU* (105 total, showing key ones)
     {"TCODE": "SU0", "PGMNA": "", "TTEXT": "Eigene Benutzerfestwerte pflegen"},
     {"TCODE": "SU01", "PGMNA": "SAPMSUU0", "TTEXT": "Benutzerpflege"},
@@ -86,7 +84,6 @@ INLINE_RESULTS = [
     {"TCODE": "SUGR", "PGMNA": "SAPMSUUG", "TTEXT": "Benutzergruppen pflegen"},
     {"TCODE": "SUIM", "PGMNA": "RSUSRSUIM", "TTEXT": "Benutzerinformationssystem"},
     {"TCODE": "SUPC", "PGMNA": "SAPPROFC_NEW", "TTEXT": "Profile zu Rollen"},
-
     # SD* (71 total, showing key ones)
     {"TCODE": "SD11", "PGMNA": "SAPMUD00", "TTEXT": "Data Modeler"},
     {"TCODE": "SDBE", "PGMNA": "SAPMSDBE", "TTEXT": "SQL-Anweisung erklären"},
@@ -95,7 +92,6 @@ INLINE_RESULTS = [
     {"TCODE": "SDQ2", "PGMNA": "SDQUOT02", "TTEXT": "Abgelaufene Angebote"},
     {"TCODE": "SDV1", "PGMNA": "SDCONT01", "TTEXT": "Ablaufende Kontrakte"},
     {"TCODE": "SDV2", "PGMNA": "SDCONT02", "TTEXT": "Abgelaufene Kontrakte"},
-
     # VA* (75 total, showing all)
     {"TCODE": "VA00", "PGMNA": "MENUVA00", "TTEXT": "Einstieg Verkauf"},
     {"TCODE": "VA01", "PGMNA": "SAPMV45A", "TTEXT": "Kundenaufträge anlegen"},
@@ -127,7 +123,6 @@ INLINE_RESULTS = [
     {"TCODE": "VA53", "PGMNA": "SAPMV45A", "TTEXT": "Positionsvorschlag anzeigen"},
     {"TCODE": "VA71", "PGMNA": "SD70AV1A", "TTEXT": "Nachrichten aus Verkaufsbelegen"},
     {"TCODE": "VA88", "PGMNA": "SAPLKO71", "TTEXT": "Ist-Abrechnung: Kundenaufträge"},
-
     # XD* (11 total)
     {"TCODE": "XD01", "PGMNA": "SAPMF02D", "TTEXT": "Anlegen Debitor (Zentral)"},
     {"TCODE": "XD02", "PGMNA": "SAPMF02D", "TTEXT": "Ändern Debitor (Zentral)"},
@@ -138,7 +133,6 @@ INLINE_RESULTS = [
     {"TCODE": "XD07", "PGMNA": "SAPMF02D", "TTEXT": "Ändern Kontogruppe Debitor"},
     {"TCODE": "XD99", "PGMNA": "", "TTEXT": "Massenpflege Kundenstamm"},
     {"TCODE": "XDN1", "PGMNA": "SAPMSNUM", "TTEXT": "Nummernkreise Debitor"},
-
     # XK* (14 total)
     {"TCODE": "XK01", "PGMNA": "SAPMF02K", "TTEXT": "Anlegen Kreditor (Zentral)"},
     {"TCODE": "XK02", "PGMNA": "SAPMF02K", "TTEXT": "Ändern Kreditor (Zentral)"},

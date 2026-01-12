@@ -33,19 +33,23 @@ def load_se16_result(file_path: Path) -> list[dict]:
         if tcode:
             # Get description - column name is "Transaktionstext" in German UI
             desc = row_data.get("Transaktionstext") or row_data.get("TTEXT", "")
-            transactions.append({
-                "TCODE": str(tcode).strip(),
-                "PGMNA": str(row_data.get("PGMNA") or row_data.get("Programm", "")).strip(),
-                "DESSION": row_data.get("DESSION") or row_data.get("Dynpro"),
-                "TTEXT": str(desc).strip() if desc else "",
-            })
+            transactions.append(
+                {
+                    "TCODE": str(tcode).strip(),
+                    "PGMNA": str(row_data.get("PGMNA") or row_data.get("Programm", "")).strip(),
+                    "DESSION": row_data.get("DESSION") or row_data.get("Dynpro"),
+                    "TTEXT": str(desc).strip() if desc else "",
+                }
+            )
     return transactions
 
 
 def main():
     """Main consolidation function."""
     # Paths
-    tool_results_dir = Path(r"C:\Users\KleinKonstantin\.claude\projects\C--github-sapwebgui-mcp\d667c1d3-9bc0-4d17-a90f-c1a710d03224\tool-results")
+    tool_results_dir = Path(
+        r"C:\Users\KleinKonstantin\.claude\projects\C--github-sapwebgui-mcp\d667c1d3-9bc0-4d17-a90f-c1a710d03224\tool-results"
+    )
     data_dir = project_root / "src" / "sapwebguimcp" / "data"
     output_file = data_dir / "transactions.json"
 
