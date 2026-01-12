@@ -2,6 +2,16 @@
 
 Handles loading the transaction catalog from the static JSON file
 bundled with the package.
+
+Design Notes:
+- This module is the PRIMARY loader for the catalog at runtime
+- scraper.py has its own load_catalog() for the scraping workflow,
+  which does NOT use caching (scraper modifies catalog in-place)
+- We use lru_cache for singleton-like behavior in MCP tools
+
+Error Handling Strategy:
+- load_catalog(): Raises RuntimeError on parse errors (fail-fast for debugging)
+- get_catalog(): Returns empty catalog on errors (graceful degradation for tools)
 """
 
 import json
@@ -19,17 +29,27 @@ CATALOG_PATH = Path(__file__).parent.parent / "data" / "transactions.json"
 
 @lru_cache(maxsize=1)
 def load_catalog(catalog_path: Path | None = None) -> TransactionCatalog:
-    """Load the transaction catalog from JSON file.
+    """Load the transaction catalog from JSON file (cached singleton).
 
-    Results are cached, so subsequent calls return the same instance.
-    Use reload_catalog() to force a refresh.
+    Results are cached by (catalog_path,) tuple, so:
+    - load_catalog() and load_catalog(None) return same cached instance
+    - load_catalog(Path("other.json")) caches separately
+
+    Use reload_catalog() to clear cache and force a refresh.
 
     Args:
         catalog_path: Optional custom path to catalog file.
                      Defaults to bundled transactions.json.
 
     Returns:
-        TransactionCatalog instance (may be empty if file doesn't exist)
+        TransactionCatalog instance
+
+    Raises:
+        RuntimeError: If file exists but cannot be parsed (fail-fast)
+
+    Note:
+        Returns empty catalog (no error) if file doesn't exist,
+        because catalog may not be populated yet.
     """
     path = catalog_path or CATALOG_PATH
 
@@ -68,17 +88,23 @@ def reload_catalog(catalog_path: Path | None = None) -> TransactionCatalog:
 
 
 def get_catalog() -> TransactionCatalog:
-    """Get the current transaction catalog.
+    """Get the current transaction catalog (never raises).
 
-    Convenience function that loads the default catalog.
-    Returns empty catalog if file doesn't exist.
+    This is the recommended function for MCP tools because:
+    1. It never raises exceptions (graceful degradation)
+    2. MCP tools should return structured errors, not crash
+    3. An empty catalog is valid state (catalog not yet populated)
+
+    For debugging/testing, use load_catalog() directly to see errors.
 
     Returns:
-        TransactionCatalog instance
+        TransactionCatalog instance (empty if file missing or corrupt)
     """
     try:
         return load_catalog()
     except RuntimeError:
+        # Don't propagate parse errors - return empty catalog
+        # MCP tools will see catalog_available=False in response
         return TransactionCatalog()
 
 

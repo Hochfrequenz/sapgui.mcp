@@ -1,7 +1,26 @@
 """Transaction catalog search implementation.
 
-Provides fast, fuzzy search over the transaction catalog to help
+Provides keyword search over the transaction catalog to help
 Claude find relevant SAP transactions for user tasks.
+
+KNOWN LIMITATIONS (intentional simplifications):
+
+1. LANGUAGE: Descriptions are in German (scraped from German SAP UI).
+   English queries like "create sales order" won't match "Kundenauftrag anlegen".
+   This is a DATA limitation, not a code bug. Re-scrape with English UI to fix.
+
+2. NO FUZZY MATCHING: We use simple token matching, not fuzzy/Levenshtein.
+   "salesorder" won't match "Sales Order". This keeps the code simple and fast.
+   If needed, add rapidfuzz dependency and fuzzy scoring later.
+
+3. AREA NOT SEARCHABLE: The `area` field (e.g., "SD-Sales") is only used
+   for filtering, not text search. Searching "materials management" won't
+   find MM* transactions. This is intentional - area is structured data,
+   not free text.
+
+4. PROGRAM NAME SEARCH IS WEAK: Score of 20 is intentionally low because
+   program names (e.g., "SAPMV45A") are rarely what users search for.
+   This is a fallback, not a primary match.
 """
 
 import re
@@ -40,16 +59,23 @@ def search_transactions(
     """Search for transactions matching a query.
 
     Matching strategy (in priority order):
-    1. Exact tcode match (score: 100)
-    2. Tcode prefix match (score: 80)
+    1. Exact tcode match (score: 100) - "VA01" finds VA01 only
+    2. Tcode prefix match (score: 80) - "VA" finds VA01, VA02, etc.
     3. Description contains all query tokens (score: 60)
     4. Description contains some query tokens (score: 40 * match_ratio)
-    5. Program name match (score: 20)
+    5. Program name match (score: 20) - fallback for technical users
+
+    DESIGN DECISIONS:
+    - Scores are on 0-100 scale for intuitive "percentage relevance"
+    - Tcode matches score highest because they're most specific
+    - Description partial matches use ratio to rank "2 of 3 words" > "1 of 3"
+    - Program matches are rare but useful for "show me SAPMV45A transactions"
 
     Args:
         catalog: The transaction catalog to search
         query: Search query (tcode or description keywords)
-        area: Optional area filter (e.g., "SD-Sales", "MM-Purchasing")
+        area: Optional area filter (e.g., "SD-Sales", "MM-Purchasing").
+              This is a FILTER, not a search field.
         limit: Maximum results to return
 
     Returns:

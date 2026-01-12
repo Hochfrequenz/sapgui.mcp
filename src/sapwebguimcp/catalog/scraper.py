@@ -6,6 +6,28 @@ and build a transaction catalog. It uses:
 1. SE16 (sap_se16_query) to query the TSTC table for all transaction codes
 2. SE93 (sap_se93_lookup) to enrich each transaction with description and metadata
 
+DESIGN DECISIONS:
+
+1. WHY DUPLICATE load_catalog()?
+   This module has its own load_catalog() that does NOT use caching,
+   unlike loader.load_catalog(). This is intentional because:
+   - Scraper modifies catalog in-place during SE93 enrichment
+   - Cached catalog would not reflect incremental saves
+   - Scraper needs fresh reads after each batch save
+
+2. WHY dict[str, Any] RETURN TYPES?
+   Scraper functions return dicts instead of Pydantic models because:
+   - They're called from Claude Code, not MCP tools
+   - JSON-like dicts are easier to inspect in Claude's output
+   - Adding Pydantic models here would require importing from tools layer
+   Consider refactoring if this becomes an MCP tool in the future.
+
+3. WHY BROAD EXCEPTION CATCHING?
+   SE93 enrichment catches all exceptions (line ~310) because:
+   - SE93 can fail for many reasons (tcode deleted, no auth, timeout)
+   - We want to continue processing other tcodes, not abort
+   - Errors are logged and returned in the result dict
+
 Usage (from Claude Code with SAP session active):
     1. First, scrape TSTC to get all transaction codes:
        result = await scrape_tstc(output_file="data/tstc_raw.json")
@@ -130,8 +152,13 @@ def load_tstc_data(tstc_file: str | Path) -> list[dict[str, Any]]:
     return transactions
 
 
-def load_catalog(catalog_file: str | Path) -> TransactionCatalog:
-    """Load an existing catalog from JSON file.
+def load_catalog_for_scraping(catalog_file: str | Path) -> TransactionCatalog:
+    """Load catalog from JSON file WITHOUT caching (for scraper use only).
+
+    IMPORTANT: This is different from loader.load_catalog() which uses
+    lru_cache. We need uncached reads here because:
+    - Scraper modifies and saves catalog after each batch
+    - We need to read fresh data, not stale cached version
 
     Args:
         catalog_file: Path to the catalog JSON file
@@ -231,8 +258,8 @@ async def enrich_with_se93(
             return {"success": False, "error": "Must provide either tstc_file or tstc_data"}
         tstc_data = load_tstc_data(tstc_file)
 
-    # Load existing catalog
-    catalog = load_catalog(catalog_file)
+    # Load existing catalog (uncached - we modify and save after each batch)
+    catalog = load_catalog_for_scraping(catalog_file)
 
     # Build index of existing transactions
     existing_tcodes = {t.tcode.upper(): i for i, t in enumerate(catalog.transactions)}

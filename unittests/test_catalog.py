@@ -611,8 +611,12 @@ class TestScraperModels:
             temp_path.unlink()
 
     def test_save_and_load_catalog(self) -> None:
-        """Test saving and loading catalog."""
-        from sapwebguimcp.catalog.scraper import load_catalog, save_catalog
+        """Test saving and loading catalog.
+
+        Note: Uses load_catalog_for_scraping (uncached) for scraper tests.
+        The cached loader.load_catalog() is tested in TestCatalogLoader.
+        """
+        from sapwebguimcp.catalog.scraper import load_catalog_for_scraping, save_catalog
 
         catalog = TransactionCatalog(
             transactions=[
@@ -630,7 +634,7 @@ class TestScraperModels:
 
         try:
             save_catalog(catalog, temp_path)
-            loaded = load_catalog(temp_path)
+            loaded = load_catalog_for_scraping(temp_path)
 
             assert len(loaded.transactions) == 1
             assert loaded.transactions[0].tcode == "VA01"

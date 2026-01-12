@@ -1,9 +1,27 @@
 """
 Transaction catalog search tool for SAP.
 
-This module provides a tool to search for SAP transactions by keyword,
+This module provides MCP tools to search for SAP transactions by keyword,
 description, or module area. It helps Claude find relevant transactions
 for user tasks.
+
+DESIGN DECISIONS:
+
+1. WHY `success: bool` IN RESPONSES?
+   MCP tools can return structured data OR raise exceptions. We chose
+   structured responses with `success=True` always because:
+   - Consistent response shape makes client parsing easier
+   - "No results" is not an error, it's valid empty data
+   - `catalog_available=False` indicates missing catalog (not a crash)
+
+2. WHY NOT RAISE EXCEPTIONS?
+   MCP clients handle exceptions differently. Returning structured
+   CatalogSearchResponse ensures Claude always gets usable data with
+   hints about what went wrong (empty catalog, no matches, etc.)
+
+3. WHY `readOnlyHint=True`?
+   These tools only read the bundled JSON catalog - they never modify
+   it or make SAP calls. This hint lets clients skip confirmation dialogs.
 """
 
 import logging
@@ -38,14 +56,21 @@ class TransactionSearchResult(BaseModel):
 
 
 class CatalogSearchResponse(BaseModel):
-    """Response from transaction search."""
+    """Response from transaction search.
 
+    NOTE: `success` is always True because this tool never "fails" in the
+    traditional sense. Empty results, missing catalog, etc. are all valid
+    states represented by other fields. Check `catalog_available` and
+    `total_results` to understand the actual outcome.
+    """
+
+    # Always True - see class docstring for why
     success: bool = Field(default=True)
     query: str = Field(description="The search query used")
-    total_results: int = Field(description="Number of results found")
+    total_results: int = Field(description="Number of results found (0 is valid)")
     results: list[TransactionSearchResult] = Field(description="Matching transactions")
-    catalog_available: bool = Field(description="Whether the catalog is loaded")
-    hint: str | None = Field(default=None, description="Usage hint if no results")
+    catalog_available: bool = Field(description="False if catalog file missing/empty")
+    hint: str | None = Field(default=None, description="Guidance when no results")
 
 
 class CatalogStatusResponse(BaseModel):

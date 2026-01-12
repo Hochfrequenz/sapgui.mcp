@@ -10,6 +10,7 @@ from sapwebguimcp.catalog.loader import (
 from sapwebguimcp.catalog.models import TransactionCatalog, TransactionInfo, detect_area
 from sapwebguimcp.catalog.scraper import (
     enrich_with_se93,
+    load_catalog_for_scraping,
     load_tstc_data,
     save_catalog,
     scrape_catalog,
@@ -34,6 +35,7 @@ __all__ = [
     "enrich_with_se93",
     "save_catalog",
     "load_tstc_data",
+    "load_catalog_for_scraping",
     # Search functions
     "search_transactions",
     "SearchResult",
