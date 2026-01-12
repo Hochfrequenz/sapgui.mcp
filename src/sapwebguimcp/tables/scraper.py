@@ -148,14 +148,23 @@ async def scrape_table_catalog(
     # Default prefixes targeting ~1500-2500 tables
     if prefixes is None:
         prefixes = [
-            "MARA", "MARC", "MARD", "MAKT",  # Material master
-            "VBAK", "VBAP", "VBEP",           # Sales
-            "EKKO", "EKPO",                   # Purchasing
-            "BKPF", "BSEG",                   # Accounting
-            "KNA1", "KNB1",                   # Customers
-            "LFA1", "LFB1",                   # Vendors
-            "T0",                             # Config tables (T001, T002, etc.)
-            "EUIT",                           # UI tables
+            "MARA",
+            "MARC",
+            "MARD",
+            "MAKT",  # Material master
+            "VBAK",
+            "VBAP",
+            "VBEP",  # Sales
+            "EKKO",
+            "EKPO",  # Purchasing
+            "BKPF",
+            "BSEG",  # Accounting
+            "KNA1",
+            "KNB1",  # Customers
+            "LFA1",
+            "LFB1",  # Vendors
+            "T0",  # Config tables (T001, T002, etc.)
+            "EUIT",  # UI tables
         ]
 
     output_path = Path(output_file)

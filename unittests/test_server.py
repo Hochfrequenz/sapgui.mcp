@@ -242,9 +242,7 @@ class TestMcpServer:
         # Should find tables with MATNR field
         if result.total_results > 0:
             # At least one result should have MATNR in a field
-            has_matnr_field = any(
-                any(f.name == "MATNR" for f in r.fields) for r in result.results
-            )
+            has_matnr_field = any(any(f.name == "MATNR" for f in r.fields) for r in result.results)
             assert has_matnr_field, "Expected to find tables with MATNR field"
 
     def test_search_tables_mcp_tool_empty_query(self) -> None:

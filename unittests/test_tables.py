@@ -206,7 +206,9 @@ class TestTableSearch:
                     delivery_class="A",
                     fields=[
                         TableField(name="MANDT", description="Mandant", data_type="CLNT", length=3, is_key=True),
-                        TableField(name="MATNR", description="Materialnummer", data_type="CHAR", length=40, is_key=True),
+                        TableField(
+                            name="MATNR", description="Materialnummer", data_type="CHAR", length=40, is_key=True
+                        ),
                         TableField(name="MTART", description="Materialart", data_type="CHAR", length=4),
                     ],
                 ),
@@ -215,7 +217,9 @@ class TestTableSearch:
                     description="Werksdaten zum Material",
                     delivery_class="A",
                     fields=[
-                        TableField(name="MATNR", description="Materialnummer", data_type="CHAR", length=40, is_key=True),
+                        TableField(
+                            name="MATNR", description="Materialnummer", data_type="CHAR", length=40, is_key=True
+                        ),
                         TableField(name="WERKS", description="Werk", data_type="CHAR", length=4, is_key=True),
                     ],
                 ),
