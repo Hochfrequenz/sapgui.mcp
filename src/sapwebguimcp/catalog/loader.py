@@ -1,11 +1,18 @@
-"""Transaction catalog loader.
+"""Transaction catalog loader - RUNTIME USE.
+
+===========================================================================
+This module is for RUNTIME use by MCP tools (search_transactions, etc.).
+It reads the bundled transactions.json file - no SAP session required.
+
+For DEVELOPMENT (building/updating the catalog), see scraper.py.
+===========================================================================
 
 Handles loading the transaction catalog from the static JSON file
 bundled with the package.
 
 Design Notes:
 - This module is the PRIMARY loader for the catalog at runtime
-- scraper.py has its own load_catalog() for the scraping workflow,
+- scraper.py has its own load_catalog_for_scraping() for the scraping workflow,
   which does NOT use caching (scraper modifies catalog in-place)
 - We use lru_cache for singleton-like behavior in MCP tools
 

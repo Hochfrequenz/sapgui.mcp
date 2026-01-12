@@ -1,4 +1,11 @@
-"""Transaction catalog search implementation.
+"""Transaction catalog search implementation - RUNTIME USE.
+
+===========================================================================
+This module is for RUNTIME use by the search_transactions MCP tool.
+It searches the bundled transactions.json - no SAP session required.
+
+For DEVELOPMENT (building/updating the catalog), see scraper.py.
+===========================================================================
 
 Provides keyword search over the transaction catalog to help
 Claude find relevant SAP transactions for user tasks.

@@ -1,4 +1,9 @@
-"""Data models for the transaction catalog.
+"""Data models for the transaction catalog - SHARED.
+
+===========================================================================
+These models are used by BOTH runtime (MCP tools) and development (scraper).
+They define the data structure for transactions.json.
+===========================================================================
 
 Design Notes:
 - TransactionInfo is immutable-ish (Pydantic model) for safe caching

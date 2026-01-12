@@ -1,4 +1,13 @@
-"""Transaction catalog scraper.
+"""Transaction catalog scraper - DEVELOPMENT USE ONLY.
+
+===========================================================================
+WARNING: This module is for DEVELOPMENT/MAINTENANCE of the catalog.
+It is NOT exposed as an MCP tool. It requires an active SAP session.
+
+For RUNTIME use (MCP tools), see:
+- loader.py: Load the bundled catalog
+- search.py: Search the catalog
+===========================================================================
 
 This module provides functions to scrape transaction codes from SAP
 and build a transaction catalog. It uses:
