@@ -221,6 +221,7 @@ async def _fill_filter_with_playwright(
     Fill a filter field using Playwright's native click + type.
 
     Tries element ID first, then selector. Uses Ctrl+A to clear before typing.
+    Does not press any key after typing - the next operation will naturally blur.
 
     Returns:
         True if fill succeeded, False otherwise.
@@ -234,8 +235,8 @@ async def _fill_filter_with_playwright(
                 await page.wait_for_timeout(100)
                 await page.keyboard.press("Control+a")
                 await page.keyboard.type(value, delay=30)
-                await page.keyboard.press("Tab")  # Commit value
-                await page.wait_for_timeout(200)
+                # Don't press any key - next click will blur naturally
+                await page.wait_for_timeout(100)
                 logger.info("SE16: Filled filter %s=%s via Playwright (id)", field_name, value)
                 return True
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -250,8 +251,8 @@ async def _fill_filter_with_playwright(
                 await page.wait_for_timeout(100)
                 await page.keyboard.press("Control+a")
                 await page.keyboard.type(value, delay=30)
-                await page.keyboard.press("Tab")
-                await page.wait_for_timeout(200)
+                # Don't press any key - next click will blur naturally
+                await page.wait_for_timeout(100)
                 logger.info("SE16: Filled filter %s=%s via Playwright (selector)", field_name, value)
                 return True
         except Exception as e:  # pylint: disable=broad-exception-caught
