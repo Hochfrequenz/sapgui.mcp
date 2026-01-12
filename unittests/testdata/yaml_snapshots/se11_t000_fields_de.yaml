@@ -371,15 +371,15 @@
         - cell "Transaktion"
         - cell "SE11"
         - cell
-      - row "E2E-Zeit 253 ms":
+      - row "E2E-Zeit 314 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "253 ms"
+        - cell "314 ms"
         - cell
-      - row "WebGUI-Zeit 120 ms":
+      - row "WebGUI-Zeit 146 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "120 ms"
+        - cell "146 ms"
         - cell
