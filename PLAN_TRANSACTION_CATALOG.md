@@ -28,18 +28,34 @@ unittests/
 └── test_catalog.py  # 50 unit tests for catalog module
 ```
 
-### Next Steps (Ready for Use)
+### Catalog Status
 
-1. **Initial Catalog Scrape**: Run the catalog scraper with a live SAP session:
-   - Use `scrape_tstc()` to get all transaction codes from TSTC table
-   - Use `enrich_with_se93()` with prefix filters for common modules (VA*, ME*, MM*, SD*, FI*, CO*)
-   - The catalog will be saved to `src/sapwebguimcp/data/transactions.json`
+**Catalog populated with 3,884 transactions** from the following prefixes:
+- VA*, VL*, VF* (Sales & Distribution)
+- ME*, MM*, MB* (Materials Management)
+- FI*, FB* (Financial Accounting)
+- CO* (Controlling)
+- SE*, SM* (Basis/Development)
+- SU* (User Administration)
+- SD*, XD*, XK* (Master Data)
+- PP*, WE* (Production/Warehouse)
+- /US4G*, E* (Utilities/General)
+- BP*, MR* (Business Partner/Material)
 
-2. **Usage**: Once the catalog is populated, Claude can use:
-   - `search_transactions("create order")` - Find transactions by description
-   - `search_transactions("VA")` - Find transactions by code prefix
-   - `search_transactions("purchase", area="MM")` - Filter by SAP module
-   - `get_transaction_catalog_status()` - Check catalog statistics
+### Usage
+
+Claude can now use the following tools:
+- `search_transactions("VA01")` - Find by exact transaction code
+- `search_transactions("create order")` - Find by description keywords
+- `search_transactions("VA")` - Find by code prefix
+- `search_transactions("purchase", area="MM")` - Filter by SAP module
+- `get_transaction_catalog_status()` - Check catalog statistics
+
+### Future Enhancements
+
+1. **SE93 Enrichment**: Run `enrich_with_se93()` to add full transaction metadata
+2. **More Prefixes**: Add additional transaction code ranges as needed
+3. **English Descriptions**: Re-scrape with English login for better search
 
 ## Background
 
