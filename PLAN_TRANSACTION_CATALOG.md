@@ -2,14 +2,14 @@
 
 This document describes the plan to scrape SAP transaction codes and expose them as MCP resources for AI-assisted SAP navigation.
 
-## Progress (Updated 2026-01-11)
+## Progress (Updated 2026-01-12)
 
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Phase 1: Scrape Transaction Data | ✅ Complete | `scrape_tstc()`, `enrich_with_se93()` |
 | Phase 2: Create MCP Resource | ✅ Complete | `search_transactions` tool registered |
 | Phase 3: Search Implementation | ✅ Complete | Keyword matching with scoring |
-| Phase 4: Integration & Testing | 🔄 Pending | Need to scrape initial catalog |
+| Phase 4: Integration & Testing | ✅ Complete | Unit tests added, tools verified |
 
 ### Files Created
 
@@ -23,13 +23,23 @@ src/sapwebguimcp/catalog/
 
 src/sapwebguimcp/tools/
 └── catalog_tools.py # MCP tool registration
+
+unittests/
+└── test_catalog.py  # 50 unit tests for catalog module
 ```
 
-### Next Steps
+### Next Steps (Ready for Use)
 
-1. Restart MCP server to pick up new tools
-2. Run initial catalog scrape with common prefixes (VA*, ME*, MM*, etc.)
-3. Enable skipped SE16 filter tests
+1. **Initial Catalog Scrape**: Run the catalog scraper with a live SAP session:
+   - Use `scrape_tstc()` to get all transaction codes from TSTC table
+   - Use `enrich_with_se93()` with prefix filters for common modules (VA*, ME*, MM*, SD*, FI*, CO*)
+   - The catalog will be saved to `src/sapwebguimcp/data/transactions.json`
+
+2. **Usage**: Once the catalog is populated, Claude can use:
+   - `search_transactions("create order")` - Find transactions by description
+   - `search_transactions("VA")` - Find transactions by code prefix
+   - `search_transactions("purchase", area="MM")` - Filter by SAP module
+   - `get_transaction_catalog_status()` - Check catalog statistics
 
 ## Background
 

@@ -86,3 +86,24 @@ class TestMcpServer:
         assert expected_browser_tools.issubset(
             tool_names
         ), f"Missing browser tools: {expected_browser_tools - tool_names}"
+
+    def test_catalog_tools_are_registered(self) -> None:
+        """Test that transaction catalog tools are registered."""
+        tool_names = {tool.name for tool in mcp._tool_manager._tools.values()}
+        expected_catalog_tools = {
+            "search_transactions",
+            "get_transaction_catalog_status",
+        }
+        assert expected_catalog_tools.issubset(
+            tool_names
+        ), f"Missing catalog tools: {expected_catalog_tools - tool_names}"
+
+    def test_search_transactions_has_description(self) -> None:
+        """Test that search_transactions has a descriptive docstring."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        assert "search_transactions" in tools
+        tool = tools["search_transactions"]
+        assert tool.description is not None
+        assert "search" in tool.description.lower()
+        # Check for usage examples in description
+        assert "create" in tool.description.lower() or "order" in tool.description.lower()
