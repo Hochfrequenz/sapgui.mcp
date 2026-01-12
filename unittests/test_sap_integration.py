@@ -3285,13 +3285,6 @@ async def test_se16_query_basic(sap_mcp_client: ClientSession) -> None:
     )
 
 
-@pytest.mark.skip(
-    reason=(
-        "SE16N filter automation requires SAP field-loading which isn't reliably triggerable via automation. "
-        "The filter feature works with manual interaction but cannot be reliably tested in CI. "
-        "See se16n_selection_screen_tstc_de.yaml for manually captured populated grid example."
-    )
-)
 @pytest.mark.anyio
 async def test_se16_query_with_filter(sap_mcp_client: ClientSession) -> None:
     """
@@ -3335,12 +3328,6 @@ async def test_se16_query_with_filter(sap_mcp_client: ClientSession) -> None:
     )
 
 
-@pytest.mark.skip(
-    reason=(
-        "SE16N filter automation requires SAP field-loading which isn't reliably triggerable via automation. "
-        "The filter feature works with manual interaction but cannot be reliably tested in CI."
-    )
-)
 @pytest.mark.anyio
 async def test_se16_query_filter_multiple_results(sap_mcp_client: ClientSession) -> None:
     """

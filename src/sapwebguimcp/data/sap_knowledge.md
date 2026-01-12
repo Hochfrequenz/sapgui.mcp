@@ -3,6 +3,29 @@
 This file contains domain knowledge, tips, and best practices for working with SAP Web GUI.
 The content is loaded by `sap_get_capabilities()` and provided to the AI model.
 
+## Finding Transactions: Use the Catalog First
+
+**BEFORE guessing transaction codes or searching online**, use the `search_transactions` tool to search the local transaction catalog.
+
+The catalog contains ~4,000 SAP transactions with descriptions, and searching it is:
+
+- **Instant** - No network latency, no SAP session needed
+- **Accurate** - Data scraped from the actual SAP system via SE93
+- **Comprehensive** - Covers common areas: SD, MM, FI, CO, PP, BC, IS-U
+
+**Example queries:**
+
+- `search_transactions("sales order")` - Find sales order transactions
+- `search_transactions("VA")` - Find all transactions starting with VA
+- `search_transactions("customer", area="SD")` - Customer transactions in Sales & Distribution
+- `search_transactions("Kundenauftrag")` - German keywords work too (catalog is in German)
+
+**Only if the catalog doesn't help**, then:
+
+1. Try online resources (help.sap.com via `browser_navigate` - see workaround below)
+2. Use SE93 to look up unknown transaction codes
+3. Ask the user for clarification
+
 ## MCP-Tools are Faster than manual evaluation
 
 ALWAYS, before trying to use `browser_evaluate` or any other `browser_` tool, check if there is a dedicated MCP tool that does what you want.
@@ -114,7 +137,7 @@ Each has a simple, MCP-friendly UI:
 ## Functional Background
 
 - This MCP server was designed with a S/4 utilities system in mind, so many transactions relate to the legacy SAP IS-U (Industry Solution for Utilities) or (mostly) are the same.
-- Often before you start guessing, you'll be faster if you try to find e.g. table or transaction names online.
+- **Use `search_transactions` first** before guessing transaction codes. If the catalog doesn't help, try SAP Help Portal (see below).
 
 ### Accessing SAP Help Portal via Chrome Browser
 

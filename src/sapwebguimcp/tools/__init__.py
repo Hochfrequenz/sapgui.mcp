@@ -9,6 +9,7 @@ This package contains tool modules that are registered with the FastMCP server:
 """
 
 from sapwebguimcp.tools.browser_tools import register_browser_tools
+from sapwebguimcp.tools.catalog_tools import register_catalog_tools
 from sapwebguimcp.tools.feedback_tools import (
     clear_session_feedback,
     get_session_feedback,
@@ -29,6 +30,7 @@ from sapwebguimcp.tools.workflow_tools import register_workflow_tools
 
 __all__ = [
     "register_browser_tools",
+    "register_catalog_tools",
     "register_feedback_tools",
     "register_intent_tools",
     "register_sap_tools",

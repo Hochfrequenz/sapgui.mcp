@@ -44,4 +44,4 @@ class TableCatalog(BaseModel):
 
     def get_table(self, name: str) -> TableInfo | None:
         """Look up a table by name (case-insensitive)."""
-        return self.tables.get(name.upper())
+        return self.tables.get(name.upper())  # pylint: disable=no-member

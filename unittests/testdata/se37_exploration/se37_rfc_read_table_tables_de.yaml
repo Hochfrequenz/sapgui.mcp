@@ -312,15 +312,15 @@
         - cell "Transaktion"
         - cell "SE37"
         - cell
-      - row "E2E-Zeit 118 ms":
+      - row "E2E-Zeit 230 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "118 ms"
+        - cell "230 ms"
         - cell
-      - row "WebGUI-Zeit 59 ms":
+      - row "WebGUI-Zeit 142 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "59 ms"
+        - cell "142 ms"
         - cell

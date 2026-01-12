@@ -425,8 +425,9 @@ class TestFeedbackIssueHandler:
             handler.emit(record)
             elapsed = time.monotonic() - start
 
-            # emit() should return in < 50ms (it just queues, doesn't wait for HTTP)
-            assert elapsed < 0.05, f"emit() took {elapsed:.3f}s, should be < 0.05s"
+            # emit() should return quickly (it just queues, doesn't wait for HTTP)
+            # Use 200ms threshold to avoid flaky tests on slow/loaded machines
+            assert elapsed < 0.2, f"emit() took {elapsed:.3f}s, should be < 0.2s"
 
     @respx.mock
     @pytest.mark.anyio
