@@ -3483,6 +3483,827 @@
           "is_key": false
         }
       ]
+    },
+    "EKUN": {
+      "name": "EKUN",
+      "description": "IS-U spezifische Felder zum Geschäftspartner",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "MANDT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "PARTNER",
+          "description": "Geschäftspartnernummer",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": true
+        },
+        {
+          "name": "MUSTER_KUN",
+          "description": "Muster zum Anlegen eines Standardkunden zum Geschäftspartner",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": false
+        },
+        {
+          "name": "WAKLASS",
+          "description": "Klassifikation der Werksangehörigkeit",
+          "data_type": "CHAR",
+          "length": 4,
+          "is_key": false
+        },
+        {
+          "name": "FIRMART",
+          "description": "Art der Installationsfirma",
+          "data_type": "CHAR",
+          "length": 2,
+          "is_key": false
+        },
+        {
+          "name": "ARBFELD",
+          "description": "Arbeitsfeld der Installationsfirma",
+          "data_type": "CHAR",
+          "length": 2,
+          "is_key": false
+        },
+        {
+          "name": "MITGLIED",
+          "description": "Mitgliedschaft eines Installateurs",
+          "data_type": "CHAR",
+          "length": 1,
+          "is_key": false
+        },
+        {
+          "name": "SPZULASS",
+          "description": "Spartenzulassung des Installateurs",
+          "data_type": "CHAR",
+          "length": 20,
+          "is_key": false
+        },
+        {
+          "name": "ARTZULASS",
+          "description": "Zulassungsart des Installateurs",
+          "data_type": "CHAR",
+          "length": 2,
+          "is_key": false
+        },
+        {
+          "name": "FREMDEVU",
+          "description": "Hauptversorgungsunternehmen",
+          "data_type": "CHAR",
+          "length": 3,
+          "is_key": false
+        },
+        {
+          "name": "STATINS",
+          "description": "Gültiger Status des Installateurs im Versorgungsgebiet",
+          "data_type": "CHAR",
+          "length": 2,
+          "is_key": false
+        },
+        {
+          "name": "SOC_SECURE",
+          "description": "Sozialversicherungsnummer",
+          "data_type": "CHAR",
+          "length": 12,
+          "is_key": false
+        },
+        {
+          "name": "WELFARE",
+          "description": "Fürsorgestelle",
+          "data_type": "CHAR",
+          "length": 9,
+          "is_key": false
+        }
+      ]
+    },
+    "DFKKLOCKS": {
+      "name": "DFKKLOCKS",
+      "description": "FI-CA: Betriebswirtschaftliche Sperren",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "CLIENT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "LOOBJ1",
+          "description": "Sperrobjekt",
+          "data_type": "CHAR",
+          "length": 32,
+          "is_key": true
+        },
+        {
+          "name": "LOTYP",
+          "description": "Typ des Sperrobjekts",
+          "data_type": "CHAR",
+          "length": 2,
+          "is_key": true
+        },
+        {
+          "name": "PROID",
+          "description": "Prozesskennzeichen (z.B. Mahnen, Zahlen)",
+          "data_type": "CHAR",
+          "length": 2,
+          "is_key": true
+        },
+        {
+          "name": "LOCKR",
+          "description": "Sperrgrund",
+          "data_type": "CHAR",
+          "length": 1,
+          "is_key": true
+        },
+        {
+          "name": "FDATE",
+          "description": "Sperre gültig von",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": true
+        },
+        {
+          "name": "TDATE",
+          "description": "Sperre gültig bis",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": true
+        },
+        {
+          "name": "GPART",
+          "description": "Geschäftspartnernummer",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": true
+        },
+        {
+          "name": "VKONT",
+          "description": "Vertragskontonummer",
+          "data_type": "CHAR",
+          "length": 12,
+          "is_key": true
+        }
+      ]
+    },
+    "DFKKZP": {
+      "name": "DFKKZP",
+      "description": "Zahlungsstapel: Daten zur Zahlung",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "MANDT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "KEYZ1",
+          "description": "Zahlungsstapel",
+          "data_type": "CHAR",
+          "length": 12,
+          "is_key": true
+        },
+        {
+          "name": "POSZA",
+          "description": "Positionsnummer in einem Zahlungsstapel",
+          "data_type": "NUMC",
+          "length": 6,
+          "is_key": true
+        },
+        {
+          "name": "BETRZ",
+          "description": "Zahlbetrag in Transaktionswährung",
+          "data_type": "CURR",
+          "length": 13,
+          "decimals": 2,
+          "is_key": false
+        },
+        {
+          "name": "BETRH",
+          "description": "Betrag in Hauswährung mit Vorzeichen",
+          "data_type": "CURR",
+          "length": 13,
+          "decimals": 2,
+          "is_key": false
+        },
+        {
+          "name": "BUKRS",
+          "description": "Buchungskreis",
+          "data_type": "CHAR",
+          "length": 4,
+          "is_key": false
+        },
+        {
+          "name": "WAERS",
+          "description": "Währungsschlüssel",
+          "data_type": "CUKY",
+          "length": 5,
+          "is_key": false
+        },
+        {
+          "name": "BUDAT",
+          "description": "Buchungsdatum im Beleg",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": false
+        }
+      ]
+    },
+    "FKKVK": {
+      "name": "FKKVK",
+      "description": "Vertragskonto Kopf",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "MANDT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "VKONT",
+          "description": "Vertragskontonummer",
+          "data_type": "CHAR",
+          "length": 12,
+          "is_key": true
+        },
+        {
+          "name": "ERDAT",
+          "description": "Datum, an dem der Satz hinzugefügt wurde",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": false
+        },
+        {
+          "name": "LOEVM",
+          "description": "Vertragskonto zum Löschen vormerken",
+          "data_type": "CHAR",
+          "length": 1,
+          "is_key": false
+        },
+        {
+          "name": "APPLK",
+          "description": "Anwendungsbereich",
+          "data_type": "CHAR",
+          "length": 1,
+          "is_key": false
+        },
+        {
+          "name": "VKTYP",
+          "description": "Vertragskontotyp",
+          "data_type": "CHAR",
+          "length": 2,
+          "is_key": false
+        }
+      ]
+    },
+    "DBERCHZ1": {
+      "name": "DBERCHZ1",
+      "description": "Belegeinzelzeilen",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "MANDT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "BELNR",
+          "description": "Nummer eines Abrechnungsbelegs",
+          "data_type": "CHAR",
+          "length": 12,
+          "is_key": true
+        },
+        {
+          "name": "BELZEILE",
+          "description": "Rechnungszeile für Rechnungsbelege",
+          "data_type": "NUMC",
+          "length": 6,
+          "is_key": true
+        },
+        {
+          "name": "BELZART",
+          "description": "Belegzeilenart",
+          "data_type": "CHAR",
+          "length": 6,
+          "is_key": false
+        },
+        {
+          "name": "BUCHREL",
+          "description": "Buchungsrelevante Rechnungszeile",
+          "data_type": "CHAR",
+          "length": 1,
+          "is_key": false
+        },
+        {
+          "name": "PRINTREL",
+          "description": "Rechnungszeile ist druckrelevant",
+          "data_type": "CHAR",
+          "length": 1,
+          "is_key": false
+        },
+        {
+          "name": "AKLASSE",
+          "description": "Abrechnungsklasse",
+          "data_type": "CHAR",
+          "length": 4,
+          "is_key": false
+        },
+        {
+          "name": "TVORG",
+          "description": "Teilvorgang zur Belegposition",
+          "data_type": "CHAR",
+          "length": 4,
+          "is_key": false
+        },
+        {
+          "name": "AB",
+          "description": "Datum, ab dem eine Zeitscheibe gültig ist",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": false
+        },
+        {
+          "name": "BIS",
+          "description": "Datum, bis zu dem eine Zeitscheibe gültig ist",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": false
+        }
+      ]
+    },
+    "DBERCHZ2": {
+      "name": "DBERCHZ2",
+      "description": "Belegeinzelzeilen (Gerätedaten)",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "MANDT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "BELNR",
+          "description": "Nummer eines Abrechnungsbelegs",
+          "data_type": "CHAR",
+          "length": 12,
+          "is_key": true
+        },
+        {
+          "name": "BELZEILE",
+          "description": "Rechnungszeile für Rechnungsbelege",
+          "data_type": "NUMC",
+          "length": 6,
+          "is_key": true
+        },
+        {
+          "name": "EQUNR",
+          "description": "Equipmentnummer",
+          "data_type": "CHAR",
+          "length": 18,
+          "is_key": false
+        },
+        {
+          "name": "GERAET",
+          "description": "Gerät",
+          "data_type": "CHAR",
+          "length": 18,
+          "is_key": false
+        },
+        {
+          "name": "MATNR",
+          "description": "Materialnummer",
+          "data_type": "CHAR",
+          "length": 40,
+          "is_key": false
+        },
+        {
+          "name": "ZWNUMMER",
+          "description": "Zählwerk",
+          "data_type": "NUMC",
+          "length": 3,
+          "is_key": false
+        },
+        {
+          "name": "ABLESGR",
+          "description": "Ablesegrund",
+          "data_type": "CHAR",
+          "length": 2,
+          "is_key": false
+        },
+        {
+          "name": "LOGIKNR",
+          "description": "Logische Gerätenummer",
+          "data_type": "NUMC",
+          "length": 18,
+          "is_key": false
+        }
+      ]
+    },
+    "EABLG": {
+      "name": "EABLG",
+      "description": "Ablesegründe des Ablesebelegs",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "MANDT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "ANLAGE",
+          "description": "Anlage",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": true
+        },
+        {
+          "name": "ABLESGR",
+          "description": "Ablesegrund",
+          "data_type": "CHAR",
+          "length": 2,
+          "is_key": true
+        },
+        {
+          "name": "ABRDATS",
+          "description": "Geplantes Abrechnungsdatum",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": false
+        },
+        {
+          "name": "ABLEINH",
+          "description": "Ableseeinheit",
+          "data_type": "CHAR",
+          "length": 8,
+          "is_key": false
+        },
+        {
+          "name": "ADATSOLL",
+          "description": "Geplantes Ablesedatum",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": false
+        }
+      ]
+    },
+    "IFLOT": {
+      "name": "IFLOT",
+      "description": "Technischer Platz (Tabelle)",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "MANDT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "TPLNR",
+          "description": "Technischer Platz",
+          "data_type": "CHAR",
+          "length": 30,
+          "is_key": true
+        },
+        {
+          "name": "MLANG",
+          "description": "Leitsprache für Texte zum Objekt",
+          "data_type": "LANG",
+          "length": 1,
+          "is_key": false
+        },
+        {
+          "name": "TPLKZ",
+          "description": "Strukturkennzeichen Technischer Platz",
+          "data_type": "CHAR",
+          "length": 5,
+          "is_key": false
+        },
+        {
+          "name": "FLTYP",
+          "description": "Typ des Technischen Platzes",
+          "data_type": "CHAR",
+          "length": 1,
+          "is_key": false
+        },
+        {
+          "name": "TPLMA",
+          "description": "Übergeordneter Technischer Platz",
+          "data_type": "CHAR",
+          "length": 30,
+          "is_key": false
+        },
+        {
+          "name": "ERDAT",
+          "description": "Datum, an dem das Objekt angelegt wurde",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": false
+        },
+        {
+          "name": "IWERK",
+          "description": "Instandhaltungsplanungswerk",
+          "data_type": "CHAR",
+          "length": 4,
+          "is_key": false
+        }
+      ]
+    },
+    "ILOA": {
+      "name": "ILOA",
+      "description": "Standort und Kontierung zum IH-Objekt",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "MANDT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "ILOAN",
+          "description": "Standort und Kontierung zum technischen Objekt",
+          "data_type": "CHAR",
+          "length": 12,
+          "is_key": true
+        },
+        {
+          "name": "TPLNR",
+          "description": "Technischer Platz",
+          "data_type": "CHAR",
+          "length": 30,
+          "is_key": false
+        },
+        {
+          "name": "ABCKZ",
+          "description": "ABC-Kennzeichen zum technischen Objekt",
+          "data_type": "CHAR",
+          "length": 1,
+          "is_key": false
+        },
+        {
+          "name": "SWERK",
+          "description": "Standortwerk",
+          "data_type": "CHAR",
+          "length": 4,
+          "is_key": false
+        },
+        {
+          "name": "STORT",
+          "description": "Standort des Instandhaltungsobjekts",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": false
+        },
+        {
+          "name": "GSBER",
+          "description": "Geschäftsbereich",
+          "data_type": "CHAR",
+          "length": 4,
+          "is_key": false
+        },
+        {
+          "name": "KOSTL",
+          "description": "Kostenstelle",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": false
+        }
+      ]
+    },
+    "BUT021_FS": {
+      "name": "BUT021_FS",
+      "description": "zeitabhängige Adressverwendungen",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "CLIENT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "PARTNER",
+          "description": "Geschäftspartnernummer",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": true
+        },
+        {
+          "name": "ADDRNUMBER",
+          "description": "Adreßnummer",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": true
+        },
+        {
+          "name": "APTS_DATE_FROM",
+          "description": "Datum gültig ab",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": true
+        },
+        {
+          "name": "APTS_DATE_TO",
+          "description": "Datum gültig bis",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": false
+        }
+      ]
+    },
+    "BUT0IS": {
+      "name": "BUT0IS",
+      "description": "GP: Branchen",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "CLIENT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "PARTNER",
+          "description": "Geschäftspartnernummer",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": true
+        },
+        {
+          "name": "IND_SECTOR",
+          "description": "Branche des Geschäftspartners",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": true
+        },
+        {
+          "name": "STANDARD",
+          "description": "Standard",
+          "data_type": "CHAR",
+          "length": 1,
+          "is_key": false
+        }
+      ]
+    },
+    "BUT0ID": {
+      "name": "BUT0ID",
+      "description": "GP: Identifikationsnummern",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "CLIENT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "PARTNER",
+          "description": "Geschäftspartnernummer",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": true
+        },
+        {
+          "name": "TYPE",
+          "description": "Identifikationsart",
+          "data_type": "CHAR",
+          "length": 6,
+          "is_key": true
+        },
+        {
+          "name": "IDNUMBER",
+          "description": "Identifikationsnummer",
+          "data_type": "CHAR",
+          "length": 60,
+          "is_key": true
+        },
+        {
+          "name": "INSTITUTE",
+          "description": "Institut",
+          "data_type": "CHAR",
+          "length": 40,
+          "is_key": false
+        },
+        {
+          "name": "ENTRY_DATE",
+          "description": "Datum der Einreichung des Ausweises",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": false
+        }
+      ]
+    },
+    "BUT100": {
+      "name": "BUT100",
+      "description": "GP: Rollen",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "CLIENT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "PARTNER",
+          "description": "Geschäftspartnernummer",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": true
+        },
+        {
+          "name": "RLTYP",
+          "description": "GP-Rollenkategorie",
+          "data_type": "CHAR",
+          "length": 6,
+          "is_key": true
+        },
+        {
+          "name": "VALID_FROM",
+          "description": "Gültig ab",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": false
+        },
+        {
+          "name": "VALID_TO",
+          "description": "Gültig bis",
+          "data_type": "DATS",
+          "length": 8,
+          "is_key": false
+        }
+      ]
+    },
+    "BUT0BK": {
+      "name": "BUT0BK",
+      "description": "GP: Bankverbindungen",
+      "delivery_class": "",
+      "fields": [
+        {
+          "name": "CLIENT",
+          "description": "Mandant",
+          "data_type": "CLNT",
+          "length": 3,
+          "is_key": true
+        },
+        {
+          "name": "PARTNER",
+          "description": "Geschäftspartnernummer",
+          "data_type": "CHAR",
+          "length": 10,
+          "is_key": true
+        },
+        {
+          "name": "BKVID",
+          "description": "Bankverbindungsschlüssel",
+          "data_type": "CHAR",
+          "length": 4,
+          "is_key": true
+        },
+        {
+          "name": "BANK_KEY",
+          "description": "Bankschlüssel",
+          "data_type": "CHAR",
+          "length": 15,
+          "is_key": false
+        },
+        {
+          "name": "BANK_CTRY",
+          "description": "Bankland",
+          "data_type": "CHAR",
+          "length": 3,
+          "is_key": false
+        },
+        {
+          "name": "BANK_ACCT",
+          "description": "Bankkonto",
+          "data_type": "CHAR",
+          "length": 18,
+          "is_key": false
+        }
+      ]
     }
   },
   "version": "2026-01-12",
