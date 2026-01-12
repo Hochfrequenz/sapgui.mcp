@@ -214,6 +214,94 @@ async def _fill_se16n_max_hits(max_hits: int) -> None:
     await sap_fill_form_impl({"Maximale Trefferzahl": str(max_hits)}, strict=False)
 
 
+async def _fill_filter_with_playwright(
+    page: Any, element_id: str | None, selector: str | None, value: str, field_name: str
+) -> bool:
+    """
+    Fill a filter field using Playwright's native click + type.
+
+    Tries element ID first, then selector. Uses Ctrl+A to clear before typing.
+
+    Returns:
+        True if fill succeeded, False otherwise.
+    """
+    # Try by element ID first (use attribute selector for IDs with special chars)
+    if element_id:
+        try:
+            element = page.locator(f'[id="{element_id}"]')
+            if await element.count() > 0:
+                await element.click()
+                await page.wait_for_timeout(100)
+                await page.keyboard.press("Control+a")
+                await page.keyboard.type(value, delay=30)
+                await page.keyboard.press("Tab")  # Commit value
+                await page.wait_for_timeout(200)
+                logger.info("SE16: Filled filter %s=%s via Playwright (id)", field_name, value)
+                return True
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.warning("SE16: Playwright fill by ID failed: %s", e)
+
+    # Try by CSS selector
+    if selector:
+        try:
+            element = page.locator(selector)
+            if await element.count() > 0:
+                await element.click()
+                await page.wait_for_timeout(100)
+                await page.keyboard.press("Control+a")
+                await page.keyboard.type(value, delay=30)
+                await page.keyboard.press("Tab")
+                await page.wait_for_timeout(200)
+                logger.info("SE16: Filled filter %s=%s via Playwright (selector)", field_name, value)
+                return True
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.warning("SE16: Playwright fill by selector failed: %s", e)
+
+    return False
+
+
+async def _fill_filter_by_index(
+    page: Any, find_js: str, field_name: str, value: str, row_index: int
+) -> str | None:
+    """
+    Fill a single filter field using index-based approach.
+
+    Uses JS to find the element, then Playwright to fill it.
+
+    Returns:
+        Error message if failed, None if successful.
+    """
+    # Find the element using JS
+    result = await page.evaluate(find_js, {"rowIndex": row_index, "fieldName": field_name})
+
+    if not result.get("success"):
+        error_msg = str(result.get("error", f"Could not find element for {field_name}"))
+        debug_info = result.get("debug", {})
+        logger.warning("SE16: Find element failed - %s, debug=%s", error_msg, debug_info)
+        return error_msg
+
+    # Extract element info
+    element_id = result.get("elementId")
+    selector = result.get("selector")
+    strategy = result.get("strategy", "unknown")
+    element_type = result.get("elementType", "unknown")
+
+    logger.info(
+        "SE16: Found element for %s (row %d): id=%s, type=%s, strategy=%s",
+        field_name,
+        row_index,
+        element_id,
+        element_type,
+        strategy,
+    )
+
+    # Fill using Playwright
+    if await _fill_filter_with_playwright(page, element_id, selector, value, field_name):
+        return None
+
+    return f"Found element for {field_name} but Playwright fill failed"
+
+
 async def _fill_se16n_filters(
     filters: dict[str, str] | None, field_order: dict[str, int] | None
 ) -> list[str]:
@@ -223,6 +311,10 @@ async def _fill_se16n_filters(
     Uses SE11 field order mapping to find the correct row index for each field,
     avoiding the need to search for field names in the DOM (which fails due to
     SAP Web GUI's lazy column rendering).
+
+    Uses a two-step approach:
+    1. JavaScript finds the target element's ID/selector
+    2. Playwright's native click + type fills the value (triggers proper SAP events)
 
     Args:
         filters: Dict of {field_name: value} to filter on.
@@ -239,57 +331,45 @@ async def _fill_se16n_filters(
     errors: list[str] = []
     page = await (await get_browser_manager()).get_current_page()
 
-    # Use index-based JS if we have field order, otherwise fall back to name-based
-    if field_order:
-        js_code = _load_js("fill_se16_filter_by_index.js")
-    else:
-        js_code = _load_js("fill_se16_filter.js")
+    # Load appropriate JS based on whether we have field order
+    find_js = _load_js("find_se16_filter_input.js") if field_order else None
+    fill_js = _load_js("fill_se16_filter.js") if not field_order else None
+
+    if not field_order:
         logger.warning("SE16: No field order available, falling back to name-based filter search")
 
     for field_name, value in filters.items():
         field_upper = field_name.upper()
 
         try:
-            if field_order:
-                # Use index-based approach
+            if field_order and find_js:
+                # Check if field exists in table
                 if field_upper not in field_order:
                     available = list(field_order.keys())[:10]
                     errors.append(f"Field '{field_name}' not found in table (available: {available})")
                     continue
 
-                row_index = field_order[field_upper]
-                result = await page.evaluate(
-                    js_code, {"rowIndex": row_index, "value": value, "fieldName": field_upper}
+                # Fill using index-based approach
+                error = await _fill_filter_by_index(
+                    page, find_js, field_upper, value, field_order[field_upper]
                 )
-            else:
-                # Fall back to name-based search
-                result = await page.evaluate(js_code, {"fieldName": field_upper, "value": value})
+                if error:
+                    errors.append(error)
 
-            if not result.get("success"):
-                error_msg = result.get("error", f"Unknown error for field {field_name}")
-                debug_info = result.get("debug", {})
-                if debug_info:
-                    logger.warning(
-                        "SE16: Filter debug - grids=%d, dataRows=%d",
-                        debug_info.get("gridsFound", 0),
-                        debug_info.get("dataRowsFound", 0),
-                    )
-                errors.append(error_msg)
-                logger.warning("SE16: Filter error: %s", error_msg)
-            else:
-                logger.info(
-                    "SE16: Applied filter %s=%s (row %s)",
-                    field_name,
-                    value,
-                    result.get("rowIndex", "?"),
-                )
+            elif fill_js:
+                # Fall back to name-based JavaScript approach
+                result = await page.evaluate(fill_js, {"fieldName": field_upper, "value": value})
+
+                if not result.get("success"):
+                    error_msg = result.get("error", f"Unknown error for field {field_name}")
+                    errors.append(error_msg)
+                    logger.warning("SE16: Filter error (name-based): %s", error_msg)
+                else:
+                    logger.info("SE16: Applied filter %s=%s via JS (name-based)", field_name, value)
+
         except Exception as e:  # pylint: disable=broad-exception-caught
             errors.append(f"Failed to apply filter {field_name}={value}: {e}")
             logger.warning("SE16: Filter exception for %s: %s", field_name, e)
-
-    # Small delay to let SAP process the filter values
-    if filters:
-        await page.wait_for_timeout(500)
 
     return errors
 
