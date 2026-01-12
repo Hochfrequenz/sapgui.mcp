@@ -1,5 +1,9 @@
 """Unit tests for the table catalog module."""
 
+import json
+import tempfile
+from pathlib import Path
+
 import pytest
 
 from sapwebguimcp.tables.models import TableCatalog, TableField, TableInfo
@@ -111,3 +115,246 @@ class TestTableCatalog:
         """Get table returns None when not found."""
         catalog = TableCatalog()
         assert catalog.get_table("NONEXISTENT") is None
+
+
+class TestTableLoader:
+    """Tests for table catalog loading."""
+
+    def test_load_catalog_from_json(self) -> None:
+        """Load catalog from JSON file."""
+        from sapwebguimcp.tables.loader import load_catalog
+
+        catalog_data = {
+            "tables": {
+                "MARA": {
+                    "name": "MARA",
+                    "description": "Material Master",
+                    "delivery_class": "A",
+                    "fields": [
+                        {"name": "MATNR", "description": "Material", "data_type": "CHAR", "length": 40, "is_key": True}
+                    ],
+                }
+            },
+            "version": "2026-01-12",
+            "source_system": "S4H",
+        }
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(catalog_data, f)
+            temp_path = Path(f.name)
+
+        try:
+            load_catalog.cache_clear()
+            catalog = load_catalog(temp_path)
+
+            assert len(catalog.tables) == 1
+            assert catalog.get_table("MARA") is not None
+            mara = catalog.get_table("MARA")
+            assert mara is not None
+            assert len(mara.fields) == 1
+        finally:
+            temp_path.unlink()
+            load_catalog.cache_clear()
+
+    def test_load_catalog_missing_file(self) -> None:
+        """Missing file returns empty catalog."""
+        from sapwebguimcp.tables.loader import load_catalog
+
+        load_catalog.cache_clear()
+        catalog = load_catalog(Path("/nonexistent/path.json"))
+        assert len(catalog.tables) == 0
+
+    def test_load_catalog_cached(self) -> None:
+        """Same instance returned on repeated calls."""
+        from sapwebguimcp.tables.loader import load_catalog
+
+        load_catalog.cache_clear()
+
+        catalog_data = {"tables": {}, "version": "test"}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(catalog_data, f)
+            temp_path = Path(f.name)
+
+        try:
+            c1 = load_catalog(temp_path)
+            c2 = load_catalog(temp_path)
+            assert c1 is c2
+        finally:
+            temp_path.unlink()
+            load_catalog.cache_clear()
+
+    def test_get_catalog_never_raises(self) -> None:
+        """get_catalog returns empty catalog on errors."""
+        from sapwebguimcp.tables.loader import get_catalog, load_catalog
+
+        load_catalog.cache_clear()
+        catalog = get_catalog()
+        assert isinstance(catalog, TableCatalog)
+
+
+class TestTableSearch:
+    """Tests for table search functionality."""
+
+    @pytest.fixture
+    def sample_catalog(self) -> TableCatalog:
+        """Create a sample catalog for testing."""
+        return TableCatalog(
+            tables={
+                "MARA": TableInfo(
+                    name="MARA",
+                    description="Allgemeine Materialdaten",
+                    delivery_class="A",
+                    fields=[
+                        TableField(name="MANDT", description="Mandant", data_type="CLNT", length=3, is_key=True),
+                        TableField(name="MATNR", description="Materialnummer", data_type="CHAR", length=40, is_key=True),
+                        TableField(name="MTART", description="Materialart", data_type="CHAR", length=4),
+                    ],
+                ),
+                "MARC": TableInfo(
+                    name="MARC",
+                    description="Werksdaten zum Material",
+                    delivery_class="A",
+                    fields=[
+                        TableField(name="MATNR", description="Materialnummer", data_type="CHAR", length=40, is_key=True),
+                        TableField(name="WERKS", description="Werk", data_type="CHAR", length=4, is_key=True),
+                    ],
+                ),
+                "VBAK": TableInfo(
+                    name="VBAK",
+                    description="Verkaufsbeleg: Kopfdaten",
+                    delivery_class="A",
+                    fields=[
+                        TableField(name="VBELN", description="Verkaufsbeleg", data_type="CHAR", length=10, is_key=True),
+                    ],
+                ),
+            },
+            version="test",
+        )
+
+    def test_exact_table_name_match(self, sample_catalog: TableCatalog) -> None:
+        """Exact table name gets highest score."""
+        from sapwebguimcp.tables.search import search_tables
+
+        results = search_tables(sample_catalog, "MARA")
+
+        assert len(results) >= 1
+        assert results[0].table.name == "MARA"
+        assert results[0].score == 100
+        assert results[0].match_reason == "table name exact"
+
+    def test_table_name_prefix_match(self, sample_catalog: TableCatalog) -> None:
+        """Table name prefix match."""
+        from sapwebguimcp.tables.search import search_tables
+
+        results = search_tables(sample_catalog, "MAR")
+
+        assert len(results) >= 2
+        table_names = [r.table.name for r in results]
+        assert "MARA" in table_names
+        assert "MARC" in table_names
+
+    def test_description_search(self, sample_catalog: TableCatalog) -> None:
+        """Search in table description."""
+        from sapwebguimcp.tables.search import search_tables
+
+        results = search_tables(sample_catalog, "Material")
+
+        assert len(results) >= 2
+        table_names = [r.table.name for r in results]
+        assert "MARA" in table_names
+        assert "MARC" in table_names
+
+    def test_field_name_search(self, sample_catalog: TableCatalog) -> None:
+        """Search finds tables with matching field name."""
+        from sapwebguimcp.tables.search import search_tables
+
+        results = search_tables(sample_catalog, "MATNR", include_fields=True)
+
+        assert len(results) >= 2
+        table_names = [r.table.name for r in results]
+        assert "MARA" in table_names
+        assert "MARC" in table_names
+
+    def test_field_description_search(self, sample_catalog: TableCatalog) -> None:
+        """Search finds tables with matching field description."""
+        from sapwebguimcp.tables.search import search_tables
+
+        results = search_tables(sample_catalog, "Materialnummer", include_fields=True)
+
+        assert len(results) >= 2
+
+    def test_field_search_disabled(self, sample_catalog: TableCatalog) -> None:
+        """include_fields=False skips field matching."""
+        from sapwebguimcp.tables.search import search_tables
+
+        results = search_tables(sample_catalog, "MATNR", include_fields=False)
+
+        # MATNR is only a field name, not a table name or description
+        # Should return empty or only tables where MATNR appears in name/description
+        for r in results:
+            assert "MATNR" in r.table.name.upper() or "MATNR" in r.table.description.upper()
+
+    def test_limit_results(self, sample_catalog: TableCatalog) -> None:
+        """Limit parameter works."""
+        from sapwebguimcp.tables.search import search_tables
+
+        results = search_tables(sample_catalog, "M", limit=2)
+        assert len(results) <= 2
+
+    def test_empty_query(self, sample_catalog: TableCatalog) -> None:
+        """Empty query returns no results."""
+        from sapwebguimcp.tables.search import search_tables
+
+        assert search_tables(sample_catalog, "") == []
+        assert search_tables(sample_catalog, "   ") == []
+
+    def test_case_insensitive(self, sample_catalog: TableCatalog) -> None:
+        """Search is case-insensitive."""
+        from sapwebguimcp.tables.search import search_tables
+
+        results_upper = search_tables(sample_catalog, "MARA")
+        results_lower = search_tables(sample_catalog, "mara")
+
+        assert len(results_upper) == len(results_lower)
+
+
+class TestTableTools:
+    """Tests for table MCP tool registration."""
+
+    def test_register_table_tools(self) -> None:
+        """Table tools register without error."""
+        from fastmcp import FastMCP
+
+        from sapwebguimcp.tools.table_tools import register_table_tools
+
+        mcp = FastMCP("test")
+        register_table_tools(mcp)
+
+        # Verify tool was registered
+        tool_names = [t.name for t in mcp._tool_manager._tools.values()]
+        assert "search_tables" in tool_names
+
+
+class TestIntegration:
+    """Integration tests using bundled catalog."""
+
+    def test_search_euitrans_returns_table(self) -> None:
+        """Integration: search finds EUITRANS table in bundled catalog."""
+        from sapwebguimcp.tables.loader import get_catalog, load_catalog
+        from sapwebguimcp.tables.search import search_tables
+
+        load_catalog.cache_clear()
+        catalog = get_catalog()
+
+        # Skip if catalog is empty (not yet populated)
+        if len(catalog.tables) == 0:
+            pytest.skip("Table catalog not populated yet")
+
+        results = search_tables(catalog, "EUITRANS", include_fields=False, limit=5)
+
+        assert len(results) > 0
+        table = results[0].table
+        score = results[0].score
+        assert table.name == "EUITRANS"
+        assert score >= 80  # Exact or prefix match
+        assert len(table.fields) > 0

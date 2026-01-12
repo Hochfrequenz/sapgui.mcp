@@ -1,0 +1,14 @@
+{
+  "tables": {
+    "EUITRANS": {
+      "name": "EUITRANS",
+      "description": "UI-Transaktionen",
+      "delivery_class": "C",
+      "fields": [
+        {"name": "TCODE", "description": "Transaktionscode", "data_type": "CHAR", "length": 20, "is_key": true}
+      ]
+    }
+  },
+  "version": "2026-01-12-seed",
+  "source_system": "SEED"
+}

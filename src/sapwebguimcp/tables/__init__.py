@@ -20,10 +20,20 @@ are used by developers/maintainers to build or update the table catalog.
 """
 
 # Runtime exports only - scraper is development-only
+from sapwebguimcp.tables.loader import get_catalog, load_catalog, reload_catalog
 from sapwebguimcp.tables.models import TableCatalog, TableField, TableInfo
+from sapwebguimcp.tables.search import TableSearchResult, search_tables
 
 __all__ = [
+    # Models
     "TableField",
     "TableInfo",
     "TableCatalog",
+    # Loader
+    "get_catalog",
+    "load_catalog",
+    "reload_catalog",
+    # Search
+    "search_tables",
+    "TableSearchResult",
 ]
