@@ -394,24 +394,32 @@ def _check_table_not_found(snapshot: str, table: str) -> str | None:
     if "does not exist" in snapshot_lower or "existiert nicht" in snapshot_lower:
         return f"Table '{table}' not found in SAP"
 
-    # Check for selection screen FIRST (takes priority over results heading)
-    # Selection screen has specific filter columns that don't appear on results page:
-    # "Von-Wert"/"From-Value" (filter value column) is unique to selection screen
-    selection_only_columns = {"Von-Wert", "From-Value", "Bis-Wert", "To-Value"}
-    for col in selection_only_columns:
-        if col in snapshot:
-            logger.info("SE16: Found selection-only column '%s', still on selection screen", col)
-            return f"Table '{table}' not found in SAP (still on selection screen)"
-
-    # Check if we're on the results page by looking for the results title
-    results_titles = {"Allgemeine Tabellenanzeige", "General Table Display"}
-    for title in results_titles:
-        if title in snapshot:
-            logger.debug("SE16: Found results title '%s', table exists", title)
-            return None  # We're on results page, no error
-
-    logger.debug("SE16: No clear indicator found in snapshot")
+    # No explicit error - will check columns after parsing
     return None
+
+
+def _check_selection_screen_columns(columns: list[str]) -> bool:
+    """
+    Check if parsed columns indicate we're still on the selection screen.
+
+    SE16N selection screen has these column headers in the filter grid:
+    - DE: Feldname, Option, Von-Wert, Bis-Wert, Mehr, Ausgabe, Technischer Name
+    - EN: Field Name, Option, From-Value, To-Value, More, Output, Technical Name
+
+    Returns:
+        True if columns indicate selection screen, False otherwise.
+    """
+    # Selection screen column names (DE and EN)
+    selection_columns_de = {"Feldname", "Von-Wert", "Bis-Wert", "Technischer Name"}
+    selection_columns_en = {"Field Name", "From-Value", "To-Value", "Technical Name"}
+
+    columns_set = set(columns)
+
+    # If we see multiple selection-screen-only columns, we're on selection screen
+    de_matches = len(columns_set & selection_columns_de)
+    en_matches = len(columns_set & selection_columns_en)
+
+    return de_matches >= 2 or en_matches >= 2
 
 
 async def _focus_grid(page: Any) -> None:
@@ -516,7 +524,7 @@ async def _collect_rows_with_pagination(
     return all_rows
 
 
-async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branches
+async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
     table: str,
     filters: dict[str, str] | None,
     max_hits: int,
@@ -606,6 +614,15 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
             table,
             now,
             total_hits=total_hits,
+        )
+
+    # Check if we're still on selection screen (parsed filter grid instead of results)
+    if _check_selection_screen_columns(columns):
+        logger.info("SE16: Parsed selection screen columns, table '%s' likely doesn't exist", table)
+        return _empty_failure(
+            f"Table '{table}' not found in SAP (still on selection screen)",
+            table,
+            now,
         )
 
     # Handle empty results
