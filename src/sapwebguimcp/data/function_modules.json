@@ -5304,11 +5304,659 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:58:19.482376Z"
+    },
+    {
+      "name": "FKK_CL_MEM_STORE_WITH_DIALOG",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_MEMOT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "MEMOT_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Objekttyp, zu dem ein Bearbeitungsstand gespeichert wird"
+        },
+        {
+          "name": "I_MEMCL_OLD",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "MEMCL_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Identifikation des zwischengespeicherten Standes"
+        },
+        {
+          "name": "I_DATVZ",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "D",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " Basisdatum für Verzug"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_MEMCL",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "MEMCL_KK",
+          "default_value": "",
+          "optional": false,
+          "pass_by_value": true,
+          "description": "Identifikation des zwischengespeicherten Standes"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "T_FKKCL",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKCL",
+          "default_value": "Ausgleichspositionen",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zum Beleg im Vertragskontokorrent"
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "INPUT_INVALID",
+          "description": "Übergabedaten formal falsch"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:00:49.805979Z"
+    },
+    {
+      "name": "FKK_COLL_BILL_ITEMS_READ",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "X_GPART",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "GPART_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " Geschäftspartnernummer"
+        },
+        {
+          "name": "X_VKONT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "VKONT_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " Vertragskontonummer"
+        },
+        {
+          "name": "X_SKONT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "VKONT_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " Vertragskontonummer"
+        },
+        {
+          "name": "X_ABWBL",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "FKKOP-ABWBL",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " Typ des stellvert. Belegs aus dem Vertragskontokorrent"
+        },
+        {
+          "name": "X_APPLK",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "APPLK_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Anwendungsbereich"
+        },
+        {
+          "name": "X_ONLY_OPEN_ITEMS",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "default_value": "SPACE",
+          "optional": true,
+          "pass_by_value": true,
+          "description": "  Nur offene Posten lesen"
+        },
+        {
+          "name": "X_ONLY_CLRD_ITEMS",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "default_value": "SPACE",
+          "optional": true,
+          "pass_by_value": true,
+          "description": "  Nur ausgegliechene Posten lesen"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "T_FKKOP_C",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "default_value": "Geschäftspartnerpositionen",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zum Kontokorrentbeleg"
+        },
+        {
+          "name": "PARENT_FKKOP",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "default_value": "Geschäftspartnerpositionen",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zum Kontokorrentbeleg"
+        },
+        {
+          "name": "T_FKKVKP",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKVKP",
+          "default_value": "Vertragskonto",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "partnerspezifisch"
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NO_DATA_FOUND",
+          "description": "Es konnten keine Positionen selektiert werden"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:00:58.164652Z"
+    },
+    {
+      "name": "FKK_COMBINE_TABLE_ENTRIES",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_FLDNM",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FIELDNAME",
+          "default_value": "'BETRW'",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Feldname für Betragsfeld, auf das die Betragsgleichzeit geprüft wird"
+        },
+        {
+          "name": "I_AMOUNT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "default_value": "Betrag",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "in Transaktionswährung mit Vorzeichen"
+        },
+        {
+          "name": "IT_IMPORT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "INDEX",
+          "default_value": "TABLE",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Input Tabelle"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_OKAY",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "BOOLE-BOOLE",
+          "default_value": "Schalter",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "sitzt auf 'X', falls Betrag komplett verteilt werden konnte"
+        },
+        {
+          "name": "ET_EXPORT",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "INDEX",
+          "default_value": "TABLE",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Exporttabelle; gefüllt falls Betrag verteilt werden konnte"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:01:06.464435Z"
+    },
+    {
+      "name": "FKK_CORR_AUTH_CHECK",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_COTYP",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "COTYP_KK",
+          "default_value": "Korrespondenzart",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_ACTVT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "ACTIV_AUTH",
+          "default_value": "Aktivität",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NOT_AUTHORIZED",
+          "description": "Nicht berechtigt"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:01:14.802250Z"
+    },
+    {
+      "name": "FKK_CORR_CHDOC_PREPARE_FIELDV",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_OBJECTCLAS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CDOBJECTCL",
+          "default_value": "Objektklasse",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_TABNAME",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "TABNAME",
+          "default_value": "Tabellenname",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_FIELDNAME",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FIELDNAME",
+          "default_value": "Feldname",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_TABKEY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CDTABKEY",
+          "default_value": "SPACE",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Key der geaenderten Tabellenzeile"
+        },
+        {
+          "name": "I_TABKEY_LONG",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CDTABKEYLO",
+          "default_value": "SPACE",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Tabellenschlüssel f. CDPOS in Character 254"
+        },
+        {
+          "name": "I_FIELDVALUE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BANK_DTE_CD_FLDVAL",
+          "default_value": "Key",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der geaenderten Tabellenzeile"
+        },
+        {
+          "name": "I_CREATEDATE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CDDATUM",
+          "default_value": "Erstellungsdatum",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Änderungsbelegs"
+        },
+        {
+          "name": "I_CREATETIME",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CDUZEIT",
+          "default_value": "Uhrzeit",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der Änderung"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_FIELDVALUETEXT",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "BANK_DTE_CD_FLDVALPRE",
+          "default_value": "Änderungsbelegtool",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "FS - Text zum Tabellenschlüssel"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:01:23.233571Z"
+    },
+    {
+      "name": "FKK_CORR_DTINF_SEL_CHANGE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_TAB",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "TABNAME",
+          "default_value": "Table",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Name"
+        },
+        {
+          "name": "I_EVENT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CHAR1",
+          "default_value": "Single-Character",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Flag"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_ACTION",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "CHAR1",
+          "default_value": "Single-Character",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Flag"
+        },
+        {
+          "name": "E_DONE",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "BOOLEAN",
+          "default_value": "Boolean",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Variable (X=True, -=False, Space=Unknown)"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:01:31.631205Z"
+    },
+    {
+      "name": "FKK_CORR_MASS_INIT_BUFFER",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_COKEY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "DFKKCOH-COKEY",
+          "default_value": null,
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_OUT_OF_RANGE",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": null,
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "E_OUT_OF_RANGE_COTYP",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "Feld",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zum Ankreuzen"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:01:40.383068Z"
+    },
+    {
+      "name": "FKK_CO_AMOUNT_CALC_KEY_CHECK",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_CO_AMOUNT_CALC_KEY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CO_AMOUNT_CALC_KEY_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Betragsberechnungsschlüssel"
+        },
+        {
+          "name": "I_TFK8265",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "TFK8265",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Betragsberechnungsschlüssel"
+        },
+        {
+          "name": "IT_TFK8265R",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "TFK8265R_TAB",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Betragsberechnungsschlüssel Tabellentyp"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:01:49.140625Z"
+    },
+    {
+      "name": "FKK_CO_ARCH_DOCS_EXIST",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [
+        {
+          "name": "E_ARCH_DOCS_EXIST",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "Existieren",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "möglicherweise archivierte Einträge"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:01:57.548476Z"
+    },
+    {
+      "name": "FKK_CRM_ACCOUNT_EVENT_1203",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:02:06.233511Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T08:00:10.421023+00:00",
-  "total_count": 98,
-  "enriched_count": 98
+  "last_updated": "2026-01-13T08:03:28.414960+00:00",
+  "total_count": 108,
+  "enriched_count": 108
 }
