@@ -1,6 +1,7 @@
 """Class catalog models - simplified for runtime search."""
 
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -12,7 +13,7 @@ class ClassEntry:
     object_type: str = "class"  # "class" or "interface"
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ClassEntry":
+    def from_dict(cls, data: dict[str, Any]) -> "ClassEntry":
         """Create from catalog JSON dict."""
         return cls(
             name=data.get("class_name", ""),

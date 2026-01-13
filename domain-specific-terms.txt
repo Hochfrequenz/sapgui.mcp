@@ -8,6 +8,16 @@ webgui
 sapgui
 
 # German terms (common in SAP documentation/examples)
+offener
+feld
+intervall
+tage
+temperatur
+attributen
+temporaere
+attribut
+produkts
+ans
 branche
 beginn
 ende
@@ -47,6 +57,14 @@ lokal
 lokale
 funktion
 applikation
+
+# SAP technical terms
+repid
+
+# Typos in SAP data (from SAP system, cannot be fixed)
+payed
+maxium
+managment
 
 # Technical terms
 stdin

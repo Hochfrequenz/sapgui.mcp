@@ -15,7 +15,7 @@ Design Notes:
   because CO01 should match "PP-Orders" (CO0*) not "CO-General" (CO*)
 """
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
@@ -328,7 +328,7 @@ class FunctionModuleInfo(BaseModel):
     retrieved_at: AwareDatetime | None = Field(default=None, description="UTC timestamp")
 
     @classmethod
-    def from_se37_entry(cls, entry: dict) -> "FunctionModuleInfo":
+    def from_se37_entry(cls, entry: dict[str, Any]) -> "FunctionModuleInfo":
         """Create FunctionModuleInfo from SE37 lookup result."""
         name = entry.get("function_module", "")
 
@@ -397,7 +397,7 @@ class FunctionModuleCatalog(BaseModel):
             self.function_modules[idx] = fm
         else:
             # Add new
-            self.function_modules.append(fm)
+            self.function_modules.append(fm)  # pylint: disable=no-member
             self._invalidate_index()
 
 
@@ -514,5 +514,5 @@ class ClassCatalog(BaseModel):
             idx = self._get_name_index()[cls.name.upper()]
             self.classes[idx] = cls
         else:
-            self.classes.append(cls)
+            self.classes.append(cls)  # pylint: disable=no-member
             self._invalidate_index()

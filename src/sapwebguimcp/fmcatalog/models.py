@@ -1,6 +1,7 @@
 """Function module catalog models - simplified for runtime search."""
 
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -15,7 +16,7 @@ class FMParameter:
 
 
 @dataclass
-class FunctionModuleEntry:
+class FunctionModuleEntry:  # pylint: disable=too-many-instance-attributes
     """Function module entry in the catalog."""
 
     name: str
@@ -31,10 +32,10 @@ class FunctionModuleEntry:
     enriched: bool = False
 
     @classmethod
-    def from_dict(cls, data: dict) -> "FunctionModuleEntry":
+    def from_dict(cls, data: dict[str, Any]) -> "FunctionModuleEntry":
         """Create from catalog JSON dict."""
 
-        def parse_params(params_list: list[dict]) -> list[FMParameter]:
+        def parse_params(params_list: list[dict[str, Any]]) -> list[FMParameter]:
             return [
                 FMParameter(
                     name=p.get("name", ""),

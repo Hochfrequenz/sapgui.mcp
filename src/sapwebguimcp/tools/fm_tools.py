@@ -13,6 +13,7 @@ from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 
 from sapwebguimcp.fmcatalog.loader import get_catalog
+from sapwebguimcp.fmcatalog.models import FMParameter
 from sapwebguimcp.fmcatalog.search import search_function_modules as do_search
 
 logger = logging.getLogger(__name__)
@@ -109,7 +110,7 @@ def register_fm_tools(mcp: FastMCP) -> None:
         catalog = get_catalog()
         search_results = do_search(catalog, query, include_params=include_params, limit=limit)
 
-        def convert_params(params: list) -> list[FMParameterResult]:
+        def convert_params(params: list[FMParameter]) -> list[FMParameterResult]:
             return [
                 FMParameterResult(
                     name=p.name,
