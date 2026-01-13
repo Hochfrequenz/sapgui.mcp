@@ -2168,11 +2168,396 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:41:14.872984Z"
+    },
+    {
+      "name": "FKK_BIX_CO_TYPE_GET",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_CO_TYPE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CO_TYPE_KK",
+          "default_value": "Art",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der Kosten einer abr. Position"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_TFK8260",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "TFK8260",
+          "default_value": "Art",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der Kosten einer abrechenbaren Position"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:43:13.658353Z"
+    },
+    {
+      "name": "FKK_BIX_CVIEW_GEN_DDL_SRC_EXIT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_CIT_VIEW",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXCIT_VIEWS",
+          "default_value": "Datenbank-Views",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für abrechenbare Positionen"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:43:21.879559Z"
+    },
+    {
+      "name": "FKK_BIX_CYC_CIT_CREATE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [
+        {
+          "name": "ET_CIT",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXCIT_ALL_TAB",
+          "default_value": "Summe",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "aller Felder aller CIT-Klassen"
+        }
+      ],
+      "changing_parameters": [
+        {
+          "name": "CT_VT_CYCREQ",
+          "category": "changing",
+          "typing": "TYPE",
+          "reference_type": "FKK_VT_CYCREQ_TAB",
+          "default_value": "Tabellentyp",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zu DFKK_VT_CYCREQ"
+        }
+      ],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:43:30.348322Z"
+    },
+    {
+      "name": "FKK_BIX_DIALOG_SET_BIPREQ_PRMS",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:43:38.576472Z"
+    },
+    {
+      "name": "FKK_BIX_DIALOG_SET_BU_PARAMS",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_HEADERTEXT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "SPACE",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Popup Überschrift"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [
+        {
+          "name": "C_BILL_UNIT_PARAMS",
+          "category": "changing",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_UNIT_PARAMS",
+          "default_value": "Abrechnungseinheit",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "- Parameter"
+        }
+      ],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:43:47.136013Z"
+    },
+    {
+      "name": "FKK_BIX_DISC_DETAILS_GET",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_DISCKEY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "DISCKEY_KK",
+          "default_value": "Rabatt-/Zuschlagsschlüssel",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ES_DISCKEY",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_DISCKEY",
+          "default_value": "Rabattschlüssel",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "+ Text"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NOT_FOUND",
+          "description": "Rabattschlüssel nicht gefunden"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:43:55.443362Z"
+    },
+    {
+      "name": "FKK_BIX_ENQUEUE_BILLPLAN",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_BILLPLANNO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BILLPLANNO_KK",
+          "default_value": "Nummer",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Abrechnungsplans"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "FOREIGN_LOCK",
+          "description": "Gesperrt durch andere Massenverarbeitung"
+        },
+        {
+          "name": "SYSTEM_FAILURE",
+          "description": "Systemfehler beim Sperren"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:44:03.729543Z"
+    },
+    {
+      "name": "FKK_BIX_ENQUEUE_EFKKBIXBIT2",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_SUBPROCESS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SUB_PROCESS_KK",
+          "default_value": "Teilprozess",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der Abrechnung"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "FOREIGN_LOCK",
+          "description": "Gesperrt durch andere Massenverarbeitung"
+        },
+        {
+          "name": "SYSTEM_FAILURE",
+          "description": "Systemfehler beim Sperren"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:44:12.134376Z"
+    },
+    {
+      "name": "FKK_BIX_ICCIT_CONSUM_BASIC_40",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_CITCAT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CITCAT_KK",
+          "default_value": "Klasse",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für Verbrauchspositionen"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_CIT2_MSG",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXCIT2_MSG_TAB",
+          "default_value": "Tabellentyp",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zu FKKBIXCIT2_MSG"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:44:20.799671Z"
+    },
+    {
+      "name": "FKK_BIX_ICO_TYPE_ACTIVE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_BUKRS_REQ",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "ICO_BUKRS_REQ_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Anfordernder Buchungskreis"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_ACTIVE",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "BOOLE_D",
+          "default_value": "Tabelle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "wird verwendet"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:44:29.673661Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T07:42:20.267376+00:00",
-  "total_count": 48,
-  "enriched_count": 48
+  "last_updated": "2026-01-13T07:45:36.615737+00:00",
+  "total_count": 58,
+  "enriched_count": 58
 }
