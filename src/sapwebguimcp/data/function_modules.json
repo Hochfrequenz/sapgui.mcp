@@ -5952,11 +5952,499 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:02:06.233511Z"
+    },
+    {
+      "name": "FKK_CRM_ACCOUNT_REVERSE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_OPBEL",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK",
+          "default_value": "Nummer",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "eines Belegs des Vertragskontokorrents"
+        },
+        {
+          "name": "IS_PARAMETER",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_CRM_ACCOUNT_REVERSE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": "FCC Belegstorno"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "EV_OPBEL",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK",
+          "default_value": "Nummer",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "eines Belegs des Vertragskontokorrents"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "RT_BAPI_RET",
+          "category": "tables",
+          "typing": "TYPE",
+          "reference_type": "BAPIRET2_T",
+          "default_value": "Returntabelle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:04:18.259307Z"
+    },
+    {
+      "name": "FKK_CRM_FILTER_RELEASE_TO_COLL",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_UNDO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BOOLEAN",
+          "default_value": "Show",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "entries that can be recalled"
+        },
+        {
+          "name": "IV_RELEASE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BOOLEAN",
+          "default_value": "Show",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "entries that can be released"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "IT_ITEMS",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKEPOS",
+          "default_value": "zu",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "filternde Posten"
+        },
+        {
+          "name": "ET_CONTAINED",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKOPKEY",
+          "default_value": "angezeigte",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Posten"
+        },
+        {
+          "name": "RT_BAPI_RET",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "BAPIRET2",
+          "default_value": "Returnparameter",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:04:27.067896Z"
+    },
+    {
+      "name": "FKK_CRM_GENERAL_FIKEY_GET",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_APPLK",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "APPLK_KK",
+          "default_value": "Anwendungsbereich",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "IV_HERKF",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "HERKF_KK",
+          "default_value": "Herkunftsschlüssel",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Belegs"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "EV_FIKEY",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "DFKKSUMC-FIKEY",
+          "default_value": "Abstimmschlüssel",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für Hauptbuchhaltung"
+        },
+        {
+          "name": "EV_RETURN",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "BAPIRET2",
+          "default_value": "Returnparameter",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "OTHER_PROBLEM",
+          "description": "Allgemeines Problem im Baustein"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:04:35.645925Z"
+    },
+    {
+      "name": "FKK_CR_CHECK_ALV_GRID",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "T_FKKCR",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKCRASSIGN",
+          "default_value": "Scheck-Repository",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "T_FKKCR_UPD",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKCR",
+          "default_value": "Geaenderte",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Eintraege fuer Update"
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:04:52.215687Z"
+    },
+    {
+      "name": "FKK_CR_CHECK_REGISTRATION",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_CHECK_DATA",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKCR",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Scheck-Repository"
+        },
+        {
+          "name": "P_IGNORE_PAYM",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " Feld zum Ankreuzen"
+        },
+        {
+          "name": "P_GET_NUMBER",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " Feld zum Ankreuzen"
+        },
+        {
+          "name": "P_UPDATE_TASK",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BOOLE-BOOLE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " DO NOT USE! 'X' Fortschreiben im Verbuchungsprozess"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_CHECK_KEY",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKCRKEY",
+          "default_value": "Schlüssel-Struktur",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für Scheck-Repository"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "OPEN_CHECK",
+          "description": "zum Zahlungsbeleg wurde schon ein Scheck ausgestellt"
+        },
+        {
+          "name": "CASHED_CHECK",
+          "description": "zum Zahlungsbeleg existiert ein eingelöster Scheck"
+        },
+        {
+          "name": "STOPPED_CHECK",
+          "description": "zum Zahlungsbeleg existiert ein gesperrter Scheck"
+        },
+        {
+          "name": "NO_NUMBER",
+          "description": "Schecknummer konnte nicht ermittelt werden"
+        },
+        {
+          "name": "NOT_REGISTERED",
+          "description": "Registrierung des Schecks fehlgeschlagen"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:05:01.042596Z"
+    },
+    {
+      "name": "FKK_CVS_CHECK_FLAG",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [
+        {
+          "name": "E_CVS_ON",
+          "category": "export",
+          "typing": "LIKE",
+          "reference_type": "TFK000C-XUCVS",
+          "default_value": "'X'",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "= Zahlung durch CVS verwenden"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:05:09.537648Z"
+    },
+    {
+      "name": "FKK_DB_DFKKCDREF_INSERT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_FKKCDREF",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "DFKKCDREF",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": "Barkasse Belegreferezen"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:05:18.097186Z"
+    },
+    {
+      "name": "FKK_DB_DFKKCJT_INSERT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_FKKCJT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "DFKKCJT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Bewegungsdaten zum Kassenbuch"
+        },
+        {
+          "name": "IT_FKKCJT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKCJT_T",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Tabellentyp für DFKKCJT"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:05:26.393624Z"
+    },
+    {
+      "name": "FKK_DB_STORE_PAYMT_REFERENCES",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IT_FKKEXC",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKEXC_T",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Tabellentyp zur Datenbanktabelle DFKKEXC"
+        },
+        {
+          "name": "IT_FKKEXC_PAYINFO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKEXC_PAYINFO_T",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Information zum Zahlungsmedium (Tabelle)"
+        },
+        {
+          "name": "IT_FKKEXC_CL",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKEXC_CL_T",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " Tabellenntyp zu FKKEXC_CL"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:05:34.756669Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T08:03:28.414960+00:00",
-  "total_count": 108,
-  "enriched_count": 108
+  "last_updated": "2026-01-13T08:06:47.031648+00:00",
+  "total_count": 117,
+  "enriched_count": 117
 }
