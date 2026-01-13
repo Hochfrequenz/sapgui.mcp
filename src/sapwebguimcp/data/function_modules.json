@@ -750,6 +750,344 @@
       "retrieved_at": "2026-01-13T10:50:31.845308Z"
     },
     {
+      "name": "FKK_AR_REV_PROGRAM_OPEN",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FILE",
+          "typing": "LIKE",
+          "reference_type": "AUTHB-FILENAME",
+          "optional": true,
+          "description": " Physical file name"
+        },
+        {
+          "name": "I_BUKRS",
+          "typing": "LIKE",
+          "reference_type": "T001-BUKRS",
+          "optional": true,
+          "description": "Company code"
+        },
+        {
+          "name": "I_REPORT_TYPE",
+          "typing": "TYPE",
+          "reference_type": "CHAR2",
+          "optional": true,
+          "description": "Version Number Component"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "I_TEST",
+          "typing": "TYPE",
+          "reference_type": "CHAR1",
+          "optional": true,
+          "description": "Test run only flag"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "NO_AUTHOR_WRITE_FILE",
+        "NO_AUTHOR_READ_FILE"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:00:46.222310Z"
+    },
+    {
+      "name": "FKK_AUDIT_BITS",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "SGROUP",
+          "typing": "LIKE",
+          "reference_type": "RZLLITAB-CLASSNAME",
+          "optional": false,
+          "description": "einer Logon/Server-Gruppe"
+        },
+        {
+          "name": "AUSPR",
+          "typing": "TYPE",
+          "reference_type": "AUSPR_KK",
+          "optional": true,
+          "description": "'  Industrieausprägung"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "PERIOD",
+          "typing": "LIKE",
+          "reference_type": "RSUVMPER",
+          "optional": false,
+          "description": "für eine Systemvermessung"
+        },
+        {
+          "name": "RESULT",
+          "typing": "LIKE",
+          "reference_type": "RSUVMRES",
+          "optional": false,
+          "description": "der Systemvermessung einer Applikation (z. B. IBU)"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:00:54.487181Z"
+    },
+    {
+      "name": "FKK_B2B_TAX_CODE_DETERMINE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_BUKRS",
+          "typing": "TYPE",
+          "reference_type": "BUKRS",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_GPART",
+          "typing": "TYPE",
+          "reference_type": "GPART_KK",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_LANDL",
+          "typing": "TYPE",
+          "reference_type": "LANDL_KK",
+          "optional": true,
+          "description": "Beliefertes Land (für Steuermeldungen)"
+        },
+        {
+          "name": "I_MWSKZ",
+          "typing": "TYPE",
+          "reference_type": "MWSKZ",
+          "optional": true,
+          "description": "Umsatzsteuerkennzeichen"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_MWSKZ",
+          "typing": "TYPE",
+          "reference_type": "MWSKZ",
+          "optional": false,
+          "description": "für VAT2010"
+        },
+        {
+          "name": "E_STCEG",
+          "typing": "TYPE",
+          "reference_type": "STCEG",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "E_BSCAT",
+          "typing": "TYPE",
+          "reference_type": "BUSINESS_CATEGORY_KK",
+          "optional": false,
+          "description": "der Geschäftsbeziehung (B2B oder B2C)"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "TAX_CODE_ERROR"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:01:02.944806Z"
+    },
+    {
+      "name": "FKK_BALANCE_CALCULATE_COLL",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_ITEMS",
+          "typing": "TYPE",
+          "reference_type": "FKK_T_FKKEPOS",
+          "optional": false,
+          "description": "des Kontenstands"
+        },
+        {
+          "name": "I_BALANCE_TYPES",
+          "typing": "TYPE",
+          "reference_type": "TFKBA_BAL_GROUP_T",
+          "optional": false,
+          "description": "berechnende Salden"
+        },
+        {
+          "name": "I_XHWAER",
+          "typing": "TYPE",
+          "reference_type": "BOOLEAN",
+          "optional": false,
+          "description": "' Berechnung in Hauswährung"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "E_NOT_INITIALIZED"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:01:11.423985Z"
+    },
+    {
+      "name": "FKK_BALANCE_GET_FOR_CM",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IS_MASTERDATAGRP",
+          "typing": "TYPE",
+          "reference_type": "FKK_MASTERDATAGRP",
+          "optional": false,
+          "description": "Vertragskontogruppe, Vertragsgruppe"
+        },
+        {
+          "name": "IV_PROFIL",
+          "typing": "TYPE",
+          "reference_type": "CRMPRO_KK",
+          "optional": false,
+          "description": "für die OP-Selektion der Kontostandsanzeige"
+        },
+        {
+          "name": "IV_WAERS",
+          "typing": "TYPE",
+          "reference_type": "WAERS_KK",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_OPEN_GRP",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "optional": false,
+          "description": "in Transaktionswährung mit Vorzeichen"
+        },
+        {
+          "name": "E_DUE_GRP",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "optional": false,
+          "description": "in Transaktionswährung mit Vorzeichen"
+        },
+        {
+          "name": "E_OPEN_WLI",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "optional": false,
+          "description": "in Transaktionswährung mit Vorzeichen"
+        },
+        {
+          "name": "E_DUE_WLI",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "optional": false,
+          "description": "in Transaktionswährung mit Vorzeichen"
+        },
+        {
+          "name": "ET_RETURN",
+          "typing": "TYPE",
+          "reference_type": "BAPIRET2_T",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:01:19.766608Z"
+    },
+    {
+      "name": "FKK_BD_CHANGE_DISPUTE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [
+        {
+          "name": "E_RETURNCODE",
+          "typing": "LIKE",
+          "reference_type": "SY-SUBRC",
+          "optional": false,
+          "description": "Rückgabewert, Rückgabewert nach ABAP-Anweisungen"
+        },
+        {
+          "name": "RETURN",
+          "typing": "LIKE",
+          "reference_type": "BAPIRET2",
+          "optional": false,
+          "description": "Returnparameter"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:01:28.184990Z"
+    },
+    {
+      "name": "FKK_BEACC_EVENT_0208",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IT_KEYINFO",
+          "typing": "TYPE",
+          "reference_type": "BAPICRMKEYT",
+          "optional": false,
+          "description": "Struktur Schlüsselinformationen"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "CT_RETURN",
+          "typing": "TYPE",
+          "reference_type": "BAPIRETTAB",
+          "optional": false,
+          "description": "mit BAPI Return Informationen"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:01:36.476778Z"
+    },
+    {
       "name": "FKK_BELEG_DELETE_CHANGEDOC",
       "description": "",
       "function_group": null,
@@ -795,6 +1133,66 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:10:41.822625Z"
+    },
+    {
+      "name": "FKK_BILLDOC_WRITE_CHANGEDOC",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_BILLDOCNO",
+          "typing": "LIKE",
+          "reference_type": "DFKKINVBILL_H-BILLDOCNO",
+          "optional": true,
+          "description": "Nummer des Abrechnungsbelegs"
+        },
+        {
+          "name": "I_N_FKKINVBILL_H",
+          "typing": "LIKE",
+          "reference_type": "FKKINVBILL_H",
+          "optional": true,
+          "description": "Document header - new"
+        },
+        {
+          "name": "I_O_FKKINVBILL_H",
+          "typing": "LIKE",
+          "reference_type": "FKKINVBILL_H",
+          "optional": true,
+          "description": "Document header - old"
+        },
+        {
+          "name": "I_UNAME",
+          "typing": "LIKE",
+          "reference_type": "SYST-UNAME",
+          "optional": true,
+          "description": "  SAP-System, Anmeldename des Benutzers"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "XFKKINVBILL_I",
+          "typing": "LIKE",
+          "reference_type": "FKKINVBILL_I",
+          "optional": true,
+          "description": "Positionen des Abrechnungsbelegs neu"
+        },
+        {
+          "name": "YFKKINVBILL_I",
+          "typing": "LIKE",
+          "reference_type": "FKKINVBILL_I",
+          "optional": true,
+          "description": "Positionen des Abrechnungsbelegs alt"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:01:46.365750Z"
     },
     {
       "name": "FKK_BIX_ACC_BILLING_SINGLE",
@@ -11626,7 +12024,7 @@
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T10:53:33.144473+00:00",
-  "total_count": 206,
-  "enriched_count": 206
+  "last_updated": "2026-01-13T11:02:52.105049+00:00",
+  "total_count": 214,
+  "enriched_count": 214
 }
