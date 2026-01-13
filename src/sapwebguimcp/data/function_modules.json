@@ -2553,11 +2553,406 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:44:29.673661Z"
+    },
+    {
+      "name": "FKK_BIX_IFCOMP_ACC_ASSG_MAP_30",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_BITCAT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BITCAT_KK",
+          "default_value": "Klasse",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "abrechenbarer Positionen"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_BIT2_IT_CHG",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT2_IT_ALL_TAB",
+          "default_value": "Tabellentyp",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zu FKKBIXBIT0_IT_ALL"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:46:38.869583Z"
+    },
+    {
+      "name": "FKK_BIX_MD_ID_GET",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_MD_ID",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BIX_MD_ID_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Stammdaten ID"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ES_MD",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "DFKKBIX_MD",
+          "default_value": "Stammdaten",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "ID"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NO_DATA",
+          "description": "Keine Daten gefunden"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:46:46.734914Z"
+    },
+    {
+      "name": "FKK_BIX_MESSAGES_SHOW",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_HEADERTEXT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "SPACE",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Popup Überschrift"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_USER_COMMAND",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "SY-UCOMM",
+          "default_value": "OK-Code",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NO_MESSAGES",
+          "description": "Keine Nachrichten vorhanden"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:46:54.409836Z"
+    },
+    {
+      "name": "FKK_BIX_PREP_RFL_BY_OPBEL_GET",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_OPBEL",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK",
+          "default_value": "Nummer",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "eines Belegs des Vertragskontokorrents"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_BIT0_IT",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT0_IT_ALL_TAB",
+          "default_value": "Arbeitsstruktur",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Hauptpositionen Rohdaten"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:47:02.106866Z"
+    },
+    {
+      "name": "FKK_BIX_PRICING",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_KOMK",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "KOMK",
+          "default_value": "Preisfindung",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Kommunikations-Kopf"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_KOMP",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "KOMP",
+          "default_value": "Preisfindung",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Kommunikations-Position."
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:47:09.889400Z"
+    },
+    {
+      "name": "FKK_BIX_PTSET_TRIG_UPDATE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_FKKPARTREL_TAB",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKPARTREL_TAB",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Freigabeauftrag der Partnerpositionen für Partnerabrechnung"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:47:17.728235Z"
+    },
+    {
+      "name": "FKK_BIX_RAI_INSERT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IT_BIT_RAI",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT_RAI_TAB",
+          "default_value": "BIT-Extraktion",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für Auftragserstellung Erlösbuchhaltungspos."
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:47:25.366972Z"
+    },
+    {
+      "name": "FKK_BIX_RATING_EVENT_30_SAPCC",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IT_RATING_ITEMS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_RATING_ITEM_TAB",
+          "default_value": "Rating-Positionen",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_RATED_ITEMS",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_RATING_ITEM_TAB",
+          "default_value": "Bewertete",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Rating-Positionen"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:47:33.236530Z"
+    },
+    {
+      "name": "FKK_BIX_RERATETRIG_INSERT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IT_TRIG_INS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_RERATETRIG_TAB",
+          "default_value": "Reratingauftrag",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:47:41.078166Z"
+    },
+    {
+      "name": "FKK_BIX_RERATE_MASSACT_8189",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_LOW",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "Untere",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Intervallgrenze"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [
+        {
+          "name": "C_TEST_NUM",
+          "category": "changing",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Getestete Versuche"
+        }
+      ],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:47:49.358861Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T07:45:36.615737+00:00",
-  "total_count": 58,
-  "enriched_count": 58
+  "last_updated": "2026-01-13T07:48:51.069701+00:00",
+  "total_count": 68,
+  "enriched_count": 68
 }
