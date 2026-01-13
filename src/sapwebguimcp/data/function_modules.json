@@ -4338,11 +4338,977 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:54:50.197828Z"
+    },
+    {
+      "name": "FKK_BW_WLI",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_REQUNR",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-REQUNR",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_CHABASNM",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-CHABASNM",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_ISOURCE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-ISOURCE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_MAXSIZE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-MAXSIZE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_INITFLAG",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-INITFLAG",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_UPDMODE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-UPDMODE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_DATAPAKID",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-DATAPAKID",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_S_TIMEINT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_TIMEINT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_PRIVATE_MODE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_RLOGSYS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SRSC_S_INTERFACE-RLOGSYS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_READ_ONLY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SRSC_S_INTERFACE-READONLY",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "I_T_SELECT",
+          "category": "tables",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_SELECT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_T_FIELDS",
+          "category": "tables",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_FIELDS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "E_T_FKKWLIBW_DELTA",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKWLIBW_DELTA",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Extract Structure for Work Items"
+        },
+        {
+          "name": "E_T_FKKWLIABW_DELTA",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKWLIABW_DELTA",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Extract Structure for Work Items (Work Item Type)"
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NO_MORE_DATA",
+          "description": "No data can be processed"
+        },
+        {
+          "name": "ERROR_PASSED_TO_MESS_HANDLER",
+          "description": "Exit because of errors; Message in the Message Handler"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:57:03.562045Z"
+    },
+    {
+      "name": "FKK_CALC_CHARGE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_WAERS",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "FKKOP-WAERS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_BETRW",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "FKKOP-BETRW",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_BONIT",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "TFK047I-BONIT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_CHGID",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "TFK047I-CHGID",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_CHGTY",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "TFK047I-CHGTY",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_BETRG",
+          "category": "export",
+          "typing": "LIKE",
+          "reference_type": "FKKOP-BETRW",
+          "default_value": "",
+          "optional": false,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "E_CPOST",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "CPOST_KK",
+          "default_value": "",
+          "optional": false,
+          "pass_by_value": true,
+          "description": "obsolet"
+        },
+        {
+          "name": "E_HVORG",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "HVORG_KK",
+          "default_value": "",
+          "optional": false,
+          "pass_by_value": true,
+          "description": "Hauptvorgang zur Belegposition"
+        },
+        {
+          "name": "E_TVORG",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "TVORG_KK",
+          "default_value": "",
+          "optional": false,
+          "pass_by_value": true,
+          "description": "Teilvorgang zur Belegposition"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:57:12.122299Z"
+    },
+    {
+      "name": "FKK_CALLER_ID_CHECK",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_CALLER_ID",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CALLB_KK",
+          "default_value": "Identifikation",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "eines externen Aufrufers f r Belegbuch-BAPI"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:57:20.372620Z"
+    },
+    {
+      "name": "FKK_CHECKM_DISPVARIANT_GET",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [
+        {
+          "name": "E_DISPV",
+          "category": "export",
+          "typing": "LIKE",
+          "reference_type": "FKKCMK_DIA-DISPV",
+          "default_value": "Zeilenaufbau",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:57:28.805980Z"
+    },
+    {
+      "name": "FKK_CHECKM_INSERT_REPOSITORY",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IX_CLARIFICATION",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BOOLE-BOOLE",
+          "default_value": "Klärfall",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "erzeugt"
+        },
+        {
+          "name": "I_FKKCRREF",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKCRREF",
+          "default_value": "Referenzen",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "aus Zahlung/Zahlungsträger"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "ENTRY_ALREADY_EXISTS",
+          "description": "Scheck existiert bereits im Scheckregister"
+        },
+        {
+          "name": "NOT_REGISTERED",
+          "description": "Scheckregistierung fehlgeschlagen"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:57:37.420646Z"
+    },
+    {
+      "name": "FKK_CHECK_AND_CLOSE_CASH_DESK",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_OFFIC",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "DFKKCJM-OFFIC",
+          "default_value": "Zweigstelle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für Einzahlungen"
+        },
+        {
+          "name": "I_CHDSK",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "DFKKCJM-CHDSK",
+          "default_value": "Kasse",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_ROLE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "Rolle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Anwenders"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:57:46.146378Z"
+    },
+    {
+      "name": "FKK_CLEARING_NOTIFICATION",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_FKKKO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKKO",
+          "default_value": "Kopfdaten",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zum Kontokorrentbeleg"
+        },
+        {
+          "name": "I_AUGRD",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKOP-AUGRD",
+          "default_value": "Ausgleichsgrund",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_AUGVD",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "AUGVD_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Valutadatum der Ausgleichsbuchung"
+        },
+        {
+          "name": "I_PROCESS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "T_FKKOP",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "default_value": "Belegpositionen",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "T_FKKOPK",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKOPK",
+          "default_value": "Gegenpositionen",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "T_FKKCL",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKCL",
+          "default_value": "Positionen,",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "die ausgeglichen werden"
+        },
+        {
+          "name": "T_FKKRAP_DETAIL",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "default_value": "Ausgleichsrücknahmen",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für nicht-statistische Positionen"
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:57:54.545039Z"
+    },
+    {
+      "name": "FKK_CLEARPR_GDT_DETERMINE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_PROCESS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "SPACE",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Kennzeichnung des Buchungsprozesses"
+        },
+        {
+          "name": "I_HERKF",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKKO-HERKF",
+          "default_value": "Herkunftsschlüssel",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Belegs"
+        },
+        {
+          "name": "I_AUGRD",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKCL-AUGRD",
+          "default_value": "Ausgleichsgrund",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_CLEARPR_GDT",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "CLEARPR_GDT_KK",
+          "default_value": "Buchungsprozess",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für Ausgleich oder Ausgleichsrücknahme"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:58:02.919959Z"
+    },
+    {
+      "name": "FKK_CLNOTIF_SUBSCRIBE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_XDELE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "XDELI_KK",
+          "default_value": "Position",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Löschen"
+        },
+        {
+          "name": "I_PROCESS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "DFKKREGOBJ-PROCESS",
+          "default_value": "'CL'",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Prozess für die Registrierung eines Objektes"
+        },
+        {
+          "name": "I_GPART",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "DFKKREGOBJ-GPART",
+          "default_value": "Geschäftspartnernummer",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_EXT_GPART",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BU_BPEXT",
+          "default_value": "Geschäftspartnernummer",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "im externen System"
+        },
+        {
+          "name": "I_OPBEL",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK",
+          "default_value": "Nummer",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "eines Belegs des Vertragskontokorrents"
+        },
+        {
+          "name": "I_VKONT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "VKONT_KK",
+          "default_value": "Vertragskontonummer",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_VTREF",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "VTREF_KK",
+          "default_value": "Referenzangaben",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "aus dem Vertrag"
+        },
+        {
+          "name": "I_SUBAP",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SUBAP_KK",
+          "default_value": "Subapplikation",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "im Vertragskontokorrent"
+        },
+        {
+          "name": "I_INTERNAL_ICDR",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CHAR15",
+          "default_value": "Identifikation",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "eines InsuranceCollectionDisbursementRequest"
+        },
+        {
+          "name": "I_BTD_REFERENCE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_BUS_TRANS_DOC_REF_INT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Belegreferenz aus Vorsystem"
+        },
+        {
+          "name": "I_RECEIVER_SYS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SLD_BSKEY",
+          "default_value": "Schlüsselname",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "eines Business Systems"
+        },
+        {
+          "name": "I_CHECKD",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "DFKKREGOBJ-FIRST_CHECK_DATE",
+          "default_value": "'00000000'",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Datum, ab dem geprüft werden kann, ob Eintrag obsolet ist"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "BUSINESS_PARTNER_MISSING",
+          "description": "Angabe eines Geschäftspartners fehlt oder ist nicht eindeutig"
+        },
+        {
+          "name": "EXT_BUSINESS_PARTNER_UNKNOWN",
+          "description": "Externe Geschäftspartnernummer ist nicht bekannt"
+        },
+        {
+          "name": "ICDR_NOT_FOUND",
+          "description": "Zahlplan konnte nicht ermittelt werden"
+        },
+        {
+          "name": "RECEIVER_SYSTEM_MISSING",
+          "description": "Empfängersystem fehlt"
+        },
+        {
+          "name": "EVENT_ERROR",
+          "description": "Funktionsbaustein konnte nicht ermittelt werden"
+        },
+        {
+          "name": "NO_AUTHORIZATION",
+          "description": "Keine Berechtigung"
+        },
+        {
+          "name": "OBJECT_MISSING",
+          "description": "Kein Objekt angegeben"
+        },
+        {
+          "name": "OBJECT_NOT_UNIQUE",
+          "description": "Objekt nicht eindeutig"
+        },
+        {
+          "name": "BUSINESS_PARTNER_BLOCKED",
+          "description": "Geschäftspartner ist gesperrt"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:58:11.212235Z"
+    },
+    {
+      "name": "FKK_CLOSED_ITEM_SELECT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_DATE_FROM",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "KEYDTBWFROM_KK",
+          "default_value": "Von",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Stichtag zur Analyse der ausgeglichenen Posten"
+        },
+        {
+          "name": "I_DATE_TO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "KEYDTBWTO_KK",
+          "default_value": "Bis",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Stichtag zur Analyse der ausgeglichenen Posten"
+        },
+        {
+          "name": "I_GPART",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_GPART",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "range Tabelle GPART"
+        },
+        {
+          "name": "I_BUKRS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_BUKRS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "range Tabelle Buchungskreis"
+        },
+        {
+          "name": "I_GSBER",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_GSBER",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "range Tabelle GSBER"
+        },
+        {
+          "name": "I_HKONT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_HKONT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "range Tabelle HKONT"
+        },
+        {
+          "name": "I_FUNCNAME",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FUNCNAME",
+          "default_value": "Auszuführende",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Funktion"
+        },
+        {
+          "name": "I_FIELDS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_FIELDS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Feldnamen"
+        },
+        {
+          "name": "I_NO_STAT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Ohne statistischen Posten selektieren"
+        },
+        {
+          "name": "I_SLINP",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Ratenplan hat Vorrang"
+        },
+        {
+          "name": "I_SLCBL",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Sammelrechnung hat Vorrang"
+        },
+        {
+          "name": "I_NODPY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Keine Anzahlungen auf statistische Anforderungen"
+        },
+        {
+          "name": "I_VKONT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_VKONT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Range tabelle VKONT"
+        },
+        {
+          "name": "I_VTREF",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_VTREF",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Range Tabellentyp VTREF"
+        },
+        {
+          "name": "I_ALLITEMS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Auch alle stat.Posten, hat immer Vorgang"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:58:19.482376Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T07:56:25.557202+00:00",
-  "total_count": 88,
-  "enriched_count": 88
+  "last_updated": "2026-01-13T08:00:10.421023+00:00",
+  "total_count": 98,
+  "enriched_count": 98
 }
