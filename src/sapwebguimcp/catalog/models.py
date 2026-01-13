@@ -333,21 +333,11 @@ class FunctionModuleInfo(BaseModel):
         name = entry.get("function_module", "")
 
         # Convert parameters
-        import_params = [
-            ParameterInfo(**p) for p in entry.get("import_parameters", [])
-        ]
-        export_params = [
-            ParameterInfo(**p) for p in entry.get("export_parameters", [])
-        ]
-        changing_params = [
-            ParameterInfo(**p) for p in entry.get("changing_parameters", [])
-        ]
-        tables_params = [
-            ParameterInfo(**p) for p in entry.get("tables_parameters", [])
-        ]
-        exceptions = [
-            ExceptionInfo(**e) for e in entry.get("exceptions", [])
-        ]
+        import_params = [ParameterInfo(**p) for p in entry.get("import_parameters", [])]
+        export_params = [ParameterInfo(**p) for p in entry.get("export_parameters", [])]
+        changing_params = [ParameterInfo(**p) for p in entry.get("changing_parameters", [])]
+        tables_params = [ParameterInfo(**p) for p in entry.get("tables_parameters", [])]
+        exceptions = [ExceptionInfo(**e) for e in entry.get("exceptions", [])]
 
         return cls(
             name=name,
@@ -383,9 +373,7 @@ class FunctionModuleCatalog(BaseModel):
     def _get_name_index(self) -> dict[str, int]:
         """Get or build the name -> list index mapping."""
         if self._name_index is None:
-            self._name_index = {
-                fm.name.upper(): i for i, fm in enumerate(self.function_modules)
-            }
+            self._name_index = {fm.name.upper(): i for i, fm in enumerate(self.function_modules)}
         return self._name_index
 
     def _invalidate_index(self) -> None:
@@ -504,9 +492,7 @@ class ClassCatalog(BaseModel):
     def _get_name_index(self) -> dict[str, int]:
         """Get or build the name -> list index mapping."""
         if self._name_index is None:
-            self._name_index = {
-                c.name.upper(): i for i, c in enumerate(self.classes)
-            }
+            self._name_index = {c.name.upper(): i for i, c in enumerate(self.classes)}
         return self._name_index
 
     def _invalidate_index(self) -> None:
