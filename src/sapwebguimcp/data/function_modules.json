@@ -8929,6 +8929,256 @@
       "retrieved_at": "2026-01-13T11:50:41.277512Z"
     },
     {
+      "name": "FKK_CREATE_DOC",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKKO",
+          "typing": "LIKE",
+          "reference_type": "FKKKO",
+          "optional": true,
+          "description": "Belegkopf"
+        },
+        {
+          "name": "I_RESOB",
+          "typing": "LIKE",
+          "reference_type": "DFKKSUMC-RESOB",
+          "optional": true,
+          "description": " Reservierter Objekttyp für Abstimmschlüssel"
+        },
+        {
+          "name": "I_RESKY",
+          "typing": "LIKE",
+          "reference_type": "DFKKSUMC-RESKY",
+          "optional": true,
+          "description": " Reservierter Objektschlüssel für Abstimmschlüsse"
+        },
+        {
+          "name": "I_ADD_DOC",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": " 'X' Zusatzbeleg"
+        },
+        {
+          "name": "I_TEST",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": "  Nur Testaufruf ohne Fortschreibung/ohne FIKEY"
+        },
+        {
+          "name": "I_FKKOPL_CF",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": "  'X' FKKOPL nur für Cash Forecast"
+        },
+        {
+          "name": "I_DIALOG",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": "  'X' Dialog-Popups zulässig"
+        },
+        {
+          "name": "I_NO_4EYES",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": "  'X' Kein 4-Augen-Prinzip erforderlich"
+        },
+        {
+          "name": "I_RESTRICT_NEGPO",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": "  'X' Negativbuchung nur für gekennzeichnete Posten"
+        },
+        {
+          "name": "I_ORIG_BUDAT",
+          "typing": "TYPE",
+          "reference_type": "D",
+          "optional": true,
+          "description": " Vergleichsdatum als Ergänzung zu I_RESTRICT_NEGPO"
+        },
+        {
+          "name": "I_TAKEOVER_NEGBU",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": "  'X' Negativbuchung aus Posten unabhängig von der Belegart übernehmen"
+        },
+        {
+          "name": "I_NR_GROUP",
+          "typing": "TYPE",
+          "reference_type": "NRGRP_KK",
+          "optional": true,
+          "description": "  Gruppe für parallele Dialog-Nummernkreise FI-CA"
+        },
+        {
+          "name": "I_X001_ADD",
+          "typing": "TYPE",
+          "reference_type": "FKK_X001_ADD",
+          "optional": true,
+          "description": " Zusatzangaben für Währungsumrechnung"
+        },
+        {
+          "name": "I_GL_TRANSFER_TYPE",
+          "typing": "TYPE",
+          "reference_type": "GLTRF_KK",
+          "optional": true,
+          "description": "  Art der Hauptbuchübertragung"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_OPBEL",
+          "typing": "LIKE",
+          "reference_type": "FKKKO-OPBEL",
+          "optional": false,
+          "description": "Vergebene Belegnummer"
+        },
+        {
+          "name": "E_C4EYE",
+          "typing": "TYPE",
+          "reference_type": "C4EYE_KK",
+          "optional": false,
+          "description": "Grund für erforderliche Bestätigung"
+        },
+        {
+          "name": "E_BUDAT",
+          "typing": "TYPE",
+          "reference_type": "BUDAT_KK",
+          "optional": false,
+          "description": "Tatsächlich verwendetes Buchungsdatum"
+        },
+        {
+          "name": "E_BLDAT",
+          "typing": "TYPE",
+          "reference_type": "BLDAT",
+          "optional": false,
+          "description": "Tatsächlich verwendetes Belegdatum"
+        },
+        {
+          "name": "E_PYORD",
+          "typing": "TYPE",
+          "reference_type": "PYORD_KK",
+          "optional": false,
+          "description": "Zahlungsauftrag"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": "Belegpositionen (offene Posten)"
+        },
+        {
+          "name": "T_FKKOPWH",
+          "typing": "LIKE",
+          "reference_type": "DFKKOPWH",
+          "optional": true,
+          "description": "Quellensteuerdaten zur Geschäftspartnerposition"
+        },
+        {
+          "name": "T_FKKOPK",
+          "typing": "LIKE",
+          "reference_type": "FKKOPK",
+          "optional": true,
+          "description": "Belegpositionen (Gegenpositionen)"
+        },
+        {
+          "name": "T_FKKOPW",
+          "typing": "LIKE",
+          "reference_type": "FKKOPW",
+          "optional": true,
+          "description": "Belegpositionen (Wiederholungsangaben)"
+        },
+        {
+          "name": "T_FKKOPL",
+          "typing": "LIKE",
+          "reference_type": "FKKOPL",
+          "optional": true,
+          "description": "Sperren zu Geschäftspartnerpositionen"
+        },
+        {
+          "name": "T_FKKOPC",
+          "typing": "LIKE",
+          "reference_type": "DFKKOPC",
+          "optional": true,
+          "description": "Authorisierung zur Zahlungskarte"
+        },
+        {
+          "name": "T_FKKOPKC",
+          "typing": "LIKE",
+          "reference_type": "DFKKOPKC",
+          "optional": true,
+          "description": "Authorisierung zur Zahlungskarte"
+        },
+        {
+          "name": "T_FKKOPK_NDTAX",
+          "typing": "LIKE",
+          "reference_type": "DFKKOPK_NDTAX",
+          "optional": true,
+          "description": "Nichtabzugsfähige Vorsteuer"
+        },
+        {
+          "name": "T_FKKOPREL",
+          "typing": "LIKE",
+          "reference_type": "FKKOPREL",
+          "optional": true,
+          "description": "Objektrelationen für DFKKKO und DFKKOP"
+        },
+        {
+          "name": "T_FKKOP_ESR",
+          "typing": "LIKE",
+          "reference_type": "FKKOP_ESR",
+          "optional": true,
+          "description": "ESR-Anhang"
+        },
+        {
+          "name": "T_USTIN",
+          "typing": "LIKE",
+          "reference_type": "DFKKOPUSTAXIN00",
+          "optional": true,
+          "description": "Infos zur Steuerberechnung zum Kontokorrentbeleg (US)"
+        },
+        {
+          "name": "T_USTOUT",
+          "typing": "LIKE",
+          "reference_type": "DFKKOPUSTAXOUT00",
+          "optional": true,
+          "description": "Ergebnisse der Steuerberechnung zum Kontokorrentbeleg (US)"
+        },
+        {
+          "name": "T_1099",
+          "typing": "LIKE",
+          "reference_type": "DFKK1099",
+          "optional": true,
+          "description": "1099 Meldewesendaten"
+        },
+        {
+          "name": "T_QSTTAB",
+          "typing": "LIKE",
+          "reference_type": "FKKQS",
+          "optional": true,
+          "description": "Quellensteuerdaten"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
       "name": "FKK_CREDIT_NOTE_CREATE",
       "description": "",
       "area": "FICA",
@@ -12669,6 +12919,59 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T12:01:45.924799Z"
+    },
+    {
+      "name": "FKK_FUNC_MODULE_DETERMINE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FBEVE",
+          "typing": "LIKE",
+          "reference_type": "TFKFBM-FBEVE",
+          "optional": true,
+          "description": "Auslösendes Ereignis"
+        },
+        {
+          "name": "I_APPLK",
+          "typing": "LIKE",
+          "reference_type": "TFKFBC-APPLK",
+          "optional": true,
+          "description": "  Applikation"
+        },
+        {
+          "name": "I_ONLY_APPLICATION",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": "  Nur applikationsspezifische Bausteine"
+        },
+        {
+          "name": "I_ONLY_CUSTOMER",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": "  Nur Kundenbausteine"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_FBSTAB",
+          "typing": "LIKE",
+          "reference_type": "TFKFBC",
+          "optional": false,
+          "description": "der zu rufenden Funktionsbausteine <-"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
     },
     {
       "name": "FKK_FUZZY_CREATE_SIMILAR_KEYS",
@@ -21136,6 +21439,45 @@
       "retrieved_at": "2026-01-13T13:17:55.397976Z"
     },
     {
+      "name": "FKK_SAMPLE_0335_DISPUTE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_GPART",
+          "typing": "TYPE",
+          "reference_type": "GPART_KK",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_VKONT",
+          "typing": "TYPE",
+          "reference_type": "VKONT_KK",
+          "optional": true,
+          "description": "Vertragskontonummer"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "E_FIMSG",
+          "typing": "LIKE",
+          "reference_type": "FIMSG",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
       "name": "FKK_SAMPLE_0375",
       "description": "",
       "area": "FICA",
@@ -22988,6 +23330,168 @@
           "reference_type": "FKKCL",
           "optional": false,
           "description": "zum Beleg im Vertragskontokorrent"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "FKK_SAMPLE_6120",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_OKCODE",
+          "typing": "TYPE",
+          "reference_type": "SYUCOMM",
+          "optional": false,
+          "description": "Bildschirmbilder, Funktionscode, der PAI ausgelöst hat"
+        },
+        {
+          "name": "I_OFFIC",
+          "typing": "TYPE",
+          "reference_type": "OFFIC_KK",
+          "optional": false,
+          "description": "für Einzahlungen"
+        },
+        {
+          "name": "I_CHDSK",
+          "typing": "TYPE",
+          "reference_type": "CHDSK_KK",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_ROLE",
+          "typing": "TYPE",
+          "reference_type": "CHAR2",
+          "optional": false,
+          "description": "der Versionsnummer"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_MSG_TEXT",
+          "typing": "TYPE",
+          "reference_type": "TEXT40",
+          "optional": false,
+          "description": "im Kassenbuch (Text der Länge 40)"
+        },
+        {
+          "name": "E_SUB1_EXIT_MENU_TXT",
+          "typing": "TYPE",
+          "reference_type": "OFICS-FTEXT",
+          "optional": false,
+          "description": "für Kundenfunktion 1"
+        },
+        {
+          "name": "E_SUB2_EXIT_MENU_TXT",
+          "typing": "TYPE",
+          "reference_type": "OFICS-FTEXT",
+          "optional": false,
+          "description": "für Kundenfunktion 2"
+        },
+        {
+          "name": "E_SUB3_EXIT_MENU_TXT",
+          "typing": "TYPE",
+          "reference_type": "OFICS-FTEXT",
+          "optional": false,
+          "description": "für Kundenfunktion 3"
+        },
+        {
+          "name": "E_SUB4_EXIT_MENU_TXT",
+          "typing": "TYPE",
+          "reference_type": "OFICS-FTEXT",
+          "optional": false,
+          "description": "für Kundenfunktion 4"
+        },
+        {
+          "name": "E_SUB5_EXIT_MENU_TXT",
+          "typing": "TYPE",
+          "reference_type": "OFICS-FTEXT",
+          "optional": false,
+          "description": "für Kundenfunktion 5"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "FKK_SAMPLE_6140",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_OPBEL",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK",
+          "optional": true,
+          "description": "Nummer eines Belegs des Vertragskontokorrents"
+        },
+        {
+          "name": "X_WAERS",
+          "typing": "TYPE",
+          "reference_type": "WAERS",
+          "optional": true,
+          "description": "Transaktionswährung"
+        },
+        {
+          "name": "X_BETRW",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "optional": true,
+          "description": "Betrag in Transaktionswährung mit Vorzeichen"
+        },
+        {
+          "name": "X_RFKH0",
+          "typing": "TYPE",
+          "reference_type": "RFKH0",
+          "optional": true,
+          "description": "Screen Fields for FKH0 - FI-CA Cash Payments"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "TX_DFKKZK",
+          "typing": "LIKE",
+          "reference_type": "DFKKZK",
+          "optional": true,
+          "description": "Bewegungsdaten zum Kassenbuch"
+        },
+        {
+          "name": "TX_DFKKCJT",
+          "typing": "LIKE",
+          "reference_type": "DFKKCJT",
+          "optional": true,
+          "description": "Bewegungsdaten zum Kassenbuch"
+        },
+        {
+          "name": "TX_DFKKCJF",
+          "typing": "LIKE",
+          "reference_type": "DFKKCJF",
+          "optional": true,
+          "description": "Structure for Screen Fields for Cash Journal"
+        },
+        {
+          "name": "TX_DFKKCJM",
+          "typing": "LIKE",
+          "reference_type": "DFKKCJM",
+          "optional": true,
+          "description": "Cash Journal Master Data"
         }
       ],
       "exceptions": [
@@ -25804,6 +26308,396 @@
       "retrieved_at": null
     },
     {
+      "name": "ISU_BW_SALES_STATISTICS",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_CHABASNM",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-CHABASNM",
+          "optional": true,
+          "description": "Name des Basismerkmals"
+        },
+        {
+          "name": "I_ISOURCE",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-ISOURCE",
+          "optional": true,
+          "description": "DataSource"
+        },
+        {
+          "name": "I_MAXSIZE",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-MAXSIZE",
+          "optional": true,
+          "description": "maximale Anzahl Zeilen der Ausgabetabelle"
+        },
+        {
+          "name": "I_INITFLAG",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-INITFLAG",
+          "optional": true,
+          "description": "Initialisierung 'X' bzw. Datenübertragung ' '"
+        },
+        {
+          "name": "I_UPDMODE",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-UPDMODE",
+          "optional": true,
+          "description": "Übertragungsmodus (siehe Domänenfestwerte)"
+        },
+        {
+          "name": "I_DATAPAKID",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-DATAPAKID",
+          "optional": true,
+          "description": "Nummer des fehlerhaften Datenpakets"
+        },
+        {
+          "name": "I_RLOGSYS",
+          "typing": "TYPE",
+          "reference_type": "RSRLOGSYS",
+          "optional": true,
+          "description": "Logisches System des Empfängers"
+        },
+        {
+          "name": "I_S_TIMEINT",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_TIMEINT",
+          "optional": true,
+          "description": "Zeitintervall für zeitabhängige Stammdaten"
+        },
+        {
+          "name": "IT_TEST_PRINTDOC",
+          "typing": "TYPE",
+          "reference_type": "E_PRINTDOC_TAB",
+          "optional": true,
+          "description": "Tabelle der Druckbelegnummern"
+        },
+        {
+          "name": "IT_TEST_DBESTA_BWPROT",
+          "typing": "TYPE",
+          "reference_type": "T_ISU_DBESTA_BWTRIG",
+          "optional": true,
+          "description": "Tabellentyp zu DB Tabelle DBESTA_BWTRIG"
+        },
+        {
+          "name": "IT_TEST_DBESTA_BWPROTE",
+          "typing": "TYPE",
+          "reference_type": "T_ISU_DBESTA_BWTRIGE",
+          "optional": true,
+          "description": "Tabellentyp zu DB Tabelle DBESTA_BWTRIGE"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "C_TEST_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Einträge in DBESTA_BWPROT selektiert"
+        },
+        {
+          "name": "C_SUCCESS_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Einträge in DBESTA_BWPROT prozessiert"
+        }
+      ],
+      "tables_params": [
+        {
+          "name": "I_T_SELECT",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_SELECT",
+          "optional": true,
+          "description": "Selektionskriterien"
+        },
+        {
+          "name": "I_T_FIELDS",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_FIELDS",
+          "optional": true,
+          "description": "Feldliste der Transferstruktur"
+        },
+        {
+          "name": "E_T_BIW_ISU_ESTA",
+          "typing": "LIKE",
+          "reference_type": "BIW_ISU_ESTA",
+          "optional": true,
+          "description": "Extraktorstruktur"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme",
+        "NO_MORE_DATA",
+        "ERROR_PASSED_TO_MESS_HANDLER"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "ISU_CONSUMPTION_DETERMINE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_GERAET",
+          "typing": "LIKE",
+          "reference_type": "V_EGER-GERAET",
+          "optional": true,
+          "description": " Gerätenummer"
+        },
+        {
+          "name": "X_EQUNR",
+          "typing": "LIKE",
+          "reference_type": "ETDZ-EQUNR",
+          "optional": true,
+          "description": " Equipmentnummer"
+        },
+        {
+          "name": "X_ZWNUMMER",
+          "typing": "LIKE",
+          "reference_type": "ETDZ-ZWNUMMER",
+          "optional": true,
+          "description": " Zählwerksnummer"
+        },
+        {
+          "name": "X_LOGIKZW",
+          "typing": "TYPE",
+          "reference_type": "LOGIKZW",
+          "optional": true,
+          "description": " Logische Zählwerksnummer"
+        },
+        {
+          "name": "X_ADAT",
+          "typing": "LIKE",
+          "reference_type": "EABL-ADAT",
+          "optional": true,
+          "description": "Datum für den Stammdatenzugriff"
+        },
+        {
+          "name": "X_ATIM",
+          "typing": "LIKE",
+          "reference_type": "EABL-ATIM",
+          "optional": true,
+          "description": " Abrechnungsrelevante Ablesezeit"
+        },
+        {
+          "name": "X_ADAT_TO",
+          "typing": "TYPE",
+          "reference_type": "ADAT",
+          "optional": true,
+          "description": " Abrechnungsrelevantes Bisdatum"
+        },
+        {
+          "name": "X_I_ZWSTNDAB",
+          "typing": "LIKE",
+          "reference_type": "ERCHZ-I_ZWSTNDAB",
+          "optional": true,
+          "description": " Abzurechnender Zählerstand"
+        },
+        {
+          "name": "X_V_ZWSTNDAB",
+          "typing": "LIKE",
+          "reference_type": "EABL-V_ZWSTNDAB",
+          "optional": true,
+          "description": " Abzurechnender Zählerstand Vorkommastellen"
+        },
+        {
+          "name": "X_N_ZWSTNDAB",
+          "typing": "LIKE",
+          "reference_type": "EABL-N_ZWSTNDAB",
+          "optional": true,
+          "description": " Abzurechnender Zählerstand Nachkommastellen"
+        },
+        {
+          "name": "X_ADATVOR",
+          "typing": "TYPE",
+          "reference_type": "ADAT",
+          "optional": true,
+          "description": " Abrechnungsrelevantes Abdatum"
+        },
+        {
+          "name": "X_ATIMVOR",
+          "typing": "LIKE",
+          "reference_type": "EABL-ATIM",
+          "optional": true,
+          "description": " Ablesezeit der Vorablesung"
+        },
+        {
+          "name": "X_I_ZWSTVOR",
+          "typing": "LIKE",
+          "reference_type": "ERCHZ-I_ZWSTVOR",
+          "optional": true,
+          "description": " Zählerstand der Vorablesung"
+        },
+        {
+          "name": "X_V_ZWSTVOR",
+          "typing": "LIKE",
+          "reference_type": "DBERCHZ-V_ZWSTVOR",
+          "optional": true,
+          "description": " Zählerstand der Vorablesung Vorkommastellen"
+        },
+        {
+          "name": "X_N_ZWSTVOR",
+          "typing": "LIKE",
+          "reference_type": "DBERCHZ-N_ZWSTVOR",
+          "optional": true,
+          "description": " Zählerstand der Vorablesung Nachkommastellen"
+        },
+        {
+          "name": "X_WABLT",
+          "typing": "TYPE",
+          "reference_type": "ISU2A_ABLT",
+          "optional": true,
+          "description": "Uebergabeleiste"
+        },
+        {
+          "name": "X_WTHG",
+          "typing": "TYPE",
+          "reference_type": "ISUFG_THG",
+          "optional": true,
+          "description": "Abrechnungsrelevante Daten"
+        },
+        {
+          "name": "X_NO_INSTSTRU_READ",
+          "typing": "LIKE",
+          "reference_type": "REGEN-KENNZX",
+          "optional": true,
+          "description": "'   keine Anlagendaten lesen weil bereits versorgt"
+        },
+        {
+          "name": "X_NORUND",
+          "typing": "LIKE",
+          "reference_type": "REGEN-KENNZX",
+          "optional": true,
+          "description": " NICHT (nach Abrechnungsoperand) runden"
+        },
+        {
+          "name": "X_GUSE",
+          "typing": "LIKE",
+          "reference_type": "TE221-SELCONTROL",
+          "optional": true,
+          "description": "  Aufrufumgebung für thermische Gasabrechnung"
+        },
+        {
+          "name": "X_READ_GASFAKTOR",
+          "typing": "LIKE",
+          "reference_type": "REGEN-KENNZX",
+          "optional": true,
+          "description": "  Kennzeichen lies Gasfaktoren"
+        },
+        {
+          "name": "X_CALLER",
+          "typing": "TYPE",
+          "reference_type": "SY-TCODE",
+          "optional": true,
+          "description": " optionale Kennzeichnung des Aufrufers"
+        },
+        {
+          "name": "X_IF",
+          "typing": "TYPE",
+          "reference_type": "ISU17_INTERFACE_STRUCTURES",
+          "optional": true,
+          "description": "Übergabeleiste für Datenstrukturen"
+        },
+        {
+          "name": "X_CONSID_FACTOR",
+          "typing": "TYPE",
+          "reference_type": "REGEN-KENNZX",
+          "optional": true,
+          "description": "  Faktoren betrachten"
+        },
+        {
+          "name": "X_THGDATUM_TO",
+          "typing": "TYPE",
+          "reference_type": "THGDATUM",
+          "optional": true,
+          "description": " Gaszuordnungsdatum (Bisdatum)"
+        },
+        {
+          "name": "X_THGDATUM_FROM",
+          "typing": "TYPE",
+          "reference_type": "THGDATUM",
+          "optional": true,
+          "description": " Gaszuordnungsdatum (Abdatum)"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "Y_I_ABRMENGE",
+          "typing": "LIKE",
+          "reference_type": "ERCHZ-I_ABRMENGE",
+          "optional": false,
+          "description": "Abrechnungsmenge"
+        },
+        {
+          "name": "Y_V_ABRMENGE",
+          "typing": "LIKE",
+          "reference_type": "DBERCHZ-V_ABRMENGE",
+          "optional": false,
+          "description": "Vorkommastellen der Abrechnungsmenge"
+        },
+        {
+          "name": "Y_N_ABRMENGE",
+          "typing": "LIKE",
+          "reference_type": "DBERCHZ-N_ABRMENGE",
+          "optional": false,
+          "description": "Nachkommastellen der Abrechnungsmenge"
+        },
+        {
+          "name": "Y_SVAL_USED",
+          "typing": "TYPE",
+          "reference_type": "KENNZX",
+          "optional": false,
+          "description": "Kennzeichen"
+        },
+        {
+          "name": "YT_ITHG",
+          "typing": "TYPE",
+          "reference_type": "ISUFG_ITHG",
+          "optional": false,
+          "description": "mit den Umwandlungsfaktoren"
+        }
+      ],
+      "changing_params": [
+        {
+          "name": "XY_INST_FOR_BILLING",
+          "typing": "TYPE",
+          "reference_type": "ISU2A_INST_STRUC",
+          "optional": true,
+          "description": "Anlagenstruktur einer Anlage aus Abrechnungssicht"
+        },
+        {
+          "name": "YT_EABLQDCONV",
+          "typing": "TYPE",
+          "reference_type": "EABLQDCONV_TAB",
+          "optional": true,
+          "description": "Standardtabelle zu Struktur EABLQDCONV"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "GENERAL_FAULT",
+        "ZWSTANDAB_MISSING",
+        "ZWSTAND_MISSING",
+        "PARAMETER_MISSING",
+        "NO_INST_STRUCTURE",
+        "NO_RATETYP",
+        "NO_GAS_PROC"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
       "name": "ISU_DB_EABL_SINGLE",
       "description": "",
       "area": "FICA",
@@ -25945,6 +26839,82 @@
       "retrieved_at": null
     },
     {
+      "name": "ISU_DB_ERDLB_SINGLE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_PRINTDOC",
+          "typing": "TYPE",
+          "reference_type": "ERDK-OPBEL",
+          "optional": false,
+          "description": "eines Fakturierungsbeleges"
+        },
+        {
+          "name": "X_BILLDOC",
+          "typing": "TYPE",
+          "reference_type": "ERCH-BELNR",
+          "optional": true,
+          "description": "Nummer eines Abrechnungsbelegs"
+        },
+        {
+          "name": "X_BILLDOCLINE",
+          "typing": "TYPE",
+          "reference_type": "ERCHZ-BELZEILE",
+          "optional": true,
+          "description": "Rechnungszeile für Rechnungsbelege"
+        },
+        {
+          "name": "X_ARCHIVE_ACCESS",
+          "typing": "TYPE",
+          "reference_type": "REGEN-KENNZX",
+          "optional": true,
+          "description": "Zugriff auf das Archiv erlauben"
+        },
+        {
+          "name": "X_VERTRAG",
+          "typing": "TYPE",
+          "reference_type": "VERTRAG",
+          "optional": true,
+          "description": "Vertrag"
+        },
+        {
+          "name": "X_COLOGRP_BP_L",
+          "typing": "TYPE",
+          "reference_type": "E_COLOGRP_BP",
+          "optional": true,
+          "description": " Kolokationsgruppe für Geschäftspartner"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "Y_ERDLB",
+          "typing": "LIKE",
+          "reference_type": "DBERDLB",
+          "optional": false,
+          "description": "einer Druckbelegzeile auf eine Abr.Belegzeile"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "YT_ERDLB",
+          "typing": "LIKE",
+          "reference_type": "DBERDLB",
+          "optional": true,
+          "description": "Referenz einer Druckbelegzeile auf eine Abr.Belegzeile"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme",
+        "NOT_FOUND"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
       "name": "ISU_DB_ESERVICE_SINGLE",
       "description": "",
       "area": "FICA",
@@ -26012,6 +26982,84 @@
         "Ausnahme",
         "NOT_FOUND",
         "SYSTEM_ERROR"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "ISU_EDM_FORMULA_0020",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "XY_CNTR",
+          "typing": "TYPE",
+          "reference_type": "EEDMFORMULACTR",
+          "optional": false,
+          "description": "für die Formelausführung"
+        },
+        {
+          "name": "XY_INP",
+          "typing": "TYPE",
+          "reference_type": "TEEDMFORMPARLIST_I",
+          "optional": false,
+          "description": "für Eingabeparameterliste (EDM Formeln)"
+        },
+        {
+          "name": "XY_OUT",
+          "typing": "TYPE",
+          "reference_type": "TEEDMFORMPARLIST_O",
+          "optional": false,
+          "description": "für Ausgabeparameterliste (EDM Formeln)"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "GENERAL_FAULT"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "ISU_SAMPLE_R925",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_OBJ",
+          "typing": "TYPE",
+          "reference_type": "ISU25_BUDBILPLAN",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "X_EVER",
+          "typing": "TYPE",
+          "reference_type": "EVER",
+          "optional": false,
+          "description": "Vertrag"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "Y_CDAT",
+          "typing": "TYPE",
+          "reference_type": "D",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
       ],
       "is_rfc_enabled": false,
       "enriched": true,
@@ -26098,7 +27146,7 @@
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T15:01:11.825784+00:00",
-  "total_count": 506,
-  "enriched_count": 506
+  "last_updated": "2026-01-13T15:26:23.043545+00:00",
+  "total_count": 516,
+  "enriched_count": 516
 }
