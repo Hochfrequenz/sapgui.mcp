@@ -10849,11 +10849,327 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T09:26:08.517798Z"
+    },
+    {
+      "name": "FKK_SAMPLE_6250",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKOP",
+          "typing": "TYPE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": "Business Partner Items in Contract Account Document"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_XREQUEST",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": false,
+          "description": "Ankreuzfeld"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:28:30.650643Z"
+    },
+    {
+      "name": "FKK_SAMPLE_8112",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "CT_BILLITEM_IT",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_BILLITEM_IT_TAB",
+          "optional": false,
+          "description": "Tabelle abrechenbarer Positionen zur Satzart IT"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:28:39.499806Z"
+    },
+    {
+      "name": "FKK_SAMPLE_9010",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_RFCDEST",
+          "typing": "TYPE",
+          "reference_type": "RFCDEST",
+          "optional": true,
+          "description": "logische Destination (Wird bei Funktionsaufruf angegeben)"
+        },
+        {
+          "name": "I_CODU",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": "Überleitung für Einträge aus Korrespondenzmahnen"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "RT_DFKKCFDUNTEL",
+          "typing": "LIKE",
+          "reference_type": "DFKKCFDUNTEL",
+          "optional": false,
+          "description": "Telefonliste für Mahnung"
+        }
+      ],
+      "exceptions": [
+        "TRANSFER_FAILED"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:28:47.844209Z"
+    },
+    {
+      "name": "FKK_SAMPLE_TFK8211EV_05",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IV_TEST",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": "Nur Testaufruf ohne Speicherung des Abrechnungsplans"
+        },
+        {
+          "name": "I_BILLPLAN",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_BILLPLAN",
+          "optional": false,
+          "description": "Abrechnungsplan"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_BIP_H",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_BIP_H",
+          "optional": false,
+          "description": "Abrechnungsplankopf"
+        },
+        {
+          "name": "ET_BIP_I",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_BIP_I_TAB",
+          "optional": false,
+          "description": "Positionen des Abrechnungsplans"
+        },
+        {
+          "name": "ET_BIP_I_NEW",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_BIP_I_TAB",
+          "optional": false,
+          "description": "Positionen des Abrechnungsplans"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:28:55.974209Z"
+    },
+    {
+      "name": "FKK_SAMPLE_TFK8255",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_AMOUNT_CALC_KEY",
+          "typing": "TYPE",
+          "reference_type": "ICO_AMOUNT_CALC_KEY_KK",
+          "optional": false,
+          "description": "Betragsberechnungsschlüssel"
+        },
+        {
+          "name": "IS_BIT2_IT",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT2_IT_ALL",
+          "optional": false,
+          "description": "Arbeitsstruktur Hauptpositionen Abrechenbar"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "C_BASE_AMOUNT",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "optional": false,
+          "description": "Betrag in Transaktionswährung mit Vorzeichen"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:29:04.065266Z"
+    },
+    {
+      "name": "FKK_SAMPLE_TFK8260EV_30",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IV_CO_TYPE",
+          "typing": "TYPE",
+          "reference_type": "CO_TYPE_KK",
+          "optional": false,
+          "description": "Art der Kosten einer abrechenbaren Position"
+        },
+        {
+          "name": "IS_BIT2_IT",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT2_IT_ALL",
+          "optional": false,
+          "description": "Arbeitsstruktur Hauptpositionen Abrechenbar"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "CT_BIT2_IT_CO",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT2_IT_ALL_TAB",
+          "optional": false,
+          "description": "Tabellentyp zu FKKBIXBIT2_IT_ALL"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:29:12.320048Z"
+    },
+    {
+      "name": "FKK_SET_CVS_DATA_JP",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IS_CVS_DATA",
+          "typing": "TYPE",
+          "reference_type": "FKK_S_JP_BCODEFIELDS",
+          "optional": false,
+          "description": "CVS barcode attributes for Japan"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:29:28.517520Z"
+    },
+    {
+      "name": "FKK_S_CDESK_4_CLERK_DETERMINE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_UNAME",
+          "typing": "TYPE",
+          "reference_type": "SYUNAME",
+          "optional": true,
+          "description": "SAP-System, Anmeldename des Benutzers"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_OFFIC",
+          "typing": "TYPE",
+          "reference_type": "OFFIC_KK",
+          "optional": false,
+          "description": "Zweigstelle für Einzahlungen"
+        },
+        {
+          "name": "E_CHDSK",
+          "typing": "TYPE",
+          "reference_type": "CHDSK_KK",
+          "optional": false,
+          "description": "Kasse"
+        },
+        {
+          "name": "E_CANC",
+          "typing": "TYPE",
+          "reference_type": "SYUCOMM",
+          "optional": false,
+          "description": "Funktionscode, der PAI ausgelöst hat"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:29:37.093207Z"
+    },
+    {
+      "name": "FKK_UPDATE_RUN_START",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IV_LAUFI",
+          "typing": "LIKE",
+          "reference_type": "DFKKUR-LAUFI",
+          "optional": true,
+          "description": "Zusätzliches Identifikationsmerkmal"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "EV_LAUFD",
+          "typing": "TYPE",
+          "reference_type": "DFKKUR-LAUFD",
+          "optional": false,
+          "description": "Datumskennung"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "ACTIVE_RUN_EXIST",
+        "CLOSED_RUN_EXIST",
+        "LOCK_ERROR"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:29:45.378261Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T09:27:37.689153+00:00",
-  "total_count": 187,
-  "enriched_count": 187
+  "last_updated": "2026-01-13T09:30:55.898842+00:00",
+  "total_count": 196,
+  "enriched_count": 196
 }
