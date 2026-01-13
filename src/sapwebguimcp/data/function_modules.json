@@ -4094,6 +4094,31 @@
       "retrieved_at": "2026-01-13T07:50:41.068038Z"
     },
     {
+      "name": "FKK_BL_GET_BLOCKED_PARTNER",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [
+        {
+          "name": "ET_PARTNER",
+          "typing": "TYPE",
+          "reference_type": "DFKK_BL_BP_T",
+          "optional": false,
+          "description": "aller gesperrten Geschäftspartner"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "NO_BLOCKED_PARTNER_FOUND"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:11:30.725854Z"
+    },
+    {
       "name": "FKK_BOLETO_MASS_CANCEL_6360",
       "description": "",
       "function_group": null,
@@ -4145,6 +4170,59 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:50:50.908975Z"
+    },
+    {
+      "name": "FKK_BPC_REQUEST_SAMPLE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IT_GPART",
+          "typing": "TYPE",
+          "reference_type": "GPART_MDC_KK_T",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "IV_ORIGIN",
+          "typing": "TYPE",
+          "reference_type": "ORIGIN_MDC_KK",
+          "optional": false,
+          "description": "der Anforderung zur Stammdatenänderung"
+        },
+        {
+          "name": "IV_TYPE",
+          "typing": "TYPE",
+          "reference_type": "TYPE_MDC_KK",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "IV_XILIMIT",
+          "typing": "TYPE",
+          "reference_type": "XILIMIT_KK",
+          "optional": true,
+          "description": "Maximalblockgröße einer XI-Nachricht"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "ET_MESSAGES",
+          "typing": "TYPE",
+          "reference_type": "FKK_BAL_MSG_T",
+          "optional": false,
+          "description": "zu BAL_S_MSG"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:11:52.181851Z"
     },
     {
       "name": "FKK_BPLOCK_DIALOG",
@@ -4308,6 +4386,210 @@
       "retrieved_at": "2026-01-13T07:54:01.590705Z"
     },
     {
+      "name": "FKK_BRP_APPLCHECK",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_BUKRS",
+          "typing": "TYPE",
+          "reference_type": "BUKRS",
+          "optional": false,
+          "description": "Code"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_ACTIVE",
+          "typing": "TYPE",
+          "reference_type": "FLAG",
+          "optional": false,
+          "description": "Flag"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:13:06.206285Z"
+    },
+    {
+      "name": "FKK_BRP_OPNOT_INS",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IT_OPNOT_INS",
+          "typing": "TYPE",
+          "reference_type": "DFKKBRP_T_OPNOT",
+          "optional": false,
+          "description": "for dfkkbrpopnot"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:13:20.898951Z"
+    },
+    {
+      "name": "FKK_BR_BARCODE_CHCK_EVENT_0655",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_DPAYC",
+          "typing": "LIKE",
+          "reference_type": "DPAYC",
+          "optional": true,
+          "description": " Payment program - administrative records"
+        },
+        {
+          "name": "I_PARA",
+          "typing": "LIKE",
+          "reference_type": "FKKPY_PARA",
+          "optional": true,
+          "description": " Payment Program - Parameters"
+        },
+        {
+          "name": "I_FKKVKP",
+          "typing": "LIKE",
+          "reference_type": "FKKVKP",
+          "optional": true,
+          "description": " Contract Account Partner-Specific"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_ITEMS",
+          "typing": "LIKE",
+          "reference_type": "FKKCL",
+          "optional": true,
+          "description": "Items for Document in Contract A/R + A/P"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:13:30.822407Z"
+    },
+    {
+      "name": "FKK_BR_PMNT_BRCOLBON_30",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_PAYH",
+          "typing": "TYPE",
+          "reference_type": "PAYH",
+          "optional": false,
+          "description": "program - data for payment"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_PAYP",
+          "typing": "LIKE",
+          "reference_type": "PAYP",
+          "optional": false,
+          "description": "program - data on paid item"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:13:54.841190Z"
+    },
+    {
+      "name": "FKK_BR_PMNT_FEBR_UT_GET_ISPB",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IV_BUKRS",
+          "typing": "TYPE",
+          "reference_type": "BUKRS",
+          "optional": false,
+          "description": "Code"
+        },
+        {
+          "name": "IV_BANK_KEY",
+          "typing": "TYPE",
+          "reference_type": "BANKL",
+          "optional": false,
+          "description": "Number"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "EV_ISPB_CODE",
+          "typing": "TYPE",
+          "reference_type": "FIAPBRD_ISPB-ISPB_CODE",
+          "optional": false,
+          "description": "Code"
+        },
+        {
+          "name": "EV_DESCRIPTION",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:14:08.564975Z"
+    },
+    {
+      "name": "FKK_BR_UT_CONVERT_EXT_RETCODE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "CV_RETCODE",
+          "typing": "TYPE",
+          "reference_type": "RETCOF_BR_KK",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:14:30.545827Z"
+    },
+    {
       "name": "FKK_BSTM_MULTICASH_TO_FEB",
       "description": "",
       "function_group": null,
@@ -4411,6 +4693,46 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:54:09.183508Z"
+    },
+    {
+      "name": "FKK_BUAG_MAIN_GET_STRUCT",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:14:41.988571Z"
+    },
+    {
+      "name": "FKK_BUAG_MWX_FILL_CENTRAL",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "ET_CONTAINER",
+          "typing": "LIKE",
+          "reference_type": "FKK_CONTAINER",
+          "optional": false,
+          "description": "für Gesch.vereinb. - Vertragskonto Schnittstelle"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:14:53.085360Z"
     },
     {
       "name": "FKK_BWDUN_DELTA_QUEUE_UPDATE",
@@ -12024,7 +12346,7 @@
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T11:02:52.105049+00:00",
-  "total_count": 214,
-  "enriched_count": 214
+  "last_updated": "2026-01-13T11:16:31.756774+00:00",
+  "total_count": 224,
+  "enriched_count": 224
 }
