@@ -17,7 +17,12 @@ CATALOG_PATH = Path(__file__).parent.parent / "data" / "function_modules.json"
 
 @lru_cache(maxsize=1)
 def load_catalog(catalog_path: Path | None = None) -> FMCatalog:
-    """Load the FM catalog from JSON file (cached singleton)."""
+    """Load the FM catalog from JSON file (cached singleton).
+
+    Note: Uses maxsize=1 cache. The catalog_path parameter exists for testing,
+    but production code should use get_catalog() which always uses the default path.
+    Calling with different paths will evict the previous cached result.
+    """
     path = catalog_path or CATALOG_PATH
 
     if not path.exists():

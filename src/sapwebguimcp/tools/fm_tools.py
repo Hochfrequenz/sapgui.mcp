@@ -22,6 +22,25 @@ __all__ = ["register_fm_tools"]
 
 
 # =============================================================================
+# Helper Functions
+# =============================================================================
+
+
+def _convert_params(params: list[FMParameter]) -> list["FMParameterResult"]:
+    """Convert FMParameter list to FMParameterResult list for MCP response."""
+    return [
+        FMParameterResult(
+            name=p.name,
+            typing=p.typing,
+            reference_type=p.reference_type,
+            optional=p.optional,
+            description=p.description,
+        )
+        for p in params
+    ]
+
+
+# =============================================================================
 # Result Models
 # =============================================================================
 
@@ -110,18 +129,6 @@ def register_fm_tools(mcp: FastMCP) -> None:
         catalog = get_catalog()
         search_results = do_search(catalog, query, include_params=include_params, limit=limit)
 
-        def convert_params(params: list[FMParameter]) -> list[FMParameterResult]:
-            return [
-                FMParameterResult(
-                    name=p.name,
-                    typing=p.typing,
-                    reference_type=p.reference_type,
-                    optional=p.optional,
-                    description=p.description,
-                )
-                for p in params
-            ]
-
         results = [
             FMSearchResultItem(
                 name=r.fm.name,
@@ -129,8 +136,8 @@ def register_fm_tools(mcp: FastMCP) -> None:
                 area=r.fm.area,
                 function_group=r.fm.function_group,
                 is_rfc_enabled=r.fm.is_rfc_enabled,
-                import_params=convert_params(r.fm.import_params),
-                export_params=convert_params(r.fm.export_params),
+                import_params=_convert_params(r.fm.import_params),
+                export_params=_convert_params(r.fm.export_params),
                 score=r.score,
                 match_reason=r.match_reason,
             )
