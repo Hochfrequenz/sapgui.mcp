@@ -7803,11 +7803,756 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:12:20.998383Z"
+    },
+    {
+      "name": "FKK_FUZZY_CREATE_SIMILAR_KEYS",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FNAME",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "Feldname für Zeitpunkt 0235"
+        },
+        {
+          "name": "I_VALUE",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "Übergebener Schlüssel"
+        },
+        {
+          "name": "I_LENGTH",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Länge des Schlüsselfeldes"
+        },
+        {
+          "name": "I_NO_ALPHA",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": "'X' = Keine Alpha-Konvertierung"
+        },
+        {
+          "name": "I_ONLY_NUMERIC",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": "'X' = nur numersiche Schlüssel möglich"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:17:32.355995Z"
+    },
+    {
+      "name": "FKK_GET_ARCH_FICA",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_OBJECT",
+          "typing": "TYPE",
+          "reference_type": "ARCH_IDX-OBJECT",
+          "optional": false,
+          "description": "Identifikator des Datenobjektes"
+        },
+        {
+          "name": "I_FIELDCATALOG",
+          "typing": "TYPE",
+          "reference_type": "AIND_FCAT",
+          "optional": false,
+          "description": "Feldkatalog des Archivinformationssystems"
+        },
+        {
+          "name": "I_MAXREC",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Maximal zu lesende Datenobjekte"
+        },
+        {
+          "name": "I_OBLIGATORY",
+          "typing": "TYPE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": "Selektionskriterium obligatorisch für Archivinfostruktur"
+        },
+        {
+          "name": "I_MAXROWS",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "I_SEL_RANGE",
+          "typing": "TYPE",
+          "reference_type": "TABLE",
+          "optional": true,
+          "description": "Selektionskriterium als RSDS-Range"
+        },
+        {
+          "name": "I_SEL_TABLE",
+          "typing": "TYPE",
+          "reference_type": "TABLE",
+          "optional": true,
+          "description": "Selektionskriterium als Tabelle"
+        }
+      ],
+      "exceptions": [
+        "NO_ENTRY_FOUND",
+        "NO_INFOSTRUCTURE_FOUND",
+        "NO_SELECTION_CRITERIA",
+        "FIELD_MISSING_IN_FIELDCAT",
+        "AS_ERROR",
+        "BOTH_SEL_METHODS_SUPPLIED",
+        "NO_SEL_METHODS_SUPPLIED"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:17:40.960196Z"
+    },
+    {
+      "name": "FKK_GET_ARC_CJ",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_OFFIC",
+          "typing": "TYPE",
+          "reference_type": "OFFIC_KK",
+          "optional": true,
+          "description": "Zweigstelle"
+        },
+        {
+          "name": "I_OFFIC_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "SELECT-OPTIONS Tabelle"
+        },
+        {
+          "name": "I_CHDSK",
+          "typing": "TYPE",
+          "reference_type": "CHDSK_KK",
+          "optional": true,
+          "description": "Kasse"
+        },
+        {
+          "name": "I_CHDSK_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "SELECT-OPTIONS Tabelle"
+        },
+        {
+          "name": "I_CPUDT_LOW",
+          "typing": "TYPE",
+          "reference_type": "CPUDT",
+          "optional": true,
+          "description": "Tag der Erfassung des Buchhaltungsbeleges"
+        },
+        {
+          "name": "I_CPUDT_HIGH",
+          "typing": "TYPE",
+          "reference_type": "CPUDT",
+          "optional": true,
+          "description": "Tag der Erfassung des Buchhaltungsbeleges"
+        },
+        {
+          "name": "I_MAXREC",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Maximale Anzahl der gelesenen Datenobjekte"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_DFKKCJC",
+          "typing": "LIKE",
+          "reference_type": "DFKKCJC",
+          "optional": true,
+          "description": "Daten Kassenabschluß"
+        },
+        {
+          "name": "T_DFKKCJT",
+          "typing": "LIKE",
+          "reference_type": "DFKKCJT",
+          "optional": true,
+          "description": "Bewegungsdaten zum Kassenbuch"
+        },
+        {
+          "name": "T_DFKKCJF",
+          "typing": "LIKE",
+          "reference_type": "DFKKCJF",
+          "optional": true,
+          "description": "Entgegengenommener Zahlungen transferieren"
+        }
+      ],
+      "exceptions": [
+        "NO_ENTRY_FOUND",
+        "NO_INFOSTRUCTURE_FOUND",
+        "NO_SELECTION_CRITERIA",
+        "FIELD_MISSING_IN_FIELDCAT",
+        "AS_ERROR",
+        "WRONG_SELECTION_CRITERIA",
+        "E_TOO_MANY_SELTYPES"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:17:49.531852Z"
+    },
+    {
+      "name": "FKK_GET_ARC_COLD",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_INKGP",
+          "typing": "TYPE",
+          "reference_type": "INKGP_KK",
+          "optional": true,
+          "description": "Inkassobüro"
+        },
+        {
+          "name": "I_INKGP_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "Inkassobüro (Wertebereich)"
+        },
+        {
+          "name": "I_GPART",
+          "typing": "TYPE",
+          "reference_type": "GPART_KK",
+          "optional": true,
+          "description": "Geschäftspartnernummer"
+        },
+        {
+          "name": "I_GPART_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "Geschäftspartnernummer (Wertebereich)"
+        },
+        {
+          "name": "I_MAXREC",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Maximale Anzahl der gelesenen Datenobjekte"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_DFKKCOLLITEM",
+          "typing": "LIKE",
+          "reference_type": "DFKKCOLLITEM",
+          "optional": true,
+          "description": "Inkassoeinheiten"
+        },
+        {
+          "name": "T_DFKKCOLLPAYM",
+          "typing": "LIKE",
+          "reference_type": "DFKKCOLLPAYM",
+          "optional": true,
+          "description": "Inkassozahlungen"
+        },
+        {
+          "name": "T_DFKKCOLLPAYMLINK",
+          "typing": "LIKE",
+          "reference_type": "DFKKCOLLPAYMLINK",
+          "optional": true,
+          "description": "Zuordnung von Inkassozahlungen zu Inkassoeinheiten"
+        }
+      ],
+      "exceptions": [
+        "NO_ENTRY_FOUND",
+        "NO_INFOSTRUCTURE_FOUND",
+        "NO_SELECTION_CRITERIA",
+        "FIELD_MISSING_IN_FIELDCAT",
+        "AS_ERROR",
+        "WRONG_SELECTION_CRITERIA",
+        "E_TOO_MANY_SELTYPES"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:17:58.057190Z"
+    },
+    {
+      "name": "FKK_GET_ARC_DMS",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_GPART_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": false,
+          "description": "Geschäftspartnernummer"
+        },
+        {
+          "name": "I_DOTYP_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "Dokumenttyp"
+        },
+        {
+          "name": "I_MAXREC",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "NO_ENTRY_FOUND",
+        "NO_INFOSTRUCTURE_FOUND",
+        "NO_SELECTION_CRITERIA",
+        "FIELD_MISSING_IN_FIELDCAT",
+        "AS_ERROR",
+        "WRONG_SELECTION_CRITERIA"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:18:06.504877Z"
+    },
+    {
+      "name": "FKK_GET_ARC_DRE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IV_ASSKY",
+          "typing": "TYPE",
+          "reference_type": "ASSKY_KK",
+          "optional": true,
+          "description": "Zuordnungsschlüssel"
+        },
+        {
+          "name": "IV_OPBEL",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK",
+          "optional": true,
+          "description": "Nummer eines Belegs des Vertragskontokorrents"
+        },
+        {
+          "name": "IV_REF01",
+          "typing": "TYPE",
+          "reference_type": "REFKY1_DR_KK",
+          "optional": true,
+          "description": "Referenzschlüssel 1 (ereignisbasierte verz. Erlöse)"
+        },
+        {
+          "name": "IV_REF02",
+          "typing": "TYPE",
+          "reference_type": "REFKY2_DR_KK",
+          "optional": true,
+          "description": "Referenzschlüssel 2 (ereignisbasierte verz. Erlöse)"
+        },
+        {
+          "name": "IV_MAXREC",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": false,
+          "description": "Maximale Anzahl der gelesenen Datenobjekte"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "ET_DFKKDEFREV_HEAD",
+          "typing": "LIKE",
+          "reference_type": "DFKKDEFREV_HEAD",
+          "optional": true,
+          "description": "Kopftabelle (ereignisbasierte verz. Erlöse)"
+        },
+        {
+          "name": "ET_DFKKDEFREV_POS",
+          "typing": "LIKE",
+          "reference_type": "DFKKDEFREV_POS",
+          "optional": true,
+          "description": "Positionstabelle (ereignisbasierte verz. Erlöse)"
+        },
+        {
+          "name": "ET_DFKKDEFREV_TRIG",
+          "typing": "LIKE",
+          "reference_type": "DFKKDEFREV_TRIG",
+          "optional": true,
+          "description": "Triggertabelle - Beträge (ereignisbasierte verz. Erlöse)"
+        },
+        {
+          "name": "ET_DFKKDEFREV_TRIGE",
+          "typing": "LIKE",
+          "reference_type": "DFKKDEFREV_TRIGE",
+          "optional": true,
+          "description": "Triggertabelle - Endekennz. (ereignisbasierte verz. Erlöse)"
+        }
+      ],
+      "exceptions": [
+        "NO_ENTRY_FOUND",
+        "NO_INFOSTRUCTURE_FOUND",
+        "NO_SELECTION_CRITERIA",
+        "FIELD_MISSING_IN_FIELDCAT",
+        "AS_ERROR",
+        "WRONG_SELECTION_CRITERIA",
+        "E_TOO_MANY_SELTYPES"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:18:14.849625Z"
+    },
+    {
+      "name": "FKK_GET_ARC_DUNN_FOR_DOC",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_OPBEL",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK",
+          "optional": true,
+          "description": "Nummer eines Belegs des Vertragskontokorrents"
+        },
+        {
+          "name": "I_MAXREC",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Maximale Anzahl der gelesenen Datenobjekte"
+        },
+        {
+          "name": "I_GPART",
+          "typing": "TYPE",
+          "reference_type": "GPART_KK",
+          "optional": true,
+          "description": "Geschäftspartnernummer"
+        },
+        {
+          "name": "I_VKONT",
+          "typing": "TYPE",
+          "reference_type": "VKONT_KK",
+          "optional": true,
+          "description": "Vertragskontonummer"
+        },
+        {
+          "name": "I_AUSDT",
+          "typing": "TYPE",
+          "reference_type": "AUSDT_KK",
+          "optional": true,
+          "description": "Ausstellungsdatum"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_FKKMAKO",
+          "typing": "LIKE",
+          "reference_type": "FKKMAKO",
+          "optional": true,
+          "description": "Mahnhistorie Kopf"
+        },
+        {
+          "name": "T_FKKMAZE",
+          "typing": "LIKE",
+          "reference_type": "FKKMAZE",
+          "optional": true,
+          "description": "Mahnhistorie Belegzeilen"
+        },
+        {
+          "name": "T_FKKMAKT",
+          "typing": "LIKE",
+          "reference_type": "FKKMAKT",
+          "optional": true,
+          "description": "Mahnaktivitäten"
+        },
+        {
+          "name": "T_FKKMAREDUCT",
+          "typing": "LIKE",
+          "reference_type": "FKKMAREDUCT",
+          "optional": true,
+          "description": "Mahnkürzungen"
+        },
+        {
+          "name": "T_FKKMACTIVITIES",
+          "typing": "LIKE",
+          "reference_type": "FKKMACTIVITIES",
+          "optional": true,
+          "description": "Mahnaktivitäten"
+        }
+      ],
+      "exceptions": [
+        "NO_ENTRY_FOUND",
+        "NO_INFOSTRUCTURE_FOUND",
+        "NO_SELECTION_CRITERIA",
+        "FIELD_MISSING_IN_FIELDCAT",
+        "AS_ERROR",
+        "WRONG_SELECTION_CRITERIA"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:18:23.350486Z"
+    },
+    {
+      "name": "FKK_GET_ARC_EXC",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_OFFIC_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "Zweigstelle"
+        },
+        {
+          "name": "I_CHDSK_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "Kasse"
+        },
+        {
+          "name": "I_PAYID_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "Zahlungs ID"
+        },
+        {
+          "name": "I_OPBEL_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "Belegnummber"
+        },
+        {
+          "name": "I_MAXREC",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Maximale Anzahl der gelesenen Datenobjekte"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_DFKKEXC",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXC",
+          "optional": true,
+          "description": "Externe Zahlungsinformationen"
+        },
+        {
+          "name": "T_DFKKEXC_CL",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXC_CL",
+          "optional": true,
+          "description": "Externe Zahlungsinformationen - Ausgleichsvorschläge"
+        },
+        {
+          "name": "T_DFKKEXC_PAYINFO",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXC_PAYINFO",
+          "optional": true,
+          "description": "Information zum Zahlungsmedium"
+        }
+      ],
+      "exceptions": [
+        "NO_ENTRY_FOUND",
+        "NO_INFOSTRUCTURE_FOUND",
+        "NO_SELECTION_CRITERIA",
+        "FIELD_MISSING_IN_FIELDCAT",
+        "AS_ERROR",
+        "WRONG_SELECTION_CRITERIA"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:18:31.758221Z"
+    },
+    {
+      "name": "FKK_GET_ARC_INF",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_GPART_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "Geschäftspartnernummer"
+        },
+        {
+          "name": "I_VKONT_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "Vertragskontonummer"
+        },
+        {
+          "name": "I_VTREF_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "Referenzangaben aus dem Vertrag"
+        },
+        {
+          "name": "I_INFCOTYPE_SEL",
+          "typing": "TYPE",
+          "reference_type": "RSELOPTION",
+          "optional": true,
+          "description": "Informationscontainertyp"
+        },
+        {
+          "name": "I_MAXREC",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": false,
+          "description": "Maximale Anzahl der gelesenen Datenobjekte"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "ET_DFKKINFCO",
+          "typing": "TYPE",
+          "reference_type": "DFKKINFCO_T",
+          "optional": false,
+          "description": "Tabelle von Informationcontainerdaten"
+        },
+        {
+          "name": "ET_DFKKINFCOS",
+          "typing": "TYPE",
+          "reference_type": "DFKKINFCOS_T",
+          "optional": false,
+          "description": "Versandinformationen"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "NO_ENTRY_FOUND",
+        "NO_INFOSTRUCTURE_FOUND",
+        "NO_SELECTION_CRITERIA",
+        "FIELD_MISSING_IN_FIELDCAT",
+        "AS_ERROR"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:18:40.139767Z"
+    },
+    {
+      "name": "FKK_GET_ARC_IPH",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_RPBEL",
+          "typing": "TYPE",
+          "reference_type": "RPBEL_KK",
+          "optional": true,
+          "description": "Nummer des Ratenplans im Vertragskontokorrent"
+        },
+        {
+          "name": "I_GPART",
+          "typing": "TYPE",
+          "reference_type": "GPART_KK",
+          "optional": true,
+          "description": "Geschäftspartnernummer"
+        },
+        {
+          "name": "I_VKONT",
+          "typing": "TYPE",
+          "reference_type": "VKONT_KK",
+          "optional": true,
+          "description": "Vertragskontonummer"
+        },
+        {
+          "name": "I_VTREF",
+          "typing": "TYPE",
+          "reference_type": "VTREF_KK",
+          "optional": true,
+          "description": "Vertrag"
+        },
+        {
+          "name": "I_MAXREC",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": false,
+          "description": "maximale Anzahl Sätze"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_FKK_INSTPLN_HEAD",
+          "typing": "LIKE",
+          "reference_type": "FKK_INSTPLN_HEAD",
+          "optional": true,
+          "description": "Kopfdaten des Ratenplans"
+        },
+        {
+          "name": "T_FKK_INSTPLN_HIST",
+          "typing": "LIKE",
+          "reference_type": "FKK_INSTPLN_HIST",
+          "optional": true,
+          "description": "Ratenplanhistorie"
+        }
+      ],
+      "exceptions": [
+        "NO_ENTRY_FOUND",
+        "NO_INFOSTRUCTURE_FOUND",
+        "NO_SELECTION_CRITERIA",
+        "FIELD_MISSING_IN_FIELDCAT",
+        "AS_ERROR",
+        "WRONG_SELECTION_CRITERIA",
+        "E_TOO_MANY_SELTYPES"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T08:18:48.669855Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T08:13:49.924327+00:00",
-  "total_count": 137,
-  "enriched_count": 137
+  "last_updated": "2026-01-13T08:21:31.474902+00:00",
+  "total_count": 147,
+  "enriched_count": 147
 }
