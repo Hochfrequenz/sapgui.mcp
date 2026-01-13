@@ -867,11 +867,505 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:30:21.169506Z"
+    },
+    {
+      "name": "FKK_BIX_BILL_PROC_BIT2_SELCRIT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_BILL_PROCESS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BILL_PROCESS_KK",
+          "default_value": "Abrechnungsprozess",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_SUBPROCESS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SUB_PROCESS_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Unterprozess Fakturierungsvorbereitung"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_SUBPROCESS",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "SUB_PROCESS_TAB",
+          "default_value": "Tabelle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der Unterprozesse Fakturierungsvorbereitung"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:34:24.302572Z"
+    },
+    {
+      "name": "FKK_BIX_BIP_AUTH_CHECK",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_ACTVT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "ACTIV_AUTH",
+          "default_value": "'01'",
+          "optional": true,
+          "pass_by_value": true,
+          "description": "  Aktivität"
+        },
+        {
+          "name": "I_BIPCAT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BIPCAT_KK",
+          "default_value": "SPACE",
+          "optional": true,
+          "pass_by_value": true,
+          "description": "  Typ des Abrechnungsplans"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NO_AUTHORIZATION",
+          "description": "Keine Berechtigung"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:34:31.952052Z"
+    },
+    {
+      "name": "FKK_BIX_BIP_REQUEST_SINGLE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_APPLK",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "APPLK_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Anwendungsbereich"
+        },
+        {
+          "name": "I_VKONT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "VKONT_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Vertragskontonummer"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_BIT0_IT",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT0_IT_ALL_TAB",
+          "default_value": "Tabellentyp",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zu FKKBIXBIT0_IT_ALL"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:34:39.750139Z"
+    },
+    {
+      "name": "FKK_BIX_BIT0_DELETE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IS_TABNAMES",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT_TABNAMES",
+          "default_value": "Tabellennamen",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für Datenbankzugriffe"
+        },
+        {
+          "name": "IT_BIT0_IT_KEY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT0_KEY_TAB",
+          "default_value": "Tabellentyp",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zu FKKBIXBIT0_KEY"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:34:47.508214Z"
+    },
+    {
+      "name": "FKK_BIX_BIT0_MON",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IT_GPART_RANGE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_GPART",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "range Tabelle GPART"
+        },
+        {
+          "name": "IT_VKONT_RANGE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_VKONT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Range tabelle VKONT"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_NO_BITS_FOUND",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "Keine",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "BITs gefunden"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:34:55.108362Z"
+    },
+    {
+      "name": "FKK_BIX_BIT0_REVERSE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IT_BIT0_KEY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT0_KEY_TAB",
+          "default_value": "Tabellentyp",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zu FKKBIXBIT2_KEY"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_NUMBER_BIT1",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "default_value": "Anzahl",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "stornierter BIT0s"
+        },
+        {
+          "name": "ET_BIT0_REVERSED",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT0_IT_ALL_TAB",
+          "default_value": "Tabellentyp",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zu FKKBIXBIT0_IT_ALL"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:35:02.763214Z"
+    },
+    {
+      "name": "FKK_BIX_BIT2_IT_SEL_BY_KEY",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [],
+      "changing_parameters": [
+        {
+          "name": "C_BILLITEMS",
+          "category": "changing",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_BILLITEMS",
+          "default_value": "Abrechenbare",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Positionen (alle Satzarten)"
+        }
+      ],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:35:10.409680Z"
+    },
+    {
+      "name": "FKK_BIX_BIT4_ARCH_MASS_8140",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_LOW",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_HIGH",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [
+        {
+          "name": "C_TEST_NUM",
+          "category": "changing",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Getestete Versuche"
+        }
+      ],
+      "tables_parameters": [
+        {
+          "name": "T_COUNTER",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKK_MASS_ACT_COUNT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Zähler mit zughöriger Nummer und Inhalt"
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:35:18.122125Z"
+    },
+    {
+      "name": "FKK_BIX_BIT4_SEL_FOR_PRINT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_BILLDOCNO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BILLDOCNO_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Nummer des Abrechnungsbelegs"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_BIT4_IT",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT4_IT_PRINT_TAB",
+          "default_value": "Druckdaten",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zu abgerechneten Positionen (Hauptpositionen)"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:35:25.762216Z"
+    },
+    {
+      "name": "FKK_BIX_BIT4_TAB_DELETE_CHECK",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_BITCAT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BITCAT_KK",
+          "default_value": "Klasse",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "abrechenbarer Positionen"
+        },
+        {
+          "name": "I_BIT4_SUFFIX",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BIT4_TAB_SUFFIX_KK",
+          "default_value": "Laufende",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Nummer für Tabellen im Status abgerechnet"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_BIT4_DEL",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_BIT4_DEL_CHECK_TAB",
+          "default_value": "Analyse",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "abgerechneter Positionen für das Löschen"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "INPUT_ERROR",
+          "description": "Importparameter inkonsistent"
+        },
+        {
+          "name": "DBTAB_NOT_FOUND",
+          "description": "Tabelle nicht vorhanden"
+        },
+        {
+          "name": "NO_DATA",
+          "description": "Tabelle enthält keine Einträge"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:35:33.318810Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T07:33:47.707657+00:00",
-  "total_count": 19,
-  "enriched_count": 19
+  "last_updated": "2026-01-13T07:36:35.974755+00:00",
+  "total_count": 29,
+  "enriched_count": 29
 }
