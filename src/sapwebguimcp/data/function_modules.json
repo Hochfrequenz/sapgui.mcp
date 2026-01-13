@@ -1,0 +1,348 @@
+{
+  "function_modules": [
+    {
+      "name": "FKK_ABRZ_FROM_PERIOD_DETERMINE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_COCYR",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "DFKKCOHI-COCYR",
+          "default_value": "Jahrgang",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der Korrespondenzerzeugung"
+        },
+        {
+          "name": "I_COPER",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "DFKKCOHI-COPER",
+          "default_value": "Korrespondenzintervall",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_COPNR",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "DFKKCOHI-COPNR",
+          "default_value": "Intervallnummer",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der Periode"
+        },
+        {
+          "name": "I_COXPER",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "TFK071-COXPER",
+          "default_value": "0",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Korrespondenz Einstellung für unvollständige Perioden"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_ABRZU",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "ABRZU_KK",
+          "default_value": "Untergrenze",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Abrechnungszeitraums"
+        },
+        {
+          "name": "E_ABRZO",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "ABRZO_KK",
+          "default_value": "Obergrenze",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Abrechnungszeitraums"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "INVALID_INPUT",
+          "description": "Ungültige Eingabedaten"
+        },
+        {
+          "name": "SHORT_PERIOD_NOT_ALLOWED",
+          "description": "Abrechnugszeitraum für verkürzte Periode unzulässig"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:05:00.831541Z"
+    },
+    {
+      "name": "FKK_ACCOUNT_DETERMINE_8110",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:05:08.432748Z"
+    },
+    {
+      "name": "FKK_ACCOUNT_DETERMINE_C000",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:05:16.025690Z"
+    },
+    {
+      "name": "FKK_ACCOUNT_DETERMINE_P673",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:05:23.526206Z"
+    },
+    {
+      "name": "FKK_ACCOUNT_DETERMINE_S082",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:05:31.060228Z"
+    },
+    {
+      "name": "FKK_AD_KSCHL_F4",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_TFK033D",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "TFK033D",
+          "default_value": "TFK033D",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Komplette Tabellenzeile"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:10:08.918194Z"
+    },
+    {
+      "name": "FKK_AD_TEXT_PAYTP",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_VALUE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Wert"
+        },
+        {
+          "name": "I_FIELDNAME",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "TFK033C-KFLD1",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Feldname"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_TEXT",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "",
+          "optional": false,
+          "pass_by_value": true,
+          "description": "Text"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:10:17.555194Z"
+    },
+    {
+      "name": "FKK_ARCHIVE_NEW_OBJECT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "ARCHIVE_HANDLE",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "SY-TABIX",
+          "default_value": "Handle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "auf die geöffnete Archivdatei"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "OBJECT_OFFSET",
+          "category": "export",
+          "typing": "LIKE",
+          "reference_type": "ARCH_IDX-OFFSET",
+          "default_value": "Offset",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Datenobjekts in der Archivdatei"
+        },
+        {
+          "name": "ARCHIVE_NAME",
+          "category": "export",
+          "typing": "LIKE",
+          "reference_type": "HEADA-ARKEY",
+          "default_value": "Schlüssel",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "einer Archivdatei"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:10:25.802359Z"
+    },
+    {
+      "name": "FKK_ARCH_DETAIL_CALLBACK",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_OBJECT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "STRING",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:10:33.842398Z"
+    },
+    {
+      "name": "FKK_BELEG_DELETE_CHANGEDOC",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "OPBEL",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "FKKKO-OPBEL",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_DELETED_HEADERS",
+          "category": "export",
+          "typing": "LIKE",
+          "reference_type": "SY-DBCNT",
+          "default_value": "",
+          "optional": false,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "E_DELETED_POSITIONS",
+          "category": "export",
+          "typing": "LIKE",
+          "reference_type": "SY-DBCNT",
+          "default_value": "",
+          "optional": false,
+          "pass_by_value": true,
+          "description": ""
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:10:41.822625Z"
+    }
+  ],
+  "source_system": "S4U",
+  "language": "DE",
+  "last_updated": "2026-01-13T07:20:50.031032+00:00",
+  "total_count": 10,
+  "enriched_count": 10
+}
