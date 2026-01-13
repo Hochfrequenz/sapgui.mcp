@@ -2948,11 +2948,384 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:47:49.358861Z"
+    },
+    {
+      "name": "FKK_BIX_RERATE_MON",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IRT_GPART",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_GPART",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "range Tabelle GPART"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NOT_FOUND",
+          "description": "Keine Positionen gefunden"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:49:45.767332Z"
+    },
+    {
+      "name": "FKK_BIX_REVREASON_CONTROL_GET",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_REVREASON",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BILL_REVREASON_KK",
+          "default_value": "Stornierungsgrund",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "eines Abrechnungsbelegs"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_TFK8146",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "TFK8146",
+          "default_value": "automatische",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Ausnahmen bei Storno Abrechnungsbeleg"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:49:53.702816Z"
+    },
+    {
+      "name": "FKK_BIX_SHOW_RESULTS",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_SCREEN_START_AT_COL",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "default_value": "15",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Screen Starting At - Column"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:50:01.475151Z"
+    },
+    {
+      "name": "FKK_BIX_SPLIT_DOC_BY_BIT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_INVDOCNO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "INVDOCNO_KK",
+          "default_value": "Nummer",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Fakturierungsbelegs"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_INVDOC_VAL_BY_BIT4",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_INVDOC_VAL_BY_BIT4_TAB",
+          "default_value": "Tabllentyp",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für FKKBIX_INVDOC_VAL_BY_BIT4"
+        }
+      ],
+      "changing_parameters": [
+        {
+          "name": "CT_BIT4_IT",
+          "category": "changing",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT4_IT_ALL_TAB",
+          "default_value": "Tabellentyp",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zu FKKBIXBIT4_IT_ALL"
+        }
+      ],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NOT_FOUND",
+          "description": "Keine BIT4 gefunden für den Fakturierungsbeleg"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:50:09.509778Z"
+    },
+    {
+      "name": "FKK_BIX_SRCTA_DISP_CRMOI",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_SRCTATYPE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SRCTATYPE_KK",
+          "default_value": "Art",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Quellvorgangs"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:50:17.646430Z"
+    },
+    {
+      "name": "FKK_BIX_TEST_PREPAID_0966",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_PREP_BAL_CHG",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_PREP_BAL_CHG",
+          "default_value": "Saldoänderung",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "eines Prepaid Kontos"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:50:25.300530Z"
+    },
+    {
+      "name": "FKK_BIX_UPLOAD_SHOW",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_SOURCE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "STRING",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:50:33.088625Z"
+    },
+    {
+      "name": "FKK_BIX_VIEW_GEN_DDL_SRC_EXIT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_BIT_VIEW",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXBIT_VIEWS",
+          "default_value": "Datenbank-Views",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für abrechenbare Positionen"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:50:41.068038Z"
+    },
+    {
+      "name": "FKK_BOLETO_MASS_CANCEL_6360",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_LOW",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "C_TEST_NUM",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "default_value": "",
+          "optional": false,
+          "pass_by_value": true,
+          "description": ""
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "T_COUNTER",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKK_MASS_ACT_COUNT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:50:50.908975Z"
+    },
+    {
+      "name": "FKK_BPLOCK_DIALOG",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_GPART",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "GPART_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " Geschäftspartnernummer"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:50:58.980048Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T07:48:51.069701+00:00",
-  "total_count": 68,
-  "enriched_count": 68
+  "last_updated": "2026-01-13T07:53:08.024674+00:00",
+  "total_count": 78,
+  "enriched_count": 78
 }
