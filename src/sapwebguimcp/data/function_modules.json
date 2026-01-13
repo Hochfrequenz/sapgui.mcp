@@ -7607,6 +7607,273 @@
       "retrieved_at": "2026-01-13T11:33:59.581250Z"
     },
     {
+      "name": "FKK_CORRSPND_OPEN_CURSOR_WRT",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_TAB_WHERE",
+          "typing": "TYPE",
+          "reference_type": "AFX_TAB_WHERE_CLAUSE",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_CURSOR",
+          "typing": "TYPE",
+          "reference_type": "CURSOR",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:46:11.737479Z"
+    },
+    {
+      "name": "FKK_CORRSPND_PACK_WTAB_CREATE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_STR_PACK",
+          "typing": "TYPE",
+          "reference_type": "FKK_STR_CORRSPND_PT_DATA",
+          "optional": false,
+          "description": "Paketvorlagen CORRSPND - Datenteil"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_TAB_WHERE_CLAUSE",
+          "typing": "TYPE",
+          "reference_type": "AFX_TAB_WHERE_CLAUSE",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "ERROR_OCCURED"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:46:20.488777Z"
+    },
+    {
+      "name": "FKK_CORRSPND_PBPROCESS",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [
+        {
+          "name": "E_TAB_PACKAGE",
+          "typing": "TYPE",
+          "reference_type": "FKK_TAB_CORRSPND_PT_DATA",
+          "optional": false,
+          "description": "Paketvorlagen CORRSPND - Datenteil"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "INTERNAL_ERROR"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:46:29.351583Z"
+    },
+    {
+      "name": "FKK_CORRSPND_PP_CONV_E2I",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_S_EXTOBJECT",
+          "typing": "TYPE",
+          "reference_type": "FKK_STR_CORRSPND_EXTPPKEY",
+          "optional": false,
+          "description": "Schlüssel für Objekt CORRSPND"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_OBJNO",
+          "typing": "TYPE",
+          "reference_type": "BANK_DTE_PP_OBJNO",
+          "optional": false,
+          "description": "eines Objekts in der Parallelisierung (Schlüssel)"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:46:37.952028Z"
+    },
+    {
+      "name": "FKK_CORRSPND_RT_GET",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "C_TAB_ARCHIVE",
+          "typing": "TYPE",
+          "reference_type": "FKK_TAB_DFKKCOH_RT",
+          "optional": false,
+          "description": "zum Lesen/Prüfen Residenzzeit Objekt CORRSPND"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "GLOBAL_CUSTOMIZING_NOT_FOUND"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:46:48.826585Z"
+    },
+    {
+      "name": "FKK_CORRSPND_WRI_0205",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_APPLCATG",
+          "typing": "TYPE",
+          "reference_type": "BANK_DTE_PP_PAAPPLCATG",
+          "optional": true,
+          "description": "Anwendungsart in der Parallelisierung"
+        },
+        {
+          "name": "I_STR_PARAM",
+          "typing": "TYPE",
+          "reference_type": "CORRSPND_PPF_WRI",
+          "optional": true,
+          "description": "PPF Parameter für Archivierungsobjekt CORRSPND"
+        },
+        {
+          "name": "I_STR_PACKAGE_KEY",
+          "typing": "TYPE",
+          "reference_type": "BANK_STR_PP_PACKAGEKEY",
+          "optional": true,
+          "description": "Schlüssel einer Paketvorlage"
+        },
+        {
+          "name": "I_REF_LOGGER",
+          "typing": "TYPE",
+          "reference_type": "REF",
+          "optional": true,
+          "description": "IF_BANK_PP_LOGGER  Nachrichtensammler im PPF"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_LIMIT_HIGH",
+          "typing": "TYPE",
+          "reference_type": "BANK_DTE_PP_OBJNO",
+          "optional": false,
+          "description": "eines Objekts in der Parallelisierung (Schlüssel)"
+        },
+        {
+          "name": "E_LIMIT_LOW",
+          "typing": "TYPE",
+          "reference_type": "BANK_DTE_PP_OBJNO",
+          "optional": false,
+          "description": "eines Objekts in der Parallelisierung (Schlüssel)"
+        },
+        {
+          "name": "E_TAB_OBJKEY",
+          "typing": "TYPE",
+          "reference_type": "BANK_TAB_OBJKEY",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "E_CNT_PACKAGES",
+          "typing": "TYPE",
+          "reference_type": "BANK_DTE_PP_CNT_PACKAGES",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "E_FLG_NO_PACKAGE",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": false,
+          "description": "zum Ankreuzen"
+        },
+        {
+          "name": "E_PACKDEFCATG",
+          "typing": "TYPE",
+          "reference_type": "BANK_DTE_PP_PACKDEFCATG",
+          "optional": false,
+          "description": "der Paketdefinition"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:47:02.483452Z"
+    },
+    {
+      "name": "FKK_CORR_AR_CHECK",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "P_TABNAME",
+          "typing": "TYPE",
+          "reference_type": "TABNAME",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "T_TABLE",
+          "typing": "TYPE",
+          "reference_type": "TABLE",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:47:16.311574Z"
+    },
+    {
       "name": "FKK_CORR_AUTH_CHECK",
       "description": "",
       "function_group": null,
@@ -7764,6 +8031,59 @@
       "retrieved_at": "2026-01-13T08:01:23.233571Z"
     },
     {
+      "name": "FKK_CORR_CREATE_FROM_WF",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "OBJTYPE",
+          "typing": "TYPE",
+          "reference_type": "SWETYPECOU-OBJTYPE",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "OBJKEY",
+          "typing": "TYPE",
+          "reference_type": "SWEINSTCOU-OBJKEY",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "EVENT",
+          "typing": "TYPE",
+          "reference_type": "SWEINSTCOU-EVENT",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "RECTYPE",
+          "typing": "TYPE",
+          "reference_type": "SWETYPECOU-RECTYPE",
+          "optional": false,
+          "description": "des Verbrauchertyps"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "EVENT_CONTAINER",
+          "typing": "LIKE",
+          "reference_type": "SWCONT",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:47:27.483091Z"
+    },
+    {
       "name": "FKK_CORR_DTINF_SEL_CHANGE",
       "description": "",
       "function_group": null,
@@ -7824,6 +8144,121 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:01:31.631205Z"
+    },
+    {
+      "name": "FKK_CORR_HIST_FROMDATE_TODATE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_COTYP",
+          "typing": "LIKE",
+          "reference_type": "DFKKCOHI-COTYP",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_VKONT_HIGH",
+          "typing": "LIKE",
+          "reference_type": "DFKKCOHI-VKONT",
+          "optional": true,
+          "description": " Vertragskontonummer"
+        },
+        {
+          "name": "I_VKONT",
+          "typing": "LIKE",
+          "reference_type": "DFKKCOHI-VKONT",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_VTREF_HIGH",
+          "typing": "LIKE",
+          "reference_type": "DFKKCOHI-VTREF",
+          "optional": true,
+          "description": " Referenzangaben aus dem Vertrag"
+        },
+        {
+          "name": "I_VTREF",
+          "typing": "LIKE",
+          "reference_type": "DFKKCOHI-VTREF",
+          "optional": false,
+          "description": "aus dem Vertrag"
+        },
+        {
+          "name": "I_FROMDAT",
+          "typing": "LIKE",
+          "reference_type": "DFKKCOHI-COIDT",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_TODAT",
+          "typing": "LIKE",
+          "reference_type": "DFKKCOHI-COIDT",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "I_ONLY_STATUS_INITIAL",
+          "typing": "TYPE",
+          "reference_type": "XONLY_STAT_INIT_KK",
+          "optional": false,
+          "description": "Korrespondenzen mit Status initial"
+        },
+        {
+          "name": "I_ONLY_INDATE_INITIAL",
+          "typing": "TYPE",
+          "reference_type": "XONLY_INDATE_INIT_KK",
+          "optional": false,
+          "description": "Korrespondenzen mit Eingangsdatum initial"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "ET_FKKCOHI_EXT",
+          "typing": "LIKE",
+          "reference_type": "FKKCOHI_EXT",
+          "optional": false,
+          "description": "Korrespondenz - Korrespondenzhistorie"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme",
+        "NOT_FOUND",
+        "INTERNAL_ERROR",
+        "ITEMS_DFKKCOHINCORR_MISSING"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:47:37.441133Z"
+    },
+    {
+      "name": "FKK_CORR_LOG_DB_HDR_INS",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IS_HEADER",
+          "typing": "TYPE",
+          "reference_type": "FKKCORRLOGHDR",
+          "optional": false,
+          "description": "zur Tabelle DFKKCORRLOGHDR"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:47:47.284368Z"
     },
     {
       "name": "FKK_CORR_MASS_INIT_BUFFER",
@@ -13195,7 +13630,7 @@
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T11:35:21.857168+00:00",
-  "total_count": 244,
-  "enriched_count": 244
+  "last_updated": "2026-01-13T11:48:48.199141+00:00",
+  "total_count": 254,
+  "enriched_count": 254
 }
