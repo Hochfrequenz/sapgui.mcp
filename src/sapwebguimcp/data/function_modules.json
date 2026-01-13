@@ -4735,6 +4735,100 @@
       "retrieved_at": "2026-01-13T11:14:53.085360Z"
     },
     {
+      "name": "FKK_BUPA_BAPIMTCS_TO_SEPA",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "CS_BP_EXTERN",
+          "typing": "TYPE",
+          "reference_type": "BUS_EI_COM_EXTERN",
+          "optional": false,
+          "description": "Schnittstelle des Geschäftspartners"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:20:44.557431Z"
+    },
+    {
+      "name": "FKK_BUPA_CL_UD_CREDITW",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_BUPA_SOURCE",
+          "typing": "TYPE",
+          "reference_type": "BU_PARTNER",
+          "optional": true,
+          "description": "Quellgeschäftspartner"
+        },
+        {
+          "name": "I_BUPA_TARGET",
+          "typing": "TYPE",
+          "reference_type": "BU_PARTNER",
+          "optional": true,
+          "description": "Zielgeschäftspartner"
+        },
+        {
+          "name": "I_BONIT_SOURCE",
+          "typing": "TYPE",
+          "reference_type": "BONIT_KK",
+          "optional": true,
+          "description": "Bonität des Quellgeschäftspartners"
+        },
+        {
+          "name": "I_BONIT_TARGET",
+          "typing": "TYPE",
+          "reference_type": "BONIT_KK",
+          "optional": true,
+          "description": "Bonität des Zielgeschäftspartners"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "C_BONIT_ADD",
+          "typing": "TYPE",
+          "reference_type": "BONIT_KK",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "CANCELLED"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:20:55.573963Z"
+    },
+    {
+      "name": "FKK_BUPA_EVENT_ISSTA",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:21:07.538506Z"
+    },
+    {
       "name": "FKK_BWDUN_DELTA_QUEUE_UPDATE",
       "description": "",
       "function_group": null,
@@ -5838,6 +5932,349 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:57:20.372620Z"
+    },
+    {
+      "name": "FKK_CANCEL_FRACTION_BETRW",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_NUMERATOR",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_DENOMINATOR",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_NUMERATOR",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "E_DENOMINATOR",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:21:15.876950Z"
+    },
+    {
+      "name": "FKK_CASEITEMS_SELECT",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_CASE_GUID",
+          "typing": "TYPE",
+          "reference_type": "DFKKCASEITEMS-CASE_GUID",
+          "optional": false,
+          "description": "in Character-Darstellung"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_CASEITEMSH",
+          "typing": "TYPE",
+          "reference_type": "DFKKCASEITEMSH",
+          "optional": false,
+          "description": "Kopfdaten"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "ET_CASEITEMS",
+          "typing": "LIKE",
+          "reference_type": "DFKKCASEITEMS",
+          "optional": true,
+          "description": "Belegzeilen in Fällen (Schlüssel und Verwaltungsfelder)"
+        },
+        {
+          "name": "ET_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": "Liste der Geschäftspartnerpositionen"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:21:24.221397Z"
+    },
+    {
+      "name": "FKK_CA_MASS_DISPLAY_OBJECT",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "RECORD",
+          "typing": "TYPE",
+          "reference_type": "ANY",
+          "optional": true,
+          "description": "Tabellenzeile"
+        },
+        {
+          "name": "TABLE",
+          "typing": "TYPE",
+          "reference_type": "TABNAME",
+          "optional": true,
+          "description": "Tabellenname"
+        },
+        {
+          "name": "KEY",
+          "typing": "TYPE",
+          "reference_type": "ANY",
+          "optional": true,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:21:32.706324Z"
+    },
+    {
+      "name": "FKK_CC_MD_PPACC_CC_MAINTAIN",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IT_FKKCC_PPACC_TEC",
+          "typing": "TYPE",
+          "reference_type": "FKKCC_PPACC_TEC_TAB",
+          "optional": false,
+          "description": "+ TRIGID für SAP CC Service (Tabellentyp)"
+        },
+        {
+          "name": "IT_DFKK_CC_MD",
+          "typing": "TYPE",
+          "reference_type": "DFKK_CC_MD_TAB",
+          "optional": false,
+          "description": "Triggertab. für ausgehende Nachrichten"
+        },
+        {
+          "name": "I_MASS_WS_CALL",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": "'X' = Massenhafter Aufruf Web Service"
+        },
+        {
+          "name": "I_XLOG",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": "'X' = Meldungen in Anwendungslog schreiben"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_NUM_SUCCESS",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": false,
+          "description": "erfolgreiche Verteilungen"
+        },
+        {
+          "name": "E_NUM_ERROR",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": false,
+          "description": "fehlerhafter Verteilungen"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:21:42.165303Z"
+    },
+    {
+      "name": "FKK_CC_MIG_UPD_RA",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_BLOCKSIZE_SEL",
+          "typing": "TYPE",
+          "reference_type": "DBLIMIT_KK",
+          "optional": true,
+          "description": " Mindestblockgröße bei Massenselektion"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:21:50.994887Z"
+    },
+    {
+      "name": "FKK_CC_PC_MON",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_RT_ERDAT",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_ERDAT",
+          "optional": true,
+          "description": "Range Tabelle Erfassungsdatum"
+        },
+        {
+          "name": "I_RT_ERTIM",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_ERTIM",
+          "optional": true,
+          "description": "Range Tabelle Erfassungszeit"
+        },
+        {
+          "name": "I_RATING_AREA_RTAB",
+          "typing": "TYPE",
+          "reference_type": "FKK_RATING_AREA_RTAB",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "I_OBJ_GUID",
+          "typing": "TYPE",
+          "reference_type": "OBJKY_KK",
+          "optional": true,
+          "description": " Schlüssel für Stammdatenobjekt"
+        },
+        {
+          "name": "I_XDISP_HIST",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": " 'X' = Anzeige der Historie"
+        },
+        {
+          "name": "I_XDISP_ALL",
+          "typing": "TYPE",
+          "reference_type": "TRI_DISP_ALL_KK",
+          "optional": true,
+          "description": "  'X' = Anzeige aller Verteilungen"
+        },
+        {
+          "name": "I_XDISP_SUC",
+          "typing": "TYPE",
+          "reference_type": "TRI_DISP_SUC_KK",
+          "optional": true,
+          "description": " 'X' = Anzeige erfolgreicher Verteilungen"
+        },
+        {
+          "name": "I_XDISP_REL",
+          "typing": "TYPE",
+          "reference_type": "TRI_DISP_REL_KK",
+          "optional": true,
+          "description": " 'X' = Anzeige fehlerhafter Verteilungen"
+        },
+        {
+          "name": "I_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "  Anzahl selektierter Trigger"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:21:59.586170Z"
+    },
+    {
+      "name": "FKK_CC_PREPAID_ACC_READBYREF",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IT_PPACC_REF",
+          "typing": "TYPE",
+          "reference_type": "FKKCC_PPACC_REF_TAB",
+          "optional": false,
+          "description": "Referenz (Tabellentyp)"
+        },
+        {
+          "name": "IV_RATING_AREA",
+          "typing": "TYPE",
+          "reference_type": "RATING_AREA_KK",
+          "optional": true,
+          "description": ""
+        }
+      ],
+      "export_params": [
+        {
+          "name": "ES_PPACC_REF_RES",
+          "typing": "TYPE",
+          "reference_type": "FKKCC_PPACC_FINDBYREF_RES",
+          "optional": false,
+          "description": "mit Referenz finden"
+        },
+        {
+          "name": "ET_BAPIRET2",
+          "typing": "TYPE",
+          "reference_type": "FKK_BAPIRET2_TAB",
+          "optional": false,
+          "description": "zu FKK_BAPIRET2"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "APPLICATION_FAULT",
+        "SYSTEM_FAULT"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:22:08.212409Z"
     },
     {
       "name": "FKK_CHECKM_DISPVARIANT_GET",
@@ -12346,7 +12783,7 @@
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T11:16:31.756774+00:00",
-  "total_count": 224,
-  "enriched_count": 224
+  "last_updated": "2026-01-13T11:23:01.258453+00:00",
+  "total_count": 234,
+  "enriched_count": 234
 }
