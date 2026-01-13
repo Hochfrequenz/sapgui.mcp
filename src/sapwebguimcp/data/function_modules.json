@@ -1806,11 +1806,373 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:38:30.361228Z"
+    },
+    {
+      "name": "FKK_BIX_CIT4_TAB_DELETE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_CITCAT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CITCAT_KK",
+          "default_value": "Klasse",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für Verbrauchspositionen"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_CIT4_DBTAB_DEL",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXCIT_DBTAB_DEL_TAB",
+          "default_value": "Standardtabelle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Typs FKKBIXCIT_DBTAB_DEL"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:40:04.448013Z"
+    },
+    {
+      "name": "FKK_BIX_CITCAT_CONFIG_DISP",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_CITCAT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CITCAT_KK",
+          "default_value": "Klasse",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für Verbrauchspositionen"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:40:12.422131Z"
+    },
+    {
+      "name": "FKK_BIX_CITID_DISPLAY",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_CITIDTYPE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CITIDTYPE_KK",
+          "default_value": "Art",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der ID der Verbrauchsposition"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:40:20.183181Z"
+    },
+    {
+      "name": "FKK_BIX_CIT_DBTAB_LOG_CREATE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IS_CIT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXCIT_ALL",
+          "default_value": "Summe",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "aller Felder aller CIT-Klassen"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:40:28.056488Z"
+    },
+    {
+      "name": "FKK_BIX_CIT_FLDSCM_APPLY",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_CITCAT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CITCAT_KK",
+          "default_value": "Consumption",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Item Class"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [
+        {
+          "name": "CT_CIT",
+          "category": "changing",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXCIT_ALL_TAB",
+          "default_value": "Standard",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Table of Type FKKBIXCIT_ALL"
+        }
+      ],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:40:35.849468Z"
+    },
+    {
+      "name": "FKK_BIX_CIT_GEN_OBJNAMES",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_CITCAT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CITCAT_KK",
+          "default_value": "Klasse",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für Verbrauchspositionen"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "EV_TABNAME",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "TABNAME16",
+          "default_value": "Tabellenname",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:40:43.727079Z"
+    },
+    {
+      "name": "FKK_BIX_CIT_MON",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IRT_GPART",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_GPART",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "range Tabelle GPART"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NOT_FOUND",
+          "description": "Keine Positionen gefunden"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:40:51.546580Z"
+    },
+    {
+      "name": "FKK_BIX_CIT_PROCESS",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_FCODE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SY-UCOMM",
+          "default_value": "Aufgerufene",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "Funktion in Korrketurworkbench"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:40:59.227162Z"
+    },
+    {
+      "name": "FKK_BIX_CIT_REVERSE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IT_CIT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXCIT_ALL_TAB",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Standardtabelle des Typs FKKBIXCIT_ALL"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_CIT",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIXCIT_ALL_TAB",
+          "default_value": "Standardtabelle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Typs FKKBIXCIT_ALL"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NO_AUTHORIZATION",
+          "description": "Keine Berechtigung zum Stornieren von abr. Positionen"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:41:07.032232Z"
+    },
+    {
+      "name": "FKK_BIX_CI_BIP_FIND",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [
+        {
+          "name": "E_BILLPLANNO",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "BILLPLANNO_KK",
+          "default_value": "Nummer",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Abrechnungsplans"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:41:14.872984Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T07:39:31.482642+00:00",
-  "total_count": 38,
-  "enriched_count": 38
+  "last_updated": "2026-01-13T07:42:20.267376+00:00",
+  "total_count": 48,
+  "enriched_count": 48
 }
