@@ -11246,6 +11246,333 @@
       "retrieved_at": "2026-01-13T08:11:38.785011Z"
     },
     {
+      "name": "FKK_EVENT_1190_BR",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKKO",
+          "typing": "LIKE",
+          "reference_type": "FKKKO",
+          "optional": false,
+          "description": "zum Kontokorrentbeleg"
+        },
+        {
+          "name": "I_AUGRD",
+          "typing": "LIKE",
+          "reference_type": "FKKOP-AUGRD",
+          "optional": true,
+          "description": "Ausgleichsgrund"
+        },
+        {
+          "name": "I_PROCESS",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "I_CALLID",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "' "
+        },
+        {
+          "name": "I_CANCEL",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "IT_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": "Geschäftspartnerpositionen zum Kontokorrentbeleg"
+        },
+        {
+          "name": "IT_FKKOPK",
+          "typing": "LIKE",
+          "reference_type": "FKKOPK",
+          "optional": true,
+          "description": "Hauptbuchpositionen zum Kontokorrentbeleg"
+        },
+        {
+          "name": "IT_FKKOPW",
+          "typing": "LIKE",
+          "reference_type": "FKKOPW",
+          "optional": true,
+          "description": "Positionen zum Kontokorrentbeleg"
+        },
+        {
+          "name": "IT_FKKCL",
+          "typing": "LIKE",
+          "reference_type": "FKKCL",
+          "optional": true,
+          "description": "Ausgleichspositionen zum Beleg im Vertragskontokorrent"
+        },
+        {
+          "name": "IT_FKKRAP",
+          "typing": "LIKE",
+          "reference_type": "DFKKRAP",
+          "optional": true,
+          "description": "Ausgleichs-/Rücknahmehistorie (Belegpositionsebene)"
+        },
+        {
+          "name": "IT_FKKEXTDOC",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXTDOC",
+          "optional": true,
+          "description": "External Document Number and Attributes"
+        },
+        {
+          "name": "IT_FKKEXTDOC_CANCEL",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXTDOC",
+          "optional": true,
+          "description": "External Document Number and Attributes"
+        },
+        {
+          "name": "IT_MESSA",
+          "typing": "LIKE",
+          "reference_type": "FIMSG",
+          "optional": true,
+          "description": "FI Messages"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:59:49.542687Z"
+    },
+    {
+      "name": "FKK_EVENT_1190_IT",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKKO",
+          "typing": "LIKE",
+          "reference_type": "FKKKO",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_AUGRD",
+          "typing": "LIKE",
+          "reference_type": "FKKOP-AUGRD",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "I_PROCESS",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "I_CALLID",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "' "
+        },
+        {
+          "name": "I_CANCEL",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "IT_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "IT_FKKOPK",
+          "typing": "LIKE",
+          "reference_type": "FKKOPK",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "IT_FKKOPW",
+          "typing": "LIKE",
+          "reference_type": "FKKOPW",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "IT_FKKCL",
+          "typing": "LIKE",
+          "reference_type": "FKKCL",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "IT_FKKRAP",
+          "typing": "LIKE",
+          "reference_type": "DFKKRAP",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "IT_FKKEXTDOC",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXTDOC",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "IT_FKKEXTDOC_CANCEL",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXTDOC",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "IT_MESSA",
+          "typing": "LIKE",
+          "reference_type": "FIMSG",
+          "optional": true,
+          "description": ""
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:59:58.404179Z"
+    },
+    {
+      "name": "FKK_EVENT_1190_PT",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKKO",
+          "typing": "LIKE",
+          "reference_type": "FKKKO",
+          "optional": false,
+          "description": "zum Kontokorrentbeleg"
+        },
+        {
+          "name": "I_AUGRD",
+          "typing": "LIKE",
+          "reference_type": "FKKOP-AUGRD",
+          "optional": true,
+          "description": "Ausgleichsgrund"
+        },
+        {
+          "name": "I_PROCESS",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "I_CALLID",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "' "
+        },
+        {
+          "name": "I_CANCEL",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "IT_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": "Geschäftspartnerpositionen zum Kontokorrentbeleg"
+        },
+        {
+          "name": "IT_FKKOPK",
+          "typing": "LIKE",
+          "reference_type": "FKKOPK",
+          "optional": true,
+          "description": "Hauptbuchpositionen zum Kontokorrentbeleg"
+        },
+        {
+          "name": "IT_FKKOPW",
+          "typing": "LIKE",
+          "reference_type": "FKKOPW",
+          "optional": true,
+          "description": "Positionen zum Kontokorrentbeleg"
+        },
+        {
+          "name": "IT_FKKCL",
+          "typing": "LIKE",
+          "reference_type": "FKKCL",
+          "optional": true,
+          "description": "Ausgleichspositionen zum Beleg im Vertragskontokorrent"
+        },
+        {
+          "name": "IT_FKKRAP",
+          "typing": "LIKE",
+          "reference_type": "DFKKRAP",
+          "optional": true,
+          "description": "Ausgleichs-/Rücknahmehistorie (Belegpositionsebene)"
+        },
+        {
+          "name": "IT_FKKEXTDOC",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXTDOC",
+          "optional": true,
+          "description": "External Document Number and Attributes"
+        },
+        {
+          "name": "IT_FKKEXTDOC_CANCEL",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXTDOC",
+          "optional": true,
+          "description": "External Document Number and Attributes"
+        },
+        {
+          "name": "IT_MESSA",
+          "typing": "LIKE",
+          "reference_type": "FIMSG",
+          "optional": true,
+          "description": "FI Messages"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:00:09.061033Z"
+    },
+    {
       "name": "FKK_EVENT_2220",
       "description": "",
       "function_group": null,
@@ -11298,6 +11625,217 @@
       "retrieved_at": "2026-01-13T08:11:47.371155Z"
     },
     {
+      "name": "FKK_EVL_INSERT",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IT_FKKEVL",
+          "typing": "TYPE",
+          "reference_type": "DFKKEVL_T",
+          "optional": false,
+          "description": "zu DFKKEVL"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:00:19.275672Z"
+    },
+    {
+      "name": "FKK_EXR_TAX_0935",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "P_INT_REP07_A",
+          "typing": "LIKE",
+          "reference_type": "DFKKREP07",
+          "optional": true,
+          "description": "Daten Steuerbericht (Ausgleichszeitpunkt)"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "P_INT_REP06_A",
+          "typing": "LIKE",
+          "reference_type": "DFKKREP06",
+          "optional": true,
+          "description": "Daten Steuerbericht (Rechnungszeitpkt. oder getriggert)"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:00:29.621275Z"
+    },
+    {
+      "name": "FKK_EXTDOC_CHECK_RELEVANCE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKKO",
+          "typing": "TYPE",
+          "reference_type": "FKKKO",
+          "optional": true,
+          "description": "Kopfdaten zum Kontokorrentbeleg"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_TFK_EXTDOC",
+          "typing": "TYPE",
+          "reference_type": "TFK_EXTDOC",
+          "optional": false,
+          "description": "fuer Offizielle Belegnummer"
+        },
+        {
+          "name": "E_TFK_EXTDOC_OP",
+          "typing": "TYPE",
+          "reference_type": "TFK_EXTDOC_OP",
+          "optional": false,
+          "description": "für Offizielle Belegnummer"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "IT_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": "Geschäftspartnerpositionen zum Kontokorrentbeleg"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:00:39.785239Z"
+    },
+    {
+      "name": "FKK_EXTDOC_GM_WRITE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_FKKEXTDOC",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXTDOC",
+          "optional": false,
+          "description": "with new entries to add"
+        },
+        {
+          "name": "T_FKKEXTDOC_CANCEL",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXTDOC",
+          "optional": true,
+          "description": "Offizielle Belegnummer mit Attributen"
+        },
+        {
+          "name": "T_FKKEXTTMP",
+          "typing": "LIKE",
+          "reference_type": "DFKKEXTTMP",
+          "optional": true,
+          "description": "Temporaere Eintraege fuer die Offizielle Belegnummer"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:00:48.883844Z"
+    },
+    {
+      "name": "FKK_FACTORING_AUTHORITY_CHECK",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_BUKRS",
+          "typing": "TYPE",
+          "reference_type": "BUKRS",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_ACTVT",
+          "typing": "TYPE",
+          "reference_type": "ACTIV_AUTH",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "NO_AUTHORITY"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:00:57.554503Z"
+    },
+    {
+      "name": "FKK_FACTORING_FILE_OFFER",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FILENAME",
+          "typing": "TYPE",
+          "reference_type": "FILEEXTERN",
+          "optional": false,
+          "description": "Dateiname"
+        },
+        {
+          "name": "IT_FA",
+          "typing": "TYPE",
+          "reference_type": "DFKKFA_T",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "IT_OP",
+          "typing": "TYPE",
+          "reference_type": "DFKKOP_T",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:01:06.252776Z"
+    },
+    {
       "name": "FKK_FAV_COMMENT_GPART",
       "description": "",
       "function_group": null,
@@ -11338,6 +11876,128 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:11:55.799766Z"
+    },
+    {
+      "name": "FKK_FIND_SINGLE_LINE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FNAME",
+          "typing": "TYPE",
+          "reference_type": "CHAR30",
+          "optional": true,
+          "description": " Feldname"
+        },
+        {
+          "name": "I_TNAME",
+          "typing": "TYPE",
+          "reference_type": "CHAR30",
+          "optional": true,
+          "description": " Tabellenname"
+        },
+        {
+          "name": "I_FNAME_IN_TABLE",
+          "typing": "TYPE",
+          "reference_type": "CHAR30",
+          "optional": true,
+          "description": "  Abweichender Feldname in interner Tabelle"
+        },
+        {
+          "name": "I_CONTINUE",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": "  'X' weiter suchen"
+        },
+        {
+          "name": "I_NEXT_AFTER",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": " Suche nächsten Eintrag nach ..."
+        },
+        {
+          "name": "I_NEXT_BEFORE",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": " Suche nächsten Eintrag vor ..."
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_INDEX",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": false,
+          "description": "Gefundene Zeile"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "NO_MATCH",
+        "CANCEL"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:01:17.064079Z"
+    },
+    {
+      "name": "FKK_FINRE_DEFAULT_FOR_FKKOP",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKKO",
+          "typing": "TYPE",
+          "reference_type": "FKKKO",
+          "optional": true,
+          "description": "  Kopfdaten"
+        },
+        {
+          "name": "I_FKKOP",
+          "typing": "TYPE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": "Geschäftspartnerpositionen zum Kontokorrentbeleg"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_FINRE",
+          "typing": "TYPE",
+          "reference_type": "FINRE_KK",
+          "optional": false,
+          "description": "Vertragskonto des Letztempfängers"
+        },
+        {
+          "name": "E_RDSTA",
+          "typing": "TYPE",
+          "reference_type": "RDSTA_KK",
+          "optional": false,
+          "description": "Aktueller Verteilungsstatus"
+        },
+        {
+          "name": "E_RDSTB",
+          "typing": "TYPE",
+          "reference_type": "RDSTB_KK",
+          "optional": false,
+          "description": "Letzter gemeldeter Verteilungsstatus"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:01:26.533271Z"
     },
     {
       "name": "FKK_FI_ARCH_DOCS_EXIST",
@@ -11507,6 +12167,91 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:12:20.998383Z"
+    },
+    {
+      "name": "FKK_FP27_POST",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKCL_T",
+          "typing": "TYPE",
+          "reference_type": "FKKCL_T",
+          "optional": true,
+          "description": " Tabellen mit Ausgleichsinformationen"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_OPBEL_T",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK_T",
+          "optional": false,
+          "description": "von Belegen des Vertragskontokorrents"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:01:35.873532Z"
+    },
+    {
+      "name": "FKK_FULL_CLEARING_PATH_READ",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_OPBEL",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "RT_VKONT",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_VKONT",
+          "optional": true,
+          "description": "Range tabelle VKONT"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "TY_FKKKO",
+          "typing": "LIKE",
+          "reference_type": "FKKKO",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "TY_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "TY_DFKKRAPT",
+          "typing": "LIKE",
+          "reference_type": "DFKKRAPT",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:01:45.924799Z"
     },
     {
       "name": "FKK_FUZZY_CREATE_SIMILAR_KEYS",
@@ -12961,6 +13706,126 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:23:22.015521Z"
+    },
+    {
+      "name": "FKK_GET_COLL_CASES",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_GPART",
+          "typing": "TYPE",
+          "reference_type": "GPART_KK",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_SUPPRESS_READ_ERROR",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": " Bei Lesefehler weitermachen"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "ET_ITEM_LISTS",
+          "typing": "TYPE",
+          "reference_type": "FKK_DM_T_CASE_GUID",
+          "optional": false,
+          "description": "Anzeigen"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "READ_ERROR"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:02:02.794286Z"
+    },
+    {
+      "name": "FKK_GET_FIRST_DUN_FOR_ADD_RE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": false,
+          "description": "zum Kontokorrentbeleg"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_FKKMAKO",
+          "typing": "LIKE",
+          "reference_type": "FKKMAKO",
+          "optional": false,
+          "description": "Kopf"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "NO_SETDL_ITEM",
+        "DUNNING_NOTICE_NOT_FOUND"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:02:11.403289Z"
+    },
+    {
+      "name": "FKK_GET_FREE_TAX_CODE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_CCODE",
+          "typing": "TYPE",
+          "reference_type": "T001-BUKRS",
+          "optional": true,
+          "description": "Buchungskreis"
+        },
+        {
+          "name": "I_COUNTRY",
+          "typing": "TYPE",
+          "reference_type": "T001-LAND1",
+          "optional": true,
+          "description": "Länder"
+        },
+        {
+          "name": "I_TAXID",
+          "typing": "TYPE",
+          "reference_type": "TFK007F-STRKZ",
+          "optional": false,
+          "description": "für sonstige Steuern"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_TFK007F",
+          "typing": "TYPE",
+          "reference_type": "TFK007F",
+          "optional": false,
+          "description": "Steuerkennzeichen"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T12:02:20.002351Z"
     },
     {
       "name": "FKK_GET_SINGLE_ARC_INDPAY",
@@ -14873,7 +15738,7 @@
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T11:58:54.958117+00:00",
-  "total_count": 280,
-  "enriched_count": 280
+  "last_updated": "2026-01-13T12:04:09.049889+00:00",
+  "total_count": 296,
+  "enriched_count": 296
 }
