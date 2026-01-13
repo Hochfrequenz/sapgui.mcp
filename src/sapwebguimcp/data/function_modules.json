@@ -338,11 +338,540 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:10:41.822625Z"
+    },
+    {
+      "name": "FKK_BIX_ACC_BILLING_SINGLE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_APPLK",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "APPLK_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Anwendungsbereich"
+        },
+        {
+          "name": "I_BILL_PROCESS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BILL_PROCESS_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Abrechnungsprozess"
+        },
+        {
+          "name": "I_SUBPROCESS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SUB_PROCESS_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Teilprozess der Abrechnung"
+        },
+        {
+          "name": "I_VKONT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "VKONT_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Vertragskontonummer"
+        },
+        {
+          "name": "I_GPART",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "GPART_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Geschäftspartnernummer"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_BILLDOC_TEST",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKINVBILL_TAB",
+          "default_value": "Tabelle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der Abrechnungsbelege"
+        },
+        {
+          "name": "ET_BILLDOCNO",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_ACC_BILLDOCNO_TAB",
+          "default_value": "Tabelle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der Abrechnungsbelegnummern zum Vertragskonto"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:29:12.991077Z"
+    },
+    {
+      "name": "FKK_BIX_AMOUNT_CALCULATION",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_AMOUNT_CALC_KEY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BIX_AMOUNT_CALC_KEY_KK",
+          "default_value": "Betragsberechnungsschlüssel",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_CHGDISC",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "CHGDISC_KK",
+          "default_value": "Zuschlag/Abschlag",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_WAERS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "WAERS_KK",
+          "default_value": "Währungsschlüssel",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_CHG_AMOUNT",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "BETRW_KK",
+          "default_value": "Zu-/Abschlagsbetrag",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:29:20.742932Z"
+    },
+    {
+      "name": "FKK_BIX_BILLPLAN_ARCHIVE_CHECK",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IT_BIPCAT_RANGES",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_BIPCAT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Ranges-Tabelle für Abrechnungsplanart"
+        },
+        {
+          "name": "IT_BIPTYPE_RANGES",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_BIPTYPE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Ranges-Tabelle für Abrechnungsplantyp"
+        },
+        {
+          "name": "I_RUNKEY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "RUNKEY_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Schlüssel einer Massenaktivität"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:29:28.447832Z"
+    },
+    {
+      "name": "FKK_BIX_BILLPLAN_CREATE_RAI",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [
+        {
+          "name": "ET_RAI",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKRA_RAI_TAB",
+          "default_value": "Tabelle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "der Übertragungssätze in die Erlösbuchhaltung"
+        }
+      ],
+      "changing_parameters": [
+        {
+          "name": "C_BILLPLAN",
+          "category": "changing",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_BILLPLAN",
+          "default_value": "Abrechnungsplan",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:29:36.111880Z"
+    },
+    {
+      "name": "FKK_BIX_BILLPLAN_DISP",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_BILLPLANNO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BILLPLANNO_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Nummer des Abrechnungsplans"
+        },
+        {
+          "name": "I_BILLPLAN",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_BILLPLAN",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Neuer Abrechnungsplan (noch nicht gespeichert)"
+        },
+        {
+          "name": "I_AKTYP",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BU_AKTYP",
+          "default_value": "'03'",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " '01' = Anlegen, '02' = Ändern, '03' ="
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:29:43.521129Z"
+    },
+    {
+      "name": "FKK_BIX_BILLPLAN_MON",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IRT_BILLPLANNO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_BILLPLANNO",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Ranges-Tabelle für Abrechnungsplannummer"
+        },
+        {
+          "name": "IRT_STATUS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_BIPSTATUS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Range Tabelle BIPSTATUS"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:29:51.083217Z"
+    },
+    {
+      "name": "FKK_BIX_BILLPLAN_SELECT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_BILLPLANNO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BILLPLANNO_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Nummer des Abrechnungsplans"
+        },
+        {
+          "name": "I_GPART",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "GPART_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Geschäftspartnernummer"
+        },
+        {
+          "name": "I_VKONT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "VKONT_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Vertragskontonummer"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "ET_BILLPLAN_H",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_BIP_H_TAB",
+          "default_value": "Abrechnungspläne",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "ET_BILLPLAN",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_BILLPLAN_TAB",
+          "default_value": "Abrechnungspläne",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:29:58.580681Z"
+    },
+    {
+      "name": "FKK_BIX_BILLREQ_CONVERT_TO_DB",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_FKKBIX_REQ_H_TAB",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_REQ_H_TAB",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Standardtabelle zur Struktur FKKBIX_REQ_H"
+        },
+        {
+          "name": "I_FKKBIX_REQ_I_TAB",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKBIX_REQ_I_TAB",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Standardtabelle zur Struktur FKKBIX_REQ_I"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "E_DFKKBIX_REQ_H_TAB",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "DFKKBIX_REQ_H_TAB",
+          "default_value": "Standardtabelle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zur transparenten Tabelle DFKKBIX_REQ_H"
+        },
+        {
+          "name": "E_DFKKBIX_REQ_I_TAB",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "DFKKBIX_REQ_I_TAB",
+          "default_value": "Standardtabelle",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zur transparenten Tabelle DFKKBIX_REQ_I"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:30:13.542097Z"
+    },
+    {
+      "name": "FKK_BIX_BILLREQ_DISP",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_BILLREQNO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BILLREQNO_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Nummer des Abrechnungsauftrags"
+        },
+        {
+          "name": "IV_INVDOCNO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "INVDOCNO_KK",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Nummer des Fakturierungsbelegs"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "EV_AKTYP",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "BU_AKTYP",
+          "default_value": "Aktivitätstyp",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "USER_ABORT",
+          "description": "Abbruch durch Benutzer"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:30:21.169506Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T07:20:50.031032+00:00",
-  "total_count": 10,
-  "enriched_count": 10
+  "last_updated": "2026-01-13T07:33:47.707657+00:00",
+  "total_count": 19,
+  "enriched_count": 19
 }
