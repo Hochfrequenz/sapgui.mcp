@@ -3321,11 +3321,1028 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:50:58.980048Z"
+    },
+    {
+      "name": "FKK_BP_BANK_MAINTAIN",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_GPART",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKVKP-GPART",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Geschäftspartnernummer"
+        },
+        {
+          "name": "IV_VKONT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKVKP-VKONT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " Vertragskontonummer"
+        },
+        {
+          "name": "IV_VALDT",
+          "category": "import",
+          "typing": "LIKE",
+          "reference_type": "SY-DATLO",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": " Datum und Zeit, aktuelles (Applikationsserver-)Datum"
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:53:38.814373Z"
+    },
+    {
+      "name": "FKK_BRF120_SELECT",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NOT_FOUND",
+          "description": "Eintrag nicht gefunden"
+        },
+        {
+          "name": "INVALID_INPUT",
+          "description": "Unzureichende Eingabeparameter für Datenbankzugriff"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:53:46.396693Z"
+    },
+    {
+      "name": "FKK_BRF_ICON_CREATE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:53:54.018950Z"
+    },
+    {
+      "name": "FKK_BRF_SET_DEFAULT_CURRENCY",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_CURRENCY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "BRF_CURRENCY_DEF",
+          "default_value": "Standard-Währungsschlüssel",
+          "optional": false,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:54:01.590705Z"
+    },
+    {
+      "name": "FKK_BSTM_MULTICASH_TO_FEB",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "I_AUSZUG",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKPY_FILE",
+          "default_value": "Struktur",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zur Übergabe eines Zeileninhaltes"
+        },
+        {
+          "name": "I_UMSATZ",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKPY_FILE",
+          "default_value": "Struktur",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zur Übergabe eines Zeileninhaltes"
+        },
+        {
+          "name": "E_FEBKO",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FEBKO",
+          "default_value": "Kopfsätze",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "des Elektronischen Kontoauszugs"
+        },
+        {
+          "name": "E_FEBVW",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FEBVW",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Verwaltungssätze Elektronik Banking"
+        },
+        {
+          "name": "E_FEBEP",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FEBEP",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Einzelposten des Elektronischen Kontoauszugs"
+        },
+        {
+          "name": "E_FEBRE",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FEBRE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Referenzsatz zu einem Einzelposten des Elektr. Kontoauszug"
+        },
+        {
+          "name": "E_FKKBEP",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKBEP",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Einzelposten (>99.999)"
+        },
+        {
+          "name": "E_FKKBRE",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKBRE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Referenzsatz (>99.999)"
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "CONVERSION_ERROR",
+          "description": "Conversion Error"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:54:09.183508Z"
+    },
+    {
+      "name": "FKK_BWDUN_DELTA_QUEUE_UPDATE",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "IV_XSIMU",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "SPACE",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Verknüpfungsfeld für View-Query"
+        },
+        {
+          "name": "IV_XCOMMIT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "SPACE",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Verknüpfungsfeld für View-Query"
+        },
+        {
+          "name": "IV_XLAST",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "SPACE",
+          "optional": true,
+          "pass_by_value": false,
+          "description": " Verknüpfungsfeld für View-Query"
+        },
+        {
+          "name": "IT_FKKMAKO",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKMAKO_T",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": "Tabellentyp für FKKMAKO"
+        },
+        {
+          "name": "IT_FKKMACTIVITIES",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "FKKMACTIVITIES_T",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Table type for FKKMACTIVITIES"
+        }
+      ],
+      "export_parameters": [
+        {
+          "name": "EV_ERROR",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "default_value": "Verknüpfungsfeld",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "für View-Query"
+        },
+        {
+          "name": "ET_MESSAGE",
+          "category": "export",
+          "typing": "TYPE",
+          "reference_type": "FKK_T_MSG_TEXT",
+          "default_value": "Tabellentyp",
+          "optional": false,
+          "pass_by_value": false,
+          "description": "zu FKK_MSG_TEXT"
+        }
+      ],
+      "changing_parameters": [],
+      "tables_parameters": [],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:54:17.505129Z"
+    },
+    {
+      "name": "FKK_BW_P2P",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_REQUNR",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-REQUNR",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_CHABASNM",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-CHABASNM",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_ISOURCE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-ISOURCE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_MAXSIZE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-MAXSIZE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_INITFLAG",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-INITFLAG",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_UPDMODE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-UPDMODE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_DATAPAKID",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-DATAPAKID",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_S_TIMEINT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_TIMEINT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_PRIVATE_MODE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_RLOGSYS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SRSC_S_INTERFACE-RLOGSYS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_READ_ONLY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SRSC_S_INTERFACE-READONLY",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "I_T_SELECT",
+          "category": "tables",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_SELECT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_T_FIELDS",
+          "category": "tables",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_FIELDS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "E_T_FKKPPBW_DELTA",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKPPBW_DELTA",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Extract Structure for Promises to Pay Header"
+        },
+        {
+          "name": "E_T_FKKPPDBW_DELTA",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKPPDBW_DELTA",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Extract Structure for Promises to Pay Amounts per Date"
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NO_MORE_DATA",
+          "description": "No data can be processed"
+        },
+        {
+          "name": "ERROR_PASSED_TO_MESS_HANDLER",
+          "description": "Exit because of errors; Message in the Message Handler"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:54:25.023624Z"
+    },
+    {
+      "name": "FKK_BW_PAY",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_REQUNR",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-REQUNR",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_CHABASNM",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-CHABASNM",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_ISOURCE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-ISOURCE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_MAXSIZE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-MAXSIZE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_INITFLAG",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-INITFLAG",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_UPDMODE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-UPDMODE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_DATAPAKID",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-DATAPAKID",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_S_TIMEINT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_TIMEINT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_PRIVATE_MODE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_RLOGSYS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SRSC_S_INTERFACE-RLOGSYS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_READ_ONLY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SRSC_S_INTERFACE-READONLY",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "I_T_SELECT",
+          "category": "tables",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_SELECT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_T_FIELDS",
+          "category": "tables",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_FIELDS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "E_T_FKKPAYBW_DELTA",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKPAYBW_DELTA",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Extract Structure for Payments"
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NO_MORE_DATA",
+          "description": "No data can be processed"
+        },
+        {
+          "name": "ERROR_PASSED_TO_MESS_HANDLER",
+          "description": "Exit because of errors; Message in the Message Handler"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:54:32.617773Z"
+    },
+    {
+      "name": "FKK_BW_RD",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_REQUNR",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-REQUNR",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_CHABASNM",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-CHABASNM",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_ISOURCE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-ISOURCE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_MAXSIZE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-MAXSIZE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_INITFLAG",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-INITFLAG",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_UPDMODE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-UPDMODE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_DATAPAKID",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-DATAPAKID",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_S_TIMEINT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_TIMEINT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_PRIVATE_MODE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_RLOGSYS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SRSC_S_INTERFACE-RLOGSYS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_READ_ONLY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SRSC_S_INTERFACE-READONLY",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "I_T_SELECT",
+          "category": "tables",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_SELECT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_T_FIELDS",
+          "category": "tables",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_FIELDS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "E_T_FKKRDIBW_DELTA",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKRDIBW_DELTA",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "FI-CA Revenue Distribution BW Delta Update"
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NO_MORE_DATA",
+          "description": "No data can be processed"
+        },
+        {
+          "name": "ERROR_PASSED_TO_MESS_HANDLER",
+          "description": "Exit because of errors; Message in the Message Handler"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:54:40.856163Z"
+    },
+    {
+      "name": "FKK_BW_RET",
+      "description": "",
+      "function_group": null,
+      "package": null,
+      "area": "FICA",
+      "import_parameters": [
+        {
+          "name": "I_REQUNR",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-REQUNR",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_CHABASNM",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-CHABASNM",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_ISOURCE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-ISOURCE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_MAXSIZE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-MAXSIZE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_INITFLAG",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-INITFLAG",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_UPDMODE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-UPDMODE",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_DATAPAKID",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_INTERFACE-DATAPAKID",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_S_TIMEINT",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_S_TIMEINT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_PRIVATE_MODE",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_RLOGSYS",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SRSC_S_INTERFACE-RLOGSYS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": true,
+          "description": ""
+        },
+        {
+          "name": "I_READ_ONLY",
+          "category": "import",
+          "typing": "TYPE",
+          "reference_type": "SRSC_S_INTERFACE-READONLY",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        }
+      ],
+      "export_parameters": [],
+      "changing_parameters": [],
+      "tables_parameters": [
+        {
+          "name": "I_T_SELECT",
+          "category": "tables",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_SELECT",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "I_T_FIELDS",
+          "category": "tables",
+          "typing": "TYPE",
+          "reference_type": "SBIWA_T_FIELDS",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": ""
+        },
+        {
+          "name": "E_T_FKKRETBW_DELTA",
+          "category": "tables",
+          "typing": "LIKE",
+          "reference_type": "FKKRETBW_DELTA",
+          "default_value": "",
+          "optional": true,
+          "pass_by_value": false,
+          "description": "Extract Structure for Returns"
+        }
+      ],
+      "exceptions": [
+        {
+          "name": "Ausnahme",
+          "description": "Kurztext Langtext"
+        },
+        {
+          "name": "NO_MORE_DATA",
+          "description": "No data can be processed"
+        },
+        {
+          "name": "ERROR_PASSED_TO_MESS_HANDLER",
+          "description": "Exit because of errors; Message in the Message Handler"
+        }
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T07:54:50.197828Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T07:53:08.024674+00:00",
-  "total_count": 78,
-  "enriched_count": 78
+  "last_updated": "2026-01-13T07:56:25.557202+00:00",
+  "total_count": 88,
+  "enriched_count": 88
 }
