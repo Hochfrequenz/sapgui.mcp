@@ -9107,6 +9107,59 @@
       "retrieved_at": "2026-01-13T11:51:59.624980Z"
     },
     {
+      "name": "FKK_CR_PARTNERID_POST",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKKO",
+          "typing": "TYPE",
+          "reference_type": "FKKKO",
+          "optional": false,
+          "description": "zum Kontokorrentbeleg"
+        },
+        {
+          "name": "I_UPDATE_TASK",
+          "typing": "TYPE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": false,
+          "description": "in Update task"
+        },
+        {
+          "name": "I_REVERSAL",
+          "typing": "TYPE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": "Stornieren der Partnermeldung"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "IT_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": false,
+          "description": "zum Kontokorrentbeleg"
+        },
+        {
+          "name": "IT_FKKOP_ORI",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": "Stornierte Geschäftspartnerpositionen"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:54:35.112489Z"
+    },
+    {
       "name": "FKK_CVS_CHECK_FLAG",
       "description": "",
       "function_group": null,
@@ -9136,6 +9189,112 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:05:09.537648Z"
+    },
+    {
+      "name": "FKK_DAAG_SET_COLD",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_OBJECT",
+          "typing": "TYPE",
+          "reference_type": "DAAG_OBJECT",
+          "optional": true,
+          "description": "  Data Aging Objekt"
+        },
+        {
+          "name": "I_SET_TEMPERATURE",
+          "typing": "TYPE",
+          "reference_type": "DATA_TEMPERATURE",
+          "optional": true,
+          "description": " Setze Sichtbarkeit auf Datum"
+        },
+        {
+          "name": "I_SO_BUDAT",
+          "typing": "TYPE",
+          "reference_type": "FKKR_BUDAT_TAB",
+          "optional": true,
+          "description": " Ranges-Struktur für Buchungsdatum im Beleg (FI-CA)"
+        },
+        {
+          "name": "I_SET_PASSING",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": "  X = Vererbung bei weiterem Programmaufruf?"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_TEMP_WAS_SET",
+          "typing": "TYPE",
+          "reference_type": "DATA_TEMPERATURE",
+          "optional": false,
+          "description": "Gesetzte Temperatur"
+        },
+        {
+          "name": "E_COLD_STACK_TO_SET",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": false,
+          "description": "X = Aufrufer sollte CL_ABAP_STACK_TEMPERATURE=>SET_COLD rufen"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:54:43.086706Z"
+    },
+    {
+      "name": "FKK_DATTY_NO_VDATE_XX",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "SHLP",
+          "typing": "TYPE",
+          "reference_type": "SHLP_DESCR",
+          "optional": true,
+          "description": "Description of Search Help"
+        },
+        {
+          "name": "CALLCONTROL",
+          "typing": "TYPE",
+          "reference_type": "DDSHF4CTRL",
+          "optional": true,
+          "description": "Control Structure for F4 Process with Search Help Exit"
+        }
+      ],
+      "tables_params": [
+        {
+          "name": "SHLP_TAB",
+          "typing": "TYPE",
+          "reference_type": "SHLP_DESCT",
+          "optional": false,
+          "description": "of Alternative Elementary Search Helps"
+        },
+        {
+          "name": "RECORD_TAB",
+          "typing": "LIKE",
+          "reference_type": "SEAHLPRES",
+          "optional": false,
+          "description": "help result structure"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:54:51.486838Z"
     },
     {
       "name": "FKK_DB_DFKKCDREF_INSERT",
@@ -9210,6 +9369,115 @@
       "retrieved_at": "2026-01-13T08:05:26.393624Z"
     },
     {
+      "name": "FKK_DB_DFKKOP_AUGRS_SET",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_OPBEL",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK",
+          "optional": false,
+          "description": "eines Belegs des Vertragskontokorrents"
+        },
+        {
+          "name": "I_OPUPW",
+          "typing": "TYPE",
+          "reference_type": "OPUPW_KK",
+          "optional": false,
+          "description": "im Beleg des Vertragskontokorrents"
+        },
+        {
+          "name": "I_OPUPK",
+          "typing": "TYPE",
+          "reference_type": "OPUPK_KK",
+          "optional": false,
+          "description": "im Beleg des Vertragskontokorrents"
+        },
+        {
+          "name": "I_OPUPZ",
+          "typing": "TYPE",
+          "reference_type": "OPUPZ_KK",
+          "optional": false,
+          "description": "zu einem Teilausgleich im Beleg"
+        },
+        {
+          "name": "I_AUGRS",
+          "typing": "TYPE",
+          "reference_type": "AUGRS_KK",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:55:01.715399Z"
+    },
+    {
+      "name": "FKK_DB_FKKMDC_BP_INIT",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IT_DFKKMDC_BP",
+          "typing": "TYPE",
+          "reference_type": "DFKKMDC_BP_T",
+          "optional": false,
+          "description": "zur Geschäftspartneränderung"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:55:15.795047Z"
+    },
+    {
+      "name": "FKK_DB_MA_SELECT",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IV_MAKEY",
+          "typing": "TYPE",
+          "reference_type": "MAKEY_KK",
+          "optional": false,
+          "description": "des Rahmenvertrages"
+        },
+        {
+          "name": "IV_AKTYP",
+          "typing": "TYPE",
+          "reference_type": "BU_AKTYP",
+          "optional": true,
+          "description": "Aktivitätstyp"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "NOT_FOUND",
+        "ALREADY_EXISTS"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:55:24.524737Z"
+    },
+    {
       "name": "FKK_DB_STORE_PAYMT_REFERENCES",
       "description": "",
       "function_group": null,
@@ -9259,6 +9527,74 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:05:34.756669Z"
+    },
+    {
+      "name": "FKK_DB_TAXEXEMPT_SELECT",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_EXKEY",
+          "typing": "LIKE",
+          "reference_type": "DFKKTAXEX-VKONT",
+          "optional": false,
+          "description": "für die Steuerbefreiung"
+        },
+        {
+          "name": "I_KSCHL",
+          "typing": "LIKE",
+          "reference_type": "DFKKTAXEX-KSCHL",
+          "optional": false,
+          "description": "für Kontenfindung"
+        },
+        {
+          "name": "I_DATE",
+          "typing": "LIKE",
+          "reference_type": "DFKKTAXEX-EXDFR",
+          "optional": false,
+          "description": "der Befreiung"
+        },
+        {
+          "name": "I_MWSKZ",
+          "typing": "LIKE",
+          "reference_type": "DFKKTAXEX-MWSKZ",
+          "optional": true,
+          "description": "Umsatzsteuerkennzeichen"
+        },
+        {
+          "name": "I_FULL_READ",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": "Alle Exemptions zum Key lesen"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_EXEMPTION_FOUND",
+          "typing": "TYPE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": false,
+          "description": "gefunden"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_FKKTAX_EXEMPT",
+          "typing": "LIKE",
+          "reference_type": "DFKKTAXEX",
+          "optional": true,
+          "description": "Tabelle der FI-CA Steuerbefreiungen"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:55:33.002543Z"
     },
     {
       "name": "FKK_DDIF_FIELDINFO_GET",
@@ -9658,6 +9994,101 @@
       "retrieved_at": "2026-01-13T08:07:53.386948Z"
     },
     {
+      "name": "FKK_DF_0020_XX",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKKO",
+          "typing": "LIKE",
+          "reference_type": "FKKKO",
+          "optional": false,
+          "description": "Data In Open Item Accounting Document"
+        },
+        {
+          "name": "I_FKKKO_REV",
+          "typing": "LIKE",
+          "reference_type": "FKKKO",
+          "optional": false,
+          "description": "Data In Open Item Accounting Document"
+        },
+        {
+          "name": "I_AUGRD",
+          "typing": "LIKE",
+          "reference_type": "FKKOP-AUGRD",
+          "optional": false,
+          "description": "Reason"
+        },
+        {
+          "name": "I_PROCESS",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_LAST_OP_FROM_CALLER",
+          "typing": "TYPE",
+          "reference_type": "OPUPK_KK",
+          "optional": false,
+          "description": "number in contract account document"
+        },
+        {
+          "name": "I_LAST_OPK_FROM_CALLER",
+          "typing": "TYPE",
+          "reference_type": "OPUPK_KK",
+          "optional": false,
+          "description": "number in contract account document"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "T_FKKOPK",
+          "typing": "LIKE",
+          "reference_type": "FKKOPK",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "T_FKKCL",
+          "typing": "LIKE",
+          "reference_type": "FKKCL",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "T_FKKRAP",
+          "typing": "LIKE",
+          "reference_type": "DFKKRAPT",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "T_FKKRAP_DETAIL",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:55:41.427071Z"
+    },
+    {
       "name": "FKK_DIRDEBLIMIT_READ_PAYMENTS",
       "description": "",
       "function_group": null,
@@ -9733,6 +10164,30 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:08:01.740156Z"
+    },
+    {
+      "name": "FKK_DISCO_GET_CONTROL_TABLE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [
+        {
+          "name": "ET_DISCO_CTRL",
+          "typing": "TYPE",
+          "reference_type": "TFK_DISCO_CTRL_T",
+          "optional": false,
+          "description": "type for disconnection/reconnection control"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:55:50.097133Z"
     },
     {
       "name": "FKK_DISJOIN_FUZZY_QUERY",
@@ -9820,6 +10275,140 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:08:18.812244Z"
+    },
+    {
+      "name": "FKK_DISTR_FKKKO_CHECK",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_LOGSYS",
+          "typing": "TYPE",
+          "reference_type": "LOGSYS",
+          "optional": true,
+          "description": "Logisches System"
+        },
+        {
+          "name": "I_VBELN",
+          "typing": "TYPE",
+          "reference_type": "VBELN",
+          "optional": true,
+          "description": "Vertriebsbelegnummer"
+        },
+        {
+          "name": "I_XMBEL",
+          "typing": "TYPE",
+          "reference_type": "XMBEL_KK",
+          "optional": true,
+          "description": "Musterbeleg"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_OPBEL",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK",
+          "optional": false,
+          "description": "eines Belegs des Vertragskontokorrents"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:55:58.728187Z"
+    },
+    {
+      "name": "FKK_DMEE_EXIT_SEPA_CTRY_VAL",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IV_FLT_VAL_DEBIT_OR_CREDIT",
+          "typing": "TYPE",
+          "reference_type": "ANY",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "IV_FLT_VAL_COUNTRY",
+          "typing": "TYPE",
+          "reference_type": "INTCA",
+          "optional": false,
+          "description": "ISO code"
+        },
+        {
+          "name": "IV_PARAM",
+          "typing": "TYPE",
+          "reference_type": "ANY",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "IV_UPARAM",
+          "typing": "TYPE",
+          "reference_type": "ANY",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "IV_ROOT_NODES",
+          "typing": "TYPE",
+          "reference_type": "STRING",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "IV_NODE_PATH",
+          "typing": "TYPE",
+          "reference_type": "STRING",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "C_VALUE",
+          "typing": "TYPE",
+          "reference_type": "ANY",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "O_VALUE",
+          "typing": "TYPE",
+          "reference_type": "ANY",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "N_VALUE",
+          "typing": "TYPE",
+          "reference_type": "ANY",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "P_VALUE",
+          "typing": "TYPE",
+          "reference_type": "ANY",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:56:07.206379Z"
     },
     {
       "name": "FKK_DOCUMENT_CLEARING_ANALYZE",
@@ -9924,6 +10513,186 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:08:36.031291Z"
+    },
+    {
+      "name": "FKK_DUEDOC_DOC_DISPLAY",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_BASICS",
+          "typing": "TYPE",
+          "reference_type": "FKK_MAD_BASICS",
+          "optional": false,
+          "description": "- Globale Werte für alle Massenaktivitäten"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:56:15.796309Z"
+    },
+    {
+      "name": "FKK_EBPP_CA_GRP_BY_BPID",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IV_BPID",
+          "typing": "TYPE",
+          "reference_type": "STRING",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "IT_R_CONTRACT_ACCOUNT_ID",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_VKONT",
+          "optional": true,
+          "description": "Ranges für Vertragskonto"
+        },
+        {
+          "name": "IS_R_CLEARINGSTATUSCODE",
+          "typing": "TYPE",
+          "reference_type": "FKK_EBPP_RANGE_CLEASTATCO",
+          "optional": true,
+          "description": "Rangestruktur für Buchungskreis"
+        },
+        {
+          "name": "IT_R_COMPANY_ID",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_BUKRS",
+          "optional": true,
+          "description": "Range tabelle VKONT"
+        },
+        {
+          "name": "IT_R_POSTINGDATE",
+          "typing": "TYPE",
+          "reference_type": "FKK_RT_BUDAT",
+          "optional": true,
+          "description": "Range Table for BUDAT"
+        },
+        {
+          "name": "IV_MAXOPSPLITDUEDATE",
+          "typing": "TYPE",
+          "reference_type": "DATUM",
+          "optional": true,
+          "description": "Date"
+        },
+        {
+          "name": "IV_MINCLSPLITCLDATE",
+          "typing": "TYPE",
+          "reference_type": "DATUM",
+          "optional": true,
+          "description": "Date"
+        },
+        {
+          "name": "IS_PROCESSING_COND",
+          "typing": "TYPE",
+          "reference_type": "FKK_WITHOUT_LASTRETURNED_QUERY",
+          "optional": true,
+          "description": "Proxy Structure (generated)"
+        },
+        {
+          "name": "IV_XWITH_GROUP",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": " with SplitItemGroup"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "ET_CONTRACT_ACCOUNT",
+          "typing": "TYPE",
+          "reference_type": "FKK_EBPP_TT_CONTRACTACCOUNT",
+          "optional": false,
+          "description": "type for ContractAccount node"
+        },
+        {
+          "name": "ES_PROCESSING_COND",
+          "typing": "TYPE",
+          "reference_type": "FKK_WITHOUT_LASTRETURNED_RESPO",
+          "optional": false,
+          "description": "Structure (generated)"
+        }
+      ],
+      "changing_params": [
+        {
+          "name": "CT_MESSAGES",
+          "typing": "TYPE",
+          "reference_type": "FKK_EBPP_T_BAPIRET2",
+          "optional": false,
+          "description": "type for bapiret2"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:56:24.253250Z"
+    },
+    {
+      "name": "FKK_ECATT_PARAM_XML_CREATE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_ECATT_PARAM_NAME",
+          "typing": "TYPE",
+          "reference_type": "ETP_NAME",
+          "optional": false,
+          "description": "eines Parameters oder einer Kommandoschnittstelle"
+        },
+        {
+          "name": "I_VAR",
+          "typing": "TYPE",
+          "reference_type": "ANY",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "I_VAR_TYPE_NAME",
+          "typing": "TYPE",
+          "reference_type": "TYPENAME",
+          "optional": false,
+          "description": "des Dictionary Typs"
+        },
+        {
+          "name": "I_VAR_ROWTYPE_TAB",
+          "typing": "TYPE",
+          "reference_type": "FKK_ROWT_REF_TAB",
+          "optional": true,
+          "description": "Tabellentyp zu ROWT_REF"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_XML",
+          "typing": "TYPE",
+          "reference_type": "STRING",
+          "optional": false,
+          "description": "für Parameterwerte"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:56:32.665306Z"
     },
     {
       "name": "FKK_ECS_DATA_DISPLAY",
@@ -10051,6 +10820,30 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:11:04.806875Z"
+    },
+    {
+      "name": "FKK_EMMA_JOB_VARIANT_CREATE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_INTNMBR",
+          "typing": "LIKE",
+          "reference_type": "FKKDICRE-INMBR",
+          "optional": true,
+          "description": " Anzahl der Intervalle"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:56:41.089298Z"
     },
     {
       "name": "FKK_ENHANCEMENT_STATUS_CHECK",
@@ -10240,6 +11033,98 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T08:11:21.940425Z"
+    },
+    {
+      "name": "FKK_EVENT_0010_CREATE_TAXINV",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKKO",
+          "typing": "LIKE",
+          "reference_type": "FKKKO",
+          "optional": true,
+          "description": "Belegkopf"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": false,
+          "description": "zum Vertragskontokorrentbeleg"
+        },
+        {
+          "name": "T_FKKOPK",
+          "typing": "LIKE",
+          "reference_type": "FKKOPK",
+          "optional": false,
+          "description": "zum Vertragskontokorrentbeleg"
+        },
+        {
+          "name": "T_FKKOPW",
+          "typing": "LIKE",
+          "reference_type": "FKKOPW",
+          "optional": false,
+          "description": "zum Vertragskontokorrentbeleg"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:56:49.628587Z"
+    },
+    {
+      "name": "FKK_EVENT_0010_REPDATA_GEN_S",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKKO",
+          "typing": "LIKE",
+          "reference_type": "FKKKO",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "T_FKKOPK",
+          "typing": "LIKE",
+          "reference_type": "FKKOPK",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "T_FKKOPW",
+          "typing": "LIKE",
+          "reference_type": "FKKOPW",
+          "optional": true,
+          "description": ""
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T11:56:58.070670Z"
     },
     {
       "name": "FKK_EVENT_0255_CVS_JP",
@@ -13988,7 +14873,7 @@
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T11:52:50.807960+00:00",
-  "total_count": 263,
-  "enriched_count": 263
+  "last_updated": "2026-01-13T11:58:54.958117+00:00",
+  "total_count": 280,
+  "enriched_count": 280
 }
