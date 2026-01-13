@@ -87,6 +87,134 @@
       "retrieved_at": "2026-01-13T07:05:00.831541Z"
     },
     {
+      "name": "FKK_ABS1_SIMULATION_SET_DATA",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IV_OPBEL",
+          "typing": "TYPE",
+          "reference_type": "OPBEL_KK",
+          "optional": true,
+          "description": "Nummer eines Belegs des Vertragskontokorrents"
+        },
+        {
+          "name": "IT_DFKKOP_INS",
+          "typing": "TYPE",
+          "reference_type": "DFKKOP_T",
+          "optional": true,
+          "description": " Neue Geschäftspartnerpositionen"
+        },
+        {
+          "name": "IT_DFKKOP_UPD",
+          "typing": "TYPE",
+          "reference_type": "DFKKOP_T",
+          "optional": true,
+          "description": " Zu ändernde Geschäftspartnerpositionen"
+        },
+        {
+          "name": "IT_DFKKOP_DEL",
+          "typing": "TYPE",
+          "reference_type": "DFKKOP_T",
+          "optional": true,
+          "description": " Zu löschende Geschäftspartnerpositionen"
+        },
+        {
+          "name": "IT_DFKKOPK_INS",
+          "typing": "TYPE",
+          "reference_type": "DFKKOPK_T",
+          "optional": true,
+          "description": " Neue Hauptbuchpositionen"
+        },
+        {
+          "name": "IT_DFKKOPK_UPD",
+          "typing": "TYPE",
+          "reference_type": "DFKKOPK_T",
+          "optional": true,
+          "description": " Zu ändernde Hauptbuchpositionen"
+        },
+        {
+          "name": "IT_DFKKOPK_DEL",
+          "typing": "TYPE",
+          "reference_type": "DFKKOPK_T",
+          "optional": true,
+          "description": " Zu löschende Hausptbuchpositionen"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T10:49:21.949529Z"
+    },
+    {
+      "name": "FKK_ACCOUNT_DETERMINE_1250",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKOP",
+          "typing": "TYPE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": "Geschäftspartnerpositionen zum Kontokorrentbeleg"
+        },
+        {
+          "name": "I_FKKCL",
+          "typing": "TYPE",
+          "reference_type": "FKKCL",
+          "optional": true,
+          "description": "Ausgleichspositionen zum Beleg im Vertragskontokorrent"
+        },
+        {
+          "name": "I_BIT",
+          "typing": "TYPE",
+          "reference_type": "FKK_CR_BIT",
+          "optional": true,
+          "description": "Kreditsegment für BITs ermitteln"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_CRSGT",
+          "typing": "TYPE",
+          "reference_type": "CRSGT_KK",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T10:49:29.752274Z"
+    },
+    {
+      "name": "FKK_ACCOUNT_DETERMINE_2645",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T10:49:37.556916Z"
+    },
+    {
       "name": "FKK_ACCOUNT_DETERMINE_8110",
       "description": "",
       "function_group": null,
@@ -145,6 +273,44 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:05:31.060228Z"
+    },
+    {
+      "name": "FKK_AD_FLG_ENH_RD_CHECK",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_TFK033D",
+          "typing": "LIKE",
+          "reference_type": "TFK033D",
+          "optional": true,
+          "description": "Komplette Tabellenzeile"
+        },
+        {
+          "name": "I_VALUE",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "Zu prüfender Wert"
+        },
+        {
+          "name": "I_FIELDNAME",
+          "typing": "LIKE",
+          "reference_type": "TFK033C-KFLD1",
+          "optional": true,
+          "description": " Feldname"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T10:49:45.263675Z"
     },
     {
       "name": "FKK_AD_KSCHL_F4",
@@ -220,6 +386,91 @@
       "retrieved_at": "2026-01-13T07:10:17.555194Z"
     },
     {
+      "name": "FKK_AGREED_AMOUNT_GET",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IS_FKKCL",
+          "typing": "LIKE",
+          "reference_type": "FKKCL",
+          "optional": true,
+          "description": "Offener Posten"
+        },
+        {
+          "name": "IV_CURRENCY",
+          "typing": "LIKE",
+          "reference_type": "DFKKOPVZ-WAERN",
+          "optional": true,
+          "description": " Zahlwährung"
+        },
+        {
+          "name": "IV_CHECKDATE",
+          "typing": "TYPE",
+          "reference_type": "DFKKOPVZ-GBISD",
+          "optional": true,
+          "description": "  Prüfdatum (Zahlungsvereinbarung mindestens gültig bis)"
+        },
+        {
+          "name": "IV_USE_CACHE",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": "  Ankreuzfeld Cache verwenden ('X' ja ' ' nein)"
+        },
+        {
+          "name": "IV_PAYRUN_ONLY",
+          "typing": "LIKE",
+          "reference_type": "BOOLE-BOOLE",
+          "optional": true,
+          "description": "  nur Posten des Zahlprogramms berücksichtigen"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "ET_DFKKOPVZ",
+          "typing": "LIKE",
+          "reference_type": "DFKKOPVZ",
+          "optional": false,
+          "description": "Zahlbeträge"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme",
+        "NOT_FOUND"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T10:49:53.105270Z"
+    },
+    {
+      "name": "FKK_ARCHIVE_LOCKS_GET",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "ET_ARCH_LOCKSH",
+          "typing": "LIKE",
+          "reference_type": "DFKKLOCKSH",
+          "optional": true,
+          "description": "Historien zu BWL-Sperren"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T10:50:00.946997Z"
+    },
+    {
       "name": "FKK_ARCHIVE_NEW_OBJECT",
       "description": "",
       "function_group": null,
@@ -291,6 +542,212 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T07:10:33.842398Z"
+    },
+    {
+      "name": "FKK_AR_COMPANY_DATA_GET",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_BUKRS",
+          "typing": "LIKE",
+          "reference_type": "T001-BUKRS",
+          "optional": true,
+          "description": "Company code"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_T001",
+          "typing": "LIKE",
+          "reference_type": "T001",
+          "optional": false,
+          "description": "master data"
+        },
+        {
+          "name": "E_ID_TYPE",
+          "typing": "LIKE",
+          "reference_type": "T001Z-PAVAL",
+          "optional": false,
+          "description": "Partner - ID type"
+        },
+        {
+          "name": "E_ID_NUMBER",
+          "typing": "LIKE",
+          "reference_type": "T001Z-PAVAL",
+          "optional": false,
+          "description": "Partner - ID Number"
+        },
+        {
+          "name": "E_KALSM",
+          "typing": "LIKE",
+          "reference_type": "T005-KALSM",
+          "optional": false,
+          "description": "(pricing, output control, acct. det., costing,...)"
+        },
+        {
+          "name": "E_ADRC",
+          "typing": "TYPE",
+          "reference_type": "ADRC",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T10:50:08.685239Z"
+    },
+    {
+      "name": "FKK_AR_DOC_TYPE_GET",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_J_1ADOCCLS",
+          "typing": "LIKE",
+          "reference_type": "J_1AOTDET-J_1ADOCCLS",
+          "optional": true,
+          "description": "Official document class in Argentina"
+        },
+        {
+          "name": "I_J_1APRTCHR",
+          "typing": "LIKE",
+          "reference_type": "J_1AOTDET-J_1APRTCHR",
+          "optional": true,
+          "description": "Character to be printed on the document"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_J_1AOFTP",
+          "typing": "LIKE",
+          "reference_type": "J_1AOTDET-J_1AOFTP",
+          "optional": false,
+          "description": "Official document type"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "DOC_TYPE_NOT_FOUND"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T10:50:16.410373Z"
+    },
+    {
+      "name": "FKK_AR_EVENT_1930",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_FKKKO",
+          "typing": "LIKE",
+          "reference_type": "FKKKO",
+          "optional": true,
+          "description": "Header Data In Open Item Accounting Document"
+        },
+        {
+          "name": "I_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": " Business partner items in contract account document"
+        },
+        {
+          "name": "I_FKKCL",
+          "typing": "LIKE",
+          "reference_type": "FKKCL",
+          "optional": true,
+          "description": " Clearing Items for Document in Contract A/R + A/P"
+        },
+        {
+          "name": "I_FKKOPK",
+          "typing": "LIKE",
+          "reference_type": "FKKOPK",
+          "optional": true,
+          "description": " G/L Account Items in Open Item Account Document"
+        },
+        {
+          "name": "I_TFK010",
+          "typing": "LIKE",
+          "reference_type": "TFK010",
+          "optional": true,
+          "description": " Interprtn of Set of Rules for Sales/Purchase Tax Recording"
+        },
+        {
+          "name": "I_GPART",
+          "typing": "LIKE",
+          "reference_type": "FKKOP-GPART",
+          "optional": true,
+          "description": " Business Partner Number"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_SDATA",
+          "typing": "LIKE",
+          "reference_type": "FKKAR_REVDATA",
+          "optional": false,
+          "description": "Additional data"
+        },
+        {
+          "name": "E_REPCLS",
+          "typing": "LIKE",
+          "reference_type": "DFKKREV06-REPCLS",
+          "optional": false,
+          "description": ""
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_FKKOP",
+          "typing": "LIKE",
+          "reference_type": "FKKOP",
+          "optional": true,
+          "description": "Business partner items in contract account document"
+        },
+        {
+          "name": "T_FKKCL",
+          "typing": "LIKE",
+          "reference_type": "FKKCL",
+          "optional": true,
+          "description": "Clearing Items for Document in Contract A/R + A/P"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T10:50:24.001860Z"
+    },
+    {
+      "name": "FKK_AR_GET_MASSIVE_SALES_TAX",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "LAST_PACKAGE"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T10:50:31.845308Z"
     },
     {
       "name": "FKK_BELEG_DELETE_CHANGEDOC",
@@ -11169,7 +11626,7 @@
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T09:30:55.898842+00:00",
-  "total_count": 196,
-  "enriched_count": 196
+  "last_updated": "2026-01-13T10:53:33.144473+00:00",
+  "total_count": 206,
+  "enriched_count": 206
 }
