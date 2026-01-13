@@ -10256,11 +10256,604 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": "2026-01-13T09:22:37.796344Z"
+    },
+    {
+      "name": "FKK_SAMPLE_1723",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_LOW",
+          "typing": "TYPE",
+          "reference_type": "INTLO_KK",
+          "optional": true,
+          "description": "Lower Interval Limit"
+        },
+        {
+          "name": "I_HIGH",
+          "typing": "TYPE",
+          "reference_type": "INTHI_KK",
+          "optional": true,
+          "description": "Upper Interval Limit"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "C_TEST_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "C_SUCCESS_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": false,
+          "description": ""
+        },
+        {
+          "name": "C_ERROR_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": ""
+        }
+      ],
+      "tables_params": [
+        {
+          "name": "T_COUNTER",
+          "typing": "LIKE",
+          "reference_type": "FKK_MASS_ACT_COUNT",
+          "optional": true,
+          "description": "Counter with Number and Content"
+        }
+      ],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:24:55.867300Z"
+    },
+    {
+      "name": "FKK_SAMPLE_1769",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_LOW",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "Untere Grenze der Geschäftspartner"
+        },
+        {
+          "name": "I_HIGH",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "Obere Grenze der Geschäftspartner"
+        },
+        {
+          "name": "I_BASICS",
+          "typing": "TYPE",
+          "reference_type": "FKK_MAD_BASICS",
+          "optional": true,
+          "description": "Basisparameter der Massenaktivität"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "C_TEST_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Getestete Versuche"
+        },
+        {
+          "name": "C_SUCCESS_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Erfolgreiche Versuche"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:25:03.904560Z"
+    },
+    {
+      "name": "FKK_SAMPLE_1815",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_LOW",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "Untere Grenze der Geschäftspartner"
+        },
+        {
+          "name": "I_HIGH",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "Obere Grenze der Geschäftspartner"
+        },
+        {
+          "name": "I_FKKCOCC",
+          "typing": "LIKE",
+          "reference_type": "FKKCOCC",
+          "optional": true,
+          "description": "Korrespondenzerzeugung - Arbeitsfelder"
+        },
+        {
+          "name": "I_FKK_PROT",
+          "typing": "LIKE",
+          "reference_type": "FKKPROT",
+          "optional": true,
+          "description": "VKK Mahnen/Zahlen - Protokollparameter"
+        },
+        {
+          "name": "I_BASICS",
+          "typing": "TYPE",
+          "reference_type": "FKK_MAD_BASICS",
+          "optional": true,
+          "description": "Basisparameter der Massenaktivität"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "C_TEST_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Getestete Versuche"
+        },
+        {
+          "name": "C_SUCCESS_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Erfolgreiche Versuche"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:25:11.920712Z"
+    },
+    {
+      "name": "FKK_SAMPLE_1850",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_LOW",
+          "typing": "TYPE",
+          "reference_type": "INTLO_KK",
+          "optional": true,
+          "description": "Intervalluntergrenze"
+        },
+        {
+          "name": "I_HIGH",
+          "typing": "TYPE",
+          "reference_type": "INTHI_KK",
+          "optional": true,
+          "description": "Intervallobergrenze"
+        },
+        {
+          "name": "I_BASICS",
+          "typing": "TYPE",
+          "reference_type": "FKK_MAD_BASICS",
+          "optional": true,
+          "description": "Massenaktivitäten - Globale Werte für alle Massenaktivitäten"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "C_SUCCESS_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Anzahl erfolgreich abgearbeiteter Geschäftspartner"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:25:19.946620Z"
+    },
+    {
+      "name": "FKK_SAMPLE_1890",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_LOW",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "Untere Grenze (KEYPP)"
+        },
+        {
+          "name": "I_HIGH",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "Obere Grenze (KEYPP)"
+        },
+        {
+          "name": "I_BASICS",
+          "typing": "TYPE",
+          "reference_type": "FKK_MAD_BASICS",
+          "optional": true,
+          "description": "Massenaktivitäten - Globale Werte für alle Massenaktivitäten"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "C_TEST_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": false,
+          "description": "Getestete Versuche"
+        },
+        {
+          "name": "C_SUCCESS_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": false,
+          "description": "Erfolgreiche Versuche"
+        },
+        {
+          "name": "C_ERROR_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": "Fehlerhafte Versuche"
+        },
+        {
+          "name": "C_ITVL_REST",
+          "typing": "TYPE",
+          "reference_type": "XFELD",
+          "optional": true,
+          "description": "Intervall gesperrt, Restart gewünscht"
+        }
+      ],
+      "tables_params": [
+        {
+          "name": "T_COUNTER",
+          "typing": "LIKE",
+          "reference_type": "FKK_MASS_ACT_COUNT",
+          "optional": true,
+          "description": "Zähler mit zughöriger Nummer und Inhalt"
+        }
+      ],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:25:28.012457Z"
+    },
+    {
+      "name": "FKK_SAMPLE_1923",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_HIGH",
+          "typing": "TYPE",
+          "reference_type": "C",
+          "optional": true,
+          "description": "Parameters for Interest Run for Installment Plan"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "C_TEST_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": ""
+        },
+        {
+          "name": "C_SUCCESS_NUM",
+          "typing": "TYPE",
+          "reference_type": "I",
+          "optional": true,
+          "description": ""
+        }
+      ],
+      "tables_params": [
+        {
+          "name": "T_COUNTER",
+          "typing": "LIKE",
+          "reference_type": "FKK_MASS_ACT_COUNT",
+          "optional": true,
+          "description": "Counter with Number and Content"
+        }
+      ],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:25:36.141008Z"
+    },
+    {
+      "name": "FKK_SAMPLE_2804",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "IV_PROFIL",
+          "typing": "TYPE",
+          "reference_type": "CRMPRO_KK",
+          "optional": false,
+          "description": "CRM Profilname für die OP Selektion der Kontostandsanzeige"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "CV_ACCDOC",
+          "typing": "TYPE",
+          "reference_type": "FKK_CRM_ACCOUNT_DOC",
+          "optional": false,
+          "description": "FI-CA Kontenstand"
+        }
+      ],
+      "tables_params": [
+        {
+          "name": "RT_TOTALS",
+          "typing": "LIKE",
+          "reference_type": "FKK_CRM_ACCOUNT_TOT",
+          "optional": false,
+          "description": "FI-CA Kontenstand Summen"
+        },
+        {
+          "name": "RT_ACCOUNTS",
+          "typing": "LIKE",
+          "reference_type": "FKKVKP",
+          "optional": true,
+          "description": "Vertragskonto partnerspezifisch"
+        },
+        {
+          "name": "RT_BAPI_RET",
+          "typing": "LIKE",
+          "reference_type": "BAPIRET2",
+          "optional": false,
+          "description": "Returnparameter"
+        }
+      ],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:25:44.384882Z"
+    },
+    {
+      "name": "FKK_SAMPLE_2900_NEW",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_LOANAMOUNT",
+          "typing": "LIKE",
+          "reference_type": "RFKI3-LOANAMOUNT",
+          "optional": true,
+          "description": "Darlehen (Gesamtbetrag ohne Zinsen)"
+        },
+        {
+          "name": "I_WAERS",
+          "typing": "LIKE",
+          "reference_type": "RFKI3-WAERS",
+          "optional": true,
+          "description": "Währungsschlüssel"
+        },
+        {
+          "name": "I_ANZRT",
+          "typing": "LIKE",
+          "reference_type": "RFKI3-ANZRT",
+          "optional": true,
+          "description": "Anzahl Darlehensraten"
+        },
+        {
+          "name": "I_ABSRT",
+          "typing": "LIKE",
+          "reference_type": "RFKI3-ABSRT",
+          "optional": true,
+          "description": "Ratenabstand"
+        },
+        {
+          "name": "I_KENNZ",
+          "typing": "LIKE",
+          "reference_type": "RFKI3-KENNZ",
+          "optional": true,
+          "description": "Ratenabstandstyp"
+        },
+        {
+          "name": "I_STTIN",
+          "typing": "LIKE",
+          "reference_type": "RFKI3-STTIN",
+          "optional": true,
+          "description": "Startdatum für die Verzinsung"
+        },
+        {
+          "name": "I_NOMIRATE",
+          "typing": "LIKE",
+          "reference_type": "RFKI3-NOMIRATE",
+          "optional": true,
+          "description": "Zinssatz"
+        },
+        {
+          "name": "I_RUNDBET",
+          "typing": "LIKE",
+          "reference_type": "RFKI3-RUNDBET",
+          "optional": true,
+          "description": "Rundungsbetrag"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "T_FKKLOAN",
+          "typing": "LIKE",
+          "reference_type": "FKKLOAN",
+          "optional": false,
+          "description": "Darlehensplan Anzeigen"
+        }
+      ],
+      "exceptions": [
+        "CALC_ERROR"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:25:52.608743Z"
+    },
+    {
+      "name": "FKK_SAMPLE_4700",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_TEXT1GP",
+          "typing": "TYPE",
+          "reference_type": "TEXT1GP_KK",
+          "optional": true,
+          "description": "Text zum Geschäftspartner"
+        },
+        {
+          "name": "I_GPART",
+          "typing": "TYPE",
+          "reference_type": "GPART_KK",
+          "optional": true,
+          "description": "Geschäftspartnernummer"
+        },
+        {
+          "name": "I_VKONT",
+          "typing": "TYPE",
+          "reference_type": "VKONT_KK",
+          "optional": true,
+          "description": "Vertragskontonummer"
+        },
+        {
+          "name": "I_VTREF",
+          "typing": "TYPE",
+          "reference_type": "VTREF_KK",
+          "optional": true,
+          "description": "Referenzangaben aus dem Vertrag"
+        },
+        {
+          "name": "I_SUBAP",
+          "typing": "TYPE",
+          "reference_type": "SUBAP_KK",
+          "optional": true,
+          "description": "Subapplikation im Vertragskontokorrent"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "E_TEXTCHG",
+          "typing": "TYPE",
+          "reference_type": "TEXT1GP_KK",
+          "optional": false,
+          "description": "Geänderter Text zum Geschäftspartner"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:26:00.560357Z"
+    },
+    {
+      "name": "FKK_SAMPLE_6200",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "I_MESSAGE_HEADER",
+          "typing": "TYPE",
+          "reference_type": "FKK_XI_MESSAGE_HEADER",
+          "optional": false,
+          "description": "XI Message Header"
+        },
+        {
+          "name": "I_CHDSK",
+          "typing": "TYPE",
+          "reference_type": "CHDSK_KK",
+          "optional": false,
+          "description": "Kasse mit interner ID"
+        },
+        {
+          "name": "I_OFFIC",
+          "typing": "TYPE",
+          "reference_type": "OFFIC_KK",
+          "optional": false,
+          "description": "Filiale mit interner ID"
+        },
+        {
+          "name": "I_PAYKY",
+          "typing": "TYPE",
+          "reference_type": "PAYKY_KK",
+          "optional": false,
+          "description": "Gruppierungsschlüssel für externe Zahlungen"
+        },
+        {
+          "name": "I_PAYMENT_XI",
+          "typing": "TYPE",
+          "reference_type": "FKK_CASHPOINT_PAYMENT",
+          "optional": false,
+          "description": "Zahlungsinformation"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [
+        {
+          "name": "E_BAPIRET2",
+          "typing": "TYPE",
+          "reference_type": "BAPIRET2_T",
+          "optional": false,
+          "description": "Fehlermeldungen"
+        },
+        {
+          "name": "E_FURTHER_CARDS",
+          "typing": "TYPE",
+          "reference_type": "XFLAG",
+          "optional": false,
+          "description": "weitere kundenindividuelle Karten (Debit Card, customer Card)"
+        }
+      ],
+      "tables_params": [],
+      "exceptions": [],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": "2026-01-13T09:26:08.517798Z"
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T09:24:03.719237+00:00",
-  "total_count": 177,
-  "enriched_count": 177
+  "last_updated": "2026-01-13T09:27:37.689153+00:00",
+  "total_count": 187,
+  "enriched_count": 187
 }
