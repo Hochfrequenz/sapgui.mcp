@@ -1,6 +1,423 @@
 {
   "function_modules": [
     {
+      "name": "BAPI_ISUACCOUNT_CHANGE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "CONTRACTACCOUNT",
+          "typing": "LIKE",
+          "reference_type": "BAPICAPARA-ACCOUNT",
+          "optional": true,
+          "description": "Nummer des Vertragskontos"
+        },
+        {
+          "name": "PARTNER",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-PARTNER",
+          "optional": true,
+          "description": "Nummer des Geschäftspartners"
+        },
+        {
+          "name": "VALIDDATE",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-VALID_DATE",
+          "optional": true,
+          "description": " Gültigkeitsdatum der Änderungen"
+        },
+        {
+          "name": "CONTRACTACCOUNTDATA",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUVKP",
+          "optional": true,
+          "description": "Änderbare Daten des Vertragskontos"
+        },
+        {
+          "name": "CONTRACTACCOUNTDATAX",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUVKPX",
+          "optional": true,
+          "description": "Kennzeichnung, welche Daten geändert werden"
+        },
+        {
+          "name": "TESTRUN",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-TESTRUN",
+          "optional": true,
+          "description": " 'X' --> kein Sichern auf Datenbank"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "RETURN",
+          "typing": "LIKE",
+          "reference_type": "BAPIRET2",
+          "optional": false,
+          "description": "Rückgabe im Fehlerfall"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "EXTENSIONIN",
+          "typing": "LIKE",
+          "reference_type": "BAPIPAREX",
+          "optional": true,
+          "description": "Bezugsstruktur für BAPI-Parameter"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "BAPI_ISUACCOUNT_CREATEFROMDATA",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "CONTRACTACCOUNT",
+          "typing": "LIKE",
+          "reference_type": "BAPICAPARA-ACCOUNT",
+          "optional": true,
+          "description": " Nummer des Vertragskontos"
+        },
+        {
+          "name": "PARTNER",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-PARTNER",
+          "optional": true,
+          "description": "Nummer des Geschäftspartners"
+        },
+        {
+          "name": "CONTRACTACCOUNTCATEGORY",
+          "typing": "LIKE",
+          "reference_type": "BAPICAPARA-CONTR_ACC_CATG",
+          "optional": true,
+          "description": "Vertragskontotyp"
+        },
+        {
+          "name": "TESTRUN",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-TESTRUN",
+          "optional": true,
+          "description": " 'X' --> kein Sichern auf Datenbank"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "RETURN",
+          "typing": "LIKE",
+          "reference_type": "BAPIRET2",
+          "optional": false,
+          "description": "Rückgabe im Fehlerfall"
+        },
+        {
+          "name": "CONTRACT_ACCOUNT",
+          "typing": "LIKE",
+          "reference_type": "BAPICAPARA-ACCOUNT",
+          "optional": false,
+          "description": "Vertragskontonummer"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "TCONTRACTACCOUNTDATA",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUVKP",
+          "optional": false,
+          "description": "des Vertragskontos"
+        },
+        {
+          "name": "EXTENSIONIN",
+          "typing": "LIKE",
+          "reference_type": "BAPIPAREX",
+          "optional": true,
+          "description": "Bezugsstruktur für BAPI-Parameter"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "BAPI_ISUACCOUNT_GETLIST",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "MAXROWS",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-MAXROWS",
+          "optional": true,
+          "description": " maximale Anzahl zu selektierende Gesch.partner"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "INTMAXROWSREACHED",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-MAXROWSR",
+          "optional": false,
+          "description": "interner Überlauf"
+        },
+        {
+          "name": "RETURN",
+          "typing": "LIKE",
+          "reference_type": "BAPIRET2",
+          "optional": false,
+          "description": "Rückgabe im Fehlerfall"
+        },
+        {
+          "name": "COUNT",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-MAXCOUNT",
+          "optional": false,
+          "description": "Anzahl der Geschäftspartner"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "TLIST",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUVKP",
+          "optional": true,
+          "description": "Liste der Geschäftspartner"
+        },
+        {
+          "name": "TACCOUNT",
+          "typing": "LIKE",
+          "reference_type": "BAPIISURANGES",
+          "optional": true,
+          "description": "Select-option Partnernummer"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "BAPI_ISUPARTNER_CHANGE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "PARTNER",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-PARTNER",
+          "optional": true,
+          "description": "Nummer des Geschäftspartners"
+        },
+        {
+          "name": "VALIDDATE",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-VALID_DATE",
+          "optional": true,
+          "description": " Gültigkeitsdatum der Änderungen"
+        },
+        {
+          "name": "PARTNERDATA",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUBPD",
+          "optional": true,
+          "description": "Änderbare Daten des Geschäftspartners"
+        },
+        {
+          "name": "PARTNERDATAX",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUBPDX",
+          "optional": true,
+          "description": "Kennzeichnung, welche Daten geändert werden"
+        },
+        {
+          "name": "TESTRUN",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-TESTRUN",
+          "optional": true,
+          "description": " 'X' --> kein Sichern auf Datenbank"
+        },
+        {
+          "name": "ACCEPT_ERROR",
+          "typing": "LIKE",
+          "reference_type": "REGEN-KENNZX",
+          "optional": true,
+          "description": "  Kennzeichen keine Adressprüfung"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "RETURN",
+          "typing": "LIKE",
+          "reference_type": "BAPIRET2",
+          "optional": false,
+          "description": "Rückgabe im Fehlerfall"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "TADDRESS",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUBPA",
+          "optional": true,
+          "description": "Änderbare Adressdaten"
+        },
+        {
+          "name": "TADDRESSX",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUBPAX",
+          "optional": true,
+          "description": "Kennzeichnung, welche Adressfelder ändern"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "BAPI_ISUPARTNER_CREATEFROMDATA",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "PARTNER",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-PARTNER",
+          "optional": true,
+          "description": " Nummer des Geschäftspartners"
+        },
+        {
+          "name": "TYPE",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-BU_TYPE",
+          "optional": true,
+          "description": "Typ des Geschäftspartners"
+        },
+        {
+          "name": "GROUP",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-BU_GROUP",
+          "optional": true,
+          "description": " Gruppierung"
+        },
+        {
+          "name": "REFCUSTOMER",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-MUSTER_KUN",
+          "optional": true,
+          "description": " Musterkunde zum Anlegen SD-Kunde"
+        },
+        {
+          "name": "PARTNERDATA",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUBPD",
+          "optional": true,
+          "description": "Änderbare Daten des Geschäftspartners"
+        },
+        {
+          "name": "PARTNERDATAX",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUBPDX",
+          "optional": true,
+          "description": "Kennzeichnung, welche Daten geändert werden"
+        },
+        {
+          "name": "TESTRUN",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-TESTRUN",
+          "optional": true,
+          "description": " 'X' --> kein Sichern auf Datenbank"
+        },
+        {
+          "name": "ACCEPT_ERROR",
+          "typing": "LIKE",
+          "reference_type": "REGEN-KENNZX",
+          "optional": true,
+          "description": "  Kennzeichen keine Adressprüfung"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "RETURN",
+          "typing": "LIKE",
+          "reference_type": "BAPIRET2",
+          "optional": false,
+          "description": "Rückgabe im Fehlerfall"
+        },
+        {
+          "name": "NEW_PARTNER",
+          "typing": "LIKE",
+          "reference_type": "BAPIBPPARA-PARTNER",
+          "optional": false,
+          "description": "Geschäftspartnernummer"
+        },
+        {
+          "name": "ET_DUPLICATES",
+          "typing": "TYPE",
+          "reference_type": "ADKEY_OBJ_TAB",
+          "optional": false,
+          "description": "Tabelle mit Dublettentreffern"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "TADDRESS",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUBPA",
+          "optional": true,
+          "description": "Änderbare Adressdaten"
+        },
+        {
+          "name": "TADDRESSX",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUBPAX",
+          "optional": true,
+          "description": "Kennzeichnung, welche Adressfelder ändern"
+        },
+        {
+          "name": "TBANKDATA",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUBPB",
+          "optional": true,
+          "description": "Änderbare Bankdaten"
+        },
+        {
+          "name": "TBANKDATAX",
+          "typing": "LIKE",
+          "reference_type": "BAPIISUBPBX",
+          "optional": true,
+          "description": "Kennzeichnung, welche Bankdaten ändern"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
       "name": "FKK_ABRZ_FROM_PERIOD_DETERMINE",
       "description": "",
       "function_group": null,
@@ -25385,11 +25802,303 @@
       "is_rfc_enabled": false,
       "enriched": true,
       "retrieved_at": null
+    },
+    {
+      "name": "ISU_DB_EABL_SINGLE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_ABLBELNR",
+          "typing": "LIKE",
+          "reference_type": "EABL-ABLBELNR",
+          "optional": true,
+          "description": " Ablesebelegnummer"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "Y_EABL",
+          "typing": "LIKE",
+          "reference_type": "EABL",
+          "optional": false,
+          "description": "des Ablesebelegs"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [
+        {
+          "name": "TY_EABLG",
+          "typing": "LIKE",
+          "reference_type": "EABLG",
+          "optional": true,
+          "description": "Tabelle der Ablesegründe des Ablesebelegs"
+        },
+        {
+          "name": "TY_EABL",
+          "typing": "LIKE",
+          "reference_type": "EABL",
+          "optional": true,
+          "description": "Ablesebeleg"
+        }
+      ],
+      "exceptions": [
+        "Ausnahme",
+        "NOT_FOUND",
+        "NOT_QUALIFIED",
+        "SYSTEM_ERROR"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "ISU_DB_EANL_SINGLE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_ANLAGE",
+          "typing": "LIKE",
+          "reference_type": "EANLH-ANLAGE",
+          "optional": true,
+          "description": "Anlage"
+        },
+        {
+          "name": "X_BIS",
+          "typing": "LIKE",
+          "reference_type": "EANLH-BIS",
+          "optional": true,
+          "description": " Datum"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "Y_V_EANL",
+          "typing": "LIKE",
+          "reference_type": "V_EANL",
+          "optional": false,
+          "description": "View mit allen Anlagedaten"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "NOT_FOUND",
+        "SYSTEM_ERROR",
+        "INVALID_DATE"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "ISU_DB_ERDK_SINGLE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_OPBEL",
+          "typing": "LIKE",
+          "reference_type": "ERDK-OPBEL",
+          "optional": true,
+          "description": "Belegnummer"
+        },
+        {
+          "name": "X_ACTUAL",
+          "typing": "LIKE",
+          "reference_type": "REGEN-ACTUAL",
+          "optional": true,
+          "description": " Konsistente Datenversion ('X' = ja, ' ' = nein)"
+        },
+        {
+          "name": "X_COLOGRP_BP",
+          "typing": "TYPE",
+          "reference_type": "ERDK-COLOGRP_BP",
+          "optional": true,
+          "description": " Kolokationsgruppe für Geschäftspartner"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "Y_ERDK",
+          "typing": "LIKE",
+          "reference_type": "ERDK",
+          "optional": false,
+          "description": "Erster gefundener Eintrag"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "NOT_FOUND",
+        "NOT_QUALIFIED",
+        "SYSTEM_ERROR"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "ISU_DB_ESERVICE_SINGLE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_VERTRAG",
+          "typing": "LIKE",
+          "reference_type": "ESERVICE-VERTRAG",
+          "optional": true,
+          "description": "Schlüssel des Versorgungspunktservice"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "Y_ESERVICE",
+          "typing": "LIKE",
+          "reference_type": "ESERVICE",
+          "optional": false,
+          "description": "Service am PoD"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "ISU_DB_EVBS_SINGLE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_VSTELLE",
+          "typing": "LIKE",
+          "reference_type": "EVBS-VSTELLE",
+          "optional": true,
+          "description": "Keyfeld"
+        },
+        {
+          "name": "X_SPRAS",
+          "typing": "LIKE",
+          "reference_type": "SY-LANGU",
+          "optional": true,
+          "description": "  Sprache für LGZUSATZ"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "Y_EVBS",
+          "typing": "LIKE",
+          "reference_type": "EVBS",
+          "optional": false,
+          "description": "Gelesener Satz"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "NOT_FOUND",
+        "SYSTEM_ERROR"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "ISU_S_PREMISE_CREATE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_VSTELLE",
+          "typing": "LIKE",
+          "reference_type": "EVBS-VSTELLE",
+          "optional": true,
+          "description": " Schlüsselfeld 1"
+        },
+        {
+          "name": "X_AUTO",
+          "typing": "TYPE",
+          "reference_type": "ISU01_PREMISE_AUTO",
+          "optional": true,
+          "description": " Automationsdaten"
+        }
+      ],
+      "export_params": [
+        {
+          "name": "Y_EXIT_TYPE",
+          "typing": "LIKE",
+          "reference_type": "REGEN-EXIT_TYPE",
+          "optional": false,
+          "description": "Rückkehrmodus"
+        },
+        {
+          "name": "Y_NEW_EVBS",
+          "typing": "LIKE",
+          "reference_type": "EVBS",
+          "optional": false,
+          "description": "Neuer Satz"
+        }
+      ],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "EXISTING",
+        "FOREIGN_LOCK",
+        "INPUT_ERROR",
+        "GENERAL_FAULT"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
+    },
+    {
+      "name": "ISU_S_PREMISE_DELETE",
+      "description": "",
+      "area": "FICA",
+      "function_group": null,
+      "import_params": [
+        {
+          "name": "X_VSTELLE",
+          "typing": "LIKE",
+          "reference_type": "EVBS-VSTELLE",
+          "optional": true,
+          "description": "Objektschlüssel 1"
+        }
+      ],
+      "export_params": [],
+      "changing_params": [],
+      "tables_params": [],
+      "exceptions": [
+        "Ausnahme",
+        "NOT_FOUND",
+        "FOREIGN_LOCK",
+        "CANCELLED",
+        "GENERAL_FAULT"
+      ],
+      "is_rfc_enabled": false,
+      "enriched": true,
+      "retrieved_at": null
     }
   ],
   "source_system": "S4U",
   "language": "DE",
-  "last_updated": "2026-01-13T13:42:50.670122+00:00",
-  "total_count": 494,
-  "enriched_count": 494
+  "last_updated": "2026-01-13T15:01:11.825784+00:00",
+  "total_count": 506,
+  "enriched_count": 506
 }
