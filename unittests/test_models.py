@@ -386,3 +386,38 @@ class TestLoginResultGuidance:
         result = LoginResult.failure("Login failed", url="https://sap.example.com")
         assert result.success is False
         assert result.guidance is None
+
+
+class TestSessionIdValidation:
+    """Tests for SessionId type validation."""
+
+    def test_valid_session_id(self) -> None:
+        """Test valid session ID format."""
+        from sapwebguimcp.models import SessionId
+        from pydantic import TypeAdapter
+
+        adapter = TypeAdapter(SessionId)
+        assert adapter.validate_python("s1") == "s1"
+        assert adapter.validate_python("s123") == "s123"
+
+    def test_session_id_normalized_to_lowercase(self) -> None:
+        """Test that session IDs are normalized to lowercase."""
+        from sapwebguimcp.models import SessionId
+        from pydantic import TypeAdapter
+
+        adapter = TypeAdapter(SessionId)
+        assert adapter.validate_python("S1") == "s1"
+        assert adapter.validate_python("S99") == "s99"
+
+    def test_invalid_session_id_rejected(self) -> None:
+        """Test that invalid session IDs raise ValidationError."""
+        from sapwebguimcp.models import SessionId
+        from pydantic import TypeAdapter, ValidationError
+
+        adapter = TypeAdapter(SessionId)
+        with pytest.raises(ValidationError):
+            adapter.validate_python("invalid")
+        with pytest.raises(ValidationError):
+            adapter.validate_python("1")  # Must start with 's'
+        with pytest.raises(ValidationError):
+            adapter.validate_python("session1")  # Must be 's' + digits only

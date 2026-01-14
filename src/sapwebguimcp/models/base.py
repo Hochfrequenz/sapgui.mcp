@@ -10,6 +10,10 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_valida
 TCODE_PATTERN = r"^[A-Z0-9_/]+$"
 TCode = Annotated[str, BeforeValidator(str.upper), Field(pattern=TCODE_PATTERN)]
 
+# Session ID type: lowercase 's' followed by digits (s1, s2, s3, ...)
+_SESSION_ID_PATTERN = r"^s\d+$"
+SessionId = Annotated[str, BeforeValidator(str.lower), Field(pattern=_SESSION_ID_PATTERN)]
+
 
 class PopupType(StrEnum):
     """Type of popup dialog."""

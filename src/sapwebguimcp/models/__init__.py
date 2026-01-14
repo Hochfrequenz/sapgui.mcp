@@ -10,7 +10,7 @@ from sapwebguimcp.models.alv_models import (
     AlvMetadata,
     TableCellClickResult,
 )
-from sapwebguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, TCode, ToolResult
+from sapwebguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, SessionId, TCode, ToolResult
 from sapwebguimcp.models.browser import (
     BrowserManager,
     close_browser_manager,
@@ -131,6 +131,7 @@ __all__ = [
     "PopupButton",
     "PopupInfo",
     "PopupType",
+    "SessionId",
     "TCode",
     "ToolResult",
     # ALV models
