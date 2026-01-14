@@ -650,11 +650,16 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Enter and execute an SAP transaction code. "
             "IMPORTANT: Do NOT use this for SE11, SE16, SE24, SE37, or SE93 - "
             "use the dedicated sap_se11_lookup, sap_se16_query, sap_se24_lookup, "
-            "sap_se37_lookup, or sap_se93_lookup tools instead, which are faster and return structured data."
+            "sap_se37_lookup, or sap_se93_lookup tools instead, which are faster and return structured data.\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
         )
     )
-    async def sap_transaction(  # pylint: disable=too-many-return-statements
-        tcode: str, new_window: bool = False
+    async def sap_transaction(  # pylint: disable=too-many-return-statements,too-many-locals
+        tcode: str,
+        new_window: bool = False,
+        session: str | None = None,
     ) -> TransactionResult:
         """
         Enter and execute an SAP transaction code.
@@ -687,7 +692,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         """
         browser_manager = await get_browser_manager()
 
-        page = await browser_manager.get_current_page()
+        try:
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return TransactionResult.failure(str(e), tcode=tcode)
 
         # Fast popup check (~5ms)
         popup = await _check_popup(page)
@@ -933,8 +941,17 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Error getting capabilities")
             return CapabilitiesResult.failure(f"Error getting capabilities: {e}")
 
-    @mcp.tool(description="Send a keyboard shortcut to SAP Web GUI")
-    async def sap_keyboard(key: str) -> KeyboardResult:
+    @mcp.tool(
+        description=(
+            "Send a keyboard shortcut to SAP Web GUI\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
+        )
+    )
+    async def sap_keyboard(  # pylint: disable=too-many-return-statements
+        key: str, session: str | None = None
+    ) -> KeyboardResult:
         """
         Send a keyboard shortcut to SAP Web GUI.
 
@@ -960,8 +977,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return KeyboardResult.failure(str(e), key=key)
 
+        try:
             # Fast popup check (~5ms) - only blocks if popup exists BEFORE keystroke
             popup = await _check_popup(page)
             if popup:
@@ -1043,10 +1063,16 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Get all readable text from the current SAP screen. "
-            "Use include_dropdown_options=True to also fetch available options for dropdown fields."
+            "Use include_dropdown_options=True to also fetch available options for dropdown fields.\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
         )
     )
-    async def sap_get_screen_text(include_dropdown_options: bool = False) -> ScreenText:
+    async def sap_get_screen_text(
+        include_dropdown_options: bool = False,
+        session: str | None = None,
+    ) -> ScreenText:
         """
         Get all readable text from the current SAP screen.
 
@@ -1072,7 +1098,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return ScreenText.failure(str(e), title="")
+
+        try:
             screen_text = await page.evaluate(_load_js("extract_screen_text.js"))
 
             # Deduplicate and limit lists
@@ -1102,10 +1132,16 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Discover fillable form fields on the current SAP screen. "
             "Returns field IDs, labels, types (text/dropdown/checkbox/radio), and current values. "
-            "Use include_dropdown_options=True to also fetch available options for dropdown fields."
+            "Use include_dropdown_options=True to also fetch available options for dropdown fields.\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
         )
     )
-    async def sap_get_form_fields(include_dropdown_options: bool = False) -> FormFieldsResult:
+    async def sap_get_form_fields(
+        include_dropdown_options: bool = False,
+        session: str | None = None,
+    ) -> FormFieldsResult:
         """
         Discover all fillable form fields on the current SAP screen.
 
@@ -1129,8 +1165,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return FormFieldsResult.failure(str(e))
 
+        try:
             # Detect all form fields
             raw_fields = await page.evaluate(_load_js("detect_form_fields.js"))
 
@@ -1165,8 +1204,20 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Error getting form fields")
             return FormFieldsResult.failure(f"Error getting form fields: {e}")
 
-    @mcp.tool(description="Read data from an ALV grid or table on the current screen")
-    async def sap_read_table(start_row: int = 1, end_row: Optional[int] = None, max_rows: int = 100) -> TableData:
+    @mcp.tool(
+        description=(
+            "Read data from an ALV grid or table on the current screen\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
+        )
+    )
+    async def sap_read_table(
+        start_row: int = 1,
+        end_row: Optional[int] = None,
+        max_rows: int = 100,
+        session: str | None = None,
+    ) -> TableData:
         """
         Read rows from an ALV grid or table on the current screen.
 
@@ -1184,8 +1235,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return TableData.failure(str(e))
 
+        try:
             # Extract table data using JavaScript
             table_data = await page.evaluate(
                 _load_js("extract_table_data.js"),
@@ -1244,13 +1298,17 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Click a cell in an ALV grid table. "
             "Automatically targets the correct clickable element (hotspot span vs TD). "
-            "Use after sap_read_table to navigate to detail views."
+            "Use after sap_read_table to navigate to detail views.\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
         )
     )
     async def sap_click_table_cell(
         row: int,
         column: int | str,
         action: str = "click",
+        session: str | None = None,
     ) -> TableCellClickResult:
         """
         Click a cell in the current ALV grid table.
@@ -1270,8 +1328,16 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return TableCellClickResult.failure(
+                str(e),
+                row=row,
+                column=column,
+                selector_used="",
+            )
 
+        try:
             # Use JavaScript to find the correct click target (but not click yet)
             result = await page.evaluate(
                 _load_js("click_table_cell.js"),
@@ -1322,8 +1388,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 selector_used="",
             )
 
-    @mcp.tool(description="Read the current message from SAP's status bar")
-    async def sap_read_status_bar() -> StatusBarInfo:
+    @mcp.tool(
+        description=(
+            "Read the current message from SAP's status bar\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
+        )
+    )
+    async def sap_read_status_bar(session: str | None = None) -> StatusBarInfo:
         """
         Read the current message from SAP's status bar.
 
@@ -1339,8 +1412,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return StatusBarInfo.failure(str(e), type="none")
 
+        try:
             # Extract status bar content using JavaScript
             status_info = await page.evaluate(_load_js("extract_status_bar.js"))
 
@@ -1353,8 +1429,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Error reading status bar")
             return StatusBarInfo.failure(f"Error reading status bar: {e}", type="none")
 
-    @mcp.tool(description="Get technical information about the current SAP screen")
-    async def sap_get_screen_info() -> ScreenInfo:
+    @mcp.tool(
+        description=(
+            "Get technical information about the current SAP screen\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
+        )
+    )
+    async def sap_get_screen_info(session: str | None = None) -> ScreenInfo:
         """
         Get technical information about the current SAP screen.
 
@@ -1369,8 +1452,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return ScreenInfo.failure(str(e), title="", url="")
 
+        try:
             # Check for blocking popup
             popup = await _check_popup(page)
 
@@ -1461,10 +1547,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Discover input fields on the current SAP screen. "
             "Returns fields with reliable CSS selectors (use the 'selector' field). "
-            "For buttons, use sap_discover_buttons instead."
+            "For buttons, use sap_discover_buttons instead.\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
         )
     )
-    async def sap_discover_fields() -> DiscoveredFields:
+    async def sap_discover_fields(session: str | None = None) -> DiscoveredFields:
         """
         Discover all input fields on the current SAP screen.
 
@@ -1487,8 +1576,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return DiscoveredFields.failure(str(e), field_count=0)
 
+        try:
             # Discover fields using JavaScript
             fields_data = await page.evaluate(_load_js("discover_fields.js"))
 
@@ -1521,16 +1613,22 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Returns buttons with label, selector (for browser_click), shortcut (e.g. F3), and accesskey. "
             "Use the 'selector' field with browser_click to click buttons reliably. "
             "Prefer keyboard shortcuts when available - they're faster. "
-            "For input fields use sap_discover_fields instead."
+            "For input fields use sap_discover_fields instead.\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
         )
     )
-    async def sap_discover_buttons() -> DiscoveredButtons:
+    async def sap_discover_buttons(session: str | None = None) -> DiscoveredButtons:
         """Discover all clickable buttons on the current SAP screen."""
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return DiscoveredButtons.failure(str(e), button_count=0)
 
+        try:
             # Discover buttons using JavaScript
             buttons_data = await page.evaluate(_load_js("discover_buttons.js"))
 
@@ -1559,10 +1657,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Discover keyboard shortcuts available on the current SAP screen. "
             "Use BEFORE clicking buttons - shortcuts like F5, Strg+S are faster and more reliable. "
-            "Returns action text and key combination for each available shortcut."
+            "Returns action text and key combination for each available shortcut.\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
         )
     )
-    async def sap_get_shortcuts() -> ShortcutsResult:
+    async def sap_get_shortcuts(session: str | None = None) -> ShortcutsResult:
         """
         Discover keyboard shortcuts available on the current SAP screen.
 
@@ -1581,8 +1682,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return ShortcutsResult.failure(str(e))
 
+        try:
             # Get all title attributes via JavaScript - much more efficient than parsing HTML
             titles: list[str] = await page.evaluate(
                 """() => {
@@ -1624,12 +1728,16 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Note: Not all popups are errors - F4 help dialogs are expected behavior. "
             "For F4 help popups, consider reading the values first before closing. "
             "Specify button by label ('Ja', 'Nein') or accesskey ('J', 'N'), "
-            "or use close=True to click the X button if available."
+            "or use close=True to click the X button if available.\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
         )
     )
-    async def sap_close_popup(  # pylint: disable=too-many-branches
+    async def sap_close_popup(  # pylint: disable=too-many-branches,too-many-return-statements,too-many-locals
         button: Optional[str] = None,
         close: bool = False,
+        session: str | None = None,
     ) -> ClosePopupResult:
         """
         Close an active popup dialog.
@@ -1644,8 +1752,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return ClosePopupResult.failure(str(e))
 
+        try:
             # Check if popup is present
             popup = await _check_popup(page)
             if popup is None:
@@ -1772,10 +1883,17 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "When NOT to use:\n"
             "- Single field only (use browser_fill)\n"
             "- Fields on different screens/tabs\n"
-            "- Need to click buttons between fills"
+            "- Need to click buttons between fills\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
         )
     )
-    async def sap_fill_form(fields: dict[str, str], strict: bool = False) -> FillFormResult:
+    async def sap_fill_form(
+        fields: dict[str, str],
+        strict: bool = False,
+        session: str | None = None,
+    ) -> FillFormResult:
         """
         Fill multiple SAP form fields in a single call.
 
@@ -1805,8 +1923,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return FillFormResult.failure(str(e))
 
+        try:
             # Fast popup check (~5ms)
             popup = await _check_popup(page)
             if popup:
@@ -1862,10 +1983,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "- Visible label text (e.g., 'Last Name', 'Nachname')\n"
             "- CSS selector (e.g., '#M0:46:1:1::0:21', '[lsdata*=\"NAME_LAST\"]')\n\n"
             "This is simpler than sap_fill_form for single fields, and returns "
-            "the CSS selector that was matched (useful for debugging)."
+            "the CSS selector that was matched (useful for debugging).\n\n"
+            "**Session parameter:**\n"
+            "- session=None (default): Uses primary session (\"s1\")\n"
+            "- session=\"s2\": Targets specific session (for parallel agents)"
         )
     )
-    async def sap_set_field(label: str, value: str) -> SetFieldResult:
+    async def sap_set_field(  # pylint: disable=too-many-return-statements
+        label: str, value: str, session: str | None = None
+    ) -> SetFieldResult:
         """
         Set a single SAP form field by label or CSS selector.
 
@@ -1891,8 +2017,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_current_page()
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return SetFieldResult.failure(str(e), label=label, value=value)
 
+        try:
             # Fast popup check (~5ms)
             popup = await _check_popup(page)
             if popup:
