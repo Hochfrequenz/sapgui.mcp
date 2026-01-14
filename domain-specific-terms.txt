@@ -60,6 +60,7 @@ applikation
 
 # SAP technical terms
 repid
+SHTTP
 
 # Typos in SAP data (from SAP system, cannot be fixed)
 payed
