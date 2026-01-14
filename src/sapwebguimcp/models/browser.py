@@ -11,6 +11,7 @@ from typing import Optional
 from playwright.async_api import Browser, BrowserContext, Page, Playwright, async_playwright
 
 from sapwebguimcp.models.config import BrowserMode, SapWebGuiSettings, get_settings
+from sapwebguimcp.models.session_registry import SessionRegistry
 
 __all__ = [
     "BrowserManager",
@@ -21,7 +22,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-class BrowserManager:
+class BrowserManager:  # pylint: disable=too-many-instance-attributes
     """
     Manages a persistent browser session for SAP Web GUI automation.
 
@@ -44,11 +45,28 @@ class BrowserManager:
         self._pages: dict[str, Page] = {}
         self._default_page_name = "sap"
         self._initialized = False
+        self._registry = SessionRegistry()
 
     @property
     def is_initialized(self) -> bool:
         """Check if the browser manager has been initialized."""
         return self._initialized
+
+    @property
+    def registry(self) -> SessionRegistry:
+        """Session registry for multi-session support."""
+        return self._registry
+
+    def get_session_page(self, session_id: str | None) -> Page:
+        """Get page for a session ID.
+
+        Args:
+            session_id: Session ID or None for primary session
+
+        Returns:
+            Playwright Page for the session
+        """
+        return self._registry.get_page(session_id)
 
     async def initialize(self) -> None:
         """Initialize the browser manager and start the browser."""

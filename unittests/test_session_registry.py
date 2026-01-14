@@ -130,3 +130,33 @@ class TestSessionRegistryUnit:
 
         assert registry.has_session("s1") is True
         assert registry.has_session("s2") is False
+
+
+class TestBrowserManagerSessionIntegration:
+    """Tests for BrowserManager + SessionRegistry integration."""
+
+    def test_browser_manager_has_registry(self) -> None:
+        """Test that BrowserManager exposes session registry."""
+        from sapwebguimcp.models.browser import BrowserManager
+
+        manager = BrowserManager()
+        assert hasattr(manager, "registry")
+        assert manager.registry is not None
+
+    def test_browser_manager_get_session_page(self) -> None:
+        """Test BrowserManager.get_session_page() method."""
+        from sapwebguimcp.models.browser import BrowserManager
+
+        manager = BrowserManager()
+
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        manager.registry.register(page)
+
+        retrieved = manager.get_session_page("s1")
+        assert retrieved is page
+
+        retrieved_default = manager.get_session_page(None)
+        assert retrieved_default is page
