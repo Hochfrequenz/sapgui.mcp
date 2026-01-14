@@ -1,0 +1,20 @@
+{
+  "classes": [
+    {"class_name": "CL_ISU_IDE_SWITCH_CHECK", "object_type": "class", "description": "Check Framework for Change of Supplier"},
+    {"class_name": "CL_ISU_DATEX_DUECONTR", "object_type": "class", "description": "Due Date Control for Data Exchange"},
+    {"class_name": "CL_ISU_AMIO_SUBOBJ_ACCOUNT", "object_type": "class", "description": "IS-U: Parking/Subobject for Contract Account"},
+    {"class_name": "CL_ISU_SERVICEPROVIDER", "object_type": "class", "description": "Service Provider"},
+    {"class_name": "CL_ISU_EDM_SETTDOC_ARCHIVE", "object_type": "class", "description": "Archive Settlement Documents"},
+    {"class_name": "CL_ISU_RTP_INTERFACE_EXECUTION", "object_type": "class", "description": "RTP Interface Execution"},
+    {"class_name": "CL_ISU_CONTRACT", "object_type": "class", "description": "IS-U Contract"},
+    {"class_name": "CL_ISU_DEVICE", "object_type": "class", "description": "IS-U Device"},
+    {"class_name": "CL_ISU_PREMISE", "object_type": "class", "description": "IS-U Premise"},
+    {"class_name": "CL_ISU_INSTALLATION", "object_type": "class", "description": "IS-U Installation"},
+    {"class_name": "CL_FICA_SAFT_UTILITY", "object_type": "class", "description": "FI-CA SAFT Utility"},
+    {"class_name": "CL_FKK_SUPPORT_CORRPROG_MAIN", "object_type": "class", "description": "FKK Support Correction Program Main"}
+  ],
+  "source_system": "SAP S/4HANA Utilities",
+  "language": "DE",
+  "last_updated": "2026-01-13",
+  "total_count": 12
+}

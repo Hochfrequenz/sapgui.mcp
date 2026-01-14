@@ -1,8 +1,11 @@
-"""Data models for the transaction catalog - SHARED.
+"""Data models for SAP catalogs - SHARED.
 
 ===========================================================================
 These models are used by BOTH runtime (MCP tools) and development (scraper).
-They define the data structure for transactions.json.
+They define the data structure for:
+- transactions.json (TransactionInfo, TransactionCatalog)
+- function_modules.json (FunctionModuleInfo, FunctionModuleCatalog)
+- classes.json (ClassInfo, ClassCatalog)
 ===========================================================================
 
 Design Notes:
@@ -12,7 +15,7 @@ Design Notes:
   because CO01 should match "PP-Orders" (CO0*) not "CO-General" (CO*)
 """
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
@@ -229,3 +232,287 @@ class TransactionCatalog(BaseModel):
         """
         area_upper = area.upper()
         return [t for t in self.transactions if t.area and t.area.upper() == area_upper]
+
+
+# =============================================================================
+# Function Module Catalog Models (IS-U / S4 Utilities)
+# =============================================================================
+
+# FM area prefixes for IS-U/Utilities
+FM_AREA_PREFIXES: dict[str, str] = {
+    # IS-U specific (longest prefixes first)
+    "ISU_EDM_": "ISU-EDM",
+    "ISU_DM_": "ISU-DM",
+    "ISU_S_": "ISU-Service",
+    "ISU_DB_": "ISU-DB",
+    "ISU_": "ISU",
+    # FICA
+    "FKK_": "FICA",
+    # BAPIs
+    "BAPI_ISUPARTNER": "ISU-BAPI",
+    "BAPI_ISUACCOUNT": "ISU-BAPI",
+    "BAPI_ISUPOD": "ISU-BAPI",
+    "BAPI_ISUMOVE": "ISU-BAPI",
+    "BAPI_ISU": "ISU-BAPI",
+    "BAPI_CTRAC": "FICA-BAPI",
+    "BAPI_FKK": "FICA-BAPI",
+    # Energy/EDM
+    "EDM_": "EDM",
+    "IDEX": "IDEX",
+}
+
+
+def detect_fm_area(fm_name: str) -> str | None:
+    """Detect area from function module name prefix.
+
+    Uses longest-prefix-first matching.
+    """
+    if not fm_name:
+        return None
+
+    fm_upper = fm_name.upper()
+
+    # Sort prefixes by length (longest first) for correct matching
+    for prefix in sorted(FM_AREA_PREFIXES.keys(), key=len, reverse=True):
+        if fm_upper.startswith(prefix):
+            return FM_AREA_PREFIXES[prefix]
+
+    return None
+
+
+class ParameterInfo(BaseModel):
+    """Function module parameter information."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(description="Parameter name")
+    category: str = Field(description="Parameter category: import/export/changing/tables")
+    typing: str = Field(default="", description="Typing method: TYPE, LIKE, etc.")
+    reference_type: str = Field(default="", description="Reference type or structure")
+    default_value: str = Field(default="", description="Default value if any")
+    optional: bool = Field(default=False, description="Whether parameter is optional")
+    pass_by_value: bool = Field(default=False, description="Pass by value flag")
+    description: str = Field(default="", description="Parameter description")
+
+
+class ExceptionInfo(BaseModel):
+    """Function module exception information."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(description="Exception name")
+    description: str = Field(default="", description="Exception description")
+
+
+class FunctionModuleInfo(BaseModel):
+    """Complete function module metadata for the catalog."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(description="Function module name (e.g., 'ISU_CONSUMPTION_DETERMINE')")
+    description: str = Field(default="", description="Short text description")
+    function_group: str | None = Field(default=None, description="Function group name")
+    package: str | None = Field(default=None, description="Development package")
+    area: str | None = Field(default=None, description="Area: ISU, ISU-EDM, FICA, etc.")
+
+    # Parameters from SE37
+    import_parameters: list[ParameterInfo] = Field(default_factory=list)
+    export_parameters: list[ParameterInfo] = Field(default_factory=list)
+    changing_parameters: list[ParameterInfo] = Field(default_factory=list)
+    tables_parameters: list[ParameterInfo] = Field(default_factory=list)
+    exceptions: list[ExceptionInfo] = Field(default_factory=list)
+
+    # Flags
+    is_rfc_enabled: bool = Field(default=False, description="Remote-enabled (RFC)")
+    enriched: bool = Field(default=False, description="Whether SE37 enrichment was applied")
+    retrieved_at: AwareDatetime | None = Field(default=None, description="UTC timestamp")
+
+    @classmethod
+    def from_se37_entry(cls, entry: dict[str, Any]) -> "FunctionModuleInfo":
+        """Create FunctionModuleInfo from SE37 lookup result."""
+        name = entry.get("function_module", "")
+
+        # Convert parameters
+        import_params = [ParameterInfo(**p) for p in entry.get("import_parameters", [])]
+        export_params = [ParameterInfo(**p) for p in entry.get("export_parameters", [])]
+        changing_params = [ParameterInfo(**p) for p in entry.get("changing_parameters", [])]
+        tables_params = [ParameterInfo(**p) for p in entry.get("tables_parameters", [])]
+        exceptions = [ExceptionInfo(**e) for e in entry.get("exceptions", [])]
+
+        return cls(
+            name=name,
+            description=entry.get("description", ""),
+            function_group=entry.get("function_group"),
+            package=entry.get("package"),
+            area=detect_fm_area(name),
+            import_parameters=import_params,
+            export_parameters=export_params,
+            changing_parameters=changing_params,
+            tables_parameters=tables_params,
+            exceptions=exceptions,
+            is_rfc_enabled=entry.get("is_rfc_enabled", False),
+            enriched=True,
+            retrieved_at=entry.get("retrieved_at"),
+        )
+
+
+class FunctionModuleCatalog(BaseModel):
+    """Container for the function module catalog."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    function_modules: list[FunctionModuleInfo] = Field(default_factory=list)
+    source_system: str | None = Field(default=None, description="SAP system ID")
+    language: str | None = Field(default=None, description="Language (EN/DE)")
+    last_updated: AwareDatetime | None = Field(default=None)
+    total_count: int = Field(default=0)
+    enriched_count: int = Field(default=0)
+
+    _name_index: dict[str, int] | None = None
+
+    def _get_name_index(self) -> dict[str, int]:
+        """Get or build the name -> list index mapping."""
+        if self._name_index is None:
+            self._name_index = {fm.name.upper(): i for i, fm in enumerate(self.function_modules)}
+        return self._name_index
+
+    def _invalidate_index(self) -> None:
+        """Clear the cached index."""
+        self._name_index = None
+
+    def get_by_name(self, name: str) -> FunctionModuleInfo | None:
+        """Look up a function module by name (case-insensitive)."""
+        index = self._get_name_index()
+        idx = index.get(name.upper())
+        if idx is not None:
+            return self.function_modules[idx]
+        return None
+
+    def add_or_update(self, fm: FunctionModuleInfo) -> None:
+        """Add or update a function module in the catalog."""
+        existing = self.get_by_name(fm.name)
+        if existing:
+            # Update existing
+            idx = self._get_name_index()[fm.name.upper()]
+            self.function_modules[idx] = fm
+        else:
+            # Add new
+            self.function_modules.append(fm)  # pylint: disable=no-member
+            self._invalidate_index()
+
+
+# =============================================================================
+# Class Catalog Models (IS-U / S4 Utilities)
+# =============================================================================
+
+# Class area prefixes
+CLASS_AREA_PREFIXES: dict[str, str] = {
+    "CL_ISU_": "ISU",
+    "CL_FKK": "FICA",
+    "CL_EDM_": "EDM",
+    "CL_IDEX": "IDEX",
+    "IF_ISU_": "ISU",
+    "IF_FKK": "FICA",
+    "IF_EDM": "EDM",
+}
+
+
+def detect_class_area(class_name: str) -> str | None:
+    """Detect area from class/interface name prefix."""
+    if not class_name:
+        return None
+
+    class_upper = class_name.upper()
+
+    for prefix in sorted(CLASS_AREA_PREFIXES.keys(), key=len, reverse=True):
+        if class_upper.startswith(prefix):
+            return CLASS_AREA_PREFIXES[prefix]
+
+    return None
+
+
+class MethodInfo(BaseModel):
+    """Class method information."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(description="Method name")
+    visibility: str = Field(default="public", description="public/protected/private")
+    description: str = Field(default="", description="Method description")
+    parameters: list[ParameterInfo] = Field(default_factory=list)
+    exceptions: list[str] = Field(default_factory=list)
+
+
+class AttributeInfo(BaseModel):
+    """Class attribute information."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(description="Attribute name")
+    visibility: str = Field(default="public", description="public/protected/private")
+    typing: str = Field(default="", description="Type reference")
+    description: str = Field(default="", description="Attribute description")
+
+
+class ClassInfo(BaseModel):
+    """Complete class/interface metadata for the catalog."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(description="Class/interface name (e.g., 'CL_ISU_BILLING')")
+    description: str = Field(default="", description="Short text description")
+    class_type: str = Field(default="class", description="'class' or 'interface'")
+    area: str | None = Field(default=None, description="Area: ISU, FICA, EDM, etc.")
+
+    # Details from SE24
+    methods: list[MethodInfo] = Field(default_factory=list)
+    attributes: list[AttributeInfo] = Field(default_factory=list)
+    interfaces: list[str] = Field(default_factory=list)
+
+    # Flags
+    is_remote: bool = Field(default=False, description="Remote-enabled")
+    enriched: bool = Field(default=False, description="Whether SE24 enrichment was applied")
+    retrieved_at: AwareDatetime | None = Field(default=None)
+
+
+class ClassCatalog(BaseModel):
+    """Container for the class catalog."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    classes: list[ClassInfo] = Field(default_factory=list)
+    source_system: str | None = Field(default=None)
+    language: str | None = Field(default=None)
+    last_updated: AwareDatetime | None = Field(default=None)
+    total_count: int = Field(default=0)
+    enriched_count: int = Field(default=0)
+
+    _name_index: dict[str, int] | None = None
+
+    def _get_name_index(self) -> dict[str, int]:
+        """Get or build the name -> list index mapping."""
+        if self._name_index is None:
+            self._name_index = {c.name.upper(): i for i, c in enumerate(self.classes)}
+        return self._name_index
+
+    def _invalidate_index(self) -> None:
+        """Clear the cached index."""
+        self._name_index = None
+
+    def get_by_name(self, name: str) -> ClassInfo | None:
+        """Look up a class by name (case-insensitive)."""
+        index = self._get_name_index()
+        idx = index.get(name.upper())
+        if idx is not None:
+            return self.classes[idx]
+        return None
+
+    def add_or_update(self, cls: ClassInfo) -> None:
+        """Add or update a class in the catalog."""
+        existing = self.get_by_name(cls.name)
+        if existing:
+            idx = self._get_name_index()[cls.name.upper()]
+            self.classes[idx] = cls
+        else:
+            self.classes.append(cls)  # pylint: disable=no-member
+            self._invalidate_index()

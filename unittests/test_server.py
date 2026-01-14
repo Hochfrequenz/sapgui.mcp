@@ -292,3 +292,172 @@ class TestMcpServer:
             assert isinstance(first_field.data_type, str)
             assert isinstance(first_field.length, int)
             assert isinstance(first_field.is_key, bool)
+
+    # =========================================================================
+    # search_function_modules MCP tool integration tests
+    # =========================================================================
+
+    def test_fm_catalog_tools_are_registered(self) -> None:
+        """Test that function module catalog tools are registered."""
+        tool_names = {tool.name for tool in mcp._tool_manager._tools.values()}
+        assert "search_function_modules" in tool_names, "search_function_modules should be registered"
+
+    def test_search_function_modules_has_description(self) -> None:
+        """Test that search_function_modules has a descriptive docstring."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        assert "search_function_modules" in tools
+        tool = tools["search_function_modules"]
+        assert tool.description is not None
+        assert "search" in tool.description.lower()
+        assert "function" in tool.description.lower()
+
+    def test_search_function_modules_mcp_tool_returns_valid_response(self) -> None:
+        """Test that search_function_modules MCP tool returns FMSearchResponse."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_function_modules"]
+
+        # Call the tool with a query
+        result = asyncio.run(search_tool.fn(query="FKK"))
+
+        # Verify response structure (FMSearchResponse)
+        assert result.success is True
+        assert result.query == "FKK"
+        assert isinstance(result.total_results, int)
+        assert isinstance(result.total_in_catalog, int)
+        assert isinstance(result.results, list)
+
+        # Should find FKK function modules
+        if result.total_results > 0:
+            first_result = result.results[0]
+            assert "FKK" in first_result.name
+            assert isinstance(first_result.description, str)
+            assert isinstance(first_result.import_params, list)
+            assert isinstance(first_result.export_params, list)
+
+    def test_search_function_modules_mcp_tool_empty_query(self) -> None:
+        """Test that search_function_modules handles empty query gracefully."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_function_modules"]
+
+        # Empty query should return empty results, not crash
+        result = asyncio.run(search_tool.fn(query=""))
+
+        assert result.success is True
+        assert result.total_results == 0
+        assert result.results == []
+
+    def test_search_function_modules_mcp_tool_no_matches(self) -> None:
+        """Test that search_function_modules returns hint when no matches."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_function_modules"]
+
+        # Query that won't match anything
+        result = asyncio.run(search_tool.fn(query="ZZZNONEXISTENT999"))
+
+        assert result.success is True
+        assert result.total_results == 0
+        assert result.results == []
+        # Should have a hint when no results
+        assert result.hint is not None
+        assert "no function modules found" in result.hint.lower()
+
+    def test_search_function_modules_mcp_tool_german_keyword(self) -> None:
+        """Test that search_function_modules finds German terms like 'anlage'."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_function_modules"]
+
+        # Search for "anlage" (German for "installation" - common in IS-U)
+        result = asyncio.run(search_tool.fn(query="anlage"))
+
+        assert result.success is True
+        assert result.query == "anlage"
+
+        # Should find function modules related to anlage
+        if result.total_results > 0:
+            # At least one result should have "anlage" somewhere
+            has_anlage = any(
+                "anlage" in r.name.lower()
+                or "anlage" in r.description.lower()
+                or any("anlage" in p.description.lower() for p in r.import_params)
+                for r in result.results
+            )
+            assert has_anlage, "Expected 'anlage' in at least one FM result"
+
+    # =========================================================================
+    # search_classes MCP tool integration tests
+    # =========================================================================
+
+    def test_class_catalog_tools_are_registered(self) -> None:
+        """Test that class catalog tools are registered."""
+        tool_names = {tool.name for tool in mcp._tool_manager._tools.values()}
+        assert "search_classes" in tool_names, "search_classes should be registered"
+
+    def test_search_classes_has_description(self) -> None:
+        """Test that search_classes has a descriptive docstring."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        assert "search_classes" in tools
+        tool = tools["search_classes"]
+        assert tool.description is not None
+        assert "search" in tool.description.lower()
+        assert "class" in tool.description.lower()
+
+    def test_search_classes_mcp_tool_returns_valid_response(self) -> None:
+        """Test that search_classes MCP tool returns ClassSearchResponse."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_classes"]
+
+        # Call the tool with a query
+        result = asyncio.run(search_tool.fn(query="ISU"))
+
+        # Verify response structure (ClassSearchResponse)
+        assert result.success is True
+        assert result.query == "ISU"
+        assert isinstance(result.total_results, int)
+        assert isinstance(result.total_in_catalog, int)
+        assert isinstance(result.results, list)
+
+        # Should find ISU classes
+        if result.total_results > 0:
+            first_result = result.results[0]
+            assert "ISU" in first_result.name
+            assert isinstance(first_result.description, str)
+            assert isinstance(first_result.object_type, str)
+
+    def test_search_classes_mcp_tool_empty_query(self) -> None:
+        """Test that search_classes handles empty query gracefully."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_classes"]
+
+        # Empty query should return empty results, not crash
+        result = asyncio.run(search_tool.fn(query=""))
+
+        assert result.success is True
+        assert result.total_results == 0
+        assert result.results == []
+
+    def test_search_classes_mcp_tool_no_matches(self) -> None:
+        """Test that search_classes returns hint when no matches."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_classes"]
+
+        # Query that won't match anything
+        result = asyncio.run(search_tool.fn(query="ZZZNONEXISTENT999"))
+
+        assert result.success is True
+        assert result.total_results == 0
+        assert result.results == []
+        # Should have a hint when no results
+        assert result.hint is not None
+        assert "no classes found" in result.hint.lower()
+
+    def test_search_classes_mcp_tool_finds_installation(self) -> None:
+        """Test that search_classes finds CL_ISU_INSTALLATION."""
+        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        search_tool = tools["search_classes"]
+
+        result = asyncio.run(search_tool.fn(query="installation"))
+
+        assert result.success is True
+        if result.total_results > 0:
+            cls_names = [r.name for r in result.results]
+            assert any("INSTALLATION" in name for name in cls_names)
