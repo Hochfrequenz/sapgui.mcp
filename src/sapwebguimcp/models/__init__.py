@@ -16,6 +16,7 @@ from sapwebguimcp.models.browser import (
     close_browser_manager,
     get_browser_manager,
 )
+from sapwebguimcp.models.session_registry import SessionRegistry
 from sapwebguimcp.models.browser_results import (
     BrowserKeyboardResult,
     ClickResult,
@@ -152,6 +153,8 @@ __all__ = [
     "BrowserManager",
     "get_browser_manager",
     "close_browser_manager",
+    # Session registry
+    "SessionRegistry",
     # SAP results
     "ButtonInfo",
     "CapabilitiesResult",
