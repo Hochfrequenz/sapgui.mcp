@@ -134,7 +134,7 @@ class TestFMCatalogSearchIntegration:
                 or any("ANLAGE" in p.description.upper() for p in r.fm.all_params())
                 or any("ANLAGE" in p.reference_type.upper() for p in r.fm.all_params())
             )
-            assert has_anlage, f"FM {r.fm.name} doesnt seem related to anlage"
+            assert has_anlage, f"FM {r.fm.name} doesn't seem related to anlage"
 
     def test_search_vertrag_finds_contract_fms(self) -> None:
         """Test searching for 'vertrag' (contract) finds relevant FMs."""
