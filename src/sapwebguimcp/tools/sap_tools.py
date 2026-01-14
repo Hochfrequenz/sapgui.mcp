@@ -53,6 +53,9 @@ from sapwebguimcp.models import (
     SapFieldType,
     ScreenInfo,
     ScreenText,
+    SessionCloseResult,
+    SessionListResult,
+    SessionOpenResult,
     SessionStatus,
     SetFieldResult,
     ShortcutInfo,
@@ -67,6 +70,11 @@ from sapwebguimcp.models import (
     get_settings,
 )
 from sapwebguimcp.tools.browser_tools import _escape_css_selector
+from sapwebguimcp.tools.session_tools import (
+    sap_session_close_impl,
+    sap_session_list_impl,
+    sap_session_open_impl,
+)
 from sapwebguimcp.utils import is_sap_shortcut
 
 __all__ = ["register_sap_tools", "SELECTORS", "parse_shortcut_from_title"]
@@ -1941,3 +1949,48 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error setting field")
             return SetFieldResult.failure(f"Error setting field: {e}", label=label, value=value)
+
+    # =========================================================================
+    # Session Management Tools
+    # =========================================================================
+
+    @mcp.tool(description="""Create a new SAP session (window/tab) for parallel work.
+
+Use this when spawning sub-agents that need isolated SAP sessions.
+Each session is independent - actions in one don't affect others.
+
+Returns a session_id (e.g., "s2") to pass to other SAP tools.
+
+Example workflow for parallel agents:
+1. Parent: session = sap_session_open()  # Returns {"session_id": "s2"}
+2. Parent: Spawn sub-agent with instruction "use session='s2'"
+3. Sub-agent: sap_transaction("VA01", session="s2")
+4. Sub-agent: sap_fill_form({...}, session="s2")
+""")
+    async def sap_session_open(tcode: str | None = None) -> SessionOpenResult:
+        """Create a new SAP session."""
+        return await sap_session_open_impl(tcode)
+
+    @mcp.tool(description="""List all active SAP sessions.
+
+Returns session IDs, current transaction, and screen title for each.
+Use this to see what sessions exist before targeting one.
+
+Primary session ("s1") is created on sap_login().
+Additional sessions created via sap_session_open().
+""")
+    async def sap_session_list() -> SessionListResult:
+        """List all active sessions."""
+        return await sap_session_list_impl()
+
+    @mcp.tool(description="""Close a SAP session.
+
+Closes the browser tab and removes the session from the registry.
+Cannot close primary session ("s1") - use sap_login() to start fresh.
+
+Args:
+    session_id: Session to close (e.g., "s2")
+""")
+    async def sap_session_close(session_id: str) -> SessionCloseResult:
+        """Close a specific session."""
+        return await sap_session_close_impl(session_id)

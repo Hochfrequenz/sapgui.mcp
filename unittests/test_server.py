@@ -461,3 +461,15 @@ class TestMcpServer:
         if result.total_results > 0:
             cls_names = [r.name for r in result.results]
             assert any("INSTALLATION" in name for name in cls_names)
+
+    # =========================================================================
+    # Session management tools tests
+    # =========================================================================
+
+    def test_session_tools_registered(self) -> None:
+        """Test that session management tools are registered."""
+        tool_names = [t.name for t in mcp._tool_manager._tools.values()]
+
+        assert "sap_session_open" in tool_names
+        assert "sap_session_list" in tool_names
+        assert "sap_session_close" in tool_names
