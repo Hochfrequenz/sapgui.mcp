@@ -541,6 +541,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             if okcode_field:
                 # Start keepalive to prevent session timeout
                 await _start_keepalive()
+                # Register page as primary session (s1) if not already registered
+                if not browser_manager.registry.has_session("s1"):
+                    browser_manager.registry.register(page)
                 return LoginResult(
                     url=effective_url,
                     already_logged_in=True,
@@ -598,6 +601,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 logger.info("Login successful - OK-Code field visible")
                 # Start keepalive to prevent session timeout
                 await _start_keepalive()
+                # Register page as primary session (s1) if not already registered
+                if not browser_manager.registry.has_session("s1"):
+                    browser_manager.registry.register(page)
                 return LoginResult(
                     url=effective_url,
                     user=settings.sap_user,
@@ -623,6 +629,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         await page.wait_for_selector("#ToolbarOkCode", timeout=10000, state="visible")
                         # Start keepalive to prevent session timeout
                         await _start_keepalive()
+                        # Register page as primary session (s1) if not already registered
+                        if not browser_manager.registry.has_session("s1"):
+                            browser_manager.registry.register(page)
                         return LoginResult(
                             url=effective_url,
                             user=settings.sap_user,
