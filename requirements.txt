@@ -141,7 +141,7 @@ platformdirs==4.5.1
     # via fastmcp
 playwright==1.57.0
     # via sapwebguimcp (pyproject.toml)
-prometheus-client==0.23.1
+prometheus-client==0.24.1
     # via
     #   opentelemetry-exporter-prometheus
     #   pydocket
@@ -166,7 +166,7 @@ pydantic-settings==2.12.0
     # via
     #   mcp
     #   sapwebguimcp (pyproject.toml)
-pydocket==0.16.3
+pydocket==0.16.6
     # via fastmcp
 pyee==13.0.0
     # via playwright
