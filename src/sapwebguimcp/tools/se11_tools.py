@@ -467,6 +467,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
         names: str | list[str],
         object_type: SE11ObjectType,
         output_file: str | None = None,
+        session: str | None = None,
     ) -> SE11Result | SE11FileSummary:
         """
         Look up table or structure metadata from SE11.
@@ -487,7 +488,11 @@ def register_se11_tools(mcp: FastMCP) -> None:
             return SE11Result.failure("No names provided")
 
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return SE11Result.failure(f"Session error: {e}")
 
         entries: list[SE11Entry] = []
         errors: list[SE11Error] = []

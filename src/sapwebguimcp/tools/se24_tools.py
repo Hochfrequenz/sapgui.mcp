@@ -259,6 +259,7 @@ def register_se24_tools(mcp: FastMCP) -> None:
     async def sap_se24_lookup(
         classes: str | list[str],
         output_file: str | None = None,
+        session: str | None = None,
     ) -> SE24Result | SE24FileSummary:
         """
         Look up class/interface metadata from SE24.
@@ -279,7 +280,11 @@ def register_se24_tools(mcp: FastMCP) -> None:
             return SE24Result.failure("No classes provided")
 
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return SE24Result.failure(f"Session error: {e}")
 
         entries: list[SE24Entry] = []
         errors: list[SE24Error] = []
