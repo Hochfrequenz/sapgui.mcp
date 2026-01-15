@@ -90,7 +90,7 @@ async def sap_session_list_impl() -> SessionListResult:
         for session_id in registry.list_sessions():
             try:
                 page = registry.get_page(session_id)
-                title = await page.title() if callable(page.title) else None
+                title = await page.title()
 
                 sessions.append(
                     SessionInfo(
