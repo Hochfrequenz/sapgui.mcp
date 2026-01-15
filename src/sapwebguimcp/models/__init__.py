@@ -10,7 +10,7 @@ from sapwebguimcp.models.alv_models import (
     AlvMetadata,
     TableCellClickResult,
 )
-from sapwebguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, TCode, ToolResult
+from sapwebguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, SessionId, TCode, ToolResult
 from sapwebguimcp.models.browser import (
     BrowserManager,
     close_browser_manager,
@@ -61,6 +61,10 @@ from sapwebguimcp.models.sap_results import (
     SapFieldType,
     ScreenInfo,
     ScreenText,
+    SessionCloseResult,
+    SessionInfo,
+    SessionListResult,
+    SessionOpenResult,
     SessionStatus,
     SetFieldResult,
     ShortcutInfo,
@@ -114,6 +118,7 @@ from sapwebguimcp.models.se93_models import (
     SE93Result,
     SE93TransactionType,
 )
+from sapwebguimcp.models.session_registry import SessionRegistry
 from sapwebguimcp.models.workflow_models import (
     Workflow,
     WorkflowDeleteResult,
@@ -131,6 +136,7 @@ __all__ = [
     "PopupButton",
     "PopupInfo",
     "PopupType",
+    "SessionId",
     "TCode",
     "ToolResult",
     # ALV models
@@ -147,6 +153,8 @@ __all__ = [
     "BrowserManager",
     "get_browser_manager",
     "close_browser_manager",
+    # Session registry
+    "SessionRegistry",
     # SAP results
     "ButtonInfo",
     "CapabilitiesResult",
@@ -168,6 +176,10 @@ __all__ = [
     "SapFieldType",
     "ScreenInfo",
     "ScreenText",
+    "SessionCloseResult",
+    "SessionInfo",
+    "SessionListResult",
+    "SessionOpenResult",
     "SessionStatus",
     "SetFieldResult",
     "ShortcutInfo",

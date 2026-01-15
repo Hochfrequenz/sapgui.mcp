@@ -95,14 +95,22 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Get accessibility tree snapshot of the current page. "
             "Returns a YAML representation of the ARIA tree - useful for understanding "
             "page structure when other tools fail. "
-            "Args: selector = optional CSS selector to scope the snapshot."
+            "Args: selector = optional CSS selector to scope the snapshot.\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_snapshot(  # pylint: disable=missing-function-docstring
         selector: Optional[str] = None,
+        session: str | None = None,
     ) -> SnapshotResult:
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = await browser_manager.get_or_create_session_page(session)
+        except ValueError as e:
+            return SnapshotResult.failure(str(e), selector=selector)
 
         try:
             if selector:
@@ -128,15 +136,27 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Only use screenshots when visual layout verification is absolutely necessary "
             "(e.g., debugging rendering issues, user explicitly requests screenshot). "
             "Args: full_page = capture entire scrollable page, "
-            "selector = optional CSS selector to capture specific element."
+            "selector = optional CSS selector to capture specific element.\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_screenshot(  # pylint: disable=missing-function-docstring
         full_page: bool = False,
         selector: Optional[str] = None,
+        session: str | None = None,
     ) -> Image | ScreenshotResult:
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = await browser_manager.get_or_create_session_page(session)
+        except ValueError as e:
+            return ScreenshotResult.failure(
+                str(e),
+                full_page=full_page,
+                selector=selector,
+            )
 
         try:
             if selector:
@@ -166,12 +186,22 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         description=(
             "Click an element by CSS selector. "
             "BEFORE clicking buttons, use sap_get_shortcuts to check if a keyboard shortcut "
-            "is available - shortcuts are faster and more reliable than clicks."
+            "is available - shortcuts are faster and more reliable than clicks.\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
-    async def browser_click(selector: str) -> ClickResult:  # pylint: disable=missing-function-docstring
+    async def browser_click(  # pylint: disable=missing-function-docstring
+        selector: str,
+        session: str | None = None,
+    ) -> ClickResult:
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = await browser_manager.get_or_create_session_page(session)
+        except ValueError as e:
+            return ClickResult.failure(str(e), selector=selector)
 
         escaped_selector = _escape_css_selector(selector)
 
@@ -187,12 +217,23 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         description=(
             "Fill a single input field by CSS selector. "
             "For filling multiple fields on the same screen, use sap_fill_form instead - "
-            "it fills all fields in a single call, which is much faster."
+            "it fills all fields in a single call, which is much faster.\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
-    async def browser_fill(selector: str, value: str) -> FillResult:  # pylint: disable=missing-function-docstring
+    async def browser_fill(  # pylint: disable=missing-function-docstring
+        selector: str,
+        value: str,
+        session: str | None = None,
+    ) -> FillResult:
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = await browser_manager.get_or_create_session_page(session)
+        except ValueError as e:
+            return FillResult.failure(str(e), selector=selector, value=value)
 
         escaped_selector = _escape_css_selector(selector)
 
@@ -209,15 +250,23 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Important: For SAP shortcuts like Ctrl+S, prefer sap_keyboard which auto-reads the status bar! "
             "For filling multiple form fields, use sap_fill_form - much faster. "
             "Args: key = key to press (e.g., 'Enter', 'Tab', 'F3'), "
-            "text = text to type character by character."
+            "text = text to type character by character.\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_keyboard(  # pylint: disable=missing-function-docstring
         key: Optional[str] = None,
         text: Optional[str] = None,
+        session: str | None = None,
     ) -> BrowserKeyboardResult:
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = await browser_manager.get_or_create_session_page(session)
+        except ValueError as e:
+            return BrowserKeyboardResult.failure(str(e), key=key, text=text)
 
         try:
             if key:
@@ -233,12 +282,23 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
     @mcp.tool(
         description=(
-            "Navigate to a URL. " "For SAP login, use sap_login instead - it handles credentials and session setup."
+            "Navigate to a URL. "
+            "For SAP login, use sap_login instead - it handles credentials and session setup.\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
-    async def browser_navigate(url: str) -> NavigateResult:  # pylint: disable=missing-function-docstring
+    async def browser_navigate(  # pylint: disable=missing-function-docstring
+        url: str,
+        session: str | None = None,
+    ) -> NavigateResult:
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = await browser_manager.get_or_create_session_page(session)
+        except ValueError as e:
+            return NavigateResult.failure(str(e), url=url)
 
         try:
             await page.goto(url)
@@ -254,14 +314,24 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Execute JavaScript in the browser. "
             "Use with caution - this has full access to the page context. "
             "Prefer SAP-specific tools when available. "
-            "Returns: JSON-serialized result."
+            "Returns: JSON-serialized result.\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
-    async def browser_evaluate(script: str) -> EvaluateResult:  # pylint: disable=missing-function-docstring
+    async def browser_evaluate(  # pylint: disable=missing-function-docstring
+        script: str,
+        session: str | None = None,
+    ) -> EvaluateResult:
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
 
         script_snippet = script[:100] if len(script) > 100 else script
+
+        try:
+            page = await browser_manager.get_or_create_session_page(session)
+        except ValueError as e:
+            return EvaluateResult.failure(str(e), script_snippet=script_snippet)
 
         try:
             result = await page.evaluate(script)
@@ -281,18 +351,26 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Good uses: wait for element to appear (state='visible') or loading spinner to "
             "disappear (state='hidden'). "
             "Args: selector = CSS selector to wait for, timeout = max wait in ms, "
-            "state = 'visible'/'hidden'/'attached'/'detached'."
+            "state = 'visible'/'hidden'/'attached'/'detached'.\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_wait(  # pylint: disable=missing-function-docstring
         selector: Optional[str] = None,
         timeout: int = 5000,
         state: Literal["attached", "detached", "hidden", "visible"] = "visible",
+        session: str | None = None,
     ) -> WaitResult:
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
 
         timeout_td = timedelta(milliseconds=timeout)
+
+        try:
+            page = await browser_manager.get_or_create_session_page(session)
+        except ValueError as e:
+            return WaitResult.failure(str(e), selector=selector, state=state, timeout=timeout_td)
 
         try:
             if selector:
@@ -311,15 +389,23 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "For large HTML (>50KB), returns a File to avoid context bloat. "
             "Prefer sap_get_screen_text or sap_get_form_fields for structured SAP data. "
             "Args: selector = CSS selector (None for full page), "
-            "outer = include element itself (outerHTML) or just children (innerHTML)."
+            "outer = include element itself (outerHTML) or just children (innerHTML).\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_get_html(  # pylint: disable=missing-function-docstring
         selector: Optional[str] = None,
         outer: bool = True,
+        session: str | None = None,
     ) -> HtmlResult | list[File | str]:
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = await browser_manager.get_or_create_session_page(session)
+        except ValueError as e:
+            return HtmlResult.failure(str(e), selector=selector, outer=outer)
 
         try:
             if selector:
@@ -360,16 +446,24 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "For SAP dropdowns, prefer sap_fill_form or sap_set_field which handle "
             "SAP-specific dropdown behavior. "
             "Args: selector = CSS selector for select element, "
-            "value = option value to select, label = option text (alternative to value)."
+            "value = option value to select, label = option text (alternative to value).\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_select_option(  # pylint: disable=missing-function-docstring
         selector: str,
         value: Optional[str] = None,
         label: Optional[str] = None,
+        session: str | None = None,
     ) -> SelectOptionResult:
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = await browser_manager.get_or_create_session_page(session)
+        except ValueError as e:
+            return SelectOptionResult.failure(str(e), selector=selector)
 
         escaped_selector = _escape_css_selector(selector)
 

@@ -386,3 +386,93 @@ class TestLoginResultGuidance:
         result = LoginResult.failure("Login failed", url="https://sap.example.com")
         assert result.success is False
         assert result.guidance is None
+
+
+class TestSessionIdValidation:
+    """Tests for SessionId type validation."""
+
+    def test_valid_session_id(self) -> None:
+        """Test valid session ID format."""
+        from pydantic import TypeAdapter
+
+        from sapwebguimcp.models import SessionId
+
+        adapter = TypeAdapter(SessionId)
+        assert adapter.validate_python("s1") == "s1"
+        assert adapter.validate_python("s123") == "s123"
+
+    def test_session_id_normalized_to_lowercase(self) -> None:
+        """Test that session IDs are normalized to lowercase."""
+        from pydantic import TypeAdapter
+
+        from sapwebguimcp.models import SessionId
+
+        adapter = TypeAdapter(SessionId)
+        assert adapter.validate_python("S1") == "s1"
+        assert adapter.validate_python("S99") == "s99"
+
+    def test_invalid_session_id_rejected(self) -> None:
+        """Test that invalid session IDs raise ValidationError."""
+        from pydantic import TypeAdapter, ValidationError
+
+        from sapwebguimcp.models import SessionId
+
+        adapter = TypeAdapter(SessionId)
+        with pytest.raises(ValidationError):
+            adapter.validate_python("invalid")
+        with pytest.raises(ValidationError):
+            adapter.validate_python("1")  # Must start with 's'
+        with pytest.raises(ValidationError):
+            adapter.validate_python("session1")  # Must be 's' + digits only
+
+
+class TestSessionModels:
+    """Tests for session management result models."""
+
+    def test_session_info_creation(self) -> None:
+        """Test SessionInfo model creation."""
+        from sapwebguimcp.models import SessionInfo
+
+        info = SessionInfo(session_id="s1", tcode="VA01", title="Create Sales Order", is_primary=True)
+        assert info.session_id == "s1"
+        assert info.tcode == "VA01"
+        assert info.is_primary is True
+
+    def test_session_open_result_success(self) -> None:
+        """Test SessionOpenResult for successful session creation."""
+        from sapwebguimcp.models import SessionOpenResult
+
+        result = SessionOpenResult(session_id="s2", tcode="MM01", session_count=2)
+        assert result.success is True
+        assert result.session_id == "s2"
+        assert result.session_count == 2
+
+    def test_session_open_result_failure(self) -> None:
+        """Test SessionOpenResult.failure() factory."""
+        from sapwebguimcp.models import SessionOpenResult
+
+        result = SessionOpenResult.failure("SAP session limit reached")
+        assert result.success is False
+        assert "limit" in result.error
+
+    def test_session_list_result(self) -> None:
+        """Test SessionListResult with multiple sessions."""
+        from sapwebguimcp.models import SessionInfo, SessionListResult
+
+        result = SessionListResult(
+            sessions=[
+                SessionInfo(session_id="s1", is_primary=True),
+                SessionInfo(session_id="s2", tcode="VA01"),
+            ]
+        )
+        assert result.session_count == 2
+        assert result.sessions[0].is_primary is True
+
+    def test_session_close_result(self) -> None:
+        """Test SessionCloseResult model."""
+        from sapwebguimcp.models import SessionCloseResult
+
+        result = SessionCloseResult(session_id="s2", remaining_sessions=1)
+        assert result.success is True
+        assert result.session_id == "s2"
+        assert result.remaining_sessions == 1

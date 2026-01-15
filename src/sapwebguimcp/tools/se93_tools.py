@@ -209,6 +209,7 @@ def register_se93_tools(mcp: FastMCP) -> None:
     async def sap_se93_lookup(
         tcodes: str | list[str],
         output_file: str | None = None,
+        session: str | None = None,
     ) -> SE93Result | SE93FileSummary:
         """
         Look up transaction metadata from SE93.
@@ -228,7 +229,11 @@ def register_se93_tools(mcp: FastMCP) -> None:
             return SE93Result.failure("No transaction codes provided")
 
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return SE93Result.failure(f"Session error: {e}")
 
         entries: list[SE93Entry] = []
         errors: list[SE93Error] = []

@@ -11,6 +11,7 @@ from typing import Optional
 from playwright.async_api import Browser, BrowserContext, Page, Playwright, async_playwright
 
 from sapwebguimcp.models.config import BrowserMode, SapWebGuiSettings, get_settings
+from sapwebguimcp.models.session_registry import SessionRegistry
 
 __all__ = [
     "BrowserManager",
@@ -21,7 +22,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-class BrowserManager:
+class BrowserManager:  # pylint: disable=too-many-instance-attributes
     """
     Manages a persistent browser session for SAP Web GUI automation.
 
@@ -44,11 +45,79 @@ class BrowserManager:
         self._pages: dict[str, Page] = {}
         self._default_page_name = "sap"
         self._initialized = False
+        self._registry = SessionRegistry()
 
     @property
     def is_initialized(self) -> bool:
         """Check if the browser manager has been initialized."""
         return self._initialized
+
+    @property
+    def registry(self) -> SessionRegistry:
+        """Session registry for multi-session support."""
+        return self._registry
+
+    def get_session_page(self, session_id: str | None) -> Page:
+        """Get page for a session ID (strict - no page creation).
+
+        Returns an existing page from the registry or legacy page storage.
+        Raises ValueError if no session exists. For a version that creates
+        pages as fallback, use get_or_create_session_page().
+
+        Args:
+            session_id: Session ID or None for primary session ('s1')
+
+        Returns:
+            Playwright Page for the session
+
+        Raises:
+            ValueError: If session not found and no legacy page available
+        """
+        # If explicit session specified, use registry
+        if session_id is not None:
+            return self._registry.get_page(session_id)
+
+        # If session=None and s1 exists, use s1
+        if self._registry.has_session("s1"):
+            return self._registry.get_page("s1")
+
+        # Backwards compatibility: if no sessions registered, use legacy page
+        # This allows tools to work before sap_login() registers s1
+        if self._default_page_name in self._pages:
+            page = self._pages[self._default_page_name]
+            if not page.is_closed():
+                return page
+
+        # No session and no legacy page - this is an error
+        raise ValueError(
+            "No session available. Call sap_login() first to create a session, "
+            "or use sap_session_open() to create additional sessions."
+        )
+
+    async def get_or_create_session_page(self, session_id: str | None) -> Page:
+        """Get page for a session, creating one if needed (for backwards compatibility).
+
+        Unlike get_session_page() which raises ValueError if no session exists,
+        this method will create a new page as fallback when session_id is None.
+        Use this for browser tools that may be called before sap_login().
+
+        Args:
+            session_id: Session ID or None for primary/default session
+
+        Returns:
+            Playwright Page for the session (existing or newly created)
+        """
+        # If explicit session specified, use registry only
+        if session_id is not None:
+            return self._registry.get_page(session_id)
+
+        # If session=None and s1 exists, use s1
+        if self._registry.has_session("s1"):
+            return self._registry.get_page("s1")
+
+        # Backwards compatibility: if no sessions registered, use legacy get_current_page
+        # This creates a page if needed (important for browser_navigate before sap_login)
+        return await self.get_current_page()
 
     async def initialize(self) -> None:
         """Initialize the browser manager and start the browser."""

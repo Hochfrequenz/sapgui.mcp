@@ -670,12 +670,13 @@ def register_se16_tools(mcp: FastMCP) -> None:
             "For large results, use `output_file` to write JSON to disk and receive a summary."
         ),
     )
-    async def sap_se16_query(
+    async def sap_se16_query(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         ctx: Context,
         table: str,
         filters: dict[str, str] | None = None,
         max_hits: int = DEFAULT_MAX_HITS,
         output_file: str | None = None,
+        session: str | None = None,
     ) -> SE16Result | SE16FileSummary:
         """
         Query SAP table data via SE16N.
@@ -691,6 +692,24 @@ def register_se16_tools(mcp: FastMCP) -> None:
             SE16Result with all rows (inline), or
             SE16FileSummary with file path and preview (when output_file provided)
         """
+        browser_manager = await get_browser_manager()
+
+        # Validate session exists at entry point
+        try:
+            browser_manager.get_session_page(session)
+        except ValueError as e:
+            now = datetime.now(UTC)
+            return SE16Result.failure(
+                error=f"Session error: {e}",
+                table=table,
+                total_hits=0,
+                returned_rows=0,
+                truncated=False,
+                columns=[],
+                rows=[],
+                retrieved_at=now,
+            )
+
         logger.info("SE16: Querying table %s with max_hits=%d", table, max_hits)
 
         result = await _execute_se16_query(table, filters, max_hits, ctx)

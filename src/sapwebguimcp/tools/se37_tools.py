@@ -260,6 +260,7 @@ def register_se37_tools(mcp: FastMCP) -> None:
     async def sap_se37_lookup(
         function_modules: str | list[str],
         output_file: str | None = None,
+        session: str | None = None,
     ) -> SE37Result | SE37FileSummary:
         """
         Look up function module metadata from SE37.
@@ -280,7 +281,11 @@ def register_se37_tools(mcp: FastMCP) -> None:
             return SE37Result.failure("No function modules provided")
 
         browser_manager = await get_browser_manager()
-        page = await browser_manager.get_current_page()
+
+        try:
+            page = browser_manager.get_session_page(session)
+        except ValueError as e:
+            return SE37Result.failure(f"Session error: {e}")
 
         entries: list[SE37Entry] = []
         errors: list[SE37Error] = []

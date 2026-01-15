@@ -101,8 +101,8 @@ This way, the MCP server doesn't need to switch back and forth between abapGit a
 
 To open a new Modus: Use menu **System → Erzeugen Modus** or enter `/o` in the command field.
 
-> **Note:** Multi-window support for the MCP server is planned for a future release.
-> Until then, using a separate Modus for Git operations keeps your testing session stable.
+> **Note:** Multi-session support is now available! See "Multi-Session Support" section below.
+> Each sub-agent can have its own session, allowing parallel work without interference.
 
 ### Understanding abapGit Scope: 1 Repository = 1 Package
 
@@ -194,3 +194,61 @@ USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 **Reuse Opportunity:** Consider extracting a reusable `alv_collect_rows()` helper that other transaction tools can use. Currently each tool would need to copy this pattern.
 
 Use `log_feedback` to report if you encounter a transaction that needs pagination support.
+
+## Multi-Session Support (Parallel Agents)
+
+For bulk operations (create 100 business partners, process many orders, etc.), you can run **parallel sub-agents**, each with their own SAP session.
+
+### Session Management Tools
+
+| Tool                  | Purpose                                      |
+| --------------------- | -------------------------------------------- |
+| `sap_session_open()`  | Open a new SAP session, returns `session_id` |
+| `sap_session_list()`  | List all active sessions with IDs and titles |
+| `sap_session_close()` | Close a specific session by ID               |
+
+### Workflow Example
+
+```python
+# Parent agent creates sessions for 3 parallel sub-agents
+session1 = sap_session_open()  # Returns {"session_id": "s2"}
+session2 = sap_session_open()  # Returns {"session_id": "s3"}
+session3 = sap_session_open()  # Returns {"session_id": "s4"}
+
+# Spawn sub-agents with session assignment:
+# "Your SAP session is 's2'. Pass session='s2' to ALL SAP/browser tools."
+
+# Each sub-agent works independently:
+sap_transaction("BP", session="s2")
+sap_fill_form({"Name": "Customer 1"}, session="s2")
+sap_keyboard("F8", session="s2")  # Execute
+```
+
+### Tools Supporting `session` Parameter
+
+All major SAP and browser tools accept an optional `session` parameter:
+
+**SAP Tools:**
+
+- `sap_transaction`, `sap_keyboard`, `sap_get_screen_text`
+- `sap_fill_form`, `sap_set_field`, `sap_get_form_fields`
+- `sap_read_table`, `sap_click_table_cell`
+- `sap_discover_fields`, `sap_discover_buttons`, `sap_get_shortcuts`
+- `sap_close_popup`, `sap_read_status_bar`, `sap_get_screen_info`
+
+**Browser Tools:**
+
+- `browser_click`, `browser_fill`, `browser_keyboard`
+- `browser_snapshot`, `browser_screenshot`, `browser_get_html`
+- `browser_navigate`, `browser_wait`, `browser_evaluate`, `browser_select_option`
+
+**SE\* Tools:**
+
+- `sap_se11_lookup`, `sap_se16_query`, `sap_se24_lookup`, `sap_se37_lookup`, `sap_se93_lookup`
+
+### Important Notes
+
+- **Primary session "s1"** is created automatically on `sap_login()`
+- **Session limit:** Typically 6 sessions per SAP user (configured in SAP)
+- **Alternative:** Use `sap_transaction("BP", new_window=True)` to open a transaction directly in a new session
+- **Cleanup:** Sessions are closed automatically when their browser tab closes, or use `sap_session_close()`
