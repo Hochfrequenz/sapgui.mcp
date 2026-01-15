@@ -101,8 +101,8 @@ This way, the MCP server doesn't need to switch back and forth between abapGit a
 
 To open a new Modus: Use menu **System → Erzeugen Modus** or enter `/o` in the command field.
 
-> **Note:** Multi-window support for the MCP server is planned for a future release.
-> Until then, using a separate Modus for Git operations keeps your testing session stable.
+> **Note:** Multi-session support is now available! See "Multi-Session Support" section below.
+> Each sub-agent can have its own session, allowing parallel work without interference.
 
 ### Understanding abapGit Scope: 1 Repository = 1 Package
 
@@ -194,3 +194,24 @@ USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 **Reuse Opportunity:** Consider extracting a reusable `alv_collect_rows()` helper that other transaction tools can use. Currently each tool would need to copy this pattern.
 
 Use `log_feedback` to report if you encounter a transaction that needs pagination support.
+
+## Multi-Session Support (Parallel Agents)
+
+When spawning sub-agents for parallel SAP work, each agent can have its own session:
+
+1. **Create session:** `sap_session_open()` returns a `session_id`
+2. **Pass to sub-agent:** Include `session='s2'` in agent instructions
+3. **Use in tools:** All SAP/browser tools accept `session` parameter
+
+Example:
+```python
+# Parent agent
+result = sap_session_open()  # Returns {"session_id": "s2"}
+# Spawn sub-agent with: "Your SAP session is 's2'. Pass session='s2' to all SAP tools."
+
+# Sub-agent uses:
+sap_transaction("VA01", session="s2")
+sap_fill_form({"Customer": "123"}, session="s2")
+```
+
+Primary session ("s1") is created on `sap_login()`. Up to 6 sessions typically allowed per SAP user.
