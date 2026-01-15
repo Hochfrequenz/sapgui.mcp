@@ -24,6 +24,7 @@ class SessionRegistry:
         self._sessions: dict[str, "Page"] = {}
         self._counter: int = 0
         self._page_to_session: dict["Page", str] = {}
+        self._pages_with_listeners: set["Page"] = set()  # Track pages with close listeners
 
     @property
     def primary_session(self) -> str:
@@ -44,8 +45,11 @@ class SessionRegistry:
         self._sessions[session_id] = page
         self._page_to_session[page] = session_id
 
-        # Auto-unregister when page closes
-        page.on("close", lambda _: self._on_page_closed(page))
+        # Auto-unregister when page closes (only attach once per page)
+        if page not in self._pages_with_listeners:
+            # Capture page in lambda default arg to avoid closure issues
+            page.on("close", lambda _, p=page: self._on_page_closed(p))
+            self._pages_with_listeners.add(page)
 
         logger.info("Registered session '%s'", session_id)
         return session_id
@@ -102,6 +106,9 @@ class SessionRegistry:
 
     def _on_page_closed(self, page: "Page") -> None:
         """Handle page close event - auto-unregister."""
+        # Clean up listener tracking
+        self._pages_with_listeners.discard(page)
+
         if page in self._page_to_session:
             session_id = self._page_to_session.pop(page)
             self._sessions.pop(session_id, None)
@@ -115,5 +122,8 @@ class SessionRegistry:
         context.on("page", self._on_page_created)
 
     def _on_page_created(self, page: "Page") -> None:
-        """Handle new page creation - attach close listener."""
-        page.on("close", lambda _: self._on_page_closed(page))
+        """Handle new page creation - attach close listener if not already attached."""
+        if page not in self._pages_with_listeners:
+            # Capture page in lambda default arg to avoid closure issues
+            page.on("close", lambda _, p=page: self._on_page_closed(p))
+            self._pages_with_listeners.add(page)
