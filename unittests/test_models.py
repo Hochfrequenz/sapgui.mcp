@@ -393,8 +393,9 @@ class TestSessionIdValidation:
 
     def test_valid_session_id(self) -> None:
         """Test valid session ID format."""
-        from sapwebguimcp.models import SessionId
         from pydantic import TypeAdapter
+
+        from sapwebguimcp.models import SessionId
 
         adapter = TypeAdapter(SessionId)
         assert adapter.validate_python("s1") == "s1"
@@ -402,8 +403,9 @@ class TestSessionIdValidation:
 
     def test_session_id_normalized_to_lowercase(self) -> None:
         """Test that session IDs are normalized to lowercase."""
-        from sapwebguimcp.models import SessionId
         from pydantic import TypeAdapter
+
+        from sapwebguimcp.models import SessionId
 
         adapter = TypeAdapter(SessionId)
         assert adapter.validate_python("S1") == "s1"
@@ -411,8 +413,9 @@ class TestSessionIdValidation:
 
     def test_invalid_session_id_rejected(self) -> None:
         """Test that invalid session IDs raise ValidationError."""
-        from sapwebguimcp.models import SessionId
         from pydantic import TypeAdapter, ValidationError
+
+        from sapwebguimcp.models import SessionId
 
         adapter = TypeAdapter(SessionId)
         with pytest.raises(ValidationError):
@@ -456,10 +459,12 @@ class TestSessionModels:
         """Test SessionListResult with multiple sessions."""
         from sapwebguimcp.models import SessionInfo, SessionListResult
 
-        result = SessionListResult(sessions=[
-            SessionInfo(session_id="s1", is_primary=True),
-            SessionInfo(session_id="s2", tcode="VA01"),
-        ])
+        result = SessionListResult(
+            sessions=[
+                SessionInfo(session_id="s1", is_primary=True),
+                SessionInfo(session_id="s2", tcode="VA01"),
+            ]
+        )
         assert result.session_count == 2
         assert result.sessions[0].is_primary is True
 

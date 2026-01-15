@@ -1,11 +1,11 @@
 """End-to-end tests for session management against real SAP system."""
 
 import pytest
-from unittests.conftest import is_sap_integration_test_machine, call_tool_typed
+
+from unittests.conftest import call_tool_typed, is_sap_integration_test_machine
 
 pytestmark = pytest.mark.skipif(
-    not is_sap_integration_test_machine(),
-    reason="SAP integration tests only run on authorized machines"
+    not is_sap_integration_test_machine(), reason="SAP integration tests only run on authorized machines"
 )
 
 
@@ -21,9 +21,7 @@ class TestSessionSAPIntegration:
         await sap_mcp_client.call_tool("sap_login", {})
 
         # Check sessions
-        result = await call_tool_typed(
-            sap_mcp_client, "sap_session_list", {}, SessionListResult
-        )
+        result = await call_tool_typed(sap_mcp_client, "sap_session_list", {}, SessionListResult)
 
         assert result.success
         # After login, should have at least one session
@@ -36,9 +34,7 @@ class TestSessionSAPIntegration:
 
         await sap_mcp_client.call_tool("sap_login", {})
 
-        result = await call_tool_typed(
-            sap_mcp_client, "sap_session_close", {"session_id": "s1"}, SessionCloseResult
-        )
+        result = await call_tool_typed(sap_mcp_client, "sap_session_close", {"session_id": "s1"}, SessionCloseResult)
 
         assert result.success is False
         assert "primary" in result.error.lower() or "s1" in result.error

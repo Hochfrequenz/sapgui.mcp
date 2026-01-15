@@ -34,9 +34,7 @@ async def sap_session_open_impl(tcode: str | None = None) -> SessionOpenResult:
 
         # Get primary session page to execute /o command
         if not registry.has_session("s1"):
-            return SessionOpenResult.failure(
-                "No primary session. Call sap_login() first."
-            )
+            return SessionOpenResult.failure("No primary session. Call sap_login() first.")
 
         primary_page = registry.get_page("s1")
         context = primary_page.context
@@ -59,8 +57,7 @@ async def sap_session_open_impl(tcode: str | None = None) -> SessionOpenResult:
         # Check for new page
         if len(context.pages) <= pages_before:
             return SessionOpenResult.failure(
-                "SAP session limit reached (typically 6 per user). "
-                "Close unused sessions with sap_session_close()."
+                "SAP session limit reached (typically 6 per user). " "Close unused sessions with sap_session_close()."
             )
 
         # Register new page
@@ -95,11 +92,13 @@ async def sap_session_list_impl() -> SessionListResult:
                 page = registry.get_page(session_id)
                 title = await page.title() if callable(page.title) else None
 
-                sessions.append(SessionInfo(
-                    session_id=session_id,
-                    title=title,
-                    is_primary=(session_id == "s1"),
-                ))
+                sessions.append(
+                    SessionInfo(
+                        session_id=session_id,
+                        title=title,
+                        is_primary=(session_id == "s1"),
+                    )
+                )
             except ValueError:
                 # Session expired, skip
                 continue
@@ -122,9 +121,7 @@ async def sap_session_close_impl(session_id: str) -> SessionCloseResult:
     """
     # Protect primary session
     if session_id == "s1":
-        return SessionCloseResult.failure(
-            "Cannot close primary session 's1'. Use sap_login() to start fresh."
-        )
+        return SessionCloseResult.failure("Cannot close primary session 's1'. Use sap_login() to start fresh.")
 
     try:
         manager = await get_browser_manager()
@@ -132,9 +129,7 @@ async def sap_session_close_impl(session_id: str) -> SessionCloseResult:
 
         if not registry.has_session(session_id):
             available = ", ".join(registry.list_sessions()) or "(none)"
-            return SessionCloseResult.failure(
-                f"Session '{session_id}' not found. Active: {available}."
-            )
+            return SessionCloseResult.failure(f"Session '{session_id}' not found. Active: {available}.")
 
         page = registry.get_page(session_id)
 

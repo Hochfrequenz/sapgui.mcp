@@ -661,8 +661,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "use the dedicated sap_se11_lookup, sap_se16_query, sap_se24_lookup, "
             "sap_se37_lookup, or sap_se93_lookup tools instead, which are faster and return structured data.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_transaction(  # pylint: disable=too-many-return-statements,too-many-locals
@@ -954,8 +954,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Send a keyboard shortcut to SAP Web GUI\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_keyboard(  # pylint: disable=too-many-return-statements
@@ -1074,8 +1074,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Get all readable text from the current SAP screen. "
             "Use include_dropdown_options=True to also fetch available options for dropdown fields.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_get_screen_text(
@@ -1143,8 +1143,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Returns field IDs, labels, types (text/dropdown/checkbox/radio), and current values. "
             "Use include_dropdown_options=True to also fetch available options for dropdown fields.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_get_form_fields(
@@ -1217,8 +1217,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Read data from an ALV grid or table on the current screen\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_read_table(
@@ -1309,8 +1309,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Automatically targets the correct clickable element (hotspot span vs TD). "
             "Use after sap_read_table to navigate to detail views.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_click_table_cell(
@@ -1401,8 +1401,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Read the current message from SAP's status bar\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_read_status_bar(session: str | None = None) -> StatusBarInfo:
@@ -1442,8 +1442,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Get technical information about the current SAP screen\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_get_screen_info(session: str | None = None) -> ScreenInfo:
@@ -1558,8 +1558,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Returns fields with reliable CSS selectors (use the 'selector' field). "
             "For buttons, use sap_discover_buttons instead.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_discover_fields(session: str | None = None) -> DiscoveredFields:
@@ -1624,8 +1624,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Prefer keyboard shortcuts when available - they're faster. "
             "For input fields use sap_discover_fields instead.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_discover_buttons(session: str | None = None) -> DiscoveredButtons:
@@ -1668,8 +1668,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Use BEFORE clicking buttons - shortcuts like F5, Strg+S are faster and more reliable. "
             "Returns action text and key combination for each available shortcut.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_get_shortcuts(session: str | None = None) -> ShortcutsResult:
@@ -1739,8 +1739,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Specify button by label ('Ja', 'Nein') or accesskey ('J', 'N'), "
             "or use close=True to click the X button if available.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_close_popup(  # pylint: disable=too-many-branches,too-many-return-statements,too-many-locals
@@ -1894,8 +1894,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "- Fields on different screens/tabs\n"
             "- Need to click buttons between fills\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_fill_form(
@@ -1994,8 +1994,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "This is simpler than sap_fill_form for single fields, and returns "
             "the CSS selector that was matched (useful for debugging).\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def sap_set_field(  # pylint: disable=too-many-return-statements
@@ -2092,7 +2092,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     # Session Management Tools
     # =========================================================================
 
-    @mcp.tool(description="""Create a new SAP session (window/tab) for parallel work.
+    @mcp.tool(
+        description="""Create a new SAP session (window/tab) for parallel work.
 
 Use this when spawning sub-agents that need isolated SAP sessions.
 Each session is independent - actions in one don't affect others.
@@ -2104,31 +2105,36 @@ Example workflow for parallel agents:
 2. Parent: Spawn sub-agent with instruction "use session='s2'"
 3. Sub-agent: sap_transaction("VA01", session="s2")
 4. Sub-agent: sap_fill_form({...}, session="s2")
-""")
+"""
+    )
     async def sap_session_open(tcode: str | None = None) -> SessionOpenResult:
         """Create a new SAP session."""
         return await sap_session_open_impl(tcode)
 
-    @mcp.tool(description="""List all active SAP sessions.
+    @mcp.tool(
+        description="""List all active SAP sessions.
 
 Returns session IDs, current transaction, and screen title for each.
 Use this to see what sessions exist before targeting one.
 
 Primary session ("s1") is created on sap_login().
 Additional sessions created via sap_session_open().
-""")
+"""
+    )
     async def sap_session_list() -> SessionListResult:
         """List all active sessions."""
         return await sap_session_list_impl()
 
-    @mcp.tool(description="""Close a SAP session.
+    @mcp.tool(
+        description="""Close a SAP session.
 
 Closes the browser tab and removes the session from the registry.
 Cannot close primary session ("s1") - use sap_login() to start fresh.
 
 Args:
     session_id: Session to close (e.g., "s2")
-""")
+"""
+    )
     async def sap_session_close(session_id: str) -> SessionCloseResult:
         """Close a specific session."""
         return await sap_session_close_impl(session_id)

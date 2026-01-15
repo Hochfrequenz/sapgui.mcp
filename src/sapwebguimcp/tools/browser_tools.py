@@ -97,8 +97,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "page structure when other tools fail. "
             "Args: selector = optional CSS selector to scope the snapshot.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_snapshot(  # pylint: disable=missing-function-docstring
@@ -138,8 +138,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Args: full_page = capture entire scrollable page, "
             "selector = optional CSS selector to capture specific element.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_screenshot(  # pylint: disable=missing-function-docstring
@@ -188,8 +188,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "BEFORE clicking buttons, use sap_get_shortcuts to check if a keyboard shortcut "
             "is available - shortcuts are faster and more reliable than clicks.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_click(  # pylint: disable=missing-function-docstring
@@ -219,8 +219,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "For filling multiple fields on the same screen, use sap_fill_form instead - "
             "it fills all fields in a single call, which is much faster.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_fill(  # pylint: disable=missing-function-docstring
@@ -252,8 +252,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Args: key = key to press (e.g., 'Enter', 'Tab', 'F3'), "
             "text = text to type character by character.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_keyboard(  # pylint: disable=missing-function-docstring
@@ -285,8 +285,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Navigate to a URL. "
             "For SAP login, use sap_login instead - it handles credentials and session setup.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_navigate(  # pylint: disable=missing-function-docstring
@@ -316,8 +316,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Prefer SAP-specific tools when available. "
             "Returns: JSON-serialized result.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_evaluate(  # pylint: disable=missing-function-docstring
@@ -353,8 +353,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Args: selector = CSS selector to wait for, timeout = max wait in ms, "
             "state = 'visible'/'hidden'/'attached'/'detached'.\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_wait(  # pylint: disable=missing-function-docstring
@@ -391,8 +391,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Args: selector = CSS selector (None for full page), "
             "outer = include element itself (outerHTML) or just children (innerHTML).\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_get_html(  # pylint: disable=missing-function-docstring
@@ -448,8 +448,8 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             "Args: selector = CSS selector for select element, "
             "value = option value to select, label = option text (alternative to value).\n\n"
             "**Session parameter:**\n"
-            "- session=None (default): Uses primary session (\"s1\")\n"
-            "- session=\"s2\": Targets specific session (for parallel agents)"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
         )
     )
     async def browser_select_option(  # pylint: disable=missing-function-docstring

@@ -16,7 +16,6 @@ from sapwebguimcp.models.browser import (
     close_browser_manager,
     get_browser_manager,
 )
-from sapwebguimcp.models.session_registry import SessionRegistry
 from sapwebguimcp.models.browser_results import (
     BrowserKeyboardResult,
     ClickResult,
@@ -119,6 +118,7 @@ from sapwebguimcp.models.se93_models import (
     SE93Result,
     SE93TransactionType,
 )
+from sapwebguimcp.models.session_registry import SessionRegistry
 from sapwebguimcp.models.workflow_models import (
     Workflow,
     WorkflowDeleteResult,

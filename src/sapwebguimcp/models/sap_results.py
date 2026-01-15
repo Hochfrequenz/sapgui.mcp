@@ -89,8 +89,7 @@ class SessionOpenResult(ToolResult):
     """Result from sap_session_open tool."""
 
     session_id: str | None = Field(
-        default=None,
-        description="ID of the new session (e.g., 's2'). Pass to other tools via session= parameter."
+        default=None, description="ID of the new session (e.g., 's2'). Pass to other tools via session= parameter."
     )
     tcode: str | None = Field(default=None, description="Transaction opened in new session, if requested")
     session_count: int = Field(default=1, ge=1, description="Total active sessions after opening")
@@ -100,8 +99,7 @@ class SessionListResult(ToolResult):
     """Result from sap_session_list tool."""
 
     sessions: list[SessionInfo] = Field(
-        default_factory=list,
-        description="All active SAP sessions with their current state"
+        default_factory=list, description="All active SAP sessions with their current state"
     )
 
     @property
@@ -113,10 +111,7 @@ class SessionListResult(ToolResult):
 class SessionCloseResult(ToolResult):
     """Result from sap_session_close tool."""
 
-    session_id: str | None = Field(
-        default=None,
-        description="ID of the session that was closed (e.g., 's2')"
-    )
+    session_id: str | None = Field(default=None, description="ID of the session that was closed (e.g., 's2')")
     remaining_sessions: int = Field(default=0, ge=0, description="Sessions still active after closing")
 
 

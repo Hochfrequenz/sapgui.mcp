@@ -5,6 +5,7 @@ They are skipped in CI where browsers are not available.
 """
 
 import asyncio
+
 import pytest
 
 
