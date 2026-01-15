@@ -108,7 +108,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = await browser_manager.get_session_page_async(session)
         except ValueError as e:
             return SnapshotResult.failure(str(e), selector=selector)
 
@@ -150,7 +150,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = await browser_manager.get_session_page_async(session)
         except ValueError as e:
             return ScreenshotResult.failure(
                 str(e),
@@ -199,7 +199,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = await browser_manager.get_session_page_async(session)
         except ValueError as e:
             return ClickResult.failure(str(e), selector=selector)
 
@@ -231,7 +231,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = await browser_manager.get_session_page_async(session)
         except ValueError as e:
             return FillResult.failure(str(e), selector=selector, value=value)
 
@@ -264,7 +264,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = await browser_manager.get_session_page_async(session)
         except ValueError as e:
             return BrowserKeyboardResult.failure(str(e), key=key, text=text)
 
@@ -296,7 +296,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = await browser_manager.get_session_page_async(session)
         except ValueError as e:
             return NavigateResult.failure(str(e), url=url)
 
@@ -329,7 +329,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         script_snippet = script[:100] if len(script) > 100 else script
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = await browser_manager.get_session_page_async(session)
         except ValueError as e:
             return EvaluateResult.failure(str(e), script_snippet=script_snippet)
 
@@ -368,7 +368,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         timeout_td = timedelta(milliseconds=timeout)
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = await browser_manager.get_session_page_async(session)
         except ValueError as e:
             return WaitResult.failure(str(e), selector=selector, state=state, timeout=timeout_td)
 
@@ -403,7 +403,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = await browser_manager.get_session_page_async(session)
         except ValueError as e:
             return HtmlResult.failure(str(e), selector=selector, outer=outer)
 
@@ -461,7 +461,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = await browser_manager.get_session_page_async(session)
         except ValueError as e:
             return SelectOptionResult.failure(str(e), selector=selector)
 
