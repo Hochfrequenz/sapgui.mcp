@@ -58,16 +58,20 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         return self._registry
 
     def get_session_page(self, session_id: str | None) -> Page:
-        """Get page for a session ID (sync version).
+        """Get page for a session ID (strict - no page creation).
+
+        Returns an existing page from the registry or legacy page storage.
+        Raises ValueError if no session exists. For a version that creates
+        pages as fallback, use get_or_create_session_page().
 
         Args:
-            session_id: Session ID or None for primary session
+            session_id: Session ID or None for primary session ('s1')
 
         Returns:
             Playwright Page for the session
 
         Raises:
-            ValueError: If session not found
+            ValueError: If session not found and no legacy page available
         """
         # If explicit session specified, use registry
         if session_id is not None:
@@ -90,16 +94,18 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
             "or use sap_session_open() to create additional sessions."
         )
 
-    async def get_session_page_async(self, session_id: str | None) -> Page:
-        """Get page for a session ID with fallback to legacy page creation.
+    async def get_or_create_session_page(self, session_id: str | None) -> Page:
+        """Get page for a session, creating one if needed (for backwards compatibility).
 
-        This async version can create a page if none exist (for backwards compatibility).
+        Unlike get_session_page() which raises ValueError if no session exists,
+        this method will create a new page as fallback when session_id is None.
+        Use this for browser tools that may be called before sap_login().
 
         Args:
             session_id: Session ID or None for primary/default session
 
         Returns:
-            Playwright Page for the session
+            Playwright Page for the session (existing or newly created)
         """
         # If explicit session specified, use registry only
         if session_id is not None:
