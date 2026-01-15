@@ -7,33 +7,28 @@ They are skipped in CI where browsers are not available.
 import asyncio
 import pytest
 
-# Check if Playwright browsers are installed
-try:
-    from playwright.sync_api import sync_playwright
-
-    with sync_playwright() as p:
-        # Try to get browser executable path - this fails if not installed
-        p.chromium.executable_path  # noqa: B018 - intentional attribute access
-    PLAYWRIGHT_BROWSERS_INSTALLED = True
-except Exception:  # pylint: disable=broad-exception-caught
-    PLAYWRIGHT_BROWSERS_INSTALLED = False
-
-pytestmark = pytest.mark.skipif(
-    not PLAYWRIGHT_BROWSERS_INSTALLED,
-    reason="Playwright browsers not installed (run: playwright install chromium)",
-)
-
 
 @pytest.fixture
 async def browser_context():
-    """Real Playwright browser context for testing."""
-    from playwright.async_api import async_playwright
+    """Real Playwright browser context for testing.
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context()
-        yield context
-        await browser.close()
+    Skips the test if Playwright browsers are not installed.
+    """
+    try:
+        from playwright.async_api import async_playwright
+    except ImportError:
+        pytest.skip("Playwright not installed")
+
+    try:
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context()
+            yield context
+            await browser.close()
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        if "Executable doesn't exist" in str(e) or "browserType.launch" in str(e):
+            pytest.skip(f"Playwright browsers not installed: {e}")
+        raise
 
 
 class TestSessionRegistryIntegration:
