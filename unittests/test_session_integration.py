@@ -1,7 +1,27 @@
-"""Integration tests for session management with real Playwright browser."""
+"""Integration tests for session management with real Playwright browser.
+
+These tests require Playwright with Chromium browser installed.
+They are skipped in CI where browsers are not available.
+"""
 
 import asyncio
 import pytest
+
+# Check if Playwright browsers are installed
+try:
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        # Try to get browser executable path - this fails if not installed
+        p.chromium.executable_path  # noqa: B018 - intentional attribute access
+    PLAYWRIGHT_BROWSERS_INSTALLED = True
+except Exception:  # pylint: disable=broad-exception-caught
+    PLAYWRIGHT_BROWSERS_INSTALLED = False
+
+pytestmark = pytest.mark.skipif(
+    not PLAYWRIGHT_BROWSERS_INSTALLED,
+    reason="Playwright browsers not installed (run: playwright install chromium)",
+)
 
 
 @pytest.fixture
