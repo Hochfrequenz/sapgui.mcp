@@ -1,7 +1,7 @@
 """Session registry for tracking SAP browser sessions."""
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from playwright.async_api import BrowserContext, Page
@@ -47,8 +47,8 @@ class SessionRegistry:
 
         # Auto-unregister when page closes (only attach once per page)
         if page not in self._pages_with_listeners:
-            # Capture page in lambda default arg to avoid closure issues
-            page.on("close", lambda _, p=page: self._on_page_closed(p))
+            # Use closure factory to capture page value and satisfy type checker
+            page.on("close", self._make_close_handler(page))
             self._pages_with_listeners.add(page)
 
         logger.info("Registered session '%s'", session_id)
@@ -104,6 +104,18 @@ class SessionRegistry:
         """List all registered session IDs."""
         return list(self._sessions.keys())
 
+    def _make_close_handler(self, page: "Page") -> Callable[["Page"], None]:
+        """Create a close handler that captures the page value.
+
+        This factory function ensures the page is captured at creation time
+        (avoiding closure issues) while satisfying Playwright's type signature.
+        """
+
+        def handler(_closing_page: "Page") -> None:
+            self._on_page_closed(page)
+
+        return handler
+
     def _on_page_closed(self, page: "Page") -> None:
         """Handle page close event - auto-unregister."""
         # Clean up listener tracking
@@ -124,6 +136,6 @@ class SessionRegistry:
     def _on_page_created(self, page: "Page") -> None:
         """Handle new page creation - attach close listener if not already attached."""
         if page not in self._pages_with_listeners:
-            # Capture page in lambda default arg to avoid closure issues
-            page.on("close", lambda _, p=page: self._on_page_closed(p))
+            # Use closure factory to capture page value and satisfy type checker
+            page.on("close", self._make_close_handler(page))
             self._pages_with_listeners.add(page)
