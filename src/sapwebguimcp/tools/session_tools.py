@@ -57,8 +57,7 @@ async def sap_session_open_impl(tcode: str | None = None) -> SessionOpenResult:
         # Check for new page
         if len(context.pages) <= pages_before:
             return SessionOpenResult.failure(
-                "SAP session limit reached (typically 6 per user). "
-                + "Close unused sessions with sap_session_close()."
+                "SAP session limit reached (typically 6 per user). " + "Close unused sessions with sap_session_close()."
             )
 
         # Register new page

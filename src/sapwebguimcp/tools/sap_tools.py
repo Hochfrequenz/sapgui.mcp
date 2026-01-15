@@ -660,9 +660,17 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "IMPORTANT: Do NOT use this for SE11, SE16, SE24, SE37, or SE93 - "
             "use the dedicated sap_se11_lookup, sap_se16_query, sap_se24_lookup, "
             "sap_se37_lookup, or sap_se93_lookup tools instead, which are faster and return structured data.\n\n"
+            "**Multi-Session Support (for parallel agents):**\n"
+            "- `new_window=True`: Opens transaction in a NEW browser tab (SAP session)\n"
+            "- Returns `session_count` showing total open sessions\n"
+            "- Use `session` parameter on subsequent tool calls to target that session\n\n"
+            "Example workflow for 5 parallel agents:\n"
+            '1. `sap_transaction("BP", new_window=True)` → Creates session s2\n'
+            "2. `sap_session_list()` → See all sessions with IDs\n"
+            '3. `sap_fill_form({...}, session="s2")` → Target specific session\n\n'
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
-            '- session="s2": Targets specific session (for parallel agents)'
+            '- session="s2", "s3", etc.: Targets specific session'
         )
     )
     async def sap_transaction(  # pylint: disable=too-many-return-statements,too-many-locals
