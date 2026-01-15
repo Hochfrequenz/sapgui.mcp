@@ -203,13 +203,13 @@ class SessionRegistry:
 
 ### Guarantees
 
-| Scenario | Behavior |
-|----------|----------|
-| `/o` creates new tab | `sap_session_open` explicitly registers it |
-| User closes browser tab | `page.on("close")` auto-unregisters |
-| SAP timeout closes session | `page.on("close")` auto-unregisters |
-| Tool calls closed session | `get_page()` detects and raises clear error |
-| `sap_session_close()` called | Explicitly closes page + unregisters |
+| Scenario                     | Behavior                                    |
+| ---------------------------- | ------------------------------------------- |
+| `/o` creates new tab         | `sap_session_open` explicitly registers it  |
+| User closes browser tab      | `page.on("close")` auto-unregisters         |
+| SAP timeout closes session   | `page.on("close")` auto-unregisters         |
+| Tool calls closed session    | `get_page()` detects and raises clear error |
+| `sap_session_close()` called | Explicitly closes page + unregisters        |
 
 ## Tool Modifications
 
@@ -225,16 +225,16 @@ async def sap_fill_form(
 
 ### Tools requiring `session` parameter
 
-| Category | Tools |
-|----------|-------|
-| SAP Form | `sap_fill_form`, `sap_set_field`, `sap_get_form_fields` |
-| SAP Navigation | `sap_transaction`, `sap_keyboard` |
-| SAP Read | `sap_get_screen_text`, `sap_get_screen_info`, `sap_read_status_bar`, `sap_read_table` |
-| SAP Discovery | `sap_discover_fields`, `sap_discover_buttons`, `sap_get_shortcuts` |
-| SAP Table | `sap_click_table_cell` |
-| SAP Popup | `sap_close_popup` |
-| SAP Lookup | `sap_se11_lookup`, `sap_se16_query`, `sap_se24_lookup`, `sap_se37_lookup`, `sap_se93_lookup` |
-| Browser | `browser_click`, `browser_fill`, `browser_keyboard`, `browser_snapshot`, `browser_screenshot`, `browser_evaluate`, `browser_get_html`, `browser_select_option`, `browser_wait`, `browser_navigate` |
+| Category       | Tools                                                                                                                                                                                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SAP Form       | `sap_fill_form`, `sap_set_field`, `sap_get_form_fields`                                                                                                                                            |
+| SAP Navigation | `sap_transaction`, `sap_keyboard`                                                                                                                                                                  |
+| SAP Read       | `sap_get_screen_text`, `sap_get_screen_info`, `sap_read_status_bar`, `sap_read_table`                                                                                                              |
+| SAP Discovery  | `sap_discover_fields`, `sap_discover_buttons`, `sap_get_shortcuts`                                                                                                                                 |
+| SAP Table      | `sap_click_table_cell`                                                                                                                                                                             |
+| SAP Popup      | `sap_close_popup`                                                                                                                                                                                  |
+| SAP Lookup     | `sap_se11_lookup`, `sap_se16_query`, `sap_se24_lookup`, `sap_se37_lookup`, `sap_se93_lookup`                                                                                                       |
+| Browser        | `browser_click`, `browser_fill`, `browser_keyboard`, `browser_snapshot`, `browser_screenshot`, `browser_evaluate`, `browser_get_html`, `browser_select_option`, `browser_wait`, `browser_navigate` |
 
 ### Tools NOT requiring `session` parameter
 

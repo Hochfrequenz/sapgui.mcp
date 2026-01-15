@@ -204,6 +204,7 @@ When spawning sub-agents for parallel SAP work, each agent can have its own sess
 3. **Use in tools:** All SAP/browser tools accept `session` parameter
 
 Example:
+
 ```python
 # Parent agent
 result = sap_session_open()  # Returns {"session_id": "s2"}

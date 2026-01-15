@@ -15,6 +15,7 @@
 ## Task 1: SessionId Type Alias
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/models/base.py`
 - Modify: `src/sapwebguimcp/models/__init__.py`
 - Test: `unittests/test_models.py`
@@ -77,6 +78,7 @@ SessionId = Annotated[str, BeforeValidator(str.lower), Field(pattern=_SESSION_ID
 **Step 4: Export SessionId**
 
 Add to `src/sapwebguimcp/models/base.py` `__all__`:
+
 ```python
 __all__ = [
     # ... existing exports
@@ -85,6 +87,7 @@ __all__ = [
 ```
 
 Add to `src/sapwebguimcp/models/__init__.py`:
+
 ```python
 from sapwebguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, SessionId, TCode, ToolResult
 ```
@@ -108,6 +111,7 @@ git commit -m "feat(models): add SessionId type alias with validation"
 ## Task 2: Session Result Models
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/models/sap_results.py`
 - Modify: `src/sapwebguimcp/models/__init__.py`
 - Test: `unittests/test_models.py`
@@ -230,6 +234,7 @@ class SessionCloseResult(ToolResult):
 **Step 4: Export new models**
 
 Add to `src/sapwebguimcp/models/sap_results.py` imports in `__init__.py` and `__all__`:
+
 - `SessionInfo`
 - `SessionOpenResult`
 - `SessionListResult`
@@ -252,6 +257,7 @@ git commit -m "feat(models): add session management result models"
 ## Task 3: SessionRegistry Core (Unit Tests)
 
 **Files:**
+
 - Create: `src/sapwebguimcp/models/session_registry.py`
 - Modify: `src/sapwebguimcp/models/__init__.py`
 - Create: `unittests/test_session_registry.py`
@@ -535,6 +541,7 @@ Expected: PASS
 **Step 5: Export from models package**
 
 Add to `src/sapwebguimcp/models/__init__.py`:
+
 ```python
 from sapwebguimcp.models.session_registry import SessionRegistry
 ```
@@ -553,6 +560,7 @@ git commit -m "feat(models): add SessionRegistry with unit tests"
 ## Task 4: Integrate SessionRegistry into BrowserManager
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/models/browser.py`
 - Test: `unittests/test_session_registry.py`
 
@@ -652,6 +660,7 @@ git commit -m "feat(browser): integrate SessionRegistry into BrowserManager"
 ## Task 5: Session Tools (sap_session_open, sap_session_list, sap_session_close)
 
 **Files:**
+
 - Create: `src/sapwebguimcp/tools/session_tools.py`
 - Modify: `src/sapwebguimcp/server.py` (import new tools)
 - Test: `unittests/test_session_tools.py`
@@ -943,6 +952,7 @@ git commit -m "feat(tools): add session management tools (open/list/close)"
 ## Task 6: Register Session Tools with MCP Server
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/sap_tools.py`
 - Test: `unittests/test_server.py`
 
@@ -1027,6 +1037,7 @@ async def sap_session_close(session_id: str) -> SessionCloseResult:
 ```
 
 Add imports for result models at top of file:
+
 ```python
 from sapwebguimcp.models import (
     # ... existing imports
@@ -1055,6 +1066,7 @@ git commit -m "feat(server): register session management tools"
 This is a large task split into multiple sub-steps. We'll modify tools incrementally.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/sap_tools.py`
 - Modify: `src/sapwebguimcp/tools/sap_tool_impl.py`
 - Test: Integration tests (manual for now)
@@ -1084,10 +1096,13 @@ async def sap_fill_form(
 ```
 
 Inside the function, replace:
+
 ```python
 page = await browser_manager.get_current_page()
 ```
+
 with:
+
 ```python
 page = browser_manager.get_session_page(session)
 ```
@@ -1099,6 +1114,7 @@ Similar pattern - add `session: str | None = None` as last parameter and use `ge
 **Step 3: Add session parameter to remaining SAP tools**
 
 Apply same pattern to:
+
 - `sap_keyboard`
 - `sap_get_screen_text`
 - `sap_get_screen_info`
@@ -1124,9 +1140,11 @@ git commit -m "feat(tools): add session param to sap_fill_form, sap_transaction,
 ## Task 8: Add session Parameter to Browser Tools
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/browser_tools.py`
 
 Apply same pattern to:
+
 - `browser_click`
 - `browser_fill`
 - `browser_keyboard`
@@ -1163,16 +1181,17 @@ git commit -m "feat(tools): add session param to browser tools"
 
 ---
 
-## Task 9: Add session Parameter to SE* Tools
+## Task 9: Add session Parameter to SE\* Tools
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/se11_tools.py`
 - Modify: `src/sapwebguimcp/tools/se16_tools.py`
 - Modify: `src/sapwebguimcp/tools/se24_tools.py`
 - Modify: `src/sapwebguimcp/tools/se37_tools.py`
 - Modify: `src/sapwebguimcp/tools/se93_tools.py`
 
-Apply same pattern to each SE* lookup tool.
+Apply same pattern to each SE\* lookup tool.
 
 **Step 1: Commit**
 
@@ -1186,6 +1205,7 @@ git commit -m "feat(tools): add session param to SE11/SE16/SE24/SE37/SE93 tools"
 ## Task 10: Integration Tests with Real Browser
 
 **Files:**
+
 - Create: `unittests/test_session_integration.py`
 
 **Step 1: Write integration tests**
@@ -1283,6 +1303,7 @@ git commit -m "test(session): add integration tests with real Playwright browser
 ## Task 11: E2E Tests with Real SAP
 
 **Files:**
+
 - Create: `unittests/test_session_sap_integration.py`
 
 These tests require SAP access (skip on CI).
@@ -1373,6 +1394,7 @@ git commit -m "test(session): add E2E tests for SAP session management"
 ## Task 12: Update sap_login to Register Primary Session
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/sap_tools.py`
 
 **Step 1: Modify sap_login**
@@ -1401,6 +1423,7 @@ git commit -m "feat(login): register primary session s1 on successful login"
 ## Task 13: Final Integration & Documentation
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/data/sap_knowledge.md`
 - Modify: `README.md`
 
@@ -1408,7 +1431,7 @@ git commit -m "feat(login): register primary session s1 on successful login"
 
 Add section on multi-session support:
 
-```markdown
+````markdown
 ## Multi-Session Support (Parallel Agents)
 
 When spawning sub-agents for parallel SAP work, each agent can have its own session:
@@ -1418,6 +1441,7 @@ When spawning sub-agents for parallel SAP work, each agent can have its own sess
 3. **Use in tools:** All SAP/browser tools accept `session` parameter
 
 Example:
+
 ```python
 # Parent agent
 result = sap_session_open()  # Returns {"session_id": "s2"}
@@ -1427,15 +1451,17 @@ result = sap_session_open()  # Returns {"session_id": "s2"}
 sap_transaction("VA01", session="s2")
 sap_fill_form({"Customer": "123"}, session="s2")
 ```
+````
 
 Primary session ("s1") is created on `sap_login()`. Up to 6 sessions typically allowed per SAP user.
-```
+
+````
 
 **Step 2: Run full test suite**
 
 ```bash
 pytest unittests/ -v --tb=short
-```
+````
 
 **Step 3: Final commit**
 
@@ -1448,20 +1474,20 @@ git commit -m "docs: add multi-session documentation"
 
 ## Summary
 
-| Task | Description | Est. Steps |
-|------|-------------|------------|
-| 1 | SessionId type alias | 6 |
-| 2 | Session result models | 6 |
-| 3 | SessionRegistry core | 6 |
-| 4 | BrowserManager integration | 5 |
-| 5 | Session tools impl | 5 |
-| 6 | Register tools with MCP | 4 |
-| 7 | Add session to SAP tools | 4 |
-| 8 | Add session to browser tools | 3 |
-| 9 | Add session to SE* tools | 2 |
-| 10 | Integration tests (browser) | 3 |
-| 11 | E2E tests (SAP) | 2 |
-| 12 | Update sap_login | 2 |
-| 13 | Documentation | 3 |
+| Task | Description                  | Est. Steps |
+| ---- | ---------------------------- | ---------- |
+| 1    | SessionId type alias         | 6          |
+| 2    | Session result models        | 6          |
+| 3    | SessionRegistry core         | 6          |
+| 4    | BrowserManager integration   | 5          |
+| 5    | Session tools impl           | 5          |
+| 6    | Register tools with MCP      | 4          |
+| 7    | Add session to SAP tools     | 4          |
+| 8    | Add session to browser tools | 3          |
+| 9    | Add session to SE\* tools    | 2          |
+| 10   | Integration tests (browser)  | 3          |
+| 11   | E2E tests (SAP)              | 2          |
+| 12   | Update sap_login             | 2          |
+| 13   | Documentation                | 3          |
 
 **Total: ~51 steps**
