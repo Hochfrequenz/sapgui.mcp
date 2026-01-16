@@ -7,6 +7,7 @@ session across multiple tool calls, following the dev-browser pattern.
 
 import logging
 from typing import Optional
+from urllib.parse import urlparse
 
 from playwright.async_api import Browser, BrowserContext, Page, Playwright, async_playwright
 
@@ -20,6 +21,27 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
+
+
+def _chrome_debug_commands() -> str:
+    """Return platform-specific commands to start Chrome with remote debugging."""
+    return (
+        "Start Chrome with remote debugging:\n"
+        "  Windows (PowerShell):\n"
+        '    & "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" '
+        "--remote-debugging-port=9222 "
+        '--user-data-dir="C:\\temp\\chrome-debug" '
+        "--ignore-certificate-errors\n"
+        "  macOS:\n"
+        "    /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome "
+        "--remote-debugging-port=9222 "
+        '--user-data-dir="/tmp/chrome-debug" '
+        "--ignore-certificate-errors\n"
+        "  Linux:\n"
+        "    google-chrome --remote-debugging-port=9222 "
+        '--user-data-dir="/tmp/chrome-debug" '
+        "--ignore-certificate-errors"
+    )
 
 
 class BrowserManager:  # pylint: disable=too-many-instance-attributes
@@ -181,17 +203,27 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
 
         except Exception as e:
             error_msg = str(e).lower()
-            cdp_host = settings.cdp_url.split("://")[-1].split(":")[0] if settings.cdp_url else ""
+            parsed_url = urlparse(settings.cdp_url) if settings.cdp_url else None
+            cdp_host = parsed_url.hostname if parsed_url else ""
+
+            # Detect invalid URL format
+            if "invalid url" in error_msg:
+                raise RuntimeError(
+                    f"Invalid CDP_URL format: '{settings.cdp_url}'\n\n"
+                    f"Expected format: http://hostname:port (e.g., http://localhost:9222)\n\n"
+                    f"Original error: {e}"
+                ) from e
 
             # Detect Docker network issues (DNS resolution failure for cdp-proxy)
             if cdp_host == "cdp-proxy" and any(
                 phrase in error_msg
                 for phrase in [
-                    "nodename nor servname",
-                    "name or service not known",
-                    "getaddrinfo",
-                    "temporary failure in name resolution",
-                    "no such host",
+                    "nodename nor servname",  # macOS
+                    "name or service not known",  # Linux
+                    "getaddrinfo",  # General
+                    "enotfound",  # Windows/Node.js
+                    "temporary failure in name resolution",  # Linux
+                    "no such host",  # Windows
                 ]
             ):
                 raise RuntimeError(
@@ -199,8 +231,11 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                     f"1. The Docker network 'sapwebguimcp_default' does not exist, or\n"
                     f"2. The cdp-proxy service is not running\n\n"
                     f"Solution: Run this command first:\n"
-                    f"  docker-compose up -d cdp-proxy\n\n"
-                    f"This starts the CDP proxy and creates the required Docker network.\n"
+                    f"  docker compose up -d cdp-proxy\n\n"
+                    f"This starts the CDP proxy and creates the required Docker network.\n\n"
+                    f"Diagnostic commands:\n"
+                    f"  docker network ls | grep sapwebguimcp\n"
+                    f"  docker ps | grep cdp-proxy\n\n"
                     f"Original error: {e}"
                 ) from e
 
@@ -212,29 +247,15 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                     raise RuntimeError(
                         f"Connection refused by cdp-proxy at {settings.cdp_url}.\n\n"
                         f"The CDP proxy container is not running. Start it with:\n"
-                        f"  docker-compose up -d cdp-proxy\n\n"
-                        f"Then ensure Chrome is running with remote debugging enabled.\n"
+                        f"  docker compose up -d cdp-proxy\n\n"
+                        f"Then ensure Chrome is running with remote debugging enabled.\n\n"
                         f"Original error: {e}"
                     ) from e
                 else:
                     raise RuntimeError(
                         f"Connection refused at {settings.cdp_url}.\n\n"
                         f"Chrome is not running or not accepting CDP connections.\n"
-                        f"Start Chrome with remote debugging:\n\n"
-                        f"  Windows (PowerShell):\n"
-                        f'    & "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" '
-                        f"--remote-debugging-port=9222 "
-                        f'--user-data-dir="C:\\temp\\chrome-debug" '
-                        f"--ignore-certificate-errors\n\n"
-                        f"  macOS:\n"
-                        f"    /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome "
-                        f"--remote-debugging-port=9222 "
-                        f'--user-data-dir="/tmp/chrome-debug" '
-                        f"--ignore-certificate-errors\n\n"
-                        f"  Linux:\n"
-                        f"    google-chrome --remote-debugging-port=9222 "
-                        f'--user-data-dir="/tmp/chrome-debug" '
-                        f"--ignore-certificate-errors\n\n"
+                        f"{_chrome_debug_commands()}\n\n"
                         f"Original error: {e}"
                     ) from e
 
@@ -243,32 +264,20 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                 raise RuntimeError(
                     f"Failed to connect to browser via CDP proxy at {settings.cdp_url}.\n\n"
                     f"Checklist:\n"
-                    f"1. Is the Docker network created? Run: docker-compose up -d cdp-proxy\n"
+                    f"1. Is the Docker network created? Run: docker compose up -d cdp-proxy\n"
                     f"2. Is Chrome running with --remote-debugging-port=9222?\n"
                     f"3. Is the CDP proxy forwarding correctly?\n\n"
+                    f"Diagnostic commands:\n"
+                    f"  docker network ls | grep sapwebguimcp\n"
+                    f"  docker ps | grep cdp-proxy\n\n"
                     f"Original error: {e}"
                 ) from e
 
             # Fallback for non-Docker setups
-            chrome_commands = (
-                "Start Chrome with remote debugging:\n"
-                "  Windows (PowerShell):\n"
-                '    & "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" '
-                "--remote-debugging-port=9222 "
-                '--user-data-dir="C:\\temp\\chrome-debug" '
-                "--ignore-certificate-errors\n"
-                "  macOS:\n"
-                "    /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome "
-                "--remote-debugging-port=9222 "
-                '--user-data-dir="/tmp/chrome-debug" '
-                "--ignore-certificate-errors\n"
-                "  Linux:\n"
-                "    google-chrome --remote-debugging-port=9222 "
-                '--user-data-dir="/tmp/chrome-debug" '
-                "--ignore-certificate-errors"
-            )
             raise RuntimeError(
-                f"Failed to connect to browser at {settings.cdp_url}.\n\n{chrome_commands}\n\nOriginal error: {e}"
+                f"Failed to connect to browser at {settings.cdp_url}.\n\n"
+                f"{_chrome_debug_commands()}\n\n"
+                f"Original error: {e}"
             ) from e
 
     async def _reconnect(self) -> None:
