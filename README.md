@@ -203,6 +203,8 @@ Add this configuration (replace the SAP values with your own):
 
 > **Note**: The `--network sapwebguimcp_default` connects the container to the same Docker network as the CDP proxy, allowing it to reach Chrome via `cdp-proxy:9222`. The `-v` mounts a host directory for audit logs (replace `/path/to/audit-logs` with your actual path).
 
+> ⚠️ **Common error**: If you see `network sapwebguimcp_default not found` in your MCP client (Claude Desktop/Claude Code) or in the MCP logs, you forgot to start the CDP proxy. Run `docker compose up -d cdp-proxy` first (see Step 2).
+
 ### Step 4: Restart Claude Desktop and start chatting
 
 Ask Claude things like:
