@@ -687,6 +687,7 @@ def register_se16_tools(mcp: FastMCP) -> None:
             filters: Optional filter dict {field_name: value} - uses technical field names
             max_hits: Maximum rows to return (default 100)
             output_file: If provided, write full results to this JSON file and return summary
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             SE16Result with all rows (inline), or

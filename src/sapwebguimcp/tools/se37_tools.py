@@ -270,6 +270,7 @@ def register_se37_tools(mcp: FastMCP) -> None:
                 (e.g., 'RFC_READ_TABLE' or ['RFC_READ_TABLE', 'BAPI_USER_GET_DETAIL'])
             output_file: If provided, write full results to this JSON file and return summary.
                         Recommended for >5 function modules to avoid context overflow.
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             SE37Result with entries and errors (inline), or

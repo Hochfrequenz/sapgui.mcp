@@ -269,6 +269,7 @@ def register_se24_tools(mcp: FastMCP) -> None:
                 (e.g., 'CL_SALV_TABLE' or ['CL_SALV_TABLE', 'CL_ABAP_CHAR_UTILITIES'])
             output_file: If provided, write full results to this JSON file and return summary.
                         Recommended for >5 classes to avoid context overflow.
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             SE24Result with entries and errors (inline), or
