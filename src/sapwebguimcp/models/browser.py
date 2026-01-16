@@ -25,9 +25,7 @@ logger = logging.getLogger(__name__)
 
 _DOCKER_COMPOSE_CMD = "docker compose up -d cdp-proxy"
 _DOCKER_DIAGNOSTIC_CMDS = (
-    "Diagnostic commands:\n"
-    + "  docker network ls | grep sapwebguimcp\n"
-    + "  docker ps | grep cdp-proxy"
+    "Diagnostic commands:\n" + "  docker network ls | grep sapwebguimcp\n" + "  docker ps | grep cdp-proxy"
 )
 
 

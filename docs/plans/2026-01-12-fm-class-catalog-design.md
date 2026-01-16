@@ -79,6 +79,7 @@ src/sapwebguimcp/
 ### Prefixes
 
 **Function Modules:**
+
 - `ISU_*` - Core IS-U (billing, device mgmt, meter reading)
 - `FKK_*` - FICA (Contract Accounts Receivable/Payable)
 - `BAPI_ISU*` - IS-U BAPIs (Partner, Account, POD, Move-in/out)
@@ -88,6 +89,7 @@ src/sapwebguimcp/
 - `IDEX*` - Intercompany Data Exchange (retail/distribution)
 
 **Classes:**
+
 - `CL_ISU_*` - IS-U classes
 - `CL_FKK*` - FICA classes
 - `CL_EDM_*` - EDM classes
@@ -116,12 +118,12 @@ def detect_fm_area(name: str) -> str | None:
 ### Two-Stage Process
 
 1. **SE16 Query (fast)** - Get list of names
-   - TFDIR with prefix filter → FM names
-   - SEOCLASS with prefix filter → Class names
+    - TFDIR with prefix filter → FM names
+    - SEOCLASS with prefix filter → Class names
 
 2. **Detail Lookup in Batches (slow, comprehensive)**
-   - SE37 Tool: 10 FMs per call → full signatures
-   - SE24 Tool: 10 classes per call → methods, attributes, interfaces
+    - SE37 Tool: 10 FMs per call → full signatures
+    - SE24 Tool: 10 classes per call → methods, attributes, interfaces
 
 ### Incremental Commits
 
