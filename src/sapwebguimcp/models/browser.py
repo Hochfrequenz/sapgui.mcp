@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 _DOCKER_COMPOSE_CMD = "docker compose up -d cdp-proxy"
 _DOCKER_DIAGNOSTIC_CMDS = (
     "Diagnostic commands:\n"
-    "  docker network ls | grep sapwebguimcp\n"
-    "  docker ps | grep cdp-proxy"
+    + "  docker network ls | grep sapwebguimcp\n"
+    + "  docker ps | grep cdp-proxy"
 )
 
 
@@ -257,13 +257,12 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                         f"Then ensure Chrome is running with remote debugging enabled.\n\n"
                         f"Original error: {e}"
                     ) from e
-                else:
-                    raise RuntimeError(
-                        f"Connection refused at {settings.cdp_url}.\n\n"
-                        f"Chrome is not running or not accepting CDP connections.\n"
-                        f"{_chrome_debug_commands()}\n\n"
-                        f"Original error: {e}"
-                    ) from e
+                raise RuntimeError(
+                    f"Connection refused at {settings.cdp_url}.\n\n"
+                    f"Chrome is not running or not accepting CDP connections.\n"
+                    f"{_chrome_debug_commands()}\n\n"
+                    f"Original error: {e}"
+                ) from e
 
             # Generic fallback with context-aware help
             if cdp_host == "cdp-proxy":

@@ -194,6 +194,7 @@ async def sap_discover_buttons(session: str | None = None) -> DiscoveredButtons:
 ```
 
 **Key points:**
+
 - Put **when/why to use the tool** in the `description` decorator
 - Put **what each parameter means** in the docstring Args section
 - FastMCP parses the Args section to generate parameter descriptions in the MCP schema
