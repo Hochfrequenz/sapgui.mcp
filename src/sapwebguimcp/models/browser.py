@@ -23,6 +23,14 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
+_DOCKER_COMPOSE_CMD = "docker compose up -d cdp-proxy"
+_DOCKER_DIAGNOSTIC_CMDS = (
+    "Diagnostic commands:\n"
+    "  docker network ls | grep sapwebguimcp\n"
+    "  docker ps | grep cdp-proxy"
+)
+
+
 def _chrome_debug_commands() -> str:
     """Return platform-specific commands to start Chrome with remote debugging."""
     return (
@@ -231,11 +239,9 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                     f"1. The Docker network 'sapwebguimcp_default' does not exist, or\n"
                     f"2. The cdp-proxy service is not running\n\n"
                     f"Solution: Run this command first:\n"
-                    f"  docker compose up -d cdp-proxy\n\n"
+                    f"  {_DOCKER_COMPOSE_CMD}\n\n"
                     f"This starts the CDP proxy and creates the required Docker network.\n\n"
-                    f"Diagnostic commands:\n"
-                    f"  docker network ls | grep sapwebguimcp\n"
-                    f"  docker ps | grep cdp-proxy\n\n"
+                    f"{_DOCKER_DIAGNOSTIC_CMDS}\n\n"
                     f"Original error: {e}"
                 ) from e
 
@@ -247,7 +253,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                     raise RuntimeError(
                         f"Connection refused by cdp-proxy at {settings.cdp_url}.\n\n"
                         f"The CDP proxy container is not running. Start it with:\n"
-                        f"  docker compose up -d cdp-proxy\n\n"
+                        f"  {_DOCKER_COMPOSE_CMD}\n\n"
                         f"Then ensure Chrome is running with remote debugging enabled.\n\n"
                         f"Original error: {e}"
                     ) from e
@@ -264,12 +270,10 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                 raise RuntimeError(
                     f"Failed to connect to browser via CDP proxy at {settings.cdp_url}.\n\n"
                     f"Checklist:\n"
-                    f"1. Is the Docker network created? Run: docker compose up -d cdp-proxy\n"
+                    f"1. Is the Docker network created? Run: {_DOCKER_COMPOSE_CMD}\n"
                     f"2. Is Chrome running with --remote-debugging-port=9222?\n"
                     f"3. Is the CDP proxy forwarding correctly?\n\n"
-                    f"Diagnostic commands:\n"
-                    f"  docker network ls | grep sapwebguimcp\n"
-                    f"  docker ps | grep cdp-proxy\n\n"
+                    f"{_DOCKER_DIAGNOSTIC_CMDS}\n\n"
                     f"Original error: {e}"
                 ) from e
 

@@ -159,14 +159,17 @@ npm run format
 
 ## MCP Tool Guidelines
 
-### Tool Descriptions (Important!)
+### Tool and Parameter Descriptions (Important!)
 
-**All important information must go in the `description` parameter, NOT the docstring.**
+FastMCP uses **two sources** to generate the MCP tool schema:
 
-AI clients read the `description` to understand how to use tools. The docstring is for developers only.
+1. **Tool description** → from `@mcp.tool(description=...)` decorator
+2. **Parameter descriptions** → from the **Args section in the docstring**
+
+Both are sent to the AI client. Without the Args section, the LLM doesn't know what parameters exist!
 
 ```python
-# CORRECT - info in description
+# CORRECT - description in decorator, Args in docstring
 @mcp.tool(
     description=(
         "Discover clickable buttons on the current SAP screen. "
@@ -175,21 +178,25 @@ AI clients read the `description` to understand how to use tools. The docstring 
         "For input fields use sap_discover_fields instead."
     )
 )
-async def sap_discover_buttons() -> DiscoveredButtons:
+async def sap_discover_buttons(session: str | None = None) -> DiscoveredButtons:
+    """Discover all clickable buttons on the current SAP screen.
+
+    Args:
+        session: Session ID (e.g., "s1", "s2"). None uses primary session.
+    """
+    ...
+
+# WRONG - missing Args section (parameter won't have description in schema)
+@mcp.tool(description="Discover buttons")
+async def sap_discover_buttons(session: str | None = None) -> DiscoveredButtons:
     """Discover all clickable buttons on the current SAP screen."""
     ...
-
-# WRONG - info hidden in docstring
-@mcp.tool(description="Discover buttons")
-async def sap_discover_buttons() -> DiscoveredButtons:
-    """
-    Discover all clickable buttons on the current SAP screen.
-
-    Returns buttons with label, selector, shortcut...
-    Use the 'selector' field with browser_click...
-    """
-    ...
 ```
+
+**Key points:**
+- Put **when/why to use the tool** in the `description` decorator
+- Put **what each parameter means** in the docstring Args section
+- FastMCP parses the Args section to generate parameter descriptions in the MCP schema
 
 ### JavaScript Files
 
