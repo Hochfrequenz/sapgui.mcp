@@ -703,6 +703,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Args:
             tcode: Transaction code (e.g., VA01, MM03, SE80, SU01)
             new_window: If True, open in new SAP session window (preserves current transaction)
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             TransactionResult indicating success or describing any issues.
@@ -986,6 +987,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         Args:
             key: Keyboard shortcut. Use "Ctrl+", "Shift+", "Alt+" prefixes for modifiers.
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             KeyboardResult with the key sent, page title, and status bar (for shortcuts).
@@ -1101,6 +1103,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             include_dropdown_options: If True, opens each dropdown to capture available
                 options. This is slower but provides complete information for dropdowns.
                 Default is False.
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             ScreenText with structured content including:
@@ -1169,6 +1172,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             include_dropdown_options: If True, opens each dropdown to capture available
                 options. This is slower but provides complete information for dropdowns.
                 Default is False (lazy fetching).
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             FormFieldsResult with list of FormField objects containing:
@@ -1244,6 +1248,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             start_row: First row to read (1-indexed, default: 1)
             end_row: Last row to read (None = up to max_rows visible rows)
             max_rows: Maximum rows to return (default: 100, prevents huge responses)
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             TableData with column headers and row values.
@@ -1338,6 +1343,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             row: Row number (1-indexed, data rows start at 1)
             column: Column index (0-based) or column header name
             action: "click" for single click, "dblclick" for double-click
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             TableCellClickResult with the selector used and page title after click.
@@ -1421,6 +1427,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Whenever you're stuck, maybe check the status bar for hints what to do.
         This tool extracts that message for programmatic checking.
 
+        Args:
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
+
         Returns:
             StatusBarInfo with:
             - type: "S" (success), "E" (error), "W" (warning), "I" (info), or "none"
@@ -1457,6 +1466,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     async def sap_get_screen_info(session: str | None = None) -> ScreenInfo:
         """
         Get technical information about the current SAP screen.
+
+        Args:
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             ScreenInfo with:
@@ -1581,6 +1593,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         sap_set_field - it is designed to work reliably. Avoid using raw
         element IDs which may contain special characters.
 
+        Args:
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
+
         Returns:
             DiscoveredFields with list of fields including:
             - field_id: SAP field ID (e.g., 'NAME_FIRST', 'STREET')
@@ -1637,7 +1652,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         )
     )
     async def sap_discover_buttons(session: str | None = None) -> DiscoveredButtons:
-        """Discover all clickable buttons on the current SAP screen."""
+        """Discover all clickable buttons on the current SAP screen.
+
+        Args:
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
+        """
         browser_manager = await get_browser_manager()
 
         try:
@@ -1690,6 +1709,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         Use this tool to discover shortcuts BEFORE attempting button clicks.
         Then use sap_keyboard to execute the shortcut.
+
+        Args:
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             ShortcutsResult with list of ShortcutInfo objects containing:
@@ -1762,6 +1784,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Args:
             button: Button label (e.g., 'Ja', 'Nein') or accesskey (e.g., 'J', 'N')
             close: Click the X close button instead of a specific button
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             ClosePopupResult with success status and button clicked
@@ -1928,6 +1951,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     or CSS selectors (e.g., '#M0:46:1:1::0:21').
             strict: If True, fail if any field is not found.
                     If False, skip missing fields and report them.
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             FillFormResult with lists of filled, not_found, and errored fields.
@@ -2023,6 +2047,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Args:
             label: Field label text (e.g., 'Last Name', 'GP-Rolle') or CSS selector
             value: Value to set in the field (for dropdowns: exact option text)
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             SetFieldResult with label, value, and the CSS selector that was used.

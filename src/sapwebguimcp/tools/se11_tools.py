@@ -477,6 +477,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
             object_type: 'table' for database tables, 'structure' for structures
             output_file: If provided, write full results to this JSON file and return summary.
                         Recommended for >10 objects to avoid context overflow.
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             SE11Result with entries and errors (inline), or
