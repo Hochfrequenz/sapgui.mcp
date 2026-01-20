@@ -400,6 +400,8 @@ async def _register_new_window_session(
     browser_manager: "BrowserManager",
     context: Any,
     pages_before: int,
+    tcode: str | None = None,
+    wait_timeout_ms: int = 5000,
 ) -> tuple[str | None, int, str | None]:
     """
     Wait for and register a new session created by new_window=True.
@@ -408,6 +410,8 @@ async def _register_new_window_session(
         browser_manager: The browser manager instance
         context: The browser context
         pages_before: Number of pages before the transaction
+        tcode: Transaction code (for logging context)
+        wait_timeout_ms: Max time to wait for new page (default 5000ms)
 
     Returns:
         Tuple of (session_id, session_count, page_title):
@@ -415,8 +419,8 @@ async def _register_new_window_session(
         - session_count: Total number of pages in context
         - page_title: Title of the new page, or None if no new page
     """
-    # Wait for the new browser tab to appear (async, up to 5 seconds)
-    await _wait_for_new_page(context, pages_before)
+    # Wait for the new browser tab to appear
+    await _wait_for_new_page(context, pages_before, timeout_ms=wait_timeout_ms)
 
     pages = context.pages
     session_count = len(pages)
@@ -433,7 +437,11 @@ async def _register_new_window_session(
         title = await new_page.title()
     else:
         logger.warning(
-            "new_window=True but no new page detected (pages: %d -> %d)",
+            "new_window=True (tcode=%s, /o prefix) but no new page detected after %dms wait "
+            "(pages: %d -> %d). Possible causes: SAP session limit reached, popup blocking, "
+            "or network delay.",
+            tcode or "unknown",
+            wait_timeout_ms,
             pages_before,
             session_count,
         )
@@ -914,7 +922,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             if new_window:
                 # Detect and register new session created by /o command
                 new_session_id, session_count, new_title = await _register_new_window_session(
-                    browser_manager, context, pages_before
+                    browser_manager, context, pages_before, tcode=tcode
                 )
                 return TransactionResult(
                     tcode=tcode,

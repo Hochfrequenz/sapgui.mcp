@@ -208,15 +208,18 @@ class TestRegisterNewWindowSession:
         mock_context = MagicMock()
         mock_context.pages = [MagicMock()]  # Still 1 page
 
-        session_id, count, title = await _register_new_window_session(mock_manager, mock_context, pages_before=1)
+        # Use short timeout for faster test
+        session_id, count, title = await _register_new_window_session(
+            mock_manager, mock_context, pages_before=1, wait_timeout_ms=100
+        )
 
         assert session_id is None
         assert count == 1
         assert title is None
 
     @pytest.mark.anyio
-    async def test_logs_warning_when_no_new_page(self, caplog: pytest.LogCaptureFixture) -> None:
-        """Test that warning is logged when no new page is detected."""
+    async def test_logs_warning_with_context_when_no_new_page(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test that warning is logged with tcode context when no new page is detected."""
         import logging
 
         from sapwebguimcp.tools.sap_tools import _register_new_window_session
@@ -226,7 +229,12 @@ class TestRegisterNewWindowSession:
         mock_context.pages = [MagicMock()]  # Still 1 page
 
         with caplog.at_level(logging.WARNING):
-            await _register_new_window_session(mock_manager, mock_context, pages_before=1)
+            # Use short timeout and provide tcode for context
+            await _register_new_window_session(
+                mock_manager, mock_context, pages_before=1, tcode="VA01", wait_timeout_ms=100
+            )
 
         assert "no new page detected" in caplog.text
+        assert "tcode=VA01" in caplog.text
+        assert "/o prefix" in caplog.text
         assert "pages: 1 -> 1" in caplog.text
