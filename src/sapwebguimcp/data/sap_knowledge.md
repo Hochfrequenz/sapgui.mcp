@@ -250,5 +250,18 @@ All major SAP and browser tools accept an optional `session` parameter:
 
 - **Primary session "s1"** is created automatically on `sap_login()`
 - **Session limit:** Typically 6 sessions per SAP user (configured in SAP)
-- **Alternative:** Use `sap_transaction("BP", new_window=True)` to open a transaction directly in a new session
+- **Alternative:** Use `sap_transaction("BP", new_window=True)` to open a transaction directly in a new session. This **auto-registers** the new session and returns the `session_id` in the result.
 - **Cleanup:** Sessions are closed automatically when their browser tab closes, or use `sap_session_close()`
+
+### Using `new_window=True` for Quick Session Creation
+
+```python
+# Open transaction in new session - session is auto-registered
+result = sap_transaction("BP", new_window=True)
+# result.session_id = "s2" (or next available ID)
+# result.session_count = 2
+
+# Use the new session
+sap_fill_form({"Name": "Customer 1"}, session=result.session_id)
+sap_keyboard("Control+s", session=result.session_id)
+```
