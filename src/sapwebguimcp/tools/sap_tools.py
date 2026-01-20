@@ -21,6 +21,7 @@ import asyncio
 import json
 import logging
 import re
+import time
 from functools import lru_cache
 from importlib import resources
 from typing import Any, Optional
@@ -385,15 +386,19 @@ async def _wait_for_new_page(context: Any, pages_before: int, timeout_ms: int = 
     Returns:
         True if a new page appeared, False if timeout was reached
     """
-    poll_interval_ms = 100
-    waited_ms = 0
-    while len(context.pages) <= pages_before and waited_ms < timeout_ms:
-        await asyncio.sleep(poll_interval_ms / 1000)
-        waited_ms += poll_interval_ms
-    if len(context.pages) > pages_before:
-        logger.debug("New browser tab detected after %dms", waited_ms)
-        return True
-    return False
+    poll_interval_s = 0.1
+    timeout_s = timeout_ms / 1000
+    start_time = time.monotonic()
+
+    while len(context.pages) <= pages_before:
+        elapsed = time.monotonic() - start_time
+        if elapsed >= timeout_s:
+            return False
+        await asyncio.sleep(poll_interval_s)
+
+    elapsed_ms = int((time.monotonic() - start_time) * 1000)
+    logger.debug("New browser tab detected after %dms", elapsed_ms)
+    return True
 
 
 async def _register_new_window_session(
@@ -924,6 +929,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 new_session_id, session_count, new_title = await _register_new_window_session(
                     browser_manager, context, pages_before, tcode=tcode
                 )
+                if new_session_id is None:
+                    return TransactionResult.failure(
+                        f"new_window=True but no new session was created for {tcode}. "
+                        "Possible causes: SAP session limit reached, popup blocking, or network delay.",
+                        tcode=tcode,
+                        new_window=True,
+                        session_count=session_count,
+                    )
                 return TransactionResult(
                     tcode=tcode,
                     page_title=new_title or title,
