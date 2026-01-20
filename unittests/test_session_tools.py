@@ -165,3 +165,68 @@ class TestSessionToolsUnit:
         assert session.session_id == "s1"
         assert session.is_primary is True
         assert session.title == "SAP Easy Access - Main Menu"
+
+
+class TestRegisterNewWindowSession:
+    """Unit tests for _register_new_window_session helper function."""
+
+    @pytest.mark.anyio
+    async def test_registers_new_page_when_count_increases(self) -> None:
+        """Test that new page is registered when page count increases."""
+        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.tools.sap_tools import _register_new_window_session
+
+        registry = SessionRegistry()
+
+        # Mock browser manager
+        mock_manager = MagicMock()
+        mock_manager.registry = registry
+
+        # Mock new page
+        new_page = MagicMock()
+        new_page.is_closed.return_value = False
+        new_page.on = MagicMock()
+        new_page.title = AsyncMock(return_value="New Transaction")
+
+        # Mock context with new page
+        mock_context = MagicMock()
+        mock_context.pages = [MagicMock(), new_page]  # 2 pages now
+
+        session_id, count, title = await _register_new_window_session(mock_manager, mock_context, pages_before=1)
+
+        assert session_id == "s1"  # First registration
+        assert count == 2
+        assert title == "New Transaction"
+        assert registry.has_session("s1")
+
+    @pytest.mark.anyio
+    async def test_returns_none_when_no_new_page(self) -> None:
+        """Test that None is returned when page count doesn't increase."""
+        from sapwebguimcp.tools.sap_tools import _register_new_window_session
+
+        mock_manager = MagicMock()
+        mock_context = MagicMock()
+        mock_context.pages = [MagicMock()]  # Still 1 page
+
+        session_id, count, title = await _register_new_window_session(mock_manager, mock_context, pages_before=1)
+
+        assert session_id is None
+        assert count == 1
+        assert title is None
+
+    @pytest.mark.anyio
+    async def test_logs_warning_when_no_new_page(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test that warning is logged when no new page is detected."""
+        import logging
+
+        from sapwebguimcp.tools.sap_tools import _register_new_window_session
+
+        mock_manager = MagicMock()
+        mock_context = MagicMock()
+        mock_context.pages = [MagicMock()]  # Still 1 page
+
+        with caplog.at_level(logging.WARNING):
+            await _register_new_window_session(mock_manager, mock_context, pages_before=1)
+
+        assert "no new page detected" in caplog.text
+        assert "pages: 1 -> 1" in caplog.text
