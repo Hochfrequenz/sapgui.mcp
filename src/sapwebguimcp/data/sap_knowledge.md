@@ -258,10 +258,15 @@ All major SAP and browser tools accept an optional `session` parameter:
 ```python
 # Open transaction in new session - session is auto-registered
 result = sap_transaction("BP", new_window=True)
-# result.session_id = "s2" (or next available ID)
-# result.session_count = 2
 
-# Use the new session
+# IMPORTANT: Always check if session was created successfully!
+# session_id can be None if SAP session limit reached or timing issues
+if result.session_id is None:
+    # Handle failure - session was not created
+    # Passing None to session= would use primary session (s1) instead!
+    raise RuntimeError("Failed to create new SAP session")
+
+# Use the new session (now guaranteed to be valid)
 sap_fill_form({"Name": "Customer 1"}, session=result.session_id)
 sap_keyboard("Control+s", session=result.session_id)
 ```
