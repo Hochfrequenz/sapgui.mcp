@@ -373,13 +373,36 @@ async def _close_settings_dialog(page: Any) -> None:
         await page.wait_for_timeout(500)
 
 
+async def _wait_for_new_page(context: Any, pages_before: int, timeout_ms: int = 5000) -> bool:
+    """
+    Wait for a new browser page/tab to appear in the context.
+
+    Args:
+        context: The browser context
+        pages_before: Number of pages before the action
+        timeout_ms: Maximum time to wait in milliseconds
+
+    Returns:
+        True if a new page appeared, False if timeout was reached
+    """
+    poll_interval_ms = 100
+    waited_ms = 0
+    while len(context.pages) <= pages_before and waited_ms < timeout_ms:
+        await asyncio.sleep(poll_interval_ms / 1000)
+        waited_ms += poll_interval_ms
+    if len(context.pages) > pages_before:
+        logger.debug("New browser tab detected after %dms", waited_ms)
+        return True
+    return False
+
+
 async def _register_new_window_session(
     browser_manager: "BrowserManager",
     context: Any,
     pages_before: int,
 ) -> tuple[str | None, int, str | None]:
     """
-    Register a new session created by new_window=True.
+    Wait for and register a new session created by new_window=True.
 
     Args:
         browser_manager: The browser manager instance
@@ -392,6 +415,9 @@ async def _register_new_window_session(
         - session_count: Total number of pages in context
         - page_title: Title of the new page, or None if no new page
     """
+    # Wait for the new browser tab to appear (async, up to 5 seconds)
+    await _wait_for_new_page(context, pages_before)
+
     pages = context.pages
     session_count = len(pages)
     new_session_id: str | None = None
