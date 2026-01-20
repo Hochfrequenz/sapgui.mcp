@@ -165,3 +165,121 @@ class TestSessionToolsUnit:
         assert session.session_id == "s1"
         assert session.is_primary is True
         assert session.title == "SAP Easy Access - Main Menu"
+
+
+class TestRegisterNewWindowSession:
+    """Unit tests for _register_new_window_session helper function."""
+
+    @pytest.mark.anyio
+    async def test_registers_new_page_when_count_increases(self) -> None:
+        """Test that new page is registered when page count increases."""
+        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.tools.sap_tools import _register_new_window_session
+
+        registry = SessionRegistry()
+
+        # Mock browser manager
+        mock_manager = MagicMock()
+        mock_manager.registry = registry
+
+        # Mock new page
+        new_page = MagicMock()
+        new_page.is_closed.return_value = False
+        new_page.on = MagicMock()
+        new_page.title = AsyncMock(return_value="New Transaction")
+
+        # Mock context with new page
+        mock_context = MagicMock()
+        mock_context.pages = [MagicMock(), new_page]  # 2 pages now
+
+        session_id, count, title = await _register_new_window_session(mock_manager, mock_context, pages_before=1)
+
+        assert session_id == "s1"  # First registration
+        assert count == 2
+        assert title == "New Transaction"
+        assert registry.has_session("s1")
+
+    @pytest.mark.anyio
+    async def test_returns_none_when_no_new_page(self) -> None:
+        """Test that None is returned when page count doesn't increase."""
+        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.tools.sap_tools import _register_new_window_session
+
+        # Fully mock browser manager with registry (even if not used in this path)
+        mock_manager = MagicMock()
+        mock_manager.registry = SessionRegistry()
+        mock_context = MagicMock()
+        mock_context.pages = [MagicMock()]  # Still 1 page
+
+        # Use short timeout for faster test
+        session_id, count, title = await _register_new_window_session(
+            mock_manager, mock_context, pages_before=1, wait_timeout_ms=100
+        )
+
+        assert session_id is None
+        assert count == 1
+        assert title is None
+
+    @pytest.mark.anyio
+    async def test_logs_warning_with_context_when_no_new_page(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test that warning is logged with tcode context when no new page is detected."""
+        import logging
+
+        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.tools.sap_tools import _register_new_window_session
+
+        # Fully mock browser manager with registry
+        mock_manager = MagicMock()
+        mock_manager.registry = SessionRegistry()
+        mock_context = MagicMock()
+        mock_context.pages = [MagicMock()]  # Still 1 page
+
+        with caplog.at_level(logging.WARNING):
+            # Use short timeout and provide tcode for context
+            await _register_new_window_session(
+                mock_manager, mock_context, pages_before=1, tcode="VA01", wait_timeout_ms=100
+            )
+
+        assert "no new page detected" in caplog.text
+        assert "tcode=VA01" in caplog.text
+        assert "/o prefix" in caplog.text
+        assert "pages: 1 -> 1" in caplog.text
+
+    @pytest.mark.anyio
+    async def test_registers_last_page_when_multiple_pages_created(self) -> None:
+        """Test that the last page is registered when multiple pages are created simultaneously."""
+        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.tools.sap_tools import _register_new_window_session
+
+        registry = SessionRegistry()
+        mock_manager = MagicMock()
+        mock_manager.registry = registry
+
+        # Mock multiple new pages (edge case: 2 pages created at once)
+        page1 = MagicMock()
+        page1.is_closed.return_value = False
+        page1.on = MagicMock()
+
+        page2 = MagicMock()
+        page2.is_closed.return_value = False
+        page2.on = MagicMock()
+        page2.title = AsyncMock(return_value="Expected New Page")
+
+        page3 = MagicMock()
+        page3.is_closed.return_value = False
+        page3.on = MagicMock()
+        page3.title = AsyncMock(return_value="Last Page - Should Be Registered")
+
+        # Context now has 3 pages (was 1 before)
+        mock_context = MagicMock()
+        mock_context.pages = [page1, page2, page3]
+
+        session_id, count, title = await _register_new_window_session(
+            mock_manager, mock_context, pages_before=1, wait_timeout_ms=100
+        )
+
+        # Should register the LAST page (pages[-1])
+        assert session_id == "s1"
+        assert count == 3
+        assert title == "Last Page - Should Be Registered"
+        assert registry.has_session("s1")

@@ -64,6 +64,10 @@ class TransactionResult(ToolResult):
     tcode: TCode = Field(description="Transaction code executed")
     page_title: str | None = Field(default=None, description="Current page title")
     new_window: bool = Field(default=False, description="Opened in new session")
+    session_id: str | None = Field(
+        default=None,
+        description="Session ID of new session (only set when new_window=True)",
+    )
     session_count: int | None = Field(default=None, ge=1, description="Number of SAP sessions")
 
 

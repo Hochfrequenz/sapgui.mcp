@@ -21,6 +21,7 @@ import asyncio
 import json
 import logging
 import re
+import time
 from functools import lru_cache
 from importlib import resources
 from typing import Any, Optional
@@ -373,6 +374,86 @@ async def _close_settings_dialog(page: Any) -> None:
         await page.wait_for_timeout(500)
 
 
+async def _wait_for_new_page(context: Any, pages_before: int, timeout_ms: int = 5000) -> bool:
+    """
+    Wait for a new browser page/tab to appear in the context.
+
+    Args:
+        context: The browser context
+        pages_before: Number of pages before the action
+        timeout_ms: Maximum time to wait in milliseconds
+
+    Returns:
+        True if a new page appeared, False if timeout was reached
+    """
+    poll_interval_s = 0.1
+    timeout_s = timeout_ms / 1000
+    start_time = time.monotonic()
+
+    while len(context.pages) <= pages_before:
+        elapsed = time.monotonic() - start_time
+        if elapsed >= timeout_s:
+            return False
+        await asyncio.sleep(poll_interval_s)
+
+    elapsed_ms = int((time.monotonic() - start_time) * 1000)
+    logger.debug("New browser tab detected after %dms", elapsed_ms)
+    return True
+
+
+async def _register_new_window_session(
+    browser_manager: "BrowserManager",
+    context: Any,
+    pages_before: int,
+    tcode: str | None = None,
+    wait_timeout_ms: int = 5000,
+) -> tuple[str | None, int, str | None]:
+    """
+    Wait for and register a new session created by new_window=True.
+
+    Args:
+        browser_manager: The browser manager instance
+        context: The browser context
+        pages_before: Number of pages before the transaction
+        tcode: Transaction code (for logging context)
+        wait_timeout_ms: Max time to wait for new page (default 5000ms)
+
+    Returns:
+        Tuple of (session_id, session_count, page_title):
+        - session_id: The registered ID (e.g., "s2") or None if no new page was detected
+        - session_count: Total number of pages in context
+        - page_title: Title of the new page, or None if no new page
+    """
+    # Wait for the new browser tab to appear
+    await _wait_for_new_page(context, pages_before, timeout_ms=wait_timeout_ms)
+
+    pages = context.pages
+    session_count = len(pages)
+    new_session_id: str | None = None
+    title: str | None = None
+
+    if session_count > pages_before:
+        # Assumption: The last page in the list is the newly created one.
+        # SAP's synchronous UI behavior makes this reliable in practice.
+        new_page = pages[-1]
+        registry = browser_manager.registry
+        new_session_id = registry.register(new_page)
+        logger.info("Auto-registered new session %s from new_window=True", new_session_id)
+        title = await new_page.title()
+    else:
+        logger.warning(
+            "new_window=True (tcode=%s, /o prefix) but no new page detected after %dms wait "
+            "(pages: %d -> %d). Possible causes: SAP session limit reached, popup blocking, "
+            "or network delay.",
+            tcode or "unknown",
+            wait_timeout_ms,
+            pages_before,
+            session_count,
+        )
+
+    return new_session_id, session_count, title
+
+
 async def _enable_okcode_field(page: Any) -> tuple[bool, str]:
     """
     Enable the OK-Code field through SAP Web GUI settings.
@@ -698,15 +779,18 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
           active transaction. Uses /n prefix (e.g., /nSE11).
         - new_window=True: Opens transaction in a NEW SAP session/window, preserving the
           current transaction. Uses /o prefix (e.g., /oSE11). This creates an additional
-          SAP session.
+          SAP session. The new session is **auto-registered** and the session_id is
+          returned in the result (e.g., "s2").
 
         Args:
             tcode: Transaction code (e.g., VA01, MM03, SE80, SU01)
-            new_window: If True, open in new SAP session window (preserves current transaction)
+            new_window: If True, open in new SAP session window (preserves current transaction).
+                        The new session is auto-registered and session_id is returned.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
 
         Returns:
             TransactionResult indicating success or describing any issues.
+            When new_window=True, includes session_id of the new session.
         """
         browser_manager = await get_browser_manager()
 
@@ -774,6 +858,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             else:
                 transaction_input = f"{prefix}{tcode}"
 
+            # Track page count before transaction (for new_window detection)
+            context = page.context
+            pages_before = len(context.pages) if new_window else 0
+
             # Ensure page is in front and active
             await page.bring_to_front()
             await page.wait_for_timeout(500)
@@ -837,15 +925,23 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             # Build response
             if new_window:
-                # When opening in new window, count browser pages/tabs
-                # SAP opens new sessions in new browser windows/tabs
-                context = page.context
-                pages = context.pages
-                session_count = len(pages)
+                # Detect and register new session created by /o command
+                new_session_id, session_count, new_title = await _register_new_window_session(
+                    browser_manager, context, pages_before, tcode=tcode
+                )
+                if new_session_id is None:
+                    return TransactionResult.failure(
+                        f"new_window=True but no new session was created for {tcode}. "
+                        "Possible causes: SAP session limit reached, popup blocking, or network delay.",
+                        tcode=tcode,
+                        new_window=True,
+                        session_count=session_count,
+                    )
                 return TransactionResult(
                     tcode=tcode,
-                    page_title=title,
+                    page_title=new_title or title,
                     new_window=True,
+                    session_id=new_session_id,
                     session_count=session_count,
                 )
 
