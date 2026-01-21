@@ -87,6 +87,7 @@ class SessionInfo(BaseModel):
     tcode: str | None = Field(default=None, description="Current transaction code (e.g., 'VA01')")
     title: str | None = Field(default=None, description="Current screen title")
     is_primary: bool = Field(default=False, description="True if this is the primary session ('s1')")
+    agent_id: str | None = Field(default=None, description="Agent bound to this session, if any")
 
 
 class SessionOpenResult(ToolResult):

@@ -106,6 +106,7 @@ async def sap_session_list_impl() -> SessionListResult:
                         session_id=session_id,
                         title=title,
                         is_primary=(session_id == "s1"),
+                        agent_id=registry.get_bound_agent(session_id),
                     )
                 )
             except ValueError:
