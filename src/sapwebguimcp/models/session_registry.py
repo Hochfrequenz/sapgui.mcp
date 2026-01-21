@@ -25,17 +25,19 @@ class SessionRegistry:
         self._counter: int = 0
         self._page_to_session: dict["Page", str] = {}
         self._pages_with_listeners: set["Page"] = set()  # Track pages with close listeners
+        self._bindings: dict[str, str] = {}  # session_id -> agent_id
 
     @property
     def primary_session(self) -> str:
         """Primary session ID (always 's1')."""
         return "s1"
 
-    def register(self, page: "Page") -> str:
+    def register(self, page: "Page", agent_id: str | None = None) -> str:
         """Register a page and return its session ID.
 
         Args:
             page: Playwright Page object (browser tab)
+            agent_id: Optional agent identifier for binding
 
         Returns:
             Session ID (e.g., 's1', 's2')
@@ -45,13 +47,16 @@ class SessionRegistry:
         self._sessions[session_id] = page
         self._page_to_session[page] = session_id
 
+        if agent_id:
+            self._bindings[session_id] = agent_id
+
         # Auto-unregister when page closes (only attach once per page)
         if page not in self._pages_with_listeners:
             # Use closure factory to capture page value and satisfy type checker
             page.on("close", self._make_close_handler(page))
             self._pages_with_listeners.add(page)
 
-        logger.info("Registered session '%s'", session_id)
+        logger.info("Registered session '%s'%s", session_id, f" bound to '{agent_id}'" if agent_id else "")
         return session_id
 
     def unregister(self, session_id: str) -> None:
@@ -63,6 +68,7 @@ class SessionRegistry:
         if session_id in self._sessions:
             page = self._sessions.pop(session_id)
             self._page_to_session.pop(page, None)
+            self._bindings.pop(session_id, None)  # Clear binding
             logger.info("Unregistered session '%s'", session_id)
 
     def get_page(self, session_id: str | None) -> "Page":
@@ -90,6 +96,7 @@ class SessionRegistry:
             # Clean up stale entry
             self._sessions.pop(sid, None)
             self._page_to_session.pop(page, None)
+            self._bindings.pop(sid, None)  # Clear binding
             raise ValueError(
                 f"Session '{sid}' expired (tab closed). " "Use sap_session_open() to create a new session."
             )
@@ -103,6 +110,37 @@ class SessionRegistry:
     def list_sessions(self) -> list[str]:
         """List all registered session IDs."""
         return list(self._sessions.keys())
+
+    def get_bound_agent(self, session_id: str) -> str | None:
+        """Get the agent bound to a session.
+
+        Args:
+            session_id: Session to check
+
+        Returns:
+            Agent ID or None if unbound
+        """
+        return self._bindings.get(session_id)
+
+    def bind(self, session_id: str, agent_id: str) -> None:
+        """Bind a session to an agent.
+
+        Args:
+            session_id: Session to bind
+            agent_id: Agent identifier
+        """
+        self._bindings[session_id] = agent_id
+        logger.info("Session '%s' bound to agent '%s'", session_id, agent_id)
+
+    def release(self, session_id: str) -> None:
+        """Release agent binding from a session.
+
+        Args:
+            session_id: Session to release
+        """
+        if session_id in self._bindings:
+            old_agent = self._bindings.pop(session_id)
+            logger.info("Session '%s' released from agent '%s'", session_id, old_agent)
 
     def _make_close_handler(self, page: "Page") -> Callable[["Page"], None]:
         """Create a close handler that captures the page value.
@@ -124,6 +162,7 @@ class SessionRegistry:
         if page in self._page_to_session:
             session_id = self._page_to_session.pop(page)
             self._sessions.pop(session_id, None)
+            self._bindings.pop(session_id, None)  # Clear binding
             logger.info("Session '%s' auto-unregistered (page closed)", session_id)
 
     async def setup_context_listeners(self, context: "BrowserContext") -> None:
