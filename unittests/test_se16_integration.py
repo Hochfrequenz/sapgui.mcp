@@ -165,13 +165,6 @@ async def test_se16_query_small_table(sap_mcp_client: ClientSession) -> None:
 
 
 @pytest.mark.anyio
-@pytest.mark.xfail(
-    reason="KNOWN BUG: SE16 pagination deduplication uses all column values, but ALV grid "
-    "column alignment can vary between pages causing same row to be parsed with different "
-    "column mappings. Fix needed in _collect_rows_with_pagination() to deduplicate by "
-    "first column (primary key) only. See: row_key = '|'.join(str(v) for v in row.values())",
-    strict=False,  # Don't fail if test passes (it's intermittent)
-)
 async def test_se16_query_medium_table_pagination(sap_mcp_client: ClientSession) -> None:
     """
     Test sap_se16_query with pagination (~130 rows = ~10 pages).
