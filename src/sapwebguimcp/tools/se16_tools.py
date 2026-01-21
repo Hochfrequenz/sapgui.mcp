@@ -427,7 +427,7 @@ async def _focus_grid(page: Any) -> None:
         logger.warning("SE16: Could not focus grid: %s", e)
 
 
-async def _collect_rows_with_pagination(
+async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
     page: Any,
     total_hits: int,
     columns: list[str],
@@ -453,6 +453,8 @@ async def _collect_rows_with_pagination(
     page_num = 0
     stuck_count = 0
     last_first_key: str | None = None
+    # Deduplicate by first column only (typically the primary key). See issue #136.
+    first_col = columns[0] if columns else None
 
     while len(all_rows) < total_hits and page_num < MAX_PAGES:
         # Get snapshot and parse rows
@@ -471,7 +473,7 @@ async def _collect_rows_with_pagination(
         stuck_count = 0
 
         # Get first row's key (first column value) for duplicate detection
-        first_key = str(rows[0].get(columns[0], "")) if rows and columns else None
+        first_key = str(rows[0].get(first_col, "")) if rows and first_col else None
 
         # Detect if we're stuck on the same page
         if first_key == last_first_key:
@@ -480,11 +482,15 @@ async def _collect_rows_with_pagination(
 
         last_first_key = first_key
 
-        # Add new rows (skip duplicates)
+        # Add new rows (skip duplicates by first column - see first_col above)
         new_count = 0
         for row in rows:
-            # Create a key from all values for deduplication
-            row_key = "|".join(str(v) for v in row.values())
+            if first_col:
+                row_key = str(row.get(first_col, ""))
+            else:
+                # Fallback: empty key to avoid reintroducing column alignment issues.
+                # This edge case shouldn't occur (columns validated earlier).
+                row_key = ""
             if row_key not in seen_keys:
                 seen_keys.add(row_key)
                 all_rows.append(row)
