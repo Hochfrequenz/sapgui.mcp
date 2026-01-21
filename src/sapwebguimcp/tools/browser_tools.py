@@ -104,17 +104,19 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     async def browser_snapshot(
         selector: Optional[str] = None,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> SnapshotResult:
         """Get accessibility tree snapshot of the current page.
 
         Args:
             selector: Optional CSS selector to scope the snapshot.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
         """
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_or_create_session_page(session)
+            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_snapshot")
         except ValueError as e:
             return SnapshotResult.failure(str(e), selector=selector)
 
@@ -152,6 +154,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         full_page: bool = False,
         selector: Optional[str] = None,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> Image | ScreenshotResult:
         """Take a screenshot of the current page.
 
@@ -159,11 +162,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             full_page: Capture entire scrollable page.
             selector: Optional CSS selector to capture specific element.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
         """
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_or_create_session_page(session)
+            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_screenshot")
         except ValueError as e:
             return ScreenshotResult.failure(
                 str(e),
@@ -208,17 +212,19 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     async def browser_click(
         selector: str,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> ClickResult:
         """Click an element by CSS selector.
 
         Args:
             selector: CSS selector of the element to click.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
         """
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_or_create_session_page(session)
+            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_click")
         except ValueError as e:
             return ClickResult.failure(str(e), selector=selector)
 
@@ -246,6 +252,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         selector: str,
         value: str,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> FillResult:
         """Fill a single input field by CSS selector.
 
@@ -253,11 +260,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             selector: CSS selector of the input field.
             value: Value to fill in the field.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
         """
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_or_create_session_page(session)
+            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_fill")
         except ValueError as e:
             return FillResult.failure(str(e), selector=selector, value=value)
 
@@ -286,6 +294,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         key: Optional[str] = None,
         text: Optional[str] = None,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> BrowserKeyboardResult:
         """Send keyboard input (key press or text typing).
 
@@ -293,11 +302,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             key: Key to press (e.g., 'Enter', 'Tab', 'F3').
             text: Text to type character by character.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
         """
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_or_create_session_page(session)
+            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_keyboard")
         except ValueError as e:
             return BrowserKeyboardResult.failure(str(e), key=key, text=text)
 
@@ -325,17 +335,19 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     async def browser_navigate(
         url: str,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> NavigateResult:
         """Navigate to a URL.
 
         Args:
             url: URL to navigate to.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
         """
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_or_create_session_page(session)
+            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_navigate")
         except ValueError as e:
             return NavigateResult.failure(str(e), url=url)
 
@@ -362,19 +374,21 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
     async def browser_evaluate(
         script: str,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> EvaluateResult:
         """Execute JavaScript in the browser.
 
         Args:
             script: JavaScript code to execute.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
         """
         browser_manager = await get_browser_manager()
 
         script_snippet = script[:100] if len(script) > 100 else script
 
         try:
-            page = await browser_manager.get_or_create_session_page(session)
+            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_evaluate")
         except ValueError as e:
             return EvaluateResult.failure(str(e), script_snippet=script_snippet)
 
@@ -407,6 +421,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         timeout: int = 5000,
         state: Literal["attached", "detached", "hidden", "visible"] = "visible",
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> WaitResult:
         """Wait for an element to reach a specific state.
 
@@ -415,13 +430,14 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             timeout: Max wait time in milliseconds.
             state: Target state ('visible', 'hidden', 'attached', 'detached').
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
         """
         browser_manager = await get_browser_manager()
 
         timeout_td = timedelta(milliseconds=timeout)
 
         try:
-            page = await browser_manager.get_or_create_session_page(session)
+            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_wait")
         except ValueError as e:
             return WaitResult.failure(str(e), selector=selector, state=state, timeout=timeout_td)
 
@@ -452,6 +468,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         selector: Optional[str] = None,
         outer: bool = True,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> HtmlResult | list[File | str]:
         """Get HTML content of an element or the full page.
 
@@ -459,11 +476,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             selector: CSS selector (None for full page).
             outer: Include element itself (outerHTML) or just children (innerHTML).
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
         """
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_or_create_session_page(session)
+            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_get_html")
         except ValueError as e:
             return HtmlResult.failure(str(e), selector=selector, outer=outer)
 
@@ -517,6 +535,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         value: Optional[str] = None,
         label: Optional[str] = None,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> SelectOptionResult:
         """Select an option from a dropdown/select element.
 
@@ -525,11 +544,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             value: Option value to select.
             label: Option text (alternative to value).
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
         """
         browser_manager = await get_browser_manager()
 
         try:
-            page = await browser_manager.get_or_create_session_page(session)
+            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_select_option")
         except ValueError as e:
             return SelectOptionResult.failure(str(e), selector=selector)
 
