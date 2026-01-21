@@ -10,19 +10,35 @@
     const debug = { strategy: '', inputsFound: 0 };
 
     // First, find the selection criteria grid
+    // Try text-based matching (DE/EN column headers), fall back to grid with SELFIELDS
     const grids = document.querySelectorAll('[role="grid"]');
     let selectionGrid = null;
     for (const grid of grids) {
         const gridText = grid.textContent || '';
+        // Match German or English column headers
         if (
             gridText.includes('Feldname') ||
-            gridText.includes('Field') ||
+            gridText.includes('Field Name') ||
             gridText.includes('Von-Wert') ||
+            gridText.includes('From Value') ||
             gridText.includes('From-Value') ||
-            gridText.includes('Selektionskriterien')
+            gridText.includes('Selektionskriterien') ||
+            gridText.includes('Selection Criteria')
         ) {
             selectionGrid = grid;
             break;
+        }
+    }
+
+    // Fallback: find grid containing SELFIELDS-LOW elements (language-independent)
+    if (!selectionGrid) {
+        for (const grid of grids) {
+            const selfieldsElements = grid.querySelectorAll('[lsdata*="SELFIELDS-LOW"]');
+            if (selfieldsElements.length > 0) {
+                selectionGrid = grid;
+                debug.strategy = 'fallback-selfields';
+                break;
+            }
         }
     }
 
