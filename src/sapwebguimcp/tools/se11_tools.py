@@ -468,6 +468,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
         object_type: SE11ObjectType,
         output_file: str | None = None,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> SE11Result | SE11FileSummary:
         """
         Look up table or structure metadata from SE11.
@@ -478,6 +479,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
             output_file: If provided, write full results to this JSON file and return summary.
                         Recommended for >10 objects to avoid context overflow.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
 
         Returns:
             SE11Result with entries and errors (inline), or
@@ -491,7 +493,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = browser_manager.get_session_page_checked(session, agent_id, "sap_se11_lookup")
         except ValueError as e:
             return SE11Result.failure(f"Session error: {e}")
 
