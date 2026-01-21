@@ -23,11 +23,15 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-async def sap_session_open_impl(tcode: str | None = None) -> SessionOpenResult:
+async def sap_session_open_impl(
+    tcode: str | None = None,
+    agent_id: str | None = None,
+) -> SessionOpenResult:
     """Create a new SAP session via /o command.
 
     Args:
         tcode: Optional transaction to open in new session
+        agent_id: Optional agent identifier for binding
 
     Returns:
         SessionOpenResult with new session_id
@@ -64,13 +68,14 @@ async def sap_session_open_impl(tcode: str | None = None) -> SessionOpenResult:
                 "SAP session limit reached (typically 6 per user). " + "Close unused sessions with sap_session_close()."
             )
 
-        # Register new page
+        # Register new page (with optional binding)
         new_page = context.pages[-1]
-        session_id = registry.register(new_page)
+        session_id = registry.register(new_page, agent_id=agent_id)
 
         return SessionOpenResult(
             session_id=session_id,
             tcode=tcode,
+            agent_id=agent_id,
             session_count=len(registry.list_sessions()),
         )
 

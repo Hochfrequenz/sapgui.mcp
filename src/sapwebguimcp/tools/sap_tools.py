@@ -2226,23 +2226,29 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     # =========================================================================
 
     @mcp.tool(
-        description="""Create a new SAP session (window/tab) for parallel work.
-
-Use this when spawning sub-agents that need isolated SAP sessions.
-Each session is independent - actions in one don't affect others.
-
-Returns a session_id (e.g., "s2") to pass to other SAP tools.
-
-Example workflow for parallel agents:
-1. Parent: session = sap_session_open()  # Returns {"session_id": "s2"}
-2. Parent: Spawn sub-agent with instruction "use session='s2'"
-3. Sub-agent: sap_transaction("VA01", session="s2")
-4. Sub-agent: sap_fill_form({...}, session="s2")
-"""
+        description=(
+            "Open a new SAP session (browser tab). Each session can run "
+            "independently. Use agent_id for parallel agent workflows to "
+            "prevent cross-session interference."
+        )
     )
-    async def sap_session_open(tcode: str | None = None) -> SessionOpenResult:
-        """Create a new SAP session."""
-        return await sap_session_open_impl(tcode)
+    async def sap_session_open(
+        tcode: str | None = None,
+        agent_id: str | None = None,
+    ) -> SessionOpenResult:
+        """
+        Open a new SAP session (browser tab).
+
+        Args:
+            tcode: Optional transaction to open in new session
+            agent_id: Optional identifier for the agent claiming this session.
+                      When set, other agents using this session trigger warnings.
+                      Use for parallel agent workflows to prevent cross-talk.
+
+        Returns:
+            SessionOpenResult with new session_id and binding info
+        """
+        return await sap_session_open_impl(tcode, agent_id)
 
     @mcp.tool(
         description="""List all active SAP sessions.
