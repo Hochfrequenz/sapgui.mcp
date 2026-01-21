@@ -142,6 +142,41 @@ class SessionRegistry:
             old_agent = self._bindings.pop(session_id)
             logger.info("Session '%s' released from agent '%s'", session_id, old_agent)
 
+    def check_binding(self, session_id: str, agent_id: str | None, tool_name: str) -> None:
+        """Check if agent is authorized to access session.
+
+        Logs warnings for:
+        - Bound session accessed without agent_id
+        - Bound session accessed by different agent
+
+        Operations always proceed (warn but allow).
+
+        Args:
+            session_id: Session being accessed
+            agent_id: Agent making the request (or None)
+            tool_name: Name of tool for logging context
+        """
+        bound_agent = self._bindings.get(session_id)
+
+        if bound_agent is None:
+            return  # Unbound session, no check
+
+        if agent_id is None:
+            logger.warning(
+                "Session '%s' bound to '%s' accessed without agent_id by %s",
+                session_id,
+                bound_agent,
+                tool_name,
+            )
+        elif agent_id != bound_agent:
+            logger.warning(
+                "Session '%s' bound to '%s' accessed by '%s' via %s",
+                session_id,
+                bound_agent,
+                agent_id,
+                tool_name,
+            )
+
     def _make_close_handler(self, page: "Page") -> Callable[["Page"], None]:
         """Create a close handler that captures the page value.
 

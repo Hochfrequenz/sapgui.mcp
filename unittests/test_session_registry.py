@@ -1,5 +1,6 @@
 """Unit tests for SessionRegistry with mocked Page objects."""
 
+import logging
 from unittest.mock import MagicMock
 
 import pytest
@@ -231,3 +232,62 @@ class TestSessionRegistryBindings:
         sid = registry.register(page, agent_id="agent-1")
         registry.unregister(sid)
         assert registry.get_bound_agent(sid) is None
+
+
+class TestSessionRegistryBindingChecks:
+    """Tests for check_binding warning logic."""
+
+    def test_check_binding_unbound_session_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test unbound session doesn't warn."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page)
+        with caplog.at_level(logging.WARNING):
+            registry.check_binding(sid, "any-agent", "test_tool")
+
+        assert "WARNING" not in caplog.text
+
+    def test_check_binding_matching_agent_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test matching agent doesn't warn."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page, agent_id="agent-1")
+        with caplog.at_level(logging.WARNING):
+            registry.check_binding(sid, "agent-1", "test_tool")
+
+        assert "WARNING" not in caplog.text
+
+    def test_check_binding_mismatched_agent_warns(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test mismatched agent logs warning."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page, agent_id="agent-1")
+        with caplog.at_level(logging.WARNING):
+            registry.check_binding(sid, "agent-2", "test_tool")
+
+        assert "agent-1" in caplog.text
+        assert "agent-2" in caplog.text
+        assert "test_tool" in caplog.text
+
+    def test_check_binding_none_agent_on_bound_session_warns(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test None agent on bound session logs warning."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page, agent_id="agent-1")
+        with caplog.at_level(logging.WARNING):
+            registry.check_binding(sid, None, "test_tool")
+
+        assert "agent-1" in caplog.text
+        assert "without agent_id" in caplog.text
