@@ -388,3 +388,130 @@ async def test_se16_query_columns_preserved(sap_mcp_client: ClientSession) -> No
         row_keys = set(row.data.keys())
         expected_keys = set(columns)
         assert row_keys == expected_keys, f"Row keys {row_keys} != columns {expected_keys}"
+
+
+@pytest.mark.anyio
+async def test_se16_query_single_filter(sap_mcp_client: ClientSession) -> None:
+    """Test sap_se16_query with a single filter."""
+    # Login
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    # Query TSTC (transaction table) with single filter on TCODE
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "TSTC", "filters": {"TCODE": "SE16"}, "max_hits": 10},
+        SE16Result,
+    )
+
+    assert result.success, f"Query failed: {result.error}"
+    # Should find at least 1 row for SE16
+    assert result.returned_rows >= 1, "Expected at least 1 row for SE16"
+
+    # Verify filter was applied - find TCODE column and check value
+    # Column name varies by language: "Transaktionscode" (DE), "Transaction Code" (EN)
+    tcode_cols = [
+        c for c in result.columns if "TCODE" in c.upper() or "TRANSAKT" in c.upper() or "TRANSACTION" in c.upper()
+    ]
+    assert tcode_cols, f"No TCODE column found in {result.columns}"
+    tcode_col = tcode_cols[0]
+    for row in result.rows:
+        assert row.data.get(tcode_col) == "SE16", f"Filter not applied, got {row.data.get(tcode_col)}"
+
+
+@pytest.mark.anyio
+async def test_se16_query_multiple_filters(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_se16_query with multiple filters.
+
+    Tests that multiple filters are correctly applied to the right fields.
+    """
+    # Login
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    # Query T100 with two filters - should return specific matching rows
+    # T100 has fields: SPRSL (language), ARBGB (message class), MSGNR (message number), TEXT
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "T100", "filters": {"ARBGB": "00", "MSGNR": "001"}, "max_hits": 10},
+        SE16Result,
+    )
+
+    assert result.success, f"Query with multiple filters failed: {result.error}"
+    # Should return rows - 00/001 is a common message
+    assert result.returned_rows >= 1, "Expected at least 1 row for ARBGB=00, MSGNR=001"
+
+    # Verify both filters were applied - find columns dynamically
+    # Column names vary by language: ARBGB="Arbeitsgebiet" (DE), "Application Area" (EN)
+    # MSGNR="MsgNr" (DE), "Message" (EN) - but avoid matching "Message Text"
+    arbgb_cols = [
+        c for c in result.columns if "ARBGB" in c.upper() or "ARBEITSGEBIET" in c.upper() or "APPLICATION" in c.upper()
+    ]
+    # Match "MsgNr" or "Message" but not "Message Text"
+    msgnr_cols = [c for c in result.columns if "MSGNR" in c.upper() or c.upper() == "MESSAGE" or "NR" in c.upper()]
+    assert arbgb_cols, f"No ARBGB column found in {result.columns}"
+    assert msgnr_cols, f"No MSGNR column found in {result.columns}"
+
+    arbgb_col = arbgb_cols[0]
+    msgnr_col = msgnr_cols[0]
+    for row in result.rows:
+        # ARBGB may be returned as "00" or 0 (int) due to type coercion
+        arbgb_val = str(row.data.get(arbgb_col, "")).zfill(2)
+        assert arbgb_val == "00", f"ARBGB filter not applied, got {row.data.get(arbgb_col)}"
+        # MSGNR may be returned as "001" or 1 (int)
+        msgnr_val = str(row.data.get(msgnr_col, "")).lstrip("0") or "0"
+        assert msgnr_val == "1", f"MSGNR filter not applied, got {row.data.get(msgnr_col)}"
+
+
+@pytest.mark.anyio
+async def test_se16_query_filter_with_special_chars(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_se16_query with filter values containing special characters.
+
+    This test checks filter values with slashes which was reported to cause issues.
+    """
+    # Login
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    # Query TSTC with filter containing slash - many tcodes start with /
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "TSTC", "filters": {"TCODE": "/SAPAPO/*"}, "max_hits": 10},
+        SE16Result,
+    )
+
+    # This may return 0 rows if no matching tcodes, but should not error
+    assert result.success, f"Query with special chars failed: {result.error}"
+
+
+@pytest.mark.anyio
+async def test_se16_query_bug_report_filters(sap_mcp_client: ClientSession) -> None:
+    """
+    Test the exact filter combination from bug report.
+
+    Bug report: filters {"SPRSL": "DE", "ARBGB": "/NA2/DBR"} caused "DE" to be
+    entered in the table name field instead of the SPRSL filter field.
+    """
+    # Login
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    # Try the exact filter values from the bug report
+    # This may return 0 rows if /NA2/DBR doesn't exist, but should not error
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "T100", "filters": {"SPRSL": "DE", "ARBGB": "/NA2/DBR"}, "max_hits": 10},
+        SE16Result,
+    )
+
+    # The key assertion: the query should not fail with "DE does not exist" error
+    # which would indicate the filter value was entered in the wrong field
+    assert result.success, f"Bug report filters failed: {result.error}"
+    assert "existiert nicht" not in (result.error or ""), "Filter value entered in wrong field"
+    assert "does not exist" not in (result.error or ""), "Filter value entered in wrong field"
