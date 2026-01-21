@@ -119,6 +119,21 @@ class SessionCloseResult(ToolResult):
     remaining_sessions: int = Field(default=0, ge=0, description="Sessions still active after closing")
 
 
+class SessionBindResult(ToolResult):
+    """Result from sap_session_bind tool."""
+
+    session_id: str | None = Field(default=None, description="ID of the session that was bound")
+    agent_id: str | None = Field(default=None, description="Agent that now owns the session")
+    previous_agent: str | None = Field(default=None, description="Previous agent binding, if any")
+
+
+class SessionReleaseResult(ToolResult):
+    """Result from sap_session_release tool."""
+
+    session_id: str | None = Field(default=None, description="ID of the session that was released")
+    released_agent: str | None = Field(default=None, description="Agent that was unbound, if any")
+
+
 class KeyboardResult(ToolResult):
     """Result from sap_keyboard tool.
 

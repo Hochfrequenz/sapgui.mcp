@@ -54,9 +54,11 @@ from sapwebguimcp.models import (
     SapFieldType,
     ScreenInfo,
     ScreenText,
+    SessionBindResult,
     SessionCloseResult,
     SessionListResult,
     SessionOpenResult,
+    SessionReleaseResult,
     SessionStatus,
     SetFieldResult,
     ShortcutInfo,
@@ -72,9 +74,11 @@ from sapwebguimcp.models import (
 )
 from sapwebguimcp.tools.browser_tools import _escape_css_selector
 from sapwebguimcp.tools.session_tools import (
+    sap_session_bind_impl,
     sap_session_close_impl,
     sap_session_list_impl,
     sap_session_open_impl,
+    sap_session_release_impl,
 )
 from sapwebguimcp.utils import is_sap_shortcut
 
@@ -2267,3 +2271,40 @@ Args:
     async def sap_session_close(session_id: str) -> SessionCloseResult:
         """Close a specific session."""
         return await sap_session_close_impl(session_id)
+
+    @mcp.tool(
+        description=(
+            "Bind a session to an agent for parallel workflow management. "
+            "When bound, other agents using this session trigger warnings. "
+            "Use for transfer of session ownership between agents."
+        )
+    )
+    async def sap_session_bind(session: str, agent_id: str) -> SessionBindResult:
+        """Bind or rebind a session to an agent.
+
+        Args:
+            session: Session ID to bind (e.g., "s2")
+            agent_id: Agent identifier claiming the session
+
+        Returns:
+            SessionBindResult with binding info
+        """
+        return await sap_session_bind_impl(session, agent_id)
+
+    @mcp.tool(
+        description=(
+            "Release agent binding from a session. "
+            "Use when an agent finishes work and wants to free the session "
+            "for other agents or general use."
+        )
+    )
+    async def sap_session_release(session: str) -> SessionReleaseResult:
+        """Unbind a session from its current agent.
+
+        Args:
+            session: Session ID to release
+
+        Returns:
+            SessionReleaseResult
+        """
+        return await sap_session_release_impl(session)

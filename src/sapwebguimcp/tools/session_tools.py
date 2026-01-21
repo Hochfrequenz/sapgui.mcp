@@ -3,10 +3,12 @@
 import logging
 
 from sapwebguimcp.models import (
+    SessionBindResult,
     SessionCloseResult,
     SessionInfo,
     SessionListResult,
     SessionOpenResult,
+    SessionReleaseResult,
     get_browser_manager,
 )
 
@@ -14,6 +16,8 @@ __all__ = [
     "sap_session_open_impl",
     "sap_session_list_impl",
     "sap_session_close_impl",
+    "sap_session_bind_impl",
+    "sap_session_release_impl",
 ]
 
 logger = logging.getLogger(__name__)
@@ -158,3 +162,69 @@ async def sap_session_close_impl(session_id: str) -> SessionCloseResult:
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("Error closing session")
         return SessionCloseResult.failure(f"Error closing session: {e}")
+
+
+async def sap_session_bind_impl(session_id: str, agent_id: str) -> SessionBindResult:
+    """Bind a session to an agent.
+
+    Args:
+        session_id: Session to bind (e.g., "s2")
+        agent_id: Agent identifier
+
+    Returns:
+        SessionBindResult
+    """
+    try:
+        manager = await get_browser_manager()
+        registry = manager.registry
+
+        if not registry.has_session(session_id):
+            available = ", ".join(registry.list_sessions()) or "(none)"
+            return SessionBindResult.failure(
+                f"Session '{session_id}' not found. Active: {available}."
+            )
+
+        old_agent = registry.get_bound_agent(session_id)
+        registry.bind(session_id, agent_id)
+
+        return SessionBindResult(
+            session_id=session_id,
+            agent_id=agent_id,
+            previous_agent=old_agent,
+        )
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.exception("Error binding session")
+        return SessionBindResult.failure(f"Error binding session: {e}")
+
+
+async def sap_session_release_impl(session_id: str) -> SessionReleaseResult:
+    """Release agent binding from a session.
+
+    Args:
+        session_id: Session to release
+
+    Returns:
+        SessionReleaseResult
+    """
+    try:
+        manager = await get_browser_manager()
+        registry = manager.registry
+
+        if not registry.has_session(session_id):
+            available = ", ".join(registry.list_sessions()) or "(none)"
+            return SessionReleaseResult.failure(
+                f"Session '{session_id}' not found. Active: {available}."
+            )
+
+        old_agent = registry.get_bound_agent(session_id)
+        registry.release(session_id)
+
+        return SessionReleaseResult(
+            session_id=session_id,
+            released_agent=old_agent,
+        )
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.exception("Error releasing session")
+        return SessionReleaseResult.failure(f"Error releasing session: {e}")
