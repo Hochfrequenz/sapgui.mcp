@@ -291,3 +291,25 @@ class TestSessionRegistryBindingChecks:
 
         assert "agent-1" in caplog.text
         assert "without agent_id" in caplog.text
+
+
+class TestBrowserManagerBindingCheck:
+    """Tests for BrowserManager binding check integration."""
+
+    def test_get_session_page_with_binding_check(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test get_session_page_checked calls check_binding."""
+        from sapwebguimcp.models.browser import BrowserManager
+
+        manager = BrowserManager()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = manager.registry.register(page, agent_id="agent-1")
+
+        with caplog.at_level(logging.WARNING):
+            result = manager.get_session_page_checked(sid, "agent-2", "test_tool")
+
+        assert result is page
+        assert "agent-1" in caplog.text
+        assert "agent-2" in caplog.text
