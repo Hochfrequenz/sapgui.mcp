@@ -87,6 +87,7 @@ class SessionInfo(BaseModel):
     tcode: str | None = Field(default=None, description="Current transaction code (e.g., 'VA01')")
     title: str | None = Field(default=None, description="Current screen title")
     is_primary: bool = Field(default=False, description="True if this is the primary session ('s1')")
+    agent_id: str | None = Field(default=None, description="Agent bound to this session, if any")
 
 
 class SessionOpenResult(ToolResult):
@@ -96,6 +97,7 @@ class SessionOpenResult(ToolResult):
         default=None, description="ID of the new session (e.g., 's2'). Pass to other tools via session= parameter."
     )
     tcode: str | None = Field(default=None, description="Transaction opened in new session, if requested")
+    agent_id: str | None = Field(default=None, description="Agent bound to this session, if specified")
     session_count: int = Field(default=1, ge=1, description="Total active sessions after opening")
 
 
@@ -117,6 +119,21 @@ class SessionCloseResult(ToolResult):
 
     session_id: str | None = Field(default=None, description="ID of the session that was closed (e.g., 's2')")
     remaining_sessions: int = Field(default=0, ge=0, description="Sessions still active after closing")
+
+
+class SessionBindResult(ToolResult):
+    """Result from sap_session_bind tool."""
+
+    session_id: str | None = Field(default=None, description="ID of the session that was bound")
+    agent_id: str | None = Field(default=None, description="Agent that now owns the session")
+    previous_agent: str | None = Field(default=None, description="Previous agent binding, if any")
+
+
+class SessionReleaseResult(ToolResult):
+    """Result from sap_session_release tool."""
+
+    session_id: str | None = Field(default=None, description="ID of the session that was released")
+    released_agent: str | None = Field(default=None, description="Agent that was unbound, if any")
 
 
 class KeyboardResult(ToolResult):

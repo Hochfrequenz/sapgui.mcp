@@ -260,6 +260,7 @@ def register_se24_tools(mcp: FastMCP) -> None:
         classes: str | list[str],
         output_file: str | None = None,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> SE24Result | SE24FileSummary:
         """
         Look up class/interface metadata from SE24.
@@ -270,6 +271,7 @@ def register_se24_tools(mcp: FastMCP) -> None:
             output_file: If provided, write full results to this JSON file and return summary.
                         Recommended for >5 classes to avoid context overflow.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
 
         Returns:
             SE24Result with entries and errors (inline), or
@@ -283,7 +285,7 @@ def register_se24_tools(mcp: FastMCP) -> None:
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = browser_manager.get_session_page_checked(session, agent_id, "sap_se24_lookup")
         except ValueError as e:
             return SE24Result.failure(f"Session error: {e}")
 

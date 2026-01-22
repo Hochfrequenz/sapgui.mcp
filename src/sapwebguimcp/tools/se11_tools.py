@@ -440,6 +440,30 @@ async def _lookup_single_object(  # pylint: disable=too-many-return-statements
     return parse_result
 
 
+def _write_result_to_file(
+    result: SE11Result,
+    output_file: str,
+    name_list: list[str],
+) -> SE11FileSummary:
+    """Write SE11 result to JSON file and return summary."""
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
+
+    return SE11FileSummary(
+        success=result.success,
+        error=result.error,
+        output_file=str(output_path.absolute()),
+        total_requested=len(name_list),
+        successful=len(result.entries),
+        failed=len(result.errors),
+        sample_entries=[e.name for e in result.entries[:5]],
+        sample_errors=[e.name for e in result.errors[:5]],
+    )
+
+
 # =============================================================================
 # MCP Tool Registration
 # =============================================================================
@@ -468,6 +492,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
         object_type: SE11ObjectType,
         output_file: str | None = None,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> SE11Result | SE11FileSummary:
         """
         Look up table or structure metadata from SE11.
@@ -478,6 +503,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
             output_file: If provided, write full results to this JSON file and return summary.
                         Recommended for >10 objects to avoid context overflow.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
 
         Returns:
             SE11Result with entries and errors (inline), or
@@ -491,7 +517,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page(session)
+            page = browser_manager.get_session_page_checked(session, agent_id, "sap_se11_lookup")
         except ValueError as e:
             return SE11Result.failure(f"Session error: {e}")
 
@@ -528,22 +554,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
 
         # Write to file if requested
         if output_file:
-            output_path = Path(output_file)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with output_path.open("w", encoding="utf-8") as f:
-                json.dump(final_result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
-
-            return SE11FileSummary(
-                success=final_result.success,
-                error=final_result.error,
-                output_file=str(output_path.absolute()),
-                total_requested=len(name_list),
-                successful=len(entries),
-                failed=len(errors),
-                sample_entries=[e.name for e in entries[:5]],
-                sample_errors=[e.name for e in errors[:5]],
-            )
+            return _write_result_to_file(final_result, output_file, name_list)
 
         if len(name_list) > MAX_INLINE_OBJECTS:
             logger.warning(

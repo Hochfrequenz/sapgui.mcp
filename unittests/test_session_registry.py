@@ -1,5 +1,6 @@
 """Unit tests for SessionRegistry with mocked Page objects."""
 
+import logging
 from unittest.mock import MagicMock
 
 import pytest
@@ -160,3 +161,155 @@ class TestBrowserManagerSessionIntegration:
 
         retrieved_default = manager.get_session_page(None)
         assert retrieved_default is page
+
+
+class TestSessionRegistryBindings:
+    """Tests for agent-session binding functionality."""
+
+    def test_bind_and_get_bound_agent(self) -> None:
+        """Test binding an agent to a session."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page)
+        registry.bind(sid, "agent-1")
+
+        assert registry.get_bound_agent(sid) == "agent-1"
+
+    def test_get_bound_agent_unbound_returns_none(self) -> None:
+        """Test unbound session returns None."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page)
+        assert registry.get_bound_agent(sid) is None
+
+    def test_release_clears_binding(self) -> None:
+        """Test release removes agent binding."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page)
+        registry.bind(sid, "agent-1")
+        registry.release(sid)
+
+        assert registry.get_bound_agent(sid) is None
+
+    def test_release_nonexistent_binding_is_noop(self) -> None:
+        """Test releasing unbound session doesn't raise."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page)
+        registry.release(sid)  # Should not raise
+        assert registry.get_bound_agent(sid) is None
+
+    def test_register_with_agent_id_binds(self) -> None:
+        """Test register() with agent_id binds immediately."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page, agent_id="agent-1")
+        assert registry.get_bound_agent(sid) == "agent-1"
+
+    def test_unregister_clears_binding(self) -> None:
+        """Test unregister() also removes binding."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page, agent_id="agent-1")
+        registry.unregister(sid)
+        assert registry.get_bound_agent(sid) is None
+
+
+class TestSessionRegistryBindingChecks:
+    """Tests for check_binding warning logic."""
+
+    def test_check_binding_unbound_session_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test unbound session doesn't warn."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page)
+        with caplog.at_level(logging.WARNING):
+            registry.check_binding(sid, "any-agent", "test_tool")
+
+        assert "WARNING" not in caplog.text
+
+    def test_check_binding_matching_agent_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test matching agent doesn't warn."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page, agent_id="agent-1")
+        with caplog.at_level(logging.WARNING):
+            registry.check_binding(sid, "agent-1", "test_tool")
+
+        assert "WARNING" not in caplog.text
+
+    def test_check_binding_mismatched_agent_warns(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test mismatched agent logs warning."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page, agent_id="agent-1")
+        with caplog.at_level(logging.WARNING):
+            registry.check_binding(sid, "agent-2", "test_tool")
+
+        assert "agent-1" in caplog.text
+        assert "agent-2" in caplog.text
+        assert "test_tool" in caplog.text
+
+    def test_check_binding_none_agent_on_bound_session_warns(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test None agent on bound session logs warning."""
+        registry = SessionRegistry()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = registry.register(page, agent_id="agent-1")
+        with caplog.at_level(logging.WARNING):
+            registry.check_binding(sid, None, "test_tool")
+
+        assert "agent-1" in caplog.text
+        assert "without agent_id" in caplog.text
+
+
+class TestBrowserManagerBindingCheck:
+    """Tests for BrowserManager binding check integration."""
+
+    def test_get_session_page_with_binding_check(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test get_session_page_checked calls check_binding."""
+        from sapwebguimcp.models.browser import BrowserManager
+
+        manager = BrowserManager()
+        page = MagicMock()
+        page.is_closed.return_value = False
+        page.on = MagicMock()
+
+        sid = manager.registry.register(page, agent_id="agent-1")
+
+        with caplog.at_level(logging.WARNING):
+            result = manager.get_session_page_checked(sid, "agent-2", "test_tool")
+
+        assert result is page
+        assert "agent-1" in caplog.text
+        assert "agent-2" in caplog.text

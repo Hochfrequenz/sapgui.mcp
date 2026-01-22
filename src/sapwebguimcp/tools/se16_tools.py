@@ -683,6 +683,7 @@ def register_se16_tools(mcp: FastMCP) -> None:
         max_hits: int = DEFAULT_MAX_HITS,
         output_file: str | None = None,
         session: str | None = None,
+        agent_id: str | None = None,
     ) -> SE16Result | SE16FileSummary:
         """
         Query SAP table data via SE16N.
@@ -694,6 +695,7 @@ def register_se16_tools(mcp: FastMCP) -> None:
             max_hits: Maximum rows to return (default 100)
             output_file: If provided, write full results to this JSON file and return summary
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
 
         Returns:
             SE16Result with all rows (inline), or
@@ -701,9 +703,9 @@ def register_se16_tools(mcp: FastMCP) -> None:
         """
         browser_manager = await get_browser_manager()
 
-        # Validate session exists at entry point
+        # Validate session exists and check agent binding at entry point
         try:
-            browser_manager.get_session_page(session)
+            browser_manager.get_session_page_checked(session, agent_id, "sap_se16_query")
         except ValueError as e:
             now = datetime.now(UTC)
             return SE16Result.failure(

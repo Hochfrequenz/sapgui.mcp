@@ -85,6 +85,27 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         """Session registry for multi-session support."""
         return self._registry
 
+    def get_session_page_checked(self, session_id: str | None, agent_id: str | None, tool_name: str) -> Page:
+        """Get page for a session with binding check.
+
+        Like get_session_page() but also checks agent binding and logs
+        warnings for cross-agent access.
+
+        Args:
+            session_id: Session ID or None for primary session ('s1')
+            agent_id: Agent making the request (or None)
+            tool_name: Name of tool for logging context
+
+        Returns:
+            Playwright Page object
+
+        Raises:
+            ValueError: If session not found or page is closed
+        """
+        sid = session_id or "s1"
+        self.registry.check_binding(sid, agent_id, tool_name)
+        return self.registry.get_page(sid)
+
     def get_session_page(self, session_id: str | None) -> Page:
         """Get page for a session ID (strict - no page creation).
 
@@ -145,6 +166,37 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
 
         # Backwards compatibility: if no sessions registered, use legacy get_current_page
         # This creates a page if needed (important for browser_navigate before sap_login)
+        return await self.get_current_page()
+
+    async def get_or_create_session_page_checked(
+        self, session_id: str | None, agent_id: str | None, tool_name: str
+    ) -> Page:
+        """Get page for a session with binding check, creating one if needed.
+
+        Combines get_or_create_session_page() with agent binding checks.
+        Use this for browser tools that may be called before sap_login() but
+        should still respect agent bindings when sessions exist.
+
+        Args:
+            session_id: Session ID or None for primary/default session
+            agent_id: Agent making the request (or None)
+            tool_name: Name of tool for logging context
+
+        Returns:
+            Playwright Page for the session (existing or newly created)
+        """
+        # If explicit session specified, use registry with binding check
+        if session_id is not None:
+            self.registry.check_binding(session_id, agent_id, tool_name)
+            return self._registry.get_page(session_id)
+
+        # If session=None and s1 exists, use s1 with binding check
+        if self._registry.has_session("s1"):
+            self.registry.check_binding("s1", agent_id, tool_name)
+            return self._registry.get_page("s1")
+
+        # Backwards compatibility: if no sessions registered, use legacy get_current_page
+        # No binding check needed - no sessions exist yet (pre-login scenario)
         return await self.get_current_page()
 
     async def initialize(self) -> None:
