@@ -1280,18 +1280,19 @@ async def test_abapgit_click_repo_pull(sap_mcp_client: ClientSession) -> None:
 
 @pytest.mark.anyio
 async def test_sap_abapgit_pull_tool(sap_mcp_client: ClientSession) -> None:
-    """Test the sap_abapgit_pull MCP tool."""
+    """Test the sap_abapgit_pull MCP tool with Z_ABAP4GEWINNT repo."""
     # Login first
     login_result = await call_tool_typed(
         sap_mcp_client, "sap_login", {}, LoginResult
     )
     assert login_result.success, f"Login failed: {login_result.error}"
 
-    # Try to pull the BO4E repo (matches by name pattern)
+    # Try to pull the Z_ABAP4GEWINNT repo
+    # The tool should clear the filter automatically to find it
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_abapgit_pull",
-        {"repo": "BO4E"},
+        {"repo": "ABAP4GEWINNT"},
         AbapGitActionResult,
     )
 
@@ -1306,6 +1307,224 @@ async def test_sap_abapgit_pull_tool(sap_mcp_client: ClientSession) -> None:
         print("Note: Pull requires PAT - expected if ABAPGIT_PAT not set")
     elif not result.success:
         print(f"Pull failed with error: {result.error}")
+
+
+@pytest.mark.anyio
+async def test_abapgit_clear_filter_and_find_repo(sap_mcp_client: ClientSession) -> None:
+    """Explore the filter box and find Z_ABAP4GEWINNT repo."""
+    import asyncio
+    import json
+
+    from sapwebguimcp.models import EvaluateResult
+
+    # Login and open ZABAPGIT
+    login_result = await call_tool_typed(
+        sap_mcp_client, "sap_login", {}, LoginResult
+    )
+    assert login_result.success
+
+    tx_result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_transaction",
+        {"tcode": "ZABAPGIT"},
+        TransactionResult,
+    )
+    assert tx_result.success
+
+    # Wait for abapGit UI to load
+    await asyncio.sleep(3)
+
+    # Step 1: Find and examine the filter input
+    js_find_filter = """
+    (() => {
+        const iframeCandidates = [
+            document.querySelector('iframe#C116'),
+            document.querySelector('iframe[id^="C"]'),
+            document.querySelector('iframe')
+        ].filter(Boolean);
+
+        let iframeDoc = null;
+        for (const candidate of iframeCandidates) {
+            try {
+                const doc = candidate.contentDocument || candidate.contentWindow?.document;
+                if (doc && doc.body?.innerText?.includes('Repository')) {
+                    iframeDoc = doc;
+                    break;
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        if (!iframeDoc) return JSON.stringify({error: 'No iframe found'});
+
+        // Find filter input
+        const filterInput = iframeDoc.querySelector('input#filter') ||
+                           iframeDoc.querySelector('input[name="filter"]') ||
+                           iframeDoc.querySelector('input[placeholder*="Filter"]');
+
+        if (!filterInput) {
+            // List all inputs for debugging
+            const inputs = Array.from(iframeDoc.querySelectorAll('input'));
+            return JSON.stringify({
+                error: 'Filter input not found',
+                inputs: inputs.map(i => ({id: i.id, name: i.name, type: i.type, value: i.value, placeholder: i.placeholder}))
+            });
+        }
+
+        return JSON.stringify({
+            found: true,
+            id: filterInput.id,
+            name: filterInput.name,
+            currentValue: filterInput.value,
+            placeholder: filterInput.placeholder
+        });
+    })()
+    """
+
+    result1 = await call_tool_typed(
+        sap_mcp_client,
+        "browser_evaluate",
+        {"script": js_find_filter},
+        EvaluateResult,
+    )
+    raw1 = result1.result
+    while isinstance(raw1, str):
+        raw1 = json.loads(raw1)
+    print(f"\nFilter input: {raw1}")
+
+    # Step 2: Clear the filter and submit
+    js_clear_filter = """
+    (() => {
+        const iframeCandidates = [
+            document.querySelector('iframe#C116'),
+            document.querySelector('iframe[id^="C"]'),
+            document.querySelector('iframe')
+        ].filter(Boolean);
+
+        let iframeDoc = null;
+        for (const candidate of iframeCandidates) {
+            try {
+                const doc = candidate.contentDocument || candidate.contentWindow?.document;
+                if (doc && doc.body?.innerText?.includes('Repository')) {
+                    iframeDoc = doc;
+                    break;
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        if (!iframeDoc) return JSON.stringify({error: 'No iframe found'});
+
+        const filterInput = iframeDoc.querySelector('input#filter') ||
+                           iframeDoc.querySelector('input[name="filter"]');
+
+        if (!filterInput) return JSON.stringify({error: 'Filter input not found'});
+
+        // Clear the filter
+        filterInput.value = '';
+        filterInput.dispatchEvent(new Event('input', {bubbles: true}));
+
+        // Find and click the submit button or press Enter
+        const form = filterInput.closest('form');
+        if (form) {
+            // Submit the form
+            const submitBtn = form.querySelector('input[type="submit"], button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.click();
+                return JSON.stringify({cleared: true, method: 'submit_button'});
+            }
+            // Try form submit
+            form.submit();
+            return JSON.stringify({cleared: true, method: 'form_submit'});
+        }
+
+        // Simulate Enter key
+        filterInput.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', keyCode: 13, bubbles: true}));
+        return JSON.stringify({cleared: true, method: 'enter_key'});
+    })()
+    """
+
+    result2 = await call_tool_typed(
+        sap_mcp_client,
+        "browser_evaluate",
+        {"script": js_clear_filter},
+        EvaluateResult,
+    )
+    raw2 = result2.result
+    while isinstance(raw2, str):
+        raw2 = json.loads(raw2)
+    print(f"\nClear filter result: {raw2}")
+
+    # Wait for page to refresh
+    await asyncio.sleep(3)
+
+    # Step 3: Check what repos are now visible
+    js_list_repos = """
+    (() => {
+        const iframeCandidates = [
+            document.querySelector('iframe#C116'),
+            document.querySelector('iframe[id^="C"]'),
+            document.querySelector('iframe')
+        ].filter(Boolean);
+
+        let iframeDoc = null;
+        for (const candidate of iframeCandidates) {
+            try {
+                const doc = candidate.contentDocument || candidate.contentWindow?.document;
+                if (doc && doc.body?.innerText?.includes('Repository')) {
+                    iframeDoc = doc;
+                    break;
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        if (!iframeDoc) return JSON.stringify({error: 'No iframe found'});
+
+        // Find all repo rows (rows with github.com or package names)
+        const allRows = Array.from(iframeDoc.querySelectorAll('tr'));
+        const repoRows = allRows.filter(tr => {
+            const text = tr.innerText || '';
+            return text.includes('github.com') || text.includes('.git') || text.match(/\\/[A-Z_]+\\//);
+        });
+
+        // Also check current filter value
+        const filterInput = iframeDoc.querySelector('input#filter, input[name="filter"]');
+
+        return JSON.stringify({
+            currentFilter: filterInput?.value || '',
+            repoCount: repoRows.length,
+            repos: repoRows.slice(0, 20).map(tr => {
+                const text = tr.innerText?.replace(/\\s+/g, ' ').substring(0, 150);
+                return text;
+            })
+        }, null, 2);
+    })()
+    """
+
+    result3 = await call_tool_typed(
+        sap_mcp_client,
+        "browser_evaluate",
+        {"script": js_list_repos},
+        EvaluateResult,
+    )
+    raw3 = result3.result
+    while isinstance(raw3, str):
+        raw3 = json.loads(raw3)
+
+    print(f"\nCurrent filter: '{raw3.get('currentFilter', '')}'")
+    print(f"Repo count: {raw3.get('repoCount', 0)}")
+    print("\nRepos found:")
+    for repo in raw3.get('repos', []):
+        # Handle unicode for console
+        try:
+            print(f"  - {repo[:100]}...")
+        except UnicodeEncodeError:
+            print(f"  - [unicode repo]")
+
+    # Check if Z_ABAP4GEWINNT is in the list
+    repos_text = ' '.join(raw3.get('repos', []))
+    if 'ABAP4GEWINNT' in repos_text or 'abap4gewinnt' in repos_text.lower():
+        print("\n>>> Z_ABAP4GEWINNT found in repo list!")
+    else:
+        print("\n>>> Z_ABAP4GEWINNT NOT found - may need different filter or more repos")
 
 
 @pytest.mark.anyio

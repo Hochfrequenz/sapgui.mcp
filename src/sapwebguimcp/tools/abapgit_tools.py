@@ -11,7 +11,6 @@ JavaScript evaluation to interact with its elements.
 
 import json
 import logging
-import os
 from datetime import UTC, datetime
 from typing import Any, Literal
 
@@ -20,6 +19,7 @@ from mcp.types import ToolAnnotations
 
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.abapgit_models import AbapGitActionResult
+from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
 
 logger = logging.getLogger(__name__)
@@ -204,6 +204,56 @@ def _js_click_action(action: str) -> str:
     """
 
 
+JS_CLEAR_FILTER = """
+(() => {
+    const iframeCandidates = [
+        document.querySelector('iframe#C116'),
+        document.querySelector('iframe[id^="C"]'),
+        document.querySelector('iframe')
+    ].filter(Boolean);
+
+    let iframeDoc = null;
+    for (const candidate of iframeCandidates) {
+        try {
+            const doc = candidate.contentDocument || candidate.contentWindow?.document;
+            if (doc && doc.body?.innerText?.includes('Repository')) {
+                iframeDoc = doc;
+                break;
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    if (!iframeDoc) return JSON.stringify({error: 'No iframe found'});
+
+    const filterInput = iframeDoc.querySelector('input#filter') ||
+                       iframeDoc.querySelector('input[name="filter"]');
+
+    if (!filterInput) return JSON.stringify({cleared: false, error: 'No filter input found'});
+
+    // Check if filter has a value
+    if (!filterInput.value) {
+        return JSON.stringify({cleared: true, wasEmpty: true});
+    }
+
+    // Clear the filter
+    filterInput.value = '';
+    filterInput.dispatchEvent(new Event('input', {bubbles: true}));
+
+    // Submit the form to apply the cleared filter
+    const form = filterInput.closest('form');
+    if (form) {
+        const submitBtn = form.querySelector('input[type="submit"], button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.click();
+            return JSON.stringify({cleared: true, method: 'submit_button'});
+        }
+    }
+
+    return JSON.stringify({cleared: true, method: 'input_cleared'});
+})()
+"""
+
+
 JS_CHECK_LOGIN_DIALOG = """
 (() => {
     const iframeCandidates = [
@@ -328,8 +378,9 @@ async def _abapgit_action_impl(
     now = datetime.now(UTC)
     action_lower = action.lower()
 
-    # Get PAT from parameter or environment
-    token = pat or os.environ.get("ABAPGIT_PAT") or os.environ.get("GITHUB_PAT")
+    # Get PAT from parameter or settings (which reads from .env / environment)
+    settings = get_settings()
+    token = pat or settings.abapgit_pat or settings.github_pat
 
     browser_manager = await get_browser_manager()
     page = await browser_manager.get_current_page()
@@ -358,7 +409,14 @@ async def _abapgit_action_impl(
         # Wait for abapGit UI to load in iframe
         await page.wait_for_timeout(UI_LOAD_WAIT)
 
-        # Step 2: Find the repo row
+        # Step 2: Clear any existing filter to ensure we can find all repos
+        clear_result = await _evaluate_js(page, JS_CLEAR_FILTER)
+        if clear_result.get("cleared") and not clear_result.get("wasEmpty"):
+            # Filter was cleared, wait for page to refresh
+            await page.wait_for_timeout(UI_LOAD_WAIT)
+            logger.info(f"Cleared filter: {clear_result}")
+
+        # Step 3: Find the repo row
         find_result = await _evaluate_js(page, _js_find_repo_row(repo_pattern))
         if find_result.get("error"):
             return AbapGitActionResult(
@@ -371,7 +429,7 @@ async def _abapgit_action_impl(
 
         repo_name = find_result.get("repoName", repo_pattern)
 
-        # Step 3: Click menu arrow to expand actions
+        # Step 4: Click menu arrow to expand actions
         click_menu = await _evaluate_js(page, _js_click_menu_arrow(repo_pattern))
         if click_menu.get("error"):
             return AbapGitActionResult(
@@ -384,7 +442,7 @@ async def _abapgit_action_impl(
 
         await page.wait_for_timeout(MENU_EXPAND_WAIT)
 
-        # Step 4: Click the action (Pull or Stage)
+        # Step 5: Click the action (Pull or Stage)
         click_action = await _evaluate_js(page, _js_click_action(action))
         if click_action.get("error"):
             return AbapGitActionResult(
@@ -397,7 +455,7 @@ async def _abapgit_action_impl(
 
         await page.wait_for_timeout(ACTION_WAIT)
 
-        # Step 5: Check for login dialog and fill token if needed
+        # Step 6: Check for login dialog and fill token if needed
         login_check = await _evaluate_js(page, JS_CHECK_LOGIN_DIALOG)
         if login_check.get("hasLoginDialog"):
             if not token:

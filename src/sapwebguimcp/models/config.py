@@ -143,6 +143,14 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "GITHUB_REPO"},
     )
 
+    # abapGit Integration
+    abapgit_pat: str = Field(
+        default="",
+        description="GitHub Personal Access Token for abapGit pull/push operations. "
+        "Required for private repositories or to avoid rate limits.",
+        json_schema_extra={"env": "ABAPGIT_PAT"},
+    )
+
     def validate_for_browser(self) -> list[str]:
         """Validate settings required for browser connection."""
         errors: list[str] = []
