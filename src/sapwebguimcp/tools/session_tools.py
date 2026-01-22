@@ -186,9 +186,7 @@ async def sap_session_bind_impl(session_id: str, agent_id: str) -> SessionBindRe
 
         if not registry.has_session(session_id):
             available = ", ".join(registry.list_sessions()) or "(none)"
-            return SessionBindResult.failure(
-                f"Session '{session_id}' not found. Active: {available}."
-            )
+            return SessionBindResult.failure(f"Session '{session_id}' not found. Active: {available}.")
 
         old_agent = registry.get_bound_agent(session_id)
         registry.bind(session_id, agent_id)
@@ -219,9 +217,7 @@ async def sap_session_release_impl(session_id: str) -> SessionReleaseResult:
 
         if not registry.has_session(session_id):
             available = ", ".join(registry.list_sessions()) or "(none)"
-            return SessionReleaseResult.failure(
-                f"Session '{session_id}' not found. Active: {available}."
-            )
+            return SessionReleaseResult.failure(f"Session '{session_id}' not found. Active: {available}.")
 
         old_agent = registry.get_bound_agent(session_id)
         registry.release(session_id)

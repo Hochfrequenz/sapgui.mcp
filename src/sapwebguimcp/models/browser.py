@@ -85,9 +85,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         """Session registry for multi-session support."""
         return self._registry
 
-    def get_session_page_checked(
-        self, session_id: str | None, agent_id: str | None, tool_name: str
-    ) -> Page:
+    def get_session_page_checked(self, session_id: str | None, agent_id: str | None, tool_name: str) -> Page:
         """Get page for a session with binding check.
 
         Like get_session_page() but also checks agent binding and logs
