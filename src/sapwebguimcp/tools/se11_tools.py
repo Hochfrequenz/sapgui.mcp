@@ -440,6 +440,30 @@ async def _lookup_single_object(  # pylint: disable=too-many-return-statements
     return parse_result
 
 
+def _write_result_to_file(
+    result: SE11Result,
+    output_file: str,
+    name_list: list[str],
+) -> SE11FileSummary:
+    """Write SE11 result to JSON file and return summary."""
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
+
+    return SE11FileSummary(
+        success=result.success,
+        error=result.error,
+        output_file=str(output_path.absolute()),
+        total_requested=len(name_list),
+        successful=len(result.entries),
+        failed=len(result.errors),
+        sample_entries=[e.name for e in result.entries[:5]],
+        sample_errors=[e.name for e in result.errors[:5]],
+    )
+
+
 # =============================================================================
 # MCP Tool Registration
 # =============================================================================
@@ -530,22 +554,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
 
         # Write to file if requested
         if output_file:
-            output_path = Path(output_file)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with output_path.open("w", encoding="utf-8") as f:
-                json.dump(final_result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
-
-            return SE11FileSummary(
-                success=final_result.success,
-                error=final_result.error,
-                output_file=str(output_path.absolute()),
-                total_requested=len(name_list),
-                successful=len(entries),
-                failed=len(errors),
-                sample_entries=[e.name for e in entries[:5]],
-                sample_errors=[e.name for e in errors[:5]],
-            )
+            return _write_result_to_file(final_result, output_file, name_list)
 
         if len(name_list) > MAX_INLINE_OBJECTS:
             logger.warning(

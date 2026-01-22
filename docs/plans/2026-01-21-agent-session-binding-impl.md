@@ -13,6 +13,7 @@
 ## Task 1: Extend SessionRegistry with Binding Methods
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/models/session_registry.py`
 - Test: `unittests/test_session_registry.py`
 
@@ -102,6 +103,7 @@ Expected: FAIL with "SessionRegistry has no attribute 'bind'" or similar
 Edit `src/sapwebguimcp/models/session_registry.py`:
 
 Add `_bindings` dict to `__init__`:
+
 ```python
 def __init__(self) -> None:
     self._sessions: dict[str, "Page"] = {}
@@ -112,6 +114,7 @@ def __init__(self) -> None:
 ```
 
 Update `register()` signature and body:
+
 ```python
 def register(self, page: "Page", agent_id: str | None = None) -> str:
     """Register a page and return its session ID.
@@ -141,6 +144,7 @@ def register(self, page: "Page", agent_id: str | None = None) -> str:
 ```
 
 Update `unregister()` to clear binding:
+
 ```python
 def unregister(self, session_id: str) -> None:
     """Remove a session from the registry.
@@ -156,6 +160,7 @@ def unregister(self, session_id: str) -> None:
 ```
 
 Add three new methods:
+
 ```python
 def get_bound_agent(self, session_id: str) -> str | None:
     """Get the agent bound to a session.
@@ -213,6 +218,7 @@ Add _bindings dict and methods:
 ## Task 2: Add check_binding Helper Method
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/models/session_registry.py`
 - Test: `unittests/test_session_registry.py`
 
@@ -329,6 +335,7 @@ def check_binding(self, session_id: str, agent_id: str | None, tool_name: str) -
 **Step 4: Add import for logging in test file**
 
 Add at top of test file:
+
 ```python
 import logging
 ```
@@ -356,6 +363,7 @@ Operations always proceed (warn but allow)."
 ## Task 3: Add BrowserManager Helper for Page with Binding Check
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/models/browser.py`
 - Test: `unittests/test_session_registry.py`
 
@@ -439,6 +447,7 @@ Combines page retrieval with binding check for tool implementations."
 ## Task 4: Add sap_session_bind and sap_session_release Tools
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/session_tools.py`
 - Modify: `src/sapwebguimcp/tools/sap_tools.py` (register tools)
 - Test: `unittests/test_session_tools.py` (create if needed)
@@ -608,6 +617,7 @@ async def sap_session_release(session: str) -> SessionReleaseResult:
 **Step 4: Update imports**
 
 Add to sap_tools.py imports:
+
 ```python
 from sapwebguimcp.tools.session_tools import (
     sap_session_bind_impl,
@@ -616,7 +626,8 @@ from sapwebguimcp.tools.session_tools import (
 )
 ```
 
-Add to models __init__.py exports:
+Add to models **init**.py exports:
+
 ```python
 from .session_results import SessionBindResult, SessionReleaseResult
 ```
@@ -642,6 +653,7 @@ New tools for agent-session binding management:
 ## Task 5: Add agent_id Parameter to sap_session_open
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/session_tools.py`
 - Modify: `src/sapwebguimcp/tools/sap_tools.py`
 - Test: `unittests/test_session_tools.py`
@@ -681,6 +693,7 @@ async def sap_session_open_impl(
 **Step 2: Update SessionOpenResult model**
 
 Add `agent_id` field to SessionOpenResult:
+
 ```python
 @dataclass
 class SessionOpenResult:
@@ -740,6 +753,7 @@ Binding is optional - backward compatible with existing code."
 ## Task 6: Add agent_id to Session-Aware Tools (Part 1: sap_tools.py)
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/sap_tools.py`
 
 This task updates 14 tools in sap_tools.py to add the `agent_id` parameter. The pattern is the same for each:
@@ -749,6 +763,7 @@ This task updates 14 tools in sap_tools.py to add the `agent_id` parameter. The 
 3. Update docstring
 
 **Tools to update:**
+
 - sap_transaction
 - sap_keyboard
 - sap_get_screen_text
@@ -812,9 +827,10 @@ Backward compatible - agent_id defaults to None (no check)."
 
 ---
 
-## Task 7: Add agent_id to Session-Aware Tools (Part 2: SE* Tools)
+## Task 7: Add agent_id to Session-Aware Tools (Part 2: SE\* Tools)
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/se11_tools.py`
 - Modify: `src/sapwebguimcp/tools/se16_tools.py`
 - Modify: `src/sapwebguimcp/tools/se24_tools.py`
@@ -822,6 +838,7 @@ Backward compatible - agent_id defaults to None (no check)."
 - Modify: `src/sapwebguimcp/tools/se93_tools.py`
 
 Apply the same pattern as Task 6 to all tools in these files:
+
 1. Add `agent_id: str | None = None` parameter
 2. Replace `get_session_page(session)` with `get_session_page_checked(session, agent_id, "tool_name")`
 
@@ -856,6 +873,7 @@ All SE11, SE16, SE24, SE37, SE93 tools now check agent binding."
 ## Task 8: Add agent_id to Browser Tools
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/browser_tools.py`
 
 Apply the same pattern to browser tools that have session parameter.
@@ -881,6 +899,7 @@ git commit -m "feat(tools): add agent_id parameter to browser tools"
 ## Task 9: Update SessionListResult to Include Bindings
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/models/session_results.py`
 - Modify: `src/sapwebguimcp/tools/session_tools.py`
 
@@ -928,11 +947,12 @@ sap_session_list now shows which sessions are bound to which agents."
 ## Task 10: Create sap_knowledge.md Documentation
 
 **Files:**
+
 - Create: `docs/sap_knowledge.md`
 
 **Step 1: Write documentation**
 
-```markdown
+````markdown
 # SAP WebGUI MCP Knowledge Base
 
 ## Multi-Agent Session Management
@@ -946,6 +966,7 @@ When running parallel agents (subagents), bind sessions to prevent interference:
 result = sap_session_open(tcode="VA01", agent_id="my-agent")
 # Returns: session_id="s2", agent_id="my-agent"
 ```
+````
 
 ### Using Your Session
 
@@ -978,6 +999,7 @@ sap_session_bind(session="s2", agent_id="other-agent")
 ### What Happens on Misuse
 
 If an agent accesses a session bound to another agent, a warning is logged:
+
 ```
 WARNING: Session 's2' bound to 'agent-1' accessed by 'agent-2' via sap_fill_form
 ```
@@ -999,7 +1021,8 @@ sessions = sap_session_list()
 2. **Use consistent agent_id** across all tool calls in an agent
 3. **Release when done** to allow reuse
 4. **Check logs** for binding warnings to detect cross-talk
-```
+
+````
 
 **Step 2: Commit**
 
@@ -1008,13 +1031,14 @@ git add docs/sap_knowledge.md
 git commit -m "docs: add multi-agent session management documentation
 
 Explains agent_id parameter usage for parallel workflows."
-```
+````
 
 ---
 
 ## Task 11: Integration Test for Cross-Agent Warning
 
 **Files:**
+
 - Create: `unittests/test_agent_binding_integration.py`
 
 **Step 1: Write integration test**

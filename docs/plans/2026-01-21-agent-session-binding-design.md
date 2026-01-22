@@ -3,6 +3,7 @@
 ## Problem
 
 When multiple parallel agents work in separate SAP sessions, there's no mechanism to:
+
 - Track which agent owns which session
 - Detect when an agent accidentally uses another agent's session
 - Provide visibility into cross-session interference
@@ -69,14 +70,15 @@ def check_session_binding(
 
 ### New Tools
 
-| Tool | Signature | Purpose |
-|------|-----------|---------|
-| `sap_session_release` | `(session: str)` | Unbind session, clears agent ownership |
-| `sap_session_bind` | `(session: str, agent_id: str)` | Bind/rebind session to an agent |
+| Tool                  | Signature                       | Purpose                                |
+| --------------------- | ------------------------------- | -------------------------------------- |
+| `sap_session_release` | `(session: str)`                | Unbind session, clears agent ownership |
+| `sap_session_bind`    | `(session: str, agent_id: str)` | Bind/rebind session to an agent        |
 
 ### Modified Tools
 
 Add `agent_id: str | None = None` parameter to:
+
 - `sap_session_open` (for initial binding)
 - All 25+ session-aware tools (for binding checks)
 
@@ -130,6 +132,7 @@ Warning: Using a bound session without correct agent_id logs warnings.
 ## Backward Compatibility
 
 Fully backward compatible:
+
 - `agent_id` is optional everywhere (defaults to `None`)
 - Sessions created without `agent_id` remain unbound
 - Unbound sessions skip all binding checks
