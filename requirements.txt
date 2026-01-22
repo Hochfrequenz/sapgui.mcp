@@ -221,7 +221,7 @@ shellingham==1.5.4
     # via typer
 sortedcontainers==2.4.0
     # via fakeredis
-sse-starlette==3.1.2
+sse-starlette==3.2.0
     # via mcp
 starlette==0.50.0
     # via
