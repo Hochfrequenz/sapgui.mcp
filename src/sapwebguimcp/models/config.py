@@ -144,8 +144,8 @@ class SapWebGuiSettings(BaseSettings):
     )
 
     # abapGit Integration
-    abapgit_pat: str = Field(
-        default="",
+    abapgit_pat: str | None = Field(
+        default=None,
         description="GitHub Personal Access Token for abapGit pull/push operations. "
         "Required for private repositories or to avoid rate limits.",
         json_schema_extra={"env": "ABAPGIT_PAT"},
