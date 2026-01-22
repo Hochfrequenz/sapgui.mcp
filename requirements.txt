@@ -62,7 +62,7 @@ exceptiongroup==1.3.1
     # via fastmcp
 fakeredis[lua]==2.33.0
     # via pydocket
-fastmcp==2.14.2
+fastmcp==2.14.3
     # via sapwebguimcp (pyproject.toml)
 greenlet==3.3.0
     # via playwright
@@ -131,7 +131,7 @@ opentelemetry-semantic-conventions==0.60b1
     # via
     #   opentelemetry-instrumentation
     #   opentelemetry-sdk
-packaging==25.0
+packaging==26.0
     # via opentelemetry-instrumentation
 pathable==0.4.4
     # via jsonschema-path
@@ -221,7 +221,7 @@ shellingham==1.5.4
     # via typer
 sortedcontainers==2.4.0
     # via fakeredis
-sse-starlette==3.1.2
+sse-starlette==3.2.0
     # via mcp
 starlette==0.50.0
     # via
@@ -257,7 +257,7 @@ uvicorn==0.40.0
     # via
     #   fastmcp
     #   mcp
-websockets==15.0.1
+websockets==16.0
     # via fastmcp
 wrapt==1.17.3
     # via opentelemetry-instrumentation
