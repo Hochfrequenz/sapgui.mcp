@@ -2326,17 +2326,17 @@ Args:
             "Use for transfer of session ownership between agents."
         )
     )
-    async def sap_session_bind(session: str, agent_id: str) -> SessionBindResult:
+    async def sap_session_bind(session_id: str, agent_id: str) -> SessionBindResult:
         """Bind or rebind a session to an agent.
 
         Args:
-            session: Session ID to bind (e.g., "s2")
+            session_id: Session ID to bind (e.g., "s2")
             agent_id: Agent identifier claiming the session
 
         Returns:
             SessionBindResult with binding info
         """
-        return await sap_session_bind_impl(session, agent_id)
+        return await sap_session_bind_impl(session_id, agent_id)
 
     @mcp.tool(
         description=(
@@ -2345,13 +2345,13 @@ Args:
             "for other agents or general use."
         )
     )
-    async def sap_session_release(session: str) -> SessionReleaseResult:
+    async def sap_session_release(session_id: str) -> SessionReleaseResult:
         """Unbind a session from its current agent.
 
         Args:
-            session: Session ID to release
+            session_id: Session ID to release
 
         Returns:
             SessionReleaseResult
         """
-        return await sap_session_release_impl(session)
+        return await sap_session_release_impl(session_id)

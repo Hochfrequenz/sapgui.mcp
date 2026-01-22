@@ -29,7 +29,7 @@ If you're dispatching subagents to work in parallel:
 
 3. **Clean up when done:**
     ```
-    sap_session_close(session="s2")  # Or sap_session_release to just unbind
+    sap_session_close(session_id="s2")  # Or sap_session_release to just unbind
     ```
 
 ### For Subagents (Worker Agents)
@@ -49,7 +49,7 @@ If you're a subagent working on an SAP task:
 
 3. **When finished, release your session:**
     ```
-    sap_session_release(session="s2")
+    sap_session_release(session_id="s2")
     ```
 
 ### Checking Session State
