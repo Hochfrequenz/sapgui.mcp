@@ -1,0 +1,20 @@
+{
+  "dialogCount": 1,
+  "dialogs": [
+    {
+      "tag": "FORM",
+      "className": "inline",
+      "text": "Filter:   "
+    }
+  ],
+  "inputCount": 1,
+  "inputs": [
+    {
+      "type": "text",
+      "name": "filter",
+      "id": "filter",
+      "placeholder": ""
+    }
+  ],
+  "bodyPreview": "  ►Repository List\n Flow\n New Online\n New Offline\n Global Settings\nFilter:   \n Only Favorites  Detail\nFilter by label: Test_Git_synctest private nobranche\n\t#\tName ▴\tLabels\tPackage\tRemote\tBranch/Tag\t\n\t\tHFQ BO4E - Business Objects 4 Energy\t\t /HFQ/BO4E\tgithub.com/Hochfrequenz/hfqbo4e \t feat/s4changes\t▸\n Repository not found in database. Key: REPO, #\n❌\n Sponsor us\t\n \n1.132.0 - Standalone Version - Web - IE\n\t\n\njs: OK"
+}
