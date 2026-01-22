@@ -9,7 +9,9 @@ The abapGit UI runs inside an iframe within SAP Web GUI, requiring
 JavaScript evaluation to interact with its elements.
 """
 
+import json
 import logging
+import re
 from pathlib import Path
 from typing import Any, Literal
 
@@ -70,8 +72,6 @@ def _js_call(func_name: str, *args: Any) -> str:
     Returns:
         Complete JavaScript code to execute
     """
-    import json
-
     args_str = ", ".join(json.dumps(arg) for arg in args) if args else ""
     return f"""
     (() => {{
@@ -97,8 +97,6 @@ async def _evaluate_js(page: Page, script: str) -> dict[str, Any]:
     Returns:
         Parsed result as dictionary
     """
-    import json
-
     result = await page.evaluate(script)
     # Handle single level of JSON encoding from legacy scripts
     if isinstance(result, str):
@@ -145,11 +143,14 @@ async def _find_iframe_with_retry(
     Returns:
         Result dict with found, id, error fields
     """
+    # Initialize result to handle edge case of max_retries=0
+    result: dict[str, Any] = {"found": False, "error": "No retries attempted"}
+
     for attempt in range(max_retries):
         result = await _evaluate_js(page, _js_call("findAbapGitIframe"))
         if result.get("found"):
             return result
-        # Exponential backoff: 1s, 2s, 3s
+        # Exponential backoff: 1.5s, 3s, 4.5s, etc.
         await page.wait_for_timeout(RETRY_DELAY_MS * (attempt + 1))
         logger.debug(f"Iframe not found, retry {attempt + 1}/{max_retries}")
 
@@ -177,9 +178,26 @@ async def _abapgit_action_impl(
     action_lower: Literal["pull", "stage"] = action.lower()  # type: ignore[assignment]
 
     # Get PAT from parameter or settings (which reads from .env / environment)
+    # Fallback order: explicit pat parameter > ABAPGIT_PAT > GITHUB_PAT
     settings = get_settings()
-    token = pat or settings.abapgit_pat or settings.github_pat
+    token: str | None = None
+    token_source: str = "none"
+
+    if pat:
+        token = pat
+        token_source = "explicit parameter"
+    elif settings.abapgit_pat:
+        token = settings.abapgit_pat
+        token_source = "ABAPGIT_PAT env var"
+    elif settings.github_pat:
+        token = settings.github_pat
+        token_source = "GITHUB_PAT env var (fallback)"
+
     logger.info(f"Starting abapGit {action} for repo pattern: {repo_pattern}")
+    if token:
+        logger.debug(f"PAT available from: {token_source}")
+    else:
+        logger.debug("No PAT available - public repos only")
 
     browser_manager = await get_browser_manager()
     page = await browser_manager.get_current_page()
@@ -304,17 +322,9 @@ async def _abapgit_action_impl(
         else:
             logger.debug("No login dialog detected - proceeding without authentication")
 
-        # Step 8: Verify action result (for Pull)
+        # Step 8: Verify action result (for Pull) with polling
         if action == "Pull":
-            # Wait for pull to complete
-            await page.wait_for_timeout(ACTION_WAIT)
-
-            # Read status bar for verification
-            status_bar = await sap_read_status_bar_impl()
-            status_message = status_bar.message or ""
-            logger.info(f"Status bar after pull: type={status_bar.type}, message={status_message}")
-
-            # Check for success indicators in status bar
+            # Success patterns to check in status bar
             # Success: "Serialize: 2 objects, 0.02 seconds"
             # Also: "Pull successful", "objects imported", "up to date"
             success_patterns = [
@@ -325,42 +335,69 @@ async def _abapgit_action_impl(
                 r"nothing\s+to\s+pull",
             ]
 
-            import re
-            is_success = any(
-                re.search(pattern, status_message, re.IGNORECASE)
-                for pattern in success_patterns
-            )
+            # Poll for completion with timeout
+            poll_interval = ACTION_WAIT  # 5 seconds between checks
+            max_wait = PULL_COMPLETE_WAIT  # 30 seconds total
+            elapsed = 0
 
-            if is_success:
-                return AbapGitActionResult.success_result(
-                    action_lower,
-                    repo_name,
-                    f"{action} completed: {status_message}",
+            while elapsed < max_wait:
+                await page.wait_for_timeout(poll_interval)
+                elapsed += poll_interval
+
+                # Read status bar for verification
+                status_bar = await sap_read_status_bar_impl()
+                status_message = status_bar.message or ""
+                logger.info(
+                    f"Status bar after {elapsed}ms: type={status_bar.type}, "
+                    f"message={status_message}"
                 )
 
-            # Check for error indicators
-            if status_bar.type == "error":
-                return AbapGitActionResult.failure_result(
-                    action_lower,
-                    repo_name,
-                    f"Pull failed: {status_message}",
+                # Check for success indicators
+                is_success = any(
+                    re.search(pattern, status_message, re.IGNORECASE)
+                    for pattern in success_patterns
                 )
 
-            # Also check iframe for errors
-            verify_result = await _evaluate_js(page, _js_call("checkActionResult"))
-            if verify_result.get("hasError"):
-                error_msg = verify_result.get("message") or status_message or "Pull operation failed"
-                return AbapGitActionResult.failure_result(
-                    action_lower,
-                    repo_name,
-                    error_msg,
-                )
+                if is_success:
+                    return AbapGitActionResult.success_result(
+                        action_lower,
+                        repo_name,
+                        f"{action} completed: {status_message}",
+                    )
 
-            # No clear success or error - report status bar message
+                # Check for error indicators
+                if status_bar.type == "error" or status_bar.type == "E":
+                    return AbapGitActionResult.failure_result(
+                        action_lower,
+                        repo_name,
+                        f"Pull failed: {status_message}",
+                    )
+
+                # Also check iframe for errors
+                verify_result = await _evaluate_js(page, _js_call("checkActionResult"))
+                if verify_result.get("hasError"):
+                    error_msg = (
+                        verify_result.get("message") or status_message or "Pull operation failed"
+                    )
+                    return AbapGitActionResult.failure_result(
+                        action_lower,
+                        repo_name,
+                        error_msg,
+                    )
+
+                # If status bar has any message, consider it potentially done
+                # (might be a success pattern we didn't anticipate)
+                if status_message and status_bar.type in ("S", "I", "W"):
+                    logger.debug(f"Status bar has message, assuming completion: {status_message}")
+                    break
+
+            # Timeout or ambiguous result - report what we have
+            status_bar = await sap_read_status_bar_impl()
+            status_message = status_bar.message or "unknown"
             return AbapGitActionResult.success_result(
                 action_lower,
                 repo_name,
-                f"{action} completed for {repo_name}. Status: {status_message or 'unknown'}",
+                f"{action} completed for {repo_name}. Status: {status_message}",
             )
 
         # For Stage action, just return success (user will interact with staging UI)
@@ -371,7 +408,9 @@ async def _abapgit_action_impl(
         )
 
     except Exception as e:
-        logger.exception(f"abapGit {action} failed")
+        # Use logger.error instead of logger.exception to avoid logging
+        # stack traces that might contain sensitive data (e.g., PAT token)
+        logger.error(f"abapGit {action} failed: {type(e).__name__}: {e}")
         return AbapGitActionResult.failure_result(
             action_lower,
             repo_pattern,

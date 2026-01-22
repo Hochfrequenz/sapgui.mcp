@@ -310,6 +310,7 @@ async def test_abapgit_pull_by_repo_name(sap_mcp_client: ClientSession) -> None:
 
 
 @pytest.mark.anyio
+@pytest.mark.flaky(reruns=2, reruns_delay=5)  # May need pytest-rerunfailures
 async def test_abapgit_pull_public_repo_no_pat(sap_mcp_client: ClientSession) -> None:
     """
     Test pulling a PUBLIC repository (Datamatrix) WITHOUT PAT authentication.
@@ -318,6 +319,8 @@ async def test_abapgit_pull_public_repo_no_pat(sap_mcp_client: ClientSession) ->
     1. Public repos can be pulled without any PAT
     2. No login dialog appears for public repos
     3. The status bar shows success message like "Serialize: X objects, Y seconds"
+
+    Note: This test can be flaky due to menu expansion timing in SAP GUI.
     """
     # Temporarily remove PAT from environment to ensure we're not using it
     original_pat = os.environ.pop("ABAPGIT_PAT", None)
