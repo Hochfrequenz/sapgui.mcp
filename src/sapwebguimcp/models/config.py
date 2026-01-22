@@ -144,6 +144,12 @@ class SapWebGuiSettings(BaseSettings):
     )
 
     # abapGit Integration
+    abapgit_user: str | None = Field(
+        default=None,
+        description="GitHub username for abapGit authentication. "
+        "Used together with ABAPGIT_PAT for pull/push operations.",
+        json_schema_extra={"env": "ABAPGIT_USER"},
+    )
     abapgit_pat: str | None = Field(
         default=None,
         description="GitHub Personal Access Token for abapGit pull/push operations. "
