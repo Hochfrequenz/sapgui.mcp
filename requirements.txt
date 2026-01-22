@@ -257,7 +257,7 @@ uvicorn==0.40.0
     # via
     #   fastmcp
     #   mcp
-websockets==15.0.1
+websockets==16.0
     # via fastmcp
 wrapt==1.17.3
     # via opentelemetry-instrumentation
