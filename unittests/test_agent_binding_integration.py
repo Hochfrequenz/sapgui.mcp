@@ -1,16 +1,15 @@
 """Integration tests for agent-session binding."""
 
 import logging
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 
 class TestAgentBindingIntegration:
     """Integration tests for cross-agent detection."""
 
-    def test_cross_agent_access_logs_warning(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_cross_agent_access_logs_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that cross-agent access logs warning."""
         from sapwebguimcp.models.browser import BrowserManager
 
@@ -40,9 +39,7 @@ class TestAgentBindingIntegration:
         assert "agent-A" in caplog.text
         assert "agent-B" in caplog.text
 
-    def test_unbound_session_no_warning(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_unbound_session_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that unbound session doesn't warn."""
         from sapwebguimcp.models.browser import BrowserManager
 
@@ -61,9 +58,7 @@ class TestAgentBindingIntegration:
         warning_records = [r for r in caplog.records if r.levelno >= logging.WARNING]
         assert len(warning_records) == 0
 
-    def test_matching_agent_no_warning(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_matching_agent_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that matching agent doesn't warn."""
         from sapwebguimcp.models.browser import BrowserManager
 
@@ -82,9 +77,7 @@ class TestAgentBindingIntegration:
         warning_records = [r for r in caplog.records if r.levelno >= logging.WARNING]
         assert len(warning_records) == 0
 
-    def test_none_agent_on_bound_session_warns(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_none_agent_on_bound_session_warns(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that None agent on bound session logs warning."""
         from sapwebguimcp.models.browser import BrowserManager
 
