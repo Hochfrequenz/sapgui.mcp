@@ -181,12 +181,38 @@ After pull, verify in SE38:
 
 ---
 
+## Implementation Notes
+
+### Transaction Name
+The transaction was created as `Z_ABAPGIT_PULL` (same name as the report), not `ZABAPGIT_PULL`.
+
+### Parameter Passing
+Instead of using `sap_fill_form` (which requires label matching), parameters are passed directly via the OK-Code field:
+```
+/nZ_ABAPGIT_PULL P_REPO=value; P_TRKORR=value; P_USER=value; P_TOKEN=value;
+```
+
+### Overwrite Decisions
+The abapGit API requires explicit overwrite decisions. The report auto-confirms all overwrites:
+```abap
+LOOP AT ls_checks-overwrite ASSIGNING FIELD-SYMBOL(<ls_overwrite>).
+  <ls_overwrite>-decision = 'Y'.
+ENDLOOP.
+```
+
+### Source Code Location
+The ABAP report source is maintained in a git submodule:
+- `unittests/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY/src/z_abapgit_pull.prog.abap`
+
+---
+
 ## Checklist
 
-- [ ] Report Z_ABAPGIT_PULL created and activated in SE38
-- [ ] Report tested successfully with public repo
-- [ ] Report tested with private repo (PAT authentication)
-- [ ] Transaction ZABAPGIT_PULL created in SE93
-- [ ] Transaction tested from command line
-- [ ] MCP tool updated to use new transaction
-- [ ] E2E test updated and passing
+- [x] Report Z_ABAPGIT_PULL created and activated in SE38
+- [x] Report tested successfully with public repo
+- [ ] Report tested with private repo (PAT authentication) - needs investigation
+- [x] Transaction Z_ABAPGIT_PULL created in SE93
+- [x] Transaction tested from command line
+- [x] MCP tool updated to use new transaction
+- [x] E2E test for public repo passing
+- [ ] E2E test for private repo passing - needs auth investigation
