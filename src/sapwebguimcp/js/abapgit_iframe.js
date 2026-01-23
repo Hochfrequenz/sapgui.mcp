@@ -369,6 +369,38 @@ function isVisible(el) {
 }
 
 /**
+ * Set input value using native setter to bypass framework interception.
+ * This is more reliable than just setting .value directly.
+ * @param {HTMLInputElement} input - The input element
+ * @param {string} value - The value to set
+ */
+function setInputValueNative(input, value) {
+    // Focus the input first (like a real user would)
+    input.focus();
+
+    // Try to use the native setter to bypass any framework wrappers
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value'
+    )?.set;
+
+    if (nativeInputValueSetter) {
+        nativeInputValueSetter.call(input, value);
+    } else {
+        // Fallback to direct assignment
+        input.value = value;
+    }
+
+    // Dispatch events to notify any listeners
+    // Use InputEvent for better compatibility
+    input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+
+    // Keep focus on the input
+    input.focus();
+}
+
+/**
  * Fill the token/password field securely.
  * Token is passed as argument, not embedded in JS string.
  * @param {string} token - The PAT token to fill
@@ -378,11 +410,12 @@ function fillToken(token) {
     // First try main document
     const mainInput = findTokenInput(document);
     if (mainInput) {
-        mainInput.value = token;
-        mainInput.dispatchEvent(new Event('input', { bubbles: true }));
-        mainInput.dispatchEvent(new Event('change', { bubbles: true }));
+        setInputValueNative(mainInput, token);
+        // Verify the value was set
+        const valueSet = mainInput.value === token;
         return {
             filled: true,
+            valueVerified: valueSet,
             method: 'main_document',
             inputType: mainInput.type,
             inputId: mainInput.id,
@@ -397,11 +430,11 @@ function fillToken(token) {
             querySelectorAll: (s) => dialogCheck.querySelectorAll(s),
         });
         if (dialogInput) {
-            dialogInput.value = token;
-            dialogInput.dispatchEvent(new Event('input', { bubbles: true }));
-            dialogInput.dispatchEvent(new Event('change', { bubbles: true }));
+            setInputValueNative(dialogInput, token);
+            const valueSet = dialogInput.value === token;
             return {
                 filled: true,
+                valueVerified: valueSet,
                 method: 'sap_dialog',
                 inputType: dialogInput.type,
                 inputId: dialogInput.id,
@@ -421,11 +454,11 @@ function fillToken(token) {
             const doc = iframe.contentDocument || iframe.contentWindow?.document;
             const iframeInput = findTokenInput(doc);
             if (iframeInput) {
-                iframeInput.value = token;
-                iframeInput.dispatchEvent(new Event('input', { bubbles: true }));
-                iframeInput.dispatchEvent(new Event('change', { bubbles: true }));
+                setInputValueNative(iframeInput, token);
+                const valueSet = iframeInput.value === token;
                 return {
                     filled: true,
+                    valueVerified: valueSet,
                     method: 'iframe',
                     inputType: iframeInput.type,
                     inputId: iframeInput.id,

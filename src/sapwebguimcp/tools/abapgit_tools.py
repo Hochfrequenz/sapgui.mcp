@@ -286,8 +286,10 @@ async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-retu
             logger.info("Filling authentication token...")
             fill_result = await _fill_token_secure(page, token)
             logger.info(
-                "Token fill result: filled=%s, method=%s, inputType=%s, inputId=%s",
+                "Token fill result: filled=%s, valueVerified=%s, method=%s, "
+                "inputType=%s, inputId=%s",
                 fill_result.get("filled"),
+                fill_result.get("valueVerified"),
                 fill_result.get("method"),
                 fill_result.get("inputType"),
                 fill_result.get("inputId"),
@@ -299,6 +301,20 @@ async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-retu
                     repo_name,
                     f"Failed to fill token: {fill_result.get('error')}",
                 )
+
+            # If JS fill didn't verify, try using Playwright's fill as fallback
+            if not fill_result.get("valueVerified"):
+                input_id = fill_result.get("inputId")
+                if input_id:
+                    logger.warning(
+                        "Token value not verified, trying Playwright fill for #%s",
+                        input_id
+                    )
+                    try:
+                        await page.fill(f"#{input_id}", token)
+                        logger.info("Playwright fill completed for #%s", input_id)
+                    except Exception as e:  # pylint: disable=broad-exception-caught
+                        logger.warning("Playwright fill failed: %s", e)
 
             # Click "Weiter" (Continue) button
             logger.info("Clicking Continue/Weiter button...")
