@@ -179,8 +179,10 @@ async def _handle_transport_request_popup(page: Page) -> None:
     Handle the transport request popup ("Workbench Auftrag").
 
     SAP shows a popup asking which transport request to use for the changes.
-    We accept the default values and click the green checkmark/Enter to continue.
+    We accept the default values and click the green checkmark button to continue.
     """
+    logger.info("Checking for transport request popup...")
+
     # Check for SAP popup dialog
     try:
         # Look for SAP popup with transport request text
@@ -189,6 +191,8 @@ async def _handle_transport_request_popup(page: Page) -> None:
             "Workbench Auftrag",
             "Transport Request",
             "Transportauftrag",
+            "Request/Task",
+            "Auftrag/Aufgabe",
         ]
 
         # Get page text to check for popup
@@ -197,32 +201,127 @@ async def _handle_transport_request_popup(page: Page) -> None:
         has_popup = any(indicator.lower() in body_text.lower() for indicator in popup_indicators)
 
         if has_popup:
-            logger.info("Transport request popup detected, pressing Enter to accept defaults...")
-            await page.keyboard.press("Enter")
-            await page.wait_for_timeout(2000)
-            return
+            logger.info("Transport request popup detected!")
 
-        # Also try clicking green checkmark button if visible
-        checkmark_selectors = [
-            'button[title*="Weiter"]',
-            'button[title*="Continue"]',
-            'button[title*="OK"]',
-            'span.urImgStd[title*="Weiter"]',
-            'span.urImgStd[title*="Continue"]',
-            '[title="Weiter (Enter)"]',
-            '[title="Continue (Enter)"]',
-        ]
+            # Log available buttons for debugging - search main doc AND all iframes
+            buttons_js = """
+            () => {
+                const allButtons = [];
 
-        for selector in checkmark_selectors:
+                function searchDocument(doc, location) {
+                    const selectors = [
+                        'button',
+                        '[role="button"]',
+                        'span[title]',
+                        'img[title]',
+                        'img[src]',
+                        '.urBtnStd',
+                        '.urBtnStdNew',
+                        'a[title]',
+                        'td[title]',
+                        '.urBtnCnt',
+                        '[onclick]',
+                    ];
+
+                    for (const sel of selectors) {
+                        try {
+                            const elements = doc.querySelectorAll(sel);
+                            for (const el of elements) {
+                                const title = el.title || '';
+                                const text = el.innerText || '';
+                                const src = el.src || '';
+                                if (title || text || src) {
+                                    allButtons.push({
+                                        tag: el.tagName,
+                                        title: title.substring(0, 50),
+                                        text: text.substring(0, 30),
+                                        src: src.substring(src.lastIndexOf('/') + 1, src.lastIndexOf('/') + 30),
+                                        class: (el.className || '').substring(0, 50),
+                                        location: location,
+                                    });
+                                }
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                // Search main document
+                searchDocument(document, 'main');
+
+                // Search all iframes
+                const iframes = document.querySelectorAll('iframe');
+                for (let i = 0; i < iframes.length; i++) {
+                    try {
+                        const doc = iframes[i].contentDocument || iframes[i].contentWindow?.document;
+                        if (doc) searchDocument(doc, 'iframe-' + (iframes[i].id || i));
+                    } catch (e) {}
+                }
+
+                return allButtons;
+            }
+            """
             try:
-                btn = page.locator(selector).first
-                if await btn.is_visible(timeout=500):
-                    await btn.click()
-                    logger.info("Clicked transport popup button: %s", selector)
-                    await page.wait_for_timeout(2000)
-                    return
-            except Exception:  # pylint: disable=broad-exception-caught
-                continue
+                available_buttons = await page.evaluate(buttons_js)
+                # Filter unique buttons and log them
+                seen = set()
+                unique_buttons = []
+                for b in available_buttons:
+                    key = f"{b.get('title')}-{b.get('text')}-{b.get('src')}"
+                    if key not in seen:
+                        seen.add(key)
+                        unique_buttons.append(b)
+                logger.info("Available buttons in popup (%d unique):", len(unique_buttons))
+                for i, btn in enumerate(unique_buttons[:30]):
+                    logger.info("  Button %d: tag=%s, title='%s', text='%s', src='%s', loc=%s",
+                               i, btn.get("tag"), btn.get("title"), btn.get("text"),
+                               btn.get("src"), btn.get("location"))
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.warning("Failed to get buttons: %s", e)
+
+            logger.info("Looking for green checkmark button...")
+
+            # Try to click the green checkmark button (SAP standard confirm button)
+            # These buttons are typically in the SAP toolbar with specific titles
+            checkmark_selectors = [
+                # SAP standard toolbar buttons
+                'span[title*="Weiter"]',
+                'span[title*="Continue"]',
+                '[title="Weiter (Enter)"]',
+                '[title="Continue (Enter)"]',
+                'button[title*="Weiter"]',
+                'button[title*="Continue"]',
+                # SAP image buttons (green checkmark)
+                'img[title*="Weiter"]',
+                'img[title*="Continue"]',
+                'img[src*="s_okay"]',
+                'img[src*="check"]',
+                # Generic toolbar buttons
+                '.urBtnStdNew[title*="Weiter"]',
+                'span.urBtnCnt:has-text("Weiter")',
+                # SAP popup buttons
+                '.sapMBtnContent:has-text("OK")',
+                '.sapMBtnContent:has-text("Weiter")',
+            ]
+
+            clicked = False
+            for selector in checkmark_selectors:
+                try:
+                    btn = page.locator(selector).first
+                    if await btn.is_visible(timeout=500):
+                        await btn.click()
+                        logger.info("Clicked transport popup button: %s", selector)
+                        clicked = True
+                        await page.wait_for_timeout(3000)
+                        break
+                except Exception:  # pylint: disable=broad-exception-caught
+                    continue
+
+            if not clicked:
+                # Fallback: Try pressing Enter
+                logger.info("No button found, pressing Enter as fallback...")
+                await page.keyboard.press("Enter")
+                await page.wait_for_timeout(3000)
+            return
 
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.debug("Transport popup check failed: %s", e)
