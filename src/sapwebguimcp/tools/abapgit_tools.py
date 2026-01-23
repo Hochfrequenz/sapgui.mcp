@@ -320,9 +320,24 @@ async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-retu
                     clicked_action=clicked_text,
                 )
 
-            # Click "Weiter" (Continue) button - use keyboard Enter
-            logger.info("Pressing Enter to submit login...")
-            await page.keyboard.press("Enter")
+            # Click "Weiter" (Continue) button
+            logger.info("Clicking Continue/Weiter button...")
+            continue_result = await _evaluate_js(page, _js_call("clickContinueButton"))
+            logger.info(
+                "Continue button result: clicked=%s, buttonText=%s, location=%s",
+                continue_result.get("clicked"),
+                continue_result.get("buttonText"),
+                continue_result.get("location"),
+            )
+
+            if not continue_result.get("clicked"):
+                # Fallback to Enter key if button not found
+                logger.warning(
+                    "Continue button not found, trying Enter key. Available: %s",
+                    continue_result.get("available", [])
+                )
+                await page.keyboard.press("Enter")
+
             await page.wait_for_timeout(ACTION_WAIT)
         else:
             logger.debug("No login dialog detected - proceeding without authentication")

@@ -440,6 +440,84 @@ function fillToken(token) {
 }
 
 /**
+ * Click the Continue/Weiter button in a login dialog.
+ * Searches for buttons with text like "Weiter", "Continue", "OK", "Submit".
+ * @returns {Object} Result with clicked, buttonText, error fields
+ */
+function clickContinueButton() {
+    // Button text variants (German and English)
+    const buttonTexts = ['weiter', 'continue', 'ok', 'submit', 'anmelden', 'login'];
+
+    // First check main document for buttons
+    const allButtons = Array.from(
+        document.querySelectorAll('button, input[type="submit"], input[type="button"], a.button, [role="button"]')
+    );
+
+    for (const btn of allButtons) {
+        const text = (btn.innerText || btn.value || '').toLowerCase().trim();
+        if (buttonTexts.some((t) => text.includes(t)) && isVisible(btn)) {
+            btn.click();
+            return { clicked: true, buttonText: btn.innerText || btn.value, location: 'main_document' };
+        }
+    }
+
+    // Check SAP dialog
+    const dialogCheck = document.querySelector('[role="dialog"]');
+    if (dialogCheck) {
+        const dialogButtons = Array.from(
+            dialogCheck.querySelectorAll(
+                'button, input[type="submit"], input[type="button"], a.button, [role="button"]'
+            )
+        );
+        for (const btn of dialogButtons) {
+            const text = (btn.innerText || btn.value || '').toLowerCase().trim();
+            if (buttonTexts.some((t) => text.includes(t)) && isVisible(btn)) {
+                btn.click();
+                return { clicked: true, buttonText: btn.innerText || btn.value, location: 'sap_dialog' };
+            }
+        }
+    }
+
+    // Check inside iframes
+    const iframeCandidates = [
+        document.querySelector('iframe#C116'),
+        document.querySelector('iframe[id^="C"]'),
+        document.querySelector('iframe'),
+    ].filter(Boolean);
+
+    for (const iframe of iframeCandidates) {
+        try {
+            const doc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (!doc) continue;
+
+            const iframeButtons = Array.from(
+                doc.querySelectorAll(
+                    'button, input[type="submit"], input[type="button"], a.button, [role="button"]'
+                )
+            );
+            for (const btn of iframeButtons) {
+                const text = (btn.innerText || btn.value || '').toLowerCase().trim();
+                if (buttonTexts.some((t) => text.includes(t))) {
+                    btn.click();
+                    return { clicked: true, buttonText: btn.innerText || btn.value, location: 'iframe' };
+                }
+            }
+        } catch (e) {
+            /* ignore cross-origin errors */
+        }
+    }
+
+    // List available buttons for debugging
+    const available = allButtons
+        .filter((b) => isVisible(b))
+        .map((b) => b.innerText || b.value || b.className)
+        .filter(Boolean)
+        .slice(0, 10);
+
+    return { clicked: false, error: 'Continue button not found', available: available };
+}
+
+/**
  * Check for error messages or success indicators after an action.
  * Only reports errors for clear, unambiguous error states.
  * @returns {Object} Result with hasError, hasSuccess, message fields
@@ -503,6 +581,7 @@ if (typeof module !== 'undefined') {
         clearFilter,
         checkLoginDialog,
         fillToken,
+        clickContinueButton,
         checkActionResult,
     };
 }
