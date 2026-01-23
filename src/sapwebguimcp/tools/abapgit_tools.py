@@ -573,23 +573,22 @@ async def _abapgit_pull_via_api(
     """
     Pull changes using the Z_ABAPGIT_PULL transaction (abapGit ABAP API).
 
-    This is a simpler, more reliable approach than UI automation:
-    1. Navigate to Z_ABAPGIT_PULL transaction
-    2. Fill selection screen parameters
-    3. Execute (F8)
-    4. Read status bar for result
+    This approach passes parameters directly to the transaction via OK-Code,
+    avoiding fragile form field matching. The syntax is:
+    /nZ_ABAPGIT_PULL P_REPO=value; P_TRKORR=value;
+
+    The ABAP report Z_ABAPGIT_PULL is maintained in a git submodule:
+    unittests/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY/src/z_abapgit_pull.prog.abap
 
     Args:
         repo: Repository name pattern
-        trkorr: Transport request (required)
+        trkorr: Transport request (required in many SAP systems)
         username: GitHub username (optional for public repos)
         pat: GitHub PAT (optional for public repos)
 
     Returns:
         AbapGitActionResult with success/failure info
     """
-    from sapwebguimcp.tools.sap_tool_impl import sap_fill_form_impl
-
     logger.info("Starting abapGit Pull via API for repo: %s", repo)
 
     # Get browser page
@@ -603,76 +602,130 @@ async def _abapgit_pull_via_api(
         )
 
     try:
-        # 1. Navigate to Z_ABAPGIT_PULL transaction
-        tx_result = await sap_transaction_impl("Z_ABAPGIT_PULL", new_window=False)
-        if not tx_result.success:
-            return AbapGitActionResult.failure_result(
-                action="pull",
-                repo_name=repo,
-                error=f"Failed to open Z_ABAPGIT_PULL: {tx_result.error}",
-            )
-
-        # 2. Fill selection screen
         # Get PAT from environment if not provided
         effective_pat = pat
         if not effective_pat:
             settings = get_settings()
             effective_pat = settings.abapgit_pat or settings.github_pat
 
-        fields: dict[str, str] = {
-            "P_REPO": repo,
-        }
-
-        # Only add optional fields if provided
+        # Build transaction call with parameters
+        # SAP OK-Code syntax: /nTCODE PARAM=value; PARAM2=value2;
+        params = [f"P_REPO={repo}"]
         if trkorr:
-            fields["P_TRKORR"] = trkorr
+            params.append(f"P_TRKORR={trkorr}")
         if username:
-            fields["P_USER"] = username
+            params.append(f"P_USER={username}")
         if effective_pat:
-            fields["P_TOKEN"] = effective_pat
+            params.append(f"P_TOKEN={effective_pat}")
 
-        logger.info("Filling selection screen with: repo=%s, trkorr=%s, has_user=%s, has_pat=%s",
+        # Format: /nZ_ABAPGIT_PULL P_REPO=value; P_TRKORR=value;
+        tcode_with_params = f"/nZ_ABAPGIT_PULL {'; '.join(params)};"
+
+        logger.info("Calling transaction with params: repo=%s, trkorr=%s, has_user=%s, has_pat=%s",
                    repo, trkorr, bool(username), bool(effective_pat))
+        # Don't log the full tcode_with_params as it may contain the PAT
 
-        fill_result = await sap_fill_form_impl(fields, strict=False)
-        if not fill_result.success:
-            return AbapGitActionResult.failure_result(
-                action="pull",
-                repo_name=repo,
-                error=f"Failed to fill selection screen: {fill_result.error}",
-            )
+        # Directly use OK-Code field to enter transaction with parameters
+        # This avoids the tcode pattern validation in sap_transaction_impl
+        from sapwebguimcp.tools.sap_tool_impl import _find_okcode_field, _enable_okcode_field
 
-        # 3. Execute report (F8)
+        okcode_field = await _find_okcode_field(page)
+        if not okcode_field:
+            logger.info("OK-Code field not found, attempting to enable it")
+            success, message = await _enable_okcode_field(page)
+            if not success:
+                return AbapGitActionResult.failure_result(
+                    action="pull",
+                    repo_name=repo,
+                    error=f"Could not find or enable OK-Code field: {message}",
+                )
+            okcode_field = await _find_okcode_field(page)
+            if not okcode_field:
+                return AbapGitActionResult.failure_result(
+                    action="pull",
+                    repo_name=repo,
+                    error="OK-Code field still not visible after enabling",
+                )
+
+        # Enter transaction with parameters
+        await page.bring_to_front()
+        await page.wait_for_timeout(500)
+        await okcode_field.click()
+        await page.wait_for_timeout(200)
+        await okcode_field.fill("")
+        await okcode_field.fill(tcode_with_params)
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(2000)  # Wait for selection screen to load
+
+        # The transaction opens the selection screen with fields pre-filled
+        # Execute the report with F8
         await page.keyboard.press("F8")
+        await page.wait_for_timeout(3000)  # Wait for potential confirmation dialog
+
+        # abapGit may show a confirmation dialog for overwrite decisions
+        # Press Enter to confirm (if dialog is present, this confirms; if not, harmless)
+        await page.keyboard.press("Enter")
         await page.wait_for_timeout(5000)  # Wait for pull to complete
 
-        # 4. Read status bar for result
+        # Read status bar for result
         status = await sap_read_status_bar_impl()
         status_message = status.message or ""
         status_type = status.type or ""
 
         logger.info("Pull result - status type: %s, message: %s", status_type, status_message)
 
-        # Check for success (S = Success, I = Info) or error (E = Error, A = Abort)
-        if status_type in ("S", "I") and "successful" in status_message.lower():
+        # Check for success - the ABAP report outputs "Pull successful: <repo_name>"
+        # Also accept general success indicators
+        is_pull_success = (
+            "pull successful" in status_message.lower()
+            or ("successful" in status_message.lower() and status_type in ("S", "I"))
+        )
+
+        if is_pull_success:
             return AbapGitActionResult.success_result(
                 action="pull",
                 repo_name=repo,
                 message=status_message,
             )
-        elif status_type in ("E", "A") or "error" in status_message.lower():
+        elif status_type in ("E", "A"):
+            return AbapGitActionResult.failure_result(
+                action="pull",
+                repo_name=repo,
+                error=status_message,
+            )
+        elif "not found" in status_message.lower() or "error" in status_message.lower():
             return AbapGitActionResult.failure_result(
                 action="pull",
                 repo_name=repo,
                 error=status_message,
             )
         else:
-            # Unknown status - return as success with the message
-            return AbapGitActionResult.success_result(
-                action="pull",
-                repo_name=repo,
-                message=f"Pull completed. Status: {status_message}",
-            )
+            # Unknown status - could be intermediate message, try reading status bar again
+            await page.wait_for_timeout(2000)
+            status = await sap_read_status_bar_impl()
+            final_message = status.message or status_message
+            final_type = status.type or status_type
+            logger.info("Final status check - type: %s, message: %s", final_type, final_message)
+
+            if "pull successful" in final_message.lower():
+                return AbapGitActionResult.success_result(
+                    action="pull",
+                    repo_name=repo,
+                    message=final_message,
+                )
+            elif final_type in ("E", "A"):
+                return AbapGitActionResult.failure_result(
+                    action="pull",
+                    repo_name=repo,
+                    error=final_message,
+                )
+            else:
+                # Assume success if no error
+                return AbapGitActionResult.success_result(
+                    action="pull",
+                    repo_name=repo,
+                    message=f"Pull completed. Status: {final_message}",
+                )
 
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("Error during abapGit pull via API")
@@ -1360,6 +1413,39 @@ async def read_se38_source(program_name: str) -> dict[str, Any]:
         await page.wait_for_timeout(1000)  # Additional wait for source to load
 
         # Try to read source code from various locations
+
+        # First try: Direct selector for SE38 source code text box
+        logger.info("Trying direct SE38 source selector...")
+        try:
+            # SE38 uses textedit#TEC_cnt42 for the source code
+            # The # in the ID needs to be escaped in CSS: \#
+            se38_selectors = [
+                r"#textedit\#TEC_cnt42",  # Exact selector with escaped hash
+                "[id^='textedit'][id*='TEC_cnt']",  # Pattern match
+                "textarea[id*='textedit']",  # Textarea variant
+                "[id*='TEC_cnt']",  # Broader match
+            ]
+            for selector in se38_selectors:
+                el = await page.query_selector(selector)
+                if el:
+                    # Try both innerText and value (for textarea/input)
+                    text = await el.inner_text()
+                    if not text or len(text) < 20:
+                        text = await el.input_value() if await el.evaluate("el => el.tagName") in ["TEXTAREA", "INPUT"] else ""
+                    if not text or len(text) < 20:
+                        text = await el.evaluate("el => el.value || el.textContent || el.innerText")
+                    if text and len(text) > 20:
+                        logger.info("Found source via SE38 selector %s (%d chars)", selector, len(text))
+                        return {
+                            "success": True,
+                            "source_code": text,
+                            "program_name": program_name,
+                        }
+                    else:
+                        logger.debug("Selector %s found element but text too short: %d chars", selector, len(text) if text else 0)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.debug("SE38 direct selector failed: %s", e)
+
         logger.info("Looking for source code in iframes...")
         source_code = await _read_source_from_iframes(page)
         if not source_code:
