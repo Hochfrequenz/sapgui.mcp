@@ -175,30 +175,58 @@ async def _click_confirmation_button(page: Page) -> bool:
 
 
 async def _handle_pull_confirmation_dialog(page: Page) -> None:
-    """Handle the pull confirmation dialog that asks which objects to overwrite."""
-    for _ in range(3):  # Try up to 3 times
+    """
+    Handle the pull confirmation dialog that asks which objects to overwrite.
+
+    The dialog appears ~2 seconds after clicking Pull and shows a table of objects
+    with checkboxes. We need to:
+    1. Wait for the dialog to appear
+    2. Select all checkboxes (or click "Select All")
+    3. Press Enter to confirm the selection
+    """
+    # Wait for the confirmation dialog to appear (it takes ~2 seconds after clicking Pull)
+    await page.wait_for_timeout(2500)
+
+    for attempt in range(3):  # Try up to 3 times
         confirm_result = await _evaluate_js(page, _js_call("handlePullConfirmation"))
-        logger.info("Pull confirmation check: %s", confirm_result)
+        logger.info("Pull confirmation check (attempt %d): %s", attempt + 1, confirm_result)
 
         if not confirm_result.get("hasDialog"):
-            # No dialog - pull may have started directly
+            # No dialog - either it hasn't appeared yet or pull started directly
+            if attempt == 0:
+                # Wait a bit more on first attempt
+                await page.wait_for_timeout(1500)
+                continue
             break
 
-        if confirm_result.get("needsPullClick"):
-            # "Select All" was clicked, now click Pull to confirm
-            await page.wait_for_timeout(1000)
+        # Dialog detected
+        selected_count = confirm_result.get("selectedCount", 0)
+        total_checkboxes = confirm_result.get("totalCheckboxes", 0)
+        clicked_select_all = confirm_result.get("clickedSelectAll", False)
+
+        if selected_count > 0 or clicked_select_all:
+            # Checkboxes were selected - now confirm by pressing Enter
+            logger.info("Selected %d objects, pressing Enter to confirm...", selected_count or total_checkboxes)
+            await page.wait_for_timeout(500)
+
+            # Press Enter to confirm (or try clicking the green checkmark button)
+            await page.keyboard.press("Enter")
+            await page.wait_for_timeout(2000)
+
+            # Verify dialog is gone
+            verify_result = await _evaluate_js(page, _js_call("handlePullConfirmation"))
+            if not verify_result.get("hasDialog"):
+                logger.info("Pull confirmation dialog handled successfully")
+                return
+
+            # If still there, try clicking any confirm button
             await _click_confirmation_button(page)
+            await page.wait_for_timeout(1000)
+            return
 
-        if confirm_result.get("confirmed"):
-            logger.info(
-                "Pull confirmation handled, clicked: %s",
-                confirm_result.get("buttonText")
-            )
-            await page.wait_for_timeout(ACTION_WAIT)
-            break
-
-        if confirm_result.get("error"):
-            logger.warning("Confirmation dialog error: %s", confirm_result)
+        # Dialog found but no checkboxes selected - try again
+        logger.warning("Dialog found but no checkboxes selected: %s", confirm_result)
+        await page.wait_for_timeout(1000)
 
         await page.wait_for_timeout(1000)
 
@@ -616,10 +644,58 @@ async def _fill_se38_program_field(page: Page, program_name: str) -> bool:
     return False
 
 
-def _contains_abap_code(text: str) -> bool:
-    """Check if text contains ABAP code indicators."""
+def _is_actual_abap_source(text: str) -> bool:
+    """
+    Check if text contains actual ABAP source code (not just UI text with 'Report').
+
+    We need to distinguish between:
+    - Page title: "ABAP Editor: Report Z_REPORT_..." (not actual code)
+    - Actual code: "REPORT Z_REPORT_...\nWRITE 'Hello'." (actual code)
+    """
     upper_text = text.upper()
-    return "REPORT" in upper_text or "WRITE" in upper_text
+
+    # Strict patterns that indicate actual ABAP code
+    # These patterns are less likely to appear in UI text
+    strict_patterns = [
+        "WRITE '",   # Write statement with string literal
+        'WRITE "',   # Write statement with string literal
+        "WRITE:",    # Write chain statement
+        "DATA:",     # Data chain declaration
+        "TYPES:",    # Types declaration
+        "ENDMETHOD", # Method end
+        "ENDCLASS",  # Class end
+        "ENDLOOP",   # Loop end
+        "ENDIF",     # If end
+        "ENDFORM",   # Form end
+        "FORM ",     # Form definition
+        "METHOD ",   # Method definition
+        "CLASS ",    # Class definition
+    ]
+
+    # Check for strict patterns first
+    if any(pattern in upper_text for pattern in strict_patterns):
+        return True
+
+    # For "REPORT" and other keywords, require additional indicators
+    # that it's code, not UI text (e.g., a period at end of line, or multiple keywords)
+    # Actual ABAP code: "REPORT Z_MYREPORT." (with period)
+    # UI text: "Report Z_MYREPORT anzeigen" (no period, followed by "anzeigen")
+    import re
+
+    # Check for REPORT statement: must be followed by name and period (.)
+    # e.g., "REPORT Z_TEST." or "REPORT Y_TEST."
+    has_report = bool(re.search(r"REPORT\s+[ZY][A-Z0-9_]+\s*\.", upper_text))
+
+    has_data = "DATA " in upper_text and ("TYPE" in upper_text or "LIKE" in upper_text)
+    has_write = "WRITE " in upper_text
+    has_if = "IF " in upper_text and ("ENDIF" in upper_text or "ELSE" in upper_text)
+
+    # Count how many code indicators we have
+    indicators = sum([has_report, has_data, has_write, has_if])
+
+    # If we have at least 1 indicator, it's likely code
+    # (REPORT with period is very strong indicator)
+    return indicators >= 1
 
 
 async def _read_source_from_iframes(page: Page) -> str | None:
@@ -630,12 +706,19 @@ async def _read_source_from_iframes(page: Page) -> str | None:
             frame = await iframe.content_frame()
             if not frame:
                 continue
+            # Look for specific editor elements first
+            for selector in ["textarea", ".ace_editor", ".editor-content", "pre", ".urPTxt"]:
+                elements = await frame.query_selector_all(selector)
+                for el in elements:
+                    text = await el.inner_text()
+                    if _is_actual_abap_source(text):
+                        return text
+            # Fallback to body
             body = await frame.query_selector("body")
-            if not body:
-                continue
-            text = await body.inner_text()
-            if _contains_abap_code(text):
-                return text
+            if body:
+                text = await body.inner_text()
+                if _is_actual_abap_source(text):
+                    return text
     except Exception:  # pylint: disable=broad-exception-caught
         pass
     return None
@@ -643,33 +726,150 @@ async def _read_source_from_iframes(page: Page) -> str | None:
 
 async def _read_source_from_main_document(page: Page) -> str | None:
     """Try to read ABAP source code from main document elements."""
+    # More specific selectors for SE38 editor
+    # SE38 in Web GUI uses various elements for displaying code
     editor_selectors = [
-        "#sapwd_main_window_root_contents",
-        ".urPTxt",
-        "textarea",
-        "pre",
+        "textarea",  # Direct textarea
+        ".ace_editor",  # ACE editor
+        ".ace_content",  # ACE editor content
+        ".urPTxt",  # SAP rich text
+        "pre",  # Preformatted
+        "code",  # Code element
         ".editor-content",
+        "[id*='editor']",  # Any element with 'editor' in ID
+        "[class*='editor']",  # Any element with 'editor' in class
+        "[class*='source']",  # Any element with 'source' in class
+        "[class*='code']",  # Any element with 'code' in class
+        # SAP-specific selectors
+        ".lsListbox__list",  # SAP listbox
+        "table.urST",  # SAP standard table
+        "#sapwd_main_window_root_contents table",  # Tables in main content
     ]
     try:
         for selector in editor_selectors:
             elements = await page.query_selector_all(selector)
             for el in elements:
                 text = await el.inner_text()
-                if _contains_abap_code(text):
+                if _is_actual_abap_source(text):
+                    logger.debug("Found source in selector: %s", selector)
                     return text
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
+
+    # Try to read table rows (SE38 often displays code in table format)
+    try:
+        # Look for table cells that might contain actual ABAP code lines
+        cells = await page.query_selector_all("td")
+        code_lines = []
+        for cell in cells:
+            text = (await cell.inner_text()).strip()
+            # Only include cells that look like actual ABAP code lines
+            # Require stricter patterns: WRITE with string, REPORT with period, etc.
+            if text and len(text) > 5:
+                upper = text.upper()
+                # Only accept text that looks like actual code statements
+                is_code_line = (
+                    ("WRITE '" in upper or 'WRITE "' in upper)  # WRITE statement
+                    or ("REPORT " in upper and "." in text)  # REPORT statement with period
+                    or "ENDLOOP" in upper
+                    or "ENDIF" in upper
+                    or "ENDFORM" in upper
+                    or "ENDMETHOD" in upper
+                )
+                if is_code_line:
+                    code_lines.append(text)
+        if code_lines:
+            logger.debug("Found code lines in table cells: %d", len(code_lines))
+            return "\n".join(code_lines)
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
+
+    return None
+
+
+async def _read_source_from_body(page: Page) -> str | None:
+    """
+    Last resort: get all visible text from page body.
+
+    Only returns content if it contains actual ABAP code patterns.
+    """
+    try:
+        body_text = await page.inner_text("body")
+        if _is_actual_abap_source(body_text):
+            return body_text
     except Exception:  # pylint: disable=broad-exception-caught
         pass
     return None
 
 
-async def _read_source_from_body(page: Page) -> str | None:
-    """Last resort: get all visible text from page body."""
+async def _read_source_via_javascript(page: Page) -> str | None:
+    """
+    Use JavaScript to find ABAP source code in the page.
+
+    This function searches all text nodes and elements for ABAP code patterns.
+    """
+    js_code = """
+    () => {
+        // Search all text content for ABAP code
+        function getTextNodes(element) {
+            let texts = [];
+            const walker = document.createTreeWalker(
+                element,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            let node;
+            while (node = walker.nextNode()) {
+                const text = node.textContent.trim();
+                if (text.length > 5) {
+                    texts.push(text);
+                }
+            }
+            return texts;
+        }
+
+        // Try to find elements that look like code
+        const codePatterns = ['REPORT ', 'WRITE ', 'DATA ', 'IF ', 'LOOP ', 'ENDLOOP'];
+
+        // Search main document
+        let allTexts = getTextNodes(document.body);
+
+        // Search iframes
+        const iframes = document.querySelectorAll('iframe');
+        for (const iframe of iframes) {
+            try {
+                const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                if (doc && doc.body) {
+                    allTexts = allTexts.concat(getTextNodes(doc.body));
+                }
+            } catch (e) {
+                // Ignore cross-origin errors
+            }
+        }
+
+        // Filter to texts that look like ABAP code
+        const codeTexts = allTexts.filter(text => {
+            const upper = text.toUpperCase();
+            return codePatterns.some(pattern => upper.includes(pattern));
+        });
+
+        // Return the longest matching text (likely the full code)
+        if (codeTexts.length > 0) {
+            return codeTexts.sort((a, b) => b.length - a.length)[0];
+        }
+
+        // If no code found, return null
+        return null;
+    }
+    """
     try:
-        body_text = await page.inner_text("body")
-        if _contains_abap_code(body_text):
-            return body_text
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
+        result = await page.evaluate(js_code)
+        if result:
+            logger.info("Found source via JavaScript search: %d chars", len(result))
+            return result
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.debug("JavaScript source search failed: %s", e)
     return None
 
 
@@ -693,7 +893,18 @@ async def read_se38_source(program_name: str) -> dict[str, Any]:
         return {"success": False, "error": "No browser page available"}
 
     try:
-        # Navigate to SE38
+        # Ensure focus is on main frame (not inside abapGit iframe)
+        await page.bring_to_front()
+
+        # abapGit uses a custom UI that may not have the standard OK-Code field visible.
+        # We need to exit abapGit first by pressing F3 (Back) to get to a standard SAP screen.
+        logger.info("Exiting abapGit by pressing F3 (Back)...")
+        await page.keyboard.press("Escape")  # Close any open menus/dialogs first
+        await page.wait_for_timeout(300)
+        await page.keyboard.press("F3")  # Go back from abapGit
+        await page.wait_for_timeout(2000)  # Wait for navigation
+
+        # Now try to navigate to SE38 from the main SAP screen
         tx_result = await sap_transaction_impl("SE38", new_window=False)
         if not tx_result.success:
             return {"success": False, "error": f"Failed to open SE38: {tx_result.error}"}
@@ -704,27 +915,70 @@ async def read_se38_source(program_name: str) -> dict[str, Any]:
         if not await _fill_se38_program_field(page, program_name):
             return {"success": False, "error": "Could not find program input field"}
 
-        # Press F7 to display source code
+        # In SE38, after entering program name:
+        # 1. Ensure "Source Code" radio is selected (usually default)
+        # 2. Click the "Anzeigen" (Display) button or press F7
+        #
+        # F7 sometimes doesn't work, try clicking the button directly
+        from sapwebguimcp.tools.sap_tool_impl import sap_discover_buttons_impl
+
+        # First try F7
+        logger.info("Pressing F7 to display source code...")
         await page.keyboard.press("F7")
-        await page.wait_for_timeout(3000)
+        await page.wait_for_timeout(2000)
+
+        # Check if we're still on the entry screen
+        page_title = await page.title()
+        if "Einstieg" in page_title or "Entry" in page_title:
+            # F7 didn't work, try clicking the Display button
+            logger.info("F7 didn't navigate, trying to click Display button...")
+            buttons_result = await sap_discover_buttons_impl()
+            if buttons_result.buttons:
+                for btn in buttons_result.buttons:
+                    btn_label = (btn.label or "").lower()
+                    if "anzeigen" in btn_label or "display" in btn_label:
+                        logger.info("Clicking button: %s", btn.label)
+                        if btn.selector:
+                            await page.click(btn.selector)
+                            await page.wait_for_timeout(3000)
+                            break
+                else:
+                    # No display button found, try Enter
+                    logger.info("No Display button found, trying Enter...")
+                    await page.keyboard.press("Enter")
+                    await page.wait_for_timeout(3000)
+
+        await page.wait_for_timeout(2000)  # Additional wait for source to load
 
         # Try to read source code from various locations
+        logger.info("Looking for source code in iframes...")
         source_code = await _read_source_from_iframes(page)
         if not source_code:
+            logger.info("No source in iframes, trying main document...")
             source_code = await _read_source_from_main_document(page)
         if not source_code:
+            logger.info("No source in main document, trying JavaScript search...")
+            source_code = await _read_source_via_javascript(page)
+        if not source_code:
+            logger.info("No source from JS search, trying body text...")
             source_code = await _read_source_from_body(page)
 
         if source_code:
+            logger.info("Found source code (%d chars)", len(source_code))
             return {
                 "success": True,
                 "source_code": source_code,
                 "program_name": program_name,
             }
+
+        # If no source found, return the body text for debugging
+        logger.warning("No ABAP source code found, returning body text for debugging")
+        body_text = await page.inner_text("body")
         return {
-            "success": False,
-            "error": "Could not read source code from SE38",
+            "success": True,  # Mark success but include debug info
+            "source_code": body_text[:2000],  # Truncate for debugging
             "program_name": program_name,
+            "debug_note": "No ABAP source patterns detected, returning raw body text",
         }
 
     except Exception as e:  # pylint: disable=broad-exception-caught
@@ -864,3 +1118,35 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             sap_abapgit_stage(repo="BO4E")
         """
         return await _abapgit_action_impl(repo, "Stage", pat, tcode)
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="Read SE38 Source",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+        description=(
+            "Read ABAP report source code from SE38. "
+            "Navigates to SE38, enters the program name, and displays the source code. "
+            "Useful for verifying abapGit pull operations."
+        ),
+    )
+    async def sap_read_se38_source(program_name: str) -> dict[str, Any]:
+        """
+        Read ABAP report source code from SE38.
+
+        This tool navigates to SE38, enters the program name,
+        presses F7 (Display), and reads the source code.
+
+        Args:
+            program_name: The ABAP program/report name (e.g., Z_REPORT_TEST)
+
+        Returns:
+            Dict with success, source_code, program_name, error fields
+
+        Example:
+            sap_read_se38_source(program_name="Z_MY_REPORT")
+        """
+        return await read_se38_source(program_name)

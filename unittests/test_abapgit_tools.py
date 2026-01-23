@@ -16,7 +16,7 @@ from mcp import ClientSession
 
 from sapwebguimcp.models import AbapGitActionResult, LoginResult
 
-from .conftest import call_tool_typed
+from .conftest import assert_tool_success_untyped, call_tool_typed
 
 
 # =============================================================================
@@ -705,17 +705,19 @@ async def test_abapgit_e2e_public_repo_pull_and_verify(
     assert result.success, f"Pull failed: {result.error}"
 
     # Step 5: Verify in SE38 that the code changed
-    # Use the Python implementation directly for verification
-    from sapwebguimcp.tools.abapgit_tools import verify_abap_report_content
-
+    # Use the MCP tool to read SE38 source (runs in same browser session as pull)
     report_name = TEST_REPOS["public"]["report"]
-    verify_result = await verify_abap_report_content(report_name, test_marker)
+    verify_result = await assert_tool_success_untyped(
+        sap_mcp_client,
+        "sap_read_se38_source",
+        {"program_name": report_name},
+    )
     print(f"SE38 verification result: {verify_result}")
 
-    assert verify_result.get("success"), f"SE38 read failed: {verify_result.get('error')}"
-    assert verify_result.get("found"), (
+    source_code = verify_result.get("source_code", "")
+    assert test_marker in source_code, (
         f"Expected text '{test_marker}' not found in SE38. "
-        f"Source code preview: {verify_result.get('source_code', '')[:500]}"
+        f"Source code preview: {source_code[:500]}"
     )
 
 
@@ -773,14 +775,17 @@ async def test_abapgit_e2e_private_repo_pull_and_verify(
     assert result.success, f"Pull failed: {result.error}"
 
     # Step 5: Verify in SE38 that the code changed
-    from sapwebguimcp.tools.abapgit_tools import verify_abap_report_content
-
+    # Use the MCP tool to read SE38 source (runs in same browser session as pull)
     report_name = TEST_REPOS["private"]["report"]
-    verify_result = await verify_abap_report_content(report_name, test_marker)
+    verify_result = await assert_tool_success_untyped(
+        sap_mcp_client,
+        "sap_read_se38_source",
+        {"program_name": report_name},
+    )
     print(f"SE38 verification result: {verify_result}")
 
-    assert verify_result.get("success"), f"SE38 read failed: {verify_result.get('error')}"
-    assert verify_result.get("found"), (
+    source_code = verify_result.get("source_code", "")
+    assert test_marker in source_code, (
         f"Expected text '{test_marker}' not found in SE38. "
-        f"Source code preview: {verify_result.get('source_code', '')[:500]}"
+        f"Source code preview: {source_code[:500]}"
     )

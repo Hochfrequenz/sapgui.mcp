@@ -555,9 +555,17 @@ function clickContinueButton() {
 
 /**
  * Check for and handle pull confirmation dialog.
- * abapGit shows a dialog after clicking Pull asking which objects to overwrite.
- * This function detects the dialog and clicks "Pull" or "Select All" to confirm.
- * @returns {Object} Result with hasDialog, confirmed, error fields
+ * abapGit shows a dialog after clicking Pull asking which objects to update.
+ * The dialog shows a table with objects and checkboxes for selection.
+ * Text is like: "The following objects are different between local and remote repository.
+ *                Select the objects which should be brought in line with the remote version."
+ *
+ * This function:
+ * 1. Detects the dialog by looking for checkboxes and relevant text
+ * 2. Selects all checkboxes (to update all objects)
+ * 3. Does NOT click confirm - that needs to be done separately with keyboard shortcut
+ *
+ * @returns {Object} Result with hasDialog, selectedCount, error fields
  */
 function handlePullConfirmation() {
     let iframeDoc;
@@ -570,71 +578,68 @@ function handlePullConfirmation() {
     const bodyText = (iframeDoc.body?.innerText || '').toLowerCase();
 
     // Check if we're on a pull confirmation screen
-    // Look for indicators like "objects", "overwrite", "select", checkboxes, etc.
-    const hasPullDialog =
-        (bodyText.includes('object') && bodyText.includes('overwrite')) ||
-        (bodyText.includes('objekt') && bodyText.includes('überschreiben')) ||
-        bodyText.includes('select all') ||
-        bodyText.includes('alle auswählen') ||
-        iframeDoc.querySelectorAll('input[type="checkbox"]').length > 0;
+    // Look for various indicators:
+    // - "different" and "objects" or "select"
+    // - "object" and "overwrite" or "update"
+    // - German equivalents
+    // - Multiple checkboxes in a table
+    const textIndicators =
+        (bodyText.includes('object') && (bodyText.includes('different') || bodyText.includes('select'))) ||
+        (bodyText.includes('object') && (bodyText.includes('overwrite') || bodyText.includes('update'))) ||
+        (bodyText.includes('objekt') && (bodyText.includes('überschreiben') || bodyText.includes('aktualisieren'))) ||
+        bodyText.includes('remote repository') ||
+        bodyText.includes('local object');
 
-    if (!hasPullDialog) {
-        return { hasDialog: false };
+    // Count checkboxes - the confirmation dialog has checkboxes for each object
+    const checkboxes = Array.from(iframeDoc.querySelectorAll('input[type="checkbox"]'));
+    const hasCheckboxes = checkboxes.length > 0;
+
+    if (!textIndicators && !hasCheckboxes) {
+        return { hasDialog: false, bodyPreview: bodyText.substring(0, 500) };
     }
 
-    // Try to click "Select All" first if there are checkboxes
-    const selectAllButtons = Array.from(
-        iframeDoc.querySelectorAll('a, button, input[type="button"]')
-    ).filter((el) => {
-        const text = (el.innerText || el.value || '').toLowerCase();
-        return (
-            text.includes('select all') ||
-            text.includes('alle auswählen') ||
-            text.includes('all') ||
-            text === 'alle'
-        );
+    // Dialog detected - select all checkboxes
+    let selectedCount = 0;
+    for (const checkbox of checkboxes) {
+        if (!checkbox.checked && !checkbox.disabled) {
+            checkbox.checked = true;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            selectedCount++;
+        }
+    }
+
+    // Look for "Select All" link/button and click it if available
+    const allLinks = Array.from(iframeDoc.querySelectorAll('a'));
+    const selectAllLink = allLinks.find((el) => {
+        const text = (el.innerText || '').toLowerCase();
+        return text.includes('select all') || text.includes('alle auswählen') ||
+               text === 'all' || text === 'alle';
     });
 
-    if (selectAllButtons.length > 0 && isVisible(selectAllButtons[0])) {
-        selectAllButtons[0].click();
-        // Small delay before clicking Pull
-        return { hasDialog: true, action: 'select_all', needsPullClick: true };
+    if (selectAllLink) {
+        selectAllLink.click();
+        return {
+            hasDialog: true,
+            clickedSelectAll: true,
+            selectedCount: checkboxes.length,
+            message: 'Clicked Select All link',
+        };
     }
 
-    // Look for Pull/Confirm button to finalize
-    const confirmButtons = Array.from(iframeDoc.querySelectorAll('a, button, input[type="button"]')).filter(
-        (el) => {
-            const text = (el.innerText || el.value || '').toLowerCase();
-            return (
-                text === 'pull' ||
-                text === 'ziehen' ||
-                text.includes('confirm') ||
-                text.includes('bestätigen') ||
-                text.includes('übernehmen') ||
-                text === 'ok'
-            );
-        }
-    );
-
-    if (confirmButtons.length > 0 && isVisible(confirmButtons[0])) {
-        confirmButtons[0].click();
-        return { hasDialog: true, confirmed: true, buttonText: confirmButtons[0].innerText || confirmButtons[0].value };
-    }
-
-    // If checkboxes exist but no buttons found, list available buttons for debugging
-    const checkboxes = iframeDoc.querySelectorAll('input[type="checkbox"]');
-    const availableButtons = Array.from(iframeDoc.querySelectorAll('a, button, input[type="button"]'))
-        .filter((el) => isVisible(el))
-        .map((el) => el.innerText || el.value)
-        .filter(Boolean)
+    // Report what we found
+    const availableLinks = allLinks
+        .filter((el) => el.innerText?.trim())
+        .map((el) => el.innerText.trim())
         .slice(0, 20);
 
     return {
         hasDialog: true,
-        confirmed: false,
-        checkboxCount: checkboxes.length,
-        availableButtons: availableButtons,
-        error: 'Confirmation dialog detected but could not find confirm button',
+        selectedCount: selectedCount,
+        totalCheckboxes: checkboxes.length,
+        availableLinks: availableLinks,
+        message: selectedCount > 0 ?
+            `Selected ${selectedCount} checkboxes. Use keyboard shortcut to confirm.` :
+            'Dialog detected but no unchecked checkboxes found',
     };
 }
 
