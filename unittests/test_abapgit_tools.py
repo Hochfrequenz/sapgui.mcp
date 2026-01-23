@@ -305,8 +305,11 @@ async def test_abapgit_pull_by_repo_name(sap_mcp_client: ClientSession) -> None:
     assert result.success, f"Pull failed: {result.error}"
     assert result.action == "pull"
     assert "ABAP4GEWINNT" in result.repo_name
-    assert result.message is not None
-    assert "completed" in result.message.lower() or "pull" in result.message.lower()
+    # Verify the Pull button was actually found and clicked
+    assert result.clicked_action is not None, "Pull button was not clicked"
+    assert "pull" in result.clicked_action.lower(), (
+        f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
+    )
 
 
 @pytest.mark.anyio
@@ -318,7 +321,7 @@ async def test_abapgit_pull_public_repo_no_pat(sap_mcp_client: ClientSession) ->
     This test verifies that:
     1. Public repos can be pulled without any PAT
     2. No login dialog appears for public repos
-    3. The status bar shows success message like "Serialize: X objects, Y seconds"
+    3. The Pull button was found and clicked
 
     Note: This test can be flaky due to menu expansion timing in SAP GUI.
     """
@@ -344,13 +347,10 @@ async def test_abapgit_pull_public_repo_no_pat(sap_mcp_client: ClientSession) ->
         # Verify the result
         assert result.success, f"Pull failed: {result.error}"
         assert result.action == "pull"
-        assert result.message is not None
-        # Verify status bar shows serialization success
-        assert "serialize" in result.message.lower(), (
-            f"Expected 'Serialize: X objects' in message, got: {result.message}"
-        )
-        assert "objects" in result.message.lower(), (
-            f"Expected 'Serialize: X objects' in message, got: {result.message}"
+        # Verify the Pull button was actually found and clicked
+        assert result.clicked_action is not None, "Pull button was not clicked"
+        assert "pull" in result.clicked_action.lower(), (
+            f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
         )
 
     finally:
@@ -392,10 +392,10 @@ async def test_abapgit_pull_private_repo_with_pat(
     assert result.success, f"Pull failed: {result.error}"
     assert result.action == "pull"
     assert "BO4E" in result.repo_name
-    assert result.message is not None
-    # Verify status bar shows serialization success
-    assert "serialize" in result.message.lower() or "completed" in result.message.lower(), (
-        f"Expected success message, got: {result.message}"
+    # Verify the Pull button was actually found and clicked
+    assert result.clicked_action is not None, "Pull button was not clicked"
+    assert "pull" in result.clicked_action.lower(), (
+        f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
     )
 
 
@@ -447,6 +447,11 @@ async def test_abapgit_pull_by_package_name(sap_mcp_client: ClientSession) -> No
     assert result.success, f"Pull failed: {result.error}"
     assert result.action == "pull"
     assert "BO4E" in result.repo_name
+    # Verify the Pull button was actually found and clicked
+    assert result.clicked_action is not None, "Pull button was not clicked"
+    assert "pull" in result.clicked_action.lower(), (
+        f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
+    )
 
 
 @pytest.mark.anyio
@@ -472,7 +477,11 @@ async def test_abapgit_stage_opens_staging_view(sap_mcp_client: ClientSession) -
     assert result.success, f"Stage failed: {result.error}"
     assert result.action == "stage"
     assert "BO4E" in result.repo_name
-    assert result.message is not None
+    # Verify the Stage button was actually found and clicked
+    assert result.clicked_action is not None, "Stage button was not clicked"
+    assert "stag" in result.clicked_action.lower(), (
+        f"Expected 'Stage' button to be clicked, got: {result.clicked_action}"
+    )
 
 
 @pytest.mark.anyio
@@ -525,6 +534,11 @@ async def test_abapgit_pull_with_explicit_pat(sap_mcp_client: ClientSession) -> 
     )
 
     assert result.success, f"Pull with explicit PAT failed: {result.error}"
+    # Verify the Pull button was actually found and clicked
+    assert result.clicked_action is not None, "Pull button was not clicked"
+    assert "pull" in result.clicked_action.lower(), (
+        f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
+    )
 
 
 @pytest.mark.anyio
@@ -550,6 +564,11 @@ async def test_abapgit_pull_custom_tcode(sap_mcp_client: ClientSession) -> None:
     )
 
     assert result.success, f"Pull with custom tcode failed: {result.error}"
+    # Verify the Pull button was actually found and clicked
+    assert result.clicked_action is not None, "Pull button was not clicked"
+    assert "pull" in result.clicked_action.lower(), (
+        f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
+    )
 
 
 @pytest.mark.anyio

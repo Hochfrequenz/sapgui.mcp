@@ -23,6 +23,10 @@ class AbapGitActionResult(BaseModel):
     message: str | None = Field(default=None, description="Status message")
     error: str | None = Field(default=None, description="Error message if failed")
     executed_at: datetime = Field(description="When the action was executed")
+    clicked_action: str | None = Field(
+        default=None,
+        description="The action button text that was clicked (e.g., 'Pull', 'Stage')",
+    )
 
     @classmethod
     def success_result(
@@ -30,6 +34,7 @@ class AbapGitActionResult(BaseModel):
         action: Literal["pull", "stage", "diff", "check"],
         repo_name: str,
         message: str,
+        clicked_action: str | None = None,
     ) -> "AbapGitActionResult":
         """Create a success result."""
         return cls(
@@ -38,6 +43,7 @@ class AbapGitActionResult(BaseModel):
             repo_name=repo_name,
             message=message,
             executed_at=datetime.now(UTC),
+            clicked_action=clicked_action,
         )
 
     @classmethod
@@ -46,6 +52,7 @@ class AbapGitActionResult(BaseModel):
         action: Literal["pull", "stage", "diff", "check"],
         repo_name: str,
         error: str,
+        clicked_action: str | None = None,
     ) -> "AbapGitActionResult":
         """Create a failure result."""
         return cls(
@@ -54,4 +61,5 @@ class AbapGitActionResult(BaseModel):
             repo_name=repo_name,
             error=error,
             executed_at=datetime.now(UTC),
+            clicked_action=clicked_action,
         )

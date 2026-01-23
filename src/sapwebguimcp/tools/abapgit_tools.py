@@ -153,12 +153,12 @@ async def _find_iframe_with_retry(
             return result
         # Exponential backoff: 1.5s, 3s, 4.5s, etc.
         await page.wait_for_timeout(RETRY_DELAY_MS * (attempt + 1))
-        logger.debug(f"Iframe not found, retry {attempt + 1}/{max_retries}")
+        logger.debug("Iframe not found, retry %d/%d", attempt + 1, max_retries)
 
     return result  # Return last failure
 
 
-async def _abapgit_action_impl(
+async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-return-statements,too-many-branches,too-many-statements
     repo_pattern: str,
     action: Literal["Pull", "Stage"],
     pat: str | None,
@@ -194,9 +194,9 @@ async def _abapgit_action_impl(
         token = settings.github_pat
         token_source = "GITHUB_PAT env var (fallback)"
 
-    logger.info(f"Starting abapGit {action} for repo pattern: {repo_pattern}")
+    logger.info("Starting abapGit %s for repo pattern: %s", action, repo_pattern)
     if token:
-        logger.debug(f"PAT available from: {token_source}")
+        logger.debug("PAT available from: %s", token_source)
     else:
         logger.debug("No PAT available - public repos only")
 
@@ -237,12 +237,12 @@ async def _abapgit_action_impl(
         if clear_result.get("cleared") and not clear_result.get("wasEmpty"):
             # Filter was cleared, wait for page to refresh
             await page.wait_for_timeout(UI_LOAD_WAIT)
-            logger.info(f"Cleared filter: {clear_result}")
+            logger.info("Cleared filter: %s", clear_result)
 
         # Step 4: Find the repo row
         find_result = await _evaluate_js(page, _js_call("findRepoRow", repo_pattern))
         if find_result.get("error"):
-            logger.warning(f"Repo not found: {find_result}")
+            logger.warning("Repo not found: %s", find_result)
             return AbapGitActionResult.failure_result(
                 action_lower,
                 repo_pattern,
@@ -250,19 +250,19 @@ async def _abapgit_action_impl(
             )
 
         repo_name = find_result.get("repoName", repo_pattern)
-        logger.info(f"Found repo: {repo_name}")
+        logger.info("Found repo: %s", repo_name)
 
         # Step 5: Click menu arrow to expand actions
         click_menu = await _evaluate_js(page, _js_call("clickMenuArrow", repo_pattern))
         if click_menu.get("error"):
-            logger.warning(f"Failed to click menu arrow: {click_menu}")
+            logger.warning("Failed to click menu arrow: %s", click_menu)
             return AbapGitActionResult.failure_result(
                 action_lower,
                 repo_name,
                 f"Failed to expand menu: {click_menu['error']}",
             )
 
-        logger.info(f"Clicked menu arrow, waiting for menu to expand...")
+        logger.info("Clicked menu arrow, waiting for menu to expand...")
         await page.wait_for_timeout(MENU_EXPAND_WAIT)
 
         # Step 6: Click the action (Pull or Stage)
@@ -271,25 +271,26 @@ async def _abapgit_action_impl(
             available = click_action.get("available", [])
             searched = click_action.get("searchedFor", [action])
             logger.warning(
-                f"Failed to click {action}. Searched for: {searched}. "
-                f"Available actions: {available}"
+                "Failed to click %s. Searched for: %s. Available actions: %s",
+                action, searched, available
             )
             return AbapGitActionResult.failure_result(
                 action_lower,
                 repo_name,
                 f"Failed to click {action}: {click_action['error']}. Available: {available}",
             )
-        logger.info(f"Clicked action: {click_action.get('clickedText', action)}")
+        clicked_text: str = click_action.get("clickedText", action)
+        logger.info("Clicked action: %s", clicked_text)
 
         await page.wait_for_timeout(ACTION_WAIT)
 
         # Step 7: Check for login dialog and fill token if needed
         login_check = await _evaluate_js(page, _js_call("checkLoginDialog"))
-        logger.debug(f"Login dialog check result: {login_check}")
+        logger.debug("Login dialog check result: %s", login_check)
 
         if login_check.get("hasLoginDialog"):
             logger.info(
-                f"Login dialog detected at: {login_check.get('location', 'unknown')}"
+                "Login dialog detected at: %s", login_check.get("location", "unknown")
             )
             if not token:
                 return AbapGitActionResult.failure_result(
@@ -297,16 +298,18 @@ async def _abapgit_action_impl(
                     repo_name,
                     "Login dialog appeared but no PAT provided. "
                     "Set ABAPGIT_PAT env var or pass pat parameter.",
+                    clicked_action=clicked_text,
                 )
 
             # Fill the token securely (via Playwright argument, not JS string)
             logger.info("Filling authentication token...")
             fill_result = await _fill_token_secure(page, token)
             logger.info(
-                f"Token fill result: filled={fill_result.get('filled')}, "
-                f"method={fill_result.get('method')}, "
-                f"inputType={fill_result.get('inputType')}, "
-                f"inputId={fill_result.get('inputId')}"
+                "Token fill result: filled=%s, method=%s, inputType=%s, inputId=%s",
+                fill_result.get("filled"),
+                fill_result.get("method"),
+                fill_result.get("inputType"),
+                fill_result.get("inputId"),
             )
 
             if not fill_result.get("filled"):
@@ -314,6 +317,7 @@ async def _abapgit_action_impl(
                     action_lower,
                     repo_name,
                     f"Failed to fill token: {fill_result.get('error')}",
+                    clicked_action=clicked_text,
                 )
 
             # Click "Weiter" (Continue) button - use keyboard Enter
@@ -349,8 +353,8 @@ async def _abapgit_action_impl(
                 status_bar = await sap_read_status_bar_impl()
                 status_message = status_bar.message or ""
                 logger.info(
-                    f"Status bar after {elapsed}ms: type={status_bar.type}, "
-                    f"message={status_message}"
+                    "Status bar after %dms: type=%s, message=%s",
+                    elapsed, status_bar.type, status_message
                 )
 
                 # Check for success indicators
@@ -364,6 +368,7 @@ async def _abapgit_action_impl(
                         action_lower,
                         repo_name,
                         f"{action} completed: {status_message}",
+                        clicked_action=clicked_text,
                     )
 
                 # Check for error indicators (StatusBarType "E" = error)
@@ -372,6 +377,7 @@ async def _abapgit_action_impl(
                         action_lower,
                         repo_name,
                         f"Pull failed: {status_message}",
+                        clicked_action=clicked_text,
                     )
 
                 # Also check iframe for errors
@@ -384,12 +390,13 @@ async def _abapgit_action_impl(
                         action_lower,
                         repo_name,
                         error_msg,
+                        clicked_action=clicked_text,
                     )
 
                 # If status bar has any message, consider it potentially done
                 # (might be a success pattern we didn't anticipate)
                 if status_message and status_bar.type in ("S", "I", "W"):
-                    logger.debug(f"Status bar has message, assuming completion: {status_message}")
+                    logger.debug("Status bar has message, assuming completion: %s", status_message)
                     break
 
             # Timeout or ambiguous result - report what we have
@@ -399,6 +406,7 @@ async def _abapgit_action_impl(
                 action_lower,
                 repo_name,
                 f"{action} completed for {repo_name}. Status: {status_message}",
+                clicked_action=clicked_text,
             )
 
         # For Stage action, just return success (user will interact with staging UI)
@@ -406,12 +414,13 @@ async def _abapgit_action_impl(
             action_lower,
             repo_name,
             f"{action} view opened for {repo_name}",
+            clicked_action=clicked_text,
         )
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         # Use logger.error instead of logger.exception to avoid logging
         # stack traces that might contain sensitive data (e.g., PAT token)
-        logger.error(f"abapGit {action} failed: {type(e).__name__}: {e}")
+        logger.error("abapGit %s failed: %s: %s", action, type(e).__name__, e)
         return AbapGitActionResult.failure_result(
             action_lower,
             repo_pattern,
