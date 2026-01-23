@@ -101,7 +101,7 @@ async def _evaluate_js(page: Page, script: str) -> dict[str, Any]:
     # Handle single level of JSON encoding from legacy scripts
     if isinstance(result, str):
         result = json.loads(result)
-    return result
+    return dict(result)
 
 
 async def _fill_token_secure(page: Page, token: str) -> dict[str, Any]:
@@ -119,7 +119,7 @@ async def _fill_token_secure(page: Page, token: str) -> dict[str, Any]:
         Result dict with filled, method, error fields
     """
     # Use Playwright's evaluate with argument to avoid embedding token in JS
-    return await page.evaluate(
+    result: Any = await page.evaluate(
         f"""
         (token) => {{
             {_ABAPGIT_JS}
@@ -128,6 +128,7 @@ async def _fill_token_secure(page: Page, token: str) -> dict[str, Any]:
         """,
         token,
     )
+    return dict(result)
 
 
 async def _find_iframe_with_retry(
@@ -365,8 +366,8 @@ async def _abapgit_action_impl(
                         f"{action} completed: {status_message}",
                     )
 
-                # Check for error indicators
-                if status_bar.type == "error" or status_bar.type == "E":
+                # Check for error indicators (StatusBarType "E" = error)
+                if status_bar.type == "E":
                     return AbapGitActionResult.failure_result(
                         action_lower,
                         repo_name,
