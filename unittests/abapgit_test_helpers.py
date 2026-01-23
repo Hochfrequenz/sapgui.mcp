@@ -4,19 +4,22 @@ Helper utilities for abapGit integration tests.
 This module provides:
 - Git operations for test submodules (modify, commit, push)
 - SE38 verification (read ABAP report source code)
+
+Environment variables:
+- SAP_TEST_TRANSPORT: Transport request to use for test repos (default: S4UK902008)
 """
 
+import os
 import subprocess
 import uuid
 from datetime import datetime
 from pathlib import Path
 
-
 ABAPGIT_REPOS_DIR = Path(__file__).parent / "abapgit_repos"
 
 # Test repository configurations
-# Transport request used for all test repos (Workbench request type KS)
-DEFAULT_TRANSPORT = "S4UK902008"
+# Transport request can be overridden via SAP_TEST_TRANSPORT environment variable
+DEFAULT_TRANSPORT = os.environ.get("SAP_TEST_TRANSPORT", "S4UK902008")
 
 TEST_REPOS = {
     "private": {

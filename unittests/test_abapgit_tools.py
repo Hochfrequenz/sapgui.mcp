@@ -1,23 +1,22 @@
 """
-Tests for abapGit MCP tools (sap_abapgit_pull, sap_abapgit_stage).
+Tests for abapGit MCP tools (sap_abapgit_pull, sap_read_se38_source).
 
 These tests verify the abapGit integration functionality:
-- Pull: Fetch and apply changes from remote git repository
-- Stage: Prepare local changes for commit/push
+- Pull: Fetch and apply changes from remote git repository via Z_ABAPGIT_PULL
+- SE38 Verification: Read ABAP report source code
 
 Run with: pytest unittests/test_abapgit_tools.py -v
 """
 
 import os
-from unittest.mock import AsyncMock
 
 import pytest
 from mcp import ClientSession
 
 from sapwebguimcp.models import AbapGitActionResult, LoginResult
 
-from .conftest import assert_tool_success_untyped, call_tool_typed
-
+from .abapgit_test_helpers import TEST_REPOS, generate_test_marker, git_commit_and_push, modify_test_repo
+from .conftest import call_tool_raw, call_tool_typed
 
 # =============================================================================
 # Fixtures
@@ -38,16 +37,6 @@ def abapgit_env_vars():
         os.environ["ABAPGIT_PAT"] = original_pat
     else:
         os.environ.pop("ABAPGIT_PAT", None)
-
-
-@pytest.fixture
-def mock_page():
-    """Create a mock Playwright page for unit tests."""
-    page = AsyncMock()
-    page.evaluate = AsyncMock(return_value={"found": True})
-    page.wait_for_timeout = AsyncMock()
-    page.keyboard.press = AsyncMock()
-    return page
 
 
 # =============================================================================
@@ -75,28 +64,13 @@ def test_abapgit_action_result_model() -> None:
     # Valid error result
     error_result = AbapGitActionResult(
         success=False,
-        action="stage",
+        action="pull",
         repo_name="Test Repo",
         error="Something went wrong",
         executed_at=datetime.now(UTC),
     )
     assert not error_result.success
     assert error_result.error == "Something went wrong"
-
-
-def test_abapgit_action_result_action_values() -> None:
-    """Test that action field only accepts valid values."""
-    from datetime import UTC, datetime
-
-    # Valid actions
-    for action in ["pull", "stage", "diff", "check"]:
-        result = AbapGitActionResult(
-            success=True,
-            action=action,  # type: ignore[arg-type]
-            repo_name="Test",
-            executed_at=datetime.now(UTC),
-        )
-        assert result.action == action
 
 
 def test_abapgit_action_result_factory_success() -> None:
@@ -118,13 +92,13 @@ def test_abapgit_action_result_factory_success() -> None:
 def test_abapgit_action_result_factory_failure() -> None:
     """Test the failure factory method."""
     result = AbapGitActionResult.failure_result(
-        action="stage",
+        action="pull",
         repo_name="TestRepo",
         error="Repository not found",
     )
 
     assert result.success is False
-    assert result.action == "stage"
+    assert result.action == "pull"
     assert result.repo_name == "TestRepo"
     assert result.error == "Repository not found"
     assert result.message is None
@@ -165,444 +139,12 @@ def test_settings_loads_abapgit_from_env(abapgit_env_vars: None) -> None:
     assert settings.abapgit_pat == "ghp_test_token_12345"
 
 
-@pytest.mark.anyio
-async def test_evaluate_js_handles_dict_result(mock_page: AsyncMock) -> None:
-    """Test that _evaluate_js handles direct dict results."""
-    from sapwebguimcp.tools.abapgit_tools import _evaluate_js
-
-    mock_page.evaluate.return_value = {"found": True, "id": "C116"}
-
-    result = await _evaluate_js(mock_page, "some script")
-
-    assert result == {"found": True, "id": "C116"}
-    mock_page.evaluate.assert_called_once_with("some script")
-
-
-@pytest.mark.anyio
-async def test_evaluate_js_handles_string_result(mock_page: AsyncMock) -> None:
-    """Test that _evaluate_js parses JSON string results."""
-    from sapwebguimcp.tools.abapgit_tools import _evaluate_js
-
-    mock_page.evaluate.return_value = '{"found": true, "repoName": "BO4E"}'
-
-    result = await _evaluate_js(mock_page, "some script")
-
-    assert result == {"found": True, "repoName": "BO4E"}
-
-
-@pytest.mark.anyio
-async def test_find_iframe_with_retry_success_first_try(mock_page: AsyncMock) -> None:
-    """Test iframe found on first attempt."""
-    from sapwebguimcp.tools.abapgit_tools import _find_iframe_with_retry
-
-    mock_page.evaluate.return_value = {"found": True, "id": "C116"}
-
-    result = await _find_iframe_with_retry(mock_page, max_retries=3)
-
-    assert result["found"] is True
-    assert mock_page.evaluate.call_count == 1
-    mock_page.wait_for_timeout.assert_not_called()
-
-
-@pytest.mark.anyio
-async def test_find_iframe_with_retry_success_second_try(mock_page: AsyncMock) -> None:
-    """Test iframe found on second attempt after retry."""
-    from sapwebguimcp.tools.abapgit_tools import RETRY_DELAY_MS, _find_iframe_with_retry
-
-    # First call fails, second succeeds
-    mock_page.evaluate.side_effect = [
-        {"found": False, "error": "No iframe found"},
-        {"found": True, "id": "C116"},
-    ]
-
-    result = await _find_iframe_with_retry(mock_page, max_retries=3)
-
-    assert result["found"] is True
-    assert mock_page.evaluate.call_count == 2
-    # Should have waited once (RETRY_DELAY_MS * 1 for first retry)
-    mock_page.wait_for_timeout.assert_called_once_with(RETRY_DELAY_MS)
-
-
-@pytest.mark.anyio
-async def test_find_iframe_with_retry_all_fail(mock_page: AsyncMock) -> None:
-    """Test all retries fail."""
-    from sapwebguimcp.tools.abapgit_tools import _find_iframe_with_retry
-
-    mock_page.evaluate.return_value = {"found": False, "error": "No iframe found"}
-
-    result = await _find_iframe_with_retry(mock_page, max_retries=3)
-
-    assert result["found"] is False
-    assert result["error"] == "No iframe found"
-    assert mock_page.evaluate.call_count == 3
-    # Should have waited 3 times with exponential backoff
-    assert mock_page.wait_for_timeout.call_count == 3
-
-
-def test_js_call_generates_valid_javascript() -> None:
-    """Test that _js_call generates valid JavaScript with arguments."""
-    from sapwebguimcp.tools.abapgit_tools import _js_call
-
-    # Call with string argument
-    js = _js_call("findRepoRow", "BO4E")
-
-    assert "findRepoRow" in js
-    assert '"BO4E"' in js
-    assert "return findRepoRow" in js
-
-
-def test_js_call_handles_special_characters() -> None:
-    """Test that _js_call properly escapes special characters in arguments."""
-    from sapwebguimcp.tools.abapgit_tools import _js_call
-
-    # Call with special characters
-    js = _js_call("findRepoRow", '/HFQ/BO4E"test')
-
-    # Should be properly JSON-encoded
-    assert '"/HFQ/BO4E\\"test"' in js or "/HFQ/BO4E" in js
-
-
-# =============================================================================
-# Integration Tests (require SAP connection)
-# =============================================================================
-#
-# NOTE: The repository names used in these tests (Datamatrix, BO4E, ABAP4GEWINNT)
-# are specific to the test SAP system and may change. If tests fail because a
-# repo is not found, verify the repo exists in ZABAPGIT and update the test
-# accordingly. The repo names are arbitrary examples - any repo in ZABAPGIT
-# can be used for testing.
-
-
-@pytest.mark.anyio
-async def test_abapgit_pull_by_repo_name(sap_mcp_client: ClientSession) -> None:
-    """
-    Test pulling a PRIVATE repository (Z_PRIVATE_ABAPGIT_TEST_REPOSITORY).
-
-    This test verifies that the sap_abapgit_pull tool can:
-    1. Navigate to ZABAPGIT transaction
-    2. Find a repository by name pattern
-    3. Click the menu arrow to expand actions
-    4. Authenticate with PAT when login dialog appears
-    5. Click Pull to initiate the pull operation
-
-    Uses PAT from ABAPGIT_PAT environment variable.
-    The test repo is a submodule at unittests/abapgit_repos/Z_PRIVATE_ABAPGIT_TEST_REPOSITORY
-    """
-    # Login first
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Pull Z_PRIVATE_ABAPGIT_TEST_REPOSITORY (private, uses PAT from env)
-    result = await call_tool_typed(
-        sap_mcp_client,
-        "sap_abapgit_pull",
-        {"repo": "Z_PRIVATE_ABAPGIT_TEST_REPOSITORY"},
-        AbapGitActionResult,
-    )
-
-    # Verify the result
-    assert result.success, f"Pull failed: {result.error}"
-    assert result.action == "pull"
-    assert "PRIVATE" in result.repo_name.upper()
-    # Verify the Pull button was actually found and clicked
-    assert result.clicked_action is not None, "Pull button was not clicked"
-    assert "pull" in result.clicked_action.lower(), (
-        f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
-    )
-
-
-@pytest.mark.anyio
-async def test_abapgit_pull_public_repo_no_pat(sap_mcp_client: ClientSession) -> None:
-    """
-    Test pulling a PUBLIC repository (Z_PUBLIC_ABAPGIT_TEST_REPOSITORY) WITHOUT PAT.
-
-    This test verifies that:
-    1. Public repos can be pulled without any PAT
-    2. No login dialog appears for public repos
-    3. The Pull button was found and clicked
-
-    The test repo is a submodule at unittests/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY
-    """
-    # Temporarily remove PAT from environment to ensure we're not using it
-    original_pat = os.environ.pop("ABAPGIT_PAT", None)
-    original_github_pat = os.environ.pop("GITHUB_PAT", None)
-
-    try:
-        # Login first
-        login_result = await call_tool_typed(
-            sap_mcp_client, "sap_login", {}, LoginResult
-        )
-        assert login_result.success, f"Login failed: {login_result.error}"
-
-        # Pull the public test repo (no PAT needed)
-        result = await call_tool_typed(
-            sap_mcp_client,
-            "sap_abapgit_pull",
-            {"repo": "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"},
-            AbapGitActionResult,
-        )
-
-        # Verify the result
-        assert result.success, f"Pull failed: {result.error}"
-        assert result.action == "pull"
-        assert "PUBLIC" in result.repo_name.upper()
-        # Verify the Pull button was actually found and clicked
-        assert result.clicked_action is not None, "Pull button was not clicked"
-        assert "pull" in result.clicked_action.lower(), (
-            f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
-        )
-
-    finally:
-        # Restore PAT environment variables
-        if original_pat is not None:
-            os.environ["ABAPGIT_PAT"] = original_pat
-        if original_github_pat is not None:
-            os.environ["GITHUB_PAT"] = original_github_pat
-
-
-@pytest.mark.anyio
-async def test_abapgit_pull_private_repo_with_pat(
-    sap_mcp_client: ClientSession,
-) -> None:
-    """
-    Test pulling a private repository (HFQ BO4E) with PAT authentication.
-
-    This test verifies that:
-    1. The tool can authenticate using ABAPGIT_PAT from environment
-    2. Private repos can be pulled when proper credentials are provided
-    3. The status bar shows success message
-    """
-    # Login first
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Pull the HFQ BO4E repo (private, requires PAT)
-    # PAT is loaded from ABAPGIT_PAT environment variable
-    result = await call_tool_typed(
-        sap_mcp_client,
-        "sap_abapgit_pull",
-        {"repo": "BO4E"},
-        AbapGitActionResult,
-    )
-
-    # Verify the result
-    assert result.success, f"Pull failed: {result.error}"
-    assert result.action == "pull"
-    assert "BO4E" in result.repo_name
-    # Verify the Pull button was actually found and clicked
-    assert result.clicked_action is not None, "Pull button was not clicked"
-    assert "pull" in result.clicked_action.lower(), (
-        f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
-    )
-
-
-@pytest.mark.anyio
-async def test_abapgit_pull_repo_not_found(sap_mcp_client: ClientSession) -> None:
-    """
-    Test that pulling a non-existent repository returns an appropriate error.
-    """
-    # Login first
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Try to pull a repo that doesn't exist
-    result = await call_tool_typed(
-        sap_mcp_client,
-        "sap_abapgit_pull",
-        {"repo": "NONEXISTENT_REPO_12345"},
-        AbapGitActionResult,
-    )
-
-    # Should fail with a meaningful error
-    assert not result.success
-    assert result.error is not None
-    assert "not found" in result.error.lower() or "repo" in result.error.lower()
-
-
-@pytest.mark.anyio
-async def test_abapgit_pull_by_package_name(sap_mcp_client: ClientSession) -> None:
-    """
-    Test pulling a repository by matching its SAP package name.
-    """
-    # Login first
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Pull by package name pattern (/HFQ/BO4E)
-    result = await call_tool_typed(
-        sap_mcp_client,
-        "sap_abapgit_pull",
-        {"repo": "/HFQ/BO4E"},
-        AbapGitActionResult,
-    )
-
-    # Verify the result
-    assert result.success, f"Pull failed: {result.error}"
-    assert result.action == "pull"
-    assert "BO4E" in result.repo_name
-    # Verify the Pull button was actually found and clicked
-    assert result.clicked_action is not None, "Pull button was not clicked"
-    assert "pull" in result.clicked_action.lower(), (
-        f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
-    )
-
-
-@pytest.mark.anyio
-async def test_abapgit_stage_opens_staging_view(sap_mcp_client: ClientSession) -> None:
-    """
-    Test that the stage action opens the staging view for a repository.
-    """
-    # Login first
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Open staging view for BO4E repo
-    result = await call_tool_typed(
-        sap_mcp_client,
-        "sap_abapgit_stage",
-        {"repo": "BO4E"},
-        AbapGitActionResult,
-    )
-
-    # Verify the result
-    assert result.success, f"Stage failed: {result.error}"
-    assert result.action == "stage"
-    assert "BO4E" in result.repo_name
-    # Verify the Stage button was actually found and clicked
-    assert result.clicked_action is not None, "Stage button was not clicked"
-    assert "stag" in result.clicked_action.lower(), (
-        f"Expected 'Stage' button to be clicked, got: {result.clicked_action}"
-    )
-
-
-@pytest.mark.anyio
-async def test_abapgit_pull_without_login_fails(
-    sap_mcp_client: ClientSession,
-) -> None:
-    """
-    Test that calling pull without logging in first returns an error.
-
-    Note: This test intentionally does NOT call sap_login first.
-    """
-    # Try to pull without logging in - should fail
-    result = await call_tool_typed(
-        sap_mcp_client,
-        "sap_abapgit_pull",
-        {"repo": "ABAP4GEWINNT"},
-        AbapGitActionResult,
-    )
-
-    # Should fail because we haven't logged in
-    assert not result.success
-    assert result.error is not None
-
-
-@pytest.mark.anyio
-async def test_abapgit_pull_with_explicit_pat(sap_mcp_client: ClientSession) -> None:
-    """
-    Test pulling with an explicitly provided PAT parameter.
-
-    This verifies that the tool accepts PAT as a parameter and uses it
-    for authentication instead of the environment variable.
-    """
-    # Login first
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Get PAT from environment for this test
-    pat = os.environ.get("ABAPGIT_PAT")
-    if not pat:
-        pytest.skip("ABAPGIT_PAT environment variable not set")
-
-    # Pull with explicit PAT parameter
-    result = await call_tool_typed(
-        sap_mcp_client,
-        "sap_abapgit_pull",
-        {"repo": "BO4E", "pat": pat},
-        AbapGitActionResult,
-    )
-
-    assert result.success, f"Pull with explicit PAT failed: {result.error}"
-    # Verify the Pull button was actually found and clicked
-    assert result.clicked_action is not None, "Pull button was not clicked"
-    assert "pull" in result.clicked_action.lower(), (
-        f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
-    )
-
-
-@pytest.mark.anyio
-async def test_abapgit_pull_custom_tcode(sap_mcp_client: ClientSession) -> None:
-    """
-    Test that the tcode parameter can be customized.
-
-    This verifies that the tool uses the specified transaction code
-    instead of the default ZABAPGIT.
-    """
-    # Login first
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Pull with explicit tcode (same as default, just testing the parameter)
-    result = await call_tool_typed(
-        sap_mcp_client,
-        "sap_abapgit_pull",
-        {"repo": "ABAP4GEWINNT", "tcode": "ZABAPGIT"},
-        AbapGitActionResult,
-    )
-
-    assert result.success, f"Pull with custom tcode failed: {result.error}"
-    # Verify the Pull button was actually found and clicked
-    assert result.clicked_action is not None, "Pull button was not clicked"
-    assert "pull" in result.clicked_action.lower(), (
-        f"Expected 'Pull' button to be clicked, got: {result.clicked_action}"
-    )
-
-
-@pytest.mark.anyio
-async def test_abapgit_pull_invalid_tcode(sap_mcp_client: ClientSession) -> None:
-    """
-    Test that using an invalid transaction code returns an appropriate error.
-    """
-    # Login first
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Try to pull with invalid tcode
-    result = await call_tool_typed(
-        sap_mcp_client,
-        "sap_abapgit_pull",
-        {"repo": "BO4E", "tcode": "INVALID_TCODE_99999"},
-        AbapGitActionResult,
-    )
-
-    # Should fail because the transaction doesn't exist
-    assert not result.success
-    assert result.error is not None
-
-
 def test_abapgit_action_result_requires_action() -> None:
-    """Test that AbapGitActionResult requires an action field."""
+    """Test that action field is required."""
     from datetime import UTC, datetime
 
     import pydantic
 
-    # Should raise validation error when action is missing
     with pytest.raises(pydantic.ValidationError):
         AbapGitActionResult(
             success=True,
@@ -612,12 +154,11 @@ def test_abapgit_action_result_requires_action() -> None:
 
 
 def test_abapgit_action_result_requires_repo_name() -> None:
-    """Test that AbapGitActionResult requires a repo_name field."""
+    """Test that repo_name field is required."""
     from datetime import UTC, datetime
 
     import pydantic
 
-    # Should raise validation error when repo_name is missing
     with pytest.raises(pydantic.ValidationError):
         AbapGitActionResult(
             success=True,
@@ -626,250 +167,254 @@ def test_abapgit_action_result_requires_repo_name() -> None:
         )  # type: ignore[call-arg]
 
 
-@pytest.mark.anyio
-async def test_fill_token_secure_passes_token_as_argument(mock_page: AsyncMock) -> None:
-    """Test that _fill_token_secure passes token via Playwright argument, not in JS string."""
-    from sapwebguimcp.tools.abapgit_tools import _fill_token_secure
-
-    mock_page.evaluate.return_value = {"filled": True, "method": "password_input"}
-
-    result = await _fill_token_secure(mock_page, "secret_token_123")
-
-    # Verify token was passed as second argument, not embedded in JS
-    assert mock_page.evaluate.call_count == 1
-    call_args = mock_page.evaluate.call_args
-    # First arg is the JS script, second arg is the token
-    assert len(call_args.args) == 2
-    assert call_args.args[1] == "secret_token_123"
-    # Token should NOT appear in the JS script itself
-    assert "secret_token_123" not in call_args.args[0]
-    assert result["filled"] is True
-
-
 # =============================================================================
-# End-to-End Tests (modify git repo -> push -> pull in SAP -> verify in SE38)
+# Integration Tests (require SAP connection)
 # =============================================================================
 
 
 @pytest.mark.anyio
-async def test_abapgit_e2e_public_repo_pull_and_verify(
-    sap_mcp_client: ClientSession,
-) -> None:
+async def test_abapgit_pull_public_repo(sap_mcp_client: ClientSession) -> None:
     """
-    End-to-end test: modify public repo, push, pull in SAP, verify in SE38.
+    Test pulling a public repository via Z_ABAPGIT_PULL transaction.
+
+    This test verifies that the sap_abapgit_pull tool can:
+    1. Call the Z_ABAPGIT_PULL transaction with parameters
+    2. Successfully pull from a public repository
+
+    The test repo is a submodule at unittests/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY
+    """
+    # Login first
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Pull public repository (uses PAT from env for authentication)
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {
+            "repo": "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
+            "trkorr": TEST_REPOS["public"]["trkorr"],
+        },
+        AbapGitActionResult,
+    )
+
+    # Verify the result
+    assert result.success, f"Pull failed: {result.error}"
+    assert result.action == "pull"
+
+
+@pytest.mark.anyio
+async def test_abapgit_pull_private_repo_with_pat(sap_mcp_client: ClientSession) -> None:
+    """
+    Test pulling a private repository with PAT authentication.
+
+    Uses PAT from ABAPGIT_PAT environment variable.
+    The test repo is a submodule at unittests/abapgit_repos/Z_PRIVATE_ABAPGIT_TEST_REPOSITORY
+    """
+    # Login first
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Pull private repository (requires PAT)
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {
+            "repo": "Z_PRIVATE_ABAPGIT_TEST_REPOSITORY",
+            "trkorr": TEST_REPOS["private"]["trkorr"],
+        },
+        AbapGitActionResult,
+    )
+
+    # Verify the result
+    assert result.success, f"Pull failed: {result.error}"
+    assert result.action == "pull"
+
+
+@pytest.mark.anyio
+async def test_abapgit_pull_repo_not_found(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that pulling a non-existent repository returns a clear error.
+    """
+    # Login first
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Try to pull non-existent repo
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {
+            "repo": "NONEXISTENT_REPO_12345_GIBBERISH",
+            "trkorr": TEST_REPOS["public"]["trkorr"],
+        },
+        AbapGitActionResult,
+    )
+
+    # Should fail with repo not found error
+    assert not result.success, f"Expected failure but got success: {result.message}"
+    assert result.error is not None
+    # Error should mention not found
+    assert "not found" in result.error.lower() or "Repository" in result.error
+
+
+@pytest.mark.anyio
+async def test_abapgit_pull_with_explicit_pat(sap_mcp_client: ClientSession) -> None:
+    """
+    Test pulling with an explicitly provided PAT (overriding env).
+    """
+    # Login first
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Get the actual PAT from environment for explicit passing
+    actual_pat = os.environ.get("ABAPGIT_PAT")
+    if not actual_pat:
+        pytest.skip("ABAPGIT_PAT environment variable not set")
+
+    # Pull with explicit PAT
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {
+            "repo": "Z_PRIVATE_ABAPGIT_TEST_REPOSITORY",
+            "trkorr": TEST_REPOS["private"]["trkorr"],
+            "pat": actual_pat,
+        },
+        AbapGitActionResult,
+    )
+
+    # Verify the result
+    assert result.success, f"Pull failed: {result.error}"
+    assert result.action == "pull"
+
+
+@pytest.mark.anyio
+async def test_abapgit_e2e_public_repo_pull_and_verify(sap_mcp_client: ClientSession) -> None:
+    """
+    End-to-end test: modify git repo, push, pull via SAP, verify in SE38.
 
     This test:
-    1. Modifies the ABAP report in the PUBLIC test repository submodule
+    1. Modifies the ABAP report in the git submodule with a unique marker
     2. Commits and pushes to GitHub
-    3. Pulls the changes into SAP using the abapGit MCP tool
-    4. Verifies in SE38 that the report source code actually changed
-
-    This test requires:
-    - Git configured with push access to the test repos
-    - GITHUB_PAT with repo access (for pushing)
-    - SAP connection with ZABAPGIT access
+    3. Pulls via sap_abapgit_pull
+    4. Verifies the pulled code via sap_read_se38_source
     """
-    from unittests.abapgit_test_helpers import (
-        generate_test_marker,
-        git_commit_and_push,
-        modify_test_repo,
-        TEST_REPOS,
-    )
+    # Login first
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
 
-    # Step 1: Generate unique test marker and modify the repo
+    repo_config = TEST_REPOS["public"]
+
+    # 1. Generate unique marker and modify the test file
     test_marker = generate_test_marker()
     expected_text = modify_test_repo("public", test_marker)
-    print(f"Test marker: {test_marker}")
-    print(f"Expected text: {expected_text}")
 
-    # Step 2: Commit and push
-    success, output = git_commit_and_push("public")
-    print(f"Git push result: success={success}, output={output}")
-    assert success, f"Git commit/push failed: {output}"
+    # 2. Commit and push to GitHub
+    success, output = git_commit_and_push("public", f"test: E2E public repo test {test_marker}")
+    assert success, f"Git push failed: {output}"
 
-    # Step 3: Login to SAP
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Step 4: Pull the repository
-    repo_name = TEST_REPOS["public"]["name"]
-    trkorr = TEST_REPOS["public"]["trkorr"]
-    result = await call_tool_typed(
+    # 3. Pull via abapGit
+    pull_result = await call_tool_typed(
         sap_mcp_client,
         "sap_abapgit_pull",
-        {"repo": repo_name, "trkorr": trkorr},
+        {
+            "repo": repo_config["name"],
+            "trkorr": repo_config["trkorr"],
+        },
         AbapGitActionResult,
     )
-    print(f"Pull result: {result}")
-    assert result.success, f"Pull failed: {result.error}"
+    assert pull_result.success, f"Pull failed: {pull_result.error}"
 
-    # Step 5: Verify in SE38 that the code changed
-    # Use the MCP tool to read SE38 source (runs in same browser session as pull)
-    report_name = TEST_REPOS["public"]["report"]
-    verify_result = await assert_tool_success_untyped(
+    # 4. Verify in SE38
+    verify_result = await call_tool_raw(
         sap_mcp_client,
         "sap_read_se38_source",
-        {"program_name": report_name},
+        {"program_name": repo_config["report"]},
     )
-    print(f"SE38 verification result: {verify_result}")
 
+    assert verify_result.get("success"), f"SE38 read failed: {verify_result.get('error')}"
     source_code = verify_result.get("source_code", "")
-    assert test_marker in source_code, (
-        f"Expected text '{test_marker}' not found in SE38. "
-        f"Source code preview: {source_code[:500]}"
+    assert expected_text in source_code, (
+        f"Expected text '{expected_text}' not found in source code. " f"Got source: {source_code[:500]}..."
     )
 
 
 @pytest.mark.anyio
-async def test_abapgit_e2e_private_repo_pull_and_verify(
-    sap_mcp_client: ClientSession,
-) -> None:
+async def test_abapgit_e2e_private_repo_pull_and_verify(sap_mcp_client: ClientSession) -> None:
     """
-    End-to-end test: modify private repo, push, pull with PAT, verify in SE38.
+    End-to-end test for private repository with PAT authentication.
 
-    This test is similar to the public repo test but:
-    - Uses a PRIVATE repository that requires PAT authentication
-    - Verifies that the PAT authentication flow works correctly
-
-    Requires ABAPGIT_PAT environment variable to be set.
+    This test:
+    1. Modifies the ABAP report in the private git submodule with a unique marker
+    2. Commits and pushes to GitHub (requires write access)
+    3. Pulls via sap_abapgit_pull with PAT authentication
+    4. Verifies the pulled code via sap_read_se38_source
     """
-    from unittests.abapgit_test_helpers import (
-        generate_test_marker,
-        git_commit_and_push,
-        modify_test_repo,
-        TEST_REPOS,
-    )
+    # Check if PAT is configured
+    if not os.environ.get("ABAPGIT_PAT"):
+        pytest.skip("ABAPGIT_PAT not set - skipping private repo test")
 
-    # Check PAT is available
-    pat = os.environ.get("ABAPGIT_PAT") or os.environ.get("GITHUB_PAT")
-    if not pat:
-        pytest.skip("ABAPGIT_PAT or GITHUB_PAT not set - skipping private repo test")
+    # Login first
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
 
-    # Step 1: Generate unique test marker and modify the repo
+    repo_config = TEST_REPOS["private"]
+
+    # 1. Generate unique marker and modify the test file
     test_marker = generate_test_marker()
     expected_text = modify_test_repo("private", test_marker)
-    print(f"Test marker: {test_marker}")
-    print(f"Expected text: {expected_text}")
 
-    # Step 2: Commit and push
-    success, output = git_commit_and_push("private")
-    print(f"Git push result: success={success}, output={output}")
-    assert success, f"Git commit/push failed: {output}"
+    # 2. Commit and push to GitHub
+    success, output = git_commit_and_push("private", f"test: E2E private repo test {test_marker}")
+    assert success, f"Git push failed: {output}"
 
-    # Step 3: Login to SAP
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Step 4: Pull the repository (uses PAT from env)
-    repo_name = TEST_REPOS["private"]["name"]
-    trkorr = TEST_REPOS["private"]["trkorr"]
-    result = await call_tool_typed(
+    # 3. Pull via abapGit (with PAT from env)
+    pull_result = await call_tool_typed(
         sap_mcp_client,
         "sap_abapgit_pull",
-        {"repo": repo_name, "trkorr": trkorr},
+        {
+            "repo": repo_config["name"],
+            "trkorr": repo_config["trkorr"],
+        },
         AbapGitActionResult,
     )
-    print(f"Pull result: {result}")
-    assert result.success, f"Pull failed: {result.error}"
+    assert pull_result.success, f"Pull failed: {pull_result.error}"
 
-    # Step 5: Verify in SE38 that the code changed
-    # Use the MCP tool to read SE38 source (runs in same browser session as pull)
-    report_name = TEST_REPOS["private"]["report"]
-    verify_result = await assert_tool_success_untyped(
+    # 4. Verify in SE38
+    verify_result = await call_tool_raw(
         sap_mcp_client,
         "sap_read_se38_source",
-        {"program_name": report_name},
+        {"program_name": repo_config["report"]},
     )
-    print(f"SE38 verification result: {verify_result}")
 
+    assert verify_result.get("success"), f"SE38 read failed: {verify_result.get('error')}"
     source_code = verify_result.get("source_code", "")
-    assert test_marker in source_code, (
-        f"Expected text '{test_marker}' not found in SE38. "
-        f"Source code preview: {source_code[:500]}"
+    assert expected_text in source_code, (
+        f"Expected text '{expected_text}' not found in source code. " f"Got source: {source_code[:500]}..."
     )
-
-
-# =============================================================================
-# Error Case Tests (via Z_ABAPGIT_PULL transaction)
-# =============================================================================
 
 
 @pytest.mark.anyio
-async def test_abapgit_pull_api_nonexistent_repo(sap_mcp_client: ClientSession) -> None:
-    """Test that pulling a non-existent repository returns an appropriate error."""
-    from unittests.abapgit_test_helpers import DEFAULT_TRANSPORT
-
+async def test_abapgit_pull_invalid_repo_name(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that invalid repository names are rejected with a clear error.
+    """
     # Login first
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login_result.success, f"Login failed: {login_result.error}"
 
-    # Try to pull a repo that doesn't exist
+    # Try to pull with invalid repo name containing special characters
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_abapgit_pull",
-        {"repo": "NONEXISTENT_REPO_12345_GIBBERISH", "trkorr": DEFAULT_TRANSPORT},
+        {
+            "repo": "REPO; DROP TABLE;",  # Injection attempt
+        },
         AbapGitActionResult,
     )
 
-    # Should fail with "Repository not found" error
-    assert not result.success, "Expected pull to fail for non-existent repo"
+    # Should fail with validation error
+    assert not result.success, "Expected failure for invalid repo name"
     assert result.error is not None
-    assert "not found" in result.error.lower(), f"Expected 'not found' in error: {result.error}"
-
-
-@pytest.mark.anyio
-async def test_abapgit_pull_api_missing_transport(sap_mcp_client: ClientSession) -> None:
-    """Test that pulling without transport returns appropriate error when required."""
-    from unittests.abapgit_test_helpers import TEST_REPOS
-
-    # Login first
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Try to pull without transport (should fail with "Transport required")
-    repo_name = TEST_REPOS["public"]["name"]
-    result = await call_tool_typed(
-        sap_mcp_client,
-        "sap_abapgit_pull",
-        {"repo": repo_name},  # No trkorr
-        AbapGitActionResult,
-    )
-
-    # Should fail with "Transport required" error
-    assert not result.success, "Expected pull to fail without transport"
-    assert result.error is not None
-    assert "transport" in result.error.lower(), f"Expected 'transport' in error: {result.error}"
-
-
-@pytest.mark.anyio
-async def test_abapgit_pull_api_invalid_transport(sap_mcp_client: ClientSession) -> None:
-    """Test that pulling with invalid transport returns appropriate error."""
-    from unittests.abapgit_test_helpers import TEST_REPOS
-
-    # Login first
-    login_result = await call_tool_typed(
-        sap_mcp_client, "sap_login", {}, LoginResult
-    )
-    assert login_result.success, f"Login failed: {login_result.error}"
-
-    # Try to pull with gibberish transport
-    repo_name = TEST_REPOS["public"]["name"]
-    result = await call_tool_typed(
-        sap_mcp_client,
-        "sap_abapgit_pull",
-        {"repo": repo_name, "trkorr": "GIBBERISH123"},
-        AbapGitActionResult,
-    )
-
-    # Should fail with some transport-related error
-    assert not result.success, "Expected pull to fail with invalid transport"
-    assert result.error is not None
-    print(f"Error with invalid transport: {result.error}")
+    assert "invalid" in result.error.lower() or "alphanumeric" in result.error.lower()

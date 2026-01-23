@@ -192,6 +192,34 @@ def _is_json_content(text: str) -> bool:
     return stripped.startswith("{") or stripped.startswith("[")
 
 
+async def call_tool_raw(
+    client: ClientSession,
+    tool_name: str,
+    args: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Call an MCP tool and return raw dict result.
+
+    Use this for tools that return dict/JSON but don't have a Pydantic model.
+
+    Args:
+        client: MCP ClientSession
+        tool_name: Name of the tool to call
+        args: Arguments to pass to the tool
+
+    Returns:
+        Parsed JSON as dict
+
+    Raises:
+        json.JSONDecodeError: If the response is not valid JSON
+    """
+    result = await client.call_tool(tool_name, args)
+    assert result.content, f"{tool_name} returned no content"
+
+    text = _extract_content_text(result.content[0])
+    return json.loads(text)
+
+
 async def call_tool_typed(
     client: ClientSession,
     tool_name: str,

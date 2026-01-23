@@ -3,18 +3,23 @@
 ## Background
 
 ### Problem
+
 The abapGit web UI automation is fragile:
+
 - Multiple dialogs (object selection, transport request) require complex DOM manipulation
 - Custom checkbox elements, popups, and timing issues make automation unreliable
 - Each abapGit version may change the UI structure
 
 ### Solution
+
 Use the abapGit ABAP API directly via a custom report:
+
 - Stable API that won't change with UI updates
 - Direct control over authentication and transport handling
 - Clear error messages via SAP status bar (readable by MCP tools)
 
 ### References
+
 - abapGit API docs: https://docs.abapgit.org/development-guide/api/api.html
 - Key classes: `zcl_abapgit_repo_srv`, `zcl_abapgit_repo_online`, `zcl_abapgit_login_manager`
 
@@ -108,9 +113,9 @@ START-OF-SELECTION.
 2. **Enter program name:** `Z_ABAPGIT_PULL`
 3. **Click Create**
 4. **Fill attributes:**
-   - Title: `abapGit Pull via API`
-   - Type: `Executable program`
-   - Status: `Test program` (or Customer production)
+    - Title: `abapGit Pull via API`
+    - Type: `Executable program`
+    - Status: `Test program` (or Customer production)
 5. **Paste the source code** from above
 6. **Save** (assign to package or $TMP for testing)
 7. **Activate** (Ctrl+F3)
@@ -119,10 +124,10 @@ START-OF-SELECTION.
 
 1. **Execute** the report (F8)
 2. **Enter test values:**
-   - P_REPO: `Z_PUBLIC_ABAPGIT_TEST_REPOSITORY` (or part of name)
-   - P_USER: (leave empty for public repo)
-   - P_TOKEN: (leave empty for public repo)
-   - P_TRKORR: (leave empty first, add if error says required)
+    - P_REPO: `Z_PUBLIC_ABAPGIT_TEST_REPOSITORY` (or part of name)
+    - P_USER: (leave empty for public repo)
+    - P_TOKEN: (leave empty for public repo)
+    - P_TRKORR: (leave empty first, add if error says required)
 3. **Run** and check status bar for result
 
 ### Step 3: Create Transaction (SE93)
@@ -132,9 +137,9 @@ START-OF-SELECTION.
 3. **Click Create**
 4. **Select:** `Program and selection screen (report transaction)`
 5. **Fill details:**
-   - Short text: `abapGit Pull via API`
-   - Program: `Z_ABAPGIT_PULL`
-   - Selection screen: (leave empty for default)
+    - Short text: `abapGit Pull via API`
+    - Program: `Z_ABAPGIT_PULL`
+    - Selection screen: (leave empty for default)
 6. **Save** (assign to package or $TMP)
 
 ### Step 4: Test Transaction
@@ -174,6 +179,7 @@ status = await sap_read_status_bar()
 ## Verification (unchanged)
 
 After pull, verify in SE38:
+
 1. Navigate to SE38
 2. Enter report name (e.g., `Z_REPORT_IN_PUBLIC_GIT_REPO`)
 3. Press F7 (Display)
@@ -184,16 +190,21 @@ After pull, verify in SE38:
 ## Implementation Notes
 
 ### Transaction Name
+
 The transaction was created as `Z_ABAPGIT_PULL` (same name as the report), not `ZABAPGIT_PULL`.
 
 ### Parameter Passing
+
 Instead of using `sap_fill_form` (which requires label matching), parameters are passed directly via the OK-Code field:
+
 ```
 /nZ_ABAPGIT_PULL P_REPO=value; P_TRKORR=value; P_USER=value; P_TOKEN=value;
 ```
 
 ### Overwrite Decisions
+
 The abapGit API requires explicit overwrite decisions. The report auto-confirms all overwrites:
+
 ```abap
 LOOP AT ls_checks-overwrite ASSIGNING FIELD-SYMBOL(<ls_overwrite>).
   <ls_overwrite>-decision = 'Y'.
@@ -201,7 +212,9 @@ ENDLOOP.
 ```
 
 ### Source Code Location
+
 The ABAP report source is maintained in a git submodule:
+
 - `unittests/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY/src/z_abapgit_pull.prog.abap`
 
 ---
