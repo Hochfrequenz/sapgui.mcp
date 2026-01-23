@@ -659,6 +659,8 @@ function handlePullConfirmation() {
 
     // Check for pull confirmation dialog indicators in the text
     // These patterns are specific to the pull confirmation dialog
+    // Dialog text: "The following objects are different between local and remote repository.
+    //               Select the objects which should be brought in line with the remote version."
     const isPullDialog =
         bodyText.includes('different') ||
         bodyText.includes('remote version') ||
@@ -666,7 +668,13 @@ function handlePullConfirmation() {
         bodyText.includes('überschreiben') ||
         bodyText.includes('aktualisieren') ||
         bodyText.includes('local and remote') ||
-        bodyText.includes('brought in line');
+        bodyText.includes('brought in line') ||
+        bodyText.includes('pull to local') ||
+        bodyText.includes('overwrite') ||
+        // Also check for table headers that indicate object selection
+        bodyText.includes('change\t') ||  // "change" column header
+        bodyText.includes('status\t') ||  // "status" column header
+        bodyText.includes('object type');  // object listing
 
     // Find all checkbox-like elements
     const allCheckboxes = findAllCheckboxElements(iframeDoc);

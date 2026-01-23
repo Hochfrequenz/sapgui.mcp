@@ -238,10 +238,104 @@ async def _handle_pull_confirmation_dialog(page: Page) -> None:
     2. Select all checkboxes (or click "Select All")
     3. Press Enter to confirm the selection
     """
-    # Wait for the confirmation dialog to appear (it takes ~2 seconds after clicking Pull)
-    await page.wait_for_timeout(2500)
+    # Wait for the confirmation dialog to appear (it takes ~2-3 seconds after clicking Pull)
+    # The dialog content loads inside the iframe and changes the page content
+    logger.info("Waiting for pull confirmation dialog to appear...")
+    await page.wait_for_timeout(3500)
 
-    for attempt in range(3):  # Try up to 3 times
+    # First, check what the page looks like now - both iframe AND main document
+    try:
+        page_state_js = """
+        () => {
+            const result = {
+                mainDocument: {
+                    text: document.body?.innerText?.substring(0, 500) || '',
+                    checkboxInputs: document.querySelectorAll('input[type="checkbox"]').length,
+                    dialogs: document.querySelectorAll('[role="dialog"], .sapMDialog, .urPWC').length,
+                    popups: document.querySelectorAll('.popup, .modal, [class*="popup"], [class*="modal"]').length,
+                },
+                iframes: [],
+            };
+
+            // Check all iframes
+            const iframes = document.querySelectorAll('iframe');
+            for (const iframe of iframes) {
+                try {
+                    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                    if (doc && doc.body) {
+                        result.iframes.push({
+                            id: iframe.id,
+                            text: doc.body.innerText?.substring(0, 800) || '',
+                            checkboxInputs: doc.querySelectorAll('input[type="checkbox"]').length,
+                            links: doc.querySelectorAll('a').length,
+                        });
+                    }
+                } catch (e) {
+                    result.iframes.push({ id: iframe.id, error: e.message });
+                }
+            }
+            return result;
+        }
+        """
+        page_state = await page.evaluate(page_state_js)
+        logger.info("Page state after Pull click: dialogs=%s, popups=%s, iframes=%d",
+                   page_state.get("mainDocument", {}).get("dialogs"),
+                   page_state.get("mainDocument", {}).get("popups"),
+                   len(page_state.get("iframes", [])))
+        for i, iframe_info in enumerate(page_state.get("iframes", [])):
+            text_preview = iframe_info.get("text", "")[:300]
+            logger.info("Iframe %d (%s): checkboxes=%s, text preview: %s...",
+                       i, iframe_info.get("id"), iframe_info.get("checkboxInputs"), text_preview)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.debug("Failed to get page state: %s", e)
+
+    # Check for SAP popup/dialog that might contain the confirmation
+    try:
+        popup_check_js = """
+        () => {
+            // Look for SAP popup windows (they're often divs with specific classes)
+            const popupSelectors = [
+                '[role="dialog"]',
+                '.urPWC',  // SAP popup window container
+                '.sapMDialog',
+                '.sapMMessageDialog',
+                '.lsPopup',
+                'div[class*="popup"]',
+                'div[class*="Popup"]',
+                'div[class*="dialog"]',
+                'div[class*="Dialog"]',
+            ];
+
+            const results = [];
+            for (const selector of popupSelectors) {
+                const elements = document.querySelectorAll(selector);
+                for (const el of elements) {
+                    const text = el.innerText || '';
+                    // Only report if it has content
+                    if (text.length > 10) {
+                        results.push({
+                            selector: selector,
+                            text: text.substring(0, 600),
+                            hasCheckboxes: el.querySelectorAll('input[type="checkbox"]').length,
+                            classes: el.className.substring(0, 100),
+                        });
+                    }
+                }
+            }
+            return results;
+        }
+        """
+        popup_results = await page.evaluate(popup_check_js)
+        if popup_results:
+            logger.info("Found %d popup/dialog elements:", len(popup_results))
+            for i, popup in enumerate(popup_results):
+                logger.info("  Popup %d: selector=%s, checkboxes=%s, text preview: %s...",
+                           i, popup.get("selector"), popup.get("hasCheckboxes"),
+                           popup.get("text", "")[:200])
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.debug("Popup check failed: %s", e)
+
+    for attempt in range(5):  # Try up to 5 times with increasing wait
         confirm_result = await _evaluate_js(page, _js_call("handlePullConfirmation"))
         logger.info("Pull confirmation check (attempt %d): %s", attempt + 1, confirm_result)
 
