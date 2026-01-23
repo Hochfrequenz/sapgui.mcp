@@ -1,0 +1,8 @@
+[submodule "Z_PRIVATE_ABAPGIT_TEST_REPOSITORY"]
+	path = unittests/abapgit_repos/Z_PRIVATE_ABAPGIT_TEST_REPOSITORY
+	url = https://github.com/Hochfrequenz/Z_PRIVATE_ABAPGIT_TEST_REPOSITORY
+	update = rebase
+[submodule "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"]
+	path = unittests/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY
+	url = https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY
+	update = rebase
