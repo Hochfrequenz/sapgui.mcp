@@ -158,6 +158,53 @@ async def _find_iframe_with_retry(
     return result  # Return last failure
 
 
+async def _click_action_link(page: Page, action: str) -> str | None:
+    """
+    Click an action link (Pull, Stage, etc.) using Playwright locators.
+
+    Args:
+        page: Playwright page object
+        action: Action name ("Pull" or "Stage")
+
+    Returns:
+        The clicked action text, or None if not found
+    """
+    logger.info("Looking for %s action link...", action)
+
+    # Action text variants (English and German)
+    action_variants = {
+        "Pull": ["Pull", "Ziehen", "Holen"],
+        "Stage": ["Stage", "Bereitstellen", "Staging"],
+    }
+    variants = action_variants.get(action, [action])
+
+    # Try to find and click the action link using Playwright
+    for variant in variants:
+        # Try in iframe first (abapGit runs inside an iframe)
+        try:
+            iframe_locator = page.frame_locator("iframe").first.locator(
+                f"a:has-text('{variant}')"
+            ).first
+            if await iframe_locator.is_visible(timeout=500):
+                await iframe_locator.click()
+                logger.info("Clicked action link in iframe: %s", variant)
+                return variant
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+
+        # Try in main document
+        try:
+            main_locator = page.locator(f"a:has-text('{variant}')").first
+            if await main_locator.is_visible(timeout=500):
+                await main_locator.click()
+                logger.info("Clicked action link in main: %s", variant)
+                return variant
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+
+    return None
+
+
 async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-return-statements,too-many-branches,too-many-statements
     repo_pattern: str,
     action: Literal["Pull", "Stage"],
@@ -316,22 +363,35 @@ async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-retu
                     except Exception as e:  # pylint: disable=broad-exception-caught
                         logger.warning("Playwright fill failed: %s", e)
 
-            # Click "Weiter" (Continue) button
-            logger.info("Clicking Continue/Weiter button...")
-            continue_result = await _evaluate_js(page, _js_call("clickContinueButton"))
-            logger.info(
-                "Continue button result: clicked=%s, buttonText=%s, location=%s",
-                continue_result.get("clicked"),
-                continue_result.get("buttonText"),
-                continue_result.get("location"),
-            )
+            # Click "Weiter" (Continue) button using Playwright locators
+            logger.info("Looking for Weiter/Continue button...")
+            weiter_clicked = False
 
-            if not continue_result.get("clicked"):
-                # Fallback to Enter key if button not found
-                logger.warning(
-                    "Continue button not found, trying Enter key. Available: %s",
-                    continue_result.get("available", [])
-                )
+            # Try various button selectors for "Weiter" button
+            button_selectors = [
+                "button:has-text('Weiter')",
+                "button:has-text('Continue')",
+                "input[type='button'][value*='Weiter']",
+                "input[type='submit'][value*='Weiter']",
+                "span:has-text('Weiter')",  # SAP often wraps button text in spans
+                "[title*='Weiter']",
+                "[title*='Continue']",
+            ]
+
+            for selector in button_selectors:
+                try:
+                    locator = page.locator(selector).first
+                    if await locator.is_visible(timeout=500):
+                        await locator.click()
+                        logger.info("Clicked button using selector: %s", selector)
+                        weiter_clicked = True
+                        break
+                except Exception:  # pylint: disable=broad-exception-caught
+                    continue
+
+            if not weiter_clicked:
+                # Fallback to Enter key
+                logger.warning("Weiter button not found, trying Enter key")
                 await page.keyboard.press("Enter")
 
             # Wait for login to complete and menu to become available
@@ -345,22 +405,22 @@ async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-retu
         else:
             logger.debug("No login dialog detected - proceeding without authentication")
 
-        # Step 7: Click the action (Pull or Stage)
-        click_action = await _evaluate_js(page, _js_call("clickAction", action))
-        if click_action.get("error"):
-            available = click_action.get("available", [])
-            searched = click_action.get("searchedFor", [action])
-            logger.warning(
-                "Failed to click %s. Searched for: %s. Available actions: %s",
-                action, searched, available
-            )
-            return AbapGitActionResult.failure_result(
-                action_lower,
-                repo_name,
-                f"Failed to click {action}: {click_action['error']}. Available: {available}",
-            )
-        clicked_text: str = click_action.get("clickedText", action)
-        logger.info("Clicked action: %s", clicked_text)
+        # Step 7: Click the action (Pull or Stage) using Playwright locators
+        clicked_text = await _click_action_link(page, action)
+
+        if not clicked_text:
+            # Fallback to JavaScript method
+            logger.warning("Playwright couldn't find %s, trying JavaScript", action)
+            click_action = await _evaluate_js(page, _js_call("clickAction", action))
+            if click_action.get("error"):
+                available = click_action.get("available", [])
+                return AbapGitActionResult.failure_result(
+                    action_lower,
+                    repo_name,
+                    f"Failed to click {action}: {click_action['error']}. Available: {available}",
+                )
+            clicked_text = click_action.get("clickedText", action)
+            logger.info("Clicked action via JS: %s", clicked_text)
 
         await page.wait_for_timeout(ACTION_WAIT)
 

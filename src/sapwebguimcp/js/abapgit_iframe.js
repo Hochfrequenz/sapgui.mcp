@@ -373,8 +373,9 @@ function isVisible(el) {
  * This is more reliable than just setting .value directly.
  * @param {HTMLInputElement} input - The input element
  * @param {string} value - The value to set
+ * @param {boolean} dispatchEvents - Whether to dispatch input/change events (default: false)
  */
-function setInputValueNative(input, value) {
+function setInputValueNative(input, value, dispatchEvents = false) {
     // Focus the input first (like a real user would)
     input.focus();
 
@@ -391,10 +392,12 @@ function setInputValueNative(input, value) {
         input.value = value;
     }
 
-    // Dispatch events to notify any listeners
-    // Use InputEvent for better compatibility
-    input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+    // Only dispatch events if explicitly requested
+    // These events can trigger handlers that clear the field
+    if (dispatchEvents) {
+        input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+    }
 
     // Keep focus on the input
     input.focus();
