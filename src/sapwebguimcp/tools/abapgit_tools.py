@@ -174,6 +174,60 @@ async def _click_confirmation_button(page: Page) -> bool:
     return False
 
 
+async def _handle_transport_request_popup(page: Page) -> None:
+    """
+    Handle the transport request popup ("Workbench Auftrag").
+
+    SAP shows a popup asking which transport request to use for the changes.
+    We accept the default values and click the green checkmark/Enter to continue.
+    """
+    # Check for SAP popup dialog
+    try:
+        # Look for SAP popup with transport request text
+        popup_indicators = [
+            "Abfrage Workbench",
+            "Workbench Auftrag",
+            "Transport Request",
+            "Transportauftrag",
+        ]
+
+        # Get page text to check for popup
+        body_text = await page.inner_text("body")
+
+        has_popup = any(indicator.lower() in body_text.lower() for indicator in popup_indicators)
+
+        if has_popup:
+            logger.info("Transport request popup detected, pressing Enter to accept defaults...")
+            await page.keyboard.press("Enter")
+            await page.wait_for_timeout(2000)
+            return
+
+        # Also try clicking green checkmark button if visible
+        checkmark_selectors = [
+            'button[title*="Weiter"]',
+            'button[title*="Continue"]',
+            'button[title*="OK"]',
+            'span.urImgStd[title*="Weiter"]',
+            'span.urImgStd[title*="Continue"]',
+            '[title="Weiter (Enter)"]',
+            '[title="Continue (Enter)"]',
+        ]
+
+        for selector in checkmark_selectors:
+            try:
+                btn = page.locator(selector).first
+                if await btn.is_visible(timeout=500):
+                    await btn.click()
+                    logger.info("Clicked transport popup button: %s", selector)
+                    await page.wait_for_timeout(2000)
+                    return
+            except Exception:  # pylint: disable=broad-exception-caught
+                continue
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.debug("Transport popup check failed: %s", e)
+
+
 async def _handle_pull_confirmation_dialog(page: Page) -> None:
     """
     Handle the pull confirmation dialog that asks which objects to overwrite.
@@ -213,6 +267,9 @@ async def _handle_pull_confirmation_dialog(page: Page) -> None:
             await page.keyboard.press("Enter")
             await page.wait_for_timeout(2000)
 
+            # Handle transport request popup if it appears
+            await _handle_transport_request_popup(page)
+
             # Verify dialog is gone
             verify_result = await _evaluate_js(page, _js_call("handlePullConfirmation"))
             if not verify_result.get("hasDialog"):
@@ -222,6 +279,9 @@ async def _handle_pull_confirmation_dialog(page: Page) -> None:
             # If still there, try clicking any confirm button
             await _click_confirmation_button(page)
             await page.wait_for_timeout(1000)
+
+            # Check for transport popup again
+            await _handle_transport_request_popup(page)
             return
 
         # Dialog found but no checkboxes selected - try again
@@ -229,6 +289,9 @@ async def _handle_pull_confirmation_dialog(page: Page) -> None:
         await page.wait_for_timeout(1000)
 
         await page.wait_for_timeout(1000)
+
+    # After handling confirmation, also check for transport request popup
+    await _handle_transport_request_popup(page)
 
 
 async def _click_action_link(page: Page, action: str) -> str | None:
@@ -900,9 +963,18 @@ async def read_se38_source(program_name: str) -> dict[str, Any]:
         # We need to exit abapGit first by pressing F3 (Back) to get to a standard SAP screen.
         logger.info("Exiting abapGit by pressing F3 (Back)...")
         await page.keyboard.press("Escape")  # Close any open menus/dialogs first
-        await page.wait_for_timeout(300)
+        await page.wait_for_timeout(500)
         await page.keyboard.press("F3")  # Go back from abapGit
-        await page.wait_for_timeout(2000)  # Wait for navigation
+        await page.wait_for_timeout(3000)  # Wait for navigation to complete
+
+        # Wait for the page to stabilize and the OK-Code field to appear
+        try:
+            await page.wait_for_selector("#ToolbarOkCode", state="visible", timeout=5000)
+        except Exception:  # pylint: disable=broad-exception-caught
+            # If OK-Code field not found, we might still be in abapGit - press F3 again
+            logger.info("OK-Code field not found, pressing F3 again...")
+            await page.keyboard.press("F3")
+            await page.wait_for_timeout(3000)
 
         # Now try to navigate to SE38 from the main SAP screen
         tx_result = await sap_transaction_impl("SE38", new_window=False)
@@ -917,38 +989,33 @@ async def read_se38_source(program_name: str) -> dict[str, Any]:
 
         # In SE38, after entering program name:
         # 1. Ensure "Source Code" radio is selected (usually default)
-        # 2. Click the "Anzeigen" (Display) button or press F7
+        # 2. Press F7 (Anzeigen/Display) to view source code
         #
-        # F7 sometimes doesn't work, try clicking the button directly
-        from sapwebguimcp.tools.sap_tool_impl import sap_discover_buttons_impl
+        # If F7 doesn't work, try F8 (Execute) or Enter
 
-        # First try F7
+        # First try F7 (Display)
         logger.info("Pressing F7 to display source code...")
         await page.keyboard.press("F7")
-        await page.wait_for_timeout(2000)
+        await page.wait_for_timeout(3000)
 
-        # Check if we're still on the entry screen
+        # Check if we're still on the entry screen by looking at page title
         page_title = await page.title()
-        if "Einstieg" in page_title or "Entry" in page_title:
-            # F7 didn't work, try clicking the Display button
-            logger.info("F7 didn't navigate, trying to click Display button...")
-            buttons_result = await sap_discover_buttons_impl()
-            if buttons_result.buttons:
-                for btn in buttons_result.buttons:
-                    btn_label = (btn.label or "").lower()
-                    if "anzeigen" in btn_label or "display" in btn_label:
-                        logger.info("Clicking button: %s", btn.label)
-                        if btn.selector:
-                            await page.click(btn.selector)
-                            await page.wait_for_timeout(3000)
-                            break
-                else:
-                    # No display button found, try Enter
-                    logger.info("No Display button found, trying Enter...")
-                    await page.keyboard.press("Enter")
-                    await page.wait_for_timeout(3000)
+        logger.info("Page title after F7: %s", page_title)
 
-        await page.wait_for_timeout(2000)  # Additional wait for source to load
+        if "Einstieg" in page_title or "Entry" in page_title:
+            # F7 didn't work, try pressing Enter to submit the form
+            logger.info("Still on entry screen, trying Enter...")
+            await page.keyboard.press("Enter")
+            await page.wait_for_timeout(2000)
+
+            # If still on entry screen, try F8
+            page_title = await page.title()
+            if "Einstieg" in page_title or "Entry" in page_title:
+                logger.info("Enter didn't help, trying F8...")
+                await page.keyboard.press("F8")
+                await page.wait_for_timeout(3000)
+
+        await page.wait_for_timeout(1000)  # Additional wait for source to load
 
         # Try to read source code from various locations
         logger.info("Looking for source code in iframes...")
@@ -971,14 +1038,91 @@ async def read_se38_source(program_name: str) -> dict[str, Any]:
                 "program_name": program_name,
             }
 
-        # If no source found, return the body text for debugging
-        logger.warning("No ABAP source code found, returning body text for debugging")
+        # If no source found, try to extract from SAP table structure
+        # SE38 displays code in a table where each row is a code line
+        logger.info("Trying to extract source from SAP table structure...")
+        try:
+            # Look for tables that might contain source code
+            tables = await page.query_selector_all("table")
+            logger.debug("Found %d tables on page", len(tables))
+
+            for table in tables:
+                table_text = await table.inner_text()
+                # Check if this table contains ABAP code patterns
+                if _is_actual_abap_source(table_text):
+                    logger.info("Found source in table (%d chars)", len(table_text))
+                    return {
+                        "success": True,
+                        "source_code": table_text,
+                        "program_name": program_name,
+                    }
+
+            # Try to find specific SAP code display elements
+            code_selectors = [
+                "div.urST",  # SAP standard table div
+                "div[class*='Editor']",
+                "div[class*='editor']",
+                "div[class*='source']",
+                "div.sapMText",  # SAP MAUI text
+                ".lsListbox__list",
+                "[id*='editor']",
+                "[id*='Editor']",
+            ]
+
+            for selector in code_selectors:
+                elements = await page.query_selector_all(selector)
+                for el in elements:
+                    text = await el.inner_text()
+                    if _is_actual_abap_source(text):
+                        logger.info("Found source in %s (%d chars)", selector, len(text))
+                        return {
+                            "success": True,
+                            "source_code": text,
+                            "program_name": program_name,
+                        }
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.warning("Table extraction failed: %s", e)
+
+        # Debug: Get info about what's on the page
+        logger.warning("No ABAP source code found. Gathering debug info...")
+        debug_info: dict[str, Any] = {}
+        try:
+            # Count various element types
+            debug_info["tables"] = len(await page.query_selector_all("table"))
+            debug_info["textareas"] = len(await page.query_selector_all("textarea"))
+            debug_info["iframes"] = len(await page.query_selector_all("iframe"))
+            debug_info["divs_with_class"] = len(await page.query_selector_all("div[class]"))
+
+            # Get page title
+            debug_info["page_title"] = await page.title()
+
+            # Get all classes used on the page (for debugging)
+            classes_js = """
+            () => {
+                const allElements = document.querySelectorAll('[class]');
+                const classes = new Set();
+                allElements.forEach(el => {
+                    el.className.split(' ').forEach(c => {
+                        if (c && c.length > 2) classes.add(c);
+                    });
+                });
+                return Array.from(classes).sort().slice(0, 50);
+            }
+            """
+            debug_info["classes_sample"] = await page.evaluate(classes_js)
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            debug_info["debug_error"] = str(e)
+
+        # Return body text for debugging
         body_text = await page.inner_text("body")
         return {
             "success": True,  # Mark success but include debug info
-            "source_code": body_text[:2000],  # Truncate for debugging
+            "source_code": body_text[:3000],  # Truncate for debugging
             "program_name": program_name,
             "debug_note": "No ABAP source patterns detected, returning raw body text",
+            "debug_info": debug_info,
         }
 
     except Exception as e:  # pylint: disable=broad-exception-caught

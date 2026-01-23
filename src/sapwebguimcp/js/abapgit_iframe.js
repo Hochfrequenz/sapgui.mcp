@@ -554,18 +554,98 @@ function clickContinueButton() {
 }
 
 /**
+ * Find all checkbox-like elements in a document.
+ * SAP Web GUI uses various checkbox implementations:
+ * - Standard: input[type="checkbox"]
+ * - SAP style: span.urCb, td with checkbox behavior
+ * - abapGit: custom checkbox spans/icons
+ * @param {Document} doc - Document to search
+ * @returns {Array} Array of checkbox-like elements with info
+ */
+function findAllCheckboxElements(doc) {
+    const results = [];
+
+    // 1. Standard HTML checkboxes
+    const htmlCheckboxes = Array.from(doc.querySelectorAll('input[type="checkbox"]'));
+    for (const cb of htmlCheckboxes) {
+        results.push({
+            element: cb,
+            type: 'html_checkbox',
+            checked: cb.checked,
+            disabled: cb.disabled,
+            id: cb.id,
+            name: cb.name,
+        });
+    }
+
+    // 2. SAP-style checkboxes (urCb class)
+    const sapCheckboxes = Array.from(doc.querySelectorAll('.urCb, [class*="checkbox"], [role="checkbox"]'));
+    for (const cb of sapCheckboxes) {
+        const isChecked = cb.classList.contains('urCbChk') ||
+                         cb.getAttribute('aria-checked') === 'true' ||
+                         cb.classList.contains('checked');
+        results.push({
+            element: cb,
+            type: 'sap_checkbox',
+            checked: isChecked,
+            disabled: cb.classList.contains('urCbDis') || cb.hasAttribute('disabled'),
+            className: cb.className,
+        });
+    }
+
+    // 3. Table cells that look like checkboxes (common in abapGit)
+    // Look for clickable cells in tables with checkbox-like content
+    const tableCells = Array.from(doc.querySelectorAll('td'));
+    for (const cell of tableCells) {
+        const text = cell.innerText?.trim() || '';
+        const hasCheckChar = /^[☐☑✓✔✗✘×xX]$/.test(text) || text === '' && cell.querySelector('input');
+        const hasCheckboxClass = /check|select|toggle/i.test(cell.className);
+
+        if (hasCheckChar || hasCheckboxClass) {
+            const isChecked = /[☑✓✔]/.test(text);
+            results.push({
+                element: cell,
+                type: 'table_cell_checkbox',
+                checked: isChecked,
+                text: text,
+                className: cell.className,
+            });
+        }
+    }
+
+    // 4. Clickable spans/icons that act as checkboxes
+    const checkIcons = Array.from(doc.querySelectorAll(
+        '[class*="icon-check"], [class*="checkbox"], img[src*="check"], ' +
+        'span[onclick], a[onclick]'
+    ));
+    for (const icon of checkIcons) {
+        const src = icon.getAttribute('src') || '';
+        const className = icon.className || '';
+        if (/check|select|toggle/i.test(src + className)) {
+            results.push({
+                element: icon,
+                type: 'icon_checkbox',
+                className: className,
+                src: src,
+            });
+        }
+    }
+
+    return results;
+}
+
+/**
  * Check for and handle pull confirmation dialog.
  * abapGit shows a dialog after clicking Pull asking which objects to update.
- * The dialog shows a table with objects and checkboxes for selection.
- * Text is like: "The following objects are different between local and remote repository.
- *                Select the objects which should be brought in line with the remote version."
+ * The dialog shows a table with objects and a "change" column with checkboxes.
+ * There's a "Continue" button at the bottom.
  *
  * This function:
  * 1. Detects the dialog by looking for checkboxes and relevant text
  * 2. Selects all checkboxes (to update all objects)
- * 3. Does NOT click confirm - that needs to be done separately with keyboard shortcut
+ * 3. Clicks the "Continue" button to confirm
  *
- * @returns {Object} Result with hasDialog, selectedCount, error fields
+ * @returns {Object} Result with hasDialog, selectedCount, confirmed, error fields
  */
 function handlePullConfirmation() {
     let iframeDoc;
@@ -577,69 +657,140 @@ function handlePullConfirmation() {
 
     const bodyText = (iframeDoc.body?.innerText || '').toLowerCase();
 
-    // Check if we're on a pull confirmation screen
-    // Look for various indicators:
-    // - "different" and "objects" or "select"
-    // - "object" and "overwrite" or "update"
-    // - German equivalents
-    // - Multiple checkboxes in a table
-    const textIndicators =
-        (bodyText.includes('object') && (bodyText.includes('different') || bodyText.includes('select'))) ||
-        (bodyText.includes('object') && (bodyText.includes('overwrite') || bodyText.includes('update'))) ||
-        (bodyText.includes('objekt') && (bodyText.includes('überschreiben') || bodyText.includes('aktualisieren'))) ||
-        bodyText.includes('remote repository') ||
-        bodyText.includes('local object');
+    // Check for pull confirmation dialog indicators in the text
+    // These patterns are specific to the pull confirmation dialog
+    const isPullDialog =
+        bodyText.includes('different') ||
+        bodyText.includes('remote version') ||
+        bodyText.includes('select the object') ||
+        bodyText.includes('überschreiben') ||
+        bodyText.includes('aktualisieren') ||
+        bodyText.includes('local and remote') ||
+        bodyText.includes('brought in line');
 
-    // Count checkboxes - the confirmation dialog has checkboxes for each object
-    const checkboxes = Array.from(iframeDoc.querySelectorAll('input[type="checkbox"]'));
-    const hasCheckboxes = checkboxes.length > 0;
+    // Find all checkbox-like elements
+    const allCheckboxes = findAllCheckboxElements(iframeDoc);
 
-    if (!textIndicators && !hasCheckboxes) {
-        return { hasDialog: false, bodyPreview: bodyText.substring(0, 500) };
+    // Also find standard HTML checkboxes directly
+    const htmlCheckboxes = Array.from(iframeDoc.querySelectorAll('input[type="checkbox"]'));
+
+    // Build debug info about what we found
+    const debugInfo = {
+        htmlCheckboxCount: htmlCheckboxes.length,
+        allCheckboxCount: allCheckboxes.length,
+        checkboxTypes: allCheckboxes.map(c => c.type),
+        isPullDialog: isPullDialog,
+    };
+
+    // Determine if this is the pull dialog
+    // Need EITHER: checkboxes present, OR pull dialog text indicators
+    const hasCheckboxes = allCheckboxes.length > 0 || htmlCheckboxes.length > 0;
+
+    if (!isPullDialog && !hasCheckboxes) {
+        // Definitely not the dialog
+        return { hasDialog: false, bodyPreview: bodyText.substring(0, 500), debug: debugInfo };
     }
 
-    // Dialog detected - select all checkboxes
+    // If we have pull dialog text but no checkboxes found, still report as dialog
+    // so we can debug further
+    if (isPullDialog && !hasCheckboxes) {
+        // Return debug info to help understand the page structure
+        const allTables = Array.from(iframeDoc.querySelectorAll('table'));
+        const tableInfo = allTables.map(t => ({
+            rows: t.rows.length,
+            className: t.className,
+            id: t.id,
+        }));
+
+        return {
+            hasDialog: true,
+            selectedCount: 0,
+            totalCheckboxes: 0,
+            confirmed: false,
+            note: 'Pull dialog detected by text but no checkboxes found',
+            tableCount: allTables.length,
+            tableInfo: tableInfo.slice(0, 5),
+            bodyPreview: bodyText.substring(0, 800),
+            debug: debugInfo,
+        };
+    }
+
+    // Dialog detected with checkboxes - try to select them
     let selectedCount = 0;
-    for (const checkbox of checkboxes) {
+
+    // First try standard HTML checkboxes
+    for (const checkbox of htmlCheckboxes) {
         if (!checkbox.checked && !checkbox.disabled) {
-            checkbox.checked = true;
-            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            checkbox.click();
             selectedCount++;
         }
     }
 
-    // Look for "Select All" link/button and click it if available
-    const allLinks = Array.from(iframeDoc.querySelectorAll('a'));
-    const selectAllLink = allLinks.find((el) => {
-        const text = (el.innerText || '').toLowerCase();
-        return text.includes('select all') || text.includes('alle auswählen') ||
-               text === 'all' || text === 'alle';
+    // Then try other checkbox types
+    for (const cbInfo of allCheckboxes) {
+        if (cbInfo.type === 'html_checkbox') continue; // Already handled
+        if (cbInfo.checked || cbInfo.disabled) continue;
+
+        try {
+            cbInfo.element.click();
+            selectedCount++;
+        } catch (e) {
+            // Ignore click errors
+        }
+    }
+
+    // Look for "Continue" button and click it
+    // In abapGit, this might be a link, button, or icon
+    const allClickables = Array.from(iframeDoc.querySelectorAll(
+        'a, button, input[type="submit"], input[type="button"], ' +
+        '[role="button"], .toolbar-btn, [class*="button"]'
+    ));
+
+    const continueTexts = ['continue', 'weiter', 'fortfahren', 'ok', 'übernehmen', 'apply'];
+    const continueButton = allClickables.find((el) => {
+        const text = (el.innerText || el.value || el.title || '').toLowerCase();
+        return continueTexts.some(t => text.includes(t));
     });
 
-    if (selectAllLink) {
-        selectAllLink.click();
-        return {
-            hasDialog: true,
-            clickedSelectAll: true,
-            selectedCount: checkboxes.length,
-            message: 'Clicked Select All link',
-        };
+    // Also look for checkmark/confirm icon buttons (green checkmark in toolbar)
+    const iconSelectors = [
+        '[class*="confirm"]', '[class*="check"]',
+        '[title*="continue"]', '[title*="confirm"]',
+        '[title*="Weiter"]', '[title*="Fortfahren"]',
+        'img[src*="check"]', 'img[src*="confirm"]',
+        '.icon-ok', '.icon-check',
+    ];
+    const iconButtons = Array.from(iframeDoc.querySelectorAll(iconSelectors.join(', ')));
+
+    let confirmed = false;
+    let clickedButton = null;
+
+    if (continueButton) {
+        continueButton.click();
+        confirmed = true;
+        clickedButton = continueButton.innerText || continueButton.value || continueButton.title || 'Continue';
+    } else if (iconButtons.length > 0) {
+        iconButtons[0].click();
+        confirmed = true;
+        clickedButton = 'Icon button: ' + (iconButtons[0].title || iconButtons[0].className);
     }
 
     // Report what we found
-    const availableLinks = allLinks
-        .filter((el) => el.innerText?.trim())
-        .map((el) => el.innerText.trim())
-        .slice(0, 20);
+    const availableButtons = allClickables
+        .filter((el) => el.innerText?.trim() || el.value?.trim() || el.title?.trim())
+        .map((el) => el.innerText?.trim() || el.value?.trim() || el.title?.trim())
+        .filter(Boolean)
+        .slice(0, 25);
 
     return {
         hasDialog: true,
         selectedCount: selectedCount,
-        totalCheckboxes: checkboxes.length,
-        availableLinks: availableLinks,
-        message: selectedCount > 0 ?
-            `Selected ${selectedCount} checkboxes. Use keyboard shortcut to confirm.` :
-            'Dialog detected but no unchecked checkboxes found',
+        totalCheckboxes: htmlCheckboxes.length + allCheckboxes.filter(c => c.type !== 'html_checkbox').length,
+        confirmed: confirmed,
+        clickedButton: clickedButton,
+        availableButtons: availableButtons,
+        bodyPreview: bodyText.substring(0, 500),
+        debug: debugInfo,
     };
 }
 
