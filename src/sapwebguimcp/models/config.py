@@ -130,12 +130,18 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "AUDIT_LOG_DIR"},
     )
 
-    # GitHub Issue Creation (optional)
+    # GitHub Settings (optional)
     github_pat: str = Field(
         default="",
-        description="GitHub Personal Access Token for creating issues from feedback. "
-        "Leave empty to disable automatic issue creation.",
+        description="GitHub Personal Access Token for creating issues from feedback "
+        "and authenticating abapGit pulls. Leave empty to disable.",
         json_schema_extra={"env": "GITHUB_PAT"},
+    )
+    github_user: str = Field(
+        default="",
+        description="GitHub username for abapGit authentication. "
+        "Falls back to 'x-access-token' if not set (works with PAT auth).",
+        json_schema_extra={"env": "GITHUB_USER"},
     )
     github_repo: str = Field(
         default="Hochfrequenz/sapwebgui.mcp",

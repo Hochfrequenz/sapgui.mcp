@@ -602,27 +602,33 @@ async def _abapgit_pull_via_api(
         )
 
     try:
-        # Get PAT from environment if not provided
+        # Get PAT and username from environment if not provided
+        settings = get_settings()
         effective_pat = pat
         if not effective_pat:
-            settings = get_settings()
             effective_pat = settings.abapgit_pat or settings.github_pat
+
+        # For GitHub PAT auth, we need a username. Use provided, or fall back to
+        # settings, or use "x-access-token" (standard for GitHub PAT auth)
+        effective_username = username
+        if not effective_username and effective_pat:
+            effective_username = settings.github_user or "x-access-token"
 
         # Build transaction call with parameters
         # SAP OK-Code syntax: /nTCODE PARAM=value; PARAM2=value2;
         params = [f"P_REPO={repo}"]
         if trkorr:
             params.append(f"P_TRKORR={trkorr}")
-        if username:
-            params.append(f"P_USER={username}")
+        if effective_username:
+            params.append(f"P_USER={effective_username}")
         if effective_pat:
             params.append(f"P_TOKEN={effective_pat}")
 
         # Format: /nZ_ABAPGIT_PULL P_REPO=value; P_TRKORR=value;
         tcode_with_params = f"/nZ_ABAPGIT_PULL {'; '.join(params)};"
 
-        logger.info("Calling transaction with params: repo=%s, trkorr=%s, has_user=%s, has_pat=%s",
-                   repo, trkorr, bool(username), bool(effective_pat))
+        logger.info("Calling transaction with params: repo=%s, trkorr=%s, user=%s, has_pat=%s",
+                   repo, trkorr, effective_username, bool(effective_pat))
         # Don't log the full tcode_with_params as it may contain the PAT
 
         # Directly use OK-Code field to enter transaction with parameters
