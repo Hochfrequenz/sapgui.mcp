@@ -265,26 +265,8 @@ async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-retu
         logger.info("Clicked menu arrow, waiting for menu to expand...")
         await page.wait_for_timeout(MENU_EXPAND_WAIT)
 
-        # Step 6: Click the action (Pull or Stage)
-        click_action = await _evaluate_js(page, _js_call("clickAction", action))
-        if click_action.get("error"):
-            available = click_action.get("available", [])
-            searched = click_action.get("searchedFor", [action])
-            logger.warning(
-                "Failed to click %s. Searched for: %s. Available actions: %s",
-                action, searched, available
-            )
-            return AbapGitActionResult.failure_result(
-                action_lower,
-                repo_name,
-                f"Failed to click {action}: {click_action['error']}. Available: {available}",
-            )
-        clicked_text: str = click_action.get("clickedText", action)
-        logger.info("Clicked action: %s", clicked_text)
-
-        await page.wait_for_timeout(ACTION_WAIT)
-
-        # Step 7: Check for login dialog and fill token if needed
+        # Step 6: Check for login dialog BEFORE clicking action
+        # For private repos, login dialog appears after expanding the repo menu
         login_check = await _evaluate_js(page, _js_call("checkLoginDialog"))
         logger.debug("Login dialog check result: %s", login_check)
 
@@ -298,7 +280,6 @@ async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-retu
                     repo_name,
                     "Login dialog appeared but no PAT provided. "
                     "Set ABAPGIT_PAT env var or pass pat parameter.",
-                    clicked_action=clicked_text,
                 )
 
             # Fill the token securely (via Playwright argument, not JS string)
@@ -317,7 +298,6 @@ async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-retu
                     action_lower,
                     repo_name,
                     f"Failed to fill token: {fill_result.get('error')}",
-                    clicked_action=clicked_text,
                 )
 
             # Click "Weiter" (Continue) button
@@ -338,9 +318,35 @@ async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-retu
                 )
                 await page.keyboard.press("Enter")
 
+            # Wait for login to complete and menu to become available
             await page.wait_for_timeout(ACTION_WAIT)
+            # Re-expand the menu after login
+            logger.info("Re-clicking menu arrow after login...")
+            click_menu = await _evaluate_js(page, _js_call("clickMenuArrow", repo_pattern))
+            if click_menu.get("error"):
+                logger.warning("Failed to re-click menu arrow: %s", click_menu)
+            await page.wait_for_timeout(MENU_EXPAND_WAIT)
         else:
             logger.debug("No login dialog detected - proceeding without authentication")
+
+        # Step 7: Click the action (Pull or Stage)
+        click_action = await _evaluate_js(page, _js_call("clickAction", action))
+        if click_action.get("error"):
+            available = click_action.get("available", [])
+            searched = click_action.get("searchedFor", [action])
+            logger.warning(
+                "Failed to click %s. Searched for: %s. Available actions: %s",
+                action, searched, available
+            )
+            return AbapGitActionResult.failure_result(
+                action_lower,
+                repo_name,
+                f"Failed to click {action}: {click_action['error']}. Available: {available}",
+            )
+        clicked_text: str = click_action.get("clickedText", action)
+        logger.info("Clicked action: %s", clicked_text)
+
+        await page.wait_for_timeout(ACTION_WAIT)
 
         # Step 8: Verify action result (for Pull) with polling
         if action == "Pull":
