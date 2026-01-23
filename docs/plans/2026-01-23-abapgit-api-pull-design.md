@@ -210,9 +210,9 @@ The ABAP report source is maintained in a git submodule:
 
 - [x] Report Z_ABAPGIT_PULL created and activated in SE38
 - [x] Report tested successfully with public repo
-- [ ] Report tested with private repo (PAT authentication) - needs investigation
+- [x] Report tested with private repo (PAT authentication)
 - [x] Transaction Z_ABAPGIT_PULL created in SE93
 - [x] Transaction tested from command line
 - [x] MCP tool updated to use new transaction
 - [x] E2E test for public repo passing
-- [ ] E2E test for private repo passing - needs auth investigation
+- [x] E2E test for private repo passing
