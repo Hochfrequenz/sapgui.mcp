@@ -695,10 +695,11 @@ async def test_abapgit_e2e_public_repo_pull_and_verify(
 
     # Step 4: Pull the repository
     repo_name = TEST_REPOS["public"]["name"]
+    trkorr = TEST_REPOS["public"]["trkorr"]
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_abapgit_pull",
-        {"repo": repo_name},
+        {"repo": repo_name, "trkorr": trkorr},
         AbapGitActionResult,
     )
     print(f"Pull result: {result}")
@@ -765,10 +766,11 @@ async def test_abapgit_e2e_private_repo_pull_and_verify(
 
     # Step 4: Pull the repository (uses PAT from env)
     repo_name = TEST_REPOS["private"]["name"]
+    trkorr = TEST_REPOS["private"]["trkorr"]
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_abapgit_pull",
-        {"repo": repo_name},
+        {"repo": repo_name, "trkorr": trkorr},
         AbapGitActionResult,
     )
     print(f"Pull result: {result}")
@@ -789,3 +791,85 @@ async def test_abapgit_e2e_private_repo_pull_and_verify(
         f"Expected text '{test_marker}' not found in SE38. "
         f"Source code preview: {source_code[:500]}"
     )
+
+
+# =============================================================================
+# Error Case Tests (via Z_ABAPGIT_PULL transaction)
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_abapgit_pull_api_nonexistent_repo(sap_mcp_client: ClientSession) -> None:
+    """Test that pulling a non-existent repository returns an appropriate error."""
+    from unittests.abapgit_test_helpers import DEFAULT_TRANSPORT
+
+    # Login first
+    login_result = await call_tool_typed(
+        sap_mcp_client, "sap_login", {}, LoginResult
+    )
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Try to pull a repo that doesn't exist
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {"repo": "NONEXISTENT_REPO_12345_GIBBERISH", "trkorr": DEFAULT_TRANSPORT},
+        AbapGitActionResult,
+    )
+
+    # Should fail with "Repository not found" error
+    assert not result.success, "Expected pull to fail for non-existent repo"
+    assert result.error is not None
+    assert "not found" in result.error.lower(), f"Expected 'not found' in error: {result.error}"
+
+
+@pytest.mark.anyio
+async def test_abapgit_pull_api_missing_transport(sap_mcp_client: ClientSession) -> None:
+    """Test that pulling without transport returns appropriate error when required."""
+    from unittests.abapgit_test_helpers import TEST_REPOS
+
+    # Login first
+    login_result = await call_tool_typed(
+        sap_mcp_client, "sap_login", {}, LoginResult
+    )
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Try to pull without transport (should fail with "Transport required")
+    repo_name = TEST_REPOS["public"]["name"]
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {"repo": repo_name},  # No trkorr
+        AbapGitActionResult,
+    )
+
+    # Should fail with "Transport required" error
+    assert not result.success, "Expected pull to fail without transport"
+    assert result.error is not None
+    assert "transport" in result.error.lower(), f"Expected 'transport' in error: {result.error}"
+
+
+@pytest.mark.anyio
+async def test_abapgit_pull_api_invalid_transport(sap_mcp_client: ClientSession) -> None:
+    """Test that pulling with invalid transport returns appropriate error."""
+    from unittests.abapgit_test_helpers import TEST_REPOS
+
+    # Login first
+    login_result = await call_tool_typed(
+        sap_mcp_client, "sap_login", {}, LoginResult
+    )
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Try to pull with gibberish transport
+    repo_name = TEST_REPOS["public"]["name"]
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {"repo": repo_name, "trkorr": "GIBBERISH123"},
+        AbapGitActionResult,
+    )
+
+    # Should fail with some transport-related error
+    assert not result.success, "Expected pull to fail with invalid transport"
+    assert result.error is not None
+    print(f"Error with invalid transport: {result.error}")

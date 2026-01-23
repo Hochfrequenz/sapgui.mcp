@@ -15,16 +15,21 @@ from pathlib import Path
 ABAPGIT_REPOS_DIR = Path(__file__).parent / "abapgit_repos"
 
 # Test repository configurations
+# Transport request used for all test repos (Workbench request type KS)
+DEFAULT_TRANSPORT = "S4UK902008"
+
 TEST_REPOS = {
     "private": {
         "name": "Z_PRIVATE_ABAPGIT_TEST_REPOSITORY",
         "report": "Z_REPORT_IN_PRIVATE_GIT_REPO",
         "file": "src/z_report_in_private_git_repo.prog.abap",
+        "trkorr": DEFAULT_TRANSPORT,
     },
     "public": {
         "name": "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
         "report": "Z_REPORT_IN_PUBLIC_GIT_REPO",
         "file": "src/z_report_in_public_git_repo.prog.abap",
+        "trkorr": DEFAULT_TRANSPORT,
     },
 }
 

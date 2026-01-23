@@ -593,7 +593,7 @@ async def _abapgit_pull_via_api(
     logger.info("Starting abapGit Pull via API for repo: %s", repo)
 
     # Get browser page
-    browser_manager = get_browser_manager()
+    browser_manager = await get_browser_manager()
     page = await browser_manager.get_page()
     if not page:
         return AbapGitActionResult.failure_result(
