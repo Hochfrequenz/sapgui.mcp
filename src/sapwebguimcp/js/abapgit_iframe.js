@@ -13,7 +13,7 @@ function findAbapGitIframe() {
     const iframeCandidates = [
         document.querySelector('iframe#C116'),
         document.querySelector('iframe[id^="C"]'),
-        document.querySelector('iframe')
+        document.querySelector('iframe'),
     ].filter(Boolean);
 
     for (const candidate of iframeCandidates) {
@@ -50,12 +50,14 @@ function getAbapGitDoc() {
  */
 function findMenuArrow(container) {
     const links = Array.from(container.querySelectorAll('a'));
-    return links.find(el => {
+    return links.find((el) => {
         const text = el.innerText || '';
         // Match common arrow/expand indicators
-        return /[▸►▶▷▹▻→›»]/.test(text) ||
-               el.classList.contains('expand') ||
-               el.getAttribute('title')?.toLowerCase().includes('expand');
+        return (
+            /[▸►▶▷▹▻→›»]/.test(text) ||
+            el.classList.contains('expand') ||
+            el.getAttribute('title')?.toLowerCase().includes('expand')
+        );
     });
 }
 
@@ -74,7 +76,7 @@ function findRepoRow(pattern) {
 
     const lowerPattern = pattern.toLowerCase();
     const allRows = Array.from(iframeDoc.querySelectorAll('tr'));
-    const repoRow = allRows.find(tr => {
+    const repoRow = allRows.find((tr) => {
         const text = (tr.innerText || '').toLowerCase();
         return text.includes(lowerPattern);
     });
@@ -91,13 +93,13 @@ function findRepoRow(pattern) {
 
     // Extract repo info
     const rowLinks = Array.from(repoRow.querySelectorAll('a'));
-    const nameLink = rowLinks.find(a => a.innerText && !/[▸►▶▷▹▻→›»]/.test(a.innerText));
+    const nameLink = rowLinks.find((a) => a.innerText && !/[▸►▶▷▹▻→›»]/.test(a.innerText));
     const repoName = nameLink?.innerText?.trim() || 'Unknown';
 
     return {
         found: true,
         repoName: repoName,
-        hasMenuArrow: true
+        hasMenuArrow: true,
     };
 }
 
@@ -116,7 +118,7 @@ function clickMenuArrow(pattern) {
 
     const lowerPattern = pattern.toLowerCase();
     const allRows = Array.from(iframeDoc.querySelectorAll('tr'));
-    const repoRow = allRows.find(tr => {
+    const repoRow = allRows.find((tr) => {
         const text = (tr.innerText || '').toLowerCase();
         return text.includes(lowerPattern);
     });
@@ -149,33 +151,33 @@ function clickAction(actionText) {
     }
 
     const allLinks = Array.from(iframeDoc.querySelectorAll('a'));
-    const actionLinks = allLinks.filter(a => a.className?.includes('action_link'));
+    const actionLinks = allLinks.filter((a) => a.className?.includes('action_link'));
 
     // Map of action names to possible variations (EN/DE)
     const actionVariants = {
-        'pull': ['pull', 'ziehen', 'holen'],
-        'stage': ['stage', 'bereitstellen', 'staging'],
-        'diff': ['diff', 'vergleichen', 'unterschiede'],
-        'check': ['check', 'prüfen', 'syntax check'],
+        pull: ['pull', 'ziehen', 'holen'],
+        stage: ['stage', 'bereitstellen', 'staging'],
+        diff: ['diff', 'vergleichen', 'unterschiede'],
+        check: ['check', 'prüfen', 'syntax check'],
     };
 
     const searchTerms = actionVariants[actionText.toLowerCase()] || [actionText.toLowerCase()];
 
     // Find action link (case-insensitive, supports variants)
-    const actionLink = actionLinks.find(a => {
+    const actionLink = actionLinks.find((a) => {
         const linkText = (a.innerText?.trim() || '').toLowerCase();
-        return searchTerms.some(term => linkText === term || linkText.includes(term));
+        return searchTerms.some((term) => linkText === term || linkText.includes(term));
     });
 
     if (!actionLink) {
         const available = actionLinks
-            .map(a => a.innerText?.trim())
+            .map((a) => a.innerText?.trim())
             .filter(Boolean)
             .slice(0, 15);
         return {
             error: 'Action link not found: ' + actionText,
             available: available,
-            searchedFor: searchTerms
+            searchedFor: searchTerms,
         };
     }
 
@@ -195,8 +197,8 @@ function clearFilter() {
         return { error: e.message };
     }
 
-    const filterInput = iframeDoc.querySelector('input#filter') ||
-                       iframeDoc.querySelector('input[name="filter"]');
+    const filterInput =
+        iframeDoc.querySelector('input#filter') || iframeDoc.querySelector('input[name="filter"]');
 
     if (!filterInput) {
         return { cleared: false, error: 'No filter input found' };
@@ -253,11 +255,20 @@ function findTokenInput(doc) {
         const name = (input.name || '').toLowerCase();
         const id = (input.id || '').toLowerCase();
 
-        if (label.includes('token') || label.includes('password') ||
-            prevText.includes('token') || prevText.includes('password') ||
-            placeholder.includes('token') || placeholder.includes('password') ||
-            name.includes('token') || name.includes('password') || name.includes('pass') ||
-            id.includes('token') || id.includes('password') || id.includes('pass')) {
+        if (
+            label.includes('token') ||
+            label.includes('password') ||
+            prevText.includes('token') ||
+            prevText.includes('password') ||
+            placeholder.includes('token') ||
+            placeholder.includes('password') ||
+            name.includes('token') ||
+            name.includes('password') ||
+            name.includes('pass') ||
+            id.includes('token') ||
+            id.includes('password') ||
+            id.includes('pass')
+        ) {
             return input;
         }
     }
@@ -279,7 +290,7 @@ function checkLoginDialog() {
             tokenInputId: mainInput.id || null,
             tokenInputName: mainInput.name || null,
             tokenInputType: mainInput.type || 'text',
-            location: 'main_document'
+            location: 'main_document',
         };
     }
 
@@ -289,7 +300,7 @@ function checkLoginDialog() {
         // Create a temporary document fragment to search within dialog
         const dialogInput = findTokenInput({
             querySelector: (s) => dialogCheck.querySelector(s),
-            querySelectorAll: (s) => dialogCheck.querySelectorAll(s)
+            querySelectorAll: (s) => dialogCheck.querySelectorAll(s),
         });
         if (dialogInput) {
             return {
@@ -297,7 +308,7 @@ function checkLoginDialog() {
                 tokenInputId: dialogInput.id || null,
                 tokenInputName: dialogInput.name || null,
                 tokenInputType: dialogInput.type || 'text',
-                location: 'sap_dialog'
+                location: 'sap_dialog',
             };
         }
     }
@@ -306,7 +317,7 @@ function checkLoginDialog() {
     const iframeCandidates = [
         document.querySelector('iframe#C116'),
         document.querySelector('iframe[id^="C"]'),
-        document.querySelector('iframe')
+        document.querySelector('iframe'),
     ].filter(Boolean);
 
     for (const candidate of iframeCandidates) {
@@ -319,17 +330,19 @@ function checkLoginDialog() {
                     tokenInputId: iframeInput.id || null,
                     tokenInputName: iframeInput.name || null,
                     tokenInputType: iframeInput.type || 'text',
-                    location: 'iframe'
+                    location: 'iframe',
                 };
             }
-        } catch (e) { /* ignore cross-origin errors */ }
+        } catch (e) {
+            /* ignore cross-origin errors */
+        }
     }
 
     // No token/password field found - no login dialog
     return {
         hasLoginDialog: false,
         tokenInputId: null,
-        tokenInputName: null
+        tokenInputName: null,
     };
 }
 
@@ -344,10 +357,12 @@ function isVisible(el) {
     if (typeof window === 'undefined') return true;
     try {
         const style = window.getComputedStyle(el);
-        return style.display !== 'none' &&
-               style.visibility !== 'hidden' &&
-               style.opacity !== '0' &&
-               el.offsetParent !== null;
+        return (
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            style.opacity !== '0' &&
+            el.offsetParent !== null
+        );
     } catch (e) {
         return true; // Assume visible if we can't check
     }
@@ -366,7 +381,12 @@ function fillToken(token) {
         mainInput.value = token;
         mainInput.dispatchEvent(new Event('input', { bubbles: true }));
         mainInput.dispatchEvent(new Event('change', { bubbles: true }));
-        return { filled: true, method: 'main_document', inputType: mainInput.type, inputId: mainInput.id };
+        return {
+            filled: true,
+            method: 'main_document',
+            inputType: mainInput.type,
+            inputId: mainInput.id,
+        };
     }
 
     // Check SAP dialog
@@ -374,13 +394,18 @@ function fillToken(token) {
     if (dialogCheck) {
         const dialogInput = findTokenInput({
             querySelector: (s) => dialogCheck.querySelector(s),
-            querySelectorAll: (s) => dialogCheck.querySelectorAll(s)
+            querySelectorAll: (s) => dialogCheck.querySelectorAll(s),
         });
         if (dialogInput) {
             dialogInput.value = token;
             dialogInput.dispatchEvent(new Event('input', { bubbles: true }));
             dialogInput.dispatchEvent(new Event('change', { bubbles: true }));
-            return { filled: true, method: 'sap_dialog', inputType: dialogInput.type, inputId: dialogInput.id };
+            return {
+                filled: true,
+                method: 'sap_dialog',
+                inputType: dialogInput.type,
+                inputId: dialogInput.id,
+            };
         }
     }
 
@@ -388,7 +413,7 @@ function fillToken(token) {
     const iframeCandidates = [
         document.querySelector('iframe#C116'),
         document.querySelector('iframe[id^="C"]'),
-        document.querySelector('iframe')
+        document.querySelector('iframe'),
     ].filter(Boolean);
 
     for (const iframe of iframeCandidates) {
@@ -399,9 +424,16 @@ function fillToken(token) {
                 iframeInput.value = token;
                 iframeInput.dispatchEvent(new Event('input', { bubbles: true }));
                 iframeInput.dispatchEvent(new Event('change', { bubbles: true }));
-                return { filled: true, method: 'iframe', inputType: iframeInput.type, inputId: iframeInput.id };
+                return {
+                    filled: true,
+                    method: 'iframe',
+                    inputType: iframeInput.type,
+                    inputId: iframeInput.id,
+                };
             }
-        } catch (e) { /* ignore */ }
+        } catch (e) {
+            /* ignore */
+        }
     }
 
     return { filled: false, error: 'Token/password field not found' };
@@ -431,10 +463,10 @@ function checkActionResult() {
         /pull\s+failed/i,
         /exception\s+occurred/i,
         /abap\s+runtime\s+error/i,
-        /short\s+dump/i
+        /short\s+dump/i,
     ];
 
-    const hasError = clearErrorPatterns.some(p => p.test(bodyText));
+    const hasError = clearErrorPatterns.some((p) => p.test(bodyText));
 
     // Check for success indicators
     const successPatterns = [
@@ -442,10 +474,10 @@ function checkActionResult() {
         /objects\s+imported/i,
         /no\s+changes/i,
         /already\s+up\s+to\s+date/i,
-        /nothing\s+to\s+pull/i
+        /nothing\s+to\s+pull/i,
     ];
 
-    const hasSuccess = successPatterns.some(p => p.test(bodyText));
+    const hasSuccess = successPatterns.some((p) => p.test(bodyText));
 
     // Extract relevant message from page - look for specific message containers
     const messageElement = iframeDoc.querySelector('.message, .alert-danger, .error-message');
@@ -453,9 +485,9 @@ function checkActionResult() {
 
     return {
         hasError: hasError,
-        hasSuccess: hasSuccess || !hasError,  // Default to success if no clear error
+        hasSuccess: hasSuccess || !hasError, // Default to success if no clear error
         message: message,
-        bodyPreview: bodyText.substring(0, 1000)
+        bodyPreview: bodyText.substring(0, 1000),
     };
 }
 
@@ -471,6 +503,6 @@ if (typeof module !== 'undefined') {
         clearFilter,
         checkLoginDialog,
         fillToken,
-        checkActionResult
+        checkActionResult,
     };
 }

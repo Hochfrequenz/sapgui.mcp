@@ -1310,6 +1310,35 @@ async def test_sap_abapgit_pull_tool(sap_mcp_client: ClientSession) -> None:
 
 
 @pytest.mark.anyio
+async def test_sap_abapgit_pull_private_repo(sap_mcp_client: ClientSession) -> None:
+    """Test the sap_abapgit_pull MCP tool with HFQ BO4E repo (might be private)."""
+    # Login first
+    login_result = await call_tool_typed(
+        sap_mcp_client, "sap_login", {}, LoginResult
+    )
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Try to pull the HFQ BO4E repo - this one might require PAT
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {"repo": "BO4E"},
+        AbapGitActionResult,
+    )
+
+    print(f"\nPull result: success={result.success}")
+    print(f"Repo name: {result.repo_name}")
+    print(f"Message: {result.message}")
+    print(f"Error: {result.error}")
+
+    # This test shows whether PAT authentication works for private repos
+    if not result.success and "PAT" in (result.error or ""):
+        print("Note: Pull requires PAT - expected if ABAPGIT_PAT not set")
+    elif result.success:
+        print("Pull succeeded - PAT authentication worked!")
+
+
+@pytest.mark.anyio
 async def test_abapgit_clear_filter_and_find_repo(sap_mcp_client: ClientSession) -> None:
     """Explore the filter box and find Z_ABAP4GEWINNT repo."""
     import asyncio
