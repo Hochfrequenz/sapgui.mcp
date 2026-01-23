@@ -257,6 +257,36 @@ async def _handle_transport_request_popup(page: Page) -> None:
                     } catch (e) {}
                 }
 
+                // Also search inside SAP popup windows specifically
+                const popupSelectors = ['.urPWC', '[role="dialog"]', '.sapMDialog'];
+                for (const sel of popupSelectors) {
+                    const popups = document.querySelectorAll(sel);
+                    for (let i = 0; i < popups.length; i++) {
+                        try {
+                            const popup = popups[i];
+                            const btnSelectors = ['button', 'span', 'img', 'td', 'a', '[onclick]'];
+                            for (const btnSel of btnSelectors) {
+                                const elements = popup.querySelectorAll(btnSel);
+                                for (const el of elements) {
+                                    const title = el.title || '';
+                                    const text = el.innerText || '';
+                                    const src = el.src || '';
+                                    if (title || text || src) {
+                                        allButtons.push({
+                                            tag: el.tagName,
+                                            title: title.substring(0, 50),
+                                            text: text.substring(0, 30),
+                                            src: src.substring(src.lastIndexOf('/') + 1),
+                                            class: (el.className || '').substring(0, 50),
+                                            location: 'popup-' + sel + '-' + i,
+                                        });
+                                    }
+                                }
+                            }
+                        } catch (e) {}
+                    }
+                }
+
                 return allButtons;
             }
             """
@@ -532,6 +562,125 @@ async def _click_action_link(page: Page, action: str) -> str | None:
             pass
 
     return None
+
+
+async def _abapgit_pull_via_api(
+    repo: str,
+    trkorr: str | None,
+    username: str | None,
+    pat: str | None,
+) -> AbapGitActionResult:
+    """
+    Pull changes using the Z_ABAPGIT_PULL transaction (abapGit ABAP API).
+
+    This is a simpler, more reliable approach than UI automation:
+    1. Navigate to Z_ABAPGIT_PULL transaction
+    2. Fill selection screen parameters
+    3. Execute (F8)
+    4. Read status bar for result
+
+    Args:
+        repo: Repository name pattern
+        trkorr: Transport request (required)
+        username: GitHub username (optional for public repos)
+        pat: GitHub PAT (optional for public repos)
+
+    Returns:
+        AbapGitActionResult with success/failure info
+    """
+    from sapwebguimcp.tools.sap_tool_impl import sap_fill_form_impl
+
+    logger.info("Starting abapGit Pull via API for repo: %s", repo)
+
+    # Get browser page
+    browser_manager = get_browser_manager()
+    page = await browser_manager.get_page()
+    if not page:
+        return AbapGitActionResult.failure_result(
+            action="pull",
+            repo_name=repo,
+            error="No active browser session. Call sap_login first.",
+        )
+
+    try:
+        # 1. Navigate to Z_ABAPGIT_PULL transaction
+        tx_result = await sap_transaction_impl("Z_ABAPGIT_PULL", new_window=False)
+        if not tx_result.success:
+            return AbapGitActionResult.failure_result(
+                action="pull",
+                repo_name=repo,
+                error=f"Failed to open Z_ABAPGIT_PULL: {tx_result.error}",
+            )
+
+        # 2. Fill selection screen
+        # Get PAT from environment if not provided
+        effective_pat = pat
+        if not effective_pat:
+            settings = get_settings()
+            effective_pat = settings.abapgit_pat or settings.github_pat
+
+        fields: dict[str, str] = {
+            "P_REPO": repo,
+        }
+
+        # Only add optional fields if provided
+        if trkorr:
+            fields["P_TRKORR"] = trkorr
+        if username:
+            fields["P_USER"] = username
+        if effective_pat:
+            fields["P_TOKEN"] = effective_pat
+
+        logger.info("Filling selection screen with: repo=%s, trkorr=%s, has_user=%s, has_pat=%s",
+                   repo, trkorr, bool(username), bool(effective_pat))
+
+        fill_result = await sap_fill_form_impl(fields, strict=False)
+        if not fill_result.success:
+            return AbapGitActionResult.failure_result(
+                action="pull",
+                repo_name=repo,
+                error=f"Failed to fill selection screen: {fill_result.error}",
+            )
+
+        # 3. Execute report (F8)
+        await page.keyboard.press("F8")
+        await page.wait_for_timeout(5000)  # Wait for pull to complete
+
+        # 4. Read status bar for result
+        status = await sap_read_status_bar_impl()
+        status_message = status.message or ""
+        status_type = status.type or ""
+
+        logger.info("Pull result - status type: %s, message: %s", status_type, status_message)
+
+        # Check for success (S = Success, I = Info) or error (E = Error, A = Abort)
+        if status_type in ("S", "I") and "successful" in status_message.lower():
+            return AbapGitActionResult.success_result(
+                action="pull",
+                repo_name=repo,
+                message=status_message,
+            )
+        elif status_type in ("E", "A") or "error" in status_message.lower():
+            return AbapGitActionResult.failure_result(
+                action="pull",
+                repo_name=repo,
+                error=status_message,
+            )
+        else:
+            # Unknown status - return as success with the message
+            return AbapGitActionResult.success_result(
+                action="pull",
+                repo_name=repo,
+                message=f"Pull completed. Status: {status_message}",
+            )
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.exception("Error during abapGit pull via API")
+        return AbapGitActionResult.failure_result(
+            action="pull",
+            repo_name=repo,
+            error=str(e),
+        )
 
 
 async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-return-statements,too-many-branches,too-many-statements
@@ -1373,46 +1522,53 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             openWorldHint=True,
         ),
         description=(
-            "Pull changes from a remote git repository using abapGit. "
-            "Navigates to ZABAPGIT, finds the repository, and initiates a pull. "
+            "Pull changes from a remote git repository using abapGit API. "
+            "Uses the Z_ABAPGIT_PULL report/transaction for reliable execution. "
             "WARNING: This overwrites local ABAP objects with remote versions."
         ),
     )
     async def sap_abapgit_pull(
         repo: str,
+        trkorr: str | None = None,
+        username: str | None = None,
         pat: str | None = None,
-        tcode: str = DEFAULT_TCODE,
     ) -> AbapGitActionResult:
         """
-        Pull changes from a remote git repository using abapGit.
+        Pull changes from a remote git repository using abapGit API.
 
-        This tool navigates to abapGit, finds the specified repository,
-        and initiates a pull operation. If authentication is required,
-        it uses the provided PAT (Personal Access Token).
+        This tool uses the Z_ABAPGIT_PULL transaction which calls the
+        abapGit ABAP API directly, avoiding fragile UI automation.
 
         WARNING: Pull overwrites local ABAP objects with remote versions.
         This is a destructive operation.
 
         Args:
-            repo: Repository name, package, or remote URL pattern to match
-            pat: GitHub Personal Access Token (optional - falls back to
-                 ABAPGIT_PAT or GITHUB_PAT environment variables)
-            tcode: Transaction code (default: ZABAPGIT)
+            repo: Repository name pattern (matched against registered repos)
+            trkorr: Transport request (optional, but error if SAP requires it).
+                    If pull fails with "Transport required", retry with trkorr.
+            username: GitHub username (optional for public repos)
+            pat: GitHub Personal Access Token (optional for public repos,
+                 falls back to ABAPGIT_PAT or GITHUB_PAT environment variables)
 
         Returns:
             AbapGitActionResult with success status and details
 
         Example:
-            # Pull by repo name
-            sap_abapgit_pull(repo="BO4E")
+            # Pull public repo (try without transport first)
+            sap_abapgit_pull(repo="Z_PUBLIC_REPO")
 
-            # Pull with explicit PAT
-            sap_abapgit_pull(repo="hfqbo4e", pat="ghp_xxx...")
+            # Pull with transport if required
+            sap_abapgit_pull(repo="Z_PUBLIC_REPO", trkorr="S4UK902008")
 
-            # Pull by package name
-            sap_abapgit_pull(repo="/HFQ/BO4E")
+            # Pull private repo with credentials
+            sap_abapgit_pull(
+                repo="Z_PRIVATE_REPO",
+                trkorr="S4UK902008",
+                username="myuser",
+                pat="ghp_xxx..."
+            )
         """
-        return await _abapgit_action_impl(repo, "Pull", pat, tcode)
+        return await _abapgit_pull_via_api(repo, trkorr, username, pat)
 
     @mcp.tool(
         annotations=ToolAnnotations(
