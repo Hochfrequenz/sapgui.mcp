@@ -554,6 +554,108 @@ function clickContinueButton() {
 }
 
 /**
+ * Check for and handle pull confirmation dialog.
+ * abapGit shows a dialog after clicking Pull asking which objects to overwrite.
+ * This function detects the dialog and clicks "Pull" or "Select All" to confirm.
+ * @returns {Object} Result with hasDialog, confirmed, error fields
+ */
+function handlePullConfirmation() {
+    let iframeDoc;
+    try {
+        iframeDoc = getAbapGitDoc();
+    } catch (e) {
+        return { hasDialog: false, error: e.message };
+    }
+
+    const bodyText = (iframeDoc.body?.innerText || '').toLowerCase();
+
+    // Check if we're on a pull confirmation screen
+    // Look for indicators like "objects", "overwrite", "select", checkboxes, etc.
+    const hasPullDialog =
+        (bodyText.includes('object') && bodyText.includes('overwrite')) ||
+        (bodyText.includes('objekt') && bodyText.includes('überschreiben')) ||
+        bodyText.includes('select all') ||
+        bodyText.includes('alle auswählen') ||
+        iframeDoc.querySelectorAll('input[type="checkbox"]').length > 0;
+
+    if (!hasPullDialog) {
+        return { hasDialog: false };
+    }
+
+    // Try to click "Select All" first if there are checkboxes
+    const selectAllButtons = Array.from(
+        iframeDoc.querySelectorAll('a, button, input[type="button"]')
+    ).filter((el) => {
+        const text = (el.innerText || el.value || '').toLowerCase();
+        return (
+            text.includes('select all') ||
+            text.includes('alle auswählen') ||
+            text.includes('all') ||
+            text === 'alle'
+        );
+    });
+
+    if (selectAllButtons.length > 0 && isVisible(selectAllButtons[0])) {
+        selectAllButtons[0].click();
+        // Small delay before clicking Pull
+        return { hasDialog: true, action: 'select_all', needsPullClick: true };
+    }
+
+    // Look for Pull/Confirm button to finalize
+    const confirmButtons = Array.from(iframeDoc.querySelectorAll('a, button, input[type="button"]')).filter(
+        (el) => {
+            const text = (el.innerText || el.value || '').toLowerCase();
+            return (
+                text === 'pull' ||
+                text === 'ziehen' ||
+                text.includes('confirm') ||
+                text.includes('bestätigen') ||
+                text.includes('übernehmen') ||
+                text === 'ok'
+            );
+        }
+    );
+
+    if (confirmButtons.length > 0 && isVisible(confirmButtons[0])) {
+        confirmButtons[0].click();
+        return { hasDialog: true, confirmed: true, buttonText: confirmButtons[0].innerText || confirmButtons[0].value };
+    }
+
+    // If checkboxes exist but no buttons found, list available buttons for debugging
+    const checkboxes = iframeDoc.querySelectorAll('input[type="checkbox"]');
+    const availableButtons = Array.from(iframeDoc.querySelectorAll('a, button, input[type="button"]'))
+        .filter((el) => isVisible(el))
+        .map((el) => el.innerText || el.value)
+        .filter(Boolean)
+        .slice(0, 20);
+
+    return {
+        hasDialog: true,
+        confirmed: false,
+        checkboxCount: checkboxes.length,
+        availableButtons: availableButtons,
+        error: 'Confirmation dialog detected but could not find confirm button',
+    };
+}
+
+/**
+ * Get all visible text from the abapGit iframe.
+ * Useful for verification and debugging.
+ * @returns {Object} Result with text, error fields
+ */
+function getIframeText() {
+    let iframeDoc;
+    try {
+        iframeDoc = getAbapGitDoc();
+    } catch (e) {
+        return { error: e.message };
+    }
+
+    const text = iframeDoc.body?.innerText || '';
+    return { text: text, length: text.length };
+}
+
+/**
  * Check for error messages or success indicators after an action.
  * Only reports errors for clear, unambiguous error states.
  * @returns {Object} Result with hasError, hasSuccess, message fields
@@ -618,6 +720,8 @@ if (typeof module !== 'undefined') {
         checkLoginDialog,
         fillToken,
         clickContinueButton,
+        handlePullConfirmation,
+        getIframeText,
         checkActionResult,
     };
 }

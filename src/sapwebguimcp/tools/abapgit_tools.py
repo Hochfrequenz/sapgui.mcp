@@ -4,6 +4,7 @@ abapGit integration tools for SAP Web GUI.
 This module provides tools for interacting with abapGit repositories:
 - Pull: Fetch and apply changes from remote git repository
 - Stage: Prepare local changes for commit/push
+- SE38 Verification: Read ABAP report source code
 
 The abapGit UI runs inside an iframe within SAP Web GUI, requiring
 JavaScript evaluation to interact with its elements.
@@ -156,6 +157,50 @@ async def _find_iframe_with_retry(
         logger.debug("Iframe not found, retry %d/%d", attempt + 1, max_retries)
 
     return result  # Return last failure
+
+
+async def _click_confirmation_button(page: Page) -> bool:
+    """Click the Pull/Confirm button in the confirmation dialog."""
+    for btn_text in ["Pull", "Ziehen", "OK", "Übernehmen"]:
+        try:
+            iframe = page.frame_locator("iframe").first
+            btn = iframe.locator(f"a:has-text('{btn_text}'), button:has-text('{btn_text}')").first
+            if await btn.is_visible(timeout=500):
+                await btn.click()
+                logger.info("Clicked confirmation button: %s", btn_text)
+                return True
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+    return False
+
+
+async def _handle_pull_confirmation_dialog(page: Page) -> None:
+    """Handle the pull confirmation dialog that asks which objects to overwrite."""
+    for _ in range(3):  # Try up to 3 times
+        confirm_result = await _evaluate_js(page, _js_call("handlePullConfirmation"))
+        logger.info("Pull confirmation check: %s", confirm_result)
+
+        if not confirm_result.get("hasDialog"):
+            # No dialog - pull may have started directly
+            break
+
+        if confirm_result.get("needsPullClick"):
+            # "Select All" was clicked, now click Pull to confirm
+            await page.wait_for_timeout(1000)
+            await _click_confirmation_button(page)
+
+        if confirm_result.get("confirmed"):
+            logger.info(
+                "Pull confirmation handled, clicked: %s",
+                confirm_result.get("buttonText")
+            )
+            await page.wait_for_timeout(ACTION_WAIT)
+            break
+
+        if confirm_result.get("error"):
+            logger.warning("Confirmation dialog error: %s", confirm_result)
+
+        await page.wait_for_timeout(1000)
 
 
 async def _click_action_link(page: Page, action: str) -> str | None:
@@ -424,7 +469,11 @@ async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-retu
 
         await page.wait_for_timeout(ACTION_WAIT)
 
-        # Step 8: Verify action result (for Pull) with polling
+        # Step 8: Handle pull confirmation dialog if present
+        if action == "Pull":
+            await _handle_pull_confirmation_dialog(page)
+
+        # Step 9: Verify action result (for Pull) with polling
         if action == "Pull":
             # Success patterns to check in status bar
             # Success: "Serialize: 2 objects, 0.02 seconds"
@@ -523,6 +572,197 @@ async def _abapgit_action_impl(  # pylint: disable=too-many-locals,too-many-retu
             repo_pattern,
             str(e),
         )
+
+
+# =============================================================================
+# SE38 Verification
+# =============================================================================
+
+
+async def _fill_se38_program_field(page: Page, program_name: str) -> bool:
+    """Fill the program name field in SE38 using various strategies."""
+    # Try direct selectors first
+    input_selectors = [
+        "input[name*='PROGRAM']",
+        "input[id*='PROGRAM']",
+        "input[maxlength='40']",
+        "#M0\\:46\\:1\\:1\\:\\:0\\:12",
+    ]
+
+    for selector in input_selectors:
+        try:
+            locator = page.locator(selector).first
+            if await locator.is_visible(timeout=500):
+                await locator.fill(program_name)
+                logger.info("Filled program name using selector: %s", selector)
+                return True
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+
+    # Try sap_fill_form as fallback
+    try:
+        from sapwebguimcp.tools.sap_tool_impl import (  # pylint: disable=import-outside-toplevel
+            sap_fill_form_impl,
+        )
+        fill_result = await sap_fill_form_impl(
+            {"Programm": program_name, "Program": program_name}, strict=False
+        )
+        if fill_result.success:
+            logger.info("Filled program name using sap_fill_form")
+            return True
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.warning("sap_fill_form fallback failed: %s", e)
+
+    return False
+
+
+def _contains_abap_code(text: str) -> bool:
+    """Check if text contains ABAP code indicators."""
+    upper_text = text.upper()
+    return "REPORT" in upper_text or "WRITE" in upper_text
+
+
+async def _read_source_from_iframes(page: Page) -> str | None:
+    """Try to read ABAP source code from iframes."""
+    try:
+        iframes = await page.query_selector_all("iframe")
+        for iframe in iframes:
+            frame = await iframe.content_frame()
+            if not frame:
+                continue
+            body = await frame.query_selector("body")
+            if not body:
+                continue
+            text = await body.inner_text()
+            if _contains_abap_code(text):
+                return text
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
+    return None
+
+
+async def _read_source_from_main_document(page: Page) -> str | None:
+    """Try to read ABAP source code from main document elements."""
+    editor_selectors = [
+        "#sapwd_main_window_root_contents",
+        ".urPTxt",
+        "textarea",
+        "pre",
+        ".editor-content",
+    ]
+    try:
+        for selector in editor_selectors:
+            elements = await page.query_selector_all(selector)
+            for el in elements:
+                text = await el.inner_text()
+                if _contains_abap_code(text):
+                    return text
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
+    return None
+
+
+async def _read_source_from_body(page: Page) -> str | None:
+    """Last resort: get all visible text from page body."""
+    try:
+        body_text = await page.inner_text("body")
+        if _contains_abap_code(body_text):
+            return body_text
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
+    return None
+
+
+async def read_se38_source(program_name: str) -> dict[str, Any]:
+    """
+    Read ABAP report source code from SE38.
+
+    This function navigates to SE38, enters the program name,
+    presses F7 (Display), and reads the source code.
+
+    Args:
+        program_name: The ABAP program/report name (e.g., Z_REPORT_TEST)
+
+    Returns:
+        Dict with success, source_code, error fields
+    """
+    browser_manager = await get_browser_manager()
+    page = await browser_manager.get_current_page()
+
+    if page is None:
+        return {"success": False, "error": "No browser page available"}
+
+    try:
+        # Navigate to SE38
+        tx_result = await sap_transaction_impl("SE38", new_window=False)
+        if not tx_result.success:
+            return {"success": False, "error": f"Failed to open SE38: {tx_result.error}"}
+
+        await page.wait_for_timeout(2000)
+
+        # Fill program name
+        if not await _fill_se38_program_field(page, program_name):
+            return {"success": False, "error": "Could not find program input field"}
+
+        # Press F7 to display source code
+        await page.keyboard.press("F7")
+        await page.wait_for_timeout(3000)
+
+        # Try to read source code from various locations
+        source_code = await _read_source_from_iframes(page)
+        if not source_code:
+            source_code = await _read_source_from_main_document(page)
+        if not source_code:
+            source_code = await _read_source_from_body(page)
+
+        if source_code:
+            return {
+                "success": True,
+                "source_code": source_code,
+                "program_name": program_name,
+            }
+        return {
+            "success": False,
+            "error": "Could not read source code from SE38",
+            "program_name": program_name,
+        }
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("SE38 read failed: %s: %s", type(e).__name__, e)
+        return {"success": False, "error": str(e)}
+
+
+async def verify_abap_report_content(
+    program_name: str, expected_text: str
+) -> dict[str, Any]:
+    """
+    Verify that an ABAP report contains expected text.
+
+    This is a convenience wrapper around read_se38_source that checks
+    for specific content in the source code.
+
+    Args:
+        program_name: The ABAP program/report name
+        expected_text: Text that should be present in the source code
+
+    Returns:
+        Dict with success, found, source_code, error fields
+    """
+    result = await read_se38_source(program_name)
+
+    if not result.get("success"):
+        return result
+
+    source_code = result.get("source_code", "")
+    found = expected_text in source_code
+
+    return {
+        "success": True,
+        "found": found,
+        "expected_text": expected_text,
+        "source_code": source_code,
+        "program_name": program_name,
+    }
 
 
 # =============================================================================

@@ -644,3 +644,143 @@ async def test_fill_token_secure_passes_token_as_argument(mock_page: AsyncMock) 
     # Token should NOT appear in the JS script itself
     assert "secret_token_123" not in call_args.args[0]
     assert result["filled"] is True
+
+
+# =============================================================================
+# End-to-End Tests (modify git repo -> push -> pull in SAP -> verify in SE38)
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_abapgit_e2e_public_repo_pull_and_verify(
+    sap_mcp_client: ClientSession,
+) -> None:
+    """
+    End-to-end test: modify public repo, push, pull in SAP, verify in SE38.
+
+    This test:
+    1. Modifies the ABAP report in the PUBLIC test repository submodule
+    2. Commits and pushes to GitHub
+    3. Pulls the changes into SAP using the abapGit MCP tool
+    4. Verifies in SE38 that the report source code actually changed
+
+    This test requires:
+    - Git configured with push access to the test repos
+    - GITHUB_PAT with repo access (for pushing)
+    - SAP connection with ZABAPGIT access
+    """
+    from unittests.abapgit_test_helpers import (
+        generate_test_marker,
+        git_commit_and_push,
+        modify_test_repo,
+        TEST_REPOS,
+    )
+
+    # Step 1: Generate unique test marker and modify the repo
+    test_marker = generate_test_marker()
+    expected_text = modify_test_repo("public", test_marker)
+    print(f"Test marker: {test_marker}")
+    print(f"Expected text: {expected_text}")
+
+    # Step 2: Commit and push
+    success, output = git_commit_and_push("public")
+    print(f"Git push result: success={success}, output={output}")
+    assert success, f"Git commit/push failed: {output}"
+
+    # Step 3: Login to SAP
+    login_result = await call_tool_typed(
+        sap_mcp_client, "sap_login", {}, LoginResult
+    )
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Step 4: Pull the repository
+    repo_name = TEST_REPOS["public"]["name"]
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {"repo": repo_name},
+        AbapGitActionResult,
+    )
+    print(f"Pull result: {result}")
+    assert result.success, f"Pull failed: {result.error}"
+
+    # Step 5: Verify in SE38 that the code changed
+    # Use the Python implementation directly for verification
+    from sapwebguimcp.tools.abapgit_tools import verify_abap_report_content
+
+    report_name = TEST_REPOS["public"]["report"]
+    verify_result = await verify_abap_report_content(report_name, test_marker)
+    print(f"SE38 verification result: {verify_result}")
+
+    assert verify_result.get("success"), f"SE38 read failed: {verify_result.get('error')}"
+    assert verify_result.get("found"), (
+        f"Expected text '{test_marker}' not found in SE38. "
+        f"Source code preview: {verify_result.get('source_code', '')[:500]}"
+    )
+
+
+@pytest.mark.anyio
+async def test_abapgit_e2e_private_repo_pull_and_verify(
+    sap_mcp_client: ClientSession,
+) -> None:
+    """
+    End-to-end test: modify private repo, push, pull with PAT, verify in SE38.
+
+    This test is similar to the public repo test but:
+    - Uses a PRIVATE repository that requires PAT authentication
+    - Verifies that the PAT authentication flow works correctly
+
+    Requires ABAPGIT_PAT environment variable to be set.
+    """
+    from unittests.abapgit_test_helpers import (
+        generate_test_marker,
+        git_commit_and_push,
+        modify_test_repo,
+        TEST_REPOS,
+    )
+
+    # Check PAT is available
+    pat = os.environ.get("ABAPGIT_PAT") or os.environ.get("GITHUB_PAT")
+    if not pat:
+        pytest.skip("ABAPGIT_PAT or GITHUB_PAT not set - skipping private repo test")
+
+    # Step 1: Generate unique test marker and modify the repo
+    test_marker = generate_test_marker()
+    expected_text = modify_test_repo("private", test_marker)
+    print(f"Test marker: {test_marker}")
+    print(f"Expected text: {expected_text}")
+
+    # Step 2: Commit and push
+    success, output = git_commit_and_push("private")
+    print(f"Git push result: success={success}, output={output}")
+    assert success, f"Git commit/push failed: {output}"
+
+    # Step 3: Login to SAP
+    login_result = await call_tool_typed(
+        sap_mcp_client, "sap_login", {}, LoginResult
+    )
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Step 4: Pull the repository (uses PAT from env)
+    repo_name = TEST_REPOS["private"]["name"]
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {"repo": repo_name},
+        AbapGitActionResult,
+    )
+    print(f"Pull result: {result}")
+    assert result.success, f"Pull failed: {result.error}"
+
+    # Step 5: Verify in SE38 that the code changed
+    from sapwebguimcp.tools.abapgit_tools import verify_abap_report_content
+
+    report_name = TEST_REPOS["private"]["report"]
+    verify_result = await verify_abap_report_content(report_name, test_marker)
+    print(f"SE38 verification result: {verify_result}")
+
+    assert verify_result.get("success"), f"SE38 read failed: {verify_result.get('error')}"
+    assert verify_result.get("found"), (
+        f"Expected text '{test_marker}' not found in SE38. "
+        f"Source code preview: {verify_result.get('source_code', '')[:500]}"
+    )
