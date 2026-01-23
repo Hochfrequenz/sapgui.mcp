@@ -276,16 +276,17 @@ def test_js_call_handles_special_characters() -> None:
 @pytest.mark.anyio
 async def test_abapgit_pull_by_repo_name(sap_mcp_client: ClientSession) -> None:
     """
-    Test pulling a repository by name pattern (Z_ABAP4GEWINNT).
+    Test pulling a PRIVATE repository (Z_PRIVATE_ABAPGIT_TEST_REPOSITORY).
 
     This test verifies that the sap_abapgit_pull tool can:
     1. Navigate to ZABAPGIT transaction
     2. Find a repository by name pattern
     3. Click the menu arrow to expand actions
-    4. Click Pull to initiate the pull operation
-    5. Authenticate with PAT when login dialog appears
+    4. Authenticate with PAT when login dialog appears
+    5. Click Pull to initiate the pull operation
 
     Uses PAT from ABAPGIT_PAT environment variable.
+    The test repo is a submodule at unittests/abapgit_repos/Z_PRIVATE_ABAPGIT_TEST_REPOSITORY
     """
     # Login first
     login_result = await call_tool_typed(
@@ -293,18 +294,18 @@ async def test_abapgit_pull_by_repo_name(sap_mcp_client: ClientSession) -> None:
     )
     assert login_result.success, f"Login failed: {login_result.error}"
 
-    # Pull Z_ABAP4GEWINNT repo (private, uses PAT from env)
+    # Pull Z_PRIVATE_ABAPGIT_TEST_REPOSITORY (private, uses PAT from env)
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_abapgit_pull",
-        {"repo": "ABAP4GEWINNT"},
+        {"repo": "Z_PRIVATE_ABAPGIT_TEST_REPOSITORY"},
         AbapGitActionResult,
     )
 
     # Verify the result
     assert result.success, f"Pull failed: {result.error}"
     assert result.action == "pull"
-    assert "ABAP4GEWINNT" in result.repo_name
+    assert "PRIVATE" in result.repo_name.upper()
     # Verify the Pull button was actually found and clicked
     assert result.clicked_action is not None, "Pull button was not clicked"
     assert "pull" in result.clicked_action.lower(), (
@@ -313,17 +314,16 @@ async def test_abapgit_pull_by_repo_name(sap_mcp_client: ClientSession) -> None:
 
 
 @pytest.mark.anyio
-@pytest.mark.flaky(reruns=2, reruns_delay=5)  # May need pytest-rerunfailures
 async def test_abapgit_pull_public_repo_no_pat(sap_mcp_client: ClientSession) -> None:
     """
-    Test pulling a PUBLIC repository (Datamatrix) WITHOUT PAT authentication.
+    Test pulling a PUBLIC repository (Z_PUBLIC_ABAPGIT_TEST_REPOSITORY) WITHOUT PAT.
 
     This test verifies that:
     1. Public repos can be pulled without any PAT
     2. No login dialog appears for public repos
     3. The Pull button was found and clicked
 
-    Note: This test can be flaky due to menu expansion timing in SAP GUI.
+    The test repo is a submodule at unittests/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY
     """
     # Temporarily remove PAT from environment to ensure we're not using it
     original_pat = os.environ.pop("ABAPGIT_PAT", None)
@@ -336,17 +336,18 @@ async def test_abapgit_pull_public_repo_no_pat(sap_mcp_client: ClientSession) ->
         )
         assert login_result.success, f"Login failed: {login_result.error}"
 
-        # Pull the public Datamatrix repo (no PAT needed)
+        # Pull the public test repo (no PAT needed)
         result = await call_tool_typed(
             sap_mcp_client,
             "sap_abapgit_pull",
-            {"repo": "Datamatrix"},
+            {"repo": "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"},
             AbapGitActionResult,
         )
 
         # Verify the result
         assert result.success, f"Pull failed: {result.error}"
         assert result.action == "pull"
+        assert "PUBLIC" in result.repo_name.upper()
         # Verify the Pull button was actually found and clicked
         assert result.clicked_action is not None, "Pull button was not clicked"
         assert "pull" in result.clicked_action.lower(), (
