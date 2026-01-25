@@ -150,8 +150,8 @@ class SapWebGuiSettings(BaseSettings):
     )
 
     # abapGit Integration
-    # Note: GitHub PAT authentication doesn't require a separate username field.
-    # The PAT itself provides identity for API access.
+    # Note: abapGit uses github_user for authentication when provided.
+    # If not set, falls back to 'x-access-token' which works with PAT auth.
     abapgit_pat: str | None = Field(
         default=None,
         description="GitHub Personal Access Token for abapGit pull/push operations. "
