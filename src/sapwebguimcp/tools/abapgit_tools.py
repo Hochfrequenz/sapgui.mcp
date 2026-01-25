@@ -194,6 +194,8 @@ def _validate_and_prepare_params(
         effective_username = settings.github_user or "x-access-token"
 
     # Build transaction command
+    # Note: All params are validated above to contain only safe characters (no semicolons/spaces)
+    # so they won't break the semicolon-separated OK-Code command syntax
     params = [f"P_REPO={repo}"]
     if trkorr:
         params.append(f"P_TRKORR={trkorr}")
@@ -473,7 +475,8 @@ def _is_actual_abap_source(text: str) -> bool:
         return True
 
     # Check for REPORT statement with proper format
-    has_report = bool(re.search(r"REPORT\s+[ZY][A-Z0-9_]+\s*\.", upper_text))
+    # Matches: Z/Y customer reports, standard SAP reports, and namespaced reports (/NAMESPACE/...)
+    has_report = bool(re.search(r"REPORT\s+(/[A-Z0-9_]+/)?[A-Z][A-Z0-9_]*\s*\.", upper_text))
     has_data = "DATA " in upper_text and ("TYPE" in upper_text or "LIKE" in upper_text)
     has_write = "WRITE " in upper_text
     has_if = "IF " in upper_text and ("ENDIF" in upper_text or "ELSE" in upper_text)
