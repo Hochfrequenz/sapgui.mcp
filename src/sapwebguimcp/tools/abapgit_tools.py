@@ -140,6 +140,13 @@ async def _check_screen_for_errors(page: Page) -> str | None:
 # =============================================================================
 
 
+def _validate_param(value: str, param_name: str, pattern: str, description: str) -> str | None:
+    """Validate a parameter value against a pattern. Returns error message if invalid, None if OK."""
+    if not re.match(pattern, value):
+        return f"Invalid {param_name}: contains forbidden characters. {description}"
+    return None
+
+
 def _validate_and_prepare_params(
     repo: str,
     trkorr: str | None,
@@ -157,6 +164,25 @@ def _validate_and_prepare_params(
                 "Only alphanumeric characters, underscores, and forward slashes are allowed."
             ),
         )
+
+    # Validate other parameters to prevent command injection via semicolons/special chars
+    if trkorr:
+        # SAP transport requests: alphanumeric only (e.g., "S4UK902008")
+        error = _validate_param(trkorr, "trkorr", r"^[A-Za-z0-9]+$", "Only alphanumeric allowed.")
+        if error:
+            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
+
+    if username:
+        # GitHub usernames: alphanumeric and hyphens
+        error = _validate_param(username, "username", r"^[A-Za-z0-9_-]+$", "Only alphanumeric, underscores, hyphens allowed.")
+        if error:
+            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
+
+    if pat:
+        # GitHub PATs: alphanumeric and underscores (ghp_xxx, github_pat_xxx)
+        error = _validate_param(pat, "pat", r"^[A-Za-z0-9_]+$", "Only alphanumeric and underscores allowed.")
+        if error:
+            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
 
     # Get credentials from settings if not provided
     settings = get_settings()
