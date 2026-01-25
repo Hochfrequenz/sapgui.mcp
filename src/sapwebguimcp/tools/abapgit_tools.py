@@ -174,7 +174,9 @@ def _validate_and_prepare_params(
 
     if username:
         # GitHub usernames: alphanumeric and hyphens
-        error = _validate_param(username, "username", r"^[A-Za-z0-9_-]+$", "Only alphanumeric, underscores, hyphens allowed.")
+        error = _validate_param(
+            username, "username", r"^[A-Za-z0-9_-]+$", "Only alphanumeric, underscores, hyphens allowed."
+        )
         if error:
             return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
 
