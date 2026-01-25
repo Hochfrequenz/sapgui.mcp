@@ -1,0 +1,82 @@
+- main "ABAP GIT See http://www.abapgit.org":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "ABAP GIT See http://www.abapgit.org" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+    - button "Beenden"
+  - iframe
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro ZABAPGIT_STANDALONE/1001":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "ZABAPGIT_STANDALONE/1001"
+        - cell
+      - menuitemradio "Transaktion ZABAPGIT":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "ZABAPGIT"
+        - cell
+      - row "E2E-Zeit 1559 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "1559 ms"
+        - cell
+      - row "WebGUI-Zeit 1508 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "1508 ms"
+        - cell
+  - 'dialog "Login: github.com"':
+    - 'heading "Login: github.com" [level=1]'
+    - button "Schließen": 
+    - text: Repo URL
+    - button "https://github.com/Hochfrequenz/hfqbo4e.git"
+    - text: User
+    - textbox "User": hf-kklein
+    - text: Password or Token
+    - textbox "Password or Token"
+    - text: Note
+    - button "Press F1 for Help"
+    - toolbar:
+      - button "Weiter"
+      - button "Hilfe"
+      - button "Abbrechen"
+- dialog "Backend error occurred":
+  - banner:
+    - heading "Backend error occurred" [level=1]
+    - button "Schließen": 
+  - text: Please contact your system administrator.
+  - button "Backend Error Details" [expanded]:  Backend Error Details
+  - textbox "Send content to your system administrator.": "Received \"failed to fire action\" on batch step #2: {\"content\":\"rg_post_data.frame_name=itshtmlvwrfnC116&rg_post_data.sap_event=git_pull%3Fkey=#\",\"post\":\"action/401/wnd[0]/usr/shell\"} ID: 7930215 The complete batch was: 1: {\"post\":\"focus/wnd[1]/usr/pwdP_PASS\",\"logic\":\"ignore\"} 2: {\"content\":\"rg_post_data.frame_name=itshtmlvwrfnC116&rg_post_data.sap_event=git_pull%3Fkey=#\",\"post\":\"action/401/wnd[0]/usr/shell\"} 3: {\"get\":\"state/ur\"}"
+  - contentinfo:
+    - button "Fetch the current state"
+    - button "Download support trace"
+    - button "Redraw the screen"

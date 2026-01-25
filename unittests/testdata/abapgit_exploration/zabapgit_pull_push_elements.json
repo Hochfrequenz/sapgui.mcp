@@ -1,0 +1,113 @@
+{
+  "bodyTextPreview": "  ►Repository List\n Flow\n New Online\n New Offline\n Global Settings\nFilter:   \n Only Favorites  Detail\nFilter by label: Test_Git_synctest private nobranche\n\t#\tName ▴\tLabels\tPackage\tRemote\tBranch/Tag\t\n\t\tHFQ BO4E - Business Objects 4 Energy\t\t /HFQ/BO4E\tgithub.com/Hochfrequenz/hfqbo4e \t feat/s4changes\t▸\nPress '?' to get keyboard shortcuts list\n Sponsor us\t\n \n1.132.0 - Standalone Version - Web - IE\n\t\n\njs: OK",
+  "pullPushElements": [
+    {
+      "tag": "DIV",
+      "text": "",
+      "className": "nav-container float-right",
+      "href": null
+    },
+    {
+      "tag": "UL",
+      "text": "",
+      "className": "",
+      "href": null
+    },
+    {
+      "tag": "LI",
+      "text": "\n                Pull\n              ",
+      "className": "action_link",
+      "href": null
+    },
+    {
+      "tag": "A",
+      "text": "Pull",
+      "className": "action_link action_online_repo",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6ZElXdFJnNGROWUh3cGRzNmxRV1pxeVZZc0JVOG1YYVNlWHJfLUFUVA==)/bc/gui/sap/its/webgui/116/data/292C051116B941C2~696D918BFC591B8CE1000000AC16649A/1/HTML000001.htm?~control=116&~event=OnSAPEvent&ALINK=1&frameName=&PARAMS=git_pull%3Fkey=#"
+    },
+    {
+      "tag": "LI",
+      "text": "\n                Stage\n              ",
+      "className": "action_link",
+      "href": null
+    },
+    {
+      "tag": "A",
+      "text": "Stage",
+      "className": "action_link action_online_repo",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6ZElXdFJnNGROWUh3cGRzNmxRV1pxeVZZc0JVOG1YYVNlWHJfLUFUVA==)/bc/gui/sap/its/webgui/116/data/292C051116B941C2~696D918BFC591B8CE1000000AC16649A/1/HTML000001.htm?~control=116&~event=OnSAPEvent&ALINK=1&frameName=&PARAMS=go_stage%3Fkey=#"
+    },
+    {
+      "tag": "LI",
+      "text": "\n                More\n                \n                  \n                    Stage by Transport\n   ",
+      "className": "action_link",
+      "href": null
+    },
+    {
+      "tag": "UL",
+      "text": "\n                  \n                    Stage by Transport\n                  \n                  \n   ",
+      "className": "",
+      "href": null
+    },
+    {
+      "tag": "LI",
+      "text": "\n                    Stage by Transport\n                  ",
+      "className": "action_link",
+      "href": null
+    },
+    {
+      "tag": "A",
+      "text": "Stage by Transport",
+      "className": "action_link action_online_repo",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6ZElXdFJnNGROWUh3cGRzNmxRV1pxeVZZc0JVOG1YYVNlWHJfLUFUVA==)/bc/gui/sap/its/webgui/116/data/292C051116B941C2~696D918BFC591B8CE1000000AC16649A/1/HTML000001.htm?~control=116&~event=OnSAPEvent&ALINK=1&frameName=&PARAMS=go_stage_transport%3Fkey=#"
+    },
+    {
+      "tag": "DIV",
+      "text": "\n        Hotkeys❌\n        Close window with upper right corner 'X' or press '?'\n        \n          \n",
+      "className": "info-panel info-panel-fixed",
+      "href": null
+    },
+    {
+      "tag": "DIV",
+      "text": "\n          \n            ?Show Hotkeys Help\n            cCheck\n            dDiff\n            fFocus F",
+      "className": "info-list",
+      "href": null
+    },
+    {
+      "tag": "UL",
+      "text": "\n            ?Show Hotkeys Help\n            cCheck\n            dDiff\n            fFocus Filter\n     ",
+      "className": "hotkeys",
+      "href": null
+    },
+    {
+      "tag": "LI",
+      "text": "pPull",
+      "className": "",
+      "href": null
+    },
+    {
+      "tag": "SPAN",
+      "text": "Pull",
+      "className": "key-descr",
+      "href": null
+    },
+    {
+      "tag": "LI",
+      "text": "sStage",
+      "className": "",
+      "href": null
+    },
+    {
+      "tag": "SPAN",
+      "text": "Stage",
+      "className": "key-descr",
+      "href": null
+    },
+    {
+      "tag": "SCRIPT",
+      "text": "\n      var gHelper = new RepoOverViewHelper({ focusFilterKey: \"f\" });\n      var repoCatalog = [\n    ",
+      "className": "",
+      "href": null
+    }
+  ]
+}

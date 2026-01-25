@@ -4,6 +4,7 @@ Data models for SAP Web GUI MCP Server.
 This module contains Pydantic models and configuration classes.
 """
 
+from sapwebguimcp.models.abapgit_models import AbapGitActionResult
 from sapwebguimcp.models.alv_models import (
     AlvCellInfo,
     AlvColumn,
@@ -133,6 +134,8 @@ from sapwebguimcp.models.workflow_models import (
 )
 
 __all__ = [
+    # abapGit models
+    "AbapGitActionResult",
     # Base
     "TCODE_PATTERN",
     "PopupButton",

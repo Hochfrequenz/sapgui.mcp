@@ -19,6 +19,7 @@ from sapwebguimcp.models import close_browser_manager
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.resources import register_feedback_resources, register_intent_resources
 from sapwebguimcp.tools import (
+    register_abapgit_tools,
     register_browser_tools,
     register_catalog_tools,
     register_class_tools,
@@ -104,6 +105,7 @@ register_browser_tools(mcp)
 register_intent_tools(mcp)
 register_feedback_tools(mcp)
 register_workflow_tools(mcp)
+register_abapgit_tools(mcp)
 
 # Register resources
 register_intent_resources(mcp)

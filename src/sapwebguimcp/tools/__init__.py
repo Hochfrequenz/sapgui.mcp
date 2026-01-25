@@ -8,6 +8,7 @@ This package contains tool modules that are registered with the FastMCP server:
 - feedback_tools: Feedback logging for optimization observations
 """
 
+from sapwebguimcp.tools.abapgit_tools import register_abapgit_tools
 from sapwebguimcp.tools.browser_tools import register_browser_tools
 from sapwebguimcp.tools.catalog_tools import register_catalog_tools
 from sapwebguimcp.tools.class_tools import register_class_tools
@@ -32,6 +33,7 @@ from sapwebguimcp.tools.table_tools import register_table_tools
 from sapwebguimcp.tools.workflow_tools import register_workflow_tools
 
 __all__ = [
+    "register_abapgit_tools",
     "register_browser_tools",
     "register_catalog_tools",
     "register_class_tools",

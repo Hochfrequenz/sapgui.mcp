@@ -1,0 +1,56 @@
+- main "ABAP GIT See http://www.abapgit.org":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "ABAP GIT See http://www.abapgit.org" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+    - button "Beenden"
+  - iframe
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro ZABAPGIT_STANDALONE/1001":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "ZABAPGIT_STANDALONE/1001"
+        - cell
+      - menuitemradio "Transaktion ZABAPGIT":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "ZABAPGIT"
+        - cell
+      - row "E2E-Zeit 273 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "273 ms"
+        - cell
+      - row "WebGUI-Zeit 95 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "95 ms"
+        - cell

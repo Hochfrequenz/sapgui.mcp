@@ -130,17 +130,34 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "AUDIT_LOG_DIR"},
     )
 
-    # GitHub Issue Creation (optional)
+    # GitHub Settings (optional)
     github_pat: str = Field(
         default="",
-        description="GitHub Personal Access Token for creating issues from feedback. "
-        "Leave empty to disable automatic issue creation.",
+        description="GitHub Personal Access Token for creating issues from feedback "
+        "and authenticating abapGit pulls. Leave empty to disable.",
         json_schema_extra={"env": "GITHUB_PAT"},
+    )
+    github_user: str = Field(
+        default="",
+        description="GitHub username for abapGit authentication. "
+        "Falls back to 'x-access-token' if not set (works with PAT auth).",
+        json_schema_extra={"env": "GITHUB_USER"},
     )
     github_repo: str = Field(
         default="Hochfrequenz/sapwebgui.mcp",
         description="GitHub repository for feedback issues (format: owner/repo)",
         json_schema_extra={"env": "GITHUB_REPO"},
+    )
+
+    # abapGit Integration
+    # For abapGit authentication, ABAPGIT_PAT takes priority over GITHUB_PAT.
+    # Use ABAPGIT_PAT if you need separate tokens for abapGit vs feedback/issues.
+    # The github_user field is used for authentication; defaults to 'x-access-token'.
+    abapgit_pat: str | None = Field(
+        default=None,
+        description="GitHub Personal Access Token for abapGit pull/push operations. "
+        "Required for private repositories or to avoid rate limits.",
+        json_schema_extra={"env": "ABAPGIT_PAT"},
     )
 
     def validate_for_browser(self) -> list[str]:

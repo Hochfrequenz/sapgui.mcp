@@ -1,0 +1,81 @@
+{
+  "visibleMenuCount": 6,
+  "actionLinks": [
+    {
+      "text": "Pull",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link action_online_repo"
+    },
+    {
+      "text": "Stage",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link action_online_repo"
+    },
+    {
+      "text": "Patch",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link action_online_repo"
+    },
+    {
+      "text": "Diff",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link action_online_repo"
+    },
+    {
+      "text": "Check",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link"
+    },
+    {
+      "text": "Import",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link action_offline_repo"
+    },
+    {
+      "text": "Export",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link action_offline_repo"
+    },
+    {
+      "text": "Repo Settings",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link"
+    },
+    {
+      "text": "More",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link"
+    },
+    {
+      "text": "Stage by Transport",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link action_online_repo"
+    },
+    {
+      "text": "Export by Transport",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link action_offline_repo"
+    },
+    {
+      "text": "Change Repository Package",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link action_online_repo"
+    },
+    {
+      "text": "Remove Repository",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link"
+    },
+    {
+      "text": "Remove Objects",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link"
+    },
+    {
+      "text": "Uninstall",
+      "href": "https://srvhfuhana.sap.msp.local:44300/sap(cz1TSUQlM2FBTk9OJTNhc3J2aGZ1aGFuYV9TNFVfMDAlM2EzckJ6WlAwbFZwTVdFTWc1NTBVRE84NGJRXzVZc0JWUGxYYTRvNFRlLUFUVA=",
+      "className": "action_link"
+    }
+  ],
+  "bodyPreview": "  ►Repository List\n Flow\n New Online\n New Offline\n Global Settings\nFilter:   \n Only Favorites  Detail\nPull\nStage\nPatch\nDiff\nCheck\nRepo Settings\nMore\nFilter by label: Test_Git_synctest private nobranche\n\t#\tName ▴\tLabels\tPackage\tRemote\tBranch/Tag\t\n\t\tHFQ BO4E - Business Objects 4 Energy\t\t /HFQ/BO4E\tgithub.com/Hochfrequenz/hfqbo4e \t feat/s4changes\t▸\nPress '?' to get keyboard shortcuts list\n Sponsor us\t\n \n1.132.0 - Standalone Version - Web - IE\n\t\n\njs: OK"
+}

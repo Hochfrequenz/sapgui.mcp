@@ -1,0 +1,7 @@
+Title: ABAP GIT See http://www.abapgit.org
+Status: Meldungsleiste
+Tabs: []
+Labels: []
+Buttons: ['Zurück (F3)', 'Systeminformationen öffnen', 'S4U (100)', 'Menü', 'Mehr', 'Beenden', 'Anwendung anhalten']
+Table Headers: []
+Main Content: ['ABAP GIT See http://www.abapgit.org', 'S4U (100)', 'M', 'enü', 'B', 'eenden', 'Meldungsleiste', 'x', 'System', 'Mandant', '100', 'Benutzer', 'KLEINK', 'Dynpro', 'ZABAPGIT_STANDALONE/1001', 'Transaktion', 'ZABAPGIT', 'E2E-Zeit', '273 ms', 'WebGUI-Zeit', '95 ms', 'Anwendung anhalten', 'Hervorgehoben', 'Vorhergehende Aktion', 'Nächste Aktion', 'Positive Aktion', 'Negative Aktion', 'Um das Menü zu öffnen, drücken Sie F4.', 'Zum Auslösen einer Aktion drücken Sie Enter und zum Öffnen des Menüs Pfeil nach unten.', 'Trennschaltfläche']
