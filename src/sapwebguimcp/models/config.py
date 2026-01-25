@@ -150,8 +150,9 @@ class SapWebGuiSettings(BaseSettings):
     )
 
     # abapGit Integration
-    # Note: abapGit uses github_user for authentication when provided.
-    # If not set, falls back to 'x-access-token' which works with PAT auth.
+    # For abapGit authentication, ABAPGIT_PAT takes priority over GITHUB_PAT.
+    # Use ABAPGIT_PAT if you need separate tokens for abapGit vs feedback/issues.
+    # The github_user field is used for authentication; defaults to 'x-access-token'.
     abapgit_pat: str | None = Field(
         default=None,
         description="GitHub Personal Access Token for abapGit pull/push operations. "
