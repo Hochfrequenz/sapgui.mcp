@@ -337,8 +337,7 @@ async def _execute_pull_transaction(page: Page, params: PullParams, repo: str) -
             repo_name=repo,
             error=(
                 "Transaction Z_ABAPGIT_PULL not found. Create this transaction in your SAP system. "
-                "Source: https://github.com/Hochfrequenz/"
-                "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY/blob/main/src/z_abapgit_pull.prog.abap"
+                "See docs/plans/2026-01-23-abapgit-api-pull-design.md for the ABAP source code."
             ),
         )
     return None
