@@ -20,13 +20,13 @@ Main Agent
 
 Each session maps to a separate browser tab (Playwright `Page`):
 
-| Aspect | Isolation Level |
-|--------|-----------------|
-| DOM | Fully isolated per tab |
-| JavaScript context | Fully isolated per tab |
-| SAP session state | Separate SAP session per tab |
-| Cookies/localStorage | Shared (same BrowserContext) |
-| Browser process | Shared (one Chromium instance) |
+| Aspect               | Isolation Level                |
+| -------------------- | ------------------------------ |
+| DOM                  | Fully isolated per tab         |
+| JavaScript context   | Fully isolated per tab         |
+| SAP session state    | Separate SAP session per tab   |
+| Cookies/localStorage | Shared (same BrowserContext)   |
+| Browser process      | Shared (one Chromium instance) |
 
 This means parallel agents operating on different sessions are safe and won't interfere with each other.
 
@@ -37,26 +37,27 @@ This means parallel agents operating on different sessions are safe and won't in
 ### 1. Batched Tool Calls (sap_execute_sequence)
 
 **Proposal:** Combine multiple operations into a single MCP call:
+
 ```json
 {
-  "steps": [
-    {"action": "keyboard", "key": "F5"},
-    {"action": "fill", "fields": {"Name": "Test"}},
-    {"action": "keyboard", "key": "Ctrl+S"},
-    {"action": "read_status_bar"}
-  ]
+    "steps": [
+        { "action": "keyboard", "key": "F5" },
+        { "action": "fill", "fields": { "Name": "Test" } },
+        { "action": "keyboard", "key": "Ctrl+S" },
+        { "action": "read_status_bar" }
+    ]
 }
 ```
 
 **Analysis:**
 
-| Factor | Impact |
-|--------|--------|
-| MCP round-trips | Reduced from N to 1 |
+| Factor              | Impact                                                    |
+| ------------------- | --------------------------------------------------------- |
+| MCP round-trips     | Reduced from N to 1                                       |
 | Theoretical speedup | ~1.8x (not 5x, because SAP operations are the bottleneck) |
-| Error handling | Complex - which step failed? |
-| Observability | Lost - agent can't see intermediate states |
-| Adaptability | Lost - can't react to popups or errors mid-sequence |
+| Error handling      | Complex - which step failed?                              |
+| Observability       | Lost - agent can't see intermediate states                |
+| Adaptability        | Lost - can't react to popups or errors mid-sequence       |
 
 **Verdict: Not recommended.**
 
@@ -67,23 +68,24 @@ The ~1.8x speed gain doesn't justify the stability risk.
 ### 2. Parallel Field Fills Within Session
 
 **Proposal:** Fill multiple form fields concurrently since they target different DOM elements:
+
 ```json
 {
-  "parallel": [
-    {"tool": "sap_set_field", "label": "Vorname", "value": "Kiwi"},
-    {"tool": "sap_set_field", "label": "Nachname", "value": "Kirsche"}
-  ]
+    "parallel": [
+        { "tool": "sap_set_field", "label": "Vorname", "value": "Kiwi" },
+        { "tool": "sap_set_field", "label": "Nachname", "value": "Kirsche" }
+    ]
 }
 ```
 
 **Analysis:**
 
-| Factor | Impact |
-|--------|--------|
-| Time savings | ~50-100ms per form (~2% overall) |
+| Factor               | Impact                                             |
+| -------------------- | -------------------------------------------------- |
+| Time savings         | ~50-100ms per form (~2% overall)                   |
 | SAP JS compatibility | Risk - SAP may not handle concurrent field updates |
-| Focus conflicts | Risk - browser input depends on element focus |
-| Validation races | Risk - concurrent validations may conflict |
+| Focus conflicts      | Risk - browser input depends on element focus      |
+| Validation races     | Risk - concurrent validations may conflict         |
 
 **Verdict: Not recommended.**
 
@@ -92,6 +94,7 @@ The MCP round-trip (~200-500ms) is the bottleneck, not DOM operations (~50ms eac
 ### 3. MCP Sampling (workflow_run)
 
 **Proposal:** Use server-side agent loops via MCP Sampling:
+
 ```python
 for item in items:
     result = await ctx.sample(
@@ -102,16 +105,18 @@ for item in items:
 
 **Analysis:**
 
-| Factor | Impact |
-|--------|--------|
-| Context savings | Massive (~90% reduction) |
-| Processing model | Sequential (not parallel) |
-| Throughput | Slower than parallel sub-agents |
-| Client support | **Not available** (Claude Desktop/Code don't support sampling yet) |
+| Factor           | Impact                                                             |
+| ---------------- | ------------------------------------------------------------------ |
+| Context savings  | Massive (~90% reduction)                                           |
+| Processing model | Sequential (not parallel)                                          |
+| Throughput       | Slower than parallel sub-agents                                    |
+| Client support   | **Not available** (Claude Desktop/Code don't support sampling yet) |
 
 **Verdict: Not currently viable.**
 
 MCP Sampling would solve context explosion but processes sequentially, making it slower than parallel sub-agents. Additionally, no MCP client currently supports both sampling AND SAP authentication.
+
+**Note:** The sampling tools (`get_sampling_tools()`) only operate on the primary session (`s1`) - they don't accept a `session_id` parameter. This is by design: sampling is for sequential execution on one session, while parallel sub-agents use session-specific MCP tool calls.
 
 ---
 
@@ -142,11 +147,11 @@ If context consumption is the bottleneck (not throughput), wait for MCP Sampling
 
 Typical per-record timing:
 
-| Operation | Time |
-|-----------|------|
+| Operation                               | Time    |
+| --------------------------------------- | ------- |
 | SAP UI operations (fills, waits, saves) | ~2000ms |
-| MCP round-trips (10 calls × 250ms) | ~2500ms |
-| **Total per record** | ~4500ms |
+| MCP round-trips (10 calls × 250ms)      | ~2500ms |
+| **Total per record**                    | ~4500ms |
 
 With 6 parallel agents: ~4500ms / 6 = ~750ms effective per record = ~80 records/minute theoretical max.
 
@@ -154,5 +159,6 @@ Observed: ~6-9 records/minute suggests other factors (agent thinking time, error
 
 ---
 
-*Document created: 2026-01-25*
-*Based on brainstorming session analyzing bulk operation performance options.*
+_Document created: 2026-01-25_
+_Last reviewed: 2026-01-25 (verified against codebase)_
+_Based on brainstorming session analyzing bulk operation performance options._
