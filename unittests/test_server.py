@@ -499,3 +499,24 @@ class TestMcpServer:
             tool = mcp._tool_manager._tools[tool_name]
             assert tool.description, f"{tool_name} has empty description"
             assert len(tool.description) > 20, f"{tool_name} description too short"
+
+    # =========================================================================
+    # MCP Prompts tests
+    # =========================================================================
+
+    def test_prompts_are_registered(self) -> None:
+        """Test that MCP prompts are registered."""
+        prompts = asyncio.run(mcp.get_prompts())
+        assert len(prompts) > 0, "No prompts registered"
+
+    def test_se16_bulk_read_prompt_is_registered(self) -> None:
+        """Test that the se16_bulk_read prompt is registered."""
+        prompts = asyncio.run(mcp.get_prompts())
+        assert "se16_bulk_read" in prompts, "se16_bulk_read prompt not registered"
+
+    def test_prompts_have_descriptions(self) -> None:
+        """Test that all registered prompts have descriptions."""
+        prompts = asyncio.run(mcp.get_prompts())
+        for name, prompt in prompts.items():
+            assert prompt.description, f"Prompt '{name}' has no description"
+            assert len(prompt.description) >= 10, f"Prompt '{name}' description too short"

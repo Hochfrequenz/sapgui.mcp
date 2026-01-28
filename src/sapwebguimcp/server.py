@@ -17,6 +17,7 @@ from sapwebguimcp.loghandlers import IntentFileHandler
 from sapwebguimcp.middleware import ToolCallLoggingMiddleware
 from sapwebguimcp.models import close_browser_manager
 from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.prompts import register_prompts
 from sapwebguimcp.resources import register_feedback_resources, register_intent_resources
 from sapwebguimcp.tools import (
     register_abapgit_tools,
@@ -106,6 +107,9 @@ register_intent_tools(mcp)
 register_feedback_tools(mcp)
 register_workflow_tools(mcp)
 register_abapgit_tools(mcp)
+
+# Register prompts
+register_prompts(mcp)
 
 # Register resources
 register_intent_resources(mcp)
