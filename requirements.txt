@@ -92,7 +92,7 @@ jaraco-context==6.0.2
     # via keyring
 jaraco-functools==4.4.0
     # via keyring
-jsonschema==4.25.1
+jsonschema==4.26.0
     # via mcp
 jsonschema-path==0.3.4
     # via fastmcp
