@@ -223,7 +223,7 @@ sortedcontainers==2.4.0
     # via fakeredis
 sse-starlette==3.2.0
     # via mcp
-starlette==0.50.0
+starlette==0.52.1
     # via
     #   mcp
     #   sse-starlette
