@@ -407,11 +407,45 @@ ports:
 
 ### Docker image pull fails
 
-If you can't pull the image, verify your internet connection and Docker Desktop status:
+If you see "unauthorized" or "access denied" when pulling the image, you need to authenticate with GitHub Container Registry.
+
+**Step 1: Create a GitHub Personal Access Token**
+
+1. Go to [GitHub Token Settings](https://github.com/settings/tokens)
+2. Click "Generate new token" → **"Generate new token (classic)"**
+    > You must use "classic" tokens. Fine-grained tokens don't support container registry access.
+3. Give it a name like "Docker GHCR read"
+4. Set expiration: Choose "Custom" and set to 1 year. You'll need to create a new token and re-login when it expires
+5. Select scope: `read:packages` (only this one is needed)
+6. Click "Generate token"
+7. **Copy the token immediately** (starts with `ghp_`) - you won't see it again!
+
+**Step 2: Login to GitHub Container Registry**
+
+```powershell
+docker login ghcr.io -u YOUR_GITHUB_USERNAME
+```
+
+When prompted for password:
+
+- Paste your Personal Access Token (not your GitHub password)
+- The password won't show as you type - this is normal
+- In PowerShell, **right-click to paste** (Ctrl+V may not work)
+
+You should see: `Login Succeeded`
+
+**Step 3: Pull the image**
 
 ```powershell
 docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ```
+
+> **Note:** You only need to do this once per machine. Docker stores your credentials.
+
+**Still having issues?**
+
+- Verify the token starts with `ghp_`
+- Try: `docker logout ghcr.io` then repeat Step 2
 
 ## Architecture
 
