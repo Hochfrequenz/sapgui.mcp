@@ -43,6 +43,12 @@ Everything else (Docker setup, CDP proxy, MCP config) is identical.
 - **Chrome** browser
 - **VPN client** connected (if your SAP system is on an internal network)
 
+Verify Docker is running:
+
+```powershell
+docker --version
+```
+
 ### Step 1: Start Chrome with remote debugging
 
 Chrome must be started with special flags to allow automation. Run in PowerShell:
@@ -76,6 +82,10 @@ services:
         volumes:
             - ./nginx-cdp-proxy.conf:/etc/nginx/conf.d/default.conf:ro
         restart: unless-stopped
+
+networks:
+    default:
+        name: sap-mcp-network
 ```
 
 **nginx-cdp-proxy.conf**
@@ -112,9 +122,25 @@ cd C:\sap-mcp
 docker compose up -d
 ```
 
-### Step 3: Configure Claude Desktop
+Verify it's running:
 
-Open `%APPDATA%\Claude\claude_desktop_config.json` and add:
+```powershell
+docker ps --filter "name=cdp-proxy" --format "table {{.Names}}\t{{.Status}}"
+```
+
+### Step 3: Configure your MCP client
+
+Choose **one** of the following options based on which Claude client you use.
+
+#### Option A: Claude Desktop
+
+First, create the audit logs directory:
+
+```powershell
+mkdir $env:USERPROFILE\sap-audit-logs
+```
+
+Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
 
 ```json
 {
@@ -126,7 +152,7 @@ Open `%APPDATA%\Claude\claude_desktop_config.json` and add:
                 "-i",
                 "--rm",
                 "--network",
-                "sap-mcp_default",
+                "sap-mcp-network",
                 "-v",
                 "C:/Users/YourUsername/sap-audit-logs:/audit-logs",
                 "-e",
@@ -158,11 +184,9 @@ Replace:
 
 - `YourUsername` with your Windows username
 - `your_username` / `your_password` with your SAP credentials
-- `your_github_pat` with your GitHub PAT (for feedback, see Configuration Reference)
+- `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) with `repo` scope (optional - only needed for `log_feedback` to create issues)
 
-The network name `sap-mcp_default` matches your folder name.
-
-### Step 3b: Configure Claude Code (alternative)
+#### Option B: Claude Code
 
 Add to your `.mcp.json` (JSON config is easier to read and compare than `claude mcp add` with many env vars):
 
@@ -176,7 +200,7 @@ Add to your `.mcp.json` (JSON config is easier to read and compare than `claude 
                 "-i",
                 "--rm",
                 "--network",
-                "sap-mcp_default",
+                "sap-mcp-network",
                 "-v",
                 "C:/Users/YourUsername/sap-audit-logs:/audit-logs",
                 "-e",
@@ -329,9 +353,9 @@ For repetitive tasks like "create 100 business partners":
 
 ## Troubleshooting
 
-### "network sap-mcp_default not found"
+### "network sap-mcp-network not found"
 
-The CDP proxy isn't running. Start it:
+The CDP proxy isn't running or was never started. Start it:
 
 ```powershell
 cd C:\sap-mcp
@@ -371,6 +395,23 @@ SAP Web GUI can be slow. If operations timeout:
 1. Check the Chrome window - is SAP responding?
 2. Try `sap_keepalive_start` to prevent session timeouts
 3. Check Docker container logs: `docker logs <container-id>`
+
+### "Port 9223 already in use"
+
+Another service is using port 9223. Stop it or change the port in docker-compose.yml:
+
+```yaml
+ports:
+    - '9224:9222' # Use 9224 instead
+```
+
+### Docker image pull fails
+
+If you can't pull the image, verify your internet connection and Docker Desktop status:
+
+```powershell
+docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
+```
 
 ## Architecture
 
