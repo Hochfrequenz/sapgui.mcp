@@ -64,7 +64,7 @@ fakeredis[lua]==2.33.0
     # via pydocket
 fastmcp==2.14.3
     # via sapwebguimcp (pyproject.toml)
-greenlet==3.3.0
+greenlet==3.3.1
     # via playwright
 h11==0.16.0
     # via
