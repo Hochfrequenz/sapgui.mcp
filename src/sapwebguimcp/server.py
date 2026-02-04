@@ -78,9 +78,39 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
         logger.info("Server shutdown complete")
 
 
+# Instructions for the LLM about this MCP server
+SERVER_INSTRUCTIONS = """
+SAP Web GUI automation server. Controls SAP through a Chrome browser with remote debugging enabled.
+
+IMPORTANT: Do NOT attempt to install Chrome or any browser. The user must start Chrome manually.
+
+PREREQUISITES (user must set up BEFORE using these tools):
+- Chrome running with --remote-debugging-port=9222 (user starts this manually)
+- VPN connected (if SAP system is on internal network)
+- CDP proxy running (for Docker setups)
+
+IF CONNECTION FAILS:
+Do NOT try to install browsers. Instead, ask the user to verify:
+1. "Is Chrome running with --remote-debugging-port=9222?"
+2. "Is your VPN connected?" (for internal SAP systems)
+3. "Is the CDP proxy running?" (docker compose up -d)
+
+COMMON ERROR CAUSES:
+- "Cannot connect to browser": Chrome not started with debugging flags, or CDP proxy not running
+- "SAP URL not reachable": VPN not connected
+- Login fails: Check SAP_USER, SAP_PASSWORD, SAP_MANDANT environment variables
+
+WORKFLOW:
+1. Call sap_login first to open SAP and authenticate
+2. Use sap_transaction to navigate to transactions (e.g., VA01, SE16, BP)
+3. Use browser_snapshot to see current screen state
+4. Use browser_fill/browser_click for interactions
+"""
+
 # Create the FastMCP server instance with strict input validation
 mcp = FastMCP(
     "sap-webgui-mcp",
+    instructions=SERVER_INSTRUCTIONS,
     lifespan=app_lifespan,
     strict_input_validation=True,
 )

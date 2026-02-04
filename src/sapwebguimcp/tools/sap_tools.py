@@ -586,7 +586,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         _keepalive_task = None
         return KeepaliveResult(running=False)
 
-    @mcp.tool(description="Log into SAP Web GUI")
+    @mcp.tool(
+        description=(
+            "Log into SAP Web GUI. "
+            "REQUIRES: Chrome with --remote-debugging-port=9222, VPN connected (if internal SAP). "
+            "If connection fails, ask user to verify Chrome is running with debugging and VPN is connected."
+        )
+    )
     async def sap_login(  # pylint: disable=too-many-return-statements
         url: Optional[str] = None,
     ) -> LoginResult:
@@ -597,6 +603,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         from environment variables (SAP_USER, SAP_PASSWORD, SAP_MANDANT, SAP_LANGUAGE).
 
         If credentials are not configured, opens the login page for manual entry.
+
+        PREREQUISITES:
+        - Chrome running with --remote-debugging-port=9222
+        - VPN connected (if SAP system is on internal network)
+        - CDP proxy running (for Docker setups)
 
         Args:
             url: SAP Web GUI URL. If not provided, uses SAP_URL from environment.
