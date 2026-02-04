@@ -6,164 +6,141 @@
 [![Formatting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 
 An MCP (Model Context Protocol) server for SAP Web GUI browser automation.
-Built on the [dev-browser](https://github.com/anthropics/dev-browser) philosophy: persistent browser sessions with incremental exploration.
-
-## Features
-
-- **SAP Login**: Opens SAP Web GUI for user to enter credentials manually
-- **Smart Transaction Entry**: Automatically enables OK-Code field if not visible, then enters transaction
-- **Workflow Automation**: Save and run learned workflows for bulk operations with massive context savings
-- **Low-level browser tools**: Click, fill, snapshot for edge cases when SAP tools don't work
-- **Persistent sessions**: Login once, stay authenticated across tool calls
-- **Browser choice**: Use your own browser (VPN/Citrix) or let the server launch one
-- **Python 3.11-3.14 support**: Tested on latest Python versions
-
-### Workflow System (Bulk Operations)
-
-For repetitive tasks like "create 100 business partners", the workflow system uses **MCP Sampling** to run iterations server-side, reducing context consumption by ~90%:
-
-| Approach         | Context for 100 items |
-| ---------------- | --------------------- |
-| Manual iteration | ~500,000 tokens       |
-| `workflow_run`   | ~2,000 tokens         |
-
-**Requirements for workflow_run:**
-
-- MCP client with Sampling support
-- **Note:** As of January 2026, Claude Desktop and Claude Code do NOT support MCP sampling yet ([tracking issue](https://github.com/anthropics/claude-code/issues/1785))
-
-Tools: `workflow_list`, `workflow_save`, `workflow_run`, `workflow_submit`, `workflow_delete`
-
-## Installation
-
-### Install as Python Package
-
-```bash
-pip install sapwebguimcp
-```
-
-Or with uv:
-
-```bash
-uv pip install sapwebguimcp
-```
-
-After installation, install Playwright browsers:
-
-```bash
-playwright install chromium
-```
-
-### Install as Docker Image
-
-```bash
-docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
-```
-
-## Configuration
-
-Configure via environment variables:
-
-| Variable           | Description                                                     | Default                      |
-| ------------------ | --------------------------------------------------------------- | ---------------------------- |
-| `SAP_URL`          | Default SAP Web GUI URL (can be overridden per call)            | (empty)                      |
-| `SAP_USER`         | SAP username for automatic login                                | (empty)                      |
-| `SAP_PASSWORD`     | SAP password for automatic login                                | (empty)                      |
-| `SAP_MANDANT`      | SAP client/mandant (3-digit, e.g., "100")                       | (empty)                      |
-| `SAP_LANGUAGE`     | SAP login language (`DE` or `EN`)                               | `EN`                         |
-| `BROWSER_MODE`     | `launch` (start new) or `connect` (use existing)                | `launch`                     |
-| `BROWSER_TYPE`     | `chromium`, `firefox`, or `webkit`                              | `chromium`                   |
-| `BROWSER_HEADLESS` | Run headless (`true`/`false`)                                   | `false`                      |
-| `CDP_URL`          | CDP URL for connecting to existing browser                      | `http://localhost:9222`      |
-| `AUDIT_LOG_DIR`    | Directory for intent audit logs (JSONL files)                   | (empty, no file output)      |
-| `GITHUB_PAT`       | GitHub PAT for creating issues from feedback (empty = disabled) | (empty)                      |
-| `GITHUB_REPO`      | Repository for feedback issues (owner/repo format)              | `Hochfrequenz/sapwebgui.mcp` |
-
-### GitHub Feedback Integration
-
-To enable automatic GitHub issue creation from model feedback:
-
-1. Create a GitHub Personal Access Token (PAT) with `repo` scope:
-    - Go to GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens
-    - Create a new token with "Issues" permission (Read and Write) for your repository
-2. Set the `GITHUB_PAT` environment variable to your token
-3. Optionally set `GITHUB_REPO` if you want issues in a different repository
-
-The server will automatically create a `model-feedback` label (light purple) if it doesn't exist.
-
-If `SAP_USER`, `SAP_PASSWORD`, and `SAP_MANDANT` are set, the server will automatically fill in the login form.
-Otherwise, the login page opens for manual credential entry.
+Control SAP through Claude Desktop or Claude Code with persistent browser sessions.
 
 ## Quick Start (End Users)
 
-The easiest way to use this server is with **Claude Desktop**:
+This guide gets you running with Docker on Windows - no Python or cloning required.
+
+<details>
+<summary><strong>macOS users: click here for differences</strong></summary>
+
+The setup is similar on macOS, with these differences:
+
+**Chrome command:**
+
+```bash
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
+```
+
+**Verify Chrome:**
+
+```bash
+curl http://localhost:9222/json/version
+```
+
+**Config file location:**
+
+- Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+Everything else (Docker setup, CDP proxy, MCP config) is identical.
+
+</details>
+
+### Prerequisites
+
+- **Docker Desktop** for Windows ([download](https://www.docker.com/products/docker-desktop/))
+- **Chrome** browser
+- **VPN client** connected (if your SAP system is on an internal network)
+
+Verify Docker is running:
+
+```powershell
+docker --version
+```
 
 ### Step 1: Start Chrome with remote debugging
 
-Chrome needs to be started with special flags:
-
-- `--remote-debugging-port=9222` - Enables the Chrome DevTools Protocol
-- `--user-data-dir` - Uses a separate profile (required, otherwise Chrome joins an existing instance)
-- `--ignore-certificate-errors` - Skips SSL certificate warnings (useful for SAP systems with self-signed certs)
-
-**Windows** (run in PowerShell):
+Chrome must be started with special flags to allow automation. Run in PowerShell:
 
 ```powershell
 & "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
 ```
 
-**macOS**:
+Verify it's working:
 
-```bash
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
-```
-
-**Linux**:
-
-```bash
-google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
-```
-
-**Verify it's working** (the debugging port should respond):
-
-```bash
-# Windows (PowerShell)
+```powershell
 Invoke-WebRequest -Uri 'http://localhost:9222/json/version' -UseBasicParsing
-
-# macOS/Linux
-curl http://localhost:9222/json/version
 ```
 
-If you get a connection error, Chrome isn't listening on port 9222. Make sure you used the `--user-data-dir` flag.
+You should see a JSON response. If you get a connection error, make sure you included the `--user-data-dir` flag.
 
-### Step 2: Start the CDP proxy (Docker Desktop on Windows/macOS)
+### Step 2: Set up the CDP proxy
 
-When running in Docker Desktop on Windows or macOS, we need a proxy because:
+Docker containers can't connect directly to Chrome on your host. The CDP proxy solves this.
 
-1. Chrome's DevTools Protocol rejects HTTP requests where the Host header isn't `localhost`
-2. Chrome returns WebSocket URLs pointing to `localhost`, which doesn't work inside Docker containers
+Create a folder (e.g., `C:\sap-mcp\`) and add these two files:
 
-The proxy rewrites these headers/URLs so Docker containers can connect to Chrome.
+**docker-compose.yml**
 
-```bash
-# Clone the repository (if you haven't already)
-git clone https://github.com/Hochfrequenz/sapwebgui.mcp.git
-cd sapwebgui.mcp
+```yaml
+services:
+    cdp-proxy:
+        image: nginx:alpine
+        ports:
+            - '9223:9222'
+        volumes:
+            - ./nginx-cdp-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+        restart: unless-stopped
 
-# Start the CDP proxy
-docker compose up -d cdp-proxy
+networks:
+    default:
+        name: sap-mcp-network
 ```
 
-> **Note**: On native Linux with Docker, you can skip this step and use `--network host` with `CDP_URL=http://localhost:9222` instead.
+**nginx-cdp-proxy.conf**
 
-### Step 3: Configure Claude Desktop
+```nginx
+server {
+    listen 9222;
 
-Find your Claude Desktop config file:
+    resolver 127.0.0.11 valid=30s;
 
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+    location / {
+        set $backend "host.docker.internal:9222";
+        proxy_pass http://$backend;
+        proxy_set_header Host localhost;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
 
-Add this configuration (replace the SAP values with your own):
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+
+        sub_filter 'ws://localhost/' 'ws://host.docker.internal:9223/';
+        sub_filter 'ws://localhost:9222/' 'ws://host.docker.internal:9223/';
+        sub_filter_once off;
+        sub_filter_types application/json;
+    }
+}
+```
+
+Then start the proxy:
+
+```powershell
+cd C:\sap-mcp
+docker compose up -d
+```
+
+Verify it's running:
+
+```powershell
+docker ps --filter "name=cdp-proxy" --format "table {{.Names}}\t{{.Status}}"
+```
+
+### Step 3: Configure your MCP client
+
+Choose **one** of the following options based on which Claude client you use.
+
+#### Option A: Claude Desktop
+
+First, create the audit logs directory:
+
+```powershell
+mkdir $env:USERPROFILE\sap-audit-logs
+```
+
+Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
 
 ```json
 {
@@ -175,15 +152,15 @@ Add this configuration (replace the SAP values with your own):
                 "-i",
                 "--rm",
                 "--network",
-                "sapwebguimcp_default",
+                "sap-mcp-network",
                 "-v",
-                "/path/to/audit-logs:/audit-logs",
+                "C:/Users/YourUsername/sap-audit-logs:/audit-logs",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
                 "CDP_URL=http://cdp-proxy:9222",
                 "-e",
-                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "SAP_URL=https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui",
                 "-e",
                 "SAP_USER=your_username",
                 "-e",
@@ -191,9 +168,11 @@ Add this configuration (replace the SAP values with your own):
                 "-e",
                 "SAP_MANDANT=100",
                 "-e",
+                "SAP_LANGUAGE=DE",
+                "-e",
                 "AUDIT_LOG_DIR=/audit-logs",
                 "-e",
-                "GITHUB_PAT=your_github_pat_here",
+                "GITHUB_PAT=your_github_pat",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ]
         }
@@ -201,412 +180,271 @@ Add this configuration (replace the SAP values with your own):
 }
 ```
 
-> **Note**: The `--network sapwebguimcp_default` connects the container to the same Docker network as the CDP proxy, allowing it to reach Chrome via `cdp-proxy:9222`. The `-v` mounts a host directory for audit logs (replace `/path/to/audit-logs` with your actual path).
+Replace:
 
-> [!WARNING]
-> If you see `network sapwebguimcp_default not found` in your MCP client (Claude Desktop/Claude Code) or in the MCP logs, you forgot to start the CDP proxy. Run `docker compose up -d cdp-proxy` first (see Step 2).
+- `YourUsername` with your Windows username
+- `your_username` / `your_password` with your SAP credentials
+- `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) with `repo` scope (optional - only needed for `log_feedback` to create issues)
 
-### Step 4: Restart Claude Desktop and start chatting
+#### Option B: Claude Code
 
-Ask Claude things like:
+Add to your `.mcp.json` (JSON config is easier to read and compare than `claude mcp add` with many env vars):
+
+```json
+{
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "--network",
+                "sap-mcp-network",
+                "-v",
+                "C:/Users/YourUsername/sap-audit-logs:/audit-logs",
+                "-e",
+                "BROWSER_MODE=connect",
+                "-e",
+                "CDP_URL=http://cdp-proxy:9222",
+                "-e",
+                "SAP_URL=https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui",
+                "-e",
+                "SAP_USER=your_username",
+                "-e",
+                "SAP_PASSWORD=your_password",
+                "-e",
+                "SAP_MANDANT=100",
+                "-e",
+                "SAP_LANGUAGE=DE",
+                "-e",
+                "AUDIT_LOG_DIR=/audit-logs",
+                "-e",
+                "GITHUB_PAT=your_github_pat",
+                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+            ]
+        }
+    }
+}
+```
+
+### Step 4: Start chatting
+
+Restart Claude Desktop/Code and try:
 
 - "Log me into SAP"
 - "Run transaction VA01"
-- "Take a screenshot of the current screen"
+- "Take a screenshot"
 
-### Optional: Auto-approve SAP tools
+## Development Setup
 
-By default, Claude Desktop asks for confirmation before running MCP tools. To auto-approve SAP tools, add an `alwaysAllow` section to your config:
+For contributors who want to run from source.
 
-```json
-{
-    "mcpServers": {
-        "sap-webgui": {
-            "command": "docker",
-            "args": [
-                "run",
-                "-i",
-                "--rm",
-                "--network",
-                "sapwebguimcp_default",
-                "-v",
-                "/path/to/audit-logs:/audit-logs",
-                "-e",
-                "BROWSER_MODE=connect",
-                "-e",
-                "CDP_URL=http://cdp-proxy:9222",
-                "-e",
-                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
-                "-e",
-                "SAP_USER=your_username",
-                "-e",
-                "SAP_PASSWORD=your_password",
-                "-e",
-                "SAP_MANDANT=100",
-                "-e",
-                "AUDIT_LOG_DIR=/audit-logs",
-                "-e",
-                "GITHUB_PAT=your_github_pat_here",
-                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
-            ],
-            "alwaysAllow": [
-                "sap_login",
-                "sap_transaction",
-                "sap_keyboard",
-                "sap_session_status",
-                "sap_keepalive_start",
-                "sap_keepalive_stop",
-                "sap_get_screen_text",
-                "sap_read_table",
-                "sap_read_status_bar",
-                "sap_get_screen_info",
-                "log_intent",
-                "log_feedback",
-                "browser_snapshot",
-                "browser_screenshot",
-                "browser_click",
-                "browser_fill",
-                "browser_keyboard",
-                "browser_navigate",
-                "browser_wait",
-                "browser_get_html",
-                "browser_select_option"
-            ]
-        }
-    }
-}
-```
+### Prerequisites
 
----
+- Python 3.11+
+- Chrome browser with remote debugging (see Step 1 above)
 
-## Start the Server (Advanced)
-
-### Python
+### Clone and install
 
 ```bash
+git clone https://github.com/Hochfrequenz/sapwebgui.mcp.git
+cd sapwebgui.mcp
+pip install -e ".[dev]"
+playwright install chromium
+```
+
+### Run tests
+
+```bash
+tox -e py312        # unit tests
+tox -e linting      # code quality
+tox -e formatting   # check formatting
+```
+
+### Run the MCP server locally
+
+```bash
+# Set environment variables
+$env:SAP_URL = "https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui"
+$env:BROWSER_MODE = "connect"
+$env:CDP_URL = "http://localhost:9222"
+
+# Start the server
 run-sapwebgui-mcp-server
 ```
 
-### Docker
-
-Docker requires `BROWSER_MODE=connect` to control a browser running on the host. The setup differs between native Linux and Docker Desktop (Windows/macOS).
-
-#### Native Linux (--network host works)
-
-```bash
-# 1. Start Chrome with remote debugging
-google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
-
-# 2. Run the MCP server with --network host
-docker run --network host -i --rm \
-  -v /path/to/audit-logs:/audit-logs \
-  -e BROWSER_MODE=connect \
-  -e CDP_URL=http://localhost:9222 \
-  -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
-  -e SAP_USER=your_username \
-  -e SAP_PASSWORD=your_password \
-  -e SAP_MANDANT=100 \
-  -e AUDIT_LOG_DIR=/audit-logs \
-  -e GITHUB_PAT=your_github_pat_here \
-  ghcr.io/hochfrequenz/sapwebgui.mcp:latest
-```
-
-#### Docker Desktop on Windows/macOS (requires CDP proxy)
-
-On Docker Desktop, `--network host` doesn't work properly, and Chrome rejects connections from `host.docker.internal`. You need the CDP proxy:
-
-```bash
-# 1. Start Chrome with remote debugging
-# Windows:
-& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
-# macOS:
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
-
-# 2. Start the CDP proxy (from the repository root)
-docker compose up -d cdp-proxy
-
-# 3. Run the MCP server on the same Docker network as the proxy
-docker run -i --rm \
-  --network sapwebguimcp_default \
-  -v /path/to/audit-logs:/audit-logs \
-  -e BROWSER_MODE=connect \
-  -e CDP_URL=http://cdp-proxy:9222 \
-  -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui \
-  -e SAP_USER=your_username \
-  -e SAP_PASSWORD=your_password \
-  -e SAP_MANDANT=100 \
-  -e AUDIT_LOG_DIR=/audit-logs \
-  -e GITHUB_PAT=your_github_pat_here \
-  ghcr.io/hochfrequenz/sapwebgui.mcp:latest
-```
-
-The `--network sapwebguimcp_default` flag connects the container to the same Docker network as the CDP proxy, so it can reach the proxy via `cdp-proxy:9222`.
-
-## Register in Claude Desktop / Claude Code
-
-### If installed via pip
-
-Modify your `claude_desktop_config.json`:
+### Configure Claude Desktop for local development
 
 ```json
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "/path/to/your/venv/bin/run-sapwebgui-mcp-server",
+            "command": "C:/path/to/your/venv/Scripts/run-sapwebgui-mcp-server.exe",
             "args": [],
             "env": {
-                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui"
+                "SAP_URL": "https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui",
+                "BROWSER_MODE": "connect",
+                "CDP_URL": "http://localhost:9222"
             }
         }
     }
 }
 ```
 
-### If installed via Docker
-
-First start Chrome with remote debugging and the CDP proxy (see Quick Start above), then configure Claude:
-
-**Docker Desktop (Windows/macOS)** - connects via Docker network to CDP proxy:
-
-```json
-{
-    "mcpServers": {
-        "sap-webgui": {
-            "command": "docker",
-            "args": [
-                "run",
-                "-i",
-                "--rm",
-                "--network",
-                "sapwebguimcp_default",
-                "-v",
-                "/path/to/audit-logs:/audit-logs",
-                "-e",
-                "BROWSER_MODE=connect",
-                "-e",
-                "CDP_URL=http://cdp-proxy:9222",
-                "-e",
-                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
-                "-e",
-                "SAP_USER=your_username",
-                "-e",
-                "SAP_PASSWORD=your_password",
-                "-e",
-                "SAP_MANDANT=100",
-                "-e",
-                "AUDIT_LOG_DIR=/audit-logs",
-                "-e",
-                "GITHUB_PAT=your_github_pat_here",
-                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
-            ]
-        }
-    }
-}
-```
-
-**Native Linux** - uses `--network host`:
-
-```json
-{
-    "mcpServers": {
-        "sap-webgui": {
-            "command": "docker",
-            "args": [
-                "run",
-                "--network",
-                "host",
-                "-i",
-                "--rm",
-                "-v",
-                "/path/to/audit-logs:/audit-logs",
-                "-e",
-                "BROWSER_MODE=connect",
-                "-e",
-                "CDP_URL=http://localhost:9222",
-                "-e",
-                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
-                "-e",
-                "SAP_USER=your_username",
-                "-e",
-                "SAP_PASSWORD=your_password",
-                "-e",
-                "SAP_MANDANT=100",
-                "-e",
-                "AUDIT_LOG_DIR=/audit-logs",
-                "-e",
-                "GITHUB_PAT=your_github_pat_here",
-                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
-            ]
-        }
-    }
-}
-```
-
-## Connecting to Your Own Browser (VPN/Citrix)
-
-If you need to use a browser that's already connected to VPN or Citrix:
-
-1. Launch your browser with remote debugging enabled:
-
-```bash
-# Chrome/Edge (Linux)
-google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
-
-# macOS
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-debug" --ignore-certificate-errors
-
-# Windows (PowerShell)
-& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
-```
-
-2. If using Docker Desktop (Windows/macOS), start the CDP proxy:
-
-```bash
-cd sapwebgui.mcp
-docker compose up -d cdp-proxy
-```
-
-3. Configure the MCP server with the appropriate settings:
-    - **Native Python or Linux Docker**: `CDP_URL=http://localhost:9222`
-    - **Docker Desktop (Windows/macOS)**: Use `--network sapwebguimcp_default` with `CDP_URL=http://cdp-proxy:9222`
-
-The MCP server will connect to your existing browser instead of launching a new one.
+When running Python directly (not in Docker), you don't need the CDP proxy - Python can connect to Chrome on localhost.
 
 ## Available Tools
 
 ### SAP Tools
 
-| Tool                  | Description                                                                                                                                     |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sap_login`           | Opens SAP Web GUI login page. User enters credentials manually in the browser.                                                                  |
-| `sap_transaction`     | Enters and executes a transaction code. Automatically enables OK-Code field if not visible (via Settings → enable OK-Code Field).               |
-| `sap_keepalive_start` | Starts background task to prevent session timeout (default: ping every 5 minutes).                                                              |
-| `sap_keepalive_stop`  | Stops the keepalive background task.                                                                                                            |
-| `log_intent`          | Log a high-level intent for audit trail. Used by models to document what they're doing and why.                                                 |
-| `log_feedback`        | Log technical feedback about tool usage patterns, friction points, or optimization opportunities. Creates GitHub issues if `GITHUB_PAT` is set. |
+| Tool                  | Description                                                  |
+| --------------------- | ------------------------------------------------------------ |
+| `sap_login`           | Opens SAP Web GUI login page                                 |
+| `sap_transaction`     | Enters and executes a transaction code                       |
+| `sap_keepalive_start` | Prevents session timeout (pings every 5 minutes)             |
+| `sap_keepalive_stop`  | Stops the keepalive task                                     |
+| `log_intent`          | Log what you're doing for audit trail                        |
+| `log_feedback`        | Report issues (creates GitHub issues if `GITHUB_PAT` is set) |
 
-### Low-Level Browser Tools (Escape Hatches)
+### Browser Tools
 
-| Tool                    | Description                                     |
-| ----------------------- | ----------------------------------------------- |
-| `browser_snapshot`      | Get accessibility tree of current page          |
-| `browser_screenshot`    | Take a screenshot                               |
-| `browser_click`         | Click an element by selector                    |
-| `browser_fill`          | Fill an input field                             |
-| `browser_keyboard`      | Send keyboard input                             |
-| `browser_navigate`      | Navigate to URL                                 |
-| `browser_evaluate`      | Execute JavaScript                              |
-| `browser_wait`          | Wait for element state (use with selector only) |
-| `browser_get_html`      | Get HTML content                                |
-| `browser_select_option` | Select dropdown option                          |
+| Tool                    | Description            |
+| ----------------------- | ---------------------- |
+| `browser_snapshot`      | Get accessibility tree |
+| `browser_screenshot`    | Take a screenshot      |
+| `browser_click`         | Click an element       |
+| `browser_fill`          | Fill an input field    |
+| `browser_keyboard`      | Send keyboard input    |
+| `browser_navigate`      | Navigate to URL        |
+| `browser_evaluate`      | Execute JavaScript     |
+| `browser_wait`          | Wait for element state |
+| `browser_get_html`      | Get HTML content       |
+| `browser_select_option` | Select dropdown option |
 
-## Usage Example
+### Workflow Tools (Bulk Operations)
 
-```
-User: Please log me in to SAP
+For repetitive tasks like "create 100 business partners":
 
-Claude: [calls sap_login(url="https://your-sap.com/webgui")]
-        SAP login page opened. Please enter your credentials in the browser window.
+| Tool              | Description                                          |
+| ----------------- | ---------------------------------------------------- |
+| `workflow_list`   | List saved workflows                                 |
+| `workflow_save`   | Save a workflow                                      |
+| `workflow_run`    | Run workflow in bulk (requires MCP Sampling support) |
+| `workflow_submit` | Submit workflow step result                          |
+| `workflow_delete` | Delete a workflow                                    |
 
-User: Done, I'm logged in. Now run transaction VA01
+> **Note:** `workflow_run` requires MCP Sampling support. As of January 2026, Claude Desktop and Claude Code do NOT support this yet ([tracking issue](https://github.com/anthropics/claude-code/issues/1785)).
 
-Claude: [calls sap_transaction(tcode="VA01")]
-        Transaction VA01 executed. Current page: Create Sales Order.
-        Check the browser window for the transaction screen.
-```
+## Configuration Reference
 
-### Preventing Session Timeout
+| Variable        | Description                       | Default                      |
+| --------------- | --------------------------------- | ---------------------------- |
+| `SAP_URL`       | SAP Web GUI URL                   | (empty)                      |
+| `SAP_USER`      | SAP username for auto-login       | (empty)                      |
+| `SAP_PASSWORD`  | SAP password for auto-login       | (empty)                      |
+| `SAP_MANDANT`   | SAP client (3-digit, e.g., "100") | (empty)                      |
+| `SAP_LANGUAGE`  | Login language (`DE` or `EN`)     | `EN`                         |
+| `BROWSER_MODE`  | `launch` or `connect`             | `launch`                     |
+| `CDP_URL`       | Chrome DevTools Protocol URL      | `http://localhost:9222`      |
+| `AUDIT_LOG_DIR` | Directory for audit logs          | (empty)                      |
+| `GITHUB_PAT`    | GitHub PAT for feedback issues    | (empty)                      |
+| `GITHUB_REPO`   | Repository for feedback issues    | `Hochfrequenz/sapwebgui.mcp` |
 
-If you need to step away or have long pauses between actions, enable keepalive:
+## Troubleshooting
 
-```
-User: I need to take a break, keep my SAP session alive
+### "network sap-mcp-network not found"
 
-Claude: [calls sap_keepalive_start(interval_seconds=300)]
-        Keepalive started. Will ping every 300 seconds (5 minutes) to prevent session timeout.
+The CDP proxy isn't running or was never started. Start it:
 
-... (30 minutes later) ...
-
-User: I'm back, you can stop the keepalive
-
-Claude: [calls sap_keepalive_stop()]
-        Keepalive stopped.
-```
-
-## How sap_transaction Works
-
-The `sap_transaction` tool is smart about the OK-Code field:
-
-1. **Check**: First looks for the OK-Code input field
-2. **Enable if needed**: If not found, attempts to enable it:
-    - Expands menu (if collapsed)
-    - Clicks settings/gear button
-    - Finds and enables the "OK-Code Field" checkbox
-    - Saves settings
-3. **Verify**: Confirms the field is now visible
-4. **Execute**: Enters the transaction code and presses Enter
-
-This handles SAP Web GUI installations where the OK-Code field is hidden by default.
-
-## Project Structure
-
-```
-sap-webgui-mcp/
-├── src/sapwebguimcp/
-│   ├── __init__.py          # Package version and exports
-│   ├── server.py            # MCP server entry point
-│   ├── models/              # Data models
-│   │   ├── config.py        # Settings (pydantic-settings)
-│   │   ├── browser.py       # Browser manager
-│   │   └── README.md        # Models documentation
-│   ├── tools/               # MCP tools
-│   │   ├── __init__.py      # Tool registration exports
-│   │   ├── sap_tools.py     # SAP-specific tools
-│   │   ├── browser_tools.py # Browser escape hatches
-│   │   ├── intent_tools.py  # Intent logging for audit trail
-│   │   └── README.md        # Tools documentation
-│   ├── loghandlers/         # Custom log handlers
-│   │   └── audit_handler.py # JSONL file handler for intents
-│   ├── resources/           # MCP resources
-│   │   └── intent_resource.py # Intent log resource
-│   └── skills/              # Reusable workflows
-│       └── README.md        # Skills documentation
-├── unittests/               # Test suite
-├── .github/workflows/       # CI/CD pipelines
-├── pyproject.toml           # Package metadata
-├── tox.ini                  # Test environments
-├── Dockerfile               # Container build
-├── docker-compose.yml       # Docker Compose for CDP proxy
-├── nginx-cdp-proxy.conf     # Nginx config for CDP proxy
-└── README.md                # This file
+```powershell
+cd C:\sap-mcp
+docker compose up -d
 ```
 
-## Contributing
+### Chrome connection errors
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and coding standards.
+1. Make sure Chrome is running with `--remote-debugging-port=9222`
+2. Make sure you used `--user-data-dir` (required, otherwise Chrome joins existing instance)
+3. Verify with: `Invoke-WebRequest -Uri 'http://localhost:9222/json/version' -UseBasicParsing`
+
+### "Cannot connect to CDP proxy"
+
+Check if the proxy is running:
+
+```powershell
+docker ps | Select-String cdp-proxy
+```
+
+Check proxy logs:
+
+```powershell
+docker logs sap-mcp-cdp-proxy-1
+```
+
+### SAP login fails
+
+- Check `SAP_URL` is correct and accessible from your browser
+- If using auto-login, verify `SAP_USER`, `SAP_PASSWORD`, and `SAP_MANDANT` are set
+- Try logging in manually first to verify credentials
+
+### Tools timeout or hang
+
+SAP Web GUI can be slow. If operations timeout:
+
+1. Check the Chrome window - is SAP responding?
+2. Try `sap_keepalive_start` to prevent session timeouts
+3. Check Docker container logs: `docker logs <container-id>`
+
+### "Port 9223 already in use"
+
+Another service is using port 9223. Stop it or change the port in docker-compose.yml:
+
+```yaml
+ports:
+    - '9224:9222' # Use 9224 instead
+```
+
+### Docker image pull fails
+
+If you can't pull the image, verify your internet connection and Docker Desktop status:
+
+```powershell
+docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
+```
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Browser (Chromium/Firefox/Your Browser)                │
-│  - Persistent session                                   │
+│  Chrome (with --remote-debugging-port=9222)             │
 │  - SAP Web GUI loaded                                   │
-│  - User logs in manually                                │
+│  - Persistent session                                   │
 └─────────────────────────────────────────────────────────┘
             ↑
-            │ Playwright
+            │ CDP (Chrome DevTools Protocol)
+            ↓
+┌─────────────────────────────────────────────────────────┐
+│  CDP Proxy (nginx) - only needed for Docker             │
+│  - Rewrites Host header for Chrome                      │
+│  - Rewrites WebSocket URLs                              │
+└─────────────────────────────────────────────────────────┘
+            ↑
+            │ HTTP/WebSocket
             ↓
 ┌─────────────────────────────────────────────────────────┐
 │  MCP Server (sapwebguimcp)                              │
-│  - Manages browser connection                           │
-│  - SAP tools + browser escape hatches                   │
+│  - Playwright for browser automation                    │
+│  - SAP-specific tools                                   │
 └─────────────────────────────────────────────────────────┘
             ↑
             │ MCP (stdio)
             ↓
 ┌─────────────────────────────────────────────────────────┐
 │  Claude Desktop / Claude Code                           │
-│  - Calls tools to interact with SAP                     │
 └─────────────────────────────────────────────────────────┘
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and coding standards.
