@@ -172,7 +172,7 @@ pyee==13.0.0
     # via playwright
 pygments==2.19.2
     # via rich
-pyjwt[crypto]==2.10.1
+pyjwt[crypto]==2.11.0
     # via mcp
 pyperclip==1.11.0
     # via fastmcp
