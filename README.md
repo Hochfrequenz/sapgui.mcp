@@ -188,7 +188,7 @@ Replace:
 
 #### Option B: Claude Code
 
-Add to your `.mcp.json` (JSON config is easier to read and compare than `claude mcp add` with many env vars):
+Add to your `.mcp.json` (in any directory) (JSON config is easier to read and compare than `claude mcp add` with many env vars):
 
 ```json
 {
@@ -227,6 +227,11 @@ Add to your `.mcp.json` (JSON config is easier to read and compare than `claude 
     }
 }
 ```
+Then start Claude code
+```powershell
+claude
+```
+
 
 ### Step 4: Start chatting
 
@@ -235,6 +240,8 @@ Restart Claude Desktop/Code and try:
 - "Log me into SAP"
 - "Run transaction VA01"
 - "Take a screenshot"
+
+If it tries to start e.g. a dev browser, you can be explicit "log me into sap using the sap web gui mcp".
 
 ## Development Setup
 
