@@ -241,7 +241,9 @@ Restart Claude Desktop/Code and try:
 - "Run transaction VA01"
 - "Take a screenshot"
 
-If it tries to start e.g. a dev browser, you can be explicit "log me into sap using the sap web gui mcp".
+If it tries e.g. to start a dev-browser or _install_ Chrome, cancel and try be explicit "log me into sap using the sap web gui mcp".
+If Docker Desktop isn't running, you might get an unspecific error "1 MCP server failed · /mcp".
+If the containers started but Chrome (in browser automation mode with CDP enabled) is missing, Claude will likely understand how to login but fail on the first tool call.
 
 ## Development Setup
 
