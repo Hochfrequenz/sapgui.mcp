@@ -227,7 +227,7 @@ Add to your `.mcp.json` (in any directory) (JSON config is easier to read and co
     }
 }
 ```
-Then start Claude code
+Then start Claude code:
 ```powershell
 claude
 ```
