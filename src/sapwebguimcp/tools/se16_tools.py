@@ -176,8 +176,7 @@ async def _wait_for_grid_rows(page: Any, timeout_seconds: int = 5) -> bool:
         True if grid has rows, False if timeout.
     """
     for i in range(timeout_seconds * 2):  # Poll every 500ms
-        result = await page.evaluate(
-            """
+        result = await page.evaluate("""
             () => {
                 const grids = document.querySelectorAll('[role="grid"]');
                 for (const grid of grids) {
@@ -192,8 +191,7 @@ async def _wait_for_grid_rows(page: Any, timeout_seconds: int = 5) -> bool:
                 }
                 return false;
             }
-        """
-        )
+        """)
         if result:
             logger.info("SE16: Table structure loaded (poll iteration %d)", i)
             return True
