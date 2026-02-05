@@ -188,7 +188,7 @@ Replace:
 
 #### Option B: Claude Code
 
-Add to your `.mcp.json` (JSON config is easier to read and compare than `claude mcp add` with many env vars):
+Add this to the `.mcp.json` configuration file that Claude Code uses for this project (typically in your project root or workspace; JSON config is easier to read and compare than `claude mcp add` with many env vars):
 
 ```json
 {
@@ -227,6 +227,11 @@ Add to your `.mcp.json` (JSON config is easier to read and compare than `claude 
     }
 }
 ```
+Then start Claude code:
+```powershell
+claude
+```
+
 
 ### Step 4: Start chatting
 
@@ -235,6 +240,10 @@ Restart Claude Desktop/Code and try:
 - "Log me into SAP"
 - "Run transaction VA01"
 - "Take a screenshot"
+
+If it tries e.g. to start a dev-browser or _install_ Chrome, cancel and try to be explicit "log me into sap using the sap web gui mcp".
+If Docker Desktop isn't running, you might get a nonspecific error "1 MCP server failed · /mcp".
+If the containers started but Chrome (in browser automation mode with CDP enabled) is missing, Claude will likely understand how to login but fail on the first tool call.
 
 ## Development Setup
 
