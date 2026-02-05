@@ -188,7 +188,7 @@ Replace:
 
 #### Option B: Claude Code
 
-Add to your `.mcp.json` (in any directory) (JSON config is easier to read and compare than `claude mcp add` with many env vars):
+Add this to the `.mcp.json` configuration file that Claude Code uses for this project (typically in your project root or workspace; JSON config is easier to read and compare than `claude mcp add` with many env vars):
 
 ```json
 {
