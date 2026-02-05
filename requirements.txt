@@ -259,7 +259,7 @@ uvicorn==0.40.0
     #   mcp
 websockets==16.0
     # via fastmcp
-wrapt==1.17.3
+wrapt==2.1.1
     # via opentelemetry-instrumentation
 zipp==3.23.0
     # via importlib-metadata
