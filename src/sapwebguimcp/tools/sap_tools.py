@@ -1871,12 +1871,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         try:
             # Get all title attributes via JavaScript - much more efficient than parsing HTML
-            titles: list[str] = await page.evaluate(
-                """() => {
+            titles: list[str] = await page.evaluate("""() => {
                     const elements = document.querySelectorAll('[title]');
                     return Array.from(elements).map(el => el.title);
-                }"""
-            )
+                }""")
 
             # Parse titles for shortcuts
             shortcuts: list[ShortcutInfo] = []
@@ -2302,30 +2300,26 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         """
         return await sap_session_open_impl(tcode, agent_id)
 
-    @mcp.tool(
-        description="""List all active SAP sessions.
+    @mcp.tool(description="""List all active SAP sessions.
 
 Returns session IDs, current transaction, and screen title for each.
 Use this to see what sessions exist before targeting one.
 
 Primary session ("s1") is created on sap_login().
 Additional sessions created via sap_session_open().
-"""
-    )
+""")
     async def sap_session_list() -> SessionListResult:
         """List all active sessions."""
         return await sap_session_list_impl()
 
-    @mcp.tool(
-        description="""Close a SAP session.
+    @mcp.tool(description="""Close a SAP session.
 
 Closes the browser tab and removes the session from the registry.
 Cannot close primary session ("s1") - use sap_login() to start fresh.
 
 Args:
     session_id: Session to close (e.g., "s2")
-"""
-    )
+""")
     async def sap_session_close(session_id: str) -> SessionCloseResult:
         """Close a specific session."""
         return await sap_session_close_impl(session_id)

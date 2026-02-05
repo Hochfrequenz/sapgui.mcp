@@ -395,8 +395,7 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
     try:
         result = await sap_mcp_client.call_tool(
             "browser_evaluate",
-            {
-                "script": """(() => {
+            {"script": """(() => {
                 const grid = document.querySelector('[role="grid"]');
                 if (grid) {
                     grid.scrollTop = 5000;
@@ -409,8 +408,7 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
                 }
                 window.scrollBy(0, 2000);
                 return 'scrolled window';
-            })()"""
-            },
+            })()"""},
         )
         text = _get_content_text(result.content[0])
         print(f"JS scroll result: {text[:200]}")
