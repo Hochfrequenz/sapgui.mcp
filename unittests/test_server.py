@@ -470,9 +470,10 @@ class TestMcpServer:
         """Test that session management tools are registered in FastMCP."""
         tool_names = [t.name for t in mcp._tool_manager._tools.values()]
 
-        assert "sap_session_open" in tool_names
         assert "sap_session_list" in tool_names
         assert "sap_session_close" in tool_names
+        assert "sap_session_bind" in tool_names
+        assert "sap_session_release" in tool_names
 
     def test_session_tools_in_capabilities(self) -> None:
         """Test that session tools appear in sap_get_capabilities response.
@@ -487,15 +488,17 @@ class TestMcpServer:
         tool_names = [t.name for t in mcp._tool_manager._tools.values()]
 
         # Session management tools must be discoverable
-        assert "sap_session_open" in tool_names, "sap_session_open not in capabilities"
         assert "sap_session_list" in tool_names, "sap_session_list not in capabilities"
         assert "sap_session_close" in tool_names, "sap_session_close not in capabilities"
 
         # Also verify sap_session_status (the status check tool) is there
         assert "sap_session_status" in tool_names, "sap_session_status not in capabilities"
 
+        # New sessions are created via sap_transaction(new_window=True), not a separate tool
+        assert "sap_session_open" not in tool_names, "sap_session_open should have been removed"
+
         # Verify the tools have proper descriptions (not empty)
-        for tool_name in ["sap_session_open", "sap_session_list", "sap_session_close"]:
+        for tool_name in ["sap_session_list", "sap_session_close"]:
             tool = mcp._tool_manager._tools[tool_name]
             assert tool.description, f"{tool_name} has empty description"
             assert len(tool.description) > 20, f"{tool_name} description too short"

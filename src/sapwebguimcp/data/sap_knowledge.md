@@ -201,27 +201,32 @@ For bulk operations (create 100 business partners, process many orders, etc.), y
 
 ### Session Management Tools
 
-| Tool                  | Purpose                                      |
-| --------------------- | -------------------------------------------- |
-| `sap_session_open()`  | Open a new SAP session, returns `session_id` |
-| `sap_session_list()`  | List all active sessions with IDs and titles |
-| `sap_session_close()` | Close a specific session by ID               |
+| Tool                                      | Purpose                                                         |
+| ----------------------------------------- | --------------------------------------------------------------- |
+| `sap_transaction(tcode, new_window=True)` | Open a new SAP session with a transaction, returns `session_id` |
+| `sap_session_list()`                      | List all active sessions with IDs and titles                    |
+| `sap_session_close()`                     | Close a specific session by ID                                  |
+| `sap_session_bind(session_id, agent_id)`  | Bind a session to an agent for parallel workflows               |
 
 ### Workflow Example
 
 ```python
 # Parent agent creates sessions for 3 parallel sub-agents
-session1 = sap_session_open()  # Returns {"session_id": "s2"}
-session2 = sap_session_open()  # Returns {"session_id": "s3"}
-session3 = sap_session_open()  # Returns {"session_id": "s4"}
+sap_transaction("BP", new_window=True)  # Returns session_id="s2"
+sap_session_bind(session_id="s2", agent_id="subagent-1")
+
+sap_transaction("BP", new_window=True)  # Returns session_id="s3"
+sap_session_bind(session_id="s3", agent_id="subagent-2")
+
+sap_transaction("BP", new_window=True)  # Returns session_id="s4"
+sap_session_bind(session_id="s4", agent_id="subagent-3")
 
 # Spawn sub-agents with session assignment:
-# "Your SAP session is 's2'. Pass session='s2' to ALL SAP/browser tools."
+# "Your SAP session is 's2'. Pass session='s2' and agent_id='subagent-1' to ALL SAP/browser tools."
 
 # Each sub-agent works independently:
-sap_transaction("BP", session="s2")
-sap_fill_form({"Name": "Customer 1"}, session="s2")
-sap_keyboard("F8", session="s2")  # Execute
+sap_fill_form({"Name": "Customer 1"}, session="s2", agent_id="subagent-1")
+sap_keyboard("F8", session="s2", agent_id="subagent-1")  # Execute
 ```
 
 ### Tools Supporting `session` Parameter

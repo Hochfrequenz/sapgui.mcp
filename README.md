@@ -227,11 +227,12 @@ Add this to the `.mcp.json` configuration file that Claude Code uses for this pr
     }
 }
 ```
+
 Then start Claude code:
+
 ```powershell
 claude
 ```
-
 
 ### Step 4: Start chatting
 

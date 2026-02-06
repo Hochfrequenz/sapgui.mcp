@@ -98,7 +98,8 @@ class SessionRegistry:
             self._page_to_session.pop(page, None)
             self._bindings.pop(sid, None)  # Clear binding
             raise ValueError(
-                f"Session '{sid}' expired (tab closed). " "Use sap_session_open() to create a new session."
+                f"Session '{sid}' expired (tab closed). "
+                "Use sap_transaction(tcode, new_window=True) to create a new session."
             )
 
         return page

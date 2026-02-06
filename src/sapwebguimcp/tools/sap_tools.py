@@ -57,7 +57,6 @@ from sapwebguimcp.models import (
     SessionBindResult,
     SessionCloseResult,
     SessionListResult,
-    SessionOpenResult,
     SessionReleaseResult,
     SessionStatus,
     SetFieldResult,
@@ -77,7 +76,6 @@ from sapwebguimcp.tools.session_tools import (
     sap_session_bind_impl,
     sap_session_close_impl,
     sap_session_list_impl,
-    sap_session_open_impl,
     sap_session_release_impl,
 )
 from sapwebguimcp.utils import is_sap_shortcut
@@ -2275,38 +2273,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     # Session Management Tools
     # =========================================================================
 
-    @mcp.tool(
-        description=(
-            "Open a new SAP session (browser tab). Each session can run "
-            "independently. Use agent_id for parallel agent workflows to "
-            "prevent cross-session interference."
-        )
-    )
-    async def sap_session_open(
-        tcode: str | None = None,
-        agent_id: str | None = None,
-    ) -> SessionOpenResult:
-        """
-        Open a new SAP session (browser tab).
-
-        Args:
-            tcode: Optional transaction to open in new session
-            agent_id: Optional identifier for the agent claiming this session.
-                      When set, other agents using this session trigger warnings.
-                      Use for parallel agent workflows to prevent cross-talk.
-
-        Returns:
-            SessionOpenResult with new session_id and binding info
-        """
-        return await sap_session_open_impl(tcode, agent_id)
-
     @mcp.tool(description="""List all active SAP sessions.
 
 Returns session IDs, current transaction, and screen title for each.
 Use this to see what sessions exist before targeting one.
 
 Primary session ("s1") is created on sap_login().
-Additional sessions created via sap_session_open().
+Additional sessions created via sap_transaction(tcode, new_window=True).
 """)
     async def sap_session_list() -> SessionListResult:
         """List all active sessions."""

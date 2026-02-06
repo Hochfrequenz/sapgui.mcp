@@ -121,23 +121,6 @@ class TestSessionToolsUnit:
         assert result.remaining_sessions == 1
 
     @pytest.mark.anyio
-    async def test_sap_session_open_no_primary_session(self) -> None:
-        """Test sap_session_open fails when no primary session exists."""
-        from sapwebguimcp.tools.session_tools import sap_session_open_impl
-
-        registry = SessionRegistry()
-
-        with patch("sapwebguimcp.tools.session_tools.get_browser_manager") as mock_get_bm:
-            mock_manager = MagicMock()
-            mock_manager.registry = registry
-            mock_get_bm.return_value = mock_manager
-
-            result = await sap_session_open_impl()
-
-        assert result.success is False
-        assert "primary" in result.error.lower() or "sap_login" in result.error.lower()
-
-    @pytest.mark.anyio
     async def test_sap_session_list_session_info_fields(self) -> None:
         """Test that session_list returns proper SessionInfo fields."""
         from sapwebguimcp.tools.session_tools import sap_session_list_impl

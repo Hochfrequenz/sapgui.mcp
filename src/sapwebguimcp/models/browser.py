@@ -140,7 +140,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         # No session and no legacy page - this is an error
         raise ValueError(
             "No session available. Call sap_login() first to create a session, "
-            "or use sap_session_open() to create additional sessions."
+            "or use sap_transaction(tcode, new_window=True) to create additional sessions."
         )
 
     async def get_or_create_session_page(self, session_id: str | None) -> Page:
