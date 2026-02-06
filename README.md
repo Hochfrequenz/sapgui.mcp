@@ -183,7 +183,7 @@ Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
 Replace:
 
 - `YourUsername` with your Windows username
-- `your_username` / `your_password` with your SAP credentials
+- `your_username` / `your_password` with your SAP credentials. Make sure the password contains now characters that cause problems (quotes, backslashes...) or address them by properly escaping them (tbh: I don't know how).
 - `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) with `repo` scope (optional - only needed for `log_feedback` to create issues)
 
 #### Option B: Claude Code
@@ -243,7 +243,7 @@ Restart Claude Desktop/Code and try:
 - "Take a screenshot"
 
 If it tries e.g. to start a dev-browser or _install_ Chrome, cancel and try to be explicit "log me into sap using the sap web gui mcp".
-If Docker Desktop isn't running, you might get a nonspecific error "1 MCP server failed · /mcp".
+If Docker Desktop isn't running or you're not logged in (`docker login ghcr.io`) and never pulled the image, you might get a nonspecific error "1 MCP server failed · /mcp".
 If the containers started but Chrome (in browser automation mode with CDP enabled) is missing, Claude will likely understand how to login but fail on the first tool call.
 
 ## Development Setup
