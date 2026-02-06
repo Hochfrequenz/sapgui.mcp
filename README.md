@@ -243,6 +243,14 @@ Restart Claude Desktop/Code and try:
 
 If it tries e.g. to start a dev-browser or _install_ Chrome, cancel and try to be explicit "log me into sap using the sap web gui mcp".
 If Docker Desktop isn't running or you're not logged in (`docker login ghcr.io`) and never pulled the image, you might get a nonspecific error "1 MCP server failed · /mcp".
+
+> [!WARNING]
+> You need to be logged in to GHCR.io. It is _not_ sufficient to be logged in in docker only (different account).
+
+Try pulling manually if you run into errors:
+```powershell
+docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
+```
 If the containers started but Chrome (in browser automation mode with CDP enabled) is missing, Claude will likely understand how to login but fail on the first tool call.
 
 ## Development Setup
