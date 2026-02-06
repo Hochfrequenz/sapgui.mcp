@@ -183,7 +183,7 @@ Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
 Replace:
 
 - `YourUsername` with your Windows username
-- `your_username` / `your_password` with your SAP credentials
+- `your_username` / `your_password` with your SAP credentials. Make sure the password contains now characters that cause problems (quotes, backslashes...) or address them by properly escaping them (tbh: I don't know how).
 - `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) with `repo` scope (optional - only needed for `log_feedback` to create issues)
 
 #### Option B: Claude Code
