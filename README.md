@@ -245,7 +245,7 @@ If it tries e.g. to start a dev-browser or _install_ Chrome, cancel and try to b
 If Docker Desktop isn't running or you're not logged in (`docker login ghcr.io`) and never pulled the image, you might get a nonspecific error "1 MCP server failed · /mcp".
 
 > [!WARNING]
-> You need to be logged in to GHCR.io. It is _not_ sufficient to be logged in in docker only (different account).
+> You need to be logged in to the GitHub Container Registry (`ghcr.io`). Being logged in to Docker (for example Docker Hub) alone is _not_ sufficient; you must run `docker login ghcr.io`.
 
 Try pulling manually if you run into errors:
 ```powershell
