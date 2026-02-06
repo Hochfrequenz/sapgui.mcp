@@ -90,17 +90,6 @@ class SessionInfo(BaseModel):
     agent_id: str | None = Field(default=None, description="Agent bound to this session, if any")
 
 
-class SessionOpenResult(ToolResult):
-    """Result from sap_session_open tool."""
-
-    session_id: str | None = Field(
-        default=None, description="ID of the new session (e.g., 's2'). Pass to other tools via session= parameter."
-    )
-    tcode: str | None = Field(default=None, description="Transaction opened in new session, if requested")
-    agent_id: str | None = Field(default=None, description="Agent bound to this session, if specified")
-    session_count: int = Field(default=1, ge=1, description="Total active sessions after opening")
-
-
 class SessionListResult(ToolResult):
     """Result from sap_session_list tool."""
 

@@ -438,23 +438,6 @@ class TestSessionModels:
         assert info.tcode == "VA01"
         assert info.is_primary is True
 
-    def test_session_open_result_success(self) -> None:
-        """Test SessionOpenResult for successful session creation."""
-        from sapwebguimcp.models import SessionOpenResult
-
-        result = SessionOpenResult(session_id="s2", tcode="MM01", session_count=2)
-        assert result.success is True
-        assert result.session_id == "s2"
-        assert result.session_count == 2
-
-    def test_session_open_result_failure(self) -> None:
-        """Test SessionOpenResult.failure() factory."""
-        from sapwebguimcp.models import SessionOpenResult
-
-        result = SessionOpenResult.failure("SAP session limit reached")
-        assert result.success is False
-        assert "limit" in result.error
-
     def test_session_list_result(self) -> None:
         """Test SessionListResult with multiple sessions."""
         from sapwebguimcp.models import SessionInfo, SessionListResult

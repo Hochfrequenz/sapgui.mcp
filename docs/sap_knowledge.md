@@ -18,8 +18,11 @@ If you're dispatching subagents to work in parallel:
 1. **Open dedicated sessions for each subagent:**
 
     ```
-    sap_session_open(agent_id="subagent-orders")  # Returns session_id="s2"
-    sap_session_open(agent_id="subagent-materials")  # Returns session_id="s3"
+    sap_transaction("SE00", new_window=True)  # Returns session_id="s2"
+    sap_session_bind(session_id="s2", agent_id="subagent-orders")
+
+    sap_transaction("SE00", new_window=True)  # Returns session_id="s3"
+    sap_session_bind(session_id="s3", agent_id="subagent-materials")
     ```
 
 2. **Tell each subagent its session and agent_id:**

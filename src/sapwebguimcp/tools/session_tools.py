@@ -7,13 +7,11 @@ from sapwebguimcp.models import (
     SessionCloseResult,
     SessionInfo,
     SessionListResult,
-    SessionOpenResult,
     SessionReleaseResult,
     get_browser_manager,
 )
 
 __all__ = [
-    "sap_session_open_impl",
     "sap_session_list_impl",
     "sap_session_close_impl",
     "sap_session_bind_impl",
@@ -21,67 +19,6 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-
-
-async def sap_session_open_impl(
-    tcode: str | None = None,
-    agent_id: str | None = None,
-) -> SessionOpenResult:
-    """Create a new SAP session via /o command.
-
-    Args:
-        tcode: Optional transaction to open in new session
-        agent_id: Optional agent identifier for binding
-
-    Returns:
-        SessionOpenResult with new session_id
-    """
-    try:
-        manager = await get_browser_manager()
-        registry = manager.registry
-
-        # Get primary session page to execute /o command
-        if not registry.has_session("s1"):
-            return SessionOpenResult.failure("No primary session. Call sap_login() first.")
-
-        primary_page = registry.get_page("s1")
-        context = primary_page.context
-
-        # Count pages before
-        pages_before = len(context.pages)
-
-        # Execute /o or /o<tcode> to open new session
-        ok_code_field = await primary_page.query_selector("#ToolbarOkCode")
-        if not ok_code_field:
-            return SessionOpenResult.failure("Could not find OK code field")
-
-        command = f"/o{tcode}" if tcode else "/o"
-        await ok_code_field.fill(command)
-        await primary_page.keyboard.press("Enter")
-
-        # Wait for new tab
-        await primary_page.wait_for_timeout(2000)
-
-        # Check for new page
-        if len(context.pages) <= pages_before:
-            return SessionOpenResult.failure(
-                "SAP session limit reached (typically 6 per user). " + "Close unused sessions with sap_session_close()."
-            )
-
-        # Register new page (with optional binding)
-        new_page = context.pages[-1]
-        session_id = registry.register(new_page, agent_id=agent_id)
-
-        return SessionOpenResult(
-            session_id=session_id,
-            tcode=tcode,
-            agent_id=agent_id,
-            session_count=len(registry.list_sessions()),
-        )
-
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error opening new session")
-        return SessionOpenResult.failure(f"Error opening session: {e}")
 
 
 async def sap_session_list_impl() -> SessionListResult:
