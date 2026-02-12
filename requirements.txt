@@ -44,7 +44,7 @@ colorama==0.4.6
     # via click
 croniter==6.0.0
     # via pydocket
-cryptography==46.0.4
+cryptography==46.0.5
     # via
     #   authlib
     #   pyjwt
