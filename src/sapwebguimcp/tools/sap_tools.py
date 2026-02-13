@@ -2139,7 +2139,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 for err in batch_result.get("errors", []):
                     processed.errors.append(FieldFillError(field=err["field"], error=err["error"]))
                 if batch_result.get("debug"):
-                    logger.warning("Fill form debug output", extra={"debug": batch_result.get("debug")})
+                    logger.debug("Fill form debug output", extra={"debug": batch_result.get("debug")})
 
             # In strict mode, fail if any field was not found
             if strict and processed.not_found:

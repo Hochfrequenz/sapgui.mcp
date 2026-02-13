@@ -158,7 +158,7 @@ async def _type_table_name_with_validation(page: Any, table: str) -> str | None:
                 await sap_keyboard_impl("Enter")
                 return None
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.warning("Error typing in table field", extra={"field": textbox_name, "error": str(e)})
+            logger.warning("Typing in table field", extra={"field": textbox_name, "error": str(e)})
 
     # Fallback to fill_form approach
     if fill_error := await _fill_se16n_table_name(table):
