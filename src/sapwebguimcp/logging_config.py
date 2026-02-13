@@ -171,6 +171,8 @@ def configure_logging() -> None:
 
     root = logging.getLogger()
     # Only replace exact StreamHandlers; preserve subclasses (e.g., FileHandler)
-    root.handlers = [h for h in root.handlers if type(h) is not logging.StreamHandler]
+    root.handlers = [  # pylint: disable=unidiomatic-typecheck
+        h for h in root.handlers if type(h) is not logging.StreamHandler
+    ]
     root.addHandler(handler)
     root.setLevel(level)
