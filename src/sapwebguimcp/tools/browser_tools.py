@@ -133,7 +133,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
             return SnapshotResult(snapshot=snapshot, selector=selector)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error getting snapshot")
+            logger.exception("Getting snapshot")
             return SnapshotResult.failure(f"Error getting snapshot: {e}", selector=selector)
 
     @mcp.tool(
@@ -192,7 +192,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             # Return native MCP Image instead of base64 string to reduce token usage
             return Image(data=screenshot, format="png")
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error taking screenshot")
+            logger.exception("Taking screenshot")
             return ScreenshotResult.failure(
                 f"Error taking screenshot: {e}",
                 full_page=full_page,
@@ -235,7 +235,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             await page.wait_for_load_state("networkidle", timeout=15000)
             return ClickResult(selector=selector)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error clicking element")
+            logger.exception("Clicking element")
             return ClickResult.failure(f"Error clicking {selector}: {e}", selector=selector)
 
     @mcp.tool(
@@ -275,7 +275,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             await page.fill(escaped_selector, value)
             return FillResult(selector=selector, value=value)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error filling element")
+            logger.exception("Filling element")
             return FillResult.failure(f"Error filling {selector}: {e}", selector=selector, value=value)
 
     @mcp.tool(
@@ -320,7 +320,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                 return BrowserKeyboardResult(text=text)
             return BrowserKeyboardResult.failure("Either 'key' or 'text' parameter required")
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error sending keyboard input")
+            logger.exception("Sending keyboard input")
             return BrowserKeyboardResult.failure(f"Error with keyboard input: {e}", key=key, text=text)
 
     @mcp.tool(
@@ -357,7 +357,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             title = await page.title()
             return NavigateResult(url=url, title=title)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error navigating")
+            logger.exception("Navigating")
             return NavigateResult.failure(f"Error navigating to {url}: {e}", url=url)
 
     @mcp.tool(
@@ -399,7 +399,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                 script_snippet=script_snippet,
             )
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error evaluating script")
+            logger.exception("Evaluating script")
             return EvaluateResult.failure(f"Error executing script: {e}", script_snippet=script_snippet)
 
     @mcp.tool(
@@ -449,7 +449,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             await page.wait_for_timeout(timeout)
             return WaitResult(timeout=timeout_td)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error waiting")
+            logger.exception("Waiting")
             return WaitResult.failure(f"Error waiting: {e}", selector=selector, state=state, timeout=timeout_td)
 
     @mcp.tool(
@@ -503,7 +503,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             html_bytes = html.encode("utf-8")
             if len(html_bytes) > _HTML_SIZE_THRESHOLD_BYTES:
                 size_kb = len(html_bytes) / 1024
-                logger.debug("HTML size %.1fKB exceeds threshold, returning as File", size_kb)
+                logger.debug("HTML exceeds threshold, returning as file", extra={"size_kb": round(size_kb, 1)})
                 metadata = (
                     f"HTML content returned as file (size: {size_kb:.1f}KB). "
                     f"Selector: {selector or 'full page'}, outer: {outer}"
@@ -515,7 +515,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
             return HtmlResult(html=html, selector=selector, outer=outer)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error getting HTML")
+            logger.exception("Getting HTML")
             return HtmlResult.failure(f"Error getting HTML: {e}", selector=selector, outer=outer)
 
     @mcp.tool(
@@ -567,7 +567,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                 selector=selector,
             )
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error selecting option")
+            logger.exception("Selecting option")
             return SelectOptionResult.failure(
                 f"Error selecting option: {e}",
                 selector=selector,
