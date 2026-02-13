@@ -14,6 +14,7 @@ from fastmcp import FastMCP
 from fastmcp.server.middleware.logging import LoggingMiddleware
 
 from sapwebguimcp.loghandlers import IntentFileHandler
+from sapwebguimcp.logging_config import configure_logging
 from sapwebguimcp.middleware import ToolCallLoggingMiddleware
 from sapwebguimcp.models import close_browser_manager
 from sapwebguimcp.models.config import get_settings
@@ -40,10 +41,7 @@ from sapwebguimcp.tools import (
 __all__ = ["main", "mcp"]
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+configure_logging()
 logger = logging.getLogger(__name__)
 
 # Get settings for handler configuration
