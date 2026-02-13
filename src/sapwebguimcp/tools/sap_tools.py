@@ -1333,7 +1333,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         if result.get("success"):
                             field.options = result.get("options", [])
                     except Exception as dropdown_err:  # pylint: disable=broad-exception-caught
-                        logger.warning("Getting dropdown options", extra={"field_id": field.id, "error": str(dropdown_err)})
+                        logger.warning(
+                            "Getting dropdown options", extra={"field_id": field.id, "error": str(dropdown_err)}
+                        )
 
                 fields.append(field)
 

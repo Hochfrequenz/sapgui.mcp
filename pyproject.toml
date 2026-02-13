@@ -122,3 +122,6 @@ sources = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["unittests"]
+log_cli = true
+log_cli_level = "INFO"
+log_format = "%(asctime)s %(levelname)-5s %(name)s  %(message)s"

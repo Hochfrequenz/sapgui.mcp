@@ -194,7 +194,9 @@ async def scrape_table_catalog(
 
         for table_name in batch:
             stats["processed"] += 1
-            logger.info("SE11 lookup", extra={"processed": stats["processed"], "total": len(to_scrape), "table": table_name})
+            logger.info(
+                "SE11 lookup", extra={"processed": stats["processed"], "total": len(to_scrape), "table": table_name}
+            )
 
             try:
                 result = await _lookup_table_se11(table_name)
