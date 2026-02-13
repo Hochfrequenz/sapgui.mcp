@@ -14,6 +14,7 @@ This recipe describes the full ABAP development lifecycle: write code locally wi
 - This MCP server added to Claude Code configuration
 - abapGit installed in the SAP system (see [abapGit docs](https://docs.abapgit.org/user-guide/getting-started/install.html))
 - A Git repository linked to an ABAP package via abapGit
+- The report [Z_ABAPGIT_PULL](https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY/blob/main/src/z_abapgit_pull.prog.abap) installed in SAP -- this is required for the `sap_abapgit_pull` tool. The abapGit UI is too complex for browser automation, so this report provides a simple API to pull without clicking through the UI.
 - Claude Code opened in the local repository directory
 
 ## The Workflow
@@ -28,13 +29,17 @@ Commit and push your changes to the Git repository.
 
 ### Step 3: Pull Changes into SAP via abapGit
 
-**Option A: Use the API tool (if available)**
+**Option A: Use the API tool (recommended)**
+
+This requires the `Z_ABAPGIT_PULL` report (see Prerequisites). It pulls without navigating the abapGit UI, which is much faster and more reliable.
 
 ```
 sap_abapgit_pull(repo="YOUR_REPO_NAME")
 ```
 
-**Option B: Pull manually in SAP**
+**Option B: Pull manually in SAP (slow, not recommended)**
+
+The abapGit UI is complex and hard to automate via browser. Only use this as a fallback if `Z_ABAPGIT_PULL` is not installed.
 
 1. Open abapGit in SAP:
 
