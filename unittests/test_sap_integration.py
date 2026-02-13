@@ -1261,8 +1261,6 @@ async def test_bp_org_form_snapshot(sap_mcp_client: ClientSession) -> None:
     Opens the BP transaction and presses F6 to create an organisation.
     Saves the snapshot so unit tests can verify field labels used in prompts.
     """
-    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
-
     await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "BP"}, TransactionResult)
@@ -1280,11 +1278,8 @@ async def test_bp_org_form_snapshot(sap_mcp_client: ClientSession) -> None:
     # Wait for SAP backend to process and return form HTML
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
-    # Wait for org-specific label ("Name 1" in DE and EN)
-    if sap_language == "DE":
-        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Name 1')", "timeout": 15000})
-    else:
-        await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Name 1')", "timeout": 15000})
+    # Wait for org-specific label ("Name 1" is the same in DE and EN)
+    await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Name 1')", "timeout": 15000})
 
     # Allow all label-input lsdata associations to be populated
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
