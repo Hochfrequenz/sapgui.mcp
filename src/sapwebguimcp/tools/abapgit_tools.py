@@ -107,10 +107,10 @@ async def _check_for_error_popup(page: Page) -> str | None:
                         and line.strip().lower() not in ("ok", "cancel", "abbrechen", "ja", "nein", "yes", "no")
                     ]
                     if message_lines:
-                        logger.info("Found error popup: %s", message_lines[0])
+                        logger.info("Found error popup", extra={"popup_message": message_lines[0]})
                         return " ".join(message_lines)
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.debug("Error checking for popup: %s", e)
+        logger.debug("Checking for popup", extra={"error": str(e)})
     return None
 
 
@@ -127,11 +127,11 @@ async def _check_screen_for_errors(page: Page) -> str | None:
                 end = min(len(body_text), idx + 150)
                 context = " ".join(body_text[start:end].split())
                 if context:
-                    logger.info("Found error on screen: %s", context[:100])
+                    logger.info("Found error on screen", extra={"context": context[:100]})
                     return context
                 return message_prefix
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.debug("Error checking screen for errors: %s", e)
+        logger.debug("Checking screen for errors", extra={"error": str(e)})
     return None
 
 
@@ -262,7 +262,7 @@ async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
     msg_type = status.type or ""
     msg_lower = msg.lower()
 
-    logger.info("Pull result - status type: %s, message: %s", msg_type, msg)
+    logger.info("Pull result", extra={"status_type": msg_type, "status_message": msg})
 
     # Check for explicit success or error on first read
     is_success = "pull successful" in msg_lower or ("successful" in msg_lower and msg_type in ("S", "I"))
@@ -279,7 +279,7 @@ async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
     final_msg = status.message or msg
     final_type = status.type or msg_type
     final_lower = final_msg.lower()
-    logger.info("Final status check - type: %s, message: %s", final_type, final_msg)
+    logger.info("Final status check", extra={"status_type": final_type, "status_message": final_msg})
 
     # Check final status
     is_final_success = "pull successful" in final_lower
@@ -369,7 +369,7 @@ async def _abapgit_pull_via_api(
     pat: str | None,
 ) -> AbapGitActionResult:
     """Pull changes using the Z_ABAPGIT_PULL transaction (abapGit ABAP API)."""
-    logger.info("Starting abapGit Pull via API for repo: %s", repo)
+    logger.info("Starting abapGit Pull via API", extra={"repo": repo})
 
     browser_manager = await get_browser_manager()
     page = await browser_manager.get_page()
@@ -386,11 +386,8 @@ async def _abapgit_pull_via_api(
         params = params_result
 
         logger.info(
-            "Calling transaction with params: repo=%s, trkorr=%s, user=%s, has_pat=%s",
-            params.repo,
-            params.trkorr,
-            params.username,
-            bool(params.pat),
+            "Calling transaction with params",
+            extra={"repo": params.repo, "trkorr": params.trkorr, "user": params.username, "has_pat": bool(params.pat)},
         )
 
         # Execute transaction
@@ -406,7 +403,7 @@ async def _abapgit_pull_via_api(
         return await _analyze_pull_result(page, repo)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error during abapGit pull via API")
+        logger.exception("abapGit pull via API", extra={"repo": repo})
         return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=str(e))
 
 
@@ -429,7 +426,7 @@ async def _fill_se38_program_field(page: Page, program_name: str) -> bool:
             locator = page.locator(selector).first
             if await locator.is_visible(timeout=500):
                 await locator.fill(program_name)
-                logger.info("Filled program name using selector: %s", selector)
+                logger.info("Filled program name", extra={"selector": selector})
                 return True
         except Exception:  # pylint: disable=broad-exception-caught
             continue
@@ -445,7 +442,7 @@ async def _fill_se38_program_field(page: Page, program_name: str) -> bool:
             logger.info("Filled program name using sap_fill_form")
             return True
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.warning("sap_fill_form fallback failed: %s", e)
+        logger.warning("sap_fill_form fallback failed", extra={"error": str(e)})
 
     return False
 
@@ -532,7 +529,7 @@ async def _read_source_from_main_document(page: Page) -> str | None:
             for el in elements:
                 text = await el.inner_text()
                 if _is_actual_abap_source(text):
-                    logger.debug("Found source in selector: %s", selector)
+                    logger.debug("Found source in selector", extra={"selector": selector})
                     return text
     except Exception:  # pylint: disable=broad-exception-caught
         pass
@@ -556,7 +553,7 @@ async def _read_source_from_main_document(page: Page) -> str | None:
                 if is_code_line:
                     code_lines.append(text)
         if code_lines:
-            logger.debug("Found code lines in table cells: %d", len(code_lines))
+            logger.debug("Found code lines in table cells", extra={"count": len(code_lines)})
             return "\n".join(code_lines)
     except Exception:  # pylint: disable=broad-exception-caught
         pass
@@ -597,10 +594,10 @@ async def _read_source_via_javascript(page: Page) -> str | None:
     try:
         result: str | None = await page.evaluate(js_code)
         if result:
-            logger.info("Found source via JavaScript search: %d chars", len(result))
+            logger.info("Found source via JavaScript search", extra={"chars": len(result)})
             return result
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.debug("JavaScript source search failed: %s", e)
+        logger.debug("JavaScript source search failed", extra={"error": str(e)})
     return None
 
 
@@ -623,10 +620,10 @@ async def _try_direct_se38_selectors(page: Page) -> str | None:
                 if not text or len(text) < 20:
                     text = await el.evaluate("el => el.value || el.textContent || el.innerText")
                 if text and len(text) > 20:
-                    logger.info("Found source via SE38 selector %s (%d chars)", selector, len(text))
+                    logger.info("Found source via SE38 selector", extra={"selector": selector, "chars": len(text)})
                     return text
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.debug("SE38 direct selector failed: %s", e)
+        logger.debug("SE38 direct selector failed", extra={"error": str(e)})
     return None
 
 
@@ -650,17 +647,17 @@ async def _navigate_to_se38(page: Page) -> str | None:
 
 async def _find_source_code(page: Page) -> str | None:
     """Try various methods to find source code on the page."""
-    logger.info("Trying direct SE38 source selector...")
+    logger.info("Trying direct SE38 source selector")
     source_code = await _try_direct_se38_selectors(page)
 
     if not source_code:
-        logger.info("Looking for source code in iframes...")
+        logger.info("Looking for source code in iframes")
         source_code = await _read_source_from_iframes(page)
     if not source_code:
-        logger.info("No source in iframes, trying main document...")
+        logger.info("No source in iframes, trying main document")
         source_code = await _read_source_from_main_document(page)
     if not source_code:
-        logger.info("No source in main document, trying JavaScript search...")
+        logger.info("No source in main document, trying JavaScript search")
         source_code = await _read_source_via_javascript(page)
 
     return source_code if source_code and _is_actual_abap_source(source_code) else None
@@ -684,12 +681,12 @@ async def read_se38_source(program_name: str) -> dict[str, Any]:
             return {"success": False, "error": "Could not find program input field"}
 
         # Press F7 (Display) and handle entry screen
-        logger.info("Pressing F7 to display source code...")
+        logger.info("Pressing F7 to display source code")
         await page.keyboard.press("F7")
         await page.wait_for_timeout(3000)
 
         page_title = await page.title()
-        logger.info("Page title after F7: %s", page_title)
+        logger.info("Page title after F7", extra={"title": page_title})
         if "Einstieg" in page_title or "Entry" in page_title:
             await page.keyboard.press("Enter")
             await page.wait_for_timeout(2000)
@@ -701,10 +698,10 @@ async def read_se38_source(program_name: str) -> dict[str, Any]:
         source_code = await _find_source_code(page)
 
         if source_code:
-            logger.info("Found valid ABAP source code (%d chars)", len(source_code))
+            logger.info("Found valid ABAP source code", extra={"chars": len(source_code)})
             return {"success": True, "source_code": source_code, "program_name": program_name}
 
-        logger.warning("No ABAP source code found. Returning body text.")
+        logger.warning("No ABAP source code found, returning body text")
         body_text = await page.inner_text("body")
         return {
             "success": True,
@@ -714,7 +711,7 @@ async def read_se38_source(program_name: str) -> dict[str, Any]:
         }
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.error("SE38 read failed: %s: %s", type(e).__name__, e)
+        logger.error("SE38 read failed", extra={"error_type": type(e).__name__, "error": str(e)})
         return {"success": False, "error": str(e)}
 
 

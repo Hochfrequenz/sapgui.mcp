@@ -77,7 +77,7 @@ async def _execute_workflow_run(  # pylint: disable=too-many-locals
                 total=len(items),
             )
         # Other errors during test - log but continue (might be transient)
-        _logger.warning("Sampling test failed with unexpected error: %s", error_str)
+        _logger.warning("Sampling test failed with unexpected error", extra={"error": error_str})
 
     results: list[str] = []
     errors: list[WorkflowError] = []
@@ -94,10 +94,12 @@ async def _execute_workflow_run(  # pylint: disable=too-many-locals
                 tools=get_sampling_tools(),
             )
             results.append(result.text or f"Item {i + 1} completed")
-            _logger.info("Workflow item %d/%d: %s", i + 1, len(items), results[-1][:100])
+            _logger.info(
+                "Workflow item completed", extra={"item": i + 1, "total": len(items), "result": results[-1][:100]}
+            )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            _logger.warning("Workflow item %d/%d failed: %s", i + 1, len(items), e)
+            _logger.warning("Workflow item failed", extra={"item": i + 1, "total": len(items), "error": str(e)})
             item_summary = ", ".join(f"{k}={v}" for k, v in list(item.items())[:3])
             errors.append(
                 WorkflowError(
@@ -109,11 +111,8 @@ async def _execute_workflow_run(  # pylint: disable=too-many-locals
     await ctx.report_progress(progress=len(items), total=len(items))
 
     _logger.info(
-        "Workflow '%s' completed: %d/%d succeeded, %d failed",
-        name,
-        len(results),
-        len(items),
-        len(errors),
+        "Workflow completed",
+        extra={"workflow": name, "succeeded": len(results), "total": len(items), "failed": len(errors)},
     )
 
     return WorkflowRunResult(
@@ -217,7 +216,7 @@ def register_workflow_tools(mcp: FastMCP) -> None:
             workflows = load_all_workflows()
             return WorkflowListResult(workflows=workflows)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            _logger.exception("Error listing workflows")
+            _logger.exception("Listing workflows")
             return WorkflowListResult.failure(f"Error listing workflows: {e}")
 
     @mcp.tool(
@@ -250,11 +249,11 @@ def register_workflow_tools(mcp: FastMCP) -> None:
             )
 
             path = save_workflow(workflow)
-            _logger.info("Saved workflow '%s' to %s", workflow_input.name, path)
+            _logger.info("Saved workflow", extra={"workflow": workflow_input.name, "path": str(path)})
 
             return WorkflowSaveResult(name=workflow_input.name, path=str(path))
         except Exception as e:  # pylint: disable=broad-exception-caught
-            _logger.exception("Error saving workflow")
+            _logger.exception("Saving workflow", extra={"workflow": workflow_input.name})
             return WorkflowSaveResult.failure(f"Error saving workflow: {e}", name=workflow_input.name, path="")
 
     @mcp.tool(
@@ -309,7 +308,7 @@ def register_workflow_tools(mcp: FastMCP) -> None:
         if error:
             return WorkflowSubmitResult.failure(f"Failed to create GitHub issue: {error}", name=name)
 
-        _logger.info("Submitted workflow '%s' as GitHub issue: %s", name, issue_url)
+        _logger.info("Submitted workflow", extra={"workflow": name, "issue_url": issue_url})
 
         return WorkflowSubmitResult(name=name, issue_url=issue_url)
 
@@ -330,7 +329,7 @@ def register_workflow_tools(mcp: FastMCP) -> None:
 
         # Try to delete
         if delete_workflow(name):
-            _logger.info("Deleted workflow '%s'", name)
+            _logger.info("Deleted workflow", extra={"workflow": name})
             return WorkflowDeleteResult(name=name)
 
         return WorkflowDeleteResult.failure(f"Workflow '{name}' not found in user workflows.", name=name)

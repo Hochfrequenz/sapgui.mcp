@@ -155,7 +155,7 @@ async def _keepalive_loop(browser_manager: BrowserManager, interval: int) -> Non
         browser_manager: The browser manager instance
         interval: Seconds between keepalive actions
     """
-    logger.info("Keepalive task started with interval %d seconds", interval)
+    logger.info("Keepalive task started", extra={"interval_s": interval})
 
     while True:
         try:
@@ -164,19 +164,19 @@ async def _keepalive_loop(browser_manager: BrowserManager, interval: int) -> Non
             page = await browser_manager.get_current_page()
 
             if page.is_closed():
-                logger.warning("Keepalive: Page is closed, stopping keepalive")
+                logger.warning("Keepalive page closed, stopping")
                 break
 
             # Perform a harmless action - evaluate JS to keep connection alive
             await page.evaluate("() => { /* keepalive ping */ }")
 
-            logger.info("Keepalive ping sent")
+            logger.info("Keepalive ping sent successfully")
 
         except asyncio.CancelledError:
-            logger.info("Keepalive task cancelled")
+            logger.info("Keepalive task cancelled successfully")
             break
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.warning("Keepalive error (will retry): %s", e)
+            logger.warning("Keepalive error, will retry", extra={"error": str(e)})
 
 
 async def _start_keepalive(interval_seconds: int = 300) -> KeepaliveResult:
@@ -399,7 +399,7 @@ async def _wait_for_new_page(context: Any, pages_before: int, timeout_ms: int = 
         await asyncio.sleep(poll_interval_s)
 
     elapsed_ms = int((time.monotonic() - start_time) * 1000)
-    logger.debug("New browser tab detected after %dms", elapsed_ms)
+    logger.debug("New browser tab detected", extra={"elapsed_ms": elapsed_ms})
     return True
 
 
@@ -440,17 +440,17 @@ async def _register_new_window_session(
         new_page = pages[-1]
         registry = browser_manager.registry
         new_session_id = registry.register(new_page)
-        logger.info("Auto-registered new session %s from new_window=True", new_session_id)
+        logger.info("Auto-registered new session from new_window=True", extra={"session": new_session_id})
         title = await new_page.title()
     else:
         logger.warning(
-            "new_window=True (tcode=%s, /o prefix) but no new page detected after %dms wait "
-            "(pages: %d -> %d). Possible causes: SAP session limit reached, popup blocking, "
-            "or network delay.",
-            tcode or "unknown",
-            wait_timeout_ms,
-            pages_before,
-            session_count,
+            "No new page detected after new_window=True (/o prefix)",
+            extra={
+                "tcode": tcode or "unknown",
+                "wait_timeout_ms": wait_timeout_ms,
+                "pages_before": pages_before,
+                "pages_after": session_count,
+            },
         )
 
     return new_session_id, session_count, title
@@ -531,7 +531,7 @@ async def _enable_okcode_field(page: Any) -> tuple[bool, str]:
         return True, f"OK-Code field enabled. Steps: {', '.join(steps_taken)}"
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error enabling OK-Code field")
+        logger.exception("Enabling OK-Code field")
         return False, f"Error enabling OK-Code field: {e}. Steps taken: {', '.join(steps_taken)}"
 
 
@@ -626,7 +626,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         try:
-            logger.info("Navigating to SAP Web GUI: %s", effective_url)
+            logger.info("Navigating to SAP Web GUI", extra={"url": effective_url})
             await page.goto(effective_url)
             await page.wait_for_load_state("networkidle", timeout=15000)
 
@@ -664,7 +664,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 )
 
             # Perform automatic login
-            logger.info("Performing automatic login for user: %s", settings.sap_user)
+            logger.info("Performing automatic login", extra={"user": settings.sap_user})
 
             # Fill mandant/client
             await page.fill('#sap-client, input[name="sap-client"]', settings.sap_mandant)
@@ -682,9 +682,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     _load_js("set_language_field.js"),
                     {"language": settings.sap_language},
                 )
-                logger.debug("Set language field to: %s", settings.sap_language)
+                logger.debug("Set language field", extra={"language": settings.sap_language})
             except Exception as lang_err:  # pylint: disable=broad-exception-caught
-                logger.warning("Could not set language field: %s", lang_err)
+                logger.warning("Could not set language field", extra={"error": str(lang_err)})
 
             # Click login button (it's a div with role="button", not a button element)
             await page.click("#LOGON_BUTTON")
@@ -692,7 +692,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Wait for SAP Easy Access to load (OK-Code field appears after login)
             try:
                 await page.wait_for_selector("#ToolbarOkCode", timeout=15000, state="visible")
-                logger.info("Login successful - OK-Code field visible")
+                logger.info("Login successful, OK-Code field visible")
                 # Start keepalive to prevent session timeout
                 await _start_keepalive()
                 # Register page as primary session (s1) if not already registered
@@ -745,7 +745,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error during SAP login")
+            logger.exception("Logging in to SAP")
             return LoginResult.failure(f"Error during SAP login: {e}", url=effective_url)
 
     @mcp.tool(
@@ -828,11 +828,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             okcode_field = await _find_okcode_field(page)
 
             if not okcode_field:
-                logger.info("OK-Code field not found, attempting to enable it")
+                logger.info("OK-Code field not found, attempting to enable")
 
                 # Step 2: Try to enable the OK-Code field
                 success, message = await _enable_okcode_field(page)
-                logger.info("Enable OK-Code result: %s - %s", success, message)
+                logger.info("Enable OK-Code result", extra={"success": success, "result_message": message})
 
                 if not success:
                     return TransactionResult.failure(
@@ -901,13 +901,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             #
             # ============================================================================
 
-            logger.info("Attempting to enter transaction code: %s", transaction_input)
+            logger.info("Entering transaction", extra={"tcode": transaction_input})
 
             # Use JavaScript to set value, then Playwright to press Enter
             # IMPORTANT: We must click on the OK-Code field first to ensure it has focus.
             await okcode_field.click()
             await page.wait_for_timeout(200)
-            logger.debug("Clicked OK-Code field to ensure focus")
+            logger.debug("Clicked OK-Code field for focus")
 
             await page.evaluate(
                 _load_js("set_okcode_field.js"),
@@ -915,11 +915,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
             await page.wait_for_timeout(300)
-            logger.debug("Set transaction code via JavaScript: %s", transaction_input)
+            logger.debug("Set transaction code via JavaScript", extra={"tcode": transaction_input})
 
             # Now use Playwright's keyboard to press Enter - this triggers SAP's navigation
             await page.keyboard.press("Enter")
-            logger.debug("Pressed Enter to execute transaction")
+            logger.debug("Pressed Enter to execute")
 
             await page.wait_for_load_state("networkidle", timeout=15000)
 
@@ -928,7 +928,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             # Check if a popup appeared after navigation (e.g., "Discard changes?")
             popup = await _check_popup(page)
-            logger.debug("Popup check after Enter: %s", popup)
+            logger.debug("Popup check after Enter", extra={"popup": str(popup)})
             if popup:
                 return TransactionResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
@@ -967,7 +967,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error executing transaction")
+            logger.exception("Executing transaction", extra={"tcode": tcode})
             return TransactionResult.failure(f"Error executing transaction {tcode}: {e}", tcode=tcode)
 
     @mcp.tool(description="Check the current SAP session status")
@@ -1029,7 +1029,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error checking session status")
+            logger.exception("Checking session status")
             return SessionStatus(status="unknown", message=f"Error checking status: {e}")
 
     @mcp.tool(
@@ -1063,11 +1063,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 knowledge_file = resources.files("sapwebguimcp.data").joinpath("sap_knowledge.md")
                 sap_knowledge = knowledge_file.read_text(encoding="utf-8")
             except Exception as knowledge_err:  # pylint: disable=broad-exception-caught
-                logger.warning("Could not load SAP knowledge file: %s", knowledge_err)
+                logger.warning("Could not load SAP knowledge file", extra={"error": str(knowledge_err)})
 
             return CapabilitiesResult(tools=tools, sap_knowledge=sap_knowledge)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error getting capabilities")
+            logger.exception("Getting capabilities")
             return CapabilitiesResult.failure(f"Error getting capabilities: {e}")
 
     @mcp.tool(
@@ -1118,7 +1118,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Fast popup check (~5ms) - only blocks if popup exists BEFORE keystroke
             popup = await _check_popup(page)
             if popup:
-                logger.debug("sap_keyboard(%s): popup already present before keystroke", key)
+                logger.debug("Popup already present before keystroke", extra={"key": key})
                 return KeyboardResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
                     key=key,
@@ -1141,7 +1141,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Check if a popup appeared after the keystroke
             popup_after = await _check_popup(page)
             if popup_after:
-                logger.debug("sap_keyboard(%s): popup appeared after keystroke", key)
+                logger.debug("Popup appeared after keystroke", extra={"key": key})
                 return KeyboardResult.failure(
                     f"Popup blocking: {popup_after.message or 'confirmation required'}",
                     key=key,
@@ -1172,7 +1172,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return KeyboardResult(key=key, page_title=title)
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error sending keyboard shortcut")
+            logger.exception("Sending keyboard shortcut", extra={"key": key})
             return KeyboardResult.failure(f"Error sending keyboard shortcut {key}: {e}", key=key)
 
     async def _fetch_dropdown_options(page: Any) -> list[DropdownInfo]:
@@ -1190,7 +1190,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 if result.get("success"):
                     dropdowns.append(DropdownInfo(id=element_id, label=label, options=result.get("options", [])))
             except Exception as err:  # pylint: disable=broad-exception-caught
-                logger.warning("Failed to get options for %s: %s", element_id, err)
+                logger.warning("Getting dropdown options", extra={"element_id": element_id, "error": str(err)})
         return dropdowns
 
     @mcp.tool(
@@ -1261,7 +1261,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error getting screen text")
+            logger.exception("Getting screen text")
             return ScreenText.failure(f"Error getting screen text: {e}", title="")
 
     @mcp.tool(
@@ -1333,14 +1333,16 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         if result.get("success"):
                             field.options = result.get("options", [])
                     except Exception as dropdown_err:  # pylint: disable=broad-exception-caught
-                        logger.warning("Failed to get options for %s: %s", field.id, dropdown_err)
+                        logger.warning(
+                            "Getting dropdown options", extra={"field_id": field.id, "error": str(dropdown_err)}
+                        )
 
                 fields.append(field)
 
             return FormFieldsResult(fields=fields)
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error getting form fields")
+            logger.exception("Getting form fields")
             return FormFieldsResult.failure(f"Error getting form fields: {e}")
 
     @mcp.tool(
@@ -1433,7 +1435,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error reading table")
+            logger.exception("Reading table")
             return TableData.failure(f"Error reading table: {e}")
 
     @mcp.tool(
@@ -1525,7 +1527,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error clicking table cell")
+            logger.exception("Clicking table cell", extra={"row": row, "column": column})
             return TableCellClickResult.failure(
                 f"Error clicking table cell: {e}",
                 row=row,
@@ -1578,7 +1580,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error reading status bar")
+            logger.exception("Reading status bar")
             return StatusBarInfo.failure(f"Error reading status bar: {e}", type="none")
 
     @mcp.tool(
@@ -1632,7 +1634,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error getting screen info")
+            logger.exception("Getting screen info")
             return ScreenInfo.failure(f"Error getting screen info: {e}", title="", url="")
 
     @mcp.tool(description="Look up known field selectors for an SAP transaction")
@@ -1699,7 +1701,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error looking up fields")
+            logger.exception("Looking up fields", extra={"transaction": tcode_upper})
             return FieldLookupResult.failure(f"Error looking up fields: {e}", transaction=tcode_upper)
 
     @mcp.tool(
@@ -1770,7 +1772,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error discovering fields")
+            logger.exception("Discovering fields")
             return DiscoveredFields.failure(f"Error discovering fields: {e}", field_count=0)
 
     @mcp.tool(
@@ -1824,7 +1826,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error discovering buttons")
+            logger.exception("Discovering buttons")
             return DiscoveredButtons.failure(f"Error discovering buttons: {e}", button_count=0)
 
     @mcp.tool(
@@ -1897,7 +1899,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return ShortcutsResult(shortcuts=shortcuts)
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error getting shortcuts")
+            logger.exception("Getting shortcuts")
             return ShortcutsResult.failure(f"Error getting shortcuts: {e}")
 
     @mcp.tool(
@@ -1998,7 +2000,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error dismissing popup")
+            logger.exception("Dismissing popup")
             return ClosePopupResult.failure(f"Error dismissing popup: {e}")
 
     async def _fill_dropdown_field(page: Any, value: str, element_id: str) -> DropdownFillResult:
@@ -2137,7 +2139,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 for err in batch_result.get("errors", []):
                     processed.errors.append(FieldFillError(field=err["field"], error=err["error"]))
                 if batch_result.get("debug"):
-                    logger.warning("sap_fill_form debug: %s", batch_result.get("debug"))
+                    logger.debug("Fill form debug output", extra={"debug": batch_result.get("debug")})
 
             # In strict mode, fail if any field was not found
             if strict and processed.not_found:
@@ -2157,7 +2159,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error filling form fields")
+            logger.exception("Filling form fields")
             return FillFormResult.failure(f"Error filling form fields: {e}")
 
     @mcp.tool(
@@ -2266,7 +2268,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SetFieldResult(label=label, value=value, selector_used=selector)
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Error setting field")
+            logger.exception("Setting field", extra={"label": label})
             return SetFieldResult.failure(f"Error setting field: {e}", label=label, value=value)
 
     # =========================================================================

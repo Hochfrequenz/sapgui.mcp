@@ -38,17 +38,17 @@ def load_catalog(catalog_path: Path | None = None) -> TableCatalog:
     path = catalog_path or CATALOG_PATH
 
     if not path.exists():
-        logger.warning("Table catalog not found at %s", path)
+        logger.warning("Catalog not found", extra={"path": str(path)})
         return TableCatalog()
 
     try:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
         catalog = TableCatalog.model_validate(data)
-        logger.info("Loaded table catalog: %d tables", len(catalog.tables))
+        logger.info("Loaded catalog", extra={"tables": len(catalog.tables)})
         return catalog
     except Exception as e:
-        logger.exception("Failed to load table catalog from %s", path)
+        logger.exception("Loading catalog", extra={"path": str(path)})
         raise RuntimeError(f"Failed to load table catalog: {e}") from e
 
 

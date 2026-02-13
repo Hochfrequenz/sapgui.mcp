@@ -129,10 +129,10 @@ def register_prompts(mcp: FastMCP) -> None:
 
         mcp.prompt(name=prompt_name, description=description)(make_prompt_fn(body))
 
-        logger.info("Registered prompt: %s", prompt_name)
+        logger.info("Registered prompt", extra={"prompt": prompt_name})
         registered_count += 1
 
     if registered_count == 0:
-        logger.warning("No prompt files found in %s", prompt_dir)
+        logger.warning("No prompt files found", extra={"directory": str(prompt_dir)})
     else:
-        logger.info("Registered %d prompts from %s", registered_count, prompt_dir)
+        logger.info("Registered prompts", extra={"count": registered_count, "directory": str(prompt_dir)})

@@ -56,7 +56,10 @@ class SessionRegistry:
             page.on("close", self._make_close_handler(page))
             self._pages_with_listeners.add(page)
 
-        logger.info("Registered session '%s'%s", session_id, f" bound to '{agent_id}'" if agent_id else "")
+        logger.info(
+            "Registered session",
+            extra={"session": session_id, "agent_id": agent_id} if agent_id else {"session": session_id},
+        )
         return session_id
 
     def unregister(self, session_id: str) -> None:
@@ -69,7 +72,7 @@ class SessionRegistry:
             page = self._sessions.pop(session_id)
             self._page_to_session.pop(page, None)
             self._bindings.pop(session_id, None)  # Clear binding
-            logger.info("Unregistered session '%s'", session_id)
+            logger.info("Unregistered session", extra={"session": session_id})
 
     def get_page(self, session_id: str | None) -> "Page":
         """Get the Page for a session.
@@ -131,7 +134,7 @@ class SessionRegistry:
             agent_id: Agent identifier
         """
         self._bindings[session_id] = agent_id
-        logger.info("Session '%s' bound to agent '%s'", session_id, agent_id)
+        logger.info("Bound session to agent", extra={"session": session_id, "agent_id": agent_id})
 
     def release(self, session_id: str) -> None:
         """Release agent binding from a session.
@@ -141,7 +144,7 @@ class SessionRegistry:
         """
         if session_id in self._bindings:
             old_agent = self._bindings.pop(session_id)
-            logger.info("Session '%s' released from agent '%s'", session_id, old_agent)
+            logger.info("Released session from agent", extra={"session": session_id, "agent_id": old_agent})
 
     def check_binding(self, session_id: str, agent_id: str | None, tool_name: str) -> None:
         """Check if agent is authorized to access session.
@@ -164,18 +167,18 @@ class SessionRegistry:
 
         if agent_id is None:
             logger.warning(
-                "Session '%s' bound to '%s' accessed without agent_id by %s",
-                session_id,
-                bound_agent,
-                tool_name,
+                "Bound session accessed without agent_id",
+                extra={"session": session_id, "bound_to": bound_agent, "tool": tool_name},
             )
         elif agent_id != bound_agent:
             logger.warning(
-                "Session '%s' bound to '%s' accessed by '%s' via %s",
-                session_id,
-                bound_agent,
-                agent_id,
-                tool_name,
+                "Cross-agent session access",
+                extra={
+                    "session": session_id,
+                    "bound_to": bound_agent,
+                    "accessed_by": agent_id,
+                    "tool": tool_name,
+                },
             )
 
     def _make_close_handler(self, page: "Page") -> Callable[["Page"], None]:
@@ -199,7 +202,7 @@ class SessionRegistry:
             session_id = self._page_to_session.pop(page)
             self._sessions.pop(session_id, None)
             self._bindings.pop(session_id, None)  # Clear binding
-            logger.info("Session '%s' auto-unregistered (page closed)", session_id)
+            logger.info("Session auto-unregistered (page closed)", extra={"session": session_id})
 
     async def setup_context_listeners(self, context: "BrowserContext") -> None:
         """Attach event listeners to browser context.

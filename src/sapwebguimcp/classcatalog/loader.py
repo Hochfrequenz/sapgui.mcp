@@ -26,7 +26,7 @@ def load_catalog(catalog_path: Path | None = None) -> ClassCatalog:
     path = catalog_path or CATALOG_PATH
 
     if not path.exists():
-        logger.warning("Class catalog not found at %s", path)
+        logger.warning("Catalog not found", extra={"path": str(path)})
         return ClassCatalog()
 
     try:
@@ -45,10 +45,10 @@ def load_catalog(catalog_path: Path | None = None) -> ClassCatalog:
             language=data.get("language"),
             total_count=len(classes),
         )
-        logger.info("Loaded class catalog: %d classes", len(classes))
+        logger.info("Loaded catalog", extra={"classes": len(classes)})
         return catalog
     except Exception as e:
-        logger.exception("Failed to load class catalog from %s", path)
+        logger.exception("Loading catalog", extra={"path": str(path)})
         raise RuntimeError(f"Failed to load class catalog: {e}") from e
 
 

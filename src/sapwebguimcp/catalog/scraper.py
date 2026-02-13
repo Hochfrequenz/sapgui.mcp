@@ -326,7 +326,7 @@ async def enrich_with_se93(
             if progress_callback:
                 progress_callback(processed, total, txn.tcode)
 
-            logger.info("SE93 enrichment: %d/%d - %s", processed, total, txn.tcode)
+            logger.info("SE93 enrichment", extra={"processed": processed, "total": total, "tcode": txn.tcode})
 
             # Call SE93 lookup
             try:
@@ -355,13 +355,13 @@ async def enrich_with_se93(
                         "error": str(e),
                     }
                 )
-                logger.exception("SE93 enrichment error for %s", txn.tcode)
+                logger.exception("SE93 enrichment failed", extra={"tcode": txn.tcode})
 
         # Save after each batch
         catalog.enriched_count = sum(1 for t in catalog.transactions if t.enriched)
         catalog.last_updated = datetime.now(UTC)
         save_catalog(catalog, catalog_file)
-        logger.info("Saved catalog: %d enriched, %d failed", enriched, failed)
+        logger.info("Saved catalog", extra={"enriched": enriched, "failed": failed})
 
     return {
         "success": True,

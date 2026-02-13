@@ -14,12 +14,12 @@ Transaction Round Tracking:
     - Performance degradation over many iterations
     - Workflow bottlenecks
 
-Example log output:
-    TOOL_DONE | session=abc | tool=sap_transaction | duration=0:00:01.5 |
-    round_time=0:02:34 | tcode=VA01 | ...
+Example log output (with StructuredFormatter):
+    Tool completed tool=sap_transaction session=abc duration_ms=1500
+    round_time_ms=154000 total_ms=300000 seq=...
 
-    The round_time=0:02:34 shows it took 2 minutes 34 seconds since the last
-    VA01 call, representing one complete processing cycle.
+    The round_time_ms=154000 shows it took ~2.5 minutes since the last
+    sap_transaction call, representing one complete processing cycle.
 """
 
 import logging
@@ -92,12 +92,14 @@ class ToolCallLoggingMiddleware(Middleware):
             session.total_duration += duration
             session.call_count += 1
             _logger.warning(
-                "TOOL_FAIL | session=%s | tool=%s | duration=%s | error=%s | seq=%s",
-                session_id,
-                tool_name,
-                duration,
-                e,
-                session.format_sequence(last_n=20),
+                "Tool failed",
+                extra={
+                    "tool": tool_name,
+                    "session": session_id,
+                    "duration_ms": int(duration.total_seconds() * 1000),
+                    "error": str(e),
+                    "seq": session.format_sequence(last_n=20),
+                },
             )
             raise
 
@@ -107,24 +109,14 @@ class ToolCallLoggingMiddleware(Middleware):
         session.total_duration += duration
         session.call_count += 1
 
-        seq = session.format_sequence(last_n=20, current_round_only=True)
+        extra = {
+            "tool": tool_name,
+            "session": session_id,
+            "duration_ms": int(duration.total_seconds() * 1000),
+            "total_ms": int(session.total_duration.total_seconds() * 1000),
+            "seq": session.format_sequence(last_n=20, current_round_only=True),
+        }
         if round_time is not None:
-            _logger.info(
-                "TOOL_DONE | session=%s | tool=%s | duration=%s | round_time=%s | total=%s | seq=%s",
-                session_id,
-                tool_name,
-                duration,
-                round_time,
-                session.total_duration,
-                seq,
-            )
-        else:
-            _logger.info(
-                "TOOL_DONE | session=%s | tool=%s | duration=%s | total=%s | seq=%s",
-                session_id,
-                tool_name,
-                duration,
-                session.total_duration,
-                seq,
-            )
+            extra["round_time_ms"] = int(round_time.total_seconds() * 1000)
+        _logger.info("Tool completed", extra=extra)
         return result

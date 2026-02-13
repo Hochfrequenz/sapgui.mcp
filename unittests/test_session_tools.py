@@ -223,10 +223,13 @@ class TestRegisterNewWindowSession:
                 mock_manager, mock_context, pages_before=1, tcode="VA01", wait_timeout_ms=100
             )
 
-        assert "no new page detected" in caplog.text
-        assert "tcode=VA01" in caplog.text
+        assert "No new page detected" in caplog.text
         assert "/o prefix" in caplog.text
-        assert "pages: 1 -> 1" in caplog.text
+        # Dynamic values are now in structured extra fields
+        record = caplog.records[-1]
+        assert record.tcode == "VA01"
+        assert record.pages_before == 1
+        assert record.pages_after == 1
 
     @pytest.mark.anyio
     async def test_registers_last_page_when_multiple_pages_created(self) -> None:

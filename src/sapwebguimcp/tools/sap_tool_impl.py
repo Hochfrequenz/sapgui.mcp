@@ -137,9 +137,9 @@ async def sap_transaction_impl(tcode: str, new_window: bool = False) -> Transact
         okcode_field = await _find_okcode_field(page)
 
         if not okcode_field:
-            logger.info("OK-Code field not found, attempting to enable it")
+            logger.info("OK-Code field not found, enabling it")
             success, message = await _enable_okcode_field(page)
-            logger.info("Enable OK-Code result: %s - %s", success, message)
+            logger.info("OK-Code field enabled", extra={"success": success, "result_message": message})
 
             if not success:
                 return TransactionResult.failure(
@@ -165,7 +165,7 @@ async def sap_transaction_impl(tcode: str, new_window: bool = False) -> Transact
         await page.bring_to_front()
         await page.wait_for_timeout(500)
 
-        logger.info("Attempting to enter transaction code: %s", transaction_input)
+        logger.info("Entering transaction", extra={"tcode": transaction_input})
 
         await okcode_field.click()
         await page.wait_for_timeout(200)
@@ -199,7 +199,7 @@ async def sap_transaction_impl(tcode: str, new_window: bool = False) -> Transact
         )
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error executing transaction")
+        logger.exception("Executing transaction")
         return TransactionResult.failure(f"Error executing transaction {tcode}: {e}", tcode=tcode)
 
 
@@ -247,7 +247,7 @@ async def sap_keyboard_impl(key: str) -> KeyboardResult:
         return KeyboardResult(key=key, page_title=title)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error sending keyboard shortcut")
+        logger.exception("Sending keyboard shortcut")
         return KeyboardResult.failure(f"Error sending keyboard shortcut {key}: {e}", key=key)
 
 
@@ -283,7 +283,7 @@ async def sap_fill_form_impl(fields: dict[str, str], strict: bool = False) -> Fi
 
         debug_info = result.get("debug", [])
         if debug_info:
-            logger.warning("sap_fill_form debug: %s", debug_info)
+            logger.debug("Fill form debug info", extra={"debug_info": debug_info})
 
         if strict and not_found:
             return FillFormResult.failure(
@@ -296,7 +296,7 @@ async def sap_fill_form_impl(fields: dict[str, str], strict: bool = False) -> Fi
         return FillFormResult(filled=filled, not_found=not_found, errors=errors)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error filling form fields")
+        logger.exception("Filling form fields")
         return FillFormResult.failure(f"Error filling form fields: {e}")
 
 
@@ -319,7 +319,7 @@ async def sap_read_status_bar_impl() -> StatusBarInfo:
         )
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error reading status bar")
+        logger.exception("Reading status bar")
         return StatusBarInfo.failure(f"Error reading status bar: {e}", type="none")
 
 
@@ -345,7 +345,7 @@ async def sap_get_screen_text_impl() -> ScreenText:
         )
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error extracting screen text")
+        logger.exception("Extracting screen text")
         return ScreenText.failure(f"Error extracting screen text: {e}")
 
 
@@ -371,7 +371,7 @@ async def sap_get_screen_info_impl() -> ScreenInfo:
         )
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error getting screen info")
+        logger.exception("Getting screen info")
         return ScreenInfo.failure(f"Error getting screen info: {e}", title="", url="")
 
 
