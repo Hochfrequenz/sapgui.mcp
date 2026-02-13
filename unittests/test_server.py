@@ -512,10 +512,19 @@ class TestMcpServer:
         prompts = asyncio.run(mcp.get_prompts())
         assert len(prompts) > 0, "No prompts registered"
 
-    def test_se16_bulk_read_prompt_is_registered(self) -> None:
-        """Test that the se16_bulk_read prompt is registered."""
+    def test_expected_prompts_are_registered(self) -> None:
+        """Test that all expected prompts are registered."""
         prompts = asyncio.run(mcp.get_prompts())
-        assert "se16_bulk_read" in prompts, "se16_bulk_read prompt not registered"
+        expected_prompts = {
+            "se16_bulk_read",
+            "explore_table",
+            "explore_function_module",
+            "explore_class",
+            "create_business_partner",
+            "abapgit_workflow",
+        }
+        actual_names = set(prompts.keys())
+        assert expected_prompts.issubset(actual_names), f"Missing prompts: {expected_prompts - actual_names}"
 
     def test_prompts_have_descriptions(self) -> None:
         """Test that all registered prompts have descriptions."""

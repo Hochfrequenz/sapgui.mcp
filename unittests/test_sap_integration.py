@@ -1254,6 +1254,41 @@ async def test_bp_fill_form_with_css_selectors(sap_mcp_client: ClientSession) ->
 
 
 @pytest.mark.anyio
+async def test_bp_org_form_snapshot(sap_mcp_client: ClientSession) -> None:
+    """
+    Capture HTML snapshot of BP organisation form for offline label verification.
+
+    Opens the BP transaction and presses F6 to create an organisation.
+    Saves the snapshot so unit tests can verify field labels used in prompts.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    result = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "BP"}, TransactionResult)
+    assert result.success, f"sap_transaction BP failed: {result.error}"
+
+    await _wait_for_transaction_screen(sap_mcp_client, "BP")
+
+    # Wait for initial screen to be fully interactive
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # Press F6 to create an organisation
+    kb_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F6"}, KeyboardResult)
+    assert kb_result.success, f"sap_keyboard F6 failed: {kb_result.error}"
+
+    # Wait for SAP backend to process and return form HTML
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Wait for org-specific label ("Name 1" is the same in DE and EN)
+    await sap_mcp_client.call_tool("browser_wait", {"selector": "label:has-text('Name 1')", "timeout": 15000})
+
+    # Allow all label-input lsdata associations to be populated
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # Capture HTML snapshot of org form for offline label verification
+    await capture_html_snapshot(sap_mcp_client, "bp_org_form")
+
+
+@pytest.mark.anyio
 async def test_sap_fill_form_strict_mode(sap_mcp_client: ClientSession) -> None:
     """
     Test sap_fill_form strict mode - should fail if any field is not found.
