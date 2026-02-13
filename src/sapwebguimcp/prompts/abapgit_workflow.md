@@ -31,7 +31,7 @@ Commit and push your changes to the Git repository.
 **Option A: Use the API tool (if available)**
 
 ```
-abapgit_pull_via_api(repo="YOUR_REPO_NAME")
+sap_abapgit_pull(repo="YOUR_REPO_NAME")
 ```
 
 **Option B: Pull manually in SAP**
@@ -82,10 +82,10 @@ Your abapGit repository only contains objects in one ABAP package. To understand
 
 | Need to understand...         | Use                                        |
 | ----------------------------- | ------------------------------------------ |
-| A table's fields              | `sap_se11_lookup(name="TABLE_NAME")`       |
-| A function module's signature | `sap_se37_lookup(name="FM_NAME")`          |
-| A class's methods             | `sap_se24_lookup(name="CLASS_NAME")`       |
-| Data in a table               | `sap_se16_query(table="TABLE_NAME")`       |
+| A table's fields              | `sap_se11_lookup(names="TABLE_NAME", object_type="table")`  |
+| A function module's signature | `sap_se37_lookup(function_modules="FM_NAME")`               |
+| A class's methods             | `sap_se24_lookup(classes="CLASS_NAME")`                     |
+| Data in a table               | `sap_se16_query(table="TABLE_NAME")`                        |
 
 ## Recommended Transactions for ABAP Development
 

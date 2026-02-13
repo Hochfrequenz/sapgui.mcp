@@ -20,7 +20,7 @@ This recipe shows how to look up an ABAP class or interface to understand its me
 Use the specialized SE24 tool:
 
 ```
-sap_se24_lookup(name="CLASS_OR_INTERFACE_NAME")
+sap_se24_lookup(classes="CLASS_OR_INTERFACE_NAME")
 ```
 
 This returns structured data including:
@@ -46,7 +46,11 @@ Naming conventions:
 
 ### Step 3: Inspect Method Parameters
 
-The tool returns method signatures with parameter details. For complex parameter types (structures, tables), use `sap_se11_lookup` to inspect the type definition.
+The tool returns method signatures with parameter details. For complex parameter types (structures, tables), use `sap_se11_lookup` to inspect the type definition:
+
+```
+sap_se11_lookup(names="TYPE_NAME", object_type="structure")
+```
 
 ## Error Handling
 

@@ -14,7 +14,7 @@ This pattern works for **any SAP transaction**, not just BP.
 
 - SAP session is logged in and ready
 - Authorization for transaction BP
-- Know the BP type: person (F5) or organization (Ctrl+F5)
+- Know the BP type: person (F5) or organization (F6)
 
 ## Steps
 
@@ -37,12 +37,16 @@ sap_keyboard("F5")
 For an **organization** (company):
 
 ```
-sap_keyboard("Control+F5")
+sap_keyboard("F6")
 ```
 
 A popup may appear asking to confirm the BP type. If so, confirm it.
 
-### Step 3: Fill the Form Fields
+### Step 3: Select Grouping
+
+A grouping dropdown may appear that determines the BP number range. Select the appropriate grouping for your scenario. Use `sap_discover_fields()` to find the dropdown if needed.
+
+### Step 4: Fill the Form Fields
 
 Use `sap_fill_form` to fill all fields in one call. This is much faster than filling fields individually.
 
@@ -53,7 +57,7 @@ sap_fill_form({
     "Anrede": "Herr",
     "Vorname": "Max",
     "Nachname": "Mustermann",
-    "Strasse": "Hauptstrasse 1",
+    "Strasse": "Hauptstrasse",
     "Hausnr.": "1",
     "Postleitzahl": "10115",
     "Ort": "Berlin",
@@ -76,13 +80,13 @@ sap_fill_form({
 
 **Tip:** Field labels vary by system language and configuration. If `sap_fill_form` can't find a field by label, use `sap_discover_fields()` to see what's available on the current screen.
 
-### Step 4: Save
+### Step 5: Save
 
 ```
 sap_keyboard("Control+S")
 ```
 
-### Step 5: Check the Result
+### Step 6: Check the Result
 
 ```
 sap_read_status_bar()
@@ -92,7 +96,7 @@ sap_read_status_bar()
 
 **On error:** See Error Handling below.
 
-### Step 6: Handle Missing Obligatory Fields
+### Step 7: Handle Missing Obligatory Fields
 
 If save fails with "Pflichtfeld nicht gefuellt" (required field not filled):
 
@@ -116,7 +120,7 @@ If save fails with "Pflichtfeld nicht gefuellt" (required field not filled):
    sap_read_status_bar()
    ```
 
-### Step 7: Verify the Created BP
+### Step 8: Verify the Created BP
 
 **Option A: Display the BP in the same transaction**
 
@@ -134,7 +138,7 @@ sap_se16_query(table="BUT000", filters={"PARTNER": "XXXXXXXXXX"})
 
 This returns the BP master data record from the database.
 
-### Step 8: Create Another BP
+### Step 9: Create Another BP
 
 After a successful save, start over from Step 1:
 

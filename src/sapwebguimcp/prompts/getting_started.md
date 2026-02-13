@@ -30,13 +30,13 @@ search_transactions("Kundenauftrag")  # German keywords work too
 
 These tools return structured data -- faster and more reliable than manual navigation:
 
-| Tool                | What it does              | Example                                    |
-| ------------------- | ------------------------- | ------------------------------------------ |
-| `sap_se11_lookup`   | Table/structure fields    | `sap_se11_lookup(name="MARA")`             |
-| `sap_se16_query`    | Browse table data         | `sap_se16_query(table="T000")`             |
-| `sap_se24_lookup`   | Class/interface details   | `sap_se24_lookup(name="CL_SALV_TABLE")`    |
-| `sap_se37_lookup`   | Function module signature | `sap_se37_lookup(name="RFC_READ_TABLE")`   |
-| `sap_se93_lookup`   | Transaction metadata      | `sap_se93_lookup(tcode="VA01")`            |
+| Tool                | What it does              | Example                                                        |
+| ------------------- | ------------------------- | -------------------------------------------------------------- |
+| `sap_se11_lookup`   | Table/structure fields    | `sap_se11_lookup(names="MARA", object_type="table")`           |
+| `sap_se16_query`    | Browse table data         | `sap_se16_query(table="T000")`                                 |
+| `sap_se24_lookup`   | Class/interface details   | `sap_se24_lookup(classes="CL_SALV_TABLE")`                     |
+| `sap_se37_lookup`   | Function module signature | `sap_se37_lookup(function_modules="RFC_READ_TABLE")`           |
+| `sap_se93_lookup`   | Transaction metadata      | `sap_se93_lookup(tcodes="VA01")`                               |
 
 ### 3. Navigate and Interact with SAP (generic tools)
 
@@ -73,9 +73,9 @@ sap_session_bind(session_id="s2", agent_id="subagent-1")
 ## Common First Tasks
 
 - **"What tables exist for X?"** -- Use `search_tables("keyword")`
-- **"Show me the fields of table MARA"** -- Use `sap_se11_lookup(name="MARA")`
+- **"Show me the fields of table MARA"** -- Use `sap_se11_lookup(names="MARA", object_type="table")`
 - **"Read data from table T000"** -- Use `sap_se16_query(table="T000")`
-- **"What does function module X do?"** -- Use `sap_se37_lookup(name="FM_NAME")`
+- **"What does function module X do?"** -- Use `sap_se37_lookup(function_modules="FM_NAME")`
 - **"Create a business partner"** -- Compose generic tools (see `create_business_partner` prompt)
 - **"Develop ABAP with Claude Code"** -- See `abapgit_workflow` prompt
 

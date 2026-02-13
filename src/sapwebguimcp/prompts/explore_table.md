@@ -20,7 +20,7 @@ This recipe shows how to explore an SAP table: first look up its structure (fiel
 Use the specialized SE11 tool to get the table's field definitions:
 
 ```
-sap_se11_lookup(name="TABLE_NAME")
+sap_se11_lookup(names="TABLE_NAME", object_type="table")
 ```
 
 This returns structured data including:
@@ -68,7 +68,7 @@ search_tables("MARA")
 
 - Check spelling (SAP table names are uppercase)
 - Use `search_tables("keyword")` to find the correct name
-- The table might be a view or structure -- SE11 handles both
+- The object might be a structure -- try `sap_se11_lookup(names="NAME", object_type="structure")`
 
 ### "No authorization"
 
