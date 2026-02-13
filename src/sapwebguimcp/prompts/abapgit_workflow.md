@@ -19,6 +19,21 @@ This recipe describes the full ABAP development lifecycle: write code locally wi
 
 ## The Workflow
 
+### Understanding abapGit Serialization (Important!)
+
+abapGit uses a specific file format to serialize ABAP objects. **Incorrect serialization will cause pull failures in SAP.** Before writing or modifying ABAP code, you must understand how abapGit maps files to ABAP objects.
+
+Key points:
+
+- Each ABAP object is stored as a `.abap` source file plus one or more `.xml` metadata files
+- File names must follow abapGit naming conventions (e.g., `z_my_report.prog.abap` + `z_my_report.prog.xml`)
+- The `.xml` files contain object metadata (program attributes, text pools, etc.) that SAP needs for deserialization
+- The `.abapgit.xml` in the repository root defines the package mapping and folder logic
+
+**Read the serialization documentation:** [abapGit Serializer Documentation](https://docs.abapgit.org/user-guide/reference/supported-object-types.html)
+
+**Study existing examples before writing code.** Check your repository for existing serialized objects and follow the same patterns. The [Z_PUBLIC_ABAPGIT_TEST_REPOSITORY](https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY) contains working examples of serialized reports with correct XML metadata.
+
 ### Step 1: Write ABAP Code Locally
 
 Use Claude Code to generate or modify ABAP code in your local repository. The repository maps to one ABAP package in SAP.
