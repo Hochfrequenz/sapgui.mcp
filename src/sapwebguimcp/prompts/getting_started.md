@@ -30,13 +30,13 @@ search_transactions("Kundenauftrag")  # German keywords work too
 
 These tools return structured data -- faster and more reliable than manual navigation:
 
-| Tool                | What it does              | Example                                                        |
-| ------------------- | ------------------------- | -------------------------------------------------------------- |
-| `sap_se11_lookup`   | Table/structure fields    | `sap_se11_lookup(names="MARA", object_type="table")`           |
-| `sap_se16_query`    | Browse table data         | `sap_se16_query(table="T000")`                                 |
-| `sap_se24_lookup`   | Class/interface details   | `sap_se24_lookup(classes="CL_SALV_TABLE")`                     |
-| `sap_se37_lookup`   | Function module signature | `sap_se37_lookup(function_modules="RFC_READ_TABLE")`           |
-| `sap_se93_lookup`   | Transaction metadata      | `sap_se93_lookup(tcodes="VA01")`                               |
+| Tool              | What it does              | Example                                              |
+| ----------------- | ------------------------- | ---------------------------------------------------- |
+| `sap_se11_lookup` | Table/structure fields    | `sap_se11_lookup(names="MARA", object_type="table")` |
+| `sap_se16_query`  | Browse table data         | `sap_se16_query(table="T000")`                       |
+| `sap_se24_lookup` | Class/interface details   | `sap_se24_lookup(classes="CL_SALV_TABLE")`           |
+| `sap_se37_lookup` | Function module signature | `sap_se37_lookup(function_modules="RFC_READ_TABLE")` |
+| `sap_se93_lookup` | Transaction metadata      | `sap_se93_lookup(tcodes="VA01")`                     |
 
 ### 3. Navigate and Interact with SAP (generic tools)
 

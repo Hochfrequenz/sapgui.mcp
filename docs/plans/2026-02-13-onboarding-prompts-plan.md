@@ -42,11 +42,12 @@ This MCP server lets you automate SAP Web GUI through a Chrome browser. You can 
 ### 1. Search the Transaction Catalog (no SAP login needed)
 
 Find the right transaction code from ~4,000 indexed transactions:
-
 ```
+
 search_transactions("sales order")
 search_transactions("VA", area="SD")
-search_transactions("Kundenauftrag")  # German keywords work too
+search_transactions("Kundenauftrag") # German keywords work too
+
 ```
 
 ### 2. Look Up SAP Objects (specialized tools, structured results)
@@ -89,8 +90,10 @@ Low-level browser tools for edge cases:
 Open multiple SAP sessions for parallel work:
 
 ```
-sap_transaction("BP", new_window=True)  # Returns session_id
+
+sap_transaction("BP", new_window=True) # Returns session_id
 sap_session_bind(session_id="s2", agent_id="subagent-1")
+
 ```
 
 ## Common First Tasks
@@ -155,9 +158,10 @@ This recipe shows how to explore an SAP table: first look up its structure (fiel
 ### Step 1: Look Up the Table Structure
 
 Use the specialized SE11 tool to get the table's field definitions:
-
 ```
+
 sap_se11_lookup(name="TABLE_NAME")
+
 ```
 
 This returns structured data including:
@@ -171,17 +175,21 @@ This returns structured data including:
 If you want to see actual data in the table, use the SE16 tool:
 
 ```
+
 sap_se16_query(table="TABLE_NAME", max_hits=100)
+
 ```
 
 To filter results, use field names from Step 1:
 
 ```
+
 sap_se16_query(
-    table="TABLE_NAME",
-    filters={"FIELD1": "VALUE1", "FIELD2": "VALUE2"},
-    max_hits=100
+table="TABLE_NAME",
+filters={"FIELD1": "VALUE1", "FIELD2": "VALUE2"},
+max_hits=100
 )
+
 ```
 
 ### Step 3: Find Related Tables
@@ -189,13 +197,17 @@ sap_se16_query(
 If you don't know the exact table name, search the catalog:
 
 ```
+
 search_tables("keyword")
+
 ```
 
 Or search by partial name:
 
 ```
+
 search_tables("MARA")
+
 ```
 
 ## Error Handling
@@ -263,9 +275,10 @@ This recipe shows how to look up an SAP function module's complete signature -- 
 ### Step 1: Look Up the Function Module
 
 Use the specialized SE37 tool:
-
 ```
+
 sap_se37_lookup(name="FUNCTION_MODULE_NAME")
+
 ```
 
 This returns structured data including:
@@ -279,13 +292,17 @@ This returns structured data including:
 If you don't know the exact name, search the catalog:
 
 ```
+
 search_function_modules("keyword")
+
 ```
 
 Or search by partial name:
 
 ```
+
 search_function_modules("RFC_READ")
+
 ```
 
 ### Step 3: Understand Parameter Details
@@ -357,9 +374,10 @@ This recipe shows how to look up an ABAP class or interface to understand its me
 ### Step 1: Look Up the Class or Interface
 
 Use the specialized SE24 tool:
-
 ```
+
 sap_se24_lookup(name="CLASS_OR_INTERFACE_NAME")
+
 ```
 
 This returns structured data including:
@@ -373,7 +391,9 @@ This returns structured data including:
 If you don't know the exact name, search the catalog:
 
 ```
+
 search_classes("keyword")
+
 ```
 
 Naming conventions:
@@ -446,9 +466,10 @@ This pattern works for **any SAP transaction**, not just BP.
 ## Steps
 
 ### Step 1: Open the BP Transaction
-
 ```
+
 sap_transaction("BP")
+
 ```
 
 Verify the screen shows "Geschaeftspartner pflegen" (DE) or "Maintain Business Partner" (EN).
@@ -458,13 +479,17 @@ Verify the screen shows "Geschaeftspartner pflegen" (DE) or "Maintain Business P
 For a **person** (natural person):
 
 ```
+
 sap_keyboard("F5")
+
 ```
 
 For an **organization** (company):
 
 ```
+
 sap_keyboard("Control+F5")
+
 ```
 
 A popup may appear asking to confirm the BP type. If so, confirm it.
@@ -476,29 +501,33 @@ Use `sap_fill_form` to fill all fields in one call. This is much faster than fil
 **Person fields:**
 
 ```
+
 sap_fill_form({
-    "Anrede": "Herr",
-    "Vorname": "Max",
-    "Nachname": "Mustermann",
-    "Strasse": "Hauptstrasse 1",
-    "Hausnr.": "1",
-    "Postleitzahl": "10115",
-    "Ort": "Berlin",
-    "Land": "DE"
+"Anrede": "Herr",
+"Vorname": "Max",
+"Nachname": "Mustermann",
+"Strasse": "Hauptstrasse 1",
+"Hausnr.": "1",
+"Postleitzahl": "10115",
+"Ort": "Berlin",
+"Land": "DE"
 })
+
 ```
 
 **Organization fields:**
 
 ```
+
 sap_fill_form({
-    "Name 1": "Musterfirma GmbH",
-    "Strasse": "Industriestr.",
-    "Hausnr.": "42",
-    "Postleitzahl": "80331",
-    "Ort": "Muenchen",
-    "Land": "DE"
+"Name 1": "Musterfirma GmbH",
+"Strasse": "Industriestr.",
+"Hausnr.": "42",
+"Postleitzahl": "80331",
+"Ort": "Muenchen",
+"Land": "DE"
 })
+
 ```
 
 **Tip:** Field labels vary by system language and configuration. If `sap_fill_form` can't find a field by label, use `sap_discover_fields()` to see what's available on the current screen.
@@ -506,13 +535,17 @@ sap_fill_form({
 ### Step 4: Save
 
 ```
+
 sap_keyboard("Control+S")
+
 ```
 
 ### Step 5: Check the Result
 
 ```
+
 sap_read_status_bar()
+
 ```
 
 **On success:** The status bar shows "Geschaeftspartner XXXXXXXXXX angelegt" with the new BP number.
@@ -524,29 +557,37 @@ sap_read_status_bar()
 If save fails with "Pflichtfeld nicht gefuellt" (required field not filled):
 
 1. Read the screen to identify what's missing:
-   ```
-   sap_get_screen_text()
-   ```
+```
+
+sap_get_screen_text()
+
+```
 
 2. Look for fields marked as required or highlighted
 
 3. Fill the missing fields:
-   ```
-   sap_fill_form({"Missing Field Label": "value"})
-   ```
+```
+
+sap_fill_form({"Missing Field Label": "value"})
+
+```
 
 4. Try saving again:
-   ```
-   sap_keyboard("Control+S")
-   sap_read_status_bar()
-   ```
+```
+
+sap_keyboard("Control+S")
+sap_read_status_bar()
+
+```
 
 ### Step 7: Verify the Created BP
 
 **Option A: Display the BP in the same transaction**
 
 ```
+
 sap_transaction("BP")
+
 ```
 
 Enter the BP number and display it to confirm the data.
@@ -554,7 +595,9 @@ Enter the BP number and display it to confirm the data.
 **Option B: Check the database table directly**
 
 ```
+
 sap_se16_query(table="BUT000", filters={"PARTNER": "XXXXXXXXXX"})
+
 ```
 
 This returns the BP master data record from the database.
@@ -564,7 +607,9 @@ This returns the BP master data record from the database.
 After a successful save, start over from Step 1:
 
 ```
+
 sap_transaction("BP")
+
 ```
 
 Do NOT try to navigate back -- just restart the transaction.
@@ -654,28 +699,35 @@ Commit and push your changes to the Git repository.
 ### Step 3: Pull Changes into SAP via abapGit
 
 **Option A: Use the API tool (if available)**
-
 ```
+
 abapgit_pull_via_api(repo="YOUR_REPO_NAME")
+
 ```
 
 **Option B: Pull manually in SAP**
 
 1. Open abapGit in SAP:
-   ```
-   sap_transaction("ZABAPGIT")
-   ```
-   If the transaction doesn't exist, find the program:
-   ```
-   search_transactions("abapgit")
-   ```
+```
+
+sap_transaction("ZABAPGIT")
+
+```
+If the transaction doesn't exist, find the program:
+```
+
+search_transactions("abapgit")
+
+```
 
 2. Navigate to your repository and pull the latest changes
 
 **Tip:** Use a separate SAP session (Modus) for abapGit so the MCP server doesn't need to switch between abapGit and your test transaction. Open a new session with:
 
 ```
+
 sap_transaction("ZABAPGIT", new_window=True)
+
 ```
 
 ### Step 4: Test in SAP Using the MCP Server
@@ -683,8 +735,10 @@ sap_transaction("ZABAPGIT", new_window=True)
 Navigate to the relevant transaction and test your code:
 
 ```
-sap_transaction("SE38")  # For reports
-sap_transaction("SE24")  # For classes
+
+sap_transaction("SE38") # For reports
+sap_transaction("SE24") # For classes
+
 ```
 
 Use the generic tools to interact with your code:

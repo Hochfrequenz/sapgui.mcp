@@ -102,23 +102,23 @@ If save fails with "Pflichtfeld nicht gefuellt" (required field not filled):
 
 1. Read the screen to identify what's missing:
 
-   ```
-   sap_get_screen_text()
-   ```
+    ```
+    sap_get_screen_text()
+    ```
 
 2. Look for fields marked as required or highlighted
 
 3. Fill the missing fields:
 
-   ```
-   sap_fill_form({"Missing Field Label": "value"})
-   ```
+    ```
+    sap_fill_form({"Missing Field Label": "value"})
+    ```
 
 4. Try saving again:
-   ```
-   sap_keyboard("Control+S")
-   sap_read_status_bar()
-   ```
+    ```
+    sap_keyboard("Control+S")
+    sap_read_status_bar()
+    ```
 
 ### Step 8: Verify the Created BP
 

@@ -38,15 +38,15 @@ sap_abapgit_pull(repo="YOUR_REPO_NAME")
 
 1. Open abapGit in SAP:
 
-   ```
-   sap_transaction("ZABAPGIT")
-   ```
+    ```
+    sap_transaction("ZABAPGIT")
+    ```
 
-   If the transaction doesn't exist, find the program:
+    If the transaction doesn't exist, find the program:
 
-   ```
-   search_transactions("abapgit")
-   ```
+    ```
+    search_transactions("abapgit")
+    ```
 
 2. Navigate to your repository and pull the latest changes
 
@@ -80,21 +80,21 @@ Fix issues in Claude Code, push, pull in abapGit, test again.
 
 Your abapGit repository only contains objects in one ABAP package. To understand objects outside your package (standard SAP FMs, classes, tables), use the lookup tools:
 
-| Need to understand...         | Use                                        |
-| ----------------------------- | ------------------------------------------ |
-| A table's fields              | `sap_se11_lookup(names="TABLE_NAME", object_type="table")`  |
-| A function module's signature | `sap_se37_lookup(function_modules="FM_NAME")`               |
-| A class's methods             | `sap_se24_lookup(classes="CLASS_NAME")`                     |
-| Data in a table               | `sap_se16_query(table="TABLE_NAME")`                        |
+| Need to understand...         | Use                                                        |
+| ----------------------------- | ---------------------------------------------------------- |
+| A table's fields              | `sap_se11_lookup(names="TABLE_NAME", object_type="table")` |
+| A function module's signature | `sap_se37_lookup(function_modules="FM_NAME")`              |
+| A class's methods             | `sap_se24_lookup(classes="CLASS_NAME")`                    |
+| Data in a table               | `sap_se16_query(table="TABLE_NAME")`                       |
 
 ## Recommended Transactions for ABAP Development
 
-| Transaction | Purpose              | Notes                                    |
-| ----------- | -------------------- | ---------------------------------------- |
-| SE37        | Function Modules     | View signature, parameters, exceptions   |
-| SE38        | Reports / Programs   | View and test ABAP reports               |
-| SE24        | Classes              | Inspect methods, attributes, interfaces  |
-| SE11        | Data Dictionary      | View table structures, data elements     |
-| SE16        | Table Contents       | Browse actual data (read-only recommended) |
+| Transaction | Purpose            | Notes                                      |
+| ----------- | ------------------ | ------------------------------------------ |
+| SE37        | Function Modules   | View signature, parameters, exceptions     |
+| SE38        | Reports / Programs | View and test ABAP reports                 |
+| SE24        | Classes            | Inspect methods, attributes, interfaces    |
+| SE11        | Data Dictionary    | View table structures, data elements       |
+| SE16        | Table Contents     | Browse actual data (read-only recommended) |
 
 **Avoid SE80** (Object Navigator) -- its complex tree UI is difficult for the MCP server to navigate. Use the focused transactions above instead.
