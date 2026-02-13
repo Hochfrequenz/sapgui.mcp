@@ -62,7 +62,7 @@ def load_catalog(catalog_path: Path | None = None) -> TransactionCatalog:
     path = catalog_path or CATALOG_PATH
 
     if not path.exists():
-        logger.warning("Transaction catalog not found at %s", path)
+        logger.warning("Catalog not found", extra={"path": str(path)})
         return TransactionCatalog()
 
     try:
@@ -70,13 +70,12 @@ def load_catalog(catalog_path: Path | None = None) -> TransactionCatalog:
             data = json.load(f)
         catalog = TransactionCatalog.model_validate(data)
         logger.info(
-            "Loaded transaction catalog: %d transactions (%d enriched)",
-            len(catalog.transactions),
-            catalog.enriched_count,
+            "Loaded catalog",
+            extra={"transactions": len(catalog.transactions), "enriched": catalog.enriched_count},
         )
         return catalog
     except Exception as e:
-        logger.exception("Failed to load transaction catalog from %s", path)
+        logger.exception("Loading catalog", extra={"path": str(path)})
         raise RuntimeError(f"Failed to load transaction catalog: {e}") from e
 
 

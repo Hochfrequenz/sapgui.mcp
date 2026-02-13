@@ -72,7 +72,7 @@ async def get_table_list_from_dd02l(
     all_tables: set[str] = set()
 
     for prefix in prefixes:
-        logger.info("Querying DD02L for prefix: %s*", prefix)
+        logger.info("Querying DD02L", extra={"prefix": f"{prefix}*"})
         result = await _execute_se16_query(
             table="DD02L",
             filters={"TABNAME": f"{prefix}*"},
@@ -174,16 +174,16 @@ async def scrape_table_catalog(
     existing_tables = set(catalog.tables.keys())
 
     # Get table list from DD02L
-    logger.info("Fetching table list from DD02L...")
+    logger.info("Fetching table list from DD02L")
     table_names = await get_table_list_from_dd02l(prefixes)
-    logger.info("Found %d tables matching prefixes", len(table_names))
+    logger.info("Found tables matching prefixes", extra={"count": len(table_names)})
 
     # Filter out already scraped
     to_scrape = [t for t in table_names if t not in existing_tables]
     if max_tables:
         to_scrape = to_scrape[:max_tables]
 
-    logger.info("Tables to scrape: %d (already have %d)", len(to_scrape), len(existing_tables))
+    logger.info("Tables to scrape", extra={"to_scrape": len(to_scrape), "existing": len(existing_tables)})
 
     stats = {"processed": 0, "success": 0, "failed": 0}
     errors: list[dict[str, str]] = []
@@ -194,7 +194,7 @@ async def scrape_table_catalog(
 
         for table_name in batch:
             stats["processed"] += 1
-            logger.info("SE11 lookup: %d/%d - %s", stats["processed"], len(to_scrape), table_name)
+            logger.info("SE11 lookup", extra={"processed": stats["processed"], "total": len(to_scrape), "table": table_name})
 
             try:
                 result = await _lookup_table_se11(table_name)
@@ -209,12 +209,12 @@ async def scrape_table_catalog(
             except Exception as e:  # pylint: disable=broad-exception-caught
                 stats["failed"] += 1
                 errors.append({"table": table_name, "error": str(e)})
-                logger.exception("SE11 lookup error for %s", table_name)
+                logger.exception("SE11 lookup failed", extra={"table": table_name})
 
         # Save after each batch
         catalog.version = datetime.now(UTC).strftime("%Y-%m-%d")
         save_catalog(catalog, output_path)
-        logger.info("Saved catalog: %d tables total, %d new", len(catalog.tables), stats["success"])
+        logger.info("Saved catalog", extra={"total_tables": len(catalog.tables), "new": stats["success"]})
 
     return {
         "success": True,

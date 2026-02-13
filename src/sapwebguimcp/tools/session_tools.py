@@ -53,7 +53,7 @@ async def sap_session_list_impl() -> SessionListResult:
         return SessionListResult(sessions=sessions)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error listing sessions")
+        logger.exception("Listing sessions")
         return SessionListResult.failure(f"Error listing sessions: {e}")
 
 
@@ -103,7 +103,7 @@ async def sap_session_close_impl(session_id: str) -> SessionCloseResult:
         )
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error closing session")
+        logger.exception("Closing session", extra={"session_id": session_id})
         return SessionCloseResult.failure(f"Error closing session: {e}")
 
 
@@ -135,7 +135,7 @@ async def sap_session_bind_impl(session_id: str, agent_id: str) -> SessionBindRe
         )
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error binding session")
+        logger.exception("Binding session", extra={"session_id": session_id, "agent_id": agent_id})
         return SessionBindResult.failure(f"Error binding session: {e}")
 
 
@@ -165,5 +165,5 @@ async def sap_session_release_impl(session_id: str) -> SessionReleaseResult:
         )
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Error releasing session")
+        logger.exception("Releasing session", extra={"session_id": session_id})
         return SessionReleaseResult.failure(f"Error releasing session: {e}")

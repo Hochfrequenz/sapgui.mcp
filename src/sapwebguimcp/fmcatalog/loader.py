@@ -26,7 +26,7 @@ def load_catalog(catalog_path: Path | None = None) -> FMCatalog:
     path = catalog_path or CATALOG_PATH
 
     if not path.exists():
-        logger.warning("FM catalog not found at %s", path)
+        logger.warning("Catalog not found", extra={"path": str(path)})
         return FMCatalog()
 
     try:
@@ -45,10 +45,10 @@ def load_catalog(catalog_path: Path | None = None) -> FMCatalog:
             language=data.get("language"),
             total_count=len(fms),
         )
-        logger.info("Loaded FM catalog: %d function modules", len(fms))
+        logger.info("Loaded catalog", extra={"function_modules": len(fms)})
         return catalog
     except Exception as e:
-        logger.exception("Failed to load FM catalog from %s", path)
+        logger.exception("Loading catalog", extra={"path": str(path)})
         raise RuntimeError(f"Failed to load FM catalog: {e}") from e
 
 
