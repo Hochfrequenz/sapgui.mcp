@@ -50,6 +50,8 @@ A grouping dropdown may appear that determines the BP number range. Select the a
 
 Use `sap_fill_form` to fill all fields in one call. This is much faster than filling fields individually.
 
+Some fields have unique labels (like "Anrede", "Vorname", "Nachname") and can be filled by label. Address fields use **combined labels** in SAP (e.g., "Straße/Hausnummer" labels both street and house number), so filling by label doesn't work reliably for them. Use CSS selectors targeting the SAP field IDs instead.
+
 **Person fields:**
 
 ```
@@ -57,11 +59,11 @@ sap_fill_form({
     "Anrede": "Herr",
     "Vorname": "Max",
     "Nachname": "Mustermann",
-    "Strasse": "Hauptstrasse",
-    "Hausnr.": "1",
-    "Postleitzahl": "10115",
-    "Ort": "Berlin",
-    "Land": "DE"
+    "input[lsdata*='STREET']": "Hauptstrasse",
+    "input[lsdata*='HOUSE_NUM1']": "1",
+    "input[lsdata*='POST_CODE1']": "10115",
+    "input[lsdata*='CITY1']": "Berlin",
+    "input[lsdata*='COUNTRY']": "DE"
 })
 ```
 
@@ -70,15 +72,15 @@ sap_fill_form({
 ```
 sap_fill_form({
     "Name 1": "Musterfirma GmbH",
-    "Strasse": "Industriestr.",
-    "Hausnr.": "42",
-    "Postleitzahl": "80331",
-    "Ort": "Muenchen",
-    "Land": "DE"
+    "input[lsdata*='STREET']": "Industriestr.",
+    "input[lsdata*='HOUSE_NUM1']": "42",
+    "input[lsdata*='POST_CODE1']": "80331",
+    "input[lsdata*='CITY1']": "Muenchen",
+    "input[lsdata*='COUNTRY']": "DE"
 })
 ```
 
-**Tip:** Field labels vary by system language and configuration. If `sap_fill_form` can't find a field by label, use `sap_discover_fields()` to see what's available on the current screen.
+**Tip:** Use `sap_discover_fields()` to see what fields are available on the current screen. It returns both labels and CSS selectors. When a label is ambiguous or doesn't match, fall back to CSS selectors with `input[lsdata*='FIELD_ID']`.
 
 ### Step 5: Save
 

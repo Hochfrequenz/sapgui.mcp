@@ -38,11 +38,11 @@ If you don't know the exact name, search the catalog:
 search_classes("keyword")
 ```
 
-Naming conventions:
+Naming conventions (standard SAP, same in every system):
 
-- `CL_*` -- classes
-- `IF_*` -- interfaces
-- `ZCL_*` / `ZIF_*` -- custom classes/interfaces
+- `CL_*` -- SAP-delivered classes
+- `IF_*` -- SAP-delivered interfaces
+- `ZCL_*` / `ZIF_*` -- customer-developed classes/interfaces (Z namespace)
 
 ### Step 3: Inspect Method Parameters
 

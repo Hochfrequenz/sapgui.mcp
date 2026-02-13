@@ -517,7 +517,6 @@ class TestMcpServer:
         prompts = asyncio.run(mcp.get_prompts())
         expected_prompts = {
             "se16_bulk_read",
-            "getting_started",
             "explore_table",
             "explore_function_module",
             "explore_class",

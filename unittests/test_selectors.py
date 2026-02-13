@@ -904,6 +904,92 @@ class TestFillFormLsdataLabelParsing:
         assert has_first_name, f"First name field should be in labels. Found: {labels_with_key_3[:10]}"
         assert has_last_name, f"Last name field should be in labels. Found: {labels_with_key_3[:10]}"
 
+    def _extract_all_labels(self, soup: BeautifulSoup) -> list[str]:
+        """Extract all label texts from lsdata key '3' in the HTML snapshot."""
+        labels_with_lsdata = soup.find_all("label", attrs={"lsdata": True})
+        label_texts = []
+        for label in labels_with_lsdata:
+            try:
+                lsdata = json.loads(label.get("lsdata"))
+                if "3" in lsdata:
+                    label_texts.append(lsdata["3"])
+            except json.JSONDecodeError:
+                continue
+        return label_texts
+
+    def test_bp_person_form_prompt_labels(self, html_snapshots_path: Path) -> None:
+        """Verify that person labels used in create_business_partner prompt exist on the form.
+
+        The prompt uses label-based filling for 'Anrede', 'Vorname', 'Nachname'.
+        Address fields use CSS selectors (not labels) because SAP uses combined
+        labels like 'Straße/Hausnummer' for those.
+        """
+        snapshot = get_snapshot_path(html_snapshots_path, "bp_person_form")
+        if snapshot is None:
+            pytest.skip("bp_person_form snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+        if soup is None:
+            pytest.skip("Could not parse bp_person_form snapshot")
+
+        all_labels = self._extract_all_labels(soup)
+
+        # These labels are used in the create_business_partner prompt for person fields
+        expected_labels = ["Anrede", "Vorname", "Nachname"]
+        for label in expected_labels:
+            input_el = self._find_input_by_label(soup, label)
+            assert input_el is not None, (
+                f"Label '{label}' from create_business_partner prompt not found on BP person form. "
+                f"Available labels: {sorted(set(all_labels))}"
+            )
+
+    def test_bp_org_form_prompt_labels(self, html_snapshots_path: Path) -> None:
+        """Verify that organisation labels used in create_business_partner prompt exist on the form.
+
+        The prompt uses label-based filling for 'Name 1'.
+        Address fields use CSS selectors (not labels).
+
+        Requires bp_org_form snapshot from test_bp_org_form_snapshot integration test.
+        """
+        snapshot = get_snapshot_path(html_snapshots_path, "bp_org_form")
+        if snapshot is None:
+            pytest.skip("bp_org_form snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+        if soup is None:
+            pytest.skip("Could not parse bp_org_form snapshot")
+
+        all_labels = self._extract_all_labels(soup)
+
+        # "Name 1" is used in the create_business_partner prompt for org fields
+        input_el = self._find_input_by_label(soup, "Name 1")
+        assert input_el is not None, (
+            f"Label 'Name 1' from create_business_partner prompt not found on BP org form. "
+            f"Available labels: {sorted(set(all_labels))}"
+        )
+
+    def test_bp_person_form_address_fields_have_combined_labels(self, html_snapshots_path: Path) -> None:
+        """Verify that address fields use combined labels, confirming CSS selectors are needed.
+
+        The BP form uses combined labels like 'Straße/Hausnummer' and 'Postleitzahl/Ort'
+        instead of individual labels. This is why the create_business_partner prompt
+        uses CSS selectors (input[lsdata*='STREET']) for address fields.
+        """
+        snapshot = get_snapshot_path(html_snapshots_path, "bp_person_form")
+        if snapshot is None:
+            pytest.skip("bp_person_form snapshot not available - run integration tests first")
+        soup = load_snapshot(snapshot)
+        if soup is None:
+            pytest.skip("Could not parse bp_person_form snapshot")
+
+        all_labels = self._extract_all_labels(soup)
+
+        # These individual labels should NOT exist (they are combined in SAP)
+        individual_labels = ["Straße", "Strasse", "Hausnummer", "Hausnr.", "Ort", "Land"]
+        for label in individual_labels:
+            assert label not in all_labels, (
+                f"Individual label '{label}' found - expected combined labels instead. "
+                f"If SAP changed its label scheme, update create_business_partner prompt."
+            )
+
 
 class TestCssSelectorEscaping:
     """Tests for CSS selector escaping utility.
