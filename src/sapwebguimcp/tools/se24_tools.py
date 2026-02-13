@@ -152,7 +152,7 @@ async def _click_tab(page: Any, tab_name: str) -> bool:
             await page.wait_for_load_state("networkidle")
             return True
     except Exception:  # pylint: disable=broad-exception-caught
-        logger.debug("Failed to click tab: %s", tab_name)
+        logger.debug("Failed to click tab", extra={"tab": tab_name})
     return False
 
 
@@ -218,7 +218,7 @@ async def _lookup_single_class(page: Any, class_name: str) -> SE24Entry | SE24Er
 
     # Get main snapshot first
     main_snapshot: str = await page.locator("body").aria_snapshot()
-    logger.debug("SE24: Got main snapshot for %s, length: %d chars", class_name, len(main_snapshot))
+    logger.debug("Got main snapshot", extra={"object": class_name, "length": len(main_snapshot)})
 
     # Capture each tab
     tab_snapshots = SE24TabSnapshots(
@@ -300,7 +300,7 @@ def register_se24_tools(mcp: FastMCP) -> None:
                 else:
                     errors.append(result)
             except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.exception("Error looking up %s in SE24", class_name)
+                logger.exception("Looking up in SE24", extra={"object": class_name})
                 errors.append(
                     SE24Error(
                         class_name=class_name,
@@ -340,8 +340,8 @@ def register_se24_tools(mcp: FastMCP) -> None:
 
         if len(class_list) > MAX_INLINE_OBJECTS:
             logger.warning(
-                "Returning %d classes inline - consider using output_file parameter",
-                len(class_list),
+                "Returning classes inline - consider using output_file parameter",
+                extra={"count": len(class_list)},
             )
 
         return final_result

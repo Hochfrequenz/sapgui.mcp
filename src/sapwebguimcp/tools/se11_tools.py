@@ -238,7 +238,7 @@ async def _wait_for_se11_table_screen(page: Any, name: str) -> SE11Error | None:
         await table_radio.wait_for(state="visible", timeout=10000)
     except PlaywrightTimeout:
         page_title = await page.title()
-        logger.warning("SE11: Page title when radio not found: %s", page_title)
+        logger.warning("Page title when radio not found", extra={"page_title": page_title})
         return SE11Error(
             name=name,
             object_type="table",
@@ -267,7 +267,7 @@ async def _wait_for_se11_structure_screen(page: Any, name: str) -> SE11Error | N
         await type_radio.wait_for(state="visible", timeout=10000)
     except PlaywrightTimeout:
         page_title = await page.title()
-        logger.warning("SE11: Page title when radio not found: %s", page_title)
+        logger.warning("Page title when radio not found", extra={"page_title": page_title})
         return SE11Error(
             name=name,
             object_type="structure",
@@ -346,7 +346,7 @@ async def _click_display_button(page: Any, name: str) -> None:
     if await display_button.count() > 0:
         await display_button.first.click(force=True)
     else:
-        logger.warning("SE11: Display button not found for %s, falling back to F7", name)
+        logger.warning("Display button not found, falling back to F7", extra={"object": name})
         await page.keyboard.press("F7")
 
     await page.wait_for_timeout(500)
@@ -416,16 +416,16 @@ async def _lookup_single_object(  # pylint: disable=too-many-return-statements
 
     # Get and parse snapshot
     snapshot = await page.locator("body").aria_snapshot()
-    logger.debug("SE11: Got snapshot for %s, length: %d chars", name, len(snapshot))
+    logger.debug("Got snapshot", extra={"object": name, "length": len(snapshot)})
 
     parse_result = _parse_se11_yaml(snapshot, object_type)
 
     # Handle parse failure - save debug snapshot
     if isinstance(parse_result, SE11Error):
-        logger.warning("SE11: Parse failed for %s: %s", name, parse_result.error)
+        logger.warning("Parse failed", extra={"object": name, "error": parse_result.error})
         debug_path = Path(f"se11_debug_{name}.yaml")
         debug_path.write_text(snapshot, encoding="utf-8")
-        logger.warning("SE11: Saved debug snapshot to %s", debug_path)
+        logger.warning("Saved debug snapshot", extra={"path": str(debug_path)})
         return SE11Error(name=name, object_type=object_type, error=parse_result.error, retrieved_at=now)
 
     # Verify parsed name matches requested name
@@ -532,7 +532,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
                 else:
                     errors.append(result)
             except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.exception("Error looking up %s in SE11", name)
+                logger.exception("Looking up in SE11", extra={"object": name})
                 errors.append(
                     SE11Error(
                         name=name,
@@ -558,8 +558,8 @@ def register_se11_tools(mcp: FastMCP) -> None:
 
         if len(name_list) > MAX_INLINE_OBJECTS:
             logger.warning(
-                "Returning %d objects inline - consider using output_file parameter to avoid context overflow",
-                len(name_list),
+                "Returning objects inline - consider using output_file parameter to avoid context overflow",
+                extra={"count": len(name_list)},
             )
 
         return final_result

@@ -75,14 +75,14 @@ async def _get_field_order_from_se11(table: str) -> dict[str, int] | None:
             field_order: dict[str, int] = {}
             for idx, field in enumerate(result.fields):
                 field_order[field.name.upper()] = idx
-            logger.info("SE16: Got %d fields from SE11 for table %s", len(field_order), table)
+            logger.info("Got field order from SE11", extra={"table": table, "fields": len(field_order)})
             return field_order
 
-        logger.warning("SE16: SE11 lookup returned no fields for %s", table)
+        logger.warning("SE11 lookup returned no fields", extra={"table": table})
         return None
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.warning("SE16: SE11 lookup failed for %s: %s", table, e)
+        logger.warning("SE11 lookup failed", extra={"table": table, "error": str(e)})
         return None
 
 
@@ -151,19 +151,19 @@ async def _type_table_name_with_validation(page: Any, table: str) -> str | None:
                 await textbox.click()
                 await textbox.fill("")  # Clear first
                 await textbox.type(table.upper(), delay=50)  # Type slowly
-                logger.info("SE16: Typed table name '%s' in field '%s'", table, textbox_name)
+                logger.info("Typed table name", extra={"table": table, "field": textbox_name})
 
                 # Use sap_keyboard_impl to send Enter - waits for networkidle
-                logger.info("SE16: Pressing Enter to trigger table validation")
+                logger.info("Pressing Enter to trigger table validation")
                 await sap_keyboard_impl("Enter")
                 return None
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.warning("SE16: Error typing in table field %s: %s", textbox_name, e)
+            logger.warning("Error typing in table field", extra={"field": textbox_name, "error": str(e)})
 
     # Fallback to fill_form approach
     if fill_error := await _fill_se16n_table_name(table):
         return fill_error
-    logger.warning("SE16: Used fallback fill_form for table name")
+    logger.warning("Used fallback fill_form for table name")
     await sap_keyboard_impl("Enter")
     return None
 
@@ -193,11 +193,11 @@ async def _wait_for_grid_rows(page: Any, timeout_seconds: int = 5) -> bool:
             }
         """)
         if result:
-            logger.info("SE16: Table structure loaded (poll iteration %d)", i)
+            logger.info("Table structure loaded", extra={"poll_iteration": i})
             return True
         await page.wait_for_timeout(500)
 
-    logger.warning("SE16: Grid not populated after %ds polling", timeout_seconds)
+    logger.warning("Grid not populated after polling", extra={"timeout_seconds": timeout_seconds})
     return False
 
 
@@ -241,10 +241,10 @@ async def _fill_filter_with_playwright(
                 # Click body to blur and commit the value
                 await page.locator("body").click(position={"x": 10, "y": 10})
                 await page.wait_for_timeout(300)
-                logger.info("SE16: Filled filter %s=%s via Playwright (id)", field_name, value)
+                logger.info("Filled filter via Playwright (id)", extra={"field": field_name, "value": value})
                 return True
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.warning("SE16: Playwright fill by ID failed: %s", e)
+            logger.warning("Playwright fill by ID failed", extra={"error": str(e)})
 
     # Try by CSS selector
     if selector:
@@ -258,10 +258,10 @@ async def _fill_filter_with_playwright(
                 # Click body to blur and commit the value
                 await page.locator("body").click(position={"x": 10, "y": 10})
                 await page.wait_for_timeout(300)
-                logger.info("SE16: Filled filter %s=%s via Playwright (selector)", field_name, value)
+                logger.info("Filled filter via Playwright (selector)", extra={"field": field_name, "value": value})
                 return True
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.warning("SE16: Playwright fill by selector failed: %s", e)
+            logger.warning("Playwright fill by selector failed", extra={"error": str(e)})
 
     return False
 
@@ -281,7 +281,7 @@ async def _fill_filter_by_index(page: Any, find_js: str, field_name: str, value:
     if not result.get("success"):
         error_msg = str(result.get("error", f"Could not find element for {field_name}"))
         debug_info = result.get("debug", {})
-        logger.warning("SE16: Find element failed - %s, debug=%s", error_msg, debug_info)
+        logger.warning("Find element failed", extra={"error": error_msg, "debug": debug_info})
         return error_msg
 
     # Extract element info
@@ -291,12 +291,14 @@ async def _fill_filter_by_index(page: Any, find_js: str, field_name: str, value:
     element_type = result.get("elementType", "unknown")
 
     logger.info(
-        "SE16: Found element for %s (row %d): id=%s, type=%s, strategy=%s",
-        field_name,
-        row_index,
-        element_id,
-        element_type,
-        strategy,
+        "Found element",
+        extra={
+            "field": field_name,
+            "row_index": row_index,
+            "element_id": element_id,
+            "element_type": element_type,
+            "strategy": strategy,
+        },
     )
 
     # Fill using Playwright
@@ -338,7 +340,7 @@ async def _fill_se16n_filters(filters: dict[str, str] | None, field_order: dict[
     fill_js = _load_js("fill_se16_filter.js") if not field_order else None
 
     if not field_order:
-        logger.warning("SE16: No field order available, falling back to name-based filter search")
+        logger.warning("No field order available, falling back to name-based filter search")
 
     for field_name, value in filters.items():
         field_upper = field_name.upper()
@@ -363,13 +365,13 @@ async def _fill_se16n_filters(filters: dict[str, str] | None, field_order: dict[
                 if not result.get("success"):
                     error_msg = result.get("error", f"Unknown error for field {field_name}")
                     errors.append(error_msg)
-                    logger.warning("SE16: Filter error (name-based): %s", error_msg)
+                    logger.warning("Filter error (name-based)", extra={"error": error_msg})
                 else:
-                    logger.info("SE16: Applied filter %s=%s via JS (name-based)", field_name, value)
+                    logger.info("Applied filter via JS (name-based)", extra={"field": field_name, "value": value})
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             errors.append(f"Failed to apply filter {field_name}={value}: {e}")
-            logger.warning("SE16: Filter exception for %s: %s", field_name, e)
+            logger.warning("Filter exception", extra={"field": field_name, "error": str(e)})
 
     return errors
 
@@ -422,7 +424,7 @@ async def _focus_grid(page: Any) -> None:
             await grid.click()
             await page.wait_for_timeout(500)
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.warning("SE16: Could not focus grid: %s", e)
+        logger.warning("Could not focus grid", extra={"error": str(e)})
 
 
 async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
@@ -460,10 +462,10 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
         rows = parse_se16_rows(snapshot, columns)
 
         if not rows:
-            logger.debug("SE16: Page %d - no rows found", page_num)
+            logger.debug("No rows found on page", extra={"page": page_num})
             stuck_count += 1
             if stuck_count >= 3:
-                logger.warning("SE16: No rows found for 3 consecutive pages, stopping")
+                logger.warning("No rows found for 3 consecutive pages, stopping")
                 break
             await page.wait_for_timeout(int(PAGE_WAIT_TIME.total_seconds() * 2000))
             continue
@@ -475,7 +477,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
 
         # Detect if we're stuck on the same page
         if first_key == last_first_key:
-            logger.debug("SE16: Page %d - same first key, likely at end", page_num)
+            logger.debug("Same first key, likely at end", extra={"page": page_num})
             break
 
         last_first_key = first_key
@@ -495,11 +497,13 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
                 new_count += 1
 
         logger.debug(
-            "SE16: Page %d - collected %d new rows (total: %d/%d)",
-            page_num,
-            new_count,
-            len(all_rows),
-            total_hits,
+            "Collected rows from page",
+            extra={
+                "page": page_num,
+                "new_rows": new_count,
+                "total_rows": len(all_rows),
+                "total_hits": total_hits,
+            },
         )
 
         # Report progress if context available
@@ -511,7 +515,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
 
         # Check if we've collected all rows
         if len(all_rows) >= total_hits:
-            logger.info("SE16: Collected all %d rows", len(all_rows))
+            logger.info("Collected all rows", extra={"count": len(all_rows)})
             break
 
         # PageDown to next page
@@ -546,10 +550,10 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     # (before navigating to SE16N, since SE11 lookup changes the screen)
     field_order: dict[str, int] | None = None
     if filters:
-        logger.info("SE16: Getting field order from SE11 for table %s", table)
+        logger.info("Getting field order from SE11", extra={"table": table})
         field_order = await _get_field_order_from_se11(table)
         if field_order is None:
-            logger.warning("SE16: Could not get field order from SE11, filters may not work")
+            logger.warning("Could not get field order from SE11, filters may not work")
 
     # Navigate to SE16N
     if not (await sap_transaction_impl("SE16N")).success:
@@ -566,7 +570,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
             await _wait_for_grid_rows(page, timeout_seconds=5)
             filter_errors = await _fill_se16n_filters(filters, field_order)
             if filter_errors:
-                logger.warning("SE16: Some filters could not be applied: %s", filter_errors)
+                logger.warning("Some filters could not be applied", extra={"errors": filter_errors})
     else:
         fill_error = await _fill_se16n_table_name(table)
 
@@ -589,7 +593,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
         pass  # Best effort - continue with F8
 
     # Execute query (F8) and wait for results
-    logger.info("SE16: Executing query with F8")
+    logger.info("Executing query with F8")
     await sap_keyboard_impl("F8")
     await page.wait_for_timeout(3000)
 
@@ -599,7 +603,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     # Check for table not found errors
     if table_error := _check_table_not_found(snapshot, table):
         # Log first 500 chars of snapshot for debugging
-        logger.warning("SE16: Check failed, snapshot preview: %s", snapshot[:500])
+        logger.warning("Check failed", extra={"snapshot_preview": snapshot[:500]})
         return _empty_failure(table_error, table, now)
 
     # Parse hit count and columns
@@ -616,7 +620,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
 
     # Check if we're still on selection screen (parsed filter grid instead of results)
     if _check_selection_screen_columns(columns):
-        logger.info("SE16: Parsed selection screen columns, table '%s' likely doesn't exist", table)
+        logger.info("Parsed selection screen columns, table likely doesn't exist", extra={"table": table})
         return _empty_failure(
             f"Table '{table}' not found in SAP (still on selection screen)",
             table,
@@ -717,7 +721,7 @@ def register_se16_tools(mcp: FastMCP) -> None:
                 retrieved_at=now,
             )
 
-        logger.info("SE16: Querying table %s with max_hits=%d", table, max_hits)
+        logger.info("Querying table", extra={"table": table, "max_hits": max_hits})
 
         result = await _execute_se16_query(table, filters, max_hits, ctx)
 

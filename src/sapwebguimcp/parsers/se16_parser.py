@@ -170,7 +170,7 @@ def parse_se16_columns(snapshot: str) -> list[str]:
         if grid_start == -1:
             grid_start = snapshot.find("grid:")
         if grid_start == -1:
-            logger.warning("SE16 parser: No grid found in snapshot")
+            logger.warning("No grid found in snapshot")
             return columns
 
         # Find the first data row using explicit constants
@@ -241,7 +241,7 @@ def parse_se16_rows(snapshot: str, columns: list[str] | None = None) -> list[dic
         columns = parse_se16_columns(snapshot)
 
     if not columns:
-        logger.warning("SE16 parser: No columns found, cannot parse rows")
+        logger.warning("No columns found, cannot parse rows")
         return []
 
     rows: list[dict[str, Any]] = []

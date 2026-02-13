@@ -148,7 +148,7 @@ async def _click_tab(page: Any, tab_name: str) -> bool:
             await page.wait_for_load_state("networkidle")
             return True
     except Exception:  # pylint: disable=broad-exception-caught
-        logger.debug("Failed to click tab: %s", tab_name)
+        logger.debug("Failed to click tab", extra={"tab": tab_name})
     return False
 
 
@@ -216,7 +216,7 @@ async def _lookup_single_fm(page: Any, fm_name: str) -> SE37Entry | SE37Error:
 
     # Get main snapshot first
     main_snapshot = await page.locator("body").aria_snapshot()
-    logger.debug("SE37: Got main snapshot for %s, length: %d chars", fm_name, len(main_snapshot))
+    logger.debug("Got main snapshot", extra={"object": fm_name, "length": len(main_snapshot)})
 
     # Capture each tab
     tab_snapshots = SE37TabSnapshots(
@@ -301,7 +301,7 @@ def register_se37_tools(mcp: FastMCP) -> None:
                 else:
                     errors.append(result)
             except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.exception("Error looking up %s in SE37", fm_name)
+                logger.exception("Looking up in SE37", extra={"object": fm_name})
                 errors.append(
                     SE37Error(
                         function_module=fm_name,
@@ -341,8 +341,8 @@ def register_se37_tools(mcp: FastMCP) -> None:
 
         if len(fm_list) > MAX_INLINE_OBJECTS:
             logger.warning(
-                "Returning %d function modules inline - consider using output_file parameter",
-                len(fm_list),
+                "Returning function modules inline - consider using output_file parameter",
+                extra={"count": len(fm_list)},
             )
 
         return final_result

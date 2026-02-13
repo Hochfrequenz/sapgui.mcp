@@ -180,7 +180,7 @@ async def _lookup_single_tcode(page: Any, tcode: str) -> SE93Entry | SE93Error:
 
     # Get and parse snapshot
     snapshot = await page.locator("body").aria_snapshot()
-    logger.debug("SE93: Got snapshot for %s, length: %d chars", tcode, len(snapshot))
+    logger.debug("Got snapshot", extra={"object": tcode, "length": len(snapshot)})
 
     return parse_se93_snapshot(snapshot, tcode)
 
@@ -249,7 +249,7 @@ def register_se93_tools(mcp: FastMCP) -> None:
                 else:
                     errors.append(result)
             except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.exception("Error looking up %s in SE93", tcode)
+                logger.exception("Looking up in SE93", extra={"object": tcode})
                 errors.append(
                     SE93Error(
                         tcode=tcode,
@@ -289,8 +289,8 @@ def register_se93_tools(mcp: FastMCP) -> None:
 
         if len(tcode_list) > MAX_INLINE_OBJECTS:
             logger.warning(
-                "Returning %d transactions inline - consider using output_file parameter",
-                len(tcode_list),
+                "Returning transactions inline - consider using output_file parameter",
+                extra={"count": len(tcode_list)},
             )
 
         return final_result
