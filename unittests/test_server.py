@@ -525,9 +525,7 @@ class TestMcpServer:
             "abapgit_workflow",
         }
         actual_names = set(prompts.keys())
-        assert expected_prompts.issubset(actual_names), (
-            f"Missing prompts: {expected_prompts - actual_names}"
-        )
+        assert expected_prompts.issubset(actual_names), f"Missing prompts: {expected_prompts - actual_names}"
 
     def test_prompts_have_descriptions(self) -> None:
         """Test that all registered prompts have descriptions."""
