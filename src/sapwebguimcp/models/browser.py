@@ -220,7 +220,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         settings = self._settings or get_settings()
         browser_type = settings.browser_type
 
-        logger.info("Launching %s browser...", browser_type)
+        logger.info("Launching browser", extra={"browser_type": browser_type})
 
         if self._playwright is None:
             raise RuntimeError("Playwright not initialized")
@@ -233,13 +233,13 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
             ignore_https_errors=True,  # SAP systems often use self-signed certificates
         )
 
-        logger.info("Browser launched successfully")
+        logger.info("Browser launched")
 
     async def _connect_to_existing_browser(self) -> None:
         """Connect to an existing browser via CDP."""
         settings = self._settings or get_settings()
 
-        logger.info("Connecting to browser at %s...", settings.cdp_url)
+        logger.info("Connecting to browser", extra={"cdp_url": settings.cdp_url})
 
         if self._playwright is None:
             raise RuntimeError("Playwright not initialized")
@@ -251,13 +251,13 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
             contexts = self._browser.contexts
             if contexts:
                 self._context = contexts[0]
-                logger.info("Connected to existing browser context")
+                logger.info("Connected to existing browser context", extra={"contexts": len(contexts)})
             else:
                 self._context = await self._browser.new_context(
                     viewport={"width": 1280, "height": 800},
                     ignore_https_errors=True,  # SAP systems often use self-signed certificates
                 )
-                logger.info("Created new context in connected browser")
+                logger.info("Created new context in connected browser", extra={"cdp_url": settings.cdp_url})
 
         except Exception as e:
             error_msg = str(e).lower()
@@ -335,7 +335,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
 
     async def _reconnect(self) -> None:
         """Force reconnection to the browser."""
-        logger.info("Reconnecting to browser...")
+        logger.info("Reconnecting to browser")
         self._initialized = False
         self._pages.clear()
         self._context = None
@@ -367,7 +367,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                     phrase in error_msg for phrase in ["closed", "no browser tabs", "target closed", "not connected"]
                 )
                 if attempt == 0 and is_connection_error:
-                    logger.warning("Browser connection issue (%s), attempting reconnect...", e)
+                    logger.warning("Browser connection issue, attempting reconnect", extra={"error": str(e)})
                     await self._reconnect()
                 else:
                     raise
@@ -398,7 +398,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
             # Use the first existing page (usually the active tab)
             page = existing_pages[0]
             self._pages[page_name] = page
-            logger.info("Using existing page: %s (from %d available)", page_name, len(existing_pages))
+            logger.info("Using existing page", extra={"page": page_name, "available": len(existing_pages)})
             return page
 
         # Only create new page if none exist (should be rare with CDP)
@@ -413,7 +413,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
 
         page = await self._context.new_page()
         self._pages[page_name] = page
-        logger.info("Created new page: %s", page_name)
+        logger.info("Created new page", extra={"page": page_name})
         return page
 
     async def get_current_page(self) -> Page:

@@ -35,9 +35,13 @@ class TestAgentBindingIntegration:
         # Operation should succeed
         assert page is page2
 
-        # But warning should be logged
-        assert "agent-A" in caplog.text
-        assert "agent-B" in caplog.text
+        # But warning should be logged with structured extra fields
+        warning_records = [r for r in caplog.records if r.levelno >= logging.WARNING]
+        assert len(warning_records) == 1
+        record = warning_records[0]
+        assert record.message == "Cross-agent session access"
+        assert record.bound_to == "agent-A"  # type: ignore[attr-defined]
+        assert record.accessed_by == "agent-B"  # type: ignore[attr-defined]
 
     def test_unbound_session_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that unbound session doesn't warn."""
@@ -93,5 +97,8 @@ class TestAgentBindingIntegration:
             manager.get_session_page_checked("s1", None, "test_tool")
 
         # Warning for accessing bound session without agent_id
-        assert "agent-A" in caplog.text
-        assert "without agent_id" in caplog.text
+        warning_records = [r for r in caplog.records if r.levelno >= logging.WARNING]
+        assert len(warning_records) == 1
+        record = warning_records[0]
+        assert record.message == "Bound session accessed without agent_id"
+        assert record.bound_to == "agent-A"  # type: ignore[attr-defined]

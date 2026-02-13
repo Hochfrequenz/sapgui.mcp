@@ -81,7 +81,7 @@ def load_all_workflows() -> list[Workflow]:
                 content = path.read_text(encoding="utf-8")
                 workflows[name] = Workflow.from_markdown(name, content)
             except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.warning("Failed to load bundled workflow %s: %s", name, e)
+                logger.warning("Could not load bundled workflow", extra={"name": name, "error": str(e)})
 
     # Load user workflows (override bundled)
     user_dir = get_user_workflows_dir()
@@ -92,7 +92,7 @@ def load_all_workflows() -> list[Workflow]:
                 content = path.read_text(encoding="utf-8")
                 workflows[name] = Workflow.from_markdown(name, content)
             except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.warning("Failed to load user workflow %s: %s", name, e)
+                logger.warning("Could not load user workflow", extra={"name": name, "error": str(e)})
 
     return list(workflows.values())
 
@@ -110,7 +110,7 @@ def save_workflow(workflow: Workflow) -> Path:
     user_dir = get_user_workflows_dir()
     path = user_dir / f"{workflow.name}.md"
     path.write_text(workflow.to_markdown(), encoding="utf-8")
-    logger.info("Saved workflow %s to %s", workflow.name, path)
+    logger.info("Saved workflow", extra={"name": workflow.name, "path": str(path)})
     return path
 
 
@@ -129,7 +129,7 @@ def delete_workflow(name: str) -> bool:
     user_path = get_user_workflows_dir() / f"{name}.md"
     if user_path.exists():
         user_path.unlink()
-        logger.info("Deleted user workflow %s", name)
+        logger.info("Deleted user workflow", extra={"name": name})
         return True
     return False
 

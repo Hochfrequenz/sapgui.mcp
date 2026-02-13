@@ -274,9 +274,13 @@ class TestSessionRegistryBindingChecks:
         with caplog.at_level(logging.WARNING):
             registry.check_binding(sid, "agent-2", "test_tool")
 
-        assert "agent-1" in caplog.text
-        assert "agent-2" in caplog.text
-        assert "test_tool" in caplog.text
+        warning_records = [r for r in caplog.records if r.levelno >= logging.WARNING]
+        assert len(warning_records) == 1
+        record = warning_records[0]
+        assert record.message == "Cross-agent session access"
+        assert record.bound_to == "agent-1"  # type: ignore[attr-defined]
+        assert record.accessed_by == "agent-2"  # type: ignore[attr-defined]
+        assert record.tool == "test_tool"  # type: ignore[attr-defined]
 
     def test_check_binding_none_agent_on_bound_session_warns(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test None agent on bound session logs warning."""
@@ -289,8 +293,11 @@ class TestSessionRegistryBindingChecks:
         with caplog.at_level(logging.WARNING):
             registry.check_binding(sid, None, "test_tool")
 
-        assert "agent-1" in caplog.text
-        assert "without agent_id" in caplog.text
+        warning_records = [r for r in caplog.records if r.levelno >= logging.WARNING]
+        assert len(warning_records) == 1
+        record = warning_records[0]
+        assert record.message == "Bound session accessed without agent_id"
+        assert record.bound_to == "agent-1"  # type: ignore[attr-defined]
 
 
 class TestBrowserManagerBindingCheck:
@@ -311,5 +318,8 @@ class TestBrowserManagerBindingCheck:
             result = manager.get_session_page_checked(sid, "agent-2", "test_tool")
 
         assert result is page
-        assert "agent-1" in caplog.text
-        assert "agent-2" in caplog.text
+        warning_records = [r for r in caplog.records if r.levelno >= logging.WARNING]
+        assert len(warning_records) == 1
+        record = warning_records[0]
+        assert record.bound_to == "agent-1"  # type: ignore[attr-defined]
+        assert record.accessed_by == "agent-2"  # type: ignore[attr-defined]
