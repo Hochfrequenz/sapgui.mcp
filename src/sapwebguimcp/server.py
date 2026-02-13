@@ -13,8 +13,8 @@ from pathlib import Path
 from fastmcp import FastMCP
 from fastmcp.server.middleware.logging import LoggingMiddleware
 
-from sapwebguimcp.loghandlers import IntentFileHandler
 from sapwebguimcp.logging_config import configure_logging
+from sapwebguimcp.loghandlers import IntentFileHandler
 from sapwebguimcp.middleware import ToolCallLoggingMiddleware
 from sapwebguimcp.models import close_browser_manager
 from sapwebguimcp.models.config import get_settings

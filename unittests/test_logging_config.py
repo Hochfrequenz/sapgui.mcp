@@ -8,11 +8,11 @@ from unittest.mock import patch
 import pytest
 
 from sapwebguimcp.logging_config import (
+    BrowserLogContext,
+    QueryLogContext,
     StructuredFormatter,
     ToolLogContext,
     TransactionLogContext,
-    QueryLogContext,
-    BrowserLogContext,
     configure_logging,
 )
 
