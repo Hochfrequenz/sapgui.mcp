@@ -21,7 +21,7 @@ Follow these exact steps - they have been validated by the main agent.
 If you need to filter by specific fields, first look up the table structure using `sap_se11_lookup`:
 
 ```
-sap_se11_lookup(name="<TABLE_NAME>")
+sap_se11_lookup(names="<TABLE_NAME>", object_type="table")
 ```
 
 This returns the table's fields with their names, types, and descriptions. Use these field names in your filters.
@@ -51,9 +51,11 @@ Parameters:
 The tool returns a structured result with:
 
 - `success`: Boolean indicating if the query succeeded
-- `data`: List of row dictionaries with field values
-- `row_count`: Number of rows returned
+- `rows`: List of row objects with field values
+- `returned_rows`: Number of rows returned
+- `total_hits`: Total matching rows in SAP
 - `columns`: List of column names
+- `truncated`: Whether results were limited by max_hits
 
 ### Step 4: Handle Large Result Sets
 
