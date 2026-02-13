@@ -277,7 +277,7 @@ class TestSessionRegistryBindingChecks:
         warning_records = [r for r in caplog.records if r.levelno >= logging.WARNING]
         assert len(warning_records) == 1
         record = warning_records[0]
-        assert record.message == "Cross-agent session access"
+        assert record.getMessage() == "Cross-agent session access"
         assert record.bound_to == "agent-1"  # type: ignore[attr-defined]
         assert record.accessed_by == "agent-2"  # type: ignore[attr-defined]
         assert record.tool == "test_tool"  # type: ignore[attr-defined]
@@ -296,7 +296,7 @@ class TestSessionRegistryBindingChecks:
         warning_records = [r for r in caplog.records if r.levelno >= logging.WARNING]
         assert len(warning_records) == 1
         record = warning_records[0]
-        assert record.message == "Bound session accessed without agent_id"
+        assert record.getMessage() == "Bound session accessed without agent_id"
         assert record.bound_to == "agent-1"  # type: ignore[attr-defined]
 
 

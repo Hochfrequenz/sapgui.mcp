@@ -832,7 +832,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
                 # Step 2: Try to enable the OK-Code field
                 success, message = await _enable_okcode_field(page)
-                logger.info("Enable OK-Code result", extra={"success": success, "message": message})
+                logger.info("Enable OK-Code result", extra={"success": success, "result_message": message})
 
                 if not success:
                     return TransactionResult.failure(

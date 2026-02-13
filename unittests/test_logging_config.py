@@ -6,7 +6,6 @@ import os
 from unittest.mock import patch
 
 import pytest
-from pydantic import BaseModel
 
 from sapwebguimcp.logging_config import (
     StructuredFormatter,

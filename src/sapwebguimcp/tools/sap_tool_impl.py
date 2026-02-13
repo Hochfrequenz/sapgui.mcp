@@ -139,7 +139,7 @@ async def sap_transaction_impl(tcode: str, new_window: bool = False) -> Transact
         if not okcode_field:
             logger.info("OK-Code field not found, enabling it")
             success, message = await _enable_okcode_field(page)
-            logger.info("OK-Code field enabled", extra={"success": success, "message": message})
+            logger.info("OK-Code field enabled", extra={"success": success, "result_message": message})
 
             if not success:
                 return TransactionResult.failure(
