@@ -44,3 +44,15 @@ def test_middleware_shares_sessions_ref():
     """Middleware instance uses the module-level _sessions_ref."""
     mw = ToolCallLoggingMiddleware()
     assert mw._sessions is _sessions_ref
+
+
+def test_extract_sap_user_js_exists():
+    """The JS file should be loadable and contain expected selectors."""
+    from pathlib import Path
+
+    js_path = Path("src/sapwebguimcp/js/extract_sap_user.js")
+    assert js_path.exists()
+    content = js_path.read_text()
+    assert "sysInfoAreaMenuItemSAPITS_MBAR_USER" in content
+    assert "lsdata" in content
+    assert "aria-label" in content
