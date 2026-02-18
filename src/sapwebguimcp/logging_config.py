@@ -18,7 +18,9 @@ Environment variables:
 
 import json
 import logging
+import logging.handlers
 import os
+import socket
 import traceback
 from datetime import datetime, timezone
 from typing import Any
@@ -155,11 +157,15 @@ class StructuredFormatter(logging.Formatter):
         return json.dumps(data, default=str)
 
 
-def configure_logging() -> None:
+def configure_logging(*, papertrail_host: str = "", papertrail_port: int = 0) -> None:
     """Configure root logger with structured formatter.
 
     Reads LOG_FORMAT and LOG_LEVEL from environment.
     Call once at startup before any log statements.
+
+    Args:
+        papertrail_host: Papertrail syslog destination host. Empty to disable.
+        papertrail_port: Papertrail syslog destination port.
     """
     json_mode = os.environ.get("LOG_FORMAT", "").lower() == "json"
     level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -176,3 +182,26 @@ def configure_logging() -> None:
     ]
     root.addHandler(handler)
     root.setLevel(level)
+
+    # Remove any previous SysLogHandler before (re-)adding
+    root.handlers = [h for h in root.handlers if not isinstance(h, logging.handlers.SysLogHandler)]
+
+    if papertrail_host:
+        try:
+            syslog_handler = logging.handlers.SysLogHandler(
+                address=(papertrail_host, papertrail_port),
+                socktype=socket.SOCK_DGRAM,
+            )
+            syslog_formatter = logging.Formatter(
+                fmt=f"{socket.gethostname()} sapwebguimcp: %(name)s [%(levelname)s] %(message)s",
+            )
+            syslog_handler.setFormatter(syslog_formatter)
+            root.addHandler(syslog_handler)
+            logging.getLogger(__name__).info("Papertrail logging enabled: %s:%d", papertrail_host, papertrail_port)
+        except OSError:
+            logging.getLogger(__name__).warning(
+                "Failed to configure Papertrail logging to %s:%d",
+                papertrail_host,
+                papertrail_port,
+                exc_info=True,
+            )

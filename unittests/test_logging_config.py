@@ -2,6 +2,7 @@
 
 import json
 import logging
+import logging.handlers
 import os
 from unittest.mock import patch
 
@@ -227,3 +228,18 @@ class TestConfigureLogging:
         root.addHandler(file_handler)
         configure_logging()
         assert file_handler in root.handlers
+
+    def test_configure_logging_papertrail_enabled(self) -> None:
+        """Papertrail args add a SysLogHandler to root."""
+        configure_logging(papertrail_host="localhost", papertrail_port=15514)
+        root = logging.getLogger()
+        syslog_handlers = [h for h in root.handlers if isinstance(h, logging.handlers.SysLogHandler)]
+        assert len(syslog_handlers) == 1
+        assert syslog_handlers[0].address == ("localhost", 15514)
+
+    def test_configure_logging_papertrail_disabled_by_default(self) -> None:
+        """No SysLogHandler when papertrail_host is empty."""
+        configure_logging()
+        root = logging.getLogger()
+        syslog_handlers = [h for h in root.handlers if isinstance(h, logging.handlers.SysLogHandler)]
+        assert len(syslog_handlers) == 0

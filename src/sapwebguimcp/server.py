@@ -40,12 +40,12 @@ from sapwebguimcp.tools import (
 
 __all__ = ["main", "mcp"]
 
-# Configure logging
-configure_logging()
-logger = logging.getLogger(__name__)
-
-# Get settings for handler configuration
+# Get settings (needed for logging configuration)
 _settings = get_settings()
+
+# Configure logging (including optional Papertrail)
+configure_logging(papertrail_host=_settings.papertrail_host, papertrail_port=_settings.papertrail_port)
+logger = logging.getLogger(__name__)
 
 # Configure intent file handler if AUDIT_LOG_DIR is set
 if _settings.audit_log_dir:
