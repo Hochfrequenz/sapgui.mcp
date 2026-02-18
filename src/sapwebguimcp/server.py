@@ -58,12 +58,13 @@ if _settings.audit_log_dir:
 # Note: GitHub issue creation is handled directly in log_feedback tool (async)
 
 
-async def _check_cdp_available(cdp_url: str) -> None:
-    """Log Chrome CDP availability status. Non-blocking — warns but does not fail."""
+async def _check_cdp_available(cdp_url: str) -> bool:
+    """Check Chrome CDP availability and log status. Non-blocking — warns but does not fail."""
     try:
         async with httpx.AsyncClient() as client:
             await client.get(f"{cdp_url}/json/version", timeout=2.0)
-        logger.info("[OK] Chrome CDP connected at %s", cdp_url)
+        logger.info("[OK] Chrome CDP reachable at %s", cdp_url)
+        return True
     except (httpx.ConnectError, httpx.TimeoutException, OSError):
         if sys.platform == "win32":
             hint = 'chrome.exe --remote-debugging-port=9222 --user-data-dir="C:\\temp\\chrome-debug"'
@@ -80,6 +81,7 @@ async def _check_cdp_available(cdp_url: str) -> None:
             cdp_url,
             hint,
         )
+        return False
 
 
 @asynccontextmanager
@@ -91,8 +93,11 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     The browser manager is initialized lazily on first use via get_browser_manager().
     """
     logger.info("[STARTING] SAP Web GUI MCP Server initializing...")
-    await _check_cdp_available(_settings.cdp_url)
-    logger.info("[READY] Server started successfully. Waiting for MCP client connection on stdio.")
+    cdp_ok = await _check_cdp_available(_settings.cdp_url)
+    if cdp_ok:
+        logger.info("[READY] Server started successfully. Waiting for MCP client connection on stdio.")
+    else:
+        logger.info("[WAITING] Server started but Chrome is not available. Start Chrome, then restart this server.")
 
     try:
         yield
