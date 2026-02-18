@@ -288,7 +288,7 @@ def configure_logging(*, papertrail_host: str = "", papertrail_port: int = 0) ->
         )
     elif papertrail_host:
         logging.getLogger(__name__).info(
-            "[OK] Papertrail logging enabled (TLS): %s:%d", papertrail_host, papertrail_port
+            "[OK] Papertrail logging configured (TLS): %s:%d", papertrail_host, papertrail_port
         )
         tls_handler = _PapertrailTlsHandler(papertrail_host, papertrail_port)
         syslog_formatter = logging.Formatter(
