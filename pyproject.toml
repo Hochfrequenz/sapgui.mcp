@@ -62,6 +62,9 @@ dev = [
     "pip-tools",
     "uv",
 ]
+build_executable = [
+    "pyinstaller==6.19.0",
+]
 
 [project.urls]
 Changelog = "https://github.com/Hochfrequenz/sapwebgui.mcp/releases"

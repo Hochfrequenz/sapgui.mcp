@@ -249,10 +249,46 @@ If Docker Desktop isn't running or you're not logged in (`docker login ghcr.io`)
 > You need to be logged in to the GitHub Container Registry (`ghcr.io`). Being logged in to Docker (for example Docker Hub) alone is _not_ sufficient; you must run `docker login ghcr.io`.
 
 Try pulling manually if you run into errors:
+
 ```powershell
 docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ```
+
 If the containers started but Chrome (in browser automation mode with CDP enabled) is missing, Claude will likely understand how to login but fail on the first tool call.
+
+## Standalone Executable (no Docker, no Python)
+
+If you prefer not to use Docker, download `sapwebgui_mcp_windows_<version>.exe` from
+[GitHub Releases](https://github.com/Hochfrequenz/sapwebgui.mcp/releases/latest).
+
+### Step 1: Start Chrome with remote debugging
+
+```powershell
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
+```
+
+### Step 2: Configure your MCP client
+
+Point your Claude config to the exe:
+
+```json
+{
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "C:/path/to/sapwebgui_mcp_windows.exe",
+            "env": {
+                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "EN"
+            }
+        }
+    }
+}
+```
+
+No Docker, no CDP proxy, no Python required.
 
 ## Development Setup
 

@@ -6,10 +6,12 @@ Tools are organized in separate modules under sapwebguimcp.tools.
 """
 
 import logging
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastmcp import FastMCP
 from fastmcp.server.middleware.logging import LoggingMiddleware
 
@@ -56,6 +58,25 @@ if _settings.audit_log_dir:
 # Note: GitHub issue creation is handled directly in log_feedback tool (async)
 
 
+async def _check_cdp_available(cdp_url: str) -> None:
+    """Log Chrome CDP availability status. Non-blocking — warns but does not fail."""
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.get(f"{cdp_url}/json/version", timeout=2.0)
+        logger.info("Chrome CDP detected at %s", cdp_url)
+    except (httpx.ConnectError, httpx.TimeoutException, OSError):
+        if sys.platform == "win32":
+            hint = 'chrome.exe --remote-debugging-port=9222 --user-data-dir="C:\\temp\\chrome-debug"'
+        elif sys.platform == "darwin":
+            hint = (
+                '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"'
+                " --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug"
+            )
+        else:
+            hint = "google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug"
+        logger.warning("Chrome not detected at %s. Please start Chrome with: %s", cdp_url, hint)
+
+
 @asynccontextmanager
 async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     """
@@ -65,6 +86,7 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     The browser manager is initialized lazily on first use via get_browser_manager().
     """
     logger.info("SAP Web GUI MCP Server starting...")
+    await _check_cdp_available(_settings.cdp_url)
     logger.info("Server ready - waiting for MCP client connection on stdin.")
     logger.info("(JSON parse errors on empty input are normal when testing manually)")
 
@@ -146,7 +168,13 @@ register_feedback_resources(mcp)
 
 def main() -> None:
     """Main entry point for the MCP server."""
-    mcp.run()
+    try:
+        mcp.run(show_banner=False)
+    except Exception:
+        logger.critical("Server crashed with unhandled exception", exc_info=True)
+        raise
+    finally:
+        logging.shutdown()
 
 
 if __name__ == "__main__":
