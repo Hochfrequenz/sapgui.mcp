@@ -156,7 +156,7 @@ pydantic-settings==2.12.0
     #   sapwebguimcp (pyproject.toml)
 pydocket==0.17.7
     # via fastmcp
-pyee==13.0.0
+pyee==13.0.1
     # via playwright
 pygments==2.19.2
     # via rich
