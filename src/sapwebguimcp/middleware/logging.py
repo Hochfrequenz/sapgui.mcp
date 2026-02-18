@@ -29,11 +29,22 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
-from sapwebguimcp.models.middleware import SessionStats, ToolCall
+from sapwebguimcp.models.middleware import SapIdentity, SessionStats, ToolCall
 
-__all__ = ["ToolCallLoggingMiddleware"]
+__all__ = ["ToolCallLoggingMiddleware", "set_sap_identity"]
 
 _logger = logging.getLogger(__name__)
+
+# Module-level reference for cross-boundary communication (tools -> middleware).
+_sessions_ref: dict[str, SessionStats] = {}
+
+
+def set_sap_identity(session_id: str | None, identity: SapIdentity) -> None:
+    """Set SAP identity for a session. Called by sap_login after successful login."""
+    key = session_id or "unknown"
+    if key not in _sessions_ref:
+        _sessions_ref[key] = SessionStats()
+    _sessions_ref[key].sap_identity = identity
 
 
 class ToolCallLoggingMiddleware(Middleware):
@@ -45,7 +56,7 @@ class ToolCallLoggingMiddleware(Middleware):
 
     def __init__(self) -> None:
         super().__init__()
-        self._sessions: dict[str, SessionStats] = {}
+        self._sessions: dict[str, SessionStats] = _sessions_ref
 
     def _get_session(self, session_id: str | None) -> SessionStats:
         """Get or create session stats."""
@@ -53,6 +64,12 @@ class ToolCallLoggingMiddleware(Middleware):
         if key not in self._sessions:
             self._sessions[key] = SessionStats()
         return self._sessions[key]
+
+    def _identity_extra(self, session: SessionStats) -> dict[str, str]:
+        """Extract identity fields from session for log extra."""
+        if session.sap_identity is None:
+            return {}
+        return session.sap_identity.model_dump(mode="json")
 
     def _format_args(self, arguments: dict[str, Any] | None) -> dict[str, str]:
         """Format tool arguments for logging, masking sensitive values."""
@@ -91,16 +108,15 @@ class ToolCallLoggingMiddleware(Middleware):
             session.tool_calls.append(current_call)
             session.total_duration += duration
             session.call_count += 1
-            _logger.warning(
-                "Tool failed",
-                extra={
-                    "tool": tool_name,
-                    "session": session_id,
-                    "duration_ms": int(duration.total_seconds() * 1000),
-                    "error": str(e),
-                    "seq": session.format_sequence(last_n=20),
-                },
-            )
+            extra = {
+                "tool": tool_name,
+                "session": session_id,
+                "duration_ms": int(duration.total_seconds() * 1000),
+                "error": str(e),
+                "seq": session.format_sequence(last_n=20),
+            }
+            extra.update(self._identity_extra(session))
+            _logger.warning("Tool failed", extra=extra)
             raise
 
         # Update session stats and log success
@@ -118,5 +134,6 @@ class ToolCallLoggingMiddleware(Middleware):
         }
         if round_time is not None:
             extra["round_time_ms"] = int(round_time.total_seconds() * 1000)
+        extra.update(self._identity_extra(session))
         _logger.info("Tool completed", extra=extra)
         return result
