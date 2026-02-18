@@ -10,19 +10,15 @@ on:
 
 jobs:
   build_standalone_executable:
-    strategy:
-      matrix:
-        python-version: ["3.14"]
-        os: [windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.14"
 
       - name: Build Executable
         run: |
