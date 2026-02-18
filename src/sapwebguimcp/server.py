@@ -162,7 +162,13 @@ register_feedback_resources(mcp)
 
 def main() -> None:
     """Main entry point for the MCP server."""
-    mcp.run(show_banner=False)
+    try:
+        mcp.run(show_banner=False)
+    except Exception:
+        logger.critical("Server crashed with unhandled exception", exc_info=True)
+        raise
+    finally:
+        logging.shutdown()
 
 
 if __name__ == "__main__":
