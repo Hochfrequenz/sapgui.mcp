@@ -7,8 +7,10 @@ Usage: python unittests/smoke_test_exe.py <path-to-exe>
 """
 
 import json
+import os
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 
@@ -20,12 +22,17 @@ def main() -> None:
 
     exe_path = sys.argv[1]
 
+    if not os.path.isfile(exe_path):
+        print(f"FAIL: Executable not found: {exe_path}")
+        sys.exit(1)
+
     print(f"Starting {exe_path}...")
+    stderr_file = tempfile.TemporaryFile()
     proc = subprocess.Popen(
         [exe_path],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=stderr_file,
     )
 
     try:
@@ -33,7 +40,8 @@ def main() -> None:
         time.sleep(5)
 
         if proc.poll() is not None:
-            stderr = proc.stderr.read().decode("utf-8", errors="replace") if proc.stderr else ""
+            stderr_file.seek(0)
+            stderr = stderr_file.read().decode("utf-8", errors="replace")
             print(f"FAIL: Process exited early with code {proc.returncode}")
             print(f"stderr: {stderr[:2000]}")
             sys.exit(1)
@@ -81,7 +89,8 @@ def main() -> None:
         t.join(timeout=15.0)
 
         if not output_lines:
-            stderr = proc.stderr.read().decode("utf-8", errors="replace") if proc.stderr else ""
+            stderr_file.seek(0)
+            stderr = stderr_file.read().decode("utf-8", errors="replace")
             print("FAIL: No output received within 15 seconds")
             print(f"stderr: {stderr[:2000]}")
             sys.exit(1)
@@ -110,6 +119,7 @@ def main() -> None:
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
+        stderr_file.close()
 
 
 if __name__ == "__main__":

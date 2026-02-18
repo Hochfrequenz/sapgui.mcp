@@ -4,7 +4,7 @@ import logging
 
 import pytest
 import respx
-from httpx import Response
+from httpx import ConnectError, Response
 
 from sapwebguimcp.server import _check_cdp_available
 
@@ -25,7 +25,7 @@ class TestCdpCheck:
     @pytest.mark.anyio
     async def test_cdp_check_failure(self, caplog: pytest.LogCaptureFixture) -> None:
         """Logs warning with guidance when Chrome CDP is not reachable."""
-        respx.get("http://localhost:9222/json/version").mock(side_effect=ConnectionError)
+        respx.get("http://localhost:9222/json/version").mock(side_effect=ConnectError("Connection refused"))
         with caplog.at_level(logging.WARNING):
             await _check_cdp_available("http://localhost:9222")
         assert "Chrome not detected" in caplog.text

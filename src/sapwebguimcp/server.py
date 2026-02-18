@@ -39,7 +39,7 @@ from sapwebguimcp.tools import (
     register_workflow_tools,
 )
 
-__all__ = ["main", "mcp", "_check_cdp_available"]
+__all__ = ["main", "mcp"]
 
 # Get settings (needed for logging configuration)
 _settings = get_settings()
