@@ -27,7 +27,7 @@ def main() -> None:
         sys.exit(1)
 
     print(f"Starting {exe_path}...")
-    stderr_file = tempfile.TemporaryFile()
+    stderr_file = tempfile.TemporaryFile(mode="w+b")
     proc = subprocess.Popen(
         [exe_path],
         stdin=subprocess.PIPE,
