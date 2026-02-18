@@ -19,7 +19,7 @@ class TestCdpCheck:
         respx.get("http://localhost:9222/json/version").mock(return_value=Response(200, json={"Browser": "Chrome/120"}))
         with caplog.at_level(logging.INFO):
             await _check_cdp_available("http://localhost:9222")
-        assert "Chrome CDP detected" in caplog.text
+        assert "[OK] Chrome CDP connected" in caplog.text
 
     @respx.mock
     @pytest.mark.anyio
@@ -28,5 +28,5 @@ class TestCdpCheck:
         respx.get("http://localhost:9222/json/version").mock(side_effect=ConnectError("Connection refused"))
         with caplog.at_level(logging.WARNING):
             await _check_cdp_available("http://localhost:9222")
-        assert "Chrome not detected" in caplog.text
+        assert "[ACTION REQUIRED] Chrome not detected" in caplog.text
         assert "--remote-debugging-port=9222" in caplog.text
