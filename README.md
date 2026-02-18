@@ -258,7 +258,7 @@ If the containers started but Chrome (in browser automation mode with CDP enable
 
 ## Standalone Executable (no Docker, no Python)
 
-If you prefer not to use Docker, download the standalone `.exe` from
+If you prefer not to use Docker, download `sapwebgui_mcp_windows_<version>.exe` from
 [GitHub Releases](https://github.com/Hochfrequenz/sapwebgui.mcp/releases/latest).
 
 ### Step 1: Start Chrome with remote debugging
