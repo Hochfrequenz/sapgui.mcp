@@ -6,6 +6,7 @@ Tools are organized in separate modules under sapwebguimcp.tools.
 """
 
 import logging
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -64,11 +65,16 @@ async def _check_cdp_available(cdp_url: str) -> None:
             await client.get(f"{cdp_url}/json/version", timeout=2.0)
         logger.info("Chrome CDP detected at %s", cdp_url)
     except (httpx.ConnectError, httpx.TimeoutException, OSError):
-        logger.warning(
-            "Chrome not detected on CDP. "
-            "Please start Chrome with: "
-            'chrome.exe --remote-debugging-port=9222 --user-data-dir="C:\\temp\\chrome-debug"'
-        )
+        if sys.platform == "win32":
+            hint = 'chrome.exe --remote-debugging-port=9222 --user-data-dir="C:\\temp\\chrome-debug"'
+        elif sys.platform == "darwin":
+            hint = (
+                '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"'
+                " --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug"
+            )
+        else:
+            hint = "google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug"
+        logger.warning("Chrome not detected at %s. Please start Chrome with: %s", cdp_url, hint)
 
 
 @asynccontextmanager
