@@ -197,10 +197,10 @@ def configure_logging(*, papertrail_host: str = "", papertrail_port: int = 0) ->
             )
             syslog_handler.setFormatter(syslog_formatter)
             root.addHandler(syslog_handler)
-            logging.getLogger(__name__).info("Papertrail logging enabled: %s:%d", papertrail_host, papertrail_port)
+            logging.getLogger(__name__).info("[OK] Papertrail logging enabled: %s:%d", papertrail_host, papertrail_port)
         except OSError:
             logging.getLogger(__name__).warning(
-                "Failed to configure Papertrail logging to %s:%d",
+                "[ACTION REQUIRED] Failed to configure Papertrail logging to %s:%d",
                 papertrail_host,
                 papertrail_port,
                 exc_info=True,

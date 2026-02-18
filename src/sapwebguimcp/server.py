@@ -53,17 +53,18 @@ logger = logging.getLogger(__name__)
 if _settings.audit_log_dir:
     _intent_handler = IntentFileHandler(Path(_settings.audit_log_dir))
     logging.getLogger().addHandler(_intent_handler)
-    logger.info("Intent audit logging enabled: %s", _settings.audit_log_dir)
+    logger.info("[OK] Intent audit logging enabled: %s", _settings.audit_log_dir)
 
 # Note: GitHub issue creation is handled directly in log_feedback tool (async)
 
 
-async def _check_cdp_available(cdp_url: str) -> None:
-    """Log Chrome CDP availability status. Non-blocking — warns but does not fail."""
+async def _check_cdp_available(cdp_url: str) -> bool:
+    """Check Chrome CDP availability and log status. Non-blocking — warns but does not fail."""
     try:
         async with httpx.AsyncClient() as client:
             await client.get(f"{cdp_url}/json/version", timeout=2.0)
-        logger.info("Chrome CDP detected at %s", cdp_url)
+        logger.info("[OK] Chrome CDP reachable at %s", cdp_url)
+        return True
     except (httpx.ConnectError, httpx.TimeoutException, OSError):
         if sys.platform == "win32":
             hint = 'chrome.exe --remote-debugging-port=9222 --user-data-dir="C:\\temp\\chrome-debug"'
@@ -74,7 +75,13 @@ async def _check_cdp_available(cdp_url: str) -> None:
             )
         else:
             hint = "google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug"
-        logger.warning("Chrome not detected at %s. Please start Chrome with: %s", cdp_url, hint)
+        logger.warning(
+            "[ACTION REQUIRED] Chrome not detected at %s. "
+            "Start Chrome with remote debugging, then restart this server: %s",
+            cdp_url,
+            hint,
+        )
+        return False
 
 
 @asynccontextmanager
@@ -85,17 +92,19 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     This context manager handles cleanup of browser resources on shutdown.
     The browser manager is initialized lazily on first use via get_browser_manager().
     """
-    logger.info("SAP Web GUI MCP Server starting...")
-    await _check_cdp_available(_settings.cdp_url)
-    logger.info("Server ready - waiting for MCP client connection on stdin.")
-    logger.info("(JSON parse errors on empty input are normal when testing manually)")
+    logger.info("[STARTING] SAP Web GUI MCP Server initializing...")
+    cdp_ok = await _check_cdp_available(_settings.cdp_url)
+    if cdp_ok:
+        logger.info("[READY] Server started successfully. Waiting for MCP client connection on stdio.")
+    else:
+        logger.info("[WAITING] Server started but Chrome is not available. Start Chrome, then restart this server.")
 
     try:
         yield
     finally:
-        logger.info("Cleaning up browser resources...")
+        logger.info("[STOPPING] Cleaning up browser resources...")
         await close_browser_manager()
-        logger.info("Server shutdown complete")
+        logger.info("[STOPPED] Server shutdown complete.")
 
 
 # Instructions for the LLM about this MCP server
@@ -171,7 +180,7 @@ def main() -> None:
     try:
         mcp.run(show_banner=False)
     except Exception:
-        logger.critical("Server crashed with unhandled exception", exc_info=True)
+        logger.critical("[CRASHED] Server crashed with unhandled exception", exc_info=True)
         raise
     finally:
         logging.shutdown()
