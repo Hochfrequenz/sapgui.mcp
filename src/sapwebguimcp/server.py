@@ -10,6 +10,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastmcp import FastMCP
 from fastmcp.server.middleware.logging import LoggingMiddleware
 
@@ -38,7 +39,7 @@ from sapwebguimcp.tools import (
     register_workflow_tools,
 )
 
-__all__ = ["main", "mcp"]
+__all__ = ["main", "mcp", "_check_cdp_available"]
 
 # Get settings (needed for logging configuration)
 _settings = get_settings()
@@ -56,6 +57,20 @@ if _settings.audit_log_dir:
 # Note: GitHub issue creation is handled directly in log_feedback tool (async)
 
 
+async def _check_cdp_available(cdp_url: str) -> None:
+    """Log Chrome CDP availability status. Non-blocking — warns but does not fail."""
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.get(f"{cdp_url}/json/version", timeout=2.0)
+        logger.info("Chrome CDP detected at %s", cdp_url)
+    except (httpx.ConnectError, httpx.TimeoutException, OSError):
+        logger.warning(
+            "Chrome not detected on CDP. "
+            "Please start Chrome with: "
+            'chrome.exe --remote-debugging-port=9222 --user-data-dir="C:\\temp\\chrome-debug"'
+        )
+
+
 @asynccontextmanager
 async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     """
@@ -65,6 +80,7 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     The browser manager is initialized lazily on first use via get_browser_manager().
     """
     logger.info("SAP Web GUI MCP Server starting...")
+    await _check_cdp_available(_settings.cdp_url)
     logger.info("Server ready - waiting for MCP client connection on stdin.")
     logger.info("(JSON parse errors on empty input are normal when testing manually)")
 
