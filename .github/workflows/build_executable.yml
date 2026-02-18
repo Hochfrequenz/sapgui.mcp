@@ -75,6 +75,8 @@ jobs:
     needs: [build, smoke_test]
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download Executable
         uses: actions/download-artifact@v6
