@@ -82,7 +82,10 @@ jobs:
           name: sapwebgui_mcp_windows
           path: dist
 
+      - name: Rename Executable with version
+        run: mv ./dist/sapwebgui_mcp_windows.exe ./dist/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
+
       - name: Upload Executable to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/sapwebgui_mcp_windows.exe
+          files: ./dist/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
