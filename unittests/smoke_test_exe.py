@@ -36,15 +36,17 @@ def main() -> None:
     )
 
     try:
-        # Give the server a moment to start
-        time.sleep(5)
-
-        if proc.poll() is not None:
-            stderr_file.seek(0)
-            stderr = stderr_file.read().decode("utf-8", errors="replace")
-            print(f"FAIL: Process exited early with code {proc.returncode}")
-            print(f"stderr: {stderr[:2000]}")
-            sys.exit(1)
+        # Wait for the server to start (PyInstaller --onefile decompresses on first run)
+        for i in range(20):
+            time.sleep(1)
+            if proc.poll() is not None:
+                stderr_file.seek(0)
+                stderr = stderr_file.read().decode("utf-8", errors="replace")
+                print(f"FAIL: Process exited early with code {proc.returncode}")
+                print(f"stderr: {stderr[:2000]}")
+                sys.exit(1)
+            if i >= 4:  # Wait at least 5 seconds before proceeding
+                break
 
         print("Server running. Sending MCP initialize request...")
 
