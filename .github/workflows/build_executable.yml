@@ -25,6 +25,14 @@ jobs:
           pip install tox
           tox -e build_executable
 
+      - name: Start Chrome headless for CDP check
+        run: |
+          Start-Process -FilePath "C:\Program Files\Google\Chrome\Application\chrome.exe" `
+            -ArgumentList "--headless", "--disable-gpu", "--remote-debugging-port=9222", "--user-data-dir=$env:TEMP\chrome-debug"
+          Start-Sleep -Seconds 3
+          Invoke-WebRequest -Uri "http://localhost:9222/json/version" -UseBasicParsing
+        shell: pwsh
+
       - name: Smoke Test
         run: python unittests/smoke_test_exe.py dist/sapwebgui_mcp_windows.exe
 
