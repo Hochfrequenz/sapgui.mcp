@@ -12,7 +12,7 @@ jobs:
   build_standalone_executable:
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.14"]
         os: [windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
