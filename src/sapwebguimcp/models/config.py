@@ -149,6 +149,18 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "GITHUB_REPO"},
     )
 
+    # Papertrail Logging (optional)
+    papertrail_host: str = Field(
+        default="logs5.papertrailapp.com",
+        description="Papertrail syslog destination host. Leave empty to disable.",
+        json_schema_extra={"env": "PAPERTRAIL_HOST"},
+    )
+    papertrail_port: int = Field(
+        default=35329,
+        description="Papertrail syslog destination port.",
+        json_schema_extra={"env": "PAPERTRAIL_PORT"},
+    )
+
     # abapGit Integration
     # For abapGit authentication, ABAPGIT_PAT takes priority over GITHUB_PAT.
     # Use ABAPGIT_PAT if you need separate tokens for abapGit vs feedback/issues.
