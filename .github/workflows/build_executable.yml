@@ -25,11 +25,16 @@ jobs:
           pip install tox
           tox -e build_executable
 
+      - name: Freeze build dependencies
+        run: tox exec -e build_executable -- pip freeze > dist/build-dependencies.txt
+
       - name: Upload Executable as Artifact
         uses: actions/upload-artifact@v6
         with:
           name: sapwebgui_mcp_windows
-          path: dist/sapwebgui_mcp_windows.exe
+          path: |
+            dist/sapwebgui_mcp_windows.exe
+            dist/build-dependencies.txt
 
   smoke_test:
     needs: build
