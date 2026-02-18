@@ -9,7 +9,7 @@ on:
     types: [created]
 
 jobs:
-  build_standalone_executable:
+  build:
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -25,7 +25,37 @@ jobs:
           pip install tox
           tox -e build_executable
 
-      - name: Start Chrome headless for CDP check
+      - name: Upload Executable as Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: sapwebgui_mcp_windows
+          path: dist/sapwebgui_mcp_windows.exe
+
+  smoke_test:
+    needs: build
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        chrome: [true, false]
+    name: "Smoke Test (Chrome: ${{ matrix.chrome }})"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Download Executable
+        uses: actions/download-artifact@v6
+        with:
+          name: sapwebgui_mcp_windows
+          path: dist
+
+      # Chrome is pre-installed on GitHub Actions windows-latest runners
+      - name: Start Chrome headless
+        if: matrix.chrome
         run: |
           Start-Process -FilePath "C:\Program Files\Google\Chrome\Application\chrome.exe" `
             -ArgumentList "--headless", "--disable-gpu", "--remote-debugging-port=9222", "--user-data-dir=$env:TEMP\chrome-debug"
@@ -36,14 +66,18 @@ jobs:
       - name: Smoke Test
         run: python unittests/smoke_test_exe.py dist/sapwebgui_mcp_windows.exe
 
-      - name: Upload Executable as Artifact
-        uses: actions/upload-artifact@v6
+  release:
+    needs: [build, smoke_test]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Executable
+        uses: actions/download-artifact@v6
         with:
           name: sapwebgui_mcp_windows
-          path: dist/sapwebgui_mcp_windows.exe
+          path: dist
 
       - name: Upload Executable to Release
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/sapwebgui_mcp_windows.exe
