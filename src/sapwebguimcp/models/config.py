@@ -110,7 +110,8 @@ class SapWebGuiSettings(BaseSettings):
     browser_mode: BrowserMode = Field(
         default=BrowserMode.CONNECT,
         description=(
-            "Browser mode: 'connect' (default, use existing Chrome with CDP)" " or 'launch' (start new via Playwright)"
+            "Browser mode: 'connect' (default, use existing Chrome with CDP) "
+            "or 'launch' (start new via Playwright)"
         ),
         json_schema_extra={"env": "BROWSER_MODE"},
     )
