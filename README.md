@@ -399,7 +399,7 @@ For repetitive tasks like "create 100 business partners":
 | `SAP_PASSWORD`  | SAP password for auto-login       | (empty)                      |
 | `SAP_MANDANT`   | SAP client (3-digit, e.g., "100") | (empty)                      |
 | `SAP_LANGUAGE`  | Login language (`DE` or `EN`)     | `EN`                         |
-| `BROWSER_MODE`  | `launch` or `connect`             | `launch`                     |
+| `BROWSER_MODE`  | `connect` or `launch`             | `connect`                    |
 | `CDP_URL`       | Chrome DevTools Protocol URL      | `http://localhost:9222`      |
 | `AUDIT_LOG_DIR` | Directory for audit logs          | (empty)                      |
 | `GITHUB_PAT`    | GitHub PAT for feedback issues    | (empty)                      |

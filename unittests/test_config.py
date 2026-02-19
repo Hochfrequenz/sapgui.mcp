@@ -24,7 +24,7 @@ class TestSapWebGuiSettings:
             settings = SapWebGuiSettings(_env_file=None)
 
         assert settings.sap_url == ""
-        assert settings.browser_mode == BrowserMode.LAUNCH
+        assert settings.browser_mode == BrowserMode.CONNECT
         assert settings.browser_type == BrowserType.CHROMIUM
         assert settings.browser_headless is False
         assert settings.cdp_url == "http://localhost:9222"
