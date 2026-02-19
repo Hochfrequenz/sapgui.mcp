@@ -53,7 +53,7 @@ jobs:
           python-version: "3.14"
 
       - name: Download Executable
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: sapwebgui_mcp_windows
           path: dist
@@ -79,7 +79,7 @@ jobs:
       contents: write
     steps:
       - name: Download Executable
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: sapwebgui_mcp_windows
           path: dist
