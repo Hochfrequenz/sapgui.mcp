@@ -133,7 +133,7 @@ playwright==1.58.0
     # via sapwebguimcp (pyproject.toml)
 prometheus-client==0.24.1
     # via pydocket
-py-key-value-aio[disk,keyring,memory,redis]==0.3.0
+py-key-value-aio[disk,keyring,memory,redis]==0.4.4
     # via
     #   fastmcp
     #   pydocket
