@@ -19,6 +19,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+import httpx
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import Locator, Page
@@ -30,7 +31,37 @@ from sapwebguimcp.tools.sap_tool_impl import sap_read_status_bar_impl, sap_trans
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["register_abapgit_tools"]
+__all__ = ["register_abapgit_tools", "validate_github_pat"]
+
+
+async def validate_github_pat(pat: str) -> tuple[bool, str]:
+    """
+    Validate a GitHub PAT by calling GET /user.
+
+    Returns:
+        (True, github_username) if the token is valid.
+        (False, error_message) if the token is invalid or unreachable.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://api.github.com/user",
+                headers={
+                    "Authorization": f"token {pat}",
+                    "User-Agent": "sapwebgui-mcp",
+                },
+                timeout=5.0,
+            )
+        if resp.status_code == 200:
+            login = resp.json().get("login", "unknown")
+            return True, login
+        try:
+            msg = resp.json().get("message", f"HTTP {resp.status_code}")
+        except (ValueError, KeyError):  # non-JSON error responses (e.g. 502 proxy)
+            msg = f"HTTP {resp.status_code}"
+        return False, msg
+    except (httpx.HTTPError, OSError) as exc:
+        return False, f"GitHub API unreachable: {exc}"
 
 
 # =============================================================================
@@ -288,14 +319,22 @@ async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
 
     if is_final_success:
         return AbapGitActionResult.success_result(action="pull", repo_name=repo, message=final_msg)
-    if is_final_error:
-        return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=final_msg)
-    if screen_error:
-        return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=screen_error)
+    if is_final_error or screen_error:
+        return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=screen_error or final_msg)
 
-    # Return success - either with status or assume up to date
-    result_msg = f"Pull completed. Status: {final_msg}" if final_msg else "Pull completed (repo may be up to date)."
-    return AbapGitActionResult.success_result(action="pull", repo_name=repo, message=result_msg)
+    # Treat ambiguous result based on whether we got any status message.
+    # Empty status bar may mask auth errors (expired PAT → cx_root in ABAP).
+    if not final_msg:
+        return AbapGitActionResult.failure_result(
+            action="pull",
+            repo_name=repo,
+            error="Pull status unknown: SAP status bar was empty after pull. "
+            "This may indicate an authentication failure (expired PAT) "
+            "or a status bar extraction issue. Check SAP manually.",
+        )
+    return AbapGitActionResult.success_result(
+        action="pull", repo_name=repo, message=f"Pull completed. Status: {final_msg}"
+    )
 
 
 # =============================================================================

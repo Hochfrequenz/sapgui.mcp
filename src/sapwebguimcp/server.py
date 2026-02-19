@@ -39,6 +39,7 @@ from sapwebguimcp.tools import (
     register_table_tools,
     register_workflow_tools,
 )
+from sapwebguimcp.tools.abapgit_tools import validate_github_pat
 
 __all__ = ["main", "mcp"]
 
@@ -98,6 +99,20 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
         logger.info("[READY] Server started successfully. Waiting for MCP client connection on stdio.")
     else:
         logger.info("[WAITING] Server started but Chrome is not available. Start Chrome, then restart this server.")
+
+    # Validate GitHub PAT if configured (non-blocking, warns only)
+    _current_settings = get_settings()
+    effective_pat = _current_settings.abapgit_pat or _current_settings.github_pat
+    if effective_pat:
+        pat_valid, pat_msg = await validate_github_pat(effective_pat)
+        if pat_valid:
+            logger.info("[OK] GitHub PAT validated (user: %s)", pat_msg)
+        else:
+            logger.warning(
+                "[ACTION REQUIRED] GitHub PAT is invalid: %s. "
+                "abapGit pulls will fail. Regenerate at https://github.com/settings/tokens",
+                pat_msg,
+            )
 
     try:
         yield
