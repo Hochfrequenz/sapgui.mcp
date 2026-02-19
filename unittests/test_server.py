@@ -20,7 +20,7 @@ class TestMcpServer:
 
     def test_sap_tools_are_registered(self) -> None:
         """Test that SAP-specific tools are registered."""
-        tool_names = {tool.name for tool in mcp._tool_manager._tools.values()}
+        tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
         expected_sap_tools = {
             "sap_login",
             "sap_transaction",
@@ -32,7 +32,7 @@ class TestMcpServer:
 
     def test_sap_get_capabilities_has_description(self) -> None:
         """Test that sap_get_capabilities has a non-empty description."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         assert "sap_get_capabilities" in tools
         tool = tools["sap_get_capabilities"]
         assert tool.description is not None
@@ -42,7 +42,7 @@ class TestMcpServer:
     def test_sap_get_capabilities_returns_all_tools(self) -> None:
         """Test that sap_get_capabilities returns all registered tools."""
         # Get the tool function
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         capabilities_tool = tools["sap_get_capabilities"]
 
         # Call the tool function
@@ -70,7 +70,7 @@ class TestMcpServer:
 
     def test_browser_tools_are_registered(self) -> None:
         """Test that browser automation tools are registered."""
-        tool_names = {tool.name for tool in mcp._tool_manager._tools.values()}
+        tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
         expected_browser_tools = {
             "browser_click",
             "browser_fill",
@@ -89,7 +89,7 @@ class TestMcpServer:
 
     def test_catalog_tools_are_registered(self) -> None:
         """Test that transaction catalog tools are registered."""
-        tool_names = {tool.name for tool in mcp._tool_manager._tools.values()}
+        tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
         expected_catalog_tools = {
             "search_transactions",
             "search_tables",
@@ -100,7 +100,7 @@ class TestMcpServer:
 
     def test_search_transactions_has_description(self) -> None:
         """Test that search_transactions has a descriptive docstring."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         assert "search_transactions" in tools
         tool = tools["search_transactions"]
         assert tool.description is not None
@@ -110,7 +110,7 @@ class TestMcpServer:
 
     def test_search_transactions_mcp_tool_returns_valid_response(self) -> None:
         """Test that search_transactions MCP tool returns CatalogSearchResponse."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_transactions"]
 
         # Call the tool with a query
@@ -133,7 +133,7 @@ class TestMcpServer:
 
     def test_search_transactions_mcp_tool_with_area_filter(self) -> None:
         """Test that search_transactions MCP tool respects area filter."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_transactions"]
 
         # Search with area filter
@@ -149,7 +149,7 @@ class TestMcpServer:
 
     def test_search_transactions_mcp_tool_empty_query(self) -> None:
         """Test that search_transactions handles empty query gracefully."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_transactions"]
 
         # Empty query should return empty results, not crash
@@ -161,7 +161,7 @@ class TestMcpServer:
 
     def test_search_transactions_mcp_tool_no_matches(self) -> None:
         """Test that search_transactions returns hint when no matches."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_transactions"]
 
         # Query that won't match anything
@@ -176,7 +176,7 @@ class TestMcpServer:
 
     def test_search_transactions_mcp_tool_german_keyword(self) -> None:
         """Test that search_transactions finds German descriptions (catalog is in German)."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_transactions"]
 
         # Search for "anlage" (German for "create" - common in SAP descriptions)
@@ -197,7 +197,7 @@ class TestMcpServer:
 
     def test_search_tables_has_description(self) -> None:
         """Test that search_tables has a descriptive docstring."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         assert "search_tables" in tools
         tool = tools["search_tables"]
         assert tool.description is not None
@@ -206,7 +206,7 @@ class TestMcpServer:
 
     def test_search_tables_mcp_tool_returns_valid_response(self) -> None:
         """Test that search_tables MCP tool returns TableSearchResponse."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_tables"]
 
         # Call the tool with a query
@@ -230,7 +230,7 @@ class TestMcpServer:
 
     def test_search_tables_mcp_tool_with_include_fields(self) -> None:
         """Test that search_tables MCP tool respects include_fields parameter."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_tables"]
 
         # Search for a field name with include_fields=True
@@ -247,7 +247,7 @@ class TestMcpServer:
 
     def test_search_tables_mcp_tool_empty_query(self) -> None:
         """Test that search_tables handles empty query gracefully."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_tables"]
 
         # Empty query should return empty results, not crash
@@ -259,7 +259,7 @@ class TestMcpServer:
 
     def test_search_tables_mcp_tool_no_matches(self) -> None:
         """Test that search_tables returns hint when no matches."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_tables"]
 
         # Query that won't match anything
@@ -274,7 +274,7 @@ class TestMcpServer:
 
     def test_search_tables_mcp_tool_returns_fields(self) -> None:
         """Test that search_tables returns table fields with proper structure."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_tables"]
 
         # Search for MARA which should have fields
@@ -299,12 +299,12 @@ class TestMcpServer:
 
     def test_fm_catalog_tools_are_registered(self) -> None:
         """Test that function module catalog tools are registered."""
-        tool_names = {tool.name for tool in mcp._tool_manager._tools.values()}
+        tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
         assert "search_function_modules" in tool_names, "search_function_modules should be registered"
 
     def test_search_function_modules_has_description(self) -> None:
         """Test that search_function_modules has a descriptive docstring."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         assert "search_function_modules" in tools
         tool = tools["search_function_modules"]
         assert tool.description is not None
@@ -313,7 +313,7 @@ class TestMcpServer:
 
     def test_search_function_modules_mcp_tool_returns_valid_response(self) -> None:
         """Test that search_function_modules MCP tool returns FMSearchResponse."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_function_modules"]
 
         # Call the tool with a query
@@ -336,7 +336,7 @@ class TestMcpServer:
 
     def test_search_function_modules_mcp_tool_empty_query(self) -> None:
         """Test that search_function_modules handles empty query gracefully."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_function_modules"]
 
         # Empty query should return empty results, not crash
@@ -348,7 +348,7 @@ class TestMcpServer:
 
     def test_search_function_modules_mcp_tool_no_matches(self) -> None:
         """Test that search_function_modules returns hint when no matches."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_function_modules"]
 
         # Query that won't match anything
@@ -363,7 +363,7 @@ class TestMcpServer:
 
     def test_search_function_modules_mcp_tool_german_keyword(self) -> None:
         """Test that search_function_modules finds German terms like 'anlage'."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_function_modules"]
 
         # Search for "anlage" (German for "installation" - common in IS-U)
@@ -389,12 +389,12 @@ class TestMcpServer:
 
     def test_class_catalog_tools_are_registered(self) -> None:
         """Test that class catalog tools are registered."""
-        tool_names = {tool.name for tool in mcp._tool_manager._tools.values()}
+        tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
         assert "search_classes" in tool_names, "search_classes should be registered"
 
     def test_search_classes_has_description(self) -> None:
         """Test that search_classes has a descriptive docstring."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         assert "search_classes" in tools
         tool = tools["search_classes"]
         assert tool.description is not None
@@ -403,7 +403,7 @@ class TestMcpServer:
 
     def test_search_classes_mcp_tool_returns_valid_response(self) -> None:
         """Test that search_classes MCP tool returns ClassSearchResponse."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_classes"]
 
         # Call the tool with a query
@@ -425,7 +425,7 @@ class TestMcpServer:
 
     def test_search_classes_mcp_tool_empty_query(self) -> None:
         """Test that search_classes handles empty query gracefully."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_classes"]
 
         # Empty query should return empty results, not crash
@@ -437,7 +437,7 @@ class TestMcpServer:
 
     def test_search_classes_mcp_tool_no_matches(self) -> None:
         """Test that search_classes returns hint when no matches."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_classes"]
 
         # Query that won't match anything
@@ -452,7 +452,7 @@ class TestMcpServer:
 
     def test_search_classes_mcp_tool_finds_installation(self) -> None:
         """Test that search_classes finds CL_ISU_INSTALLATION."""
-        tools = {tool.name: tool for tool in mcp._tool_manager._tools.values()}
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
         search_tool = tools["search_classes"]
 
         result = asyncio.run(search_tool.fn(query="installation"))
@@ -468,7 +468,7 @@ class TestMcpServer:
 
     def test_session_tools_registered(self) -> None:
         """Test that session management tools are registered in FastMCP."""
-        tool_names = [t.name for t in mcp._tool_manager._tools.values()]
+        tool_names = [t.name for t in asyncio.run(mcp.list_tools())]
 
         assert "sap_session_list" in tool_names
         assert "sap_session_close" in tool_names
@@ -485,7 +485,7 @@ class TestMcpServer:
         mechanism used by sap_get_capabilities().
         """
         # Same introspection logic as sap_get_capabilities()
-        tool_names = [t.name for t in mcp._tool_manager._tools.values()]
+        tool_names = [t.name for t in asyncio.run(mcp.list_tools())]
 
         # Session management tools must be discoverable
         assert "sap_session_list" in tool_names, "sap_session_list not in capabilities"
@@ -498,8 +498,9 @@ class TestMcpServer:
         assert "sap_session_open" not in tool_names, "sap_session_open should have been removed"
 
         # Verify the tools have proper descriptions (not empty)
+        tools_by_name = {t.name: t for t in asyncio.run(mcp.list_tools())}
         for tool_name in ["sap_session_list", "sap_session_close"]:
-            tool = mcp._tool_manager._tools[tool_name]
+            tool = tools_by_name[tool_name]
             assert tool.description, f"{tool_name} has empty description"
             assert len(tool.description) > 20, f"{tool_name} description too short"
 
@@ -509,12 +510,12 @@ class TestMcpServer:
 
     def test_prompts_are_registered(self) -> None:
         """Test that MCP prompts are registered."""
-        prompts = asyncio.run(mcp.get_prompts())
+        prompts = asyncio.run(mcp.list_prompts())
         assert len(prompts) > 0, "No prompts registered"
 
     def test_expected_prompts_are_registered(self) -> None:
         """Test that all expected prompts are registered."""
-        prompts = asyncio.run(mcp.get_prompts())
+        prompts = asyncio.run(mcp.list_prompts())
         expected_prompts = {
             "se16_bulk_read",
             "explore_table",
@@ -523,12 +524,12 @@ class TestMcpServer:
             "create_business_partner",
             "abapgit_workflow",
         }
-        actual_names = set(prompts.keys())
+        actual_names = {p.name for p in prompts}
         assert expected_prompts.issubset(actual_names), f"Missing prompts: {expected_prompts - actual_names}"
 
     def test_prompts_have_descriptions(self) -> None:
         """Test that all registered prompts have descriptions."""
-        prompts = asyncio.run(mcp.get_prompts())
-        for name, prompt in prompts.items():
-            assert prompt.description, f"Prompt '{name}' has no description"
-            assert len(prompt.description) >= 10, f"Prompt '{name}' description too short"
+        prompts = asyncio.run(mcp.list_prompts())
+        for prompt in prompts:
+            assert prompt.description, f"Prompt '{prompt.name}' has no description"
+            assert len(prompt.description) >= 10, f"Prompt '{prompt.name}' description too short"

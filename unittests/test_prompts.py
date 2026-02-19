@@ -246,11 +246,11 @@ class TestPromptRegistration:
         md_files = [f for f in prompt_dir.glob("*.md") if f.name.lower() != "readme.md"]
 
         # Get registered prompts from FastMCP
-        prompts = asyncio.run(mcp.get_prompts())
+        prompts = asyncio.run(mcp.list_prompts())
 
         assert len(prompts) == len(md_files), (
             f"Expected {len(md_files)} prompts, got {len(prompts)}. "
-            f"Files: {[f.name for f in md_files]}, Prompts: {list(prompts.keys())}"
+            f"Files: {[f.name for f in md_files]}, Prompts: {[p.name for p in prompts]}"
         )
 
     def test_all_prompts_have_descriptions(self) -> None:
@@ -259,11 +259,11 @@ class TestPromptRegistration:
 
         from sapwebguimcp.server import mcp
 
-        prompts = asyncio.run(mcp.get_prompts())
+        prompts = asyncio.run(mcp.list_prompts())
 
-        for name, prompt in prompts.items():
-            assert prompt.description, f"Prompt '{name}' has no description"
-            assert len(prompt.description) >= 10, f"Prompt '{name}' description too short: '{prompt.description}'"
+        for prompt in prompts:
+            assert prompt.description, f"Prompt '{prompt.name}' has no description"
+            assert len(prompt.description) >= 10, f"Prompt '{prompt.name}' description too short: '{prompt.description}'"
 
     def test_prompt_names_match_filenames(self) -> None:
         """Prompt names should match their source filenames (without .md)."""
@@ -275,8 +275,8 @@ class TestPromptRegistration:
         md_files = [f for f in prompt_dir.glob("*.md") if f.name.lower() != "readme.md"]
         expected_names = {f.stem for f in md_files}
 
-        prompts = asyncio.run(mcp.get_prompts())
-        actual_names = set(prompts.keys())
+        prompts = asyncio.run(mcp.list_prompts())
+        actual_names = {p.name for p in prompts}
 
         assert actual_names == expected_names, f"Mismatch: expected {expected_names}, got {actual_names}"
 
