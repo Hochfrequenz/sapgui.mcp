@@ -263,7 +263,9 @@ class TestPromptRegistration:
 
         for prompt in prompts:
             assert prompt.description, f"Prompt '{prompt.name}' has no description"
-            assert len(prompt.description) >= 10, f"Prompt '{prompt.name}' description too short: '{prompt.description}'"
+            assert (
+                len(prompt.description) >= 10
+            ), f"Prompt '{prompt.name}' description too short: '{prompt.description}'"
 
     def test_prompt_names_match_filenames(self) -> None:
         """Prompt names should match their source filenames (without .md)."""
