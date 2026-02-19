@@ -46,15 +46,21 @@ async def validate_github_pat(pat: str) -> tuple[bool, str]:
         async with httpx.AsyncClient() as client:
             resp = await client.get(
                 "https://api.github.com/user",
-                headers={"Authorization": f"token {pat}"},
+                headers={
+                    "Authorization": f"token {pat}",
+                    "User-Agent": "sapwebgui-mcp",
+                },
                 timeout=5.0,
             )
         if resp.status_code == 200:
             login = resp.json().get("login", "unknown")
             return True, login
-        msg = resp.json().get("message", f"HTTP {resp.status_code}")
+        try:
+            msg = resp.json().get("message", f"HTTP {resp.status_code}")
+        except Exception:  # noqa: BLE001 — non-JSON error responses (e.g. 502 proxy)
+            msg = f"HTTP {resp.status_code}"
         return False, msg
-    except (httpx.ConnectError, httpx.TimeoutException, OSError) as exc:
+    except (httpx.HTTPError, OSError) as exc:
         return False, f"GitHub API unreachable: {exc}"
 
 

@@ -52,6 +52,9 @@ class TestValidateGithubPat:
 class TestValidateGithubPatReal:
     """Integration tests hitting real GitHub API."""
 
+    # NOTE: This test calls the real GitHub API (https://api.github.com).
+    # It requires internet access and is subject to GitHub rate limits (60/hour for
+    # unauthenticated requests). Consider skipping in isolated CI environments.
     @pytest.mark.anyio
     async def test_expired_pat_real(self) -> None:
         """Prove that GitHub returns 401 for a known expired token.
