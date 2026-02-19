@@ -8,7 +8,51 @@
 An MCP (Model Context Protocol) server for SAP Web GUI browser automation.
 Control SAP through Claude Desktop or Claude Code with persistent browser sessions.
 
-## Quick Start (End Users)
+## Setup
+
+Choose one of these three approaches:
+
+<details>
+<summary><strong>📦 Standalone Executable (recommended — no Docker, no Python)</strong></summary>
+<br>
+
+Download `sapwebgui_mcp_windows_<version>.exe` from
+[GitHub Releases](https://github.com/Hochfrequenz/sapwebgui.mcp/releases/latest).
+
+### Step 1: Start Chrome with remote debugging
+
+```powershell
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
+```
+
+### Step 2: Configure your MCP client
+
+Point your Claude config (e.g. in `C:\Users\YourWindowsLoginName\AppData\Roaming\Claude\claude_desktop_config.json`) to the exe:
+
+```json
+{
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "env": {
+                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE"
+            }
+        }
+    }
+}
+```
+
+No Docker, no CDP proxy, no Python required.
+
+</details>
+
+<details>
+<summary><strong>🐳 Docker</strong></summary>
+<br>
 
 This guide gets you running with Docker on Windows - no Python or cloning required.
 
@@ -256,41 +300,11 @@ docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 
 If the containers started but Chrome (in browser automation mode with CDP enabled) is missing, Claude will likely understand how to login but fail on the first tool call.
 
-## Standalone Executable (no Docker, no Python)
+</details>
 
-If you prefer not to use Docker, download `sapwebgui_mcp_windows_<version>.exe` from
-[GitHub Releases](https://github.com/Hochfrequenz/sapwebgui.mcp/releases/latest).
-
-### Step 1: Start Chrome with remote debugging
-
-```powershell
-& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
-```
-
-### Step 2: Configure your MCP client
-
-Point your Claude config (e.g. in `C:\Users\YourWindowsLoginName\AppData\Roaming\Claude\claude_desktop_config.json`) to the exe:
-
-```json
-{
-    "mcpServers": {
-        "sap-webgui": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
-            "env": {
-                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
-                "SAP_USER": "your_username",
-                "SAP_PASSWORD": "your_password",
-                "SAP_MANDANT": "100",
-                "SAP_LANGUAGE": "DE"
-            }
-        }
-    }
-}
-```
-
-No Docker, no CDP proxy, no Python required.
-
-## Development Setup
+<details>
+<summary><strong>🛠️ Development Setup (from source)</strong></summary>
+<br>
 
 For contributors who want to run from source.
 
@@ -347,6 +361,8 @@ run-sapwebgui-mcp-server
 ```
 
 When running Python directly (not in Docker), you don't need the CDP proxy - Python can connect to Chrome on localhost.
+
+</details>
 
 ## Available Tools
 
