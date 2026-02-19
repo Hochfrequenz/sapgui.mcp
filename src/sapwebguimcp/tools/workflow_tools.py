@@ -99,7 +99,9 @@ async def _execute_workflow_run(  # pylint: disable=too-many-locals
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            _logger.warning("Workflow item failed", extra={"item": i + 1, "total": len(items), "error": str(e)})
+            _logger.warning(
+                "Workflow item failed", extra={"item": i + 1, "total": len(items), "error": str(e)}, exc_info=True
+            )
             item_summary = ", ".join(f"{k}={v}" for k, v in list(item.items())[:3])
             errors.append(
                 WorkflowError(

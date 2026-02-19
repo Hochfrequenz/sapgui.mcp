@@ -652,7 +652,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         settings = get_settings()
-        session_id = ctx.session_id if ctx else None
+        session_id = getattr(ctx, "session_id", None) if ctx else None
 
         page = await browser_manager.get_current_page()
         effective_url = url or settings.sap_url

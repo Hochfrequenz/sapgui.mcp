@@ -116,7 +116,7 @@ class ToolCallLoggingMiddleware(Middleware):
                 "seq": session.format_sequence(last_n=20),
             }
             extra.update(self._identity_extra(session))
-            _logger.warning("Tool failed", extra=extra)
+            _logger.warning("Tool failed", extra=extra, exc_info=True)
             raise
 
         # Update session stats and log success

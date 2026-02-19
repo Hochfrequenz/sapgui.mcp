@@ -1,5 +1,10 @@
 """Tests for tool call logging middleware identity injection."""
 
+from dataclasses import dataclass
+from typing import Any
+
+import asyncio
+
 import pytest
 
 from sapwebguimcp.middleware.logging import (
@@ -7,7 +12,32 @@ from sapwebguimcp.middleware.logging import (
     _sessions_ref,
     set_sap_identity,
 )
+
+_LOGGER_NAME = "sapwebguimcp.middleware.logging"
 from sapwebguimcp.models.middleware import SapIdentity, SessionStats
+
+
+@dataclass
+class _FakeMessage:
+    """Minimal stand-in for CallToolRequestParams."""
+
+    name: str
+    arguments: dict[str, Any] | None = None
+
+
+@dataclass
+class _FakeCtx:
+    """Minimal stand-in for fastmcp Context."""
+
+    session_id: str | None = None
+
+
+@dataclass
+class _FakeMiddlewareContext:
+    """Minimal stand-in for MiddlewareContext."""
+
+    message: _FakeMessage
+    fastmcp_context: _FakeCtx | None = None
 
 
 @pytest.fixture(autouse=True)
@@ -48,11 +78,77 @@ def test_middleware_shares_sessions_ref():
 
 def test_extract_sap_user_js_exists():
     """The JS file should be loadable and contain expected selectors."""
-    from pathlib import Path
+    from importlib import resources
 
-    js_path = Path("src/sapwebguimcp/js/extract_sap_user.js")
-    assert js_path.exists()
-    content = js_path.read_text()
+    content = resources.files("sapwebguimcp.js").joinpath("extract_sap_user.js").read_text(encoding="utf-8")
     assert "sysInfoAreaMenuItemSAPITS_MBAR_USER" in content
     assert "lsdata" in content
     assert "aria-label" in content
+
+
+# ---------------------------------------------------------------------------
+# on_call_tool: identity fields in log records
+# ---------------------------------------------------------------------------
+
+_IDENTITY = SapIdentity(sap_user="KLEINK", sap_host="myhost.example.com", sap_mandant="100")
+
+
+def _make_context(tool_name: str = "sap_read_screen", session_id: str | None = "sess-1") -> _FakeMiddlewareContext:
+    return _FakeMiddlewareContext(
+        message=_FakeMessage(name=tool_name),
+        fastmcp_context=_FakeCtx(session_id=session_id),
+    )
+
+
+def test_on_call_tool_success_includes_identity(caplog):
+    """On success, the log record must contain sap_user/sap_host/sap_mandant."""
+    mw = ToolCallLoggingMiddleware()
+    set_sap_identity("sess-1", _IDENTITY)
+
+    async def _call_next(_ctx):
+        return "ok"
+
+    with caplog.at_level("INFO", logger=_LOGGER_NAME):
+        asyncio.run(mw.on_call_tool(_make_context(), _call_next))
+
+    assert len(caplog.records) == 1
+    rec = caplog.records[0]
+    assert rec.sap_user == "KLEINK"
+    assert rec.sap_host == "myhost.example.com"
+    assert rec.sap_mandant == "100"
+
+
+def test_on_call_tool_failure_includes_identity(caplog):
+    """On failure, the warning log record must also contain identity fields."""
+    mw = ToolCallLoggingMiddleware()
+    set_sap_identity("sess-1", _IDENTITY)
+
+    async def _call_next(_ctx):
+        raise RuntimeError("boom")
+
+    with caplog.at_level("WARNING", logger=_LOGGER_NAME):
+        with pytest.raises(RuntimeError, match="boom"):
+            asyncio.run(mw.on_call_tool(_make_context(), _call_next))
+
+    assert len(caplog.records) == 1
+    rec = caplog.records[0]
+    assert rec.sap_user == "KLEINK"
+    assert rec.sap_host == "myhost.example.com"
+    assert rec.sap_mandant == "100"
+
+
+def test_on_call_tool_without_identity_omits_fields(caplog):
+    """Without sap_identity, identity fields should not appear on the log record."""
+    mw = ToolCallLoggingMiddleware()
+
+    async def _call_next(_ctx):
+        return "ok"
+
+    with caplog.at_level("INFO", logger=_LOGGER_NAME):
+        asyncio.run(mw.on_call_tool(_make_context(), _call_next))
+
+    assert len(caplog.records) == 1
+    rec = caplog.records[0]
+    assert not hasattr(rec, "sap_user")
+    assert not hasattr(rec, "sap_host")
+    assert not hasattr(rec, "sap_mandant")
