@@ -13,6 +13,7 @@
 ### Task 1: Create logging_config.py with formatter and tests
 
 **Files:**
+
 - Create: `src/sapwebguimcp/logging_config.py`
 - Create: `unittests/test_logging_config.py`
 
@@ -461,11 +462,13 @@ git commit -m "feat: add structured logging formatter and context models"
 ### Task 2: Wire up configure_logging in server.py
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/server.py:42-47`
 
 **Step 1: Replace basicConfig with configure_logging**
 
 Change:
+
 ```python
 # Configure logging
 logging.basicConfig(
@@ -476,6 +479,7 @@ logger = logging.getLogger(__name__)
 ```
 
 To:
+
 ```python
 # Configure logging
 from sapwebguimcp.logging_config import configure_logging
@@ -501,11 +505,13 @@ git commit -m "chore: wire up structured logging in server.py"
 ### Task 3: Migrate middleware/logging.py
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/middleware/logging.py`
 
 **Step 1: Replace pipe-delimited strings with structured extra**
 
 The middleware currently logs:
+
 ```python
 _logger.warning(
     "TOOL_FAIL | session=%s | tool=%s | duration=%s | error=%s | seq=%s",
@@ -514,6 +520,7 @@ _logger.warning(
 ```
 
 Replace with:
+
 ```python
 _logger.warning(
     "Tool failed",
@@ -528,6 +535,7 @@ _logger.warning(
 ```
 
 Similarly for the two `TOOL_DONE` log statements -- replace both with:
+
 ```python
 extra = {
     "tool": tool_name,
@@ -560,26 +568,28 @@ git commit -m "refactor: migrate middleware logging to structured extra"
 ### Task 4: Migrate browser_tools.py
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/browser_tools.py`
 
 **Step 1: Standardize exception messages**
 
 All 10 exception log statements follow the same pattern. Remove "Error" prefix:
 
-| Before | After |
-|--------|-------|
-| `logger.exception("Error getting snapshot")` | `logger.exception("Getting snapshot")` |
-| `logger.exception("Error taking screenshot")` | `logger.exception("Taking screenshot")` |
-| `logger.exception("Error clicking element")` | `logger.exception("Clicking element")` |
-| `logger.exception("Error filling element")` | `logger.exception("Filling element")` |
+| Before                                             | After                                        |
+| -------------------------------------------------- | -------------------------------------------- |
+| `logger.exception("Error getting snapshot")`       | `logger.exception("Getting snapshot")`       |
+| `logger.exception("Error taking screenshot")`      | `logger.exception("Taking screenshot")`      |
+| `logger.exception("Error clicking element")`       | `logger.exception("Clicking element")`       |
+| `logger.exception("Error filling element")`        | `logger.exception("Filling element")`        |
 | `logger.exception("Error sending keyboard input")` | `logger.exception("Sending keyboard input")` |
-| `logger.exception("Error navigating")` | `logger.exception("Navigating")` |
-| `logger.exception("Error evaluating script")` | `logger.exception("Evaluating script")` |
-| `logger.exception("Error waiting")` | `logger.exception("Waiting")` |
-| `logger.exception("Error getting HTML")` | `logger.exception("Getting HTML")` |
-| `logger.exception("Error selecting option")` | `logger.exception("Selecting option")` |
+| `logger.exception("Error navigating")`             | `logger.exception("Navigating")`             |
+| `logger.exception("Error evaluating script")`      | `logger.exception("Evaluating script")`      |
+| `logger.exception("Error waiting")`                | `logger.exception("Waiting")`                |
+| `logger.exception("Error getting HTML")`           | `logger.exception("Getting HTML")`           |
+| `logger.exception("Error selecting option")`       | `logger.exception("Selecting option")`       |
 
 For the debug statement, add structured context:
+
 ```python
 # Before
 logger.debug("HTML size %.1fKB exceeds threshold, returning as File", size_kb)
@@ -605,6 +615,7 @@ git commit -m "refactor: standardize browser_tools logging"
 ### Task 5: Migrate sap_tool_impl.py
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/sap_tool_impl.py`
 
 **Step 1: Standardize messages and add structured context**
@@ -680,6 +691,7 @@ git commit -m "refactor: standardize sap_tool_impl logging"
 ### Task 6: Migrate sap_tools.py (largest file, 45 statements)
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/sap_tools.py`
 
 **Step 1: Read the file and identify all log statements**
@@ -692,6 +704,7 @@ This is the largest file. Read it fully before making changes. Apply the same pa
 4. Use `ToolLogContext` for tool-related logs where they repeat
 
 **Guidelines for this file:**
+
 - Keepalive logs: `logger.info("Keepalive started", extra={"interval_s": interval})`
 - Login logs: use `extra={"url": url}` rather than embedding in message
 - Transaction logs: use `extra={"tcode": tcode}`
@@ -711,9 +724,10 @@ git commit -m "refactor: standardize sap_tools logging"
 
 ---
 
-### Task 7: Migrate SE* tools (se11, se16, se24, se37, se93)
+### Task 7: Migrate SE\* tools (se11, se16, se24, se37, se93)
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/se11_tools.py` (8 statements)
 - Modify: `src/sapwebguimcp/tools/se16_tools.py` (32 statements)
 - Modify: `src/sapwebguimcp/tools/se24_tools.py` (4 statements)
@@ -772,6 +786,7 @@ git commit -m "refactor: standardize SE* tools and parser logging"
 ### Task 8: Migrate models (browser.py, session_registry.py, workflow_storage.py)
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/models/browser.py` (10 statements)
 - Modify: `src/sapwebguimcp/models/session_registry.py` (7 statements)
 - Modify: `src/sapwebguimcp/models/workflow_storage.py` (4 statements)
@@ -822,6 +837,7 @@ git commit -m "refactor: standardize models logging"
 ### Task 9: Migrate remaining tools and catalog loaders
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/abapgit_tools.py` (28 statements)
 - Modify: `src/sapwebguimcp/tools/session_tools.py` (4 statements)
 - Modify: `src/sapwebguimcp/tools/workflow_tools.py` (10 statements)
@@ -882,6 +898,7 @@ git commit -m "refactor: standardize remaining tools and catalog logging"
 ### Task 10: Add pytest logging config and fix caplog tests
 
 **Files:**
+
 - Modify: `pyproject.toml`
 - Modify: `unittests/test_session_registry.py` (if caplog assertions break)
 - Modify: `unittests/test_agent_binding_integration.py` (if caplog assertions break)
@@ -905,6 +922,7 @@ assert "agent-1" in caplog.text
 ```
 
 These may need updating if the message format changed. Check all `caplog` usage in:
+
 - `unittests/test_session_registry.py`
 - `unittests/test_agent_binding_integration.py`
 - `unittests/test_session_tools.py` -- has 4 assertions checking `"tcode=VA01"`, `"/o prefix"`, `"pages: 1 -> 1"`, `"no new page detected"` that will break when `sap_tools.py` messages become structured

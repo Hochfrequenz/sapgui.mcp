@@ -37,20 +37,20 @@ ISO8601 timestamps in both modes.
 ### 2. Message Consistency Conventions
 
 1. **No "Error"/"Failed" prefix on exception logs** -- the level says ERROR already
-   - Before: `logger.exception("Error getting snapshot")`
-   - After: `logger.exception("Getting snapshot")`
+    - Before: `logger.exception("Error getting snapshot")`
+    - After: `logger.exception("Getting snapshot")`
 
 2. **Sentence case, no trailing period**
 
 3. **Messages describe what happened; context goes in structured fields**
-   - Before: `logger.info("Attempting to enter transaction code: %s", tcode)`
-   - After: `logger.info("Entering transaction", extra={"tcode": tcode})`
+    - Before: `logger.info("Attempting to enter transaction code: %s", tcode)`
+    - After: `logger.info("Entering transaction", extra={"tcode": tcode})`
 
 4. **Log level contract:**
-   - `DEBUG` -- internal flow (selector searches, HTML sizes, parsing)
-   - `INFO` -- significant operations (login, transaction, save, session lifecycle)
-   - `WARNING` -- recoverable issues (fallback used, cross-agent access, retries)
-   - `EXCEPTION` -- caught exceptions with stack traces
+    - `DEBUG` -- internal flow (selector searches, HTML sizes, parsing)
+    - `INFO` -- significant operations (login, transaction, save, session lifecycle)
+    - `WARNING` -- recoverable issues (fallback used, cross-agent access, retries)
+    - `EXCEPTION` -- caught exceptions with stack traces
 
 ### 3. Pydantic Models for Structured Log Context
 
@@ -90,6 +90,7 @@ Plain `extra={}` dicts are fine for one-off log statements where a model is over
 **Not touched:** `loghandlers/audit_handler.py`, `loghandlers/feedback_issue_handler.py` (intent/feedback logging is a separate concern)
 
 **Pytest config** added to `pyproject.toml`:
+
 ```toml
 [tool.pytest.ini_options]
 log_cli = true

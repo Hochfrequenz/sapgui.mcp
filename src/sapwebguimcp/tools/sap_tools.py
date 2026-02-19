@@ -25,9 +25,11 @@ import time
 from functools import lru_cache
 from importlib import resources
 from typing import Any, Optional
+from urllib.parse import urlparse
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 
+from sapwebguimcp.middleware.logging import set_sap_identity
 from sapwebguimcp.models import (
     AlvCellInfo,
     AlvMetadata,
@@ -71,6 +73,7 @@ from sapwebguimcp.models import (
     get_browser_manager,
     get_settings,
 )
+from sapwebguimcp.models.middleware import SapIdentity
 from sapwebguimcp.tools.browser_tools import _escape_css_selector
 from sapwebguimcp.tools.session_tools import (
     sap_session_bind_impl,
@@ -97,6 +100,38 @@ def _load_js_with_field_utils(filename: str) -> str:
     utils = _load_js("find_field_utils.js")
     tool = _load_js(filename)
     return utils + "\n" + tool
+
+
+async def _capture_sap_identity(
+    page: Any,
+    effective_url: str,
+    mandant: str,
+    session_id: str | None,
+) -> None:
+    """Extract SAP username from DOM and store identity for log correlation.
+
+    Tries DOM extraction first. If it fails, logs a warning and leaves
+    identity unset (no guessing from env vars).
+    """
+    hostname = urlparse(effective_url).hostname or "unknown"
+
+    try:
+        js = _load_js("extract_sap_user.js")
+        result = await page.evaluate(js)
+        sap_user = result.get("user") if result else None
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        logger.warning(
+            "DOM extraction failed for SAP username; identity not set",
+            extra={"error": str(exc)},
+        )
+        return
+
+    if sap_user:
+        identity = SapIdentity(sap_user=sap_user, sap_host=hostname, sap_mandant=mandant)
+        set_sap_identity(session_id, identity)
+        logger.info("SAP identity captured", extra=identity.model_dump(mode="json"))
+    else:
+        logger.warning("SAP username not found in page DOM; identity not set for log correlation")
 
 
 # =============================================================================
@@ -591,8 +626,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "If connection fails, ask user to verify Chrome is running with debugging and VPN is connected."
         )
     )
-    async def sap_login(  # pylint: disable=too-many-return-statements
+    async def sap_login(  # pylint: disable=too-many-return-statements,too-many-statements
         url: Optional[str] = None,
+        ctx: Context | None = None,
     ) -> LoginResult:
         """
         Log into SAP Web GUI.
@@ -616,6 +652,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         browser_manager = await get_browser_manager()
 
         settings = get_settings()
+        session_id = getattr(ctx, "session_id", None) if ctx else None
 
         page = await browser_manager.get_current_page()
         effective_url = url or settings.sap_url
@@ -626,7 +663,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         try:
-            logger.info("Navigating to SAP Web GUI", extra={"url": effective_url})
+            logger.info("Navigating to SAP Web GUI", extra={"sap_host": urlparse(effective_url).hostname or "unknown"})
             await page.goto(effective_url)
             await page.wait_for_load_state("networkidle", timeout=15000)
 
@@ -638,6 +675,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 # Register page as primary session (s1) if not already registered
                 if not browser_manager.registry.has_session("s1"):
                     browser_manager.registry.register(page)
+                await _capture_sap_identity(page, effective_url, settings.sap_mandant, session_id)
                 return LoginResult(
                     url=effective_url,
                     already_logged_in=True,
@@ -664,7 +702,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 )
 
             # Perform automatic login
-            logger.info("Performing automatic login", extra={"user": settings.sap_user})
+            logger.info("Performing automatic login", extra={"sap_user": settings.sap_user})
 
             # Fill mandant/client
             await page.fill('#sap-client, input[name="sap-client"]', settings.sap_mandant)
@@ -698,6 +736,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 # Register page as primary session (s1) if not already registered
                 if not browser_manager.registry.has_session("s1"):
                     browser_manager.registry.register(page)
+                await _capture_sap_identity(page, effective_url, settings.sap_mandant, session_id)
                 return LoginResult(
                     url=effective_url,
                     user=settings.sap_user,
@@ -726,6 +765,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         # Register page as primary session (s1) if not already registered
                         if not browser_manager.registry.has_session("s1"):
                             browser_manager.registry.register(page)
+                        await _capture_sap_identity(page, effective_url, settings.sap_mandant, session_id)
                         return LoginResult(
                             url=effective_url,
                             user=settings.sap_user,

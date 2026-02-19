@@ -30,6 +30,14 @@ class ToolCall(BaseModel):
         return f"{self.name}({', '.join(formatted_args)}){suffix}"
 
 
+class SapIdentity(BaseModel):
+    """SAP login identity for log correlation."""
+
+    sap_user: str
+    sap_host: str
+    sap_mandant: str
+
+
 class SessionStats(BaseModel):
     """Accumulated statistics for a session.
 
@@ -51,6 +59,12 @@ class SessionStats(BaseModel):
     tool_calls: list[ToolCall] = Field(default_factory=list)
     total_duration: timedelta = Field(default_factory=timedelta)
     call_count: int = Field(default=0)
+
+    # SAP identity (populated after login)
+    sap_identity: SapIdentity | None = Field(
+        default=None,
+        description="SAP identity captured after login, injected into log extra by middleware",
+    )
 
     # Transaction round tracking
     last_transaction: TCode | None = Field(
