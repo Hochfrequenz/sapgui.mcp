@@ -19,6 +19,8 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+import httpx
+
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import Locator, Page
@@ -30,7 +32,31 @@ from sapwebguimcp.tools.sap_tool_impl import sap_read_status_bar_impl, sap_trans
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["register_abapgit_tools"]
+__all__ = ["register_abapgit_tools", "validate_github_pat"]
+
+
+async def validate_github_pat(pat: str) -> tuple[bool, str]:
+    """
+    Validate a GitHub PAT by calling GET /user.
+
+    Returns:
+        (True, github_username) if the token is valid.
+        (False, error_message) if the token is invalid or unreachable.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"token {pat}"},
+                timeout=5.0,
+            )
+        if resp.status_code == 200:
+            login = resp.json().get("login", "unknown")
+            return True, login
+        msg = resp.json().get("message", f"HTTP {resp.status_code}")
+        return False, msg
+    except (httpx.ConnectError, httpx.TimeoutException, OSError) as exc:
+        return False, f"GitHub API unreachable: {exc}"
 
 
 # =============================================================================
