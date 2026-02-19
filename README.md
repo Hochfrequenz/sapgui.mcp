@@ -269,19 +269,19 @@ If you prefer not to use Docker, download `sapwebgui_mcp_windows_<version>.exe` 
 
 ### Step 2: Configure your MCP client
 
-Point your Claude config to the exe:
+Point your Claude config (e.g. in `C:\Users\YourWindowsLoginName\AppData\Roaming\Claude\claude_desktop_config.json`) to the exe:
 
 ```json
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/sapwebgui_mcp_windows.exe",
+            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
             "env": {
                 "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "SAP_USER": "your_username",
                 "SAP_PASSWORD": "your_password",
                 "SAP_MANDANT": "100",
-                "SAP_LANGUAGE": "EN"
+                "SAP_LANGUAGE": "DE"
             }
         }
     }
