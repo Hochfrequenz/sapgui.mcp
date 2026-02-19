@@ -130,3 +130,36 @@ class TestStartupPatValidation:
             async with app_lifespan(None):  # type: ignore[arg-type]
                 pass
         assert "GitHub PAT" not in caplog.text
+
+
+class TestAnalyzePullResultFallback:
+    """Tests for the _analyze_pull_result silent success fix."""
+
+    @pytest.mark.anyio
+    async def test_empty_status_returns_failure(self) -> None:
+        """Empty status bar should return failure, not success."""
+        from unittest.mock import AsyncMock, patch
+
+        from sapwebguimcp.tools.abapgit_tools import _analyze_pull_result
+
+        mock_status = type("Status", (), {"message": "", "type": "none"})()
+        mock_page = AsyncMock()
+        mock_page.wait_for_timeout = AsyncMock()
+
+        with (
+            patch(
+                "sapwebguimcp.tools.abapgit_tools.sap_read_status_bar_impl",
+                new_callable=AsyncMock,
+                return_value=mock_status,
+            ),
+            patch(
+                "sapwebguimcp.tools.abapgit_tools._check_screen_for_errors",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+        ):
+            result = await _analyze_pull_result(mock_page, "TEST_REPO")
+
+        assert result.success is False
+        assert result.error is not None
+        assert "unknown" in result.error.lower() or "empty" in result.error.lower()

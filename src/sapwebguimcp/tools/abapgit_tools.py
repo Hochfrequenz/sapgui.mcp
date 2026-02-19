@@ -319,9 +319,16 @@ async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
     if screen_error:
         return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=screen_error)
 
-    # Return success - either with status or assume up to date
-    result_msg = f"Pull completed. Status: {final_msg}" if final_msg else "Pull completed (repo may be up to date)."
-    return AbapGitActionResult.success_result(action="pull", repo_name=repo, message=result_msg)
+    # Treat ambiguous result as failure — empty status bar may mask auth errors
+    if final_msg:
+        result_msg = f"Pull completed. Status: {final_msg}"
+        return AbapGitActionResult.success_result(action="pull", repo_name=repo, message=result_msg)
+    result_msg = (
+        "Pull status unknown: SAP status bar was empty after pull. "
+        "This may indicate an authentication failure (expired PAT) "
+        "or a status bar extraction issue. Check SAP manually."
+    )
+    return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=result_msg)
 
 
 # =============================================================================
