@@ -57,7 +57,7 @@ async def validate_github_pat(pat: str) -> tuple[bool, str]:
             return True, login
         try:
             msg = resp.json().get("message", f"HTTP {resp.status_code}")
-        except Exception:  # noqa: BLE001 — non-JSON error responses (e.g. 502 proxy)
+        except (ValueError, KeyError):  # non-JSON error responses (e.g. 502 proxy)
             msg = f"HTTP {resp.status_code}"
         return False, msg
     except (httpx.HTTPError, OSError) as exc:
