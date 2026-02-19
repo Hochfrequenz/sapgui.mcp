@@ -44,3 +44,19 @@ class TestValidateGithubPat:
         ok, msg = await validate_github_pat("ghp_any_token_000")
         assert ok is False
         assert "unreachable" in msg.lower()
+
+
+class TestValidateGithubPatReal:
+    """Integration tests hitting real GitHub API."""
+
+    @pytest.mark.anyio
+    async def test_expired_pat_real(self) -> None:
+        """Prove that GitHub returns 401 for a known expired token.
+
+        This token was revoked on 2026-02-19.
+        It is safe to hardcode because it is already public and inactive.
+        """
+        expired_pat = "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"
+        valid, msg = await validate_github_pat(expired_pat)
+        assert valid is False
+        assert "Bad credentials" in msg
