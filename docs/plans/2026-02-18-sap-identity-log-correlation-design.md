@@ -42,24 +42,33 @@ Tools cannot use `Context.set_state()` because FastMCP deep-copies context for c
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `models/middleware.py` | Add `SapIdentity`, add field to `SessionStats` |
-| `middleware/logging.py` | Add module-level `set_sap_identity()`, inject fields in both success and error paths of `on_call_tool` |
-| `tools/sap_tools.py` | Call `set_sap_identity` after login (with DOM-based username), inject `Context` for session_id, change existing `user` extra to `sap_user`, change full URL to hostname-only |
+| File                    | Change                                                                                                                                                                       |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `models/middleware.py`  | Add `SapIdentity`, add field to `SessionStats`                                                                                                                               |
+| `middleware/logging.py` | Add module-level `set_sap_identity()`, inject fields in both success and error paths of `on_call_tool`                                                                       |
+| `tools/sap_tools.py`    | Call `set_sap_identity` after login (with DOM-based username), inject `Context` for session_id, change existing `user` extra to `sap_user`, change full URL to hostname-only |
 
 Note: Search-query logging for catalog/class/fm/table tools is a separate PR.
 
 ## Example Output
 
 Console:
+
 ```
 Tool completed  tool=sap_transaction  sap_user=JSMITH  sap_host=sap-prod.acme.com  sap_mandant=100  session=abc  duration_ms=1500
 ```
 
 JSON:
+
 ```json
-{"tool":"sap_transaction","sap_user":"JSMITH","sap_host":"sap-prod.acme.com","sap_mandant":"100","session":"abc","duration_ms":1500}
+{
+    "tool": "sap_transaction",
+    "sap_user": "JSMITH",
+    "sap_host": "sap-prod.acme.com",
+    "sap_mandant": "100",
+    "session": "abc",
+    "duration_ms": 1500
+}
 ```
 
 ## Security

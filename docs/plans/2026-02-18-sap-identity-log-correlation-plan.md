@@ -15,6 +15,7 @@
 ### Task 1: Add `SapIdentity` model and `SessionStats.sap_identity` field
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/models/middleware.py`
 - Test: `unittests/test_middleware_models.py` (or create if not exists)
 
@@ -82,6 +83,7 @@ git commit -m "feat: add SapIdentity model and SessionStats.sap_identity field"
 ### Task 2: Add module-level `set_sap_identity()` and identity injection in middleware
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/middleware/logging.py`
 - Modify: `src/sapwebguimcp/middleware/__init__.py` (export `set_sap_identity`)
 - Test: `unittests/test_tool_call_logging_middleware.py` (create)
@@ -182,6 +184,7 @@ def _identity_extra(self, session: SessionStats) -> dict[str, str]:
 5. Inject identity into both success and error log paths in `on_call_tool`:
 
 In the **error path** (around line 94-103), add identity fields:
+
 ```python
 extra = {
     "tool": tool_name,
@@ -195,6 +198,7 @@ _logger.warning("Tool failed", extra=extra)
 ```
 
 In the **success path** (around line 112-121), add identity fields after the existing extra dict:
+
 ```python
 extra.update(self._identity_extra(session))
 _logger.info("Tool completed", extra=extra)
@@ -235,17 +239,19 @@ git commit -m "feat: add set_sap_identity() and inject identity into tool call l
 ### Task 3: Add JavaScript for DOM-based SAP username extraction
 
 **Files:**
+
 - Create: `src/sapwebguimcp/js/extract_sap_user.js`
 - Test: Test via Python unit test with mock HTML
 
 **Context:** After login, the SAP page has an element:
+
 ```html
-<... id="sysInfoAreaMenuItemSAPITS_MBAR_USER"
-     lsdata='{"0":"abc","1":"Benutzer","13":"KLEINK"}'
-     aria-label="User KLEINK" ...>
+<... id="sysInfoAreaMenuItemSAPITS_MBAR_USER" lsdata='{"0":"abc","1":"Benutzer","13":"KLEINK"}'
+aria-label="User KLEINK" ...>
 ```
 
 Two extraction strategies (in order of reliability):
+
 1. `lsdata` JSON key `"13"` on element `#sysInfoAreaMenuItemSAPITS_MBAR_USER`
 2. `aria-label` last word on the same element (fallback)
 
@@ -256,27 +262,29 @@ Two extraction strategies (in order of reliability):
 // Extracts the SAP username from the page DOM after login.
 // Returns { user: "KLEINK" } or { user: null } if not found.
 (() => {
-    const el = document.getElementById("sysInfoAreaMenuItemSAPITS_MBAR_USER");
+    const el = document.getElementById('sysInfoAreaMenuItemSAPITS_MBAR_USER');
     if (!el) return { user: null };
 
     // Strategy 1: lsdata JSON, key "13"
-    const lsdata = el.getAttribute("lsdata");
+    const lsdata = el.getAttribute('lsdata');
     if (lsdata) {
         try {
             const data = JSON.parse(lsdata);
-            if (data["13"]) return { user: String(data["13"]) };
-        } catch (e) { /* fall through */ }
+            if (data['13']) return { user: String(data['13']) };
+        } catch (e) {
+            /* fall through */
+        }
     }
 
     // Strategy 2: aria-label last word
-    const label = el.getAttribute("aria-label");
+    const label = el.getAttribute('aria-label');
     if (label) {
         const parts = label.trim().split(/\s+/);
         if (parts.length >= 2) return { user: parts[parts.length - 1] };
     }
 
     return { user: null };
-})()
+})();
 ```
 
 **Step 2: Write Python test with mock HTML**
@@ -306,10 +314,12 @@ git commit -m "feat: add JavaScript for DOM-based SAP username extraction"
 ### Task 4: Call `set_sap_identity` from `sap_login` after successful login
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/sap_tools.py`
 - Test: `unittests/test_sap_login_identity.py` (create)
 
 **Context:** `sap_login` has 3 success paths:
+
 1. **Already logged in** (line 635-648): OKCode field detected immediately
 2. **Fresh login** (line 694-708): Login form filled, OK-Code appears
 3. **"Already logged in" dialog** (line 714-737): Continue button clicked
@@ -455,6 +465,7 @@ git commit -m "feat: capture SAP identity after login and inject into tool call 
 ### Task 5: Add identity pass-through test for StructuredFormatter
 
 **Files:**
+
 - Modify: `unittests/test_logging_config.py`
 
 **Context:** Verify that `sap_user`, `sap_host`, `sap_mandant` extra fields flow through the formatter correctly in both console and JSON modes.
@@ -551,6 +562,7 @@ git commit -m "fix: address linting issues"
 ### Task 7: Run expert review
 
 Dispatch a code reviewer with logging/MCP expertise to review the full implementation against the design doc. Verify:
+
 - Identity injection works in both success and error log paths
 - No password or full URL leakage
 - Pre-login behavior (silent omission) is correct
