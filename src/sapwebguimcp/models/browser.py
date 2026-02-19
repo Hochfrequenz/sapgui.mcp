@@ -208,6 +208,10 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
 
         self._playwright = await async_playwright().start()
 
+        # Default is CONNECT: expects Chrome already running with --remote-debugging-port=9222.
+        # This is required for exe distribution (no Playwright browser binaries bundled)
+        # and matches the documented setup where users start Chrome before the MCP server.
+        # LAUNCH mode is opt-in for development; requires `playwright install` for browser binaries.
         if settings.browser_mode == BrowserMode.CONNECT:
             await self._connect_to_existing_browser()
         else:
@@ -216,7 +220,11 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         self._initialized = True
 
     async def _launch_browser(self) -> None:
-        """Launch a new browser instance."""
+        """Launch a new browser instance via Playwright.
+
+        Requires Playwright browser binaries (installed via `playwright install`).
+        Not available in PyInstaller exe builds. Use BROWSER_MODE=launch explicitly.
+        """
         settings = self._settings or get_settings()
         browser_type = settings.browser_type
 
@@ -236,7 +244,11 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         logger.info("Browser launched")
 
     async def _connect_to_existing_browser(self) -> None:
-        """Connect to an existing browser via CDP."""
+        """Connect to an existing Chrome browser via CDP (default mode).
+
+        Expects Chrome running with --remote-debugging-port (default: 9222).
+        Does not require Playwright browser binaries — only the Python package.
+        """
         settings = self._settings or get_settings()
 
         logger.info("Connecting to browser", extra={"cdp_url": settings.cdp_url})

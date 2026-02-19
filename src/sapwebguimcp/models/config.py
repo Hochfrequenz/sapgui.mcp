@@ -22,8 +22,17 @@ class BrowserMode(StrEnum):
     """
     Browser connection mode.
 
-    LAUNCH: Start a new browser instance managed by the MCP server
-    CONNECT: Connect to an existing browser via Chrome DevTools Protocol
+    CONNECT (default): Connect to an existing Chrome browser via Chrome DevTools Protocol.
+        Requires Chrome running with --remote-debugging-port=9222.
+        This is the default because:
+        - Chrome with CDP is a prerequisite for SAP Web GUI automation anyway.
+        - It avoids bundling Playwright's Chromium binaries (~400MB), which is
+          essential for PyInstaller exe distribution.
+        - The user sees the browser, helpful for CAPTCHAs and manual intervention.
+
+    LAUNCH: Start a new browser instance managed by Playwright.
+        Requires Playwright browser binaries installed via `playwright install`.
+        Useful for development/testing but not recommended for production or exe builds.
     """
 
     LAUNCH = "launch"
@@ -52,13 +61,12 @@ class SapWebGuiSettings(BaseSettings):
 
     Example .env file:
         SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui
-        BROWSER_MODE=launch
-        BROWSER_TYPE=chromium
-        BROWSER_HEADLESS=false
-
-    For VPN/Citrix setups, use connect mode:
-        BROWSER_MODE=connect
         CDP_URL=http://localhost:9222
+
+    The default browser mode is 'connect', which expects Chrome running with
+    --remote-debugging-port=9222. For development with Playwright-managed browsers:
+        BROWSER_MODE=launch
+        BROWSER_HEADLESS=false
     """
 
     model_config = SettingsConfigDict(
@@ -100,8 +108,10 @@ class SapWebGuiSettings(BaseSettings):
 
     # Browser Configuration
     browser_mode: BrowserMode = Field(
-        default=BrowserMode.LAUNCH,
-        description="Browser mode: 'launch' (start new) or 'connect' (use existing)",
+        default=BrowserMode.CONNECT,
+        description=(
+            "Browser mode: 'connect' (default, use existing Chrome with CDP) " "or 'launch' (start new via Playwright)"
+        ),
         json_schema_extra={"env": "BROWSER_MODE"},
     )
     browser_type: BrowserType = Field(
