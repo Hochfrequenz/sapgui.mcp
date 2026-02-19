@@ -2,6 +2,7 @@
 
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -233,52 +234,56 @@ description: A valid description here
                 validate_prompt_file(file_path)
 
 
+def _get_registered_prompts() -> dict[str, Any]:
+    """Get registered prompts as {name: prompt} dict, compatible with fastmcp 2.x and 3.x.
+
+    fastmcp 2.x: get_prompts() returns dict[str, FunctionPrompt]
+    fastmcp 3.x: list_prompts() returns list[FunctionPrompt]  (get_prompts removed)
+    """
+    import asyncio
+
+    from sapwebguimcp.server import mcp
+
+    if hasattr(mcp, "list_prompts"):
+        prompts_list = asyncio.run(mcp.list_prompts())
+        if isinstance(prompts_list, dict):
+            return prompts_list
+        return {p.name: p for p in prompts_list}
+    # fastmcp 2.x fallback
+    return asyncio.run(mcp.get_prompts())  # type: ignore[union-attr]
+
+
 class TestPromptRegistration:
     """Integration tests for prompt registration with FastMCP."""
 
     def test_prompt_count_matches_files(self) -> None:
         """Each .md file in prompts/ becomes exactly one MCP prompt."""
-        import asyncio
-
-        from sapwebguimcp.server import mcp
-
         prompt_dir = get_prompts_dir()
         md_files = [f for f in prompt_dir.glob("*.md") if f.name.lower() != "readme.md"]
 
-        # Get registered prompts from FastMCP
-        prompts = asyncio.run(mcp.list_prompts())
+        prompts = _get_registered_prompts()
 
         assert len(prompts) == len(md_files), (
             f"Expected {len(md_files)} prompts, got {len(prompts)}. "
-            f"Files: {[f.name for f in md_files]}, Prompts: {[p.name for p in prompts]}"
+            f"Files: {[f.name for f in md_files]}, Prompts: {list(prompts.keys())}"
         )
 
     def test_all_prompts_have_descriptions(self) -> None:
         """Every registered prompt must have a non-empty description."""
-        import asyncio
+        prompts = _get_registered_prompts()
 
-        from sapwebguimcp.server import mcp
-
-        prompts = asyncio.run(mcp.list_prompts())
-
-        for prompt in prompts:
-            assert prompt.description, f"Prompt '{prompt.name}' has no description"
-            assert (
-                len(prompt.description) >= 10
-            ), f"Prompt '{prompt.name}' description too short: '{prompt.description}'"
+        for name, prompt in prompts.items():
+            assert prompt.description, f"Prompt '{name}' has no description"
+            assert len(prompt.description) >= 10, f"Prompt '{name}' description too short: '{prompt.description}'"
 
     def test_prompt_names_match_filenames(self) -> None:
         """Prompt names should match their source filenames (without .md)."""
-        import asyncio
-
-        from sapwebguimcp.server import mcp
-
         prompt_dir = get_prompts_dir()
         md_files = [f for f in prompt_dir.glob("*.md") if f.name.lower() != "readme.md"]
         expected_names = {f.stem for f in md_files}
 
-        prompts = asyncio.run(mcp.list_prompts())
-        actual_names = {p.name for p in prompts}
+        prompts = _get_registered_prompts()
+        actual_names = set(prompts.keys())
 
         assert actual_names == expected_names, f"Mismatch: expected {expected_names}, got {actual_names}"
 
