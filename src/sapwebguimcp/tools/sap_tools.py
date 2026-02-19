@@ -120,15 +120,19 @@ async def _capture_sap_identity(
         js = _load_js("extract_sap_user.js")
         result = await page.evaluate(js)
         sap_user = result.get("user") if result else None
-    except Exception:  # pylint: disable=broad-exception-caught
-        sap_user = None
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        logger.warning(
+            "DOM extraction failed for SAP username; identity not set",
+            extra={"error": str(exc)},
+        )
+        return
 
     if sap_user:
         identity = SapIdentity(sap_user=sap_user, sap_host=hostname, sap_mandant=mandant)
         set_sap_identity(session_id, identity)
         logger.info("SAP identity captured", extra=identity.model_dump(mode="json"))
     else:
-        logger.warning("Could not extract SAP username from page DOM; identity not set for log correlation")
+        logger.warning("SAP username not found in page DOM; identity not set for log correlation")
 
 
 # =============================================================================
