@@ -623,7 +623,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "If connection fails, ask user to verify Chrome is running with debugging and VPN is connected."
         )
     )
-    async def sap_login(  # pylint: disable=too-many-return-statements
+    async def sap_login(  # pylint: disable=too-many-return-statements,too-many-statements
         url: Optional[str] = None,
         ctx: Context | None = None,
     ) -> LoginResult:
