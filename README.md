@@ -275,7 +275,7 @@ Point your Claude config (e.g. in `C:\Users\YourWindowsLoginName\AppData\Roaming
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_v1.2.3.exe",
+            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
             "env": {
                 "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "SAP_USER": "your_username",
