@@ -110,7 +110,7 @@ def save_workflow(workflow: Workflow) -> Path:
     user_dir = get_user_workflows_dir()
     path = user_dir / f"{workflow.name}.md"
     path.write_text(workflow.to_markdown(), encoding="utf-8")
-    logger.info("Saved workflow", extra={"name": workflow.name, "path": str(path)})
+    logger.info("Saved workflow", extra={"workflow": workflow.name, "path": str(path)})
     return path
 
 
