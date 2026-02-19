@@ -1,9 +1,8 @@
 """Tests for tool call logging middleware identity injection."""
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any
-
-import asyncio
 
 import pytest
 
