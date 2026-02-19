@@ -4,7 +4,7 @@
     const el = document.getElementById("sysInfoAreaMenuItemSAPITS_MBAR_USER");
     if (!el) return { user: null };
 
-    // Strategy 1: lsdata JSON, key "13"
+    // Strategy 1: lsdata JSON — key "13" is the username in SAP's lsdata encoding
     const lsdata = el.getAttribute("lsdata");
     if (lsdata) {
         try {
