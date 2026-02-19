@@ -74,14 +74,11 @@ class TestStartupPatValidation:
         self, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Startup logs [OK] when PAT is valid."""
-        respx.get("http://localhost:9222/json/version").mock(
-            return_value=Response(200, json={"Browser": "Chrome/120"})
-        )
-        respx.get("https://api.github.com/user").mock(
-            return_value=Response(200, json={"login": "hf-kklein"})
-        )
+        respx.get("http://localhost:9222/json/version").mock(return_value=Response(200, json={"Browser": "Chrome/120"}))
+        respx.get("https://api.github.com/user").mock(return_value=Response(200, json={"login": "hf-kklein"}))
         monkeypatch.setenv("ABAPGIT_PAT", "ghp_fake_valid_token")
         from sapwebguimcp.models import config as config_mod
+
         monkeypatch.setattr(config_mod, "_settings", None)
 
         with caplog.at_level(logging.INFO):
@@ -96,14 +93,11 @@ class TestStartupPatValidation:
         self, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Startup logs [ACTION REQUIRED] when PAT is expired."""
-        respx.get("http://localhost:9222/json/version").mock(
-            return_value=Response(200, json={"Browser": "Chrome/120"})
-        )
-        respx.get("https://api.github.com/user").mock(
-            return_value=Response(401, json={"message": "Bad credentials"})
-        )
+        respx.get("http://localhost:9222/json/version").mock(return_value=Response(200, json={"Browser": "Chrome/120"}))
+        respx.get("https://api.github.com/user").mock(return_value=Response(401, json={"message": "Bad credentials"}))
         monkeypatch.setenv("ABAPGIT_PAT", "ghp_fake_expired_token")
         from sapwebguimcp.models import config as config_mod
+
         monkeypatch.setattr(config_mod, "_settings", None)
 
         with caplog.at_level(logging.WARNING):
@@ -118,12 +112,11 @@ class TestStartupPatValidation:
         self, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Startup skips PAT validation when no PAT is configured."""
-        respx.get("http://localhost:9222/json/version").mock(
-            return_value=Response(200, json={"Browser": "Chrome/120"})
-        )
+        respx.get("http://localhost:9222/json/version").mock(return_value=Response(200, json={"Browser": "Chrome/120"}))
         monkeypatch.setenv("ABAPGIT_PAT", "")
         monkeypatch.setenv("GITHUB_PAT", "")
         from sapwebguimcp.models import config as config_mod
+
         monkeypatch.setattr(config_mod, "_settings", None)
 
         with caplog.at_level(logging.INFO):

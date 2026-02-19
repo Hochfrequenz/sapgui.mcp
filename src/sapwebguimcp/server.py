@@ -22,7 +22,6 @@ from sapwebguimcp.models import close_browser_manager
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.prompts import register_prompts
 from sapwebguimcp.resources import register_feedback_resources, register_intent_resources
-from sapwebguimcp.tools.abapgit_tools import validate_github_pat
 from sapwebguimcp.tools import (
     register_abapgit_tools,
     register_browser_tools,
@@ -40,6 +39,7 @@ from sapwebguimcp.tools import (
     register_table_tools,
     register_workflow_tools,
 )
+from sapwebguimcp.tools.abapgit_tools import validate_github_pat
 
 __all__ = ["main", "mcp"]
 

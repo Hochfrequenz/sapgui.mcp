@@ -20,7 +20,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
-
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import Locator, Page
