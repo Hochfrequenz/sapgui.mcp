@@ -154,6 +154,68 @@ class TestStructuredFormatter:
         data = json.loads(output)
         assert data["msg"] == "Loaded 42 items from catalog"
 
+    def test_console_format_with_identity_fields(self) -> None:
+        """SAP identity fields appear as key=value pairs in console mode."""
+        formatter = StructuredFormatter(json_mode=False)
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="Tool completed",
+            args=(),
+            exc_info=None,
+        )
+        record.sap_user = "KLEINK"
+        record.sap_host = "sap-prod.acme.com"
+        record.sap_mandant = "100"
+        record.tool = "sap_transaction"
+        output = formatter.format(record)
+        assert "sap_user=KLEINK" in output
+        assert "sap_host=sap-prod.acme.com" in output
+        assert "sap_mandant=100" in output
+        assert "tool=sap_transaction" in output
+
+    def test_json_format_with_identity_fields(self) -> None:
+        """SAP identity fields appear as top-level JSON keys."""
+        formatter = StructuredFormatter(json_mode=True)
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="Tool completed",
+            args=(),
+            exc_info=None,
+        )
+        record.sap_user = "KLEINK"
+        record.sap_host = "sap-prod.acme.com"
+        record.sap_mandant = "100"
+        output = formatter.format(record)
+        data = json.loads(output)
+        assert data["sap_user"] == "KLEINK"
+        assert data["sap_host"] == "sap-prod.acme.com"
+        assert data["sap_mandant"] == "100"
+
+    def test_identity_fields_not_present_pre_login(self) -> None:
+        """Before login, identity fields should not appear in output."""
+        formatter = StructuredFormatter(json_mode=True)
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="Tool completed",
+            args=(),
+            exc_info=None,
+        )
+        record.tool = "browser_snapshot"
+        output = formatter.format(record)
+        data = json.loads(output)
+        assert "sap_user" not in data
+        assert "sap_host" not in data
+        assert "sap_mandant" not in data
+
 
 class TestLogContextModels:
     """Tests for Pydantic log context models."""
