@@ -315,6 +315,12 @@ async def test_abapgit_e2e_public_repo_pull_and_verify(sap_mcp_client: ClientSes
     assert success, f"Git push failed: {output}"
 
     # 3. Pull via abapGit
+    # KNOWN ISSUE: _analyze_pull_result treats empty status bar as success.
+    # If the PAT is expired (HTTP 401), the ABAP report catches cx_root and
+    # sends MESSAGE e398, but extract_status_bar.js may fail to capture it,
+    # causing pull_result.success=True even though the pull didn't update code.
+    # The real failure then only surfaces in step 4 (source code mismatch).
+    # If this test fails at the assert below, check ABAPGIT_PAT validity first.
     pull_result = await call_tool_typed(
         sap_mcp_client,
         "sap_abapgit_pull",
