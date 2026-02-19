@@ -1,10 +1,10 @@
 """Tests for SAP identity capture during login."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 
-from sapwebguimcp.models.middleware import SapIdentity
+import pytest
 
+from sapwebguimcp.models.middleware import SapIdentity
 
 # Import the helper function - it's module-level in sap_tools
 # We need to test it directly since testing full sap_login requires browser setup
@@ -18,6 +18,7 @@ async def test_capture_sap_identity_success():
 
     with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
         from sapwebguimcp.tools.sap_tools import _capture_sap_identity
+
         await _capture_sap_identity(page, "https://sap-prod.acme.com/sap/bc/gui", "100", "session-1")
 
     mock_set.assert_called_once()
@@ -35,6 +36,7 @@ async def test_capture_sap_identity_dom_fails():
 
     with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
         from sapwebguimcp.tools.sap_tools import _capture_sap_identity
+
         await _capture_sap_identity(page, "https://sap.acme.com/path", "100", "session-1")
 
     mock_set.assert_not_called()
@@ -48,6 +50,7 @@ async def test_capture_sap_identity_null_user():
 
     with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
         from sapwebguimcp.tools.sap_tools import _capture_sap_identity
+
         await _capture_sap_identity(page, "https://sap.acme.com/path", "100", "session-1")
 
     mock_set.assert_not_called()
@@ -61,6 +64,7 @@ async def test_capture_sap_identity_schemeless_url():
 
     with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
         from sapwebguimcp.tools.sap_tools import _capture_sap_identity
+
         await _capture_sap_identity(page, "sap-server/path", "200", "s1")
 
     identity = mock_set.call_args[0][1]

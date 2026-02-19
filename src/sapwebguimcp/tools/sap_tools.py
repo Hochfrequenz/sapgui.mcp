@@ -30,8 +30,6 @@ from urllib.parse import urlparse
 from fastmcp import Context, FastMCP
 
 from sapwebguimcp.middleware.logging import set_sap_identity
-from sapwebguimcp.models.middleware import SapIdentity
-
 from sapwebguimcp.models import (
     AlvCellInfo,
     AlvMetadata,
@@ -75,6 +73,7 @@ from sapwebguimcp.models import (
     get_browser_manager,
     get_settings,
 )
+from sapwebguimcp.models.middleware import SapIdentity
 from sapwebguimcp.tools.browser_tools import _escape_css_selector
 from sapwebguimcp.tools.session_tools import (
     sap_session_bind_impl,
