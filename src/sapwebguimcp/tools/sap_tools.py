@@ -1083,19 +1083,12 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     )
     async def sap_get_capabilities() -> CapabilitiesResult:  # pylint: disable=missing-function-docstring
         # Introspect MCP registry to get all registered tools
-        # FastMCP stores tools in _tool_manager._tools dict
         try:
-            tool_manager = mcp._tool_manager  # pylint: disable=protected-access
-            tools = []
-            for tool in tool_manager._tools.values():  # pylint: disable=protected-access
-                tools.append(
-                    ToolInfo(
-                        name=tool.name,
-                        description=tool.description or "",
-                    )
-                )
-            # Sort by name for consistent ordering
-            tools.sort(key=lambda t: t.name)
+            registered = await mcp.list_tools()
+            tools = sorted(
+                [ToolInfo(name=t.name, description=t.description or "") for t in registered],
+                key=lambda t: t.name,
+            )
 
             # Load SAP knowledge from markdown file
             sap_knowledge = None

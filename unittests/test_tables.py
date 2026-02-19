@@ -335,7 +335,9 @@ class TestTableTools:
         register_table_tools(mcp)
 
         # Verify tool was registered
-        tool_names = [t.name for t in mcp._tool_manager._tools.values()]
+        import asyncio
+
+        tool_names = [t.name for t in asyncio.run(mcp.list_tools())]
         assert "search_tables" in tool_names
 
 
