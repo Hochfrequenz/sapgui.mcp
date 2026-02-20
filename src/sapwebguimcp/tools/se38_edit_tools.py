@@ -8,21 +8,31 @@ syntax check, activation, and auto-revert on failure.
 import logging
 
 from fastmcp import FastMCP
+from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import Page
 
 from sapwebguimcp.models.browser import get_browser_manager
 from sapwebguimcp.models.se38_edit_models import SE38EditResult
 from sapwebguimcp.tools.edit_helpers import check_and_activate, read_editor_source, replace_editor_source
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
+from sapwebguimcp.tools.sap_tool_impl import _find_okcode_field, _load_js
 
 logger = logging.getLogger(__name__)
 
 
 async def _navigate_and_open_editor(page: Page, program_name: str) -> str | None:
-    """Navigate to SE38, fill program name, enter change mode, return error or None."""
-    tx_result = await sap_transaction_impl("SE38")
-    if not tx_result.success:
-        return f"Failed to navigate to SE38: {tx_result.error}"
+    """Navigate to SE38 on the given page, fill program name, enter change mode, return error or None."""
+    # Navigate via OK-code field directly on the provided page (not via sap_transaction_impl
+    # which always uses the primary session page).
+    okcode_field = await _find_okcode_field(page)
+    if not okcode_field:
+        return "Could not find OK-Code field on page"
+
+    await okcode_field.click()
+    await page.wait_for_timeout(200)
+    await page.evaluate(_load_js("set_okcode_field.js"), {"transactionInput": "/nSE38"})
+    await page.wait_for_timeout(300)
+    await page.keyboard.press("Enter")
+    await page.wait_for_load_state("networkidle", timeout=15000)
 
     await page.wait_for_timeout(1000)
 
@@ -150,7 +160,7 @@ def register_se38_edit_tools(mcp: FastMCP) -> None:
 
         try:
             return await _edit_check_activate(page, program_name, new_source)
-        except (TimeoutError, OSError) as exc:
+        except (PlaywrightError, OSError) as exc:
             logger.exception("SE38 edit failed for %s", program_name)
             return SE38EditResult.failure(
                 error=f"Unexpected error: {exc}",

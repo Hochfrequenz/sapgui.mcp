@@ -7,17 +7,30 @@ These helpers handle the common check/activate workflow and status message parsi
 import logging
 import re
 
+from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import Page
 
 logger = logging.getLogger(__name__)
 
+# Success/error prefixes used in SAP toolbar notes.
+# DE: note "Erfolgreich Meldungsleiste <message>"
+# EN: note "Success Message Bar <message>"
+_SUCCESS_PREFIXES = ("Erfolgreich ", "Success ")
+_ERROR_PREFIXES = ("Fehler ", "Error ")
+
+# Regex to strip the prefix + "Meldungsleiste"/"Message Bar" from the note text
+_PREFIX_STRIP = re.compile(
+    r"^(Erfolgreich|Success|Fehler|Error)\s+(Meldungsleiste|Message Bar)\s+",
+)
+
 _SUCCESS_PATTERNS = re.compile(
-    r"Erfolgreich|Successfully|keine Syntaxfehler|No syntax errors|"
-    r"Aktives Objekt wurde generiert|Objekt wurde aktiviert|generated successfully|activated",
+    r"keine Syntaxfehler|No syntax errors|"
+    r"Aktives Objekt wurde generiert|Objekt wurde aktiviert|Object activated|"
+    r"generated successfully",
     re.IGNORECASE,
 )
 _ERROR_PATTERNS = re.compile(
-    r"Fehler|Error|Syntaxfehler|syntax error",
+    r"Syntaxfehler|syntax error",
     re.IGNORECASE,
 )
 
@@ -25,9 +38,11 @@ _ERROR_PATTERNS = re.compile(
 def parse_toolbar_note(snapshot_text: str) -> tuple[bool, str]:
     """Parse the toolbar note from an ARIA snapshot to determine success/failure.
 
-    The SAP ABAP editor shows status messages as a 'note' element in the toolbar.
-    Format: note "Erfolgreich Meldungsleiste <actual message>"
-    Or:     note "Fehler Meldungsleiste <actual message>"
+    SAP shows status messages as a 'note' element in the toolbar, localized:
+      DE: note "Erfolgreich Meldungsleiste <actual message>"
+      EN: note "Success Message Bar <actual message>"
+      DE: note "Fehler Meldungsleiste <actual message>"
+      EN: note "Error Message Bar <actual message>"
 
     Returns:
         (success, message) tuple.
@@ -37,14 +52,12 @@ def parse_toolbar_note(snapshot_text: str) -> tuple[bool, str]:
         return False, "No status message found in toolbar"
 
     full_note = match.group(1)
-    message = re.sub(r"^(Erfolgreich|Fehler)\s+Meldungsleiste\s+", "", full_note).strip()
-    if not message:
-        message = full_note
+    message = _PREFIX_STRIP.sub("", full_note).strip() or full_note
 
-    # Check prefix first — SAP notes always start with "Erfolgreich" or "Fehler"
-    if full_note.startswith("Erfolgreich "):
+    # Check prefix first — SAP notes start with a localized success/error prefix
+    if full_note.startswith(_SUCCESS_PREFIXES):
         return True, message
-    if full_note.startswith("Fehler "):
+    if full_note.startswith(_ERROR_PREFIXES):
         return False, message
 
     # Fallback to pattern search for non-standard messages
@@ -62,7 +75,7 @@ async def read_editor_source(page: Page, editor_selector: str = "textarea[id*='t
         if not await textarea.is_visible(timeout=3000):
             return None
         return await textarea.input_value()
-    except (TimeoutError, OSError) as exc:
+    except (PlaywrightError, OSError) as exc:
         logger.warning("Could not read editor content with selector %s: %s", editor_selector, exc)
         return None
 
@@ -78,7 +91,7 @@ async def replace_editor_source(page: Page, new_source: str, editor_selector: st
         await page.wait_for_timeout(200)
         await textarea.fill(new_source)
         return True
-    except (TimeoutError, OSError) as exc:
+    except (PlaywrightError, OSError) as exc:
         logger.warning("Failed to replace editor source: %s", exc)
         return False
 

@@ -80,6 +80,30 @@ class TestParseStatusNote:
         assert success is False
         assert "Syntaxfehler" in message
 
+    def test_parse_check_success_en(self) -> None:
+        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+
+        snapshot = '- note "Success Message Bar No syntax errors found in Report ZTEST_MCP_EDIT"'
+        success, message = parse_toolbar_note(snapshot)
+        assert success is True
+        assert "No syntax errors" in message
+
+    def test_parse_activate_success_en(self) -> None:
+        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+
+        snapshot = '- note "Success Message Bar Object activated"'
+        success, message = parse_toolbar_note(snapshot)
+        assert success is True
+        assert "Object activated" in message
+
+    def test_parse_check_failure_en(self) -> None:
+        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+
+        snapshot = '- note "Error Message Bar Specify a program name"'
+        success, message = parse_toolbar_note(snapshot)
+        assert success is False
+        assert "Specify a program name" in message
+
     def test_parse_no_note(self) -> None:
         from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
 
