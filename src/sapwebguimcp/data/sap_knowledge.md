@@ -65,9 +65,13 @@ After you found out how to solve a specific problem without these workarounds, c
 
 ## ABAP Development with Claude Code and abapGit
 
-Don't try to write any ABAP code directly with this MCP server (i.e. by interacting with the sAP GUI for ABAP development).
-Instead, use Claude Code together with abapGit for ABAP development.
-This MCP server is designed to **test** code that was generated with Claude Code and synchronized via abapGit, but development in the SAP GUI is not recommended.
+**The strongly preferred approach** for ABAP development is to use Claude Code together with abapGit.
+Writing ABAP locally, pushing to Git, and pulling via abapGit is **much faster, more stable, and fully version-controlled**.
+Always choose abapGit-based development when possible.
+
+For objects in packages that are **not source-controlled via abapGit**, the `sap_se38_edit` tool allows in-place editing of existing ABAP reports directly in SAP.
+This is a fallback option for quick modifications to objects that are not tracked in Git.
+Using Git is always the preferred option — there should be no doubt about it.
 
 ### Setup
 
@@ -126,7 +130,7 @@ Each has a simple, MCP-friendly UI:
 | Transaction | Purpose                               | Example Use                                                    |
 | ----------- | ------------------------------------- | -------------------------------------------------------------- |
 | **SE37**    | Function Modules (Funktionsbausteine) | View signature, parameters, exceptions of FMs you want to call |
-| **SE38**    | Reports / Programs                    | View and test ABAP reports                                     |
+| **SE38**    | Reports / Programs                    | View, edit (sap_se38_edit), and test ABAP reports              |
 | **SE24**    | Classes (Klassen)                     | Inspect class methods, attributes, interfaces                  |
 | **SE11**    | Data Dictionary (DDIC)                | View table structures, data elements, domains                  |
 | **SE16**    | Table Contents                        | Browse actual data in tables (read-only recommended)           |
