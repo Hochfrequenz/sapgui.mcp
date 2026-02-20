@@ -33,7 +33,13 @@ Download `sapwebgui_mcp_windows_<version>.exe` from
 
 ### Step 2: Configure your MCP client
 
-Point your Claude config (e.g. in `C:\Users\YourWindowsLoginName\AppData\Roaming\Claude\claude_desktop_config.json`) to the exe:
+**Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
+
+> `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove it if you don't need these features.
+
+#### Claude Desktop
+
+Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_config.json`, macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
@@ -45,7 +51,30 @@ Point your Claude config (e.g. in `C:\Users\YourWindowsLoginName\AppData\Roaming
                 "SAP_USER": "your_username",
                 "SAP_PASSWORD": "your_password",
                 "SAP_MANDANT": "100",
-                "SAP_LANGUAGE": "DE"
+                "SAP_LANGUAGE": "DE",
+                "GITHUB_PAT": "your_github_pat"
+            }
+        }
+    }
+}
+```
+
+#### Claude Code
+
+Add to `.mcp.json` in your project root:
+
+```json
+{
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "env": {
+                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE",
+                "GITHUB_PAT": "your_github_pat"
             }
         }
     }
