@@ -16,35 +16,22 @@ from playwright.async_api import Page
 
 from sapwebguimcp.models.browser import get_browser_manager
 from sapwebguimcp.models.se24_edit_models import SE24EditResult
-from sapwebguimcp.tools.edit_helpers import check_and_activate, read_editor_source, replace_editor_source
+from sapwebguimcp.tools.edit_helpers import (
+    check_and_activate,
+    dismiss_language_dialog,
+    read_editor_source,
+    replace_editor_source,
+)
 from sapwebguimcp.tools.sap_tool_impl import _find_okcode_field, _load_js
 
 logger = logging.getLogger(__name__)
 
 
-async def _dismiss_language_dialog(page: Page) -> None:
-    """Handle SAP's 'Different original and logon languages' popup if present."""
-    snap = await page.locator("body").aria_snapshot()
-    if "Different original and logon languages" not in snap and "Originalsprache und Anmeldesprache" not in snap:
-        return
-    logger.info("SE24 edit: detected language mismatch dialog, confirming maintenance in original language")
-    maint_btn = page.get_by_role("button", name="Maint. in orig. lang.")
-    if not await maint_btn.is_visible(timeout=2000):
-        maint_btn = page.get_by_role("button", name="Pflege in Originalsprache")
-    if await maint_btn.is_visible(timeout=2000):
-        await maint_btn.click()
-        await page.wait_for_timeout(1000)
-        await page.wait_for_load_state("networkidle")
-    else:
-        logger.warning("SE24 edit: language dialog detected but 'Maint. in orig. lang.' button not found")
-
-
-async def _navigate_to_method_editor(page: Page, class_name: str, method_name: str) -> str | None:
-    """Navigate to SE24, open class in change mode, select method, open source editor.
+async def _open_class_in_change_mode(page: Page, class_name: str) -> str | None:
+    """Navigate to SE24, display class via F7, and toggle to change mode.
 
     Returns error message or None on success.
     """
-    # Navigate via OK-code field directly on the provided page
     okcode_field = await _find_okcode_field(page)
     if not okcode_field:
         return "Could not find OK-Code field on page"
@@ -60,7 +47,7 @@ async def _navigate_to_method_editor(page: Page, class_name: str, method_name: s
     await page.wait_for_load_state("networkidle", timeout=15000)
     await page.wait_for_timeout(1000)
 
-    # Fill class name field (DE: "Objekttyp", EN: "Object Type") using SE38-style approach
+    # Fill class name field (DE: "Objekttyp", EN: "Object Type")
     field = page.get_by_role("textbox", name="Objekttyp")
     if not await field.is_visible(timeout=2000):
         field = page.get_by_role("textbox", name="Object Type")
@@ -81,7 +68,7 @@ async def _navigate_to_method_editor(page: Page, class_name: str, method_name: s
         snap = (await page.locator("body").aria_snapshot())[:400]
         return f"F7 failed to display class. Page: {snap}"
 
-    await _dismiss_language_dialog(page)
+    await dismiss_language_dialog(page)
 
     # Switch from display to change mode via "Display <-> Change" / "Anzeigen <-> Ändern"
     toggle_btn = page.get_by_role("button", name="Anzeigen <-> Ändern")
@@ -94,8 +81,15 @@ async def _navigate_to_method_editor(page: Page, class_name: str, method_name: s
     await page.wait_for_timeout(1000)
     await page.wait_for_load_state("networkidle")
 
-    await _dismiss_language_dialog(page)
+    await dismiss_language_dialog(page)
+    return None
 
+
+async def _select_method_and_open_source(page: Page, class_name: str, method_name: str) -> str | None:
+    """Select method in methods grid and open its source editor.
+
+    Returns error message or None on success.
+    """
     # Ensure we're on the Methods tab (DE: "Methoden", EN: "Methods")
     methods_tab = page.get_by_role("tab", name="Methoden")
     if not await methods_tab.is_visible(timeout=2000):
@@ -110,10 +104,8 @@ async def _navigate_to_method_editor(page: Page, class_name: str, method_name: s
     # Select the method in the grid by clicking on its gridcell
     method_cell = page.get_by_role("gridcell", name=method_name).first
     if not await method_cell.is_visible(timeout=3000):
-        # Try case-insensitive: SAP might show it differently
         method_cell = page.get_by_role("gridcell", name=method_name.upper()).first
     if not await method_cell.is_visible(timeout=2000):
-        # Debug: capture snapshot to understand current screen state
         debug_snapshot = await page.locator("body").aria_snapshot()
         logger.warning(
             "SE24 edit: method %s not found in grid for %s. Screen heading: %s",
@@ -140,6 +132,17 @@ async def _navigate_to_method_editor(page: Page, class_name: str, method_name: s
     await page.wait_for_load_state("networkidle")
 
     return None
+
+
+async def _navigate_to_method_editor(page: Page, class_name: str, method_name: str) -> str | None:
+    """Navigate to SE24, open class in change mode, select method, open source editor.
+
+    Returns error message or None on success.
+    """
+    error = await _open_class_in_change_mode(page, class_name)
+    if error:
+        return error
+    return await _select_method_and_open_source(page, class_name, method_name)
 
 
 async def _edit_check_activate_method(page: Page, class_name: str, method_name: str, new_source: str) -> SE24EditResult:

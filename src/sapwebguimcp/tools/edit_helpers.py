@@ -68,6 +68,27 @@ def parse_toolbar_note(snapshot_text: str) -> tuple[bool, str]:
     return False, message
 
 
+async def dismiss_language_dialog(page: Page) -> None:
+    """Handle SAP's 'Different original and logon languages' popup if present.
+
+    This dialog appears when editing objects whose original language differs from
+    the current logon language. Clicking 'Maint. in orig. lang.' confirms editing.
+    """
+    snap = await page.locator("body").aria_snapshot()
+    if "Different original and logon languages" not in snap and "Originalsprache und Anmeldesprache" not in snap:
+        return
+    logger.info("Detected language mismatch dialog, confirming maintenance in original language")
+    maint_btn = page.get_by_role("button", name="Maint. in orig. lang.")
+    if not await maint_btn.is_visible(timeout=2000):
+        maint_btn = page.get_by_role("button", name="Pflege in Originalsprache")
+    if await maint_btn.is_visible(timeout=2000):
+        await maint_btn.click()
+        await page.wait_for_timeout(1000)
+        await page.wait_for_load_state("networkidle")
+    else:
+        logger.warning("Language dialog detected but 'Maint. in orig. lang.' button not found")
+
+
 async def read_editor_source(page: Page, editor_selector: str = "textarea[id*='textedit']") -> str | None:
     """Read the current source code from the SAP editor textarea."""
     try:
