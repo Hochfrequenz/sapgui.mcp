@@ -19,7 +19,7 @@ Choose one of these three approaches:
 All three setup approaches below show you how to configure both.
 
 > [!WARNING]
-> **Quotes in passwords:** If your SAP password contains `"` characters, you must escape them as `\"` in the JSON config files. For example, a password like `pass"word` must be written as `"pass\"word"`. Unescaped quotes will silently break the JSON and the MCP server will fail to start.
+> **Special characters in passwords:** If your SAP password contains `"` or `\` characters, you must escape them in the JSON config files: `"` becomes `\"` and `\` becomes `\\`. For example, `pass"word` becomes `"pass\"word"` and `do\main` becomes `"do\\main"`. Unescaped special characters will silently break the JSON and the MCP server will fail to start.
 
 > [!TIP]
 > **Windows file extensions:** If file extensions are hidden in Windows Explorer, creating `.mcp.json` via right-click → New → Text File will produce `.mcp.json.txt` (or `.mcp.json.json` if you rename). Make sure "File name extensions" is checked in Explorer's View tab, then rename the file.
@@ -488,10 +488,10 @@ For repetitive tasks like "create 100 business partners":
 
 | Variable | Required | Description | Default |
 | --- | --- | --- | --- |
-| `SAP_URL` | **Yes**¹ | SAP Web GUI URL | `""` |
-| `SAP_USER` | **Yes**¹ | SAP username for auto-login | `""` |
-| `SAP_PASSWORD` | **Yes**¹ | SAP password for auto-login | `""` |
-| `SAP_MANDANT` | **Yes**¹ | SAP client (3-digit, e.g., `100`) | `""` |
+| `SAP_URL` | **Yes** <sup>1</sup> | SAP Web GUI URL | `""` |
+| `SAP_USER` | **Yes** <sup>1</sup> | SAP username for auto-login | `""` |
+| `SAP_PASSWORD` | **Yes** <sup>1</sup> | SAP password for auto-login | `""` |
+| `SAP_MANDANT` | **Yes** <sup>1</sup> | SAP client (3-digit, e.g., `100`) | `""` |
 | `SAP_LANGUAGE` | No | Login language (`DE` or `EN`) | `EN` |
 | `BROWSER_MODE` | No | `connect` (existing Chrome) or `launch` (Playwright) | `connect` |
 | `BROWSER_TYPE` | No | `chromium`, `firefox`, or `webkit` | `chromium` |
@@ -504,10 +504,10 @@ For repetitive tasks like "create 100 business partners":
 | `ABAPGIT_PAT` | No | Separate PAT for abapGit (overrides `GITHUB_PAT` if set) | — |
 | `PAPERTRAIL_HOST` | No | Papertrail syslog host (empty to disable) | `logs5.papertrailapp.com` |
 | `PAPERTRAIL_PORT` | No | Papertrail syslog port | `35329` |
-| `LOG_FORMAT` | No | Set to `json` for JSON log output | human-readable |
+| `LOG_FORMAT` | No | Set to `json` for JSON log output | `""` (human-readable) |
 | `LOG_LEVEL` | No | `DEBUG`, `INFO`, `WARNING`, or `ERROR` | `INFO` |
 
-¹ The server starts without these, but SAP login will fail.
+<sup>1</sup> The server starts without these, but SAP login will fail.
 
 ## Troubleshooting
 
