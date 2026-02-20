@@ -35,6 +35,8 @@ async def _dismiss_language_dialog(page: Page) -> None:
         await maint_btn.click()
         await page.wait_for_timeout(1000)
         await page.wait_for_load_state("networkidle")
+    else:
+        logger.warning("SE24 edit: language dialog detected but 'Maint. in orig. lang.' button not found")
 
 
 async def _navigate_to_method_editor(page: Page, class_name: str, method_name: str) -> str | None:
@@ -47,6 +49,7 @@ async def _navigate_to_method_editor(page: Page, class_name: str, method_name: s
     if not okcode_field:
         return "Could not find OK-Code field on page"
 
+    # bring_to_front is required for SE24: without it, F7/field interactions fail silently
     await page.bring_to_front()
     await page.wait_for_timeout(500)
     await okcode_field.click()
@@ -101,6 +104,8 @@ async def _navigate_to_method_editor(page: Page, class_name: str, method_name: s
         await methods_tab.click()
         await page.wait_for_timeout(500)
         await page.wait_for_load_state("networkidle")
+    else:
+        logger.debug("SE24 edit: Methods tab not found (may already be selected)")
 
     # Select the method in the grid by clicking on its gridcell
     method_cell = page.get_by_role("gridcell", name=method_name).first
