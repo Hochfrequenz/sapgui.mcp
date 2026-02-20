@@ -91,8 +91,13 @@ class TestParseStatusNote:
 
 @pytest.mark.anyio
 async def test_se38_edit_tool_is_registered() -> None:
-    """Test that sap_se38_edit tool is registered on the MCP server."""
-    from sapwebguimcp.server import mcp
+    """Test that register_se38_edit_tools adds the tool to a FastMCP instance."""
+    from fastmcp import FastMCP
 
-    tools = await mcp.get_tools()
-    assert "sap_se38_edit" in tools, f"sap_se38_edit not found in registered tools"
+    from sapwebguimcp.tools.se38_edit_tools import register_se38_edit_tools
+
+    mcp = FastMCP("test")
+    register_se38_edit_tools(mcp)
+
+    tool = await mcp.get_tool("sap_se38_edit")
+    assert tool is not None, "sap_se38_edit tool not found after registration"
