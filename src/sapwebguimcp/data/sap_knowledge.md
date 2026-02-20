@@ -209,8 +209,9 @@ For bulk operations (create 100 business partners, process many orders, etc.), y
 | ----------------------------------------- | --------------------------------------------------------------- |
 | `sap_transaction(tcode, new_window=True)` | Open a new SAP session with a transaction, returns `session_id` |
 | `sap_session_list()`                      | List all active sessions with IDs and titles                    |
-| `sap_session_close()`                     | Close a specific session by ID                                  |
+| `sap_session_close(session_id)`           | Close a specific session by ID                                  |
 | `sap_session_bind(session_id, agent_id)`  | Bind a session to an agent for parallel workflows               |
+| `sap_session_release(session_id)`         | Unbind a session from an agent without closing it               |
 
 ### Workflow Example
 
@@ -255,12 +256,37 @@ All major SAP and browser tools accept an optional `session` parameter:
 
 - `sap_se11_lookup`, `sap_se16_query`, `sap_se24_lookup`, `sap_se37_lookup`, `sap_se93_lookup`
 
+### Instructions for Sub-Agents
+
+If you are a sub-agent working on an SAP task, your parent agent should have given you a `session` and `agent_id`.
+You **must** pass both parameters on **every session-aware** SAP/browser tool call (i.e., those that accept `session` and `agent_id` parameters).
+Session-management tools like `sap_session_release(session_id)` only take `session_id`.
+
+```python
+sap_transaction("VA01", session="s2", agent_id="subagent-orders")
+sap_fill_form({"Customer": "12345"}, session="s2", agent_id="subagent-orders")
+sap_keyboard("Enter", session="s2", agent_id="subagent-orders")
+```
+
+When finished, release your session: `sap_session_release(session_id="s2")`
+
+### Cross-Agent Access
+
+If an agent accesses a session bound to a different agent, a **warning** is logged but the operation **still proceeds**.
+This helps debug cross-talk issues without blocking work.
+
+### Best Practices
+
+- **Use descriptive agent_ids** like `"order-processor"`, not `"agent1"`
+- **Always release sessions** when done to allow reuse
+- **Check `sap_session_list()`** if unsure about session state
+
 ### Important Notes
 
 - **Primary session "s1"** is created automatically on `sap_login()`
 - **Session limit:** Typically 6 sessions per SAP user (configured in SAP)
 - **Alternative:** Use `sap_transaction("BP", new_window=True)` to open a transaction directly in a new session. This **auto-registers** the new session and returns the `session_id` in the result.
-- **Cleanup:** Sessions are closed automatically when their browser tab closes, or use `sap_session_close()`
+- **Cleanup:** Sessions are closed automatically when their browser tab closes, or use `sap_session_close(session_id)`
 
 ### Using `new_window=True` for Quick Session Creation
 
