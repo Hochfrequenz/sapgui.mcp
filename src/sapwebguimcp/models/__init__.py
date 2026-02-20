@@ -113,6 +113,7 @@ from sapwebguimcp.models.se37_models import (
     SE37Result,
     SE37TypingMethod,
 )
+from sapwebguimcp.models.se37_edit_models import SE37EditResult
 from sapwebguimcp.models.se38_edit_models import SE38EditResult
 from sapwebguimcp.models.se93_models import (
     SE93Entry,
@@ -243,6 +244,8 @@ __all__ = [
     "SE24ParameterCategory",
     "SE24Result",
     "SE24Visibility",
+    # SE37 edit models
+    "SE37EditResult",
     # SE38 edit models
     "SE38EditResult",
     # SE93 models
