@@ -482,10 +482,10 @@ For repetitive tasks like "create 100 business partners":
 
 | Variable | Required | Description | Default |
 | --- | --- | --- | --- |
-| `SAP_URL` | **Yes** | SAP Web GUI URL | — |
-| `SAP_USER` | **Yes** | SAP username for auto-login | — |
-| `SAP_PASSWORD` | **Yes** | SAP password for auto-login | — |
-| `SAP_MANDANT` | **Yes** | SAP client (3-digit, e.g., `100`) | — |
+| `SAP_URL` | **Yes**¹ | SAP Web GUI URL | `""` |
+| `SAP_USER` | **Yes**¹ | SAP username for auto-login | `""` |
+| `SAP_PASSWORD` | **Yes**¹ | SAP password for auto-login | `""` |
+| `SAP_MANDANT` | **Yes**¹ | SAP client (3-digit, e.g., `100`) | `""` |
 | `SAP_LANGUAGE` | No | Login language (`DE` or `EN`) | `EN` |
 | `BROWSER_MODE` | No | `connect` (existing Chrome) or `launch` (Playwright) | `connect` |
 | `BROWSER_TYPE` | No | `chromium`, `firefox`, or `webkit` | `chromium` |
@@ -500,6 +500,8 @@ For repetitive tasks like "create 100 business partners":
 | `PAPERTRAIL_PORT` | No | Papertrail syslog port | `35329` |
 | `LOG_FORMAT` | No | Set to `json` for JSON log output | human-readable |
 | `LOG_LEVEL` | No | `DEBUG`, `INFO`, `WARNING`, or `ERROR` | `INFO` |
+
+¹ The server starts without these, but SAP login will fail.
 
 ## Troubleshooting
 
