@@ -18,6 +18,12 @@ Choose one of these three approaches:
 
 All three setup approaches below show you how to configure both.
 
+> [!WARNING]
+> **Quotes in passwords:** If your SAP password contains `"` characters, you must escape them as `\"` in the JSON config files. For example, a password like `pass"word` must be written as `"pass\"word"`. Unescaped quotes will silently break the JSON and the MCP server will fail to start.
+
+> [!TIP]
+> **Windows file extensions:** If file extensions are hidden in Windows Explorer, creating `.mcp.json` via right-click → New → Text File will produce `.mcp.json.txt` (or `.mcp.json.json` if you rename). Make sure "File name extensions" is checked in Explorer's View tab, then rename the file.
+
 <details>
 <summary><strong>📦 Standalone Executable (recommended — no Docker, no Python)</strong></summary>
 <br>
