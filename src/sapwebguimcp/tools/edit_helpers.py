@@ -108,6 +108,9 @@ async def check_and_activate(page: Page) -> tuple[bool, list[str], bool]:
     await page.wait_for_timeout(2000)
     await page.wait_for_load_state("networkidle")
 
+    # We snapshot the full body rather than a narrower toolbar locator for reliability:
+    # SAP's toolbar structure varies across transactions and screen states, so a targeted
+    # locator risks missing the note element. The ~80ms cost is negligible vs. the 2s SAP wait.
     snapshot = await page.locator("body").aria_snapshot()
     check_ok, check_msg = parse_toolbar_note(snapshot)
     messages.append(f"Check: {check_msg}")
