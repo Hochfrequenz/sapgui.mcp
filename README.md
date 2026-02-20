@@ -209,6 +209,10 @@ docker ps --filter "name=cdp-proxy" --format "table {{.Names}}\t{{.Status}}"
 
 ### Step 3: Configure your MCP client
 
+**Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
+
+> `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove the `-e GITHUB_PAT=...` line if you don't need these features.
+
 Choose **one** of the following options based on which Claude client you use.
 
 #### Option A: Claude Desktop
@@ -239,7 +243,7 @@ Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
                 "-e",
                 "CDP_URL=http://cdp-proxy:9222",
                 "-e",
-                "SAP_URL=https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui",
+                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-e",
                 "SAP_USER=your_username",
                 "-e",
@@ -262,12 +266,13 @@ Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
 Replace:
 
 - `YourUsername` with your Windows username
-- `your_username` / `your_password` with your SAP credentials. Make sure the password contains now characters that cause problems (quotes, backslashes...) or address them by properly escaping them (tbh: I don't know how).
-- `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) with `repo` scope (optional - only needed for `log_feedback` to create issues)
+- `your_username` / `your_password` with your SAP credentials
+- `your-sap-server` with your SAP server hostname
+- `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) (optional — see note above)
 
 #### Option B: Claude Code
 
-Add this to the `.mcp.json` configuration file that Claude Code uses for this project (typically in your project root or workspace; JSON config is easier to read and compare than `claude mcp add` with many env vars):
+Add to `.mcp.json` in your project root:
 
 ```json
 {
@@ -287,7 +292,7 @@ Add this to the `.mcp.json` configuration file that Claude Code uses for this pr
                 "-e",
                 "CDP_URL=http://cdp-proxy:9222",
                 "-e",
-                "SAP_URL=https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui",
+                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-e",
                 "SAP_USER=your_username",
                 "-e",
@@ -305,12 +310,6 @@ Add this to the `.mcp.json` configuration file that Claude Code uses for this pr
         }
     }
 }
-```
-
-Then start Claude code:
-
-```powershell
-claude
 ```
 
 ### Step 4: Start chatting
