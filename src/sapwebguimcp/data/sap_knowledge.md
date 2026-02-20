@@ -205,7 +205,7 @@ For bulk operations (create 100 business partners, process many orders, etc.), y
 | ----------------------------------------- | --------------------------------------------------------------- |
 | `sap_transaction(tcode, new_window=True)` | Open a new SAP session with a transaction, returns `session_id` |
 | `sap_session_list()`                      | List all active sessions with IDs and titles                    |
-| `sap_session_close()`                     | Close a specific session by ID                                  |
+| `sap_session_close(session_id)`           | Close a specific session by ID                                  |
 | `sap_session_bind(session_id, agent_id)`  | Bind a session to an agent for parallel workflows               |
 | `sap_session_release(session_id)`         | Unbind a session from an agent without closing it               |
 
@@ -255,7 +255,8 @@ All major SAP and browser tools accept an optional `session` parameter:
 ### Instructions for Sub-Agents
 
 If you are a sub-agent working on an SAP task, your parent agent should have given you a `session` and `agent_id`.
-You **must** pass both parameters on **every** SAP/browser tool call:
+You **must** pass both parameters on **every session-aware** SAP/browser tool call (i.e., those that accept `session` and `agent_id` parameters).
+Session-management tools like `sap_session_release(session_id)` only take `session_id`.
 
 ```python
 sap_transaction("VA01", session="s2", agent_id="subagent-orders")
@@ -281,7 +282,7 @@ This helps debug cross-talk issues without blocking work.
 - **Primary session "s1"** is created automatically on `sap_login()`
 - **Session limit:** Typically 6 sessions per SAP user (configured in SAP)
 - **Alternative:** Use `sap_transaction("BP", new_window=True)` to open a transaction directly in a new session. This **auto-registers** the new session and returns the `session_id` in the result.
-- **Cleanup:** Sessions are closed automatically when their browser tab closes, or use `sap_session_close()`
+- **Cleanup:** Sessions are closed automatically when their browser tab closes, or use `sap_session_close(session_id)`
 
 ### Using `new_window=True` for Quick Session Creation
 
