@@ -12,6 +12,12 @@ Control SAP through Claude Desktop or Claude Code with persistent browser sessio
 
 Choose one of these three approaches:
 
+**Where to register the MCP server:**
+- **Claude Code** — add to `.mcp.json` in your project root (per-project config)
+- **Claude Desktop** — add to `claude_desktop_config.json` (global config, path varies by OS — shown in each section below)
+
+All three setup approaches below show you how to configure both.
+
 <details>
 <summary><strong>📦 Standalone Executable (recommended — no Docker, no Python)</strong></summary>
 <br>
@@ -27,7 +33,13 @@ Download `sapwebgui_mcp_windows_<version>.exe` from
 
 ### Step 2: Configure your MCP client
 
-Point your Claude config (e.g. in `C:\Users\YourWindowsLoginName\AppData\Roaming\Claude\claude_desktop_config.json`) to the exe:
+**Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
+
+> `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove it if you don't need these features.
+
+#### Claude Desktop
+
+Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_config.json`, macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
@@ -39,7 +51,30 @@ Point your Claude config (e.g. in `C:\Users\YourWindowsLoginName\AppData\Roaming
                 "SAP_USER": "your_username",
                 "SAP_PASSWORD": "your_password",
                 "SAP_MANDANT": "100",
-                "SAP_LANGUAGE": "DE"
+                "SAP_LANGUAGE": "DE",
+                "GITHUB_PAT": "your_github_pat"
+            }
+        }
+    }
+}
+```
+
+#### Claude Code
+
+Add to `.mcp.json` in your project root:
+
+```json
+{
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "env": {
+                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE",
+                "GITHUB_PAT": "your_github_pat"
             }
         }
     }
@@ -174,6 +209,10 @@ docker ps --filter "name=cdp-proxy" --format "table {{.Names}}\t{{.Status}}"
 
 ### Step 3: Configure your MCP client
 
+**Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
+
+> `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove the `-e GITHUB_PAT=...` line if you don't need these features.
+
 Choose **one** of the following options based on which Claude client you use.
 
 #### Option A: Claude Desktop
@@ -204,7 +243,7 @@ Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
                 "-e",
                 "CDP_URL=http://cdp-proxy:9222",
                 "-e",
-                "SAP_URL=https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui",
+                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-e",
                 "SAP_USER=your_username",
                 "-e",
@@ -227,12 +266,13 @@ Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
 Replace:
 
 - `YourUsername` with your Windows username
-- `your_username` / `your_password` with your SAP credentials. Make sure the password contains now characters that cause problems (quotes, backslashes...) or address them by properly escaping them (tbh: I don't know how).
-- `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) with `repo` scope (optional - only needed for `log_feedback` to create issues)
+- `your_username` / `your_password` with your SAP credentials
+- `your-sap-server` with your SAP server hostname
+- `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) (optional — see note above)
 
 #### Option B: Claude Code
 
-Add this to the `.mcp.json` configuration file that Claude Code uses for this project (typically in your project root or workspace; JSON config is easier to read and compare than `claude mcp add` with many env vars):
+Add to `.mcp.json` in your project root:
 
 ```json
 {
@@ -252,7 +292,7 @@ Add this to the `.mcp.json` configuration file that Claude Code uses for this pr
                 "-e",
                 "CDP_URL=http://cdp-proxy:9222",
                 "-e",
-                "SAP_URL=https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui",
+                "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-e",
                 "SAP_USER=your_username",
                 "-e",
@@ -270,12 +310,6 @@ Add this to the `.mcp.json` configuration file that Claude Code uses for this pr
         }
     }
 }
-```
-
-Then start Claude code:
-
-```powershell
-claude
 ```
 
 ### Step 4: Start chatting
@@ -334,7 +368,7 @@ tox -e formatting   # check formatting
 
 ```bash
 # Set environment variables
-$env:SAP_URL = "https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui"
+$env:SAP_URL = "https://your-sap-server/sap/bc/gui/sap/its/webgui"
 $env:BROWSER_MODE = "connect"
 $env:CDP_URL = "http://localhost:9222"
 
@@ -342,7 +376,17 @@ $env:CDP_URL = "http://localhost:9222"
 run-sapwebgui-mcp-server
 ```
 
-### Configure Claude Desktop for local development
+### Configure your MCP client
+
+**Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
+
+> `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove it if you don't need these features.
+
+When running Python directly (not in Docker), you don't need the CDP proxy — Python can connect to Chrome on localhost.
+
+#### Claude Desktop
+
+Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_config.json`, macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
@@ -351,16 +395,44 @@ run-sapwebgui-mcp-server
             "command": "C:/path/to/your/venv/Scripts/run-sapwebgui-mcp-server.exe",
             "args": [],
             "env": {
-                "SAP_URL": "https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui",
+                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE",
                 "BROWSER_MODE": "connect",
-                "CDP_URL": "http://localhost:9222"
+                "CDP_URL": "http://localhost:9222",
+                "GITHUB_PAT": "your_github_pat"
             }
         }
     }
 }
 ```
 
-When running Python directly (not in Docker), you don't need the CDP proxy - Python can connect to Chrome on localhost.
+#### Claude Code
+
+Add to `.mcp.json` in your project root:
+
+```json
+{
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "C:/path/to/your/venv/Scripts/run-sapwebgui-mcp-server.exe",
+            "args": [],
+            "env": {
+                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE",
+                "BROWSER_MODE": "connect",
+                "CDP_URL": "http://localhost:9222",
+                "GITHUB_PAT": "your_github_pat"
+            }
+        }
+    }
+}
+```
 
 </details>
 
@@ -408,18 +480,28 @@ For repetitive tasks like "create 100 business partners":
 
 ## Configuration Reference
 
-| Variable        | Description                       | Default                      |
-| --------------- | --------------------------------- | ---------------------------- |
-| `SAP_URL`       | SAP Web GUI URL                   | (empty)                      |
-| `SAP_USER`      | SAP username for auto-login       | (empty)                      |
-| `SAP_PASSWORD`  | SAP password for auto-login       | (empty)                      |
-| `SAP_MANDANT`   | SAP client (3-digit, e.g., "100") | (empty)                      |
-| `SAP_LANGUAGE`  | Login language (`DE` or `EN`)     | `EN`                         |
-| `BROWSER_MODE`  | `connect` or `launch`             | `connect`                    |
-| `CDP_URL`       | Chrome DevTools Protocol URL      | `http://localhost:9222`      |
-| `AUDIT_LOG_DIR` | Directory for audit logs          | (empty)                      |
-| `GITHUB_PAT`    | GitHub PAT for feedback issues    | (empty)                      |
-| `GITHUB_REPO`   | Repository for feedback issues    | `Hochfrequenz/sapwebgui.mcp` |
+| Variable | Required | Description | Default |
+| --- | --- | --- | --- |
+| `SAP_URL` | **Yes**¹ | SAP Web GUI URL | `""` |
+| `SAP_USER` | **Yes**¹ | SAP username for auto-login | `""` |
+| `SAP_PASSWORD` | **Yes**¹ | SAP password for auto-login | `""` |
+| `SAP_MANDANT` | **Yes**¹ | SAP client (3-digit, e.g., `100`) | `""` |
+| `SAP_LANGUAGE` | No | Login language (`DE` or `EN`) | `EN` |
+| `BROWSER_MODE` | No | `connect` (existing Chrome) or `launch` (Playwright) | `connect` |
+| `BROWSER_TYPE` | No | `chromium`, `firefox`, or `webkit` | `chromium` |
+| `BROWSER_HEADLESS` | No | Run browser in headless mode | `false` |
+| `CDP_URL` | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL | `http://localhost:9222` |
+| `AUDIT_LOG_DIR` | No | Directory for audit logs (JSONL) | — |
+| `GITHUB_PAT` | No | GitHub PAT for `log_feedback` issues and abapGit auth | — |
+| `GITHUB_USER` | No | GitHub username for abapGit (falls back to `x-access-token`) | — |
+| `GITHUB_REPO` | No | Repository for feedback issues | `Hochfrequenz/sapwebgui.mcp` |
+| `ABAPGIT_PAT` | No | Separate PAT for abapGit (overrides `GITHUB_PAT` if set) | — |
+| `PAPERTRAIL_HOST` | No | Papertrail syslog host (empty to disable) | `logs5.papertrailapp.com` |
+| `PAPERTRAIL_PORT` | No | Papertrail syslog port | `35329` |
+| `LOG_FORMAT` | No | Set to `json` for JSON log output | human-readable |
+| `LOG_LEVEL` | No | `DEBUG`, `INFO`, `WARNING`, or `ERROR` | `INFO` |
+
+¹ The server starts without these, but SAP login will fail.
 
 ## Troubleshooting
 
