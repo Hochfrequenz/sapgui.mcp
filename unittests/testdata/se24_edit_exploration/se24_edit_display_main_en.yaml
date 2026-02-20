@@ -1,0 +1,277 @@
+- 'main "Class Builder: Display Class ZCL_TEST_MCP_EDIT"':
+  - banner:
+    - button "Back (F3)"
+    - img "Company Logo"
+    - 'heading "Class Builder: Display Class ZCL_TEST_MCP_EDIT" [level=1]'
+    - button "Open system information"
+    - toolbar:
+      - button "Menu"
+      - combobox "Enter transaction code"
+      - text: 
+      - button "Display <-> Change"
+      - button "Active <-> Inactive"
+      - button "Other object..."
+      - button "Enhance"
+      - button "Check"
+      - button "Activate"
+      - button "In the Test Environment"
+      - button "More"
+    - button "Find (Ctrl+F)"
+    - button "Print (Ctrl+P)"
+    - button "Exit"
+  - text: Class/Interface
+  - textbox "Class/Interface": ZCL_TEST_MCP_EDIT
+  - button "Implemented / Active"
+  - tablist:
+    - tab "Properties"
+    - tab "Interfaces"
+    - tab "Friends"
+    - tab "Attributes"
+    - tab "Methods" [selected]
+    - tab "Events"
+    - tab "Types"
+    - tab "Aliases"
+  - tabpanel:
+    - button "Parameters"
+    - button "Exceptions"
+    - button "Sourcecode"
+    - button "Goto Properties"
+    - button "Documentation"
+    - button "Where-Used List"
+    - button "Insert Method" [disabled]
+    - button "Delete Method" [disabled]
+    - button "Cut" [disabled]
+    - button "Copy" [disabled]
+    - button "Paste" [disabled]
+    - button "Sort"
+    - button "Find"
+    - button "Find Next"
+    - button "Redefine Method" [disabled]
+    - button "Undo Redefinition" [disabled]
+    - checkbox "Filter":  Filter
+    - grid:
+      - rowgroup
+      - rowgroup:
+        - row "Method Level Visibility Method Type Description":
+          - columnheader "Method"
+          - columnheader "Level"
+          - columnheader "Visibility"
+          - columnheader "Method Type"
+          - columnheader "Description"
+        - button ""
+        - row "DO_SOMETHING Instance Method Private Empty":
+          - gridcell "DO_SOMETHING":
+            - textbox
+          - gridcell "Instance Method":
+            - textbox
+          - gridcell "Private":
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+        - row "Empty":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Empty"
+          - gridcell:
+            - textbox
+      - rowgroup
+      - rowgroup
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Client 100":
+        - cell
+        - cell
+        - cell "Client"
+        - cell "100"
+        - cell
+      - menuitemradio "User KLEINK":
+        - cell
+        - cell
+        - cell "User"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Screen SAPLSEOD/2000":
+        - cell
+        - cell
+        - cell "Screen"
+        - cell "SAPLSEOD/2000"
+        - cell
+      - menuitemradio "Transaction SE24":
+        - cell
+        - cell
+        - cell "Transaction"
+        - cell "SE24"
+        - cell
+      - row "E2E Time 165 ms":
+        - cell
+        - cell
+        - cell "E2E Time"
+        - cell "165 ms"
+        - cell
+      - row "WebGUI Time 64 ms":
+        - cell
+        - cell
+        - cell "WebGUI Time"
+        - cell "64 ms"
+        - cell

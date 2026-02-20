@@ -1,0 +1,280 @@
+- 'main "Class Builder: Klasse ZCL_TEST_MCP_EDIT ändern"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "Class Builder: Klasse ZCL_TEST_MCP_EDIT ändern" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Anzeigen <-> Ändern"
+      - button "Aktiv <-> Inaktiv"
+      - button "Anderes Objekt..."
+      - button "Erweitern"
+      - button "Prüfen"
+      - button "Aktivieren"
+      - button "In der Testumgebung"
+      - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Drucken (Strg+P)"
+    - button "Beenden"
+  - text: Klasse/Interface
+  - textbox "Klasse/Interface": ZCL_TEST_MCP_EDIT
+  - button "realisiert / Inaktiv"
+  - tablist:
+    - tab "Eigenschaften"
+    - tab "Interfaces"
+    - tab "Friends"
+    - tab "Attribute"
+    - tab "Methoden" [selected]
+    - tab "Ereignisse"
+    - tab "Typen"
+    - tab "Aliasse"
+  - tabpanel:
+    - button "Parameter"
+    - button "Ausnahmen"
+    - button "Quelltext"
+    - button "Zu Eigenschaften wechseln"
+    - button "Dokumentation"
+    - button "Verwendungsnachweis"
+    - button "Methode einfügen"
+    - button "Methode löschen"
+    - button "Ausschn."
+    - button "Kopieren"
+    - button "Einfügen" [disabled]
+    - button "Sortieren"
+    - button "Suchen"
+    - button "Weiter suchen"
+    - button "Methode neu definieren" [disabled]
+    - button "Redefinition aufheben" [disabled]
+    - checkbox "Filter":  Filter
+    - grid:
+      - rowgroup
+      - rowgroup:
+        - row "Methode Art Sichtbarkeit Methodentyp Beschreibung":
+          - columnheader "Methode"
+          - columnheader "Art"
+          - columnheader "Sichtbarkeit"
+          - columnheader "Methodentyp"
+          - columnheader "Beschreibung"
+        - button ""
+        - row "DO_SOMETHING Instance Method Private Leer":
+          - gridcell "DO_SOMETHING":
+            - textbox: DO_SOMETHING
+          - gridcell "Instance Method":
+            - textbox
+          - gridcell "Private":
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+      - rowgroup
+      - rowgroup
+  - toolbar:
+    - button "Sichern Hervorgehoben"
+    - button "Abbrechen"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSEOD/2000":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSEOD/2000"
+        - cell
+      - menuitemradio "Transaktion SE24":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE24"
+        - cell
+      - row "E2E-Zeit 355 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "355 ms"
+        - cell
+      - row "WebGUI-Zeit 179 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "179 ms"
+        - cell

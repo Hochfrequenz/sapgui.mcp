@@ -69,8 +69,8 @@ After you found out how to solve a specific problem without these workarounds, c
 Writing ABAP locally, pushing to Git, and pulling via abapGit is **much faster, more stable, and fully version-controlled**.
 Always choose abapGit-based development when possible.
 
-For objects in packages that are **not source-controlled via abapGit**, the `sap_se38_edit` tool allows in-place editing of existing ABAP reports directly in SAP.
-This is a fallback option for quick modifications to objects that are not tracked in Git.
+For objects in packages that are **not source-controlled via abapGit**, the edit tools (`sap_se38_edit`, `sap_se37_edit`, `sap_se24_edit`) allow in-place editing of existing ABAP reports, function modules, and class methods directly in SAP.
+These are fallback options for quick modifications to objects that are not tracked in Git.
 Using Git is always the preferred option — there should be no doubt about it.
 
 ### Setup
@@ -129,9 +129,9 @@ Each has a simple, MCP-friendly UI:
 
 | Transaction | Purpose                               | Example Use                                                    |
 | ----------- | ------------------------------------- | -------------------------------------------------------------- |
-| **SE37**    | Function Modules (Funktionsbausteine) | View signature, parameters, exceptions of FMs you want to call |
+| **SE37**    | Function Modules (Funktionsbausteine) | View, edit (sap_se37_edit) signature, parameters, exceptions   |
 | **SE38**    | Reports / Programs                    | View, edit (sap_se38_edit), and test ABAP reports              |
-| **SE24**    | Classes (Klassen)                     | Inspect class methods, attributes, interfaces                  |
+| **SE24**    | Classes (Klassen)                     | View, edit (sap_se24_edit) class methods, attributes           |
 | **SE11**    | Data Dictionary (DDIC)                | View table structures, data elements, domains                  |
 | **SE16**    | Table Contents                        | Browse actual data in tables (read-only recommended)           |
 

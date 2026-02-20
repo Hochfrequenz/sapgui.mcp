@@ -35,6 +35,7 @@ from sapwebguimcp.tools import (
     register_se16_tools,
     register_se24_tools,
     register_se37_tools,
+    register_se24_edit_tools,
     register_se37_edit_tools,
     register_se38_edit_tools,
     register_se93_tools,
@@ -183,6 +184,7 @@ register_intent_tools(mcp)
 register_feedback_tools(mcp)
 register_workflow_tools(mcp)
 register_abapgit_tools(mcp)
+register_se24_edit_tools(mcp)
 register_se37_edit_tools(mcp)
 register_se38_edit_tools(mcp)
 

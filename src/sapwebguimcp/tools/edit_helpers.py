@@ -123,6 +123,16 @@ async def check_and_activate(page: Page) -> tuple[bool, list[str], bool]:
     await page.wait_for_load_state("networkidle")
 
     snapshot = await page.locator("body").aria_snapshot()
+
+    # Handle "Inaktive Objekte" / "Inactive Objects" popup (common in SE24 class activation).
+    # SAP shows a list of objects to activate and expects Enter (checkmark) to confirm.
+    if "Inaktive Objekte" in snapshot or "Inactive Objects" in snapshot:
+        logger.info("Detected inactive objects popup, confirming with Enter")
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(2000)
+        await page.wait_for_load_state("networkidle")
+        snapshot = await page.locator("body").aria_snapshot()
+
     activate_ok, activate_msg = parse_toolbar_note(snapshot)
     messages.append(f"Activate: {activate_msg}")
 
