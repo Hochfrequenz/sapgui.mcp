@@ -467,9 +467,7 @@ async def test_se38_edit_round_trip(sap_mcp_client: ClientSession) -> None:
     assert login.success, f"Login failed: {login.error}"
 
     # First edit: add a comment line
-    modified_source = (
-        "REPORT ZTEST_MCP_EDIT.\n" "WRITE 'HELLO WORLD'.\n" "* MCP edit integration test."
-    )
+    modified_source = "REPORT ZTEST_MCP_EDIT.\n" "WRITE 'HELLO WORLD'.\n" "* MCP edit integration test."
 
     edit_result = await call_tool_typed(
         sap_mcp_client,
