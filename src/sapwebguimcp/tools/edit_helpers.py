@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 _SUCCESS_PATTERNS = re.compile(
     r"Erfolgreich|Successfully|keine Syntaxfehler|No syntax errors|"
-    r"Aktives Objekt wurde generiert|generated successfully",
+    r"Aktives Objekt wurde generiert|Objekt wurde aktiviert|generated successfully|activated",
     re.IGNORECASE,
 )
 _ERROR_PATTERNS = re.compile(
