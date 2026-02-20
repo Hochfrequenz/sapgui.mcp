@@ -207,6 +207,7 @@ For bulk operations (create 100 business partners, process many orders, etc.), y
 | `sap_session_list()`                      | List all active sessions with IDs and titles                    |
 | `sap_session_close()`                     | Close a specific session by ID                                  |
 | `sap_session_bind(session_id, agent_id)`  | Bind a session to an agent for parallel workflows               |
+| `sap_session_release(session_id)`         | Unbind a session from an agent without closing it               |
 
 ### Workflow Example
 
@@ -250,6 +251,30 @@ All major SAP and browser tools accept an optional `session` parameter:
 **SE\* Tools:**
 
 - `sap_se11_lookup`, `sap_se16_query`, `sap_se24_lookup`, `sap_se37_lookup`, `sap_se93_lookup`
+
+### Instructions for Sub-Agents
+
+If you are a sub-agent working on an SAP task, your parent agent should have given you a `session` and `agent_id`.
+You **must** pass both parameters on **every** SAP/browser tool call:
+
+```python
+sap_transaction("VA01", session="s2", agent_id="subagent-orders")
+sap_fill_form({"Customer": "12345"}, session="s2", agent_id="subagent-orders")
+sap_keyboard("Enter", session="s2", agent_id="subagent-orders")
+```
+
+When finished, release your session: `sap_session_release(session_id="s2")`
+
+### Cross-Agent Access
+
+If an agent accesses a session bound to a different agent, a **warning** is logged but the operation **still proceeds**.
+This helps debug cross-talk issues without blocking work.
+
+### Best Practices
+
+- **Use descriptive agent_ids** like `"order-processor"`, not `"agent1"`
+- **Always release sessions** when done to allow reuse
+- **Check `sap_session_list()`** if unsure about session state
 
 ### Important Notes
 
