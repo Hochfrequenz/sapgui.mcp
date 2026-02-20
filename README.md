@@ -12,6 +12,12 @@ Control SAP through Claude Desktop or Claude Code with persistent browser sessio
 
 Choose one of these three approaches:
 
+**Where to register the MCP server:**
+- **Claude Code** — add to `.mcp.json` in your project root (per-project config)
+- **Claude Desktop** — add to `claude_desktop_config.json` (global config, path varies by OS — shown in each section below)
+
+All three setup approaches below show you how to configure both.
+
 <details>
 <summary><strong>📦 Standalone Executable (recommended — no Docker, no Python)</strong></summary>
 <br>
