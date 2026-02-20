@@ -51,3 +51,39 @@ def test_se38_edit_result_validation_error() -> None:
             check_messages=[],
             activated=False,
         )
+
+
+class TestParseStatusNote:
+    """Tests for parsing status bar notes from ARIA snapshots."""
+
+    def test_parse_check_success_de(self) -> None:
+        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+
+        snapshot = '- note "Erfolgreich Meldungsleiste Es wurden keine Syntaxfehler in Report ZTEST_MCP_EDIT gefunden"'
+        success, message = parse_toolbar_note(snapshot)
+        assert success is True
+        assert "keine Syntaxfehler" in message or "No syntax errors" in message
+
+    def test_parse_activate_success_de(self) -> None:
+        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+
+        snapshot = '- note "Erfolgreich Meldungsleiste Aktives Objekt wurde generiert"'
+        success, message = parse_toolbar_note(snapshot)
+        assert success is True
+        assert "generiert" in message or "generated" in message
+
+    def test_parse_check_failure_de(self) -> None:
+        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+
+        snapshot = '- note "Fehler Meldungsleiste Syntaxfehler in Zeile 3"'
+        success, message = parse_toolbar_note(snapshot)
+        assert success is False
+        assert "Syntaxfehler" in message
+
+    def test_parse_no_note(self) -> None:
+        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+
+        snapshot = "- button 'Aktivieren'"
+        success, message = parse_toolbar_note(snapshot)
+        assert success is False
+        assert message  # should have a default message
