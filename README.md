@@ -376,7 +376,17 @@ $env:CDP_URL = "http://localhost:9222"
 run-sapwebgui-mcp-server
 ```
 
-### Configure Claude Desktop for local development
+### Configure your MCP client
+
+**Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
+
+> `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove it if you don't need these features.
+
+When running Python directly (not in Docker), you don't need the CDP proxy — Python can connect to Chrome on localhost.
+
+#### Claude Desktop
+
+Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_config.json`, macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
@@ -385,16 +395,44 @@ run-sapwebgui-mcp-server
             "command": "C:/path/to/your/venv/Scripts/run-sapwebgui-mcp-server.exe",
             "args": [],
             "env": {
-                "SAP_URL": "https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui",
+                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE",
                 "BROWSER_MODE": "connect",
-                "CDP_URL": "http://localhost:9222"
+                "CDP_URL": "http://localhost:9222",
+                "GITHUB_PAT": "your_github_pat"
             }
         }
     }
 }
 ```
 
-When running Python directly (not in Docker), you don't need the CDP proxy - Python can connect to Chrome on localhost.
+#### Claude Code
+
+Add to `.mcp.json` in your project root:
+
+```json
+{
+    "mcpServers": {
+        "sap-webgui": {
+            "command": "C:/path/to/your/venv/Scripts/run-sapwebgui-mcp-server.exe",
+            "args": [],
+            "env": {
+                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE",
+                "BROWSER_MODE": "connect",
+                "CDP_URL": "http://localhost:9222",
+                "GITHUB_PAT": "your_github_pat"
+            }
+        }
+    }
+}
+```
 
 </details>
 
