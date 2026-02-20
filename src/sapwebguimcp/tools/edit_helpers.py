@@ -62,8 +62,8 @@ async def read_editor_source(page: Page, editor_selector: str = "textarea[id*='t
         if not await textarea.is_visible(timeout=3000):
             return None
         return await textarea.input_value()
-    except Exception:
-        logger.warning("Could not read editor content with selector %s", editor_selector)
+    except (TimeoutError, OSError) as exc:
+        logger.warning("Could not read editor content with selector %s: %s", editor_selector, exc)
         return None
 
 
@@ -78,8 +78,8 @@ async def replace_editor_source(page: Page, new_source: str, editor_selector: st
         await page.wait_for_timeout(200)
         await textarea.fill(new_source)
         return True
-    except Exception:
-        logger.exception("Failed to replace editor source")
+    except (TimeoutError, OSError) as exc:
+        logger.warning("Failed to replace editor source: %s", exc)
         return False
 
 
