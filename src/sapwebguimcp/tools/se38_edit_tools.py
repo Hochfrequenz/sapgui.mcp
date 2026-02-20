@@ -75,8 +75,11 @@ async def _edit_check_activate(page: Page, program_name: str, new_source: str) -
         logger.warning("SE38 edit: check/activate failed for %s, reverting", program_name)
         reverted = await replace_editor_source(page, backup_source)
         if reverted:
-            await check_and_activate(page)
-            messages.append("Auto-reverted to original source")
+            revert_ok, revert_msgs, _ = await check_and_activate(page)
+            if revert_ok:
+                messages.append("Auto-reverted to original source and re-activated successfully")
+            else:
+                messages.append(f"Auto-reverted source but re-activation failed: {'; '.join(revert_msgs)}")
         else:
             messages.append("WARNING: Auto-revert failed! Manual intervention needed.")
 
