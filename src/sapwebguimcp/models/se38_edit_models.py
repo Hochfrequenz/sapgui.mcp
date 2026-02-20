@@ -10,5 +10,6 @@ class SE38EditResult(ToolResult):
 
     program_name: str = Field(description="Name of the ABAP report that was edited")
     backup_source: str = Field(description="Original source code before editing (for reference/undo)")
+    # TODO: description should say "syntax check and activation" to match SE37/SE24 (both messages are stored)
     check_messages: list[str] = Field(default_factory=list, description="Messages from syntax check (Ctrl+F2)")
     activated: bool = Field(default=False, description="Whether the report was successfully activated")

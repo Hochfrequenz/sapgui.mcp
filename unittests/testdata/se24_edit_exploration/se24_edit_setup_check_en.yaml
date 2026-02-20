@@ -1,0 +1,71 @@
+- main "SAP":
+  - banner:
+    - button "Back (F3)"
+    - img "Company Logo"
+    - heading "SAP" [level=1]
+    - button "Open system information"
+    - toolbar:
+      - button "Menu"
+      - combobox "Enter transaction code"
+      - text: 
+    - button "Find (Ctrl+F)"
+    - button "Find next (Ctrl+G)"
+    - button "Print (Ctrl+P)"
+    - button "Exit"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Client 100":
+        - cell
+        - cell
+        - cell "Client"
+        - cell "100"
+        - cell
+      - menuitemradio "User KLEINK":
+        - cell
+        - cell
+        - cell "User"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Screen SAPLWB_MANAGER/0200":
+        - cell
+        - cell
+        - cell "Screen"
+        - cell "SAPLWB_MANAGER/0200"
+        - cell
+      - menuitemradio "Transaction SE24":
+        - cell
+        - cell
+        - cell "Transaction"
+        - cell "SE24"
+        - cell
+      - row "E2E Time 189 ms":
+        - cell
+        - cell
+        - cell "E2E Time"
+        - cell "189 ms"
+        - cell
+      - row "WebGUI Time 92 ms":
+        - cell
+        - cell
+        - cell "WebGUI Time"
+        - cell "92 ms"
+        - cell
+  - dialog "Different original and logon languages":
+    - heading "Different original and logon languages" [level=1]
+    - button "Close": 
+    - button "The logon language does not match the original language."
+    - text: Logon language
+    - textbox "Logon language": EN
+    - button "English"
+    - text: Original language
+    - textbox "Original language": DE
+    - button "German"
+    - button "Maint. in orig. lang."
+    - button "Change orig.language"
+    - button "Cancel"
