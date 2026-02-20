@@ -90,6 +90,7 @@ from sapwebguimcp.models.se16_models import (
     SE16Result,
     SE16Row,
 )
+from sapwebguimcp.models.se24_edit_models import SE24EditResult
 from sapwebguimcp.models.se24_models import (
     SE24Attribute,
     SE24Entry,
@@ -103,6 +104,7 @@ from sapwebguimcp.models.se24_models import (
     SE24Result,
     SE24Visibility,
 )
+from sapwebguimcp.models.se37_edit_models import SE37EditResult
 from sapwebguimcp.models.se37_models import (
     SE37Entry,
     SE37Error,
@@ -113,8 +115,6 @@ from sapwebguimcp.models.se37_models import (
     SE37Result,
     SE37TypingMethod,
 )
-from sapwebguimcp.models.se24_edit_models import SE24EditResult
-from sapwebguimcp.models.se37_edit_models import SE37EditResult
 from sapwebguimcp.models.se38_edit_models import SE38EditResult
 from sapwebguimcp.models.se93_models import (
     SE93Entry,
