@@ -87,3 +87,13 @@ class TestParseStatusNote:
         success, message = parse_toolbar_note(snapshot)
         assert success is False
         assert message  # should have a default message
+
+
+def test_se38_edit_tool_is_registered() -> None:
+    """Test that sap_se38_edit tool is registered on the MCP server."""
+    from sapwebguimcp.server import mcp
+
+    # Access the internal tool manager to verify registration
+    tool_manager = mcp._tool_manager
+    tool_names = list(tool_manager._tools.keys())
+    assert "sap_se38_edit" in tool_names, f"sap_se38_edit not found in {tool_names}"
