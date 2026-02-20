@@ -125,7 +125,7 @@ def register_se38_edit_tools(mcp: FastMCP) -> None:
         annotations={
             "destructiveHint": True,
             "readOnlyHint": False,
-            "idempotentHint": True,
+            "idempotentHint": False,
         },
     )
     async def sap_se38_edit(
