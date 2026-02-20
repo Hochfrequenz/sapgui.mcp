@@ -368,7 +368,7 @@ tox -e formatting   # check formatting
 
 ```bash
 # Set environment variables
-$env:SAP_URL = "https://srvhfuhana.sap.msp.local:44300/sap/bc/gui/sap/its/webgui"
+$env:SAP_URL = "https://your-sap-server/sap/bc/gui/sap/its/webgui"
 $env:BROWSER_MODE = "connect"
 $env:CDP_URL = "http://localhost:9222"
 
