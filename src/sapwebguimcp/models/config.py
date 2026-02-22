@@ -132,14 +132,6 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "CDP_URL"},
     )
 
-    # Audit Logging
-    audit_log_dir: str = Field(
-        default="",
-        description="Directory for intent audit logs (JSONL files). "
-        "Leave empty to disable file-based audit logging.",
-        json_schema_extra={"env": "AUDIT_LOG_DIR"},
-    )
-
     # GitHub Settings (optional)
     github_pat: str = Field(
         default="",
