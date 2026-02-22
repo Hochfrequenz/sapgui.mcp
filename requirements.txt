@@ -150,7 +150,7 @@ pydantic[email]==2.12.5
     #   sapwebguimcp (pyproject.toml)
 pydantic-core==2.41.5
     # via pydantic
-pydantic-settings==2.13.0
+pydantic-settings==2.13.1
     # via
     #   mcp
     #   sapwebguimcp (pyproject.toml)
