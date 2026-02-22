@@ -38,7 +38,7 @@ tests = [
     "respx==0.22.0",  # Mock httpx requests in tests
 ]
 linting = [
-    "pylint==4.0.4",
+    "pylint==4.0.5",
 ]
 type_check = [
     "mypy[pydantic]==1.19.1",
@@ -52,7 +52,7 @@ coverage = [
 ]
 formatting = [
     "black==26.1.0",
-    "isort==7.0.0",
+    "isort==8.0.0",
 ]
 packaging = [
     "build==1.4.0",
