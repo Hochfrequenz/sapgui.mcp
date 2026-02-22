@@ -169,6 +169,35 @@ SE93_AUTH_OBJECT_EN = "Authorization object"
 
 
 # =============================================================================
+# SM37 - Job Overview
+# =============================================================================
+
+# Status text mapping (as shown in job list result rows, lowercase in ARIA)
+# Exported because parsers and tools both reference these.
+SM37_STATUS_MAP_DE = {
+    "geplant": "Scheduled",
+    "freigegeben": "Released",
+    "bereit": "Ready",
+    "aktiv": "Active",
+    "fertig": "Finished",
+    "abgebrochen": "Canceled",
+}
+
+SM37_STATUS_MAP_EN = {
+    "scheduled": "Scheduled",
+    "released": "Released",
+    "ready": "Ready",
+    "active": "Active",
+    "finished": "Finished",
+    "canceled": "Canceled",
+}
+
+# Selection screen checkbox labels (uppercase first letter in ARIA)
+_SM37_CHECKBOX_LABELS_DE = ["Geplant", "Freigegeben", "Bereit", "Aktiv", "Fertig", "Abgebrochen"]
+_SM37_CHECKBOX_LABELS_EN = ["Scheduled", "Released", "Ready", "Active", "Finished", "Canceled"]
+
+
+# =============================================================================
 # Helper Functions
 # =============================================================================
 

@@ -41,3 +41,30 @@ def is_sap_shortcut(key: str) -> bool:
             return True
 
     return False
+
+
+def format_sap_date(iso_date: str, language: str) -> str:
+    """
+    Convert ISO date (YYYY-MM-DD) to SAP locale format.
+
+    Args:
+        iso_date: Date string in YYYY-MM-DD format (e.g., "2026-02-22")
+        language: SAP language code ("DE" or "EN")
+
+    Returns:
+        Formatted date string:
+        - DE: DD.MM.YYYY (e.g., "22.02.2026")
+        - EN: MM/DD/YYYY (e.g., "02/22/2026")
+
+    Raises:
+        ValueError: If iso_date is not in YYYY-MM-DD format
+    """
+    parts = iso_date.split("-")
+    if len(parts) != 3:
+        raise ValueError(f"Expected YYYY-MM-DD format, got: {iso_date}")
+
+    year, month, day = parts[0], parts[1], parts[2]
+
+    if language.upper() == "DE":
+        return f"{day}.{month}.{year}"
+    return f"{month}/{day}/{year}"
