@@ -1,0 +1,146 @@
+- 'main "Sicht \"Globale Parameter der Länder/Regionen\" anzeigen: Übersicht"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "Sicht \"Globale Parameter der Länder/Regionen\" anzeigen: Übersicht" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Detail"
+      - button "Alle markieren"
+      - button "Block markieren"
+      - button "Alle entmarkieren"
+    - button "Drucken (Strg+P)"
+    - button "Bearbeiten Hervorgehoben"
+    - button "Beenden"
+  - grid:
+    - rowgroup
+    - rowgroup:
+      - row "Spalte für Zeilenauswahl Land/Reg. Land/Region":
+        - columnheader "Spalte für Zeilenauswahl"
+        - columnheader "Land/Reg."
+        - columnheader "Land/Region"
+      - button ""
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AD Andorra":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AD":
+          - textbox
+        - gridcell "Andorra":
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AE Ver.Arab.Emir.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AE":
+          - textbox
+        - gridcell "Ver.Arab.Emir.":
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AF Afghanistan":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AF":
+          - textbox
+        - gridcell "Afghanistan":
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AG Antigua/Barbuda":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AG":
+          - textbox
+        - gridcell "Antigua/Barbuda":
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AI Anguilla":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AI":
+          - textbox
+        - gridcell "Anguilla":
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AL Albanien":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AL":
+          - textbox
+        - gridcell "Albanien":
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AM Armenien":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AM":
+          - textbox
+        - gridcell "Armenien":
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AO Angola":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AO":
+          - textbox
+        - gridcell "Angola":
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AQ Antarktis":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AQ":
+          - textbox
+        - gridcell "Antarktis":
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AR Argentinien":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AR":
+          - textbox
+        - gridcell "Argentinien":
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AS Samoa, Amerikan":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AS":
+          - textbox
+        - gridcell "Samoa, Amerikan":
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AT Österreich":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell "AT":
+          - textbox
+        - gridcell "Österreich":
+          - textbox
+    - rowgroup
+    - rowgroup
+  - button "Positionieren..."
+  - button "Eintrag 1 von 249"
+  - text: 
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPL0F06/0060":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPL0F06/0060"
+        - cell
+      - menuitemradio "Transaktion SM30":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SM30"
+        - cell
+      - row "E2E-Zeit 266 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "266 ms"
+        - cell
+      - row "WebGUI-Zeit 27 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "27 ms"
+        - cell

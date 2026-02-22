@@ -124,6 +124,12 @@ from sapwebguimcp.models.se93_models import (
     SE93TransactionType,
 )
 from sapwebguimcp.models.session_registry import SessionRegistry
+from sapwebguimcp.models.sm30_models import (
+    SM30FileSummary,
+    SM30Row,
+    SM30ViewResult,
+    SM30ViewType,
+)
 from sapwebguimcp.models.workflow_models import (
     Workflow,
     WorkflowDeleteResult,
@@ -257,6 +263,11 @@ __all__ = [
     "SE93FileSummary",
     "SE93Result",
     "SE93TransactionType",
+    # SM30 models
+    "SM30FileSummary",
+    "SM30Row",
+    "SM30ViewResult",
+    "SM30ViewType",
     # Workflow models
     "Workflow",
     "WorkflowDeleteResult",
