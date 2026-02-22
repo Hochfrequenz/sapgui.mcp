@@ -86,9 +86,9 @@ async def _create_issue_background(pat: str, repo: str, title: str, body: str) -
     """Background task to create GitHub issue and log result."""
     issue_url, issue_error = await _create_github_issue(pat, repo, title, body)
     if issue_url:
-        _logger.info("Created GitHub issue: %s", issue_url)
+        _logger.info("FEEDBACK_ISSUE_CREATED url=%s", issue_url)
     elif issue_error:
-        _logger.warning("Failed to create GitHub issue: %s", issue_error)
+        _logger.warning("FEEDBACK_ISSUE_FAILED error=%s", issue_error)
 
 
 def register_feedback_tools(mcp: FastMCP) -> None:
@@ -127,14 +127,13 @@ def register_feedback_tools(mcp: FastMCP) -> None:
             _session_feedback[session_key] = []
         _session_feedback[session_key].append(entry)
 
-        # Log for audit trail
-        tags_str = ", ".join(tags) if tags else ""
+        # Log for traceability
         _logger.info(
-            "FEEDBACK | session=%s | entry_id=%s | %s | tags=[%s]",
+            "FEEDBACK session=%s entry_id=%s feedback=%r tags=%r",
             session_key,
             entry.entry_id,
             feedback,
-            tags_str,
+            tags or [],
         )
 
         # Create GitHub issue in background if PAT is configured
@@ -164,7 +163,6 @@ def register_feedback_tools(mcp: FastMCP) -> None:
                 )
             )
             issue_pending = True
-            _logger.debug("GitHub issue creation started in background")
 
         return FeedbackLogResult(
             logged=True,

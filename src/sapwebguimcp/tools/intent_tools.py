@@ -1,8 +1,8 @@
 """
-Intent logging tools for audit trail.
+Intent logging tools.
 
 This module provides the log_intent tool for models to document their
-high-level intentions, creating an audit trail for accountability.
+high-level intentions, creating a record for accountability.
 """
 
 import logging
@@ -35,7 +35,7 @@ def register_intent_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         description=(
-            "MANDATORY: Log intent for audit trail when using SAP. "
+            "MANDATORY: Log intent when using SAP. "
             "You MUST call this at the start of every SAP task and before "
             "any SAP write operation. Required for compliance and accountability. "
             "WHEN TO CALL: (1) ALWAYS at the start of every SAP-related user request, "
@@ -66,14 +66,12 @@ def register_intent_tools(mcp: FastMCP) -> None:
             _session_intents[session_key] = []
         _session_intents[session_key].append(entry)
 
-        # Log for handler to pick up
-        context_str = ", ".join(f"{k}={v}" for k, v in (context or {}).items())
         _logger.info(
-            "INTENT | session=%s | entry_id=%s | %s | context={%s}",
+            "INTENT session=%s entry_id=%s intent=%r context=%r",
             session_key,
             entry.entry_id,
             intent,
-            context_str,
+            context or {},
         )
 
         return IntentLogResult(

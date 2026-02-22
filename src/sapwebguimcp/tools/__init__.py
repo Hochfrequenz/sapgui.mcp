@@ -4,7 +4,7 @@ MCP tools for SAP Web GUI automation.
 This package contains tool modules that are registered with the FastMCP server:
 - sap_tools: SAP-specific tools (login, transaction, keepalive)
 - browser_tools: Generic browser automation tools (click, fill, screenshot, etc.)
-- intent_tools: Intent logging for audit trail
+- intent_tools: Intent logging for accountability
 - feedback_tools: Feedback logging for optimization observations
 """
 
