@@ -223,13 +223,7 @@ Choose **one** of the following options based on which Claude client you use.
 
 #### Option A: Claude Desktop
 
-First, create the audit logs directory:
-
-```powershell
-mkdir $env:USERPROFILE\sap-audit-logs
-```
-
-Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
+Open `%APPDATA%\Claude\claude_desktop_config.json` and add:
 
 ```json
 {
@@ -242,8 +236,6 @@ Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
                 "--rm",
                 "--network",
                 "sap-mcp-network",
-                "-v",
-                "C:/Users/YourUsername/sap-audit-logs:/audit-logs",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
@@ -259,8 +251,6 @@ Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
                 "-e",
                 "SAP_LANGUAGE=DE",
                 "-e",
-                "AUDIT_LOG_DIR=/audit-logs",
-                "-e",
                 "GITHUB_PAT=your_github_pat",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
             ]
@@ -271,7 +261,6 @@ Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
 
 Replace:
 
-- `YourUsername` with your Windows username
 - `your_username` / `your_password` with your SAP credentials
 - `your-sap-server` with your SAP server hostname
 - `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) (optional — see note above)
@@ -291,8 +280,6 @@ Add to `.mcp.json` in your project root:
                 "--rm",
                 "--network",
                 "sap-mcp-network",
-                "-v",
-                "C:/Users/YourUsername/sap-audit-logs:/audit-logs",
                 "-e",
                 "BROWSER_MODE=connect",
                 "-e",
@@ -307,8 +294,6 @@ Add to `.mcp.json` in your project root:
                 "SAP_MANDANT=100",
                 "-e",
                 "SAP_LANGUAGE=DE",
-                "-e",
-                "AUDIT_LOG_DIR=/audit-logs",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
@@ -452,7 +437,7 @@ Add to `.mcp.json` in your project root:
 | `sap_transaction`     | Enters and executes a transaction code                       |
 | `sap_keepalive_start` | Prevents session timeout (pings every 5 minutes)             |
 | `sap_keepalive_stop`  | Stops the keepalive task                                     |
-| `log_intent`          | Log what you're doing for audit trail                        |
+| `log_intent`          | Log what you're doing for accountability                     |
 | `log_feedback`        | Report issues (creates GitHub issues if `GITHUB_PAT` is set) |
 
 ### Browser Tools
@@ -497,7 +482,6 @@ For repetitive tasks like "create 100 business partners":
 | `BROWSER_TYPE` | No | `chromium`, `firefox`, or `webkit` | `chromium` |
 | `BROWSER_HEADLESS` | No | Run browser in headless mode | `false` |
 | `CDP_URL` | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL | `http://localhost:9222` |
-| `AUDIT_LOG_DIR` | No | Directory for audit logs (JSONL) | — |
 | `GITHUB_PAT` | No | GitHub PAT for `log_feedback` issues and abapGit auth | — |
 | `GITHUB_USER` | No | GitHub username for abapGit (falls back to `x-access-token`) | — |
 | `GITHUB_REPO` | No | Repository for feedback issues | `Hochfrequenz/sapwebgui.mcp` |

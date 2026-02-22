@@ -9,14 +9,12 @@ import logging
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 import httpx
 from fastmcp import FastMCP
 from fastmcp.server.middleware.logging import LoggingMiddleware
 
 from sapwebguimcp.logging_config import configure_logging
-from sapwebguimcp.loghandlers import IntentFileHandler
 from sapwebguimcp.middleware import ToolCallLoggingMiddleware
 from sapwebguimcp.models import close_browser_manager
 from sapwebguimcp.models.config import get_settings
@@ -52,12 +50,6 @@ _settings = get_settings()
 # Configure logging (including optional Papertrail)
 configure_logging(papertrail_host=_settings.papertrail_host, papertrail_port=_settings.papertrail_port)
 logger = logging.getLogger(__name__)
-
-# Configure intent file handler if AUDIT_LOG_DIR is set
-if _settings.audit_log_dir:
-    _intent_handler = IntentFileHandler(Path(_settings.audit_log_dir))
-    logging.getLogger().addHandler(_intent_handler)
-    logger.info("[OK] Intent audit logging enabled: %s", _settings.audit_log_dir)
 
 # Note: GitHub issue creation is handled directly in log_feedback tool (async)
 
