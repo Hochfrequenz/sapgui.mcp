@@ -82,7 +82,7 @@ async def _set_status_checkboxes(page: Any, statuses: list[str], language: str) 
     return errors
 
 
-async def _fill_selection_screen(
+async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
     page: Any,
     job_name: str,
     username: str | None,
@@ -175,7 +175,7 @@ async def _fetch_job_log(page: Any, language: str) -> SM37JobLog | None:
         return None
 
 
-async def _execute_sm37_lookup(
+async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
     job_name: str,
     username: str | None,
     statuses: list[str] | None,
@@ -270,7 +270,7 @@ def register_sm37_tools(mcp: FastMCP) -> None:
             "Returns job list with name, number, status, start/end times, duration, and user."
         ),
     )
-    async def sap_sm37_lookup(
+    async def sap_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         job_name: str = "*",
         username: str | None = "*",
         status: list[Literal["scheduled", "released", "ready", "active", "finished", "canceled"]] | None = None,
