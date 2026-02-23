@@ -1,5 +1,6 @@
 """Utility functions for SAP WebGUI MCP."""
 
+from datetime import datetime
 from typing import Literal
 
 SapLanguage = Literal["DE", "EN"]
@@ -63,12 +64,11 @@ def format_sap_date(iso_date: str, language: SapLanguage) -> str:
     Raises:
         ValueError: If iso_date is not in YYYY-MM-DD format
     """
-    parts = iso_date.split("-")
-    if len(parts) != 3:
-        raise ValueError(f"Expected YYYY-MM-DD format, got: {iso_date}")
+    try:
+        dt = datetime.strptime(iso_date, "%Y-%m-%d")
+    except ValueError as e:
+        raise ValueError(f"Expected YYYY-MM-DD format, got: {iso_date}") from e
 
-    year, month, day = parts[0], parts[1], parts[2]
-
-    if language.upper() == "DE":
-        return f"{day}.{month}.{year}"
-    return f"{month}/{day}/{year}"
+    if language == "DE":
+        return dt.strftime("%d.%m.%Y")
+    return dt.strftime("%m/%d/%Y")

@@ -177,8 +177,8 @@ class TestDateFormatHelper:
         with pytest.raises(ValueError):
             format_sap_date("2026/02/22", "EN")
 
-    def test_format_sap_date_case_insensitive(self) -> None:
+    def test_format_sap_date_rejects_non_date(self) -> None:
         from sapwebguimcp.utils import format_sap_date
 
-        assert format_sap_date("2026-02-22", "de") == "22.02.2026"
-        assert format_sap_date("2026-02-22", "en") == "02/22/2026"
+        with pytest.raises(ValueError):
+            format_sap_date("not-a-date", "DE")
