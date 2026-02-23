@@ -167,6 +167,19 @@ SE93_PROGRAM_EN = "Program"
 SE93_AUTH_OBJECT_DE = "Berechtigungsobjekt"
 SE93_AUTH_OBJECT_EN = "Authorization object"
 
+# =============================================================================
+# SLG1 - Application Log
+# =============================================================================
+SLG1_INITIAL_SCREEN_DE = "Anwendungslog auswerten"
+SLG1_INITIAL_SCREEN_EN = "Analyze Application Log"
+
+SLG1_LOG_LIST_SCREEN_DE = "Protokolle anzeigen"
+SLG1_LOG_LIST_SCREEN_EN = "Display Logs"
+
+# Status bar message when no logs found
+SLG1_NO_LOGS_FOUND_DE = "Es konnte kein Protokoll auf der Datenbank gefunden werden"
+SLG1_NO_LOGS_FOUND_EN = "No log could be found in the database"
+
 
 # =============================================================================
 # SM37 - Job Overview

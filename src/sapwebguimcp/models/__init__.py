@@ -124,6 +124,11 @@ from sapwebguimcp.models.se93_models import (
     SE93TransactionType,
 )
 from sapwebguimcp.models.session_registry import SessionRegistry
+from sapwebguimcp.models.slg1_models import (
+    SLG1FileSummary,
+    SLG1LogEntry,
+    SLG1LogListResult,
+)
 from sapwebguimcp.models.sm37_models import (
     SM37Job,
     SM37JobListResult,
@@ -266,6 +271,10 @@ __all__ = [
     "SE93FileSummary",
     "SE93Result",
     "SE93TransactionType",
+    # SLG1 models
+    "SLG1FileSummary",
+    "SLG1LogEntry",
+    "SLG1LogListResult",
     # Workflow models
     "Workflow",
     "WorkflowDeleteResult",
