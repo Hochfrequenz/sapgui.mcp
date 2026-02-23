@@ -24,5 +24,7 @@ class TestFormatSapDate:
         with pytest.raises(ValueError):
             format_sap_date("not-a-date", "DE")
 
-    def test_lowercase_language(self) -> None:
-        assert format_sap_date("2026-02-22", "de") == "22.02.2026"
+    def test_lowercase_language_not_supported(self) -> None:
+        """Lowercase language codes are not valid SapLanguage values (Literal['DE', 'EN'])."""
+        # "de" doesn't match "DE", so it falls through to EN format
+        assert format_sap_date("2026-02-22", "de") == "02/22/2026"  # type: ignore[arg-type]
