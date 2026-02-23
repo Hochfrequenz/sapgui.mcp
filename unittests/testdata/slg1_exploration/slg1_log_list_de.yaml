@@ -1,0 +1,376 @@
+- main "Protokolle anzeigen":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "Protokolle anzeigen" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Details"
+      - button "Langtext"
+      - button "Technische Informationen"
+      - button "Hilfe zur Anwendung"
+    - button "Beenden"
+  - grid:
+    - row "Datum/Uhrzeit/Benutzer Anzahl Externe Identifikation Objekttext Unterobjekttext Transaktionscode Programm Modus Protokollnummer":
+      - columnheader "Datum/Uhrzeit/Benutzer"
+      - columnheader "Anzahl"
+      - columnheader "Externe Identifikation"
+      - columnheader "Objekttext"
+      - columnheader "Unterobjekttext"
+      - columnheader "Transaktionscode"
+      - columnheader "Programm"
+      - columnheader "Modus"
+      - columnheader "Protokollnummer"
+    - row "0 Leer /SDF/AIMAX /SDF/AIMAX_DVM Leer SAPMSSY1 Dialog-Betrieb 00000000000003779243":
+      - gridcell:
+        - group "Ebene 0":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "23.02.2026 00:00:07 BATCH":
+                - cell:
+                  - button
+                - cell "23.02.2026 00:00:07 BATCH":
+                  - button "23.02.2026 00:00:07 BATCH"
+      - gridcell "0":
+        - button "0"
+      - gridcell "Leer"
+      - gridcell "/SDF/AIMAX":
+        - button "/SDF/AIMAX"
+      - gridcell "/SDF/AIMAX_DVM":
+        - button "/SDF/AIMAX_DVM"
+      - gridcell "Leer"
+      - gridcell "SAPMSSY1":
+        - button "SAPMSSY1"
+      - gridcell "Dialog-Betrieb":
+        - button "Dialog-Betrieb"
+      - gridcell "00000000000003779243":
+        - button "00000000000003779243"
+    - row " 4 WATCHDOG_CALM_S4U100_TEST_srvhfuhana_S4U_00 /SDF/CALM HEALTH_MON Leer /SDF/CL_CALM_APPLOG===========CP Dialog-Betrieb 00000000000003779244":
+      - gridcell "":
+        - text: 
+        - group "Ebene 0 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "23.02.2026 00:00:07 BATCH":
+                - cell:
+                  - button "Information"
+                - cell "23.02.2026 00:00:07 BATCH":
+                  - button "23.02.2026 00:00:07 BATCH"
+      - gridcell "4":
+        - button "4"
+      - gridcell "WATCHDOG_CALM_S4U100_TEST_srvhfuhana_S4U_00":
+        - button "WATCHDOG_CALM_S4U100_TEST_srvhfuhana_S4U_00"
+      - gridcell "/SDF/CALM":
+        - button "/SDF/CALM"
+      - gridcell "HEALTH_MON":
+        - button "HEALTH_MON"
+      - gridcell "Leer"
+      - gridcell "/SDF/CL_CALM_APPLOG===========CP":
+        - button "/SDF/CL_CALM_APPLOG===========CP"
+      - gridcell "Dialog-Betrieb":
+        - button "Dialog-Betrieb"
+      - gridcell "00000000000003779244":
+        - button "00000000000003779244"
+    - row " 6 CALM_S4U100_TEST srvhfuhana_S4U_00 /SDF/CALM HEALTH_MON Leer /SDF/CL_CALM_APPLOG===========CP Dialog-Betrieb 00000000000003779251":
+      - gridcell "":
+        - text: 
+        - group "Ebene 0 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "23.02.2026 00:00:07 BATCH":
+                - cell:
+                  - button "Information"
+                - cell "23.02.2026 00:00:07 BATCH":
+                  - button "23.02.2026 00:00:07 BATCH"
+      - gridcell "6":
+        - button "6"
+      - gridcell "CALM_S4U100_TEST srvhfuhana_S4U_00":
+        - button "CALM_S4U100_TEST srvhfuhana_S4U_00"
+      - gridcell "/SDF/CALM":
+        - button "/SDF/CALM"
+      - gridcell "HEALTH_MON":
+        - button "HEALTH_MON"
+      - gridcell "Leer"
+      - gridcell "/SDF/CL_CALM_APPLOG===========CP":
+        - button "/SDF/CL_CALM_APPLOG===========CP"
+      - gridcell "Dialog-Betrieb":
+        - button "Dialog-Betrieb"
+      - gridcell "00000000000003779251":
+        - button "00000000000003779251"
+    - row " 10 CALM_S4U100_TEST srvhfuhana_S4U_00 /SDF/CALM HEALTH_MON Leer /SDF/CL_CALM_APPLOG===========CP Dialog-Betrieb 00000000000003779253":
+      - gridcell "":
+        - text: 
+        - group "Ebene 0 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "23.02.2026 00:00:07 BATCH":
+                - cell:
+                  - button "Information"
+                - cell "23.02.2026 00:00:07 BATCH":
+                  - button "23.02.2026 00:00:07 BATCH"
+      - gridcell "10":
+        - button "10"
+      - gridcell "CALM_S4U100_TEST srvhfuhana_S4U_00":
+        - button "CALM_S4U100_TEST srvhfuhana_S4U_00"
+      - gridcell "/SDF/CALM":
+        - button "/SDF/CALM"
+      - gridcell "HEALTH_MON":
+        - button "HEALTH_MON"
+      - gridcell "Leer"
+      - gridcell "/SDF/CL_CALM_APPLOG===========CP":
+        - button "/SDF/CL_CALM_APPLOG===========CP"
+      - gridcell "Dialog-Betrieb":
+        - button "Dialog-Betrieb"
+      - gridcell "00000000000003779253":
+        - button "00000000000003779253"
+    - row "0 Leer /SDF/AIMAX /SDF/AIMAX_DVM Leer SAPMSSY1 Dialog-Betrieb 00000000000003779249":
+      - gridcell:
+        - group "Ebene 0":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "23.02.2026 00:00:07 BATCH":
+                - cell:
+                  - button "Information"
+                - cell "23.02.2026 00:00:07 BATCH":
+                  - button "23.02.2026 00:00:07 BATCH"
+      - gridcell "0":
+        - button "0"
+      - gridcell "Leer"
+      - gridcell "/SDF/AIMAX":
+        - button "/SDF/AIMAX"
+      - gridcell "/SDF/AIMAX_DVM":
+        - button "/SDF/AIMAX_DVM"
+      - gridcell "Leer"
+      - gridcell "SAPMSSY1":
+        - button "SAPMSSY1"
+      - gridcell "Dialog-Betrieb":
+        - button "Dialog-Betrieb"
+      - gridcell "00000000000003779249":
+        - button "00000000000003779249"
+    - row " 3 Leer /SDF/CALM JOBMON Leer /SDF/CL_CALM_APPLOG===========CP Dialog-Betrieb 00000000000003779250":
+      - gridcell "":
+        - text: 
+        - group "Ebene 0 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "23.02.2026 00:00:07 BATCH":
+                - cell:
+                  - button "Information"
+                - cell "23.02.2026 00:00:07 BATCH":
+                  - button "23.02.2026 00:00:07 BATCH"
+      - gridcell "3":
+        - button "3"
+      - gridcell "Leer"
+      - gridcell "/SDF/CALM":
+        - button "/SDF/CALM"
+      - gridcell "JOBMON":
+        - button "JOBMON"
+      - gridcell "Leer"
+      - gridcell "/SDF/CL_CALM_APPLOG===========CP":
+        - button "/SDF/CL_CALM_APPLOG===========CP"
+      - gridcell "Dialog-Betrieb":
+        - button "Dialog-Betrieb"
+      - gridcell "00000000000003779250":
+        - button "00000000000003779250"
+    - row " 20 CALM_S4U100_TEST /SDF/CALM EXM Leer /SDF/CL_CALM_APPLOG===========CP Dialog-Betrieb 00000000000003779252":
+      - gridcell "":
+        - text: 
+        - group "Ebene 0 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "23.02.2026 00:00:07 BATCH":
+                - cell:
+                  - button "Information"
+                - cell "23.02.2026 00:00:07 BATCH":
+                  - button "23.02.2026 00:00:07 BATCH"
+      - gridcell "20":
+        - button "20"
+      - gridcell "CALM_S4U100_TEST":
+        - button "CALM_S4U100_TEST"
+      - gridcell "/SDF/CALM":
+        - button "/SDF/CALM"
+      - gridcell "EXM":
+        - button "EXM"
+      - gridcell "Leer"
+      - gridcell "/SDF/CL_CALM_APPLOG===========CP":
+        - button "/SDF/CL_CALM_APPLOG===========CP"
+      - gridcell "Dialog-Betrieb":
+        - button "Dialog-Betrieb"
+      - gridcell "00000000000003779252":
+        - button "00000000000003779252"
+    - row "0 Leer /SDF/AIMAX /SDF/AIMAX_DVM Leer SAPMSSY1 Dialog-Betrieb 00000000000003779245":
+      - gridcell:
+        - group "Ebene 0":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "23.02.2026 00:00:07 BATCH":
+                - cell:
+                  - button "Information"
+                - cell "23.02.2026 00:00:07 BATCH":
+                  - button "23.02.2026 00:00:07 BATCH"
+      - gridcell "0":
+        - button "0"
+      - gridcell "Leer"
+      - gridcell "/SDF/AIMAX":
+        - button "/SDF/AIMAX"
+      - gridcell "/SDF/AIMAX_DVM":
+        - button "/SDF/AIMAX_DVM"
+      - gridcell "Leer"
+      - gridcell "SAPMSSY1":
+        - button "SAPMSSY1"
+      - gridcell "Dialog-Betrieb":
+        - button "Dialog-Betrieb"
+      - gridcell "00000000000003779245":
+        - button "00000000000003779245"
+    - row " 69 CALM_S4U100_TEST//20260222230007 /SDF/CALM INT_MON Leer /SDF/CL_CALM_APPLOG===========CP Dialog-Betrieb 00000000000003779246":
+      - gridcell "":
+        - text: 
+        - group "Ebene 0 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "23.02.2026 00:00:07 BATCH":
+                - cell:
+                  - button "Information"
+                - cell "23.02.2026 00:00:07 BATCH":
+                  - button "23.02.2026 00:00:07 BATCH"
+      - gridcell "69":
+        - button "69"
+      - gridcell "CALM_S4U100_TEST//20260222230007":
+        - button "CALM_S4U100_TEST//20260222230007"
+      - gridcell "/SDF/CALM":
+        - button "/SDF/CALM"
+      - gridcell "INT_MON":
+        - button "INT_MON"
+      - gridcell "Leer"
+      - gridcell "/SDF/CL_CALM_APPLOG===========CP":
+        - button "/SDF/CL_CALM_APPLOG===========CP"
+      - gridcell "Dialog-Betrieb":
+        - button "Dialog-Betrieb"
+      - gridcell "00000000000003779246":
+        - button "00000000000003779246"
+    - row " 2 Leer /SDF/CALM JOBMON Leer /SDF/CL_CALM_APPLOG===========CP Dialog-Betrieb 00000000000003779254":
+      - gridcell "":
+        - text: 
+        - group "Ebene 0 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "23.02.2026 00:00:07 BATCH":
+                - cell:
+                  - button "Information"
+                - cell "23.02.2026 00:00:07 BATCH":
+                  - button "23.02.2026 00:00:07 BATCH"
+      - gridcell "2":
+        - button "2"
+      - gridcell "Leer"
+      - gridcell "/SDF/CALM":
+        - button "/SDF/CALM"
+      - gridcell "JOBMON":
+        - button "JOBMON"
+      - gridcell "Leer"
+      - gridcell "/SDF/CL_CALM_APPLOG===========CP":
+        - button "/SDF/CL_CALM_APPLOG===========CP"
+      - gridcell "Dialog-Betrieb":
+        - button "Dialog-Betrieb"
+      - gridcell "00000000000003779254":
+        - button "00000000000003779254"
+    - row "0 srvhfuhana_S4U_00-100-MONITOR#000001 tRFC / qRFC - der neue Hintergrund RFC Log zum bgRFC-Monitor Leer SAPMSSY1 Dialog-Betrieb 00000000000003779574":
+      - gridcell:
+        - group "Ebene 0":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "23.02.2026 00:00:07 BATCH":
+                - cell:
+                  - button "Information"
+                - cell "23.02.2026 00:00:07 BATCH":
+                  - button "23.02.2026 00:00:07 BATCH"
+      - gridcell "0":
+        - button "0"
+      - gridcell "srvhfuhana_S4U_00-100-MONITOR#000001":
+        - button "srvhfuhana_S4U_00-100-MONITOR#000001"
+      - gridcell "tRFC / qRFC - der neue Hintergrund RFC":
+        - button "tRFC / qRFC - der neue Hintergrund RFC"
+      - gridcell "Log zum bgRFC-Monitor":
+        - button "Log zum bgRFC-Monitor"
+      - gridcell "Leer"
+      - gridcell "SAPMSSY1":
+        - button "SAPMSSY1"
+      - gridcell "Dialog-Betrieb":
+        - button "Dialog-Betrieb"
+      - gridcell "00000000000003779574":
+        - button "00000000000003779574"
+  - separator "Größe des Splitscreens zwischen horizontalem Bereich 2 und horizontalem Bereich 1 ändern": 
+  - grid:
+    - rowgroup:
+      - toolbar:
+        - button "Technische Meldungsinformation"
+        - separator
+        - button "Aufsteigend sortieren"
+        - button "Absteigend sortieren"
+        - button "Suchen..."
+        - button "Weiter suchen" [disabled]
+        - button ""
+        - separator
+        - button "Drucken"
+        - button "Listausgabe"
+        - button "Exportieren"
+        - separator
+        - button ""
+        - separator
+        - button "0" [pressed]
+        - button "0" [pressed]
+        - button "0" [pressed]
+        - button "0" [pressed]
+        - button "Vollbild ein-/ausschalten"
+    - rowgroup:
+      - row "Typ Meldungstext":
+        - columnheader "Typ"
+        - columnheader "Meldungstext"
+    - rowgroup
+    - rowgroup
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSBAL_DISPLAY/0100":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSBAL_DISPLAY/0100"
+        - cell
+      - menuitemradio "Transaktion SLG1":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SLG1"
+        - cell
+      - row "E2E-Zeit 950 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "950 ms"
+        - cell
+      - row "WebGUI-Zeit 117 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "117 ms"
+        - cell

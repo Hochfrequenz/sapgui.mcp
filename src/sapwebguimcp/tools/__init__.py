@@ -33,7 +33,9 @@ from sapwebguimcp.tools.se37_edit_tools import register_se37_edit_tools
 from sapwebguimcp.tools.se37_tools import register_se37_tools
 from sapwebguimcp.tools.se38_edit_tools import register_se38_edit_tools
 from sapwebguimcp.tools.se93_tools import register_se93_tools
+from sapwebguimcp.tools.slg1_tools import register_slg1_tools
 from sapwebguimcp.tools.sm37_tools import register_sm37_tools
+from sapwebguimcp.tools.st22_tools import register_st22_tools
 from sapwebguimcp.tools.table_tools import register_table_tools
 from sapwebguimcp.tools.workflow_tools import register_workflow_tools
 
@@ -55,7 +57,9 @@ __all__ = [
     "register_se38_edit_tools",
     "register_se09_tools",
     "register_se93_tools",
+    "register_slg1_tools",
     "register_sm37_tools",
+    "register_st22_tools",
     "register_table_tools",
     "register_workflow_tools",
     "get_session_feedback",

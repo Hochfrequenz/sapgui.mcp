@@ -184,7 +184,7 @@ pywin32-ctypes==0.2.3
     # via keyring
 pyyaml==6.0.3
     # via jsonschema-path
-redis==7.1.0
+redis==7.2.0
     # via
     #   fakeredis
     #   py-key-value-aio
@@ -221,7 +221,7 @@ starlette==0.52.1
     # via
     #   mcp
     #   sse-starlette
-typer==0.24.0
+typer==0.24.1
     # via pydocket
 typing-extensions==4.15.0
     # via
@@ -245,7 +245,7 @@ typing-inspection==0.4.2
     #   pydantic-settings
 urllib3==2.6.3
     # via requests
-uvicorn==0.40.0
+uvicorn==0.41.0
     # via
     #   fastmcp
     #   mcp

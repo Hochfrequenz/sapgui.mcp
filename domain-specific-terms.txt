@@ -8,6 +8,8 @@ webgui
 sapgui
 
 # German terms (common in SAP documentation/examples)
+aktive
+programms
 offener
 feld
 intervall

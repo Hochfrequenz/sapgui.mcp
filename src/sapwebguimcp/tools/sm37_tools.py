@@ -20,7 +20,7 @@ from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.sm37_models import SM37JobListResult, SM37JobLog
 from sapwebguimcp.parsers.sm37_parser import is_no_jobs_found, parse_sm37_job_list, parse_sm37_job_log
-from sapwebguimcp.tools.sap_tool_impl import _load_js, _load_js_with_field_utils
+from sapwebguimcp.tools.sap_page_helpers import fill_form_on_page, navigate_transaction
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 logger = logging.getLogger(__name__)
@@ -41,38 +41,6 @@ _STATUS_CHECKBOX_MAP: dict[str, tuple[str, str]] = {
 }
 
 _ALL_STATUSES = list(_STATUS_CHECKBOX_MAP.keys())
-
-
-async def _fill_form_on_page(page: Page, fields: dict[str, str]) -> list[str]:
-    """Fill form fields on a specific page. Returns list of field names not found."""
-    result = await page.evaluate(
-        _load_js_with_field_utils("fill_form_fields.js"),
-        {"fields": fields},
-    )
-    not_found: list[str] = result.get("notFound", [])
-    return not_found
-
-
-async def _navigate_transaction(page: Page, tcode: str) -> str | None:
-    """Navigate to a transaction on a specific page. Returns error string or None on success."""
-    okcode = await page.query_selector("#ToolbarOkCode")
-    if not okcode or not await okcode.is_visible():
-        for selector in ["input[id*='OkCode']", "input[lsdata*='OKCODE']"]:
-            okcode = await page.query_selector(selector)
-            if okcode and await okcode.is_visible():
-                break
-        else:
-            return f"OK-Code field not found for transaction {tcode}"
-
-    await page.bring_to_front()
-    await page.wait_for_timeout(500)
-    await okcode.click()
-    await page.wait_for_timeout(200)
-    await page.evaluate(_load_js("set_okcode_field.js"), {"transactionInput": f"/n{tcode}"})
-    await page.wait_for_timeout(300)
-    await page.keyboard.press("Enter")
-    await page.wait_for_load_state("networkidle", timeout=15000)
-    return None
 
 
 async def _set_status_checkboxes(page: Page, statuses: list[str], language: str) -> list[str]:
@@ -149,7 +117,7 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
 
     # Fill job name - try DE then EN label
     for labels in [{"Jobname": job_name}, {"Job name": job_name}]:
-        not_found = await _fill_form_on_page(page, labels)
+        not_found = await fill_form_on_page(page, labels)
         if not not_found:
             break
     else:
@@ -158,7 +126,7 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
     # Fill username
     if username is not None:
         for labels in [{"Benutzername": username}, {"User name": username}]:
-            not_found = await _fill_form_on_page(page, labels)
+            not_found = await fill_form_on_page(page, labels)
             if not not_found:
                 break
         else:
@@ -279,7 +247,7 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
     settings = get_settings()
     language: SapLanguage = settings.sap_language
 
-    tx_error = await _navigate_transaction(page, "SM37")
+    tx_error = await navigate_transaction(page, "SM37")
     if tx_error:
         return SM37JobListResult.failure(
             error=f"Failed to navigate to SM37: {tx_error}",
