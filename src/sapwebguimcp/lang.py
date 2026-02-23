@@ -192,10 +192,6 @@ SM37_STATUS_MAP_EN = {
     "canceled": "Canceled",
 }
 
-# Selection screen checkbox labels (uppercase first letter in ARIA)
-_SM37_CHECKBOX_LABELS_DE = ["Geplant", "Freigegeben", "Bereit", "Aktiv", "Fertig", "Abgebrochen"]
-_SM37_CHECKBOX_LABELS_EN = ["Scheduled", "Released", "Ready", "Active", "Finished", "Canceled"]
-
 
 # =============================================================================
 # Helper Functions

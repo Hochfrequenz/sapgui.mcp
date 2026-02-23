@@ -19,19 +19,17 @@ class SM37Job(BaseModel):
     """A background job entry from SM37 job list."""
 
     job_name: str = Field(description="Job name")
-    job_number: str = Field(description="Job number (unique within job name)")
     status: str = Field(description="Job status: Scheduled/Released/Active/Finished/Canceled")
     start_time: str | None = Field(default=None, description="Job start date/time")
-    end_time: str | None = Field(default=None, description="Job end date/time")
-    duration: str | None = Field(default=None, description="Job duration")
+    duration: str | None = Field(default=None, description="Job duration in seconds")
     user: str = Field(description="User who scheduled the job")
+    mandant: str = Field(default="", description="SAP client/mandant number")
 
 
 class SM37JobLog(BaseModel):
     """Job log detail for a single background job."""
 
     job_name: str = Field(description="Job name")
-    job_number: str = Field(description="Job number")
     log_lines: list[str] = Field(default_factory=list, description="Job log message lines")
 
 

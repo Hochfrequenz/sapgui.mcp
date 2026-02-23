@@ -82,7 +82,27 @@ async def _set_status_checkboxes(page: Any, statuses: list[str], language: str) 
     return errors
 
 
-async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
+async def _fill_date_field(
+    page: Any, date_images: Any, img_index: int, fallback_index: int, sap_date: str
+) -> str | None:
+    """Fill a single date field anchored to a 'Datum'/'Date' image, with positional fallback."""
+    try:
+        if await date_images.count() > img_index:
+            box = date_images.nth(img_index).locator("xpath=following-sibling::input[1]")
+            if await box.count() > 0:
+                await box.fill(sap_date)
+                return None
+        # Fallback: positional index
+        all_boxes = page.locator("input[type='text']")
+        if await all_boxes.count() > fallback_index:
+            await all_boxes.nth(fallback_index).fill(sap_date)
+            return None
+        return "Could not find date field anchor (img 'Datum'/'Date')"
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        return str(e)
+
+
+async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches
     page: Any,
     job_name: str,
     username: str | None,
@@ -116,29 +136,20 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
         checkbox_errors = await _set_status_checkboxes(page, statuses, language)
         errors.extend(checkbox_errors)
 
-    # Date fields are unlabeled textboxes after "von"/"bis" text nodes.
-    # SAP auto-fills today's date. We use sap_fill_form with the date img labels.
-    if from_date:
-        sap_from = format_sap_date(from_date, language)
-        # The from-date textbox is the 3rd textbox on screen (after Jobname and Benutzername)
-        # We can't easily target unlabeled textboxes via fill_form, so use direct approach
-        try:
-            date_boxes = page.locator("input[type='text']")
-            count = await date_boxes.count()
-            if count >= 3:
-                await date_boxes.nth(2).fill(sap_from)
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            errors.append(f"Could not set from_date: {e}")
+    # Date fields: anchor to img "Datum"/"Date", fallback to positional index
+    if from_date or to_date:
+        date_img_label = "Datum" if language.upper() == "DE" else "Date"
+        date_images = page.get_by_role("img", name=date_img_label)
 
-    if to_date:
-        sap_to = format_sap_date(to_date, language)
-        try:
-            date_boxes = page.locator("input[type='text']")
-            count = await date_boxes.count()
-            if count >= 4:
-                await date_boxes.nth(3).fill(sap_to)
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            errors.append(f"Could not set to_date: {e}")
+        if from_date:
+            err = await _fill_date_field(page, date_images, 0, 2, format_sap_date(from_date, language))
+            if err:
+                errors.append(f"Could not set from_date: {err}")
+
+        if to_date:
+            err = await _fill_date_field(page, date_images, 1, 3, format_sap_date(to_date, language))
+            if err:
+                errors.append(f"Could not set to_date: {err}")
 
     return errors
 
@@ -162,7 +173,7 @@ async def _fetch_job_log(page: Any, language: str) -> SM37JobLog | None:
         await page.wait_for_load_state("networkidle")
 
         snapshot = await page.locator("body").aria_snapshot()
-        job_log = parse_sm37_job_log(snapshot, "", "")
+        job_log = parse_sm37_job_log(snapshot, "")
 
         # Navigate back (F3)
         await page.keyboard.press("F3")
@@ -227,7 +238,7 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
             jobs=[],
             job_count=0,
             filters_applied=filters_applied,
-            retrieved_at=datetime.now(UTC),
+            retrieved_at=now,
         )
 
     jobs = parse_sm37_job_list(snapshot)
@@ -242,14 +253,13 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
         job_log = await _fetch_job_log(page, language)
         if job_log:
             job_log.job_name = jobs[0].job_name
-            job_log.job_number = jobs[0].job_number
 
     return SM37JobListResult(
         jobs=jobs,
         job_count=len(jobs),
         filters_applied=filters_applied,
         job_log=job_log,
-        retrieved_at=datetime.now(UTC),
+        retrieved_at=now,
     )
 
 
@@ -266,8 +276,10 @@ def register_sm37_tools(mcp: FastMCP) -> None:
             "USE THIS instead of sap_transaction('SM37') - faster and returns structured data.\n\n"
             "Filters: job name (wildcards like *BILLING*), username, status "
             "(scheduled/released/ready/active/finished/canceled), date range.\n\n"
+            "Note: status=None keeps SAP defaults (all checked except 'Scheduled'). "
+            "Pass status=['scheduled'] explicitly to include only scheduled jobs.\n\n"
             "When include_log=True and exactly one job matches, the job log is included.\n\n"
-            "Returns job list with name, number, status, start/end times, duration, and user."
+            "Returns job list with name, status, start time, duration, user, and SAP client (mandant)."
         ),
     )
     async def sap_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments

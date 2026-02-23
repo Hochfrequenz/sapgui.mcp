@@ -93,7 +93,7 @@ class TestJobListParsing:
         # Check that we don't have exact duplicates
         seen = set()
         for job in jobs:
-            key = (job.job_name, job.user, job.status, job.start_time)
+            key = (job.job_name, job.user, job.status, job.start_time, job.mandant)
             assert key not in seen, f"Duplicate job: {key}"
             seen.add(key)
 
@@ -112,6 +112,43 @@ class TestJobListParsing:
         snapshot = _load_snapshot("sm37_initial")
         jobs = parse_sm37_job_list(snapshot)
         assert len(jobs) == 0
+
+
+class TestJobLogParsing:
+    """Tests for parsing SM37 job log."""
+
+    _SYNTHETIC_JOB_LOG = """\
+- main "Job Log Einträge für Job: TEST_JOB / 12345678":
+  - banner:
+    - button "Zurück (F3)"
+    - heading "Job Log Einträge" [level=1]
+  - table:
+    - rowgroup:
+      - row "Liste":
+        - cell "Liste":
+          - region "Liste":
+            - text: "Zum Auswählen Zeile markieren"
+            - text: Job gestartet
+            - text: Step 001 gestartet (Programm ZSAMPLE, Variante , Benutzer TESTUSER)
+            - text: Step 001 wurde erfolgreich beendet
+            - text: Job beendet
+"""
+
+    def test_parse_job_log_extracts_lines(self) -> None:
+        result = parse_sm37_job_log(self._SYNTHETIC_JOB_LOG, "TEST_JOB")
+        assert result.job_name == "TEST_JOB"
+        assert len(result.log_lines) >= 3
+        assert any("gestartet" in line for line in result.log_lines)
+        assert any("beendet" in line for line in result.log_lines)
+
+    def test_parse_job_log_skips_selection_hint(self) -> None:
+        result = parse_sm37_job_log(self._SYNTHETIC_JOB_LOG, "TEST_JOB")
+        assert not any("Zum Auswählen" in line for line in result.log_lines)
+
+    def test_parse_job_log_empty_snapshot(self) -> None:
+        result = parse_sm37_job_log("- main:\n  - heading: No data", "EMPTY")
+        assert result.job_name == "EMPTY"
+        assert len(result.log_lines) == 0
 
 
 class TestDateFormatHelper:

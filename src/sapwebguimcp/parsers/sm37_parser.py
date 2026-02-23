@@ -137,12 +137,11 @@ def _parse_job_row(text: str) -> SM37Job | None:
 
     return SM37Job(
         job_name=job_name,
-        job_number=mandant,
         status=_normalize_status(status_raw),
         start_time=start_time,
-        end_time=None,
         duration=f"{duration}s" if duration else None,
         user=user,
+        mandant=mandant,
     )
 
 
@@ -188,8 +187,8 @@ def parse_sm37_job_list(snapshot: str) -> list[SM37Job]:
         if job is None:
             continue
 
-        # Deduplicate
-        key = (job.job_name, job.user, job.status, job.start_time)
+        # Deduplicate (include mandant so jobs across clients aren't collapsed)
+        key = (job.job_name, job.user, job.status, job.start_time, job.mandant)
         if key in seen:
             continue
         seen.add(key)
@@ -204,14 +203,13 @@ def parse_sm37_job_list(snapshot: str) -> list[SM37Job]:
 # =============================================================================
 
 
-def parse_sm37_job_log(snapshot: str, job_name: str, job_number: str) -> SM37JobLog:
+def parse_sm37_job_log(snapshot: str, job_name: str) -> SM37JobLog:
     """
     Parse the SM37 job log from an ARIA snapshot.
 
     Args:
         snapshot: YAML accessibility snapshot of the SM37 job log screen
         job_name: Name of the job (for the result object)
-        job_number: Number of the job (for the result object)
 
     Returns:
         SM37JobLog with extracted log lines.
@@ -232,6 +230,5 @@ def parse_sm37_job_log(snapshot: str, job_name: str, job_number: str) -> SM37Job
 
     return SM37JobLog(
         job_name=job_name,
-        job_number=job_number,
         log_lines=log_lines,
     )
