@@ -61,6 +61,8 @@ applikation
 # SAP technical terms
 repid
 SHTTP
+TABL
+DUM
 
 # Typos in SAP data (from SAP system, cannot be fixed)
 payed

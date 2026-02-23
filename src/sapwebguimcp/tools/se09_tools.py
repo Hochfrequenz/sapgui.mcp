@@ -56,7 +56,7 @@ async def _safe_checkbox_click(page: Any, checkbox: Any, should_be_checked: bool
         if is_checked != should_be_checked:
             await checkbox.click()
             await page.wait_for_timeout(200)
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.warning("Failed to click checkbox, skipping")
 
 
@@ -111,7 +111,6 @@ async def _lookup_transports(
     username: str | None,
     request_type: str,
     status: str,
-    include_objects: bool,
 ) -> TransportListResult:
     """Look up transports in SE09."""
     now = datetime.now(UTC)
@@ -143,7 +142,7 @@ async def _lookup_transports(
     snapshot: str = await page.locator("body").aria_snapshot()
 
     # Parse the transport list
-    result = parse_se09_transport_list(snapshot, include_objects=include_objects)
+    result = parse_se09_transport_list(snapshot)
     return result
 
 
@@ -169,11 +168,10 @@ def register_se09_tools(mcp: FastMCP) -> None:
             "(modifiable/released/all)."
         ),
     )
-    async def sap_se09_lookup(
+    async def sap_se09_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         username: str | None = None,
         request_type: Literal["workbench", "customizing", "all"] = "all",
         status: Literal["modifiable", "released", "all"] = "modifiable",
-        include_objects: bool = False,
         output_file: str | None = None,
         session: str | None = None,
         agent_id: str | None = None,
@@ -185,7 +183,6 @@ def register_se09_tools(mcp: FastMCP) -> None:
             username: Filter by owner (default: current SAP user)
             request_type: Filter by type - "workbench", "customizing", or "all"
             status: Filter by status - "modifiable", "released", or "all" (default: "modifiable")
-            include_objects: Not yet supported in v1 (reserved for future)
             output_file: Write results to JSON file if provided
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
@@ -213,9 +210,8 @@ def register_se09_tools(mcp: FastMCP) -> None:
                 username=username,
                 request_type=request_type,
                 status=status,
-                include_objects=include_objects,
             )
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error looking up transports in SE09")
             return TransportListResult.failure(
                 error=f"Error looking up transports: {e}",

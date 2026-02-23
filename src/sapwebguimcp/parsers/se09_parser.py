@@ -103,10 +103,7 @@ def _is_transport_number(text: str) -> bool:
     return bool(_TRANSPORT_NUMBER_RE.match(text.strip()))
 
 
-def parse_se09_transport_list(
-    snapshot: str,
-    include_objects: bool = False,
-) -> TransportListResult:
+def parse_se09_transport_list(snapshot: str) -> TransportListResult:
     """
     Parse SE09 transport list from ARIA snapshot.
 
@@ -116,31 +113,30 @@ def parse_se09_transport_list(
 
     Args:
         snapshot: YAML accessibility snapshot from the SE09 list view
-        include_objects: Not supported in v1 (tree doesn't expose objects in ARIA)
 
     Returns:
         TransportListResult with parsed requests
     """
     now = datetime.now(UTC)
 
-    # Check for results page heading
     if "Transport Organizer: Auftr" not in snapshot and "Transport Organizer: Requ" not in snapshot:
-        # Still on initial screen or different page
-        return TransportListResult(
-            requests=[],
-            request_count=0,
-            retrieved_at=now,
-        )
+        return TransportListResult(requests=[], request_count=0, retrieved_at=now)
 
     text_lines = _extract_text_lines(snapshot)
     if not text_lines:
-        return TransportListResult(
-            requests=[],
-            request_count=0,
-            retrieved_at=now,
-        )
+        return TransportListResult(requests=[], request_count=0, retrieved_at=now)
 
-    # Parse section headers and transport entries
+    requests = _parse_transport_entries(text_lines)
+
+    return TransportListResult(
+        requests=requests,
+        request_count=len(requests),
+        retrieved_at=now,
+    )
+
+
+def _parse_transport_entries(text_lines: list[str]) -> list[TransportRequest]:
+    """Parse transport entries from extracted text lines."""
     current_request_type = ""
     current_target = ""
     current_status = ""
@@ -150,32 +146,24 @@ def parse_se09_transport_list(
     while i < len(text_lines):
         line = text_lines[i]
 
-        # Check for status keyword
         if line in _STATUS_KEYWORDS:
             current_status = _STATUS_KEYWORDS[line]
             i += 1
             continue
 
-        # Check for request type keyword
         for keyword, type_name in _REQUEST_TYPE_KEYWORDS.items():
             if keyword in line and ("Auftrag" in line or "Request" in line):
                 current_request_type = type_name
                 break
 
-        # Check for target system
         target_match = _TARGET_RE.match(line)
         if target_match:
             current_target = target_match.group(1)
             i += 1
             continue
 
-        # Check for transport number
         if _is_transport_number(line):
-            transport_num = line.strip()
-            owner = ""
-            description = ""
-
-            # Next line should be "OWNER description text"
+            owner, description = "", ""
             if i + 1 < len(text_lines):
                 next_line = text_lines[i + 1]
                 if not _is_transport_number(next_line) and next_line not in _STATUS_KEYWORDS:
@@ -183,11 +171,11 @@ def parse_se09_transport_list(
                     if parts:
                         owner = parts[0]
                         description = parts[1] if len(parts) > 1 else ""
-                    i += 1  # Skip the owner/description line
+                    i += 1
 
             requests.append(
                 TransportRequest(
-                    request_number=transport_num,
+                    request_number=line.strip(),
                     description=description,
                     owner=owner,
                     status=current_status,
@@ -200,8 +188,4 @@ def parse_se09_transport_list(
 
         i += 1
 
-    return TransportListResult(
-        requests=requests,
-        request_count=len(requests),
-        retrieved_at=now,
-    )
+    return requests
