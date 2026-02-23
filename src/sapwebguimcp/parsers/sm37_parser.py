@@ -168,7 +168,7 @@ def parse_sm37_job_list(snapshot: str) -> list[SM37Job]:
         return []
 
     jobs: list[SM37Job] = []
-    seen: set[tuple[str, str, str, str | None]] = set()
+    seen: set[tuple[str, str, str, str | None, str]] = set()
 
     for match in _JOB_TEXT_PATTERN.finditer(snapshot):
         text = match.group(1).strip()
