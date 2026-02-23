@@ -29,6 +29,7 @@ from sapwebguimcp.tools import (
     register_fm_tools,
     register_intent_tools,
     register_sap_tools,
+    register_se09_tools,
     register_se11_tools,
     register_se16_tools,
     register_se24_edit_tools,
@@ -166,6 +167,7 @@ register_se11_tools(mcp)
 register_se16_tools(mcp)
 register_se24_tools(mcp)
 register_se37_tools(mcp)
+register_se09_tools(mcp)
 register_se93_tools(mcp)
 register_catalog_tools(mcp)
 register_table_tools(mcp)

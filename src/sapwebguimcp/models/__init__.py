@@ -77,6 +77,12 @@ from sapwebguimcp.models.sap_results import (
     ToolInfo,
     TransactionResult,
 )
+from sapwebguimcp.models.se09_models import (
+    TransportListResult,
+    TransportObject,
+    TransportRequest,
+    TransportTask,
+)
 from sapwebguimcp.models.se11_models import (
     SE11Entry,
     SE11Error,
@@ -251,6 +257,11 @@ __all__ = [
     "SE37EditResult",
     # SE38 edit models
     "SE38EditResult",
+    # SE09 models
+    "TransportListResult",
+    "TransportObject",
+    "TransportRequest",
+    "TransportTask",
     # SE93 models
     "SE93Entry",
     "SE93Error",

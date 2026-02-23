@@ -169,6 +169,29 @@ SE93_AUTH_OBJECT_EN = "Authorization object"
 
 
 # =============================================================================
+# SE09 - Transport Organizer
+# =============================================================================
+_SE09_INITIAL_HEADING_DE = "Transport Organizer"
+_SE09_INITIAL_HEADING_EN = "Transport Organizer"
+
+# Request type checkboxes
+_SE09_WORKBENCH_DE = "Workbench-Aufträge"
+_SE09_WORKBENCH_EN = "Workbench Requests"
+_SE09_CUSTOMIZING_DE = "Customizing-Aufträge"
+_SE09_CUSTOMIZING_EN = "Customizing Requests"
+
+# Status filter labels
+_SE09_MODIFIABLE_DE = "Änderbar"
+_SE09_MODIFIABLE_EN = "Modifiable"
+_SE09_RELEASED_DE = "Freigegeben"
+_SE09_RELEASED_EN = "Released"
+
+# Button labels
+_SE09_DISPLAY_BUTTON_DE = "Anzeigen"
+_SE09_DISPLAY_BUTTON_EN = "Display"
+
+
+# =============================================================================
 # Helper Functions
 # =============================================================================
 

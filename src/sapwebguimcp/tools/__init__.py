@@ -24,6 +24,7 @@ from sapwebguimcp.tools.intent_tools import (
     register_intent_tools,
 )
 from sapwebguimcp.tools.sap_tools import register_sap_tools
+from sapwebguimcp.tools.se09_tools import register_se09_tools
 from sapwebguimcp.tools.se11_tools import register_se11_tools
 from sapwebguimcp.tools.se16_tools import register_se16_tools
 from sapwebguimcp.tools.se24_edit_tools import register_se24_edit_tools
@@ -51,6 +52,7 @@ __all__ = [
     "register_se37_edit_tools",
     "register_se37_tools",
     "register_se38_edit_tools",
+    "register_se09_tools",
     "register_se93_tools",
     "register_table_tools",
     "register_workflow_tools",
