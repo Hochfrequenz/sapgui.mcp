@@ -232,7 +232,7 @@ def bilingual_pattern(de: str, en: str, *, escape: bool = True) -> str:
 # ST22 - Short Dump Analysis (ABAP Runtime Errors)
 # =============================================================================
 
-# Private constants (not exported, used only by ST22 parser)
+# ST22 constants (used by ST22 parser)
 _ST22_TITLE_DE = "ABAP-Laufzeitfehler"
 _ST22_TITLE_EN = "ABAP Runtime Errors"
 
@@ -274,23 +274,3 @@ _ST22_ERROR_ANALYSIS_EN = "Error Analysis"
 # "No dumps found" status message
 _ST22_NO_DUMPS_DE = "Keine Einträge gefunden"
 _ST22_NO_DUMPS_EN = "No entries found"
-
-
-# =============================================================================
-# Helper Functions
-# =============================================================================
-
-
-def bilingual_pattern_ignorecase(de: str, en: str, *, escape: bool = True) -> str:
-    """
-    Build case-insensitive regex alternation from DE/EN pair.
-
-    Args:
-        de: German string
-        en: English string
-        escape: Whether to escape regex special characters (default True)
-
-    Returns:
-        Regex pattern string (use with re.IGNORECASE flag)
-    """
-    return bilingual_pattern(de, en, escape=escape)

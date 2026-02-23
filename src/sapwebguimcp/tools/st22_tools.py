@@ -16,10 +16,10 @@ import json
 import logging
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+from playwright.async_api import Page
 
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.config import get_settings
@@ -33,7 +33,7 @@ from sapwebguimcp.parsers.st22_parser import (
     parse_st22_dump_list,
     parse_st22_initial_screen,
 )
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
+from sapwebguimcp.tools.sap_page_helpers import navigate_transaction
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 logger = logging.getLogger(__name__)
@@ -46,11 +46,11 @@ __all__ = ["register_st22_tools"]
 # =============================================================================
 
 
-async def _navigate_to_st22(page: Any) -> str | None:
+async def _navigate_to_st22(page: Page) -> str | None:
     """Navigate to ST22. Returns error message or None on success."""
-    tx_result = await sap_transaction_impl("ST22")
-    if not tx_result.success:
-        return f"Failed to navigate to ST22: {tx_result.error}"
+    tx_error = await navigate_transaction(page, "ST22")
+    if tx_error:
+        return f"Failed to navigate to ST22: {tx_error}"
 
     await page.wait_for_timeout(500)
     await page.wait_for_load_state("networkidle")
@@ -58,7 +58,7 @@ async def _navigate_to_st22(page: Any) -> str | None:
     return None
 
 
-async def _clear_user_field(page: Any) -> None:
+async def _clear_user_field(page: Page) -> None:
     """Clear the Benutzer/User field to search for all users.
 
     ST22 pre-fills the user field with the current user.
@@ -77,7 +77,7 @@ async def _clear_user_field(page: Any) -> None:
     logger.debug("User field not found for clearing")
 
 
-async def _fill_date_field(page: Any, target_date: str, language: SapLanguage) -> str | None:
+async def _fill_date_field(page: Page, target_date: str, language: SapLanguage) -> str | None:
     """Fill the date field with a formatted date. Returns error or None."""
     try:
         formatted = format_sap_date(target_date, language)
@@ -98,7 +98,7 @@ async def _fill_date_field(page: Any, target_date: str, language: SapLanguage) -
     return "Could not find date field"
 
 
-async def _try_quick_button(page: Any, target_date: str | None) -> bool:
+async def _try_quick_button(page: Page, target_date: str | None) -> bool:
     """Try to use Heute/Today or Gestern/Yesterday quick buttons.
 
     These buttons navigate directly to the dump list for all users,
@@ -131,7 +131,7 @@ async def _try_quick_button(page: Any, target_date: str | None) -> bool:
     return False
 
 
-async def _execute_search(page: Any, target_date: str | None) -> str | None:
+async def _execute_search(page: Page, target_date: str | None) -> str | None:
     """Execute the ST22 search. Returns error or None.
 
     Strategy:
@@ -139,7 +139,7 @@ async def _execute_search(page: Any, target_date: str | None) -> str | None:
     2. Fall back to clearing user field + filling date + F8
     """
     settings = get_settings()
-    language = settings.sap_language
+    language: SapLanguage = settings.sap_language
 
     # Strategy 1: Quick buttons for today/yesterday
     if await _try_quick_button(page, target_date):
@@ -164,7 +164,7 @@ async def _execute_search(page: Any, target_date: str | None) -> str | None:
     return None
 
 
-async def _select_dump_by_index(page: Any, dump_index: int, dump_count: int) -> str | None:
+async def _select_dump_by_index(page: Page, dump_index: int, dump_count: int) -> str | None:
     """Select a dump from the list by double-clicking the row.
 
     Returns error message or None on success.
@@ -204,7 +204,7 @@ async def _select_dump_by_index(page: Any, dump_index: int, dump_count: int) -> 
     return f"Could not find row at index {dump_index} (total visible rows: {row_count})"
 
 
-async def _capture_full_detail(page: Any) -> str:
+async def _capture_full_detail(page: Page) -> str:
     """Capture the full dump detail by scrolling and collecting snapshots.
 
     ST22 detail is a long scrollable text. Scroll down and concatenate
@@ -236,7 +236,7 @@ async def _capture_full_detail(page: Any) -> str:
 
 
 async def _st22_lookup(  # pylint: disable=too-many-return-statements
-    page: Any,
+    page: Page,
     target_date: str | None,
     dump_index: int | None,
 ) -> ST22DumpListResult | ST22DumpDetailResult:
@@ -363,10 +363,9 @@ def register_st22_tools(mcp: FastMCP) -> None:
         description=(
             "Look up ABAP short dumps (runtime errors) from ST22. "
             "USE THIS instead of sap_transaction('ST22') - faster and returns structured data. "
-            "By default lists today's dumps. Use date parameter for other dates. "
-            "Set dump_index to retrieve full detail text for a specific dump. "
-            "Workflow: call once without dump_index to get the list, then call again "
-            "with dump_index to read a specific dump's detail."
+            "Two-step workflow: call once without dump_index to list dumps, "
+            "then call again with dump_index=N to read a specific dump's detail. "
+            "By default lists today's dumps. Use date parameter for other dates."
         ),
     )
     async def sap_st22_lookup(  # pylint: disable=redefined-outer-name
@@ -419,8 +418,8 @@ def register_st22_tools(mcp: FastMCP) -> None:
                 retrieved_at=now,
             )
 
-        # Write to file if requested
-        if output_file:
+        # Write to file if requested (only on success)
+        if output_file and result.success:
             output_path = Path(output_file)
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
