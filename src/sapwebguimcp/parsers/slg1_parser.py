@@ -243,7 +243,11 @@ def _parse_single_row(row_lines: list[str]) -> SLG1LogEntry | None:  # pylint: d
         ext_id = _clean_cell_value(gridcell_values[log_idx - 6])
         count_str = _clean_cell_value(gridcell_values[log_idx - 7])
 
-        message_count = int(count_str) if count_str.isdigit() else 0
+        if count_str and count_str.isdigit():
+            message_count = int(count_str)
+        else:
+            logger.debug("Non-numeric message count: %r", count_str)
+            message_count = 0
 
         return SLG1LogEntry(
             log_number=log_number,
