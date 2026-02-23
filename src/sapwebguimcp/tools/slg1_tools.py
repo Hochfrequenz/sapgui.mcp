@@ -29,26 +29,11 @@ from sapwebguimcp.tools.sap_tool_impl import (
     sap_keyboard_impl,
     sap_transaction_impl,
 )
+from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["register_slg1_tools"]
-
-
-def _format_sap_date(iso_date: str, language: str) -> str:
-    """
-    Convert ISO date (YYYY-MM-DD) to SAP format based on language.
-
-    DE -> DD.MM.YYYY
-    EN -> MM/DD/YYYY
-    """
-    parts = iso_date.split("-")
-    if len(parts) != 3:
-        return iso_date  # Return as-is if not valid ISO format
-    year, month, day = parts
-    if language.upper() == "DE":
-        return f"{day}.{month}.{year}"
-    return f"{month}/{day}/{year}"
 
 
 async def _slg1_lookup(  # pylint: disable=too-many-branches,too-many-locals
@@ -62,7 +47,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-branches,too-many-locals
     now = datetime.now(UTC)
 
     settings = get_settings()
-    language = settings.sap_language
+    language: SapLanguage = settings.sap_language
 
     # Navigate to SLG1
     tx_result = await sap_transaction_impl("SLG1")
@@ -94,9 +79,9 @@ async def _slg1_lookup(  # pylint: disable=too-many-branches,too-many-locals
         if external_id:
             fields["Ext. Identif."] = external_id
         if from_date:
-            fields["von (Datum/Uhrzeit)"] = _format_sap_date(from_date, language)
+            fields["von (Datum/Uhrzeit)"] = format_sap_date(from_date, language)
         if to_date:
-            fields["bis (Datum/Uhrzeit)"] = _format_sap_date(to_date, language)
+            fields["bis (Datum/Uhrzeit)"] = format_sap_date(to_date, language)
     else:
         fields["Object"] = object_name
         if subobject:
@@ -104,9 +89,9 @@ async def _slg1_lookup(  # pylint: disable=too-many-branches,too-many-locals
         if external_id:
             fields["External ID"] = external_id
         if from_date:
-            fields["From (Date/Time)"] = _format_sap_date(from_date, language)
+            fields["From (Date/Time)"] = format_sap_date(from_date, language)
         if to_date:
-            fields["To (Date/Time)"] = _format_sap_date(to_date, language)
+            fields["To (Date/Time)"] = format_sap_date(to_date, language)
 
     # Fill selection screen
     fill_result = await sap_fill_form_impl(fields)
