@@ -34,7 +34,7 @@ from sapwebguimcp.parsers.st22_parser import (
     parse_st22_initial_screen,
 )
 from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
-from sapwebguimcp.utils import format_sap_date
+from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 logger = logging.getLogger(__name__)
 
@@ -72,12 +72,12 @@ async def _clear_user_field(page: Any) -> None:
                 await field.fill("")
                 await page.wait_for_timeout(100)
                 return
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 logger.debug("Could not clear user field with label=%r", label)
     logger.debug("User field not found for clearing")
 
 
-async def _fill_date_field(page: Any, target_date: str, language: str) -> str | None:
+async def _fill_date_field(page: Any, target_date: str, language: SapLanguage) -> str | None:
     """Fill the date field with a formatted date. Returns error or None."""
     try:
         formatted = format_sap_date(target_date, language)
@@ -92,7 +92,7 @@ async def _fill_date_field(page: Any, target_date: str, language: str) -> str | 
                 await field.fill(formatted)
                 await page.wait_for_timeout(100)
                 return None
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 logger.debug("Could not fill date field with label=%r", label)
 
     return "Could not find date field"
@@ -125,7 +125,7 @@ async def _try_quick_button(page: Any, target_date: str | None) -> bool:
                 await page.wait_for_load_state("networkidle")
                 await page.wait_for_timeout(500)
                 return True
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 logger.debug("Quick button click failed for label=%r", label)
 
     return False
@@ -235,7 +235,7 @@ async def _capture_full_detail(page: Any) -> str:
 # =============================================================================
 
 
-async def _st22_lookup(
+async def _st22_lookup(  # pylint: disable=too-many-return-statements
     page: Any,
     target_date: str | None,
     dump_index: int | None,
@@ -369,7 +369,7 @@ def register_st22_tools(mcp: FastMCP) -> None:
             "with dump_index to read a specific dump's detail."
         ),
     )
-    async def sap_st22_lookup(
+    async def sap_st22_lookup(  # pylint: disable=redefined-outer-name
         date: str | None = None,
         dump_index: int | None = None,
         output_file: str | None = None,
@@ -408,7 +408,7 @@ def register_st22_tools(mcp: FastMCP) -> None:
 
         try:
             result = await _st22_lookup(page, date, dump_index)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("ST22 lookup failed")
             now = datetime.now(UTC)
             return ST22DumpListResult.failure(

@@ -115,7 +115,7 @@ def _identify_columns(snapshot: str) -> list[str]:
     return headers
 
 
-def _map_column_to_field(col_name: str) -> str | None:
+def _map_column_to_field(col_name: str) -> str | None:  # pylint: disable=too-many-return-statements
     """Map a column header name to a field name."""
     col_lower = col_name.lower().strip()
 
@@ -212,7 +212,7 @@ def _flush_row(
         )
 
 
-def parse_st22_dump_list(snapshot: str) -> list[ST22Dump]:
+def parse_st22_dump_list(snapshot: str) -> list[ST22Dump]:  # pylint: disable=too-many-branches,too-many-locals
     """Parse the ST22 dump list from an ARIA snapshot.
 
     Handles multiple formats:
