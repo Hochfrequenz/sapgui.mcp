@@ -383,7 +383,7 @@ def register_st22_tools(mcp: FastMCP) -> None:
                   Uses Today/Yesterday toolbar buttons when applicable.
             dump_index: Select the Nth dump from the list (0-based) to read detail.
                         If None, returns the dump list only.
-            output_file: If provided, write results to this JSON file and return summary.
+            output_file: If provided, write results to this JSON file (on success only).
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -397,12 +397,11 @@ def register_st22_tools(mcp: FastMCP) -> None:
             page = browser_manager.get_session_page_checked(session, agent_id, "sap_st22_lookup")
         except ValueError as e:
             now = datetime.now(UTC)
+            error_msg = f"Session error: {e}"
+            if dump_index is not None:
+                return ST22DumpDetailResult.failure(error=error_msg, detail=None, retrieved_at=now)
             return ST22DumpListResult.failure(
-                error=f"Session error: {e}",
-                dumps=[],
-                dump_count=0,
-                date_searched=date or "",
-                retrieved_at=now,
+                error=error_msg, dumps=[], dump_count=0, date_searched=date or "", retrieved_at=now
             )
 
         try:
@@ -410,12 +409,11 @@ def register_st22_tools(mcp: FastMCP) -> None:
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("ST22 lookup failed")
             now = datetime.now(UTC)
+            error_msg = f"ST22 lookup failed: {e}"
+            if dump_index is not None:
+                return ST22DumpDetailResult.failure(error=error_msg, detail=None, retrieved_at=now)
             return ST22DumpListResult.failure(
-                error=f"ST22 lookup failed: {e}",
-                dumps=[],
-                dump_count=0,
-                date_searched=date or "",
-                retrieved_at=now,
+                error=error_msg, dumps=[], dump_count=0, date_searched=date or "", retrieved_at=now
             )
 
         # Write to file if requested (only on success)
