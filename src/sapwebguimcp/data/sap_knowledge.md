@@ -127,13 +127,13 @@ You can navigate to the relevant transactions and inspect objects that aren't pa
 Use these focused transactions for ABAP development.
 Each has a simple, MCP-friendly UI:
 
-| Transaction | Purpose                               | Example Use                                                    |
-| ----------- | ------------------------------------- | -------------------------------------------------------------- |
-| **SE37**    | Function Modules (Funktionsbausteine) | View, edit (sap_se37_edit) signature, parameters, exceptions   |
-| **SE38**    | Reports / Programs                    | View, edit (sap_se38_edit), and test ABAP reports              |
-| **SE24**    | Classes (Klassen)                     | View, edit (sap_se24_edit) class methods, attributes           |
-| **SE11**    | Data Dictionary (DDIC)                | View table structures, data elements, domains                  |
-| **SE16**    | Table Contents                        | Browse actual data in tables (read-only recommended)           |
+| Transaction | Purpose                               | Example Use                                                  |
+| ----------- | ------------------------------------- | ------------------------------------------------------------ |
+| **SE37**    | Function Modules (Funktionsbausteine) | View, edit (sap_se37_edit) signature, parameters, exceptions |
+| **SE38**    | Reports / Programs                    | View, edit (sap_se38_edit), and test ABAP reports            |
+| **SE24**    | Classes (Klassen)                     | View, edit (sap_se24_edit) class methods, attributes         |
+| **SE11**    | Data Dictionary (DDIC)                | View table structures, data elements, domains                |
+| **SE16**    | Table Contents                        | Browse actual data in tables (read-only recommended)         |
 
 > **Avoid SE80** (Object Navigator / Workbench): Its complex tree-based UI is difficult for the MCP server to parse and navigate.
 > Prefer the smaller, focused transactions above.

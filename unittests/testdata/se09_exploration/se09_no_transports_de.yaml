@@ -20,10 +20,10 @@
   - textbox "Benutzer": ZZZNOUSER99
   - group "Auftragstyp":
     - heading "Auftragstyp" [level=2]
-    - checkbox "Customizing-Aufträge" [checked]:  Customizing-Aufträge
-    - checkbox "Workbench-Aufträge" [checked]:  Workbench-Aufträge
-    - checkbox "Transporte von Kopien":  Transporte von Kopien
-    - checkbox "Umzüge":  Umzüge
+    - checkbox "Customizing-Aufträge" [disabled]
+    - checkbox "Workbench-Aufträge" [checked] [disabled]:  Workbench-Aufträge
+    - checkbox "Transporte von Kopien" [disabled]
+    - checkbox "Umzüge" [disabled]
   - tablist:
     - tab "Globale Information" [selected]
     - tab "Transportanträge"
@@ -37,13 +37,14 @@
     - button "Reparaturen"
   - group "Auftragsstatus":
     - heading "Auftragsstatus" [level=2]
-    - checkbox "Änderbar" [checked]:  Änderbar
-    - checkbox "Freigegeben":  Freigegeben
+    - checkbox "Änderbar" [checked] [disabled]:  Änderbar
+    - checkbox "Freigegeben" [checked] [disabled]:  Freigegeben
     - textbox "Text für Datumsauswahl"
     - text: 
   - button "Anzeigen"
   - text: 
   - toolbar:
+    - note "Warnung Meldungsleiste Benutzer ZZZNOUSER99 ist im System nicht vorhanden (oder gesperrt)"
     - button "Auswahl anzeigen Hervorgehoben"
   - menu:
     - rowgroup:
@@ -77,15 +78,15 @@
         - cell "Transaktion"
         - cell "SE09"
         - cell
-      - row "E2E-Zeit 81 ms":
+      - row "E2E-Zeit 84 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "81 ms"
+        - cell "84 ms"
         - cell
-      - row "WebGUI-Zeit 25 ms":
+      - row "WebGUI-Zeit 37 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "25 ms"
+        - cell "37 ms"
         - cell

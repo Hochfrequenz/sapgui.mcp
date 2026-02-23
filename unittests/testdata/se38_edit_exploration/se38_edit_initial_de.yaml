@@ -1,0 +1,79 @@
+- 'main "ABAP Editor: Einstieg"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "ABAP Editor: Einstieg" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Prüfen"
+      - button "Aktivieren"
+      - button "Ausführen"
+      - button "Verwendungsnachweis"
+      - button "Umfeldermittlung"
+      - button "Online-Hilfe"
+      - button "Löschen..."
+      - button "Kopieren..."
+      - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Drucken... (Strg+P)"
+    - button "Beenden"
+  - text: Programm
+  - textbox "Programm"
+  - button "Anlegen"
+  - group "Teilobjekte":
+    - heading "Teilobjekte" [level=2]
+    - radio "Quelltext" [checked]
+    - radio "Varianten"
+    - radio "Eigenschaften"
+    - radio "Textelemente"
+    - radio "Dokumentation"
+  - button "Anzeigen"
+  - button "Ändern"
+  - text: 
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLWBABAP/0100":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLWBABAP/0100"
+        - cell
+      - menuitemradio "Transaktion SE38":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE38"
+        - cell
+      - row "E2E-Zeit 96 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "96 ms"
+        - cell
+      - row "WebGUI-Zeit 33 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "33 ms"
+        - cell

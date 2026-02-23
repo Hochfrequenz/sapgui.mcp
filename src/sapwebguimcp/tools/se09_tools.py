@@ -46,9 +46,7 @@ __all__ = ["register_se09_tools"]
 _USER_FIELD_RE = re.compile(bilingual_pattern(SE09_USER_FIELD_DE, SE09_USER_FIELD_EN), re.I)
 _MODIFIABLE_RE = re.compile(bilingual_pattern(SE09_MODIFIABLE_DE, SE09_MODIFIABLE_EN), re.I)
 _RELEASED_RE = re.compile(bilingual_pattern(SE09_RELEASED_DE, SE09_RELEASED_EN), re.I)
-_DISPLAY_RE = re.compile(
-    f"^{bilingual_pattern(SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN)}$", re.I
-)
+_DISPLAY_RE = re.compile(f"^{bilingual_pattern(SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN)}$", re.I)
 
 
 async def _fill_user_field(page: Page, username: str) -> None:

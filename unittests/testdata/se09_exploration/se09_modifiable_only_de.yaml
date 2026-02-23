@@ -23,11 +23,9 @@
       - row "Liste":
         - cell "Liste":
           - region "Liste":
-            - text: Änderungsaufträge mit Beteiligung von KLEINK (Konstantin Klein)
+            - text: Workbench-Aufträge mit Beteiligung von KLEINK (Konstantin Klein)
             - button
             - text: 100 Entwickl., übergre. Cust.
-            - button
-            - text: Workbench Workbench-Auftrag
             - button
             - text: "-> DUM Dummy Queue"
             - button
@@ -90,15 +88,15 @@
         - cell "Transaktion"
         - cell "SE09"
         - cell
-      - row "E2E-Zeit 193 ms":
+      - row "E2E-Zeit 216 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "193 ms"
+        - cell "216 ms"
         - cell
-      - row "WebGUI-Zeit 106 ms":
+      - row "WebGUI-Zeit 120 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "106 ms"
+        - cell "120 ms"
         - cell

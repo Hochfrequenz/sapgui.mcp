@@ -20,7 +20,7 @@
   - textbox "Benutzer": KLEINK
   - group "Auftragstyp":
     - heading "Auftragstyp" [level=2]
-    - checkbox "Customizing-Aufträge" [checked]:  Customizing-Aufträge
+    - checkbox "Customizing-Aufträge":  Customizing-Aufträge
     - checkbox "Workbench-Aufträge" [checked]:  Workbench-Aufträge
     - checkbox "Transporte von Kopien":  Transporte von Kopien
     - checkbox "Umzüge":  Umzüge
@@ -38,7 +38,7 @@
   - group "Auftragsstatus":
     - heading "Auftragsstatus" [level=2]
     - checkbox "Änderbar" [checked]:  Änderbar
-    - checkbox "Freigegeben":  Freigegeben
+    - checkbox "Freigegeben" [checked]:  Freigegeben
     - textbox "Text für Datumsauswahl"
     - text: 
   - button "Anzeigen"
@@ -77,15 +77,15 @@
         - cell "Transaktion"
         - cell "SE09"
         - cell
-      - row "E2E-Zeit 141 ms":
+      - row "E2E-Zeit 150 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "141 ms"
+        - cell "150 ms"
         - cell
-      - row "WebGUI-Zeit 36 ms":
+      - row "WebGUI-Zeit 53 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "36 ms"
+        - cell "53 ms"
         - cell

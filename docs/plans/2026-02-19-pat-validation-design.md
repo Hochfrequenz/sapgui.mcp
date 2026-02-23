@@ -75,13 +75,13 @@ return AbapGitActionResult.failure_result(...)
 
 ### 4. Tests
 
-| Test | Type | What it verifies |
-|------|------|------------------|
-| `test_validate_github_pat_expired_real` | Integration (real HTTP) | Hardcoded expired token hits GitHub API, gets 401, returns `(False, ...)` |
-| `test_validate_github_pat_expired_mock` | Unit (respx mock) | Mocked 401 response returns `(False, "Bad credentials")` |
-| `test_validate_github_pat_valid_mock` | Unit (respx mock) | Mocked 200 response returns `(True, "test-user")` |
-| `test_validate_github_pat_network_error_mock` | Unit (respx mock) | Mocked connection error returns `(False, "GitHub API unreachable: ...")` |
-| `test_analyze_pull_result_empty_status_returns_failure` | Unit (mock) | Empty status bar no longer returns success |
+| Test                                                    | Type                    | What it verifies                                                          |
+| ------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------- |
+| `test_validate_github_pat_expired_real`                 | Integration (real HTTP) | Hardcoded expired token hits GitHub API, gets 401, returns `(False, ...)` |
+| `test_validate_github_pat_expired_mock`                 | Unit (respx mock)       | Mocked 401 response returns `(False, "Bad credentials")`                  |
+| `test_validate_github_pat_valid_mock`                   | Unit (respx mock)       | Mocked 200 response returns `(True, "test-user")`                         |
+| `test_validate_github_pat_network_error_mock`           | Unit (respx mock)       | Mocked connection error returns `(False, "GitHub API unreachable: ...")`  |
+| `test_analyze_pull_result_empty_status_returns_failure` | Unit (mock)             | Empty status bar no longer returns success                                |
 
 The real integration test uses the known expired token `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`
 to prove the 401 detection works against actual GitHub infrastructure.
