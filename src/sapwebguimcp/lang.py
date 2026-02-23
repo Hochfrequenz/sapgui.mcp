@@ -167,6 +167,34 @@ SE93_PROGRAM_EN = "Program"
 SE93_AUTH_OBJECT_DE = "Berechtigungsobjekt"
 SE93_AUTH_OBJECT_EN = "Authorization object"
 
+# =============================================================================
+# SLG1 - Application Log
+# =============================================================================
+_SLG1_INITIAL_SCREEN_DE = "Anwendungslog auswerten"
+_SLG1_INITIAL_SCREEN_EN = "Analyze Application Log"
+
+_SLG1_LOG_LIST_SCREEN_DE = "Protokolle anzeigen"
+_SLG1_LOG_LIST_SCREEN_EN = "Display Logs"
+
+_SLG1_OBJECT_DE = "Objekt"
+_SLG1_OBJECT_EN = "Object"
+
+_SLG1_SUBOBJECT_DE = "Unterobjekt"
+_SLG1_SUBOBJECT_EN = "Subobject"
+
+_SLG1_EXTERNAL_ID_DE = "Ext. Identif."
+_SLG1_EXTERNAL_ID_EN = "External ID"
+
+_SLG1_FROM_DATE_DE = "von (Datum/Uhrzeit)"
+_SLG1_FROM_DATE_EN = "From (Date/Time)"
+
+_SLG1_TO_DATE_DE = "bis (Datum/Uhrzeit)"
+_SLG1_TO_DATE_EN = "To (Date/Time)"
+
+# Status bar message when no logs found
+_SLG1_NO_LOGS_FOUND_DE = "Es konnte kein Protokoll auf der Datenbank gefunden werden"
+_SLG1_NO_LOGS_FOUND_EN = "No log could be found in the database"
+
 
 # =============================================================================
 # SM37 - Job Overview
