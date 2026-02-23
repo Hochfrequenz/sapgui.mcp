@@ -228,16 +228,20 @@ def bilingual_pattern(de: str, en: str, *, escape: bool = True) -> str:
     return f"(?:{de}|{en})"
 
 
-def bilingual_pattern_ignorecase(de: str, en: str, *, escape: bool = True) -> str:
-    """
-    Build case-insensitive regex alternation from DE/EN pair.
+# =============================================================================
+# ST22 - Short Dump Analysis (ABAP Runtime Errors)
+# =============================================================================
 
-    Args:
-        de: German string
-        en: English string
-        escape: Whether to escape regex special characters (default True)
+# Detail page section headers
+ST22_WHAT_HAPPENED_DE = "Was ist geschehen?"
+ST22_WHAT_HAPPENED_EN = "What happened?"
 
-    Returns:
-        Regex pattern string (use with re.IGNORECASE flag)
-    """
-    return bilingual_pattern(de, en, escape=escape)
+ST22_HOW_TO_CORRECT_DE = "Was können Sie tun?"
+ST22_HOW_TO_CORRECT_EN = "How to Correct the Error"
+
+ST22_ERROR_ANALYSIS_DE = "Fehleranalyse"
+ST22_ERROR_ANALYSIS_EN = "Error Analysis"
+
+# "No dumps found" status message
+ST22_NO_DUMPS_DE = "Keine Einträge gefunden"
+ST22_NO_DUMPS_EN = "No entries found"
