@@ -184,7 +184,7 @@ pywin32-ctypes==0.2.3
     # via keyring
 pyyaml==6.0.3
     # via jsonschema-path
-redis==7.1.0
+redis==7.2.0
     # via
     #   fakeredis
     #   py-key-value-aio
