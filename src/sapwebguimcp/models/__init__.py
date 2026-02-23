@@ -128,7 +128,6 @@ from sapwebguimcp.models.slg1_models import (
     SLG1FileSummary,
     SLG1LogEntry,
     SLG1LogListResult,
-    SLG1Message,
 )
 from sapwebguimcp.models.sm37_models import (
     SM37Job,
@@ -276,7 +275,6 @@ __all__ = [
     "SLG1FileSummary",
     "SLG1LogEntry",
     "SLG1LogListResult",
-    "SLG1Message",
     # Workflow models
     "Workflow",
     "WorkflowDeleteResult",

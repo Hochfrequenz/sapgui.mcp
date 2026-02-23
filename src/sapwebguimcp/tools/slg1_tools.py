@@ -25,53 +25,12 @@ from sapwebguimcp.parsers.slg1_parser import (
     is_slg1_no_results,
     parse_slg1_log_list,
 )
-from sapwebguimcp.tools.sap_tool_impl import _load_js, _load_js_with_field_utils
+from sapwebguimcp.tools.sap_page_helpers import fill_form_on_page, navigate_transaction, read_status_bar
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["register_slg1_tools"]
-
-
-async def _navigate_transaction(page: Page, tcode: str) -> str | None:
-    """Navigate to a transaction on a specific page. Returns error string or None on success."""
-    okcode = await page.query_selector("#ToolbarOkCode")
-    if not okcode or not await okcode.is_visible():
-        for selector in ["input[id*='OkCode']", "input[lsdata*='OKCODE']"]:
-            okcode = await page.query_selector(selector)
-            if okcode and await okcode.is_visible():
-                break
-        else:
-            return f"OK-Code field not found for transaction {tcode}"
-
-    await page.bring_to_front()
-    await page.wait_for_timeout(500)
-    await okcode.click()
-    await page.wait_for_timeout(200)
-    await page.evaluate(_load_js("set_okcode_field.js"), {"transactionInput": f"/n{tcode}"})
-    await page.wait_for_timeout(300)
-    await page.keyboard.press("Enter")
-    await page.wait_for_load_state("networkidle", timeout=15000)
-    return None
-
-
-async def _fill_form_on_page(page: Page, fields: dict[str, str]) -> list[str]:
-    """Fill form fields on a specific page. Returns list of field names not found."""
-    result = await page.evaluate(
-        _load_js_with_field_utils("fill_form_fields.js"),
-        {"fields": fields},
-    )
-    not_found: list[str] = result.get("notFound", [])
-    return not_found
-
-
-async def _read_status_bar(page: Page) -> tuple[str, str]:
-    """Read the SAP status bar on a specific page. Returns (type, message)."""
-    try:
-        status_info = await page.evaluate(_load_js("extract_status_bar.js"))
-        return status_info.get("type", "none"), status_info.get("message", "")
-    except Exception:  # pylint: disable=broad-exception-caught
-        return "none", ""
 
 
 async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
@@ -89,7 +48,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
     language: SapLanguage = settings.sap_language
 
     # Navigate to SLG1
-    tx_error = await _navigate_transaction(page, "SLG1")
+    tx_error = await navigate_transaction(page, "SLG1")
     if tx_error:
         return SLG1LogListResult.failure(
             f"Failed to navigate to SLG1: {tx_error}",
@@ -131,13 +90,13 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
             fields["To (Date/Time)"] = format_sap_date(to_date, language)
 
     # Fill selection screen
-    not_found = await _fill_form_on_page(page, fields)
+    not_found = await fill_form_on_page(page, fields)
     if not_found:
         logger.warning("SLG1 fields not found: %r", not_found)
 
     # Execute search (F8)
     await page.keyboard.press("F8")
-    await page.wait_for_timeout(2000)
+    await page.wait_for_timeout(3000)
     await page.wait_for_load_state("networkidle")
 
     # Capture result snapshot
@@ -155,7 +114,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
 
     # If still on initial screen after F8, read status bar for error details
     if is_slg1_initial_screen(snapshot):
-        sb_type, sb_message = await _read_status_bar(page)
+        sb_type, sb_message = await read_status_bar(page)
         if sb_type in ("error", "warning", "E", "W"):
             return SLG1LogListResult.failure(
                 f"SLG1 error: {sb_message}",
@@ -282,8 +241,8 @@ def register_slg1_tools(mcp: FastMCP) -> None:
                 retrieved_at=datetime.now(UTC),
             )
 
-        # Write to file if requested
-        if output_file:
+        # Write to file if requested (only on success)
+        if output_file and result.success:
             output_path = Path(output_file)
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
