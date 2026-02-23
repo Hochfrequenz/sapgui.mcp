@@ -49,7 +49,8 @@ async def _fill_form_on_page(page: Page, fields: dict[str, str]) -> list[str]:
         _load_js_with_field_utils("fill_form_fields.js"),
         {"fields": fields},
     )
-    return result.get("notFound", [])
+    not_found: list[str] = result.get("notFound", [])
+    return not_found
 
 
 async def _navigate_transaction(page: Page, tcode: str) -> str | None:
