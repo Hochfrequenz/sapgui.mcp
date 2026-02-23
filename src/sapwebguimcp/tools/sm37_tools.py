@@ -14,7 +14,6 @@ from typing import Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-
 from playwright.async_api import Locator, Page
 
 from sapwebguimcp.models import get_browser_manager
