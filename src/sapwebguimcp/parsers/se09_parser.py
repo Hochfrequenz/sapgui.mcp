@@ -103,7 +103,11 @@ def _is_transport_number(text: str) -> bool:
     return bool(_TRANSPORT_NUMBER_RE.match(text.strip()))
 
 
-def parse_se09_transport_list(snapshot: str) -> TransportListResult:
+def parse_se09_transport_list(
+    snapshot: str,
+    *,
+    include_objects: bool = False,  # pylint: disable=unused-argument  # reserved for future use
+) -> TransportListResult:
     """
     Parse SE09 transport list from ARIA snapshot.
 
@@ -113,6 +117,7 @@ def parse_se09_transport_list(snapshot: str) -> TransportListResult:
 
     Args:
         snapshot: YAML accessibility snapshot from the SE09 list view
+        include_objects: Reserved for future use (object list parsing).
 
     Returns:
         TransportListResult with parsed requests
@@ -152,7 +157,7 @@ def _parse_transport_entries(text_lines: list[str]) -> list[TransportRequest]:
             continue
 
         for keyword, type_name in _REQUEST_TYPE_KEYWORDS.items():
-            if keyword in line and ("Auftrag" in line or "Request" in line):
+            if keyword in line and ("Auftrag" in line or "Aufträge" in line or "Request" in line):
                 current_request_type = type_name
                 break
 
