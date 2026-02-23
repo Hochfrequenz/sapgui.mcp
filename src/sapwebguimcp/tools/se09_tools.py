@@ -11,15 +11,27 @@ import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+from playwright.async_api import Locator, Page
 
+from sapwebguimcp.lang import (
+    SE09_DISPLAY_BUTTON_DE,
+    SE09_DISPLAY_BUTTON_EN,
+    SE09_MODIFIABLE_DE,
+    SE09_MODIFIABLE_EN,
+    SE09_RELEASED_DE,
+    SE09_RELEASED_EN,
+    SE09_USER_FIELD_DE,
+    SE09_USER_FIELD_EN,
+    bilingual_pattern,
+)
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.se09_models import TransportListResult
 from sapwebguimcp.parsers.se09_parser import parse_se09_transport_list
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
+from sapwebguimcp.tools.sap_page_helpers import navigate_transaction
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +43,17 @@ __all__ = ["register_se09_tools"]
 # =============================================================================
 
 
-async def _fill_user_field(page: Any, username: str) -> None:
+_USER_FIELD_RE = re.compile(bilingual_pattern(SE09_USER_FIELD_DE, SE09_USER_FIELD_EN), re.I)
+_MODIFIABLE_RE = re.compile(bilingual_pattern(SE09_MODIFIABLE_DE, SE09_MODIFIABLE_EN), re.I)
+_RELEASED_RE = re.compile(bilingual_pattern(SE09_RELEASED_DE, SE09_RELEASED_EN), re.I)
+_DISPLAY_RE = re.compile(
+    f"^{bilingual_pattern(SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN)}$", re.I
+)
+
+
+async def _fill_user_field(page: Page, username: str) -> None:
     """Fill the username filter field in SE09."""
-    user_field = page.get_by_role("textbox", name=re.compile(r"Benutzer|User", re.I))
+    user_field = page.get_by_role("textbox", name=_USER_FIELD_RE)
     if await user_field.count() > 0:
         await user_field.click(click_count=3)
         await page.wait_for_timeout(100)
@@ -43,7 +63,7 @@ async def _fill_user_field(page: Any, username: str) -> None:
         await page.wait_for_timeout(100)
 
 
-async def _safe_checkbox_click(page: Any, checkbox: Any, should_be_checked: bool) -> None:
+async def _safe_checkbox_click(page: Page, checkbox: Locator, should_be_checked: bool) -> None:
     """Safely click a checkbox if it's enabled and in the wrong state."""
     if await checkbox.count() == 0:
         return
@@ -60,7 +80,7 @@ async def _safe_checkbox_click(page: Any, checkbox: Any, should_be_checked: bool
         logger.warning("Failed to click checkbox, skipping")
 
 
-async def _set_request_type_filter(page: Any, request_type: str) -> None:
+async def _set_request_type_filter(page: Page, request_type: str) -> None:
     """Set request type checkboxes on SE09 selection screen."""
     if request_type == "all":
         return  # Both already checked by default
@@ -74,10 +94,10 @@ async def _set_request_type_filter(page: Any, request_type: str) -> None:
         await _safe_checkbox_click(page, wb_cb, should_be_checked=False)
 
 
-async def _set_status_filter(page: Any, status: str) -> None:
+async def _set_status_filter(page: Page, status: str) -> None:
     """Set status filter checkboxes on SE09 selection screen."""
-    mod_cb = page.get_by_role("checkbox", name=re.compile(r"Änderbar|Modifiable", re.I))
-    rel_cb = page.get_by_role("checkbox", name=re.compile(r"Freigegeben|Released", re.I))
+    mod_cb = page.get_by_role("checkbox", name=_MODIFIABLE_RE)
+    rel_cb = page.get_by_role("checkbox", name=_RELEASED_RE)
 
     if status == "all":
         await _safe_checkbox_click(page, rel_cb, should_be_checked=True)
@@ -90,14 +110,12 @@ async def _set_status_filter(page: Any, status: str) -> None:
         await _safe_checkbox_click(page, mod_cb, should_be_checked=False)
 
 
-async def _click_anzeigen_button(page: Any) -> None:
+async def _click_display_button(page: Page) -> None:
     """Click the Anzeigen/Display button to execute the search."""
-    # Try Anzeigen (DE) first, then Display (EN)
-    btn = page.get_by_role("button", name=re.compile(r"^Anzeigen$|^Display$", re.I))
+    btn = page.get_by_role("button", name=_DISPLAY_RE)
     if await btn.count() > 0:
         await btn.click()
     else:
-        # Fallback: try F8
         logger.warning("Anzeigen/Display button not found, trying F8")
         await page.keyboard.press("F8")
 
@@ -107,7 +125,7 @@ async def _click_anzeigen_button(page: Any) -> None:
 
 
 async def _lookup_transports(
-    page: Any,
+    page: Page,
     username: str | None,
     request_type: str,
     status: str,
@@ -115,11 +133,11 @@ async def _lookup_transports(
     """Look up transports in SE09."""
     now = datetime.now(UTC)
 
-    # Navigate to SE09
-    tx_result = await sap_transaction_impl("SE09")
-    if not tx_result.success:
+    # Navigate to SE09 using session-aware helper
+    tx_error = await navigate_transaction(page, "SE09")
+    if tx_error:
         return TransportListResult.failure(
-            error=f"Failed to navigate to SE09: {tx_result.error}",
+            error=f"Failed to navigate to SE09: {tx_error}",
             requests=[],
             request_count=0,
             retrieved_at=now,
@@ -135,15 +153,14 @@ async def _lookup_transports(
     await _set_request_type_filter(page, request_type)
     await _set_status_filter(page, status)
 
-    # Click Anzeigen button
-    await _click_anzeigen_button(page)
+    # Click Anzeigen/Display button
+    await _click_display_button(page)
 
     # Capture snapshot
     snapshot: str = await page.locator("body").aria_snapshot()
 
     # Parse the transport list
-    result = parse_se09_transport_list(snapshot)
-    return result
+    return parse_se09_transport_list(snapshot)
 
 
 # =============================================================================
@@ -183,7 +200,7 @@ def register_se09_tools(mcp: FastMCP) -> None:
             username: Filter by owner (default: current SAP user)
             request_type: Filter by type - "workbench", "customizing", or "all"
             status: Filter by status - "modifiable", "released", or "all" (default: "modifiable")
-            output_file: Write results to JSON file if provided
+            output_file: If provided, write results to this JSON file (on success only).
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 

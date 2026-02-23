@@ -79,9 +79,7 @@ from sapwebguimcp.models.sap_results import (
 )
 from sapwebguimcp.models.se09_models import (
     TransportListResult,
-    TransportObject,
     TransportRequest,
-    TransportTask,
 )
 from sapwebguimcp.models.se11_models import (
     SE11Entry,
@@ -284,9 +282,7 @@ __all__ = [
     "ST22DumpListResult",
     # SE09 models
     "TransportListResult",
-    "TransportObject",
     "TransportRequest",
-    "TransportTask",
     # SE93 models
     "SE93Entry",
     "SE93Error",

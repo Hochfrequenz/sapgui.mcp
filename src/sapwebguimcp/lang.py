@@ -209,24 +209,20 @@ SM37_STATUS_MAP_EN = {
 # =============================================================================
 # SE09 - Transport Organizer
 # =============================================================================
-_SE09_INITIAL_HEADING_DE = "Transport Organizer"
-_SE09_INITIAL_HEADING_EN = "Transport Organizer"
 
-# Request type checkboxes
-_SE09_WORKBENCH_DE = "Workbench-Aufträge"
-_SE09_WORKBENCH_EN = "Workbench Requests"
-_SE09_CUSTOMIZING_DE = "Customizing-Aufträge"
-_SE09_CUSTOMIZING_EN = "Customizing Requests"
+# User filter field label
+SE09_USER_FIELD_DE = "Benutzer"
+SE09_USER_FIELD_EN = "User"
 
 # Status filter labels
-_SE09_MODIFIABLE_DE = "Änderbar"
-_SE09_MODIFIABLE_EN = "Modifiable"
-_SE09_RELEASED_DE = "Freigegeben"
-_SE09_RELEASED_EN = "Released"
+SE09_MODIFIABLE_DE = "Änderbar"
+SE09_MODIFIABLE_EN = "Modifiable"
+SE09_RELEASED_DE = "Freigegeben"
+SE09_RELEASED_EN = "Released"
 
 # Button labels
-_SE09_DISPLAY_BUTTON_DE = "Anzeigen"
-_SE09_DISPLAY_BUTTON_EN = "Display"
+SE09_DISPLAY_BUTTON_DE = "Anzeigen"
+SE09_DISPLAY_BUTTON_EN = "Display"
 
 
 # =============================================================================

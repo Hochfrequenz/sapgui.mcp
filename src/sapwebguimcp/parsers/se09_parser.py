@@ -24,6 +24,12 @@ import logging
 import re
 from datetime import UTC, datetime
 
+from sapwebguimcp.lang import (
+    SE09_MODIFIABLE_DE,
+    SE09_MODIFIABLE_EN,
+    SE09_RELEASED_DE,
+    SE09_RELEASED_EN,
+)
 from sapwebguimcp.models.se09_models import (
     TransportListResult,
     TransportRequest,
@@ -48,12 +54,12 @@ _TEXT_LINE_RE = re.compile(r'^\s*- text:\s*"?(?P<content>[^"]*)"?\s*$')
 # Target system line: "-> XXX ..."
 _TARGET_RE = re.compile(r"^->\s+(\S+)")
 
-# Status keywords (DE/EN)
+# Status keywords (DE/EN) — values sourced from lang.py constants
 _STATUS_KEYWORDS = {
-    "Änderbar": "Modifiable",
-    "Modifiable": "Modifiable",
-    "Freigegeben": "Released",
-    "Released": "Released",
+    SE09_MODIFIABLE_DE: "Modifiable",
+    SE09_MODIFIABLE_EN: "Modifiable",
+    SE09_RELEASED_DE: "Released",
+    SE09_RELEASED_EN: "Released",
 }
 
 # Request type keywords (DE/EN)
