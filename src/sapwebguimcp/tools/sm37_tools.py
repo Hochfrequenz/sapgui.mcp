@@ -187,13 +187,52 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
     return errors
 
 
+_JOB_LOG_HEADING_DE = "Job Log Einträge"
+_JOB_LOG_HEADING_EN = "Job Log Entries"
+
+
+async def _select_first_job_row(page: Page) -> bool:
+    """Select the first job row checkbox in the SM37 list. Returns True if successful."""
+    # Job rows are rendered as: checkbox → text (job data), repeating.
+    # The first non-disabled checkbox after the column header buttons is the first job.
+    checkboxes = page.locator("region[name='Liste'] >> input[type='checkbox']:not([disabled])")
+    if await checkboxes.count() > 0:
+        await checkboxes.first.check()
+        await page.wait_for_timeout(200)
+        return True
+    # Fallback: try ARIA role
+    checkboxes = page.get_by_role("checkbox").filter(
+        has_not_text=re.compile(
+            "Geplant|Scheduled|Freigegeben|Released|Bereit|Ready|Aktiv|Active|Fertig|Finished|Abgebrochen|Canceled",
+            re.IGNORECASE,
+        )
+    )
+    for i in range(await checkboxes.count()):
+        cb = checkboxes.nth(i)
+        if not await cb.is_disabled():
+            await cb.check()
+            await page.wait_for_timeout(200)
+            return True
+    return False
+
+
+def _is_job_log_screen(snapshot: str) -> bool:
+    """Check if the snapshot shows a job log screen (not the job list)."""
+    return _JOB_LOG_HEADING_DE in snapshot or _JOB_LOG_HEADING_EN in snapshot
+
+
 async def _fetch_job_log(page: Page, language: SapLanguage) -> SM37JobLog | None:
     """
-    Fetch the job log for the currently selected job.
+    Select the first job row and fetch its job log.
 
-    The job must already be selected in the job list.
+    Selects the first checkbox in the job list, clicks the Job-Log button,
+    validates the screen changed, then parses the log.
     """
     try:
+        if not await _select_first_job_row(page):
+            logger.warning("Could not select first job row for log retrieval")
+            return None
+
         log_button_text = "Job-Log" if language == "DE" else "Job Log"
         button = page.get_by_role("button", name=re.compile(re.escape(log_button_text), re.IGNORECASE))
 
@@ -206,6 +245,13 @@ async def _fetch_job_log(page: Page, language: SapLanguage) -> SM37JobLog | None
         await page.wait_for_load_state("networkidle")
 
         snapshot = await page.locator("body").aria_snapshot()
+
+        if not _is_job_log_screen(snapshot):
+            logger.warning("Expected job log screen but got something else, skipping log parse")
+            await page.keyboard.press("F3")
+            await page.wait_for_timeout(1000)
+            return None
+
         job_log = parse_sm37_job_log(snapshot, "")
 
         # Navigate back (F3)
