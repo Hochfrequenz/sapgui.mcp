@@ -12,6 +12,7 @@ from pathlib import Path
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+from playwright.async_api import Page
 
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.config import get_settings
@@ -24,11 +25,7 @@ from sapwebguimcp.parsers.slg1_parser import (
     is_slg1_no_results,
     parse_slg1_log_list,
 )
-from sapwebguimcp.tools.sap_tool_impl import (
-    sap_fill_form_impl,
-    sap_keyboard_impl,
-    sap_transaction_impl,
-)
+from sapwebguimcp.tools.sap_tool_impl import _load_js, _load_js_with_field_utils
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 logger = logging.getLogger(__name__)
@@ -36,7 +33,49 @@ logger = logging.getLogger(__name__)
 __all__ = ["register_slg1_tools"]
 
 
-async def _slg1_lookup(  # pylint: disable=too-many-branches,too-many-locals
+async def _navigate_transaction(page: Page, tcode: str) -> str | None:
+    """Navigate to a transaction on a specific page. Returns error string or None on success."""
+    okcode = await page.query_selector("#ToolbarOkCode")
+    if not okcode or not await okcode.is_visible():
+        for selector in ["input[id*='OkCode']", "input[lsdata*='OKCODE']"]:
+            okcode = await page.query_selector(selector)
+            if okcode and await okcode.is_visible():
+                break
+        else:
+            return f"OK-Code field not found for transaction {tcode}"
+
+    await page.bring_to_front()
+    await page.wait_for_timeout(500)
+    await okcode.click()
+    await page.wait_for_timeout(200)
+    await page.evaluate(_load_js("set_okcode_field.js"), {"transactionInput": f"/n{tcode}"})
+    await page.wait_for_timeout(300)
+    await page.keyboard.press("Enter")
+    await page.wait_for_load_state("networkidle", timeout=15000)
+    return None
+
+
+async def _fill_form_on_page(page: Page, fields: dict[str, str]) -> list[str]:
+    """Fill form fields on a specific page. Returns list of field names not found."""
+    result = await page.evaluate(
+        _load_js_with_field_utils("fill_form_fields.js"),
+        {"fields": fields},
+    )
+    not_found: list[str] = result.get("notFound", [])
+    return not_found
+
+
+async def _read_status_bar(page: Page) -> tuple[str, str]:
+    """Read the SAP status bar on a specific page. Returns (type, message)."""
+    try:
+        status_info = await page.evaluate(_load_js("extract_status_bar.js"))
+        return status_info.get("type", "none"), status_info.get("message", "")
+    except Exception:  # pylint: disable=broad-exception-caught
+        return "none", ""
+
+
+async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
+    page: Page,
     object_name: str,
     subobject: str | None = None,
     external_id: str | None = None,
@@ -50,10 +89,10 @@ async def _slg1_lookup(  # pylint: disable=too-many-branches,too-many-locals
     language: SapLanguage = settings.sap_language
 
     # Navigate to SLG1
-    tx_result = await sap_transaction_impl("SLG1")
-    if not tx_result.success:
+    tx_error = await _navigate_transaction(page, "SLG1")
+    if tx_error:
         return SLG1LogListResult.failure(
-            f"Failed to navigate to SLG1: {tx_result.error}",
+            f"Failed to navigate to SLG1: {tx_error}",
             logs=[],
             log_count=0,
             logs_truncated=False,
@@ -61,8 +100,6 @@ async def _slg1_lookup(  # pylint: disable=too-many-branches,too-many-locals
         )
 
     # Wait for SLG1 selection screen to fully load
-    browser_manager = await get_browser_manager()
-    page = await browser_manager.get_current_page()
     await page.wait_for_timeout(500)
     await page.wait_for_load_state("networkidle")
 
@@ -94,41 +131,40 @@ async def _slg1_lookup(  # pylint: disable=too-many-branches,too-many-locals
             fields["To (Date/Time)"] = format_sap_date(to_date, language)
 
     # Fill selection screen
-    fill_result = await sap_fill_form_impl(fields)
-    if not fill_result.success:
-        return SLG1LogListResult.failure(
-            f"Failed to fill SLG1 selection screen: {fill_result.error}",
-            logs=[],
-            log_count=0,
-            logs_truncated=False,
-            retrieved_at=now,
-        )
-
-    if fill_result.not_found:
-        logger.warning("SLG1 fields not found: %r", fill_result.not_found)
+    not_found = await _fill_form_on_page(page, fields)
+    if not_found:
+        logger.warning("SLG1 fields not found: %r", not_found)
 
     # Execute search (F8)
-    kb_result = await sap_keyboard_impl("F8")
-    if not kb_result.success:
-        return SLG1LogListResult.failure(
-            f"Failed to execute SLG1 search: {kb_result.error}",
-            logs=[],
-            log_count=0,
-            logs_truncated=False,
-            retrieved_at=now,
-        )
-
-    # Wait for results to load
-    browser_manager = await get_browser_manager()
-    page = await browser_manager.get_current_page()
+    await page.keyboard.press("F8")
     await page.wait_for_timeout(2000)
     await page.wait_for_load_state("networkidle")
 
     # Capture result snapshot
     snapshot: str = await page.locator("body").aria_snapshot()
 
-    # Check for no results
-    if is_slg1_no_results(snapshot) or is_slg1_initial_screen(snapshot):
+    # Check for no results (explicit status bar message)
+    if is_slg1_no_results(snapshot):
+        return SLG1LogListResult(
+            logs=[],
+            log_count=0,
+            logs_truncated=False,
+            filters_applied=_build_filters(object_name, subobject, external_id, from_date, to_date),
+            retrieved_at=now,
+        )
+
+    # If still on initial screen after F8, read status bar for error details
+    if is_slg1_initial_screen(snapshot):
+        sb_type, sb_message = await _read_status_bar(page)
+        if sb_type in ("error", "warning", "E", "W"):
+            return SLG1LogListResult.failure(
+                f"SLG1 error: {sb_message}",
+                logs=[],
+                log_count=0,
+                logs_truncated=False,
+                retrieved_at=now,
+            )
+        # No error in status bar — genuinely no results
         return SLG1LogListResult(
             logs=[],
             log_count=0,
@@ -217,7 +253,7 @@ def register_slg1_tools(mcp: FastMCP) -> None:
         browser_manager = await get_browser_manager()
 
         try:
-            browser_manager.get_session_page_checked(session, agent_id, "sap_slg1_lookup")
+            page = browser_manager.get_session_page_checked(session, agent_id, "sap_slg1_lookup")
         except ValueError as e:
             return SLG1LogListResult.failure(
                 f"Session error: {e}",
@@ -229,6 +265,7 @@ def register_slg1_tools(mcp: FastMCP) -> None:
 
         try:
             result = await _slg1_lookup(
+                page,
                 object,
                 subobject,
                 external_id,
@@ -253,7 +290,7 @@ def register_slg1_tools(mcp: FastMCP) -> None:
             with output_path.open("w", encoding="utf-8") as f:
                 json.dump(result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
 
-            total_messages = sum(len(log.messages) for log in result.logs)
+            total_messages = sum(log.message_count for log in result.logs)
             return SLG1FileSummary(
                 success=result.success,
                 error=result.error,

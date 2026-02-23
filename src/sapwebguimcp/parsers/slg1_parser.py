@@ -28,17 +28,16 @@ import re
 from datetime import UTC, datetime
 
 from sapwebguimcp.lang import (
-    _SLG1_INITIAL_SCREEN_DE,
-    _SLG1_INITIAL_SCREEN_EN,
-    _SLG1_LOG_LIST_SCREEN_DE,
-    _SLG1_LOG_LIST_SCREEN_EN,
-    _SLG1_NO_LOGS_FOUND_DE,
-    _SLG1_NO_LOGS_FOUND_EN,
+    SLG1_INITIAL_SCREEN_DE,
+    SLG1_INITIAL_SCREEN_EN,
+    SLG1_LOG_LIST_SCREEN_DE,
+    SLG1_LOG_LIST_SCREEN_EN,
+    SLG1_NO_LOGS_FOUND_DE,
+    SLG1_NO_LOGS_FOUND_EN,
 )
 from sapwebguimcp.models.slg1_models import (
     SLG1LogEntry,
     SLG1LogListResult,
-    SLG1Message,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,12 +47,10 @@ __all__ = [
     "is_slg1_log_list_screen",
     "is_slg1_no_results",
     "parse_slg1_log_list",
-    "parse_slg1_messages",
 ]
 
 # Max limits per design doc
 MAX_LOGS = 50
-MAX_MESSAGES_PER_LOG = 200
 
 # --- Regex patterns based on real ARIA snapshots ---
 
@@ -76,37 +73,23 @@ _DATE_TIME_USER_PATTERN = re.compile(r'button "(\d{2}[./]\d{2}[./]\d{4}\s+\d{2}:
 # Column header row detection
 _COLUMN_HEADER_PATTERN = re.compile(r'row ".*Protokollnummer|row ".*Log Number', re.IGNORECASE)
 
-# Message row in the bottom grid: gridcell for Typ and Meldungstext
-# The bottom grid has "Typ" and "Meldungstext" columns
-_MESSAGE_TYPE_ICONS = {
-    "Information": "I",
-    "Warnung": "W",
-    "Warning": "W",
-    "Fehler": "E",
-    "Error": "E",
-    "Erfolg": "S",
-    "Success": "S",
-    "Abbruch": "A",
-    "Abort": "A",
-}
-
 
 def is_slg1_initial_screen(snapshot: str) -> bool:
     """Check if we're on the SLG1 selection screen."""
     header = "\n".join(snapshot.split("\n")[:10])
-    return _SLG1_INITIAL_SCREEN_DE.lower() in header.lower() or _SLG1_INITIAL_SCREEN_EN.lower() in header.lower()
+    return SLG1_INITIAL_SCREEN_DE.lower() in header.lower() or SLG1_INITIAL_SCREEN_EN.lower() in header.lower()
 
 
 def is_slg1_log_list_screen(snapshot: str) -> bool:
     """Check if we're on the SLG1 log list/display screen."""
     header = "\n".join(snapshot.split("\n")[:10])
-    return _SLG1_LOG_LIST_SCREEN_DE.lower() in header.lower() or _SLG1_LOG_LIST_SCREEN_EN.lower() in header.lower()
+    return SLG1_LOG_LIST_SCREEN_DE.lower() in header.lower() or SLG1_LOG_LIST_SCREEN_EN.lower() in header.lower()
 
 
 def is_slg1_no_results(snapshot: str) -> bool:
     """Check if SLG1 returned no logs (status bar message or still on initial screen)."""
     snapshot_lower = snapshot.lower()
-    return _SLG1_NO_LOGS_FOUND_DE.lower() in snapshot_lower or _SLG1_NO_LOGS_FOUND_EN.lower() in snapshot_lower
+    return SLG1_NO_LOGS_FOUND_DE.lower() in snapshot_lower or SLG1_NO_LOGS_FOUND_EN.lower() in snapshot_lower
 
 
 def _clean_cell_value(value: str) -> str:
@@ -244,17 +227,17 @@ def _parse_single_row(row_lines: list[str]) -> SLG1LogEntry | None:  # pylint: d
             logger.debug("Could not find log number in gridcell values")
             return None
 
-        # Find index of log_number
-        log_idx = gridcell_values.index(log_number)
+        # Find rightmost index of log_number (first occurrence could be a different cell)
+        log_idx = len(gridcell_values) - 1 - gridcell_values[::-1].index(log_number)
 
         # Work backwards from log_number: mode, program, tcode, subobject, object, ext_id, count
         if log_idx < 7:
             logger.debug("Not enough cells before log_number")
             return None
 
-        _clean_cell_value(gridcell_values[log_idx - 1])  # mode (not used in model)
-        _clean_cell_value(gridcell_values[log_idx - 2])  # program (not used in model)
-        _clean_cell_value(gridcell_values[log_idx - 3])  # tcode (not used in model)
+        # gridcell_values[log_idx - 1] = mode (not used in model)
+        # gridcell_values[log_idx - 2] = program (not used in model)
+        # gridcell_values[log_idx - 3] = tcode (not used in model)
         subobject = _clean_cell_value(gridcell_values[log_idx - 4])
         obj = _clean_cell_value(gridcell_values[log_idx - 5])
         ext_id = _clean_cell_value(gridcell_values[log_idx - 6])
@@ -275,64 +258,6 @@ def _parse_single_row(row_lines: list[str]) -> SLG1LogEntry | None:  # pylint: d
     except (IndexError, ValueError) as exc:
         logger.debug("Failed to parse row: %r", exc)
         return None
-
-
-def parse_slg1_messages(snapshot: str) -> tuple[list[SLG1Message], bool]:
-    """
-    Parse messages from the bottom grid of SLG1 (after selecting a log).
-
-    The bottom grid has columns: Typ, Meldungstext
-    Each message row has a type icon cell and a text cell.
-
-    Returns:
-        Tuple of (messages list, messages_truncated bool)
-    """
-    messages: list[SLG1Message] = []
-    truncated = False
-    lines = snapshot.split("\n")
-
-    # Find the second grid (bottom grid with messages)
-    grid_count = 0
-    in_message_grid = False
-    past_message_header = False
-
-    for line in lines:
-        if "- grid:" in line:
-            grid_count += 1
-            if grid_count == 2:
-                in_message_grid = True
-            continue
-
-        if not in_message_grid:
-            continue
-
-        # Detect message header row
-        if "Meldungstext" in line or "Message Text" in line:
-            past_message_header = True
-            continue
-
-        if not past_message_header:
-            continue
-
-        # Look for message type indicators and text
-        # Messages appear as rows with gridcells for type icon and text
-        for type_label, type_code in _MESSAGE_TYPE_ICONS.items():
-            if type_label in line:
-                # This line contains a message type indicator
-                # The message text will be in the next gridcell
-                messages.append(SLG1Message(type=type_code, text=""))
-                break
-
-        # Look for message text in gridcell
-        match = _GRIDCELL_VALUE_PATTERN.search(line)
-        if match and messages and not messages[-1].text:
-            messages[-1].text = match.group(1)
-
-        if len(messages) >= MAX_MESSAGES_PER_LOG:
-            truncated = True
-            break
-
-    return messages, truncated
 
 
 def parse_slg1_log_list(snapshot: str) -> SLG1LogListResult:
