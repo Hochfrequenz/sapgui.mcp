@@ -39,6 +39,7 @@ from sapwebguimcp.tools import (
     register_se93_tools,
     register_slg1_tools,
     register_sm37_tools,
+    register_st22_tools,
     register_table_tools,
     register_workflow_tools,
 )
@@ -171,6 +172,7 @@ register_se37_tools(mcp)
 register_se93_tools(mcp)
 register_slg1_tools(mcp)
 register_sm37_tools(mcp)
+register_st22_tools(mcp)
 register_catalog_tools(mcp)
 register_table_tools(mcp)
 register_fm_tools(mcp)

@@ -1,0 +1,143 @@
+- main "ABAP Laufzeitfehler - Alle Mandanten":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "ABAP Laufzeitfehler - Alle Mandanten" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Überblick"
+      - button "Statistik"
+    - button "Beenden"
+  - group "Parameter":
+    - heading "Parameter" [level=2]
+    - group "Standard":
+      - heading "Standard" [level=3]
+      - button "Heute"
+      - button "1 Laufzeitfehler"
+      - button "Gestern"
+      - button "1 Laufzeitfehler"
+    - group "Eigene Auswahl":
+      - heading "Eigene Auswahl" [level=3]
+      - text: Art der zeitl. Eingrenzung
+      - textbox "Art der zeitl. Eingrenzung Erforderlich": Selektionsoptionen für Datum/Zeit (Systemzeit CET)
+      - text:  Datum
+      - textbox "Datum": 23.02.2026
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - text: Uhrzeit
+      - textbox "Uhrzeit": 00:00:00
+      - text: bis
+      - textbox "bis": 00:00:00
+      - button "Mehrfachselektion"
+      - text: Maschine
+      - textbox "Maschine"
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - text: Workprozess-Index
+      - textbox "Workprozess-Index"
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - text: Benutzer
+      - textbox "Benutzer": KLEINK
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - text: Mandant
+      - textbox "Mandant"
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - text: Aufzubewahren
+      - textbox "Aufzubewahren"
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - text: Laufzeitfehler
+      - textbox "Laufzeitfehler"
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - text: Abgebrochenes Programm
+      - textbox "Abgebrochenes Programm"
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - text: Ausnahme
+      - textbox "Ausnahme"
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - text: Transaktions-ID
+      - textbox "Transaktions-ID"
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - text: EPP Root Context ID
+      - textbox "EPP Root Context ID"
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - text: EPP Connection ID
+      - textbox "EPP Connection ID"
+      - text: bis
+      - textbox "bis"
+      - button "Mehrfachselektion"
+      - button "Start"
+      - button "Zurücksetzen"
+    - button "Weitere Optionen:"
+    - checkbox "Gekürzte Darstellung des Laufzeitfehlers":  Gekürzte Darstellung des Laufzeitfehlers
+    - checkbox "Relevante Anwendungskomponente ermitteln (zeitaufwändiger)":  Relevante Anwendungskomponente ermitteln (zeitaufwändiger)
+  - toolbar:
+    - button "Sichern Hervorgehoben"
+    - button "Enter"
+    - button "Abbrechen"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro RSSHOWRABAX/1000":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "RSSHOWRABAX/1000"
+        - cell
+      - menuitemradio "Transaktion ST22":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "ST22"
+        - cell
+      - row "E2E-Zeit 398 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "398 ms"
+        - cell
+      - row "WebGUI-Zeit 320 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "320 ms"
+        - cell

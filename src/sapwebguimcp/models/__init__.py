@@ -134,6 +134,12 @@ from sapwebguimcp.models.sm37_models import (
     SM37JobListResult,
     SM37JobLog,
 )
+from sapwebguimcp.models.st22_models import (
+    ST22Dump,
+    ST22DumpDetail,
+    ST22DumpDetailResult,
+    ST22DumpListResult,
+)
 from sapwebguimcp.models.workflow_models import (
     Workflow,
     WorkflowDeleteResult,
@@ -265,6 +271,11 @@ __all__ = [
     "SM37Job",
     "SM37JobListResult",
     "SM37JobLog",
+    # ST22 models
+    "ST22Dump",
+    "ST22DumpDetail",
+    "ST22DumpDetailResult",
+    "ST22DumpListResult",
     # SE93 models
     "SE93Entry",
     "SE93Error",

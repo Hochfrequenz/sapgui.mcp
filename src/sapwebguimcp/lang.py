@@ -228,6 +228,59 @@ def bilingual_pattern(de: str, en: str, *, escape: bool = True) -> str:
     return f"(?:{de}|{en})"
 
 
+# =============================================================================
+# ST22 - Short Dump Analysis (ABAP Runtime Errors)
+# =============================================================================
+
+# Private constants (not exported, used only by ST22 parser)
+_ST22_TITLE_DE = "ABAP-Laufzeitfehler"
+_ST22_TITLE_EN = "ABAP Runtime Errors"
+
+_ST22_TODAY_DE = "Heute"
+_ST22_TODAY_EN = "Today"
+
+_ST22_YESTERDAY_DE = "Gestern"
+_ST22_YESTERDAY_EN = "Yesterday"
+
+# Column headers in dump list ALV grid
+_ST22_COL_TIME_DE = "Zeit"
+_ST22_COL_TIME_EN = "Time"
+
+_ST22_COL_PROGRAM_DE = "Programm"
+_ST22_COL_PROGRAM_EN = "Program"
+
+_ST22_COL_ERROR_DE = "Laufzeitfehler"
+_ST22_COL_ERROR_EN = "Runtime Errors"
+
+_ST22_COL_SHORT_TEXT_DE = "Kurztext"
+_ST22_COL_SHORT_TEXT_EN = "Short Text"
+
+_ST22_COL_USER_DE = "Benutzer"
+_ST22_COL_USER_EN = "User"
+
+_ST22_COL_INCLUDE_DE = "Include"
+_ST22_COL_INCLUDE_EN = "Include"
+
+# Detail page section headers (used in best-effort text parsing)
+_ST22_WHAT_HAPPENED_DE = "Was ist geschehen?"
+_ST22_WHAT_HAPPENED_EN = "What happened?"
+
+_ST22_HOW_TO_CORRECT_DE = "Was können Sie tun?"
+_ST22_HOW_TO_CORRECT_EN = "How to Correct the Error"
+
+_ST22_ERROR_ANALYSIS_DE = "Fehleranalyse"
+_ST22_ERROR_ANALYSIS_EN = "Error Analysis"
+
+# "No dumps found" status message
+_ST22_NO_DUMPS_DE = "Keine Einträge gefunden"
+_ST22_NO_DUMPS_EN = "No entries found"
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+
 def bilingual_pattern_ignorecase(de: str, en: str, *, escape: bool = True) -> str:
     """
     Build case-insensitive regex alternation from DE/EN pair.
