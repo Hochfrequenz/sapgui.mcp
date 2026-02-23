@@ -1,0 +1,123 @@
+- main "Jobübersicht":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "Jobübersicht" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Aktualisieren"
+      - button "Freigeben"
+      - button "Aktive Jobs abbrechen"
+      - button "Job aus Datenbank löschen"
+      - button "Spool"
+      - button "Job-Log"
+      - button "Step"
+      - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Weiter suchen (Strg+G)"
+    - button "Drucken (Strg+P)"
+    - button "Beenden"
+  - table:
+    - rowgroup:
+      - row "Liste":
+        - cell "Liste":
+          - region "Liste":
+            - text: "Jobübersicht von : 22.02.2026 um : : : bis : 22.02.2026 um : : : Selektierte Jobnamen : * Selektierte Benutzernamen : *"
+            - checkbox [disabled]
+            - text: geplant
+            - checkbox [checked] [disabled]
+            - text: freigegeben
+            - checkbox [checked] [disabled]
+            - text: bereit
+            - checkbox [checked] [disabled]
+            - text: aktiv
+            - checkbox [checked] [disabled]
+            - text: fertig
+            - checkbox [checked] [disabled]
+            - text: abgebrochen
+            - checkbox [disabled]
+            - text: "eventgesteuert Eventid :"
+            - checkbox [disabled]
+            - text: "ABAP Programm Programmname :"
+            - button "Jobname"
+            - button "Spool"
+            - button "Job Dok"
+            - button "Job-Erstelle"
+            - button "Status"
+            - button "Startdatum"
+            - button "Startzeit"
+            - button "Dauer(sec.)"
+            - button "Verzögerung(sec.)"
+            - button "Man"
+            - button "Verzögerungsgru"
+            - checkbox
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB freigegeben 0 0 210
+            - checkbox
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB freigegeben 0 0 210
+            - checkbox
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB freigegeben 0 0 310
+            - checkbox
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB freigegeben 0 0 310
+            - checkbox
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 22.02.2026 00:00:06 0 6 210
+            - checkbox
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 22.02.2026 00:00:06 0 6 210
+            - checkbox
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 22.02.2026 00:01:06 0 6 310
+            - checkbox
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 22.02.2026 00:01:06 0 6 310
+            - checkbox
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 22.02.2026 00:03:06 0 6 210
+            - checkbox
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 22.02.2026 00:03:06 0 6 210
+        - cell
+      - row:
+        - cell
+        - cell
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPMSSY0/0120":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPMSSY0/0120"
+        - cell
+      - menuitemradio "Transaktion SM37":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SM37"
+        - cell
+      - row "E2E-Zeit 1390 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "1390 ms"
+        - cell
+      - row "WebGUI-Zeit 125 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "125 ms"
+        - cell
