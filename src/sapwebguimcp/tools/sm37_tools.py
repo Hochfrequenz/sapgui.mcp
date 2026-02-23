@@ -20,7 +20,7 @@ from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.sm37_models import SM37JobListResult, SM37JobLog
 from sapwebguimcp.parsers.sm37_parser import is_no_jobs_found, parse_sm37_job_list, parse_sm37_job_log
 from sapwebguimcp.tools.sap_tool_impl import sap_fill_form_impl, sap_keyboard_impl, sap_transaction_impl
-from sapwebguimcp.utils import format_sap_date
+from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +109,7 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
     statuses: list[str] | None,
     from_date: str | None,
     to_date: str | None,
-    language: str,
+    language: SapLanguage,
 ) -> list[str]:
     """Fill the SM37 selection screen fields."""
     errors: list[str] = []
@@ -154,7 +154,7 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
     return errors
 
 
-async def _fetch_job_log(page: Any, language: str) -> SM37JobLog | None:
+async def _fetch_job_log(page: Any, language: SapLanguage) -> SM37JobLog | None:
     """
     Fetch the job log for the currently selected job.
 
@@ -197,7 +197,7 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
     """Execute the SM37 lookup workflow."""
     now = datetime.now(UTC)
     settings = get_settings()
-    language = settings.sap_language
+    language: SapLanguage = settings.sap_language
 
     tx_result = await sap_transaction_impl("SM37")
     if not tx_result.success:

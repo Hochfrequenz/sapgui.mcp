@@ -1,5 +1,9 @@
 """Utility functions for SAP WebGUI MCP."""
 
+from typing import Literal
+
+SapLanguage = Literal["DE", "EN"]
+
 
 def is_sap_shortcut(key: str) -> bool:
     """Check if a key is an SAP shortcut that typically triggers status bar feedback.
@@ -43,7 +47,7 @@ def is_sap_shortcut(key: str) -> bool:
     return False
 
 
-def format_sap_date(iso_date: str, language: str) -> str:
+def format_sap_date(iso_date: str, language: SapLanguage) -> str:
     """
     Convert ISO date (YYYY-MM-DD) to SAP locale format.
 
