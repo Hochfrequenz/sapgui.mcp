@@ -221,7 +221,7 @@ starlette==0.52.1
     # via
     #   mcp
     #   sse-starlette
-typer==0.24.0
+typer==0.24.1
     # via pydocket
 typing-extensions==4.15.0
     # via
