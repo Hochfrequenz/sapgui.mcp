@@ -18,14 +18,14 @@ import logging
 import re
 
 from sapwebguimcp.lang import (
-    _ST22_ERROR_ANALYSIS_DE,
-    _ST22_ERROR_ANALYSIS_EN,
-    _ST22_HOW_TO_CORRECT_DE,
-    _ST22_HOW_TO_CORRECT_EN,
-    _ST22_NO_DUMPS_DE,
-    _ST22_NO_DUMPS_EN,
-    _ST22_WHAT_HAPPENED_DE,
-    _ST22_WHAT_HAPPENED_EN,
+    ST22_ERROR_ANALYSIS_DE,
+    ST22_ERROR_ANALYSIS_EN,
+    ST22_HOW_TO_CORRECT_DE,
+    ST22_HOW_TO_CORRECT_EN,
+    ST22_NO_DUMPS_DE,
+    ST22_NO_DUMPS_EN,
+    ST22_WHAT_HAPPENED_DE,
+    ST22_WHAT_HAPPENED_EN,
 )
 from sapwebguimcp.models.st22_models import ST22Dump, ST22DumpDetail
 
@@ -79,8 +79,8 @@ def parse_st22_initial_screen(snapshot: str) -> dict[str, int]:
 def is_no_dumps_message(snapshot: str) -> bool:
     """Check if the snapshot contains a 'no dumps found' status message."""
     return (
-        _ST22_NO_DUMPS_DE.lower() in snapshot.lower()
-        or _ST22_NO_DUMPS_EN.lower() in snapshot.lower()
+        ST22_NO_DUMPS_DE.lower() in snapshot.lower()
+        or ST22_NO_DUMPS_EN.lower() in snapshot.lower()
         or "keine kurzdumps" in snapshot.lower()
         or "no short dumps" in snapshot.lower()
     )
@@ -448,14 +448,14 @@ def parse_st22_dump_detail(snapshot: str) -> ST22DumpDetail:
     # Best-effort section extraction
     what_happened = _extract_section(
         raw_text,
-        [_ST22_WHAT_HAPPENED_DE, _ST22_WHAT_HAPPENED_EN],
-        [_ST22_HOW_TO_CORRECT_DE, _ST22_HOW_TO_CORRECT_EN, _ST22_ERROR_ANALYSIS_DE, _ST22_ERROR_ANALYSIS_EN],
+        [ST22_WHAT_HAPPENED_DE, ST22_WHAT_HAPPENED_EN],
+        [ST22_HOW_TO_CORRECT_DE, ST22_HOW_TO_CORRECT_EN, ST22_ERROR_ANALYSIS_DE, ST22_ERROR_ANALYSIS_EN],
     )
 
     how_to_correct = _extract_section(
         raw_text,
-        [_ST22_HOW_TO_CORRECT_DE, _ST22_HOW_TO_CORRECT_EN],
-        [_ST22_ERROR_ANALYSIS_DE, _ST22_ERROR_ANALYSIS_EN, "Source Code", "Quelltext"],
+        [ST22_HOW_TO_CORRECT_DE, ST22_HOW_TO_CORRECT_EN],
+        [ST22_ERROR_ANALYSIS_DE, ST22_ERROR_ANALYSIS_EN, "Source Code", "Quelltext"],
     )
 
     return ST22DumpDetail(
