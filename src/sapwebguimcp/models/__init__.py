@@ -130,6 +130,11 @@ from sapwebguimcp.models.se93_models import (
     SE93TransactionType,
 )
 from sapwebguimcp.models.session_registry import SessionRegistry
+from sapwebguimcp.models.sm37_models import (
+    SM37Job,
+    SM37JobListResult,
+    SM37JobLog,
+)
 from sapwebguimcp.models.workflow_models import (
     Workflow,
     WorkflowDeleteResult,
@@ -257,6 +262,10 @@ __all__ = [
     "SE37EditResult",
     # SE38 edit models
     "SE38EditResult",
+    # SM37 models
+    "SM37Job",
+    "SM37JobListResult",
+    "SM37JobLog",
     # SE09 models
     "TransportListResult",
     "TransportObject",

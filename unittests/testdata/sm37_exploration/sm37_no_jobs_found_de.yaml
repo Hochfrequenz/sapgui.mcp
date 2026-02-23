@@ -1,0 +1,94 @@
+- main "Einfache Jobauswahl":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "Einfache Jobauswahl" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Erweiterte Jobauswahl"
+      - button "Informationen"
+    - button "Beenden"
+  - text: Jobname
+  - textbox "Jobname": ZZZNOTEXIST_JOB_99
+  - text: Benutzername
+  - textbox "Benutzername": "*"
+  - group "Jobstatus":
+    - heading "Jobstatus" [level=2]
+    - checkbox "Geplant":  Geplant
+    - checkbox "Freigegeben" [checked]:  Freigegeben
+    - checkbox "Bereit" [checked]:  Bereit
+    - checkbox "Aktiv" [checked]:  Aktiv
+    - checkbox "Fertig" [checked]:  Fertig
+    - checkbox "Abgebrochen" [checked]:  Abgebrochen
+  - group "Jobstartbedingung":
+    - heading "Jobstartbedingung" [level=2]
+    - text: von
+    - img "Datum"
+    - textbox: 22.02.2026
+    - text: bis
+    - img "Datum"
+    - textbox: 22.02.2026
+    - text: von
+    - img "Uhrzeit"
+    - textbox
+    - text: bis
+    - img "Uhrzeit"
+    - textbox
+    - text: oder nach Ereignis
+    - textbox "oder nach Ereignis"
+    - text: 
+  - group "Job-Step":
+    - heading "Job-Step" [level=2]
+    - text: ABAP-Programmname
+    - textbox "ABAP-Programmname"
+  - toolbar:
+    - note "Erfolgreich Meldungsleiste Kein Job entspricht den Selektionsbedingungen":
+      - link "Details anzeigen"
+    - button "Ausführen Hervorgehoben"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLBTCH/2170":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLBTCH/2170"
+        - cell
+      - menuitemradio "Transaktion SM37":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SM37"
+        - cell
+      - row "E2E-Zeit 140 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "140 ms"
+        - cell
+      - row "WebGUI-Zeit 35 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "35 ms"
+        - cell

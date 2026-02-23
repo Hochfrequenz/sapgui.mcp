@@ -169,6 +169,31 @@ SE93_AUTH_OBJECT_EN = "Authorization object"
 
 
 # =============================================================================
+# SM37 - Job Overview
+# =============================================================================
+
+# Status text mapping (as shown in job list result rows, lowercase in ARIA)
+# Exported because parsers and tools both reference these.
+SM37_STATUS_MAP_DE = {
+    "geplant": "Scheduled",
+    "freigegeben": "Released",
+    "bereit": "Ready",
+    "aktiv": "Active",
+    "fertig": "Finished",
+    "abgebrochen": "Canceled",
+}
+
+SM37_STATUS_MAP_EN = {
+    "scheduled": "Scheduled",
+    "released": "Released",
+    "ready": "Ready",
+    "active": "Active",
+    "finished": "Finished",
+    "canceled": "Canceled",
+}
+
+
+# =============================================================================
 # SE09 - Transport Organizer
 # =============================================================================
 _SE09_INITIAL_HEADING_DE = "Transport Organizer"
