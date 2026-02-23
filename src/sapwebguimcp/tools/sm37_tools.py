@@ -10,16 +10,18 @@ import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+
+from playwright.async_api import Locator, Page
 
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.sm37_models import SM37JobListResult, SM37JobLog
 from sapwebguimcp.parsers.sm37_parser import is_no_jobs_found, parse_sm37_job_list, parse_sm37_job_log
-from sapwebguimcp.tools.sap_tool_impl import sap_fill_form_impl, sap_keyboard_impl, sap_transaction_impl
+from sapwebguimcp.tools.sap_tool_impl import _load_js, _load_js_with_field_utils
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 logger = logging.getLogger(__name__)
@@ -42,7 +44,38 @@ _STATUS_CHECKBOX_MAP: dict[str, tuple[str, str]] = {
 _ALL_STATUSES = list(_STATUS_CHECKBOX_MAP.keys())
 
 
-async def _set_status_checkboxes(page: Any, statuses: list[str], language: str) -> list[str]:
+async def _fill_form_on_page(page: Page, fields: dict[str, str]) -> list[str]:
+    """Fill form fields on a specific page. Returns list of field names not found."""
+    result = await page.evaluate(
+        _load_js_with_field_utils("fill_form_fields.js"),
+        {"fields": fields},
+    )
+    return result.get("notFound", [])
+
+
+async def _navigate_transaction(page: Page, tcode: str) -> str | None:
+    """Navigate to a transaction on a specific page. Returns error string or None on success."""
+    okcode = await page.query_selector("#ToolbarOkCode")
+    if not okcode or not await okcode.is_visible():
+        for selector in ["input[id*='OkCode']", "input[lsdata*='OKCODE']"]:
+            okcode = await page.query_selector(selector)
+            if okcode and await okcode.is_visible():
+                break
+        else:
+            return f"OK-Code field not found for transaction {tcode}"
+
+    await page.bring_to_front()
+    await page.wait_for_timeout(500)
+    await okcode.click()
+    await page.wait_for_timeout(200)
+    await page.evaluate(_load_js("set_okcode_field.js"), {"transactionInput": f"/n{tcode}"})
+    await page.wait_for_timeout(300)
+    await page.keyboard.press("Enter")
+    await page.wait_for_load_state("networkidle", timeout=15000)
+    return None
+
+
+async def _set_status_checkboxes(page: Page, statuses: list[str], language: str) -> list[str]:
     """
     Set status checkboxes on the SM37 selection screen.
 
@@ -83,7 +116,7 @@ async def _set_status_checkboxes(page: Any, statuses: list[str], language: str) 
 
 
 async def _fill_date_field(
-    page: Any, date_images: Any, img_index: int, fallback_index: int, sap_date: str
+    page: Page, date_images: Locator, img_index: int, fallback_index: int, sap_date: str
 ) -> str | None:
     """Fill a single date field anchored to a 'Datum'/'Date' image, with positional fallback."""
     try:
@@ -103,7 +136,7 @@ async def _fill_date_field(
 
 
 async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches
-    page: Any,
+    page: Page,
     job_name: str,
     username: str | None,
     statuses: list[str] | None,
@@ -116,8 +149,8 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
 
     # Fill job name - try DE then EN label
     for labels in [{"Jobname": job_name}, {"Job name": job_name}]:
-        fill_result = await sap_fill_form_impl(labels, strict=False)
-        if not fill_result.not_found:
+        not_found = await _fill_form_on_page(page, labels)
+        if not not_found:
             break
     else:
         errors.append("Could not find job name field")
@@ -125,8 +158,8 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
     # Fill username
     if username is not None:
         for labels in [{"Benutzername": username}, {"User name": username}]:
-            fill_result = await sap_fill_form_impl(labels, strict=False)
-            if not fill_result.not_found:
+            not_found = await _fill_form_on_page(page, labels)
+            if not not_found:
                 break
         else:
             errors.append("Could not find username field")
@@ -154,7 +187,7 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
     return errors
 
 
-async def _fetch_job_log(page: Any, language: SapLanguage) -> SM37JobLog | None:
+async def _fetch_job_log(page: Page, language: SapLanguage) -> SM37JobLog | None:
     """
     Fetch the job log for the currently selected job.
 
@@ -187,6 +220,7 @@ async def _fetch_job_log(page: Any, language: SapLanguage) -> SM37JobLog | None:
 
 
 async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
+    page: Page,
     job_name: str,
     username: str | None,
     statuses: list[str] | None,
@@ -194,22 +228,21 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
     to_date: str | None,
     include_log: bool,
 ) -> SM37JobListResult:
-    """Execute the SM37 lookup workflow."""
+    """Execute the SM37 lookup workflow on the given page."""
     now = datetime.now(UTC)
     settings = get_settings()
     language: SapLanguage = settings.sap_language
 
-    tx_result = await sap_transaction_impl("SM37")
-    if not tx_result.success:
+    tx_error = await _navigate_transaction(page, "SM37")
+    if tx_error:
         return SM37JobListResult.failure(
-            error=f"Failed to navigate to SM37: {tx_result.error}",
+            error=f"Failed to navigate to SM37: {tx_error}",
             jobs=[],
             job_count=0,
             filters_applied={},
             retrieved_at=now,
         )
 
-    page = await (await get_browser_manager()).get_current_page()
     await page.wait_for_timeout(1000)
 
     fill_errors = await _fill_selection_screen(page, job_name, username, statuses, from_date, to_date, language)
@@ -227,7 +260,7 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
         filters_applied["to_date"] = to_date
 
     # Execute (F8)
-    await sap_keyboard_impl("F8")
+    await page.keyboard.press("F8")
     await page.wait_for_timeout(3000)
     await page.wait_for_load_state("networkidle")
 
@@ -310,7 +343,7 @@ def register_sm37_tools(mcp: FastMCP) -> None:
         browser_manager = await get_browser_manager()
 
         try:
-            browser_manager.get_session_page_checked(session, agent_id, "sap_sm37_lookup")
+            page = browser_manager.get_session_page_checked(session, agent_id, "sap_sm37_lookup")
         except ValueError as e:
             return SM37JobListResult.failure(
                 error=f"Session error: {e}",
@@ -321,6 +354,7 @@ def register_sm37_tools(mcp: FastMCP) -> None:
             )
 
         result = await _execute_sm37_lookup(
+            page=page,
             job_name=job_name,
             username=username,
             statuses=list(status) if status else None,
