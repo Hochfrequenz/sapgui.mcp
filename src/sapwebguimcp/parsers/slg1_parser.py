@@ -116,7 +116,7 @@ def _clean_cell_value(value: str) -> str:
     return value.strip()
 
 
-def _parse_grid_rows(snapshot: str) -> list[SLG1LogEntry]:
+def _parse_grid_rows(snapshot: str) -> list[SLG1LogEntry]:  # pylint: disable=too-many-branches
     """
     Parse log entries from the SLG1 grid ARIA snapshot.
 
@@ -138,9 +138,8 @@ def _parse_grid_rows(snapshot: str) -> list[SLG1LogEntry]:
     in_grid = False
     past_header_row = False
     current_row_lines: list[str] = []
-    row_indent = 0
 
-    for i, line in enumerate(lines):
+    for line in lines:
         # Detect grid start
         if "- grid:" in line and not in_grid:
             in_grid = True
@@ -178,7 +177,6 @@ def _parse_grid_rows(snapshot: str) -> list[SLG1LogEntry]:
                     break
 
             current_row_lines = [line]
-            row_indent = len(line) - len(line.lstrip())
         elif current_row_lines:
             current_row_lines.append(line)
 
@@ -191,7 +189,7 @@ def _parse_grid_rows(snapshot: str) -> list[SLG1LogEntry]:
     return logs
 
 
-def _parse_single_row(row_lines: list[str]) -> SLG1LogEntry | None:
+def _parse_single_row(row_lines: list[str]) -> SLG1LogEntry | None:  # pylint: disable=too-many-locals,too-many-branches
     """Parse a single grid row into an SLG1LogEntry."""
     row_text = "\n".join(row_lines)
 
@@ -254,9 +252,9 @@ def _parse_single_row(row_lines: list[str]) -> SLG1LogEntry | None:
             logger.debug("Not enough cells before log_number")
             return None
 
-        mode = _clean_cell_value(gridcell_values[log_idx - 1])
-        program = _clean_cell_value(gridcell_values[log_idx - 2])
-        tcode = _clean_cell_value(gridcell_values[log_idx - 3])
+        _clean_cell_value(gridcell_values[log_idx - 1])  # mode (not used in model)
+        _clean_cell_value(gridcell_values[log_idx - 2])  # program (not used in model)
+        _clean_cell_value(gridcell_values[log_idx - 3])  # tcode (not used in model)
         subobject = _clean_cell_value(gridcell_values[log_idx - 4])
         obj = _clean_cell_value(gridcell_values[log_idx - 5])
         ext_id = _clean_cell_value(gridcell_values[log_idx - 6])

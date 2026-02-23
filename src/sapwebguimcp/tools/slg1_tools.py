@@ -14,6 +14,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.models import get_browser_manager
+from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.slg1_models import (
     SLG1FileSummary,
     SLG1LogListResult,
@@ -25,6 +26,7 @@ from sapwebguimcp.parsers.slg1_parser import (
 )
 from sapwebguimcp.tools.sap_tool_impl import (
     sap_fill_form_impl,
+    sap_keyboard_impl,
     sap_transaction_impl,
 )
 
@@ -49,7 +51,7 @@ def _format_sap_date(iso_date: str, language: str) -> str:
     return f"{month}/{day}/{year}"
 
 
-async def _slg1_lookup(
+async def _slg1_lookup(  # pylint: disable=too-many-branches,too-many-locals
     object_name: str,
     subobject: str | None = None,
     external_id: str | None = None,
@@ -58,8 +60,6 @@ async def _slg1_lookup(
 ) -> SLG1LogListResult:
     """Execute SLG1 lookup and return parsed results."""
     now = datetime.now(UTC)
-
-    from sapwebguimcp.models.config import get_settings
 
     settings = get_settings()
     language = settings.sap_language
@@ -123,8 +123,6 @@ async def _slg1_lookup(
         logger.warning("SLG1 fields not found: %r", fill_result.not_found)
 
     # Execute search (F8)
-    from sapwebguimcp.tools.sap_tool_impl import sap_keyboard_impl
-
     kb_result = await sap_keyboard_impl("F8")
     if not kb_result.success:
         return SLG1LogListResult.failure(
@@ -204,8 +202,8 @@ def register_slg1_tools(mcp: FastMCP) -> None:
             "Returns up to 50 logs."
         ),
     )
-    async def sap_slg1_lookup(
-        object: str,
+    async def sap_slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+        object: str,  # noqa: A002  # pylint: disable=redefined-builtin
         subobject: str | None = None,
         external_id: str | None = None,
         from_date: str | None = None,
@@ -234,7 +232,7 @@ def register_slg1_tools(mcp: FastMCP) -> None:
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_slg1_lookup")
+            browser_manager.get_session_page_checked(session, agent_id, "sap_slg1_lookup")
         except ValueError as e:
             return SLG1LogListResult.failure(
                 f"Session error: {e}",
@@ -252,7 +250,7 @@ def register_slg1_tools(mcp: FastMCP) -> None:
                 from_date,
                 to_date,
             )
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("SLG1 lookup failed")
             result = SLG1LogListResult.failure(
                 f"SLG1 lookup error: {e}",
