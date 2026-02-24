@@ -1,0 +1,609 @@
+- main "Display IMG":
+  - banner:
+    - button "Back (F3)"
+    - img "Company Logo"
+    - heading "Display IMG" [level=1]
+    - button "Open system information"
+    - toolbar:
+      - button "Menu"
+      - combobox "Enter transaction code"
+      - text: 
+      - button "Expand All"
+      - button "Position"
+      - button "Existing BC Sets"
+      - button "Apply Filter"
+      - button "Change Log"
+      - button "Compare"
+      - button "Where Else Used"
+      - button "More"
+    - button "Find (Ctrl+F)"
+    - button "Find Next... (Ctrl+G)"
+    - button "Exit"
+  - grid:
+    - row "Column for row selection Structure":
+      - columnheader "Column for row selection"
+      - columnheader "Structure"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 0 Expanded":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "SAP Customizing Implementation Guide":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "SAP Customizing Implementation Guide":
+                  - button "SAP Customizing Implementation Guide"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Commercial Project Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Commercial Project Management":
+                  - button "Commercial Project Management"
+    - row "Row selection disabled.":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell:
+        - group "Level 1":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Activate Business Functions":
+                - cell:
+                  - button "IMG activity documentation"
+                - cell:
+                  - button "IMG - Activity"
+                - cell "Activate Business Functions":
+                  - button "Activate Business Functions"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Conversion of Accounting to SAP S/4HANA":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Conversion of Accounting to SAP S/4HANA":
+                  - button "Conversion of Accounting to SAP S/4HANA"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "ABAP Platform":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "ABAP Platform":
+                  - button "ABAP Platform"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Enterprise Structure":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Enterprise Structure":
+                  - button "Enterprise Structure"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Cross-Application Components":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Cross-Application Components":
+                  - button "Cross-Application Components"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Mobile Application Integration Framework Configuration":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Mobile Application Integration Framework Configuration":
+                  - button "Mobile Application Integration Framework Configuration"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "SAP Portfolio and Project Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "SAP Portfolio and Project Management":
+                  - button "SAP Portfolio and Project Management"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Financial Accounting":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Financial Accounting":
+                  - button "Financial Accounting"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Financial Supply Chain Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Financial Supply Chain Management":
+                  - button "Financial Supply Chain Management"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Multi-Bank Connectivity Connector":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Multi-Bank Connectivity Connector":
+                  - button "Multi-Bank Connectivity Connector"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Strategic Enterprise Management/Business Analytics":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Strategic Enterprise Management/Business Analytics":
+                  - button "Strategic Enterprise Management/Business Analytics"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Controlling":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Controlling":
+                  - button "Controlling"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Planning and Consolidation":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Planning and Consolidation":
+                  - button "Planning and Consolidation"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "SAP S/4HANA for Group Reporting":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "SAP S/4HANA for Group Reporting":
+                  - button "SAP S/4HANA for Group Reporting"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Investment Management":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Investment Management":
+                  - button "Investment Management"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Enterprise Controlling":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Enterprise Controlling":
+                  - button "Enterprise Controlling"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Flexible Real Estate Management (RE-FX)":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Flexible Real Estate Management (RE-FX)":
+                  - button "Flexible Real Estate Management (RE-FX)"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Logistics - General":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Logistics - General":
+                  - button "Logistics - General"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Environment, Health and Safety":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Environment, Health and Safety":
+                  - button "Environment, Health and Safety"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Product Safety and Stewardship":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Product Safety and Stewardship":
+                  - button "Product Safety and Stewardship"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Product Compliance":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Product Compliance":
+                  - button "Product Compliance"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Client 100":
+        - cell
+        - cell
+        - cell "Client"
+        - cell "100"
+        - cell
+      - menuitemradio "User KLEINK":
+        - cell
+        - cell
+        - cell "User"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Screen SAPLSHI01/0200":
+        - cell
+        - cell
+        - cell "Screen"
+        - cell "SAPLSHI01/0200"
+        - cell
+      - menuitemradio "Transaction SIMG":
+        - cell
+        - cell
+        - cell "Transaction"
+        - cell "SIMG"
+        - cell
+      - row "E2E Time 220088 ms":
+        - cell
+        - cell
+        - cell "E2E Time"
+        - cell "220088 ms"
+        - cell
+      - row "WebGUI Time 114 ms":
+        - cell
+        - cell
+        - cell "WebGUI Time"
+        - cell "114 ms"
+        - cell
+  - dialog "Search Term \"COUNTRY\" Hit List":
+    - heading "Search Term \"COUNTRY\" Hit List" [level=1]
+    - button "Close": 
+    - grid:
+      - rowgroup
+      - rowgroup:
+        - row "Column for row selection Hits Parent Node In area":
+          - columnheader "Column for row selection"
+          - columnheader "Hits"
+          - columnheader "Parent Node"
+          - columnheader "In area"
+        - button ""
+        - row "To select a row, press the space bar. Activate Country/Region Algo. for Payt. of Vendor Invoices in For. Curr. Payment Algorithms (Country-/Region-Specific) Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Activate Country/Region Algo. for Payt. of Vendor Invoices in For. Curr.":
+            - textbox
+          - gridcell "Payment Algorithms (Country-/Region-Specific)":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Assign Payment Medium Program for Payment Method in Country/Region Make Settings for Classic Payment Medium Programs Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Assign Payment Medium Program for Payment Method in Country/Region":
+            - textbox
+          - gridcell "Make Settings for Classic Payment Medium Programs":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Country-/Region-Dependent Data for Attached Payment Media Attached Payment Media Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country-/Region-Dependent Data for Attached Payment Media":
+            - textbox
+          - gridcell "Attached Payment Media":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Country-/Region-Specific Functions Outgoing Invoices/Credit Memos Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country-/Region-Specific Functions":
+            - textbox
+          - gridcell "Outgoing Invoices/Credit Memos":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Country-/Region-Specific Functions Payment Method/Bank Selection for Payment Program Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country-/Region-Specific Functions":
+            - textbox
+          - gridcell "Payment Method/Bank Selection for Payment Program":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Country-/Region-Specific Settings Report Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country-/Region-Specific Settings":
+            - textbox
+          - gridcell "Report":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Country-/Region-Specific Settings Business Transactions Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country-/Region-Specific Settings":
+            - textbox
+          - gridcell "Business Transactions":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Country-/Region-Specific Settings Automatic Posting Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country-/Region-Specific Settings":
+            - textbox
+          - gridcell "Automatic Posting":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Country-/Region-Specific Settings for Payment Media Payment Media Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country-/Region-Specific Settings for Payment Media":
+            - textbox
+          - gridcell "Payment Media":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Country/Region Specifics Outgoing Payments Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country/Region Specifics":
+            - textbox
+          - gridcell "Outgoing Payments":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Country/Region-Specific Functions Additional Components Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country/Region-Specific Functions":
+            - textbox
+          - gridcell "Additional Components":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Country/Region-Specific Functions Open Item Clearing Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country/Region-Specific Functions":
+            - textbox
+          - gridcell "Open Item Clearing":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Country/Region-Specific Settings Interest Calculation Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country/Region-Specific Settings":
+            - textbox
+          - gridcell "Interest Calculation":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Payment Algorithms (Country-/Region-Specific) Country-/Region-Specific Functions Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Payment Algorithms (Country-/Region-Specific)":
+            - textbox
+          - gridcell "Country-/Region-Specific Functions":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Set Up Payment Methods for Each Country/Region for Payment Transactions Payment Method/Bank Selection for Payment Program Accounts Receivable and Accounts Payable":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Set Up Payment Methods for Each Country/Region for Payment Transactions":
+            - textbox
+          - gridcell "Payment Method/Bank Selection for Payment Program":
+            - textbox
+          - gridcell "Accounts Receivable and Accounts Payable":
+            - textbox
+        - row "To select a row, press the space bar. Name of the Recipient Country in English in Output Forms Address Management Address Management":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Name of the Recipient Country in English in Output Forms":
+            - textbox
+          - gridcell "Address Management":
+            - textbox
+          - gridcell "Address Management":
+            - textbox
+        - row "To select a row, press the space bar. Name of the Recipient Country in English in Output Forms Address Management Address Management":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Name of the Recipient Country in English in Output Forms":
+            - textbox
+          - gridcell "Address Management":
+            - textbox
+          - gridcell "Address Management":
+            - textbox
+        - 'row "To select a row, press the space bar. BAdI: Iimplement Country/Region-specific Features Business Add-ins (BAdIs) Advance Claims"':
+          - gridcell "To select a row, press the space bar."
+          - 'gridcell "BAdI: Iimplement Country/Region-specific Features"':
+            - textbox
+          - gridcell "Business Add-ins (BAdIs)":
+            - textbox
+          - gridcell "Advance Claims":
+            - textbox
+        - row "To select a row, press the space bar. Maintain Reimbursement Types based on Country/Region Grouping Reimbursement Type and Request Type Settings Advanced Claims":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Maintain Reimbursement Types based on Country/Region Grouping":
+            - textbox
+          - gridcell "Reimbursement Type and Request Type Settings":
+            - textbox
+          - gridcell "Advanced Claims":
+            - textbox
+        - row "To select a row, press the space bar. Define Country/Region Groups Route Processing Advanced Payment Management":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Define Country/Region Groups":
+            - textbox
+          - gridcell "Route Processing":
+            - textbox
+          - gridcell "Advanced Payment Management":
+            - textbox
+        - 'row "To select a row, press the space bar. Country/Region-Specific Settings for Impairment: Net or Gross Settings for Credit-Risk-Based Impairment Advanced Valuation in General Ledger Accounting"':
+          - gridcell "To select a row, press the space bar."
+          - 'gridcell "Country/Region-Specific Settings for Impairment: Net or Gross"':
+            - textbox
+          - gridcell "Settings for Credit-Risk-Based Impairment":
+            - textbox
+          - gridcell "Advanced Valuation in General Ledger Accounting":
+            - textbox
+        - row "To select a row, press the space bar. Country/Region-Specific Settings Agricultural Contract Management Agricultural Contract Management":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Country/Region-Specific Settings":
+            - textbox
+          - gridcell "Agricultural Contract Management":
+            - textbox
+          - gridcell "Agricultural Contract Management":
+            - textbox
+        - row "To select a row, press the space bar. Infotypes for Country Version Argentina Personnel & Organization - Argentina Argentina":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Infotypes for Country Version Argentina":
+            - textbox
+          - gridcell "Personnel & Organization - Argentina":
+            - textbox
+          - gridcell "Argentina":
+            - textbox
+        - row "To select a row, press the space bar. Maintain Country/Region Codes Electronic Invoicing (Argentina) Argentina":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Maintain Country/Region Codes":
+            - textbox
+          - gridcell "Electronic Invoicing (Argentina)":
+            - textbox
+          - gridcell "Argentina":
+            - textbox
+        - row "To select a row, press the space bar. Activate Country-Specific/Region-Specific Data Screen Layout Asset Accounting":
+          - gridcell "To select a row, press the space bar."
+          - gridcell "Activate Country-Specific/Region-Specific Data":
+            - textbox
+          - gridcell "Screen Layout":
+            - textbox
+          - gridcell "Asset Accounting":
+            - textbox
+      - rowgroup
+      - rowgroup
+    - toolbar:
+      - button "Continue"
+      - button "Select All"
+      - button "Deselect All"
+      - button "Cancel"
