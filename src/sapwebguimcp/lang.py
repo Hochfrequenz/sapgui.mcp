@@ -281,18 +281,20 @@ SPRO_SEARCH_FIELD_DE = "Suchbegriff"
 SPRO_SEARCH_FIELD_EN = "Search Term"
 
 # Results dialog title pattern (contains search term)
+# DE: "Trefferliste zum Suchbegriff \"LAND\""
+# EN: "Search Term \"COUNTRY\" Hit List"
 SPRO_RESULTS_DIALOG_DE = "Trefferliste zum Suchbegriff"
-SPRO_RESULTS_DIALOG_EN = "Hit List for Search Term"
+SPRO_RESULTS_DIALOG_EN = "Hit List"
 
 # Results grid column headers
 SPRO_COL_HITS_DE = "Gefundene Treffer"
-SPRO_COL_HITS_EN = "Hits Found"
+SPRO_COL_HITS_EN = "Hits"
 
 SPRO_COL_PARENT_DE = "Übergeordneter Knoten"
-SPRO_COL_PARENT_EN = "Higher-Level Node"
+SPRO_COL_PARENT_EN = "Parent Node"
 
 SPRO_COL_AREA_DE = "Im Bereich"
-SPRO_COL_AREA_EN = "In Area"
+SPRO_COL_AREA_EN = "In area"
 
 # IMG tree heading (unique to IMG view, not present on initial screen)
 SPRO_IMG_HEADING_DE = "IMG anzeigen"

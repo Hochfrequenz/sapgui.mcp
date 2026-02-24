@@ -32,8 +32,11 @@ __all__ = [
 # =============================================================================
 
 # Results dialog detection (DE/EN)
+# DE: dialog "Trefferliste zum Suchbegriff \"LAND\""
+# EN: dialog "Search Term \"COUNTRY\" Hit List"
+# Note: dialog titles contain escaped quotes (\") so we use .*? instead of [^"]*
 _RESULTS_DIALOG_PATTERN = re.compile(
-    rf'dialog "(?:{re.escape(SPRO_RESULTS_DIALOG_DE)}|{re.escape(SPRO_RESULTS_DIALOG_EN)})',
+    rf'dialog ".*?(?:{re.escape(SPRO_RESULTS_DIALOG_DE)}|{re.escape(SPRO_RESULTS_DIALOG_EN)})',
 )
 
 # Data row with selection hint prefix

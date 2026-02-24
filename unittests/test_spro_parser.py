@@ -78,6 +78,33 @@ class TestRealSearchResults:
             assert "To select" not in activity.activity_name
 
 
+class TestRealSearchResultsEN:
+    """Tests using the real EN search results snapshot for 'country'."""
+
+    @pytest.fixture
+    def en_search_results(self) -> str:
+        path = SPRO_SNAPSHOTS_DIR / "spro_search_results_country_en.yaml"
+        if not path.exists():
+            pytest.skip("EN search results snapshot not available")
+        return path.read_text(encoding="utf-8")
+
+    def test_parses_activities(self, en_search_results: str) -> None:
+        result = parse_spro_search_results(en_search_results, "country")
+        assert result.success
+        assert result.activity_count > 0
+        assert len(result.activities) == result.activity_count
+
+    def test_known_activity_present(self, en_search_results: str) -> None:
+        result = parse_spro_search_results(en_search_results, "country")
+        names = [a.activity_name for a in result.activities]
+        assert any("Country" in name for name in names)
+
+    def test_no_selection_cells_in_results(self, en_search_results: str) -> None:
+        result = parse_spro_search_results(en_search_results, "country")
+        for activity in result.activities:
+            assert "To select" not in activity.activity_name
+
+
 # =============================================================================
 # No results / edge cases
 # =============================================================================
@@ -209,8 +236,8 @@ class TestSyntheticSnapshots:
     def test_en_results_dialog(self) -> None:
         """Test that EN dialog title is also detected."""
         snapshot = """
-  - dialog "Hit List for Search Term \\"country\\"":
-    - heading "Hit List" [level=1]
+  - dialog "Search Term \\"COUNTRY\\" Hit List":
+    - heading "Search Term \\"COUNTRY\\" Hit List" [level=1]
     - grid:
       - rowgroup:
         - row "To select a row, press the space bar. Define Countries Enterprise Structure Financial Accounting":
