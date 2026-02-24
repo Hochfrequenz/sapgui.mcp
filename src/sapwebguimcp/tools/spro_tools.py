@@ -16,6 +16,8 @@ from mcp.types import ToolAnnotations
 from playwright.async_api import Page
 
 from sapwebguimcp.lang import (
+    SPRO_IMG_HEADING_DE,
+    SPRO_IMG_HEADING_EN,
     SPRO_INITIAL_SCREEN_DE,
     SPRO_INITIAL_SCREEN_EN,
     SPRO_RESULTS_DIALOG_DE,
@@ -58,10 +60,11 @@ async def _click_sap_ref_img(page: Page) -> str | None:
     await page.wait_for_load_state("networkidle")
     await page.wait_for_timeout(500)
 
-    # Verify we're in the IMG tree by checking for the search button
+    # Verify we're in the IMG tree by checking for its unique heading
+    # (the search button exists on both initial and IMG screens, so it's not discriminating)
     snapshot = await page.locator("body").aria_snapshot()
-    if SPRO_SEARCH_BUTTON_DE not in snapshot and SPRO_SEARCH_BUTTON_EN not in snapshot:
-        return "Failed to enter IMG tree (search button not found after F5)"
+    if SPRO_IMG_HEADING_DE not in snapshot and SPRO_IMG_HEADING_EN not in snapshot:
+        return "Failed to enter IMG tree (heading not found after F5)"
 
     return None
 
@@ -144,8 +147,8 @@ async def _wait_for_results(page: Page) -> str:
 
         # Check if we returned to the IMG tree (search dialog gone, no results)
         # The search dialog title disappears when search finishes without results
-        if SPRO_SEARCH_BUTTON_DE in snapshot or SPRO_SEARCH_BUTTON_EN in snapshot:
-            # We can see the IMG toolbar again — search is done
+        if SPRO_IMG_HEADING_DE in snapshot or SPRO_IMG_HEADING_EN in snapshot:
+            # We can see the IMG heading again — search is done
             if "dialog" not in snapshot.lower():
                 logger.info(
                     "SPRO search completed with no results after %d ms",
