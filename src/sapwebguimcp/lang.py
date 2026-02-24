@@ -226,6 +226,38 @@ SE09_DISPLAY_BUTTON_EN = "Display"
 
 
 # =============================================================================
+# SM30 - Table Maintenance
+# =============================================================================
+SM30_DISPLAY_BUTTON_DE = "Anzeigen"
+SM30_DISPLAY_BUTTON_EN = "Display"
+
+SM30_MAINTAIN_BUTTON_DE = "Pflegen"
+SM30_MAINTAIN_BUTTON_EN = "Maintain"
+
+SM30_TABLE_VIEW_DE = "Tabelle/Sicht"
+SM30_TABLE_VIEW_EN = "Table/View"
+
+SM30_INITIAL_SCREEN_DE = "Tabellensicht-Pflege"
+SM30_INITIAL_SCREEN_EN = "Table View Maintenance"
+
+# SM30 status bar messages for view not found
+SM30_NOT_FOUND_DE = "existiert nicht"
+SM30_NOT_FOUND_EN = "does not exist"
+
+# SM30 screen titles when displaying a view
+SM30_DISPLAY_VIEW_DE = "Sicht"
+SM30_DISPLAY_VIEW_EN = "View"
+
+# SM30 hint for SM34 redirect
+SM30_USE_SM34_DE = "SM34"
+SM30_USE_SM34_EN = "SM34"
+
+# SM30 column header for row selection (display mode)
+SM30_ROW_SELECT_HINT_DE = "Zum Auswählen"
+SM30_ROW_SELECT_HINT_EN = "To select"
+
+
+# =============================================================================
 # Helper Functions
 # =============================================================================
 

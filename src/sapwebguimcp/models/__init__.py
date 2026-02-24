@@ -133,6 +133,12 @@ from sapwebguimcp.models.slg1_models import (
     SLG1LogEntry,
     SLG1LogListResult,
 )
+from sapwebguimcp.models.sm30_models import (
+    SM30FileSummary,
+    SM30Row,
+    SM30ViewResult,
+    SM30ViewType,
+)
 from sapwebguimcp.models.sm37_models import (
     SM37Job,
     SM37JobListResult,
@@ -293,6 +299,11 @@ __all__ = [
     "SLG1FileSummary",
     "SLG1LogEntry",
     "SLG1LogListResult",
+    # SM30 models
+    "SM30FileSummary",
+    "SM30Row",
+    "SM30ViewResult",
+    "SM30ViewType",
     # Workflow models
     "Workflow",
     "WorkflowDeleteResult",
