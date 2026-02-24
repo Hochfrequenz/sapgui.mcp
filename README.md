@@ -13,6 +13,7 @@ Control SAP through Claude Desktop or Claude Code with persistent browser sessio
 Choose one of these three approaches:
 
 **Where to register the MCP server:**
+
 - **Claude Code** — add to `.mcp.json` in your project root (per-project config)
 - **Claude Desktop** — add to `claude_desktop_config.json` (global config, path varies by OS — shown in each section below)
 
@@ -471,25 +472,25 @@ For repetitive tasks like "create 100 business partners":
 
 ## Configuration Reference
 
-| Variable | Required | Description | Default |
-| --- | --- | --- | --- |
-| `SAP_URL` | **Yes** <sup>1</sup> | SAP Web GUI URL | `""` |
-| `SAP_USER` | **Yes** <sup>1</sup> | SAP username for auto-login | `""` |
-| `SAP_PASSWORD` | **Yes** <sup>1</sup> | SAP password for auto-login | `""` |
-| `SAP_MANDANT` | **Yes** <sup>1</sup> | SAP client (3-digit, e.g., `100`) | `""` |
-| `SAP_LANGUAGE` | No | Login language (`DE` or `EN`) | `EN` |
-| `BROWSER_MODE` | No | `connect` (existing Chrome) or `launch` (Playwright) | `connect` |
-| `BROWSER_TYPE` | No | `chromium`, `firefox`, or `webkit` | `chromium` |
-| `BROWSER_HEADLESS` | No | Run browser in headless mode | `false` |
-| `CDP_URL` | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL | `http://localhost:9222` |
-| `GITHUB_PAT` | No | GitHub PAT for `log_feedback` issues and abapGit auth | — |
-| `GITHUB_USER` | No | GitHub username for abapGit (falls back to `x-access-token`) | — |
-| `GITHUB_REPO` | No | Repository for feedback issues | `Hochfrequenz/sapwebgui.mcp` |
-| `ABAPGIT_PAT` | No | Separate PAT for abapGit (overrides `GITHUB_PAT` if set) | — |
-| `PAPERTRAIL_HOST` | No | Papertrail syslog host (empty to disable) | `logs5.papertrailapp.com` |
-| `PAPERTRAIL_PORT` | No | Papertrail syslog port | `35329` |
-| `LOG_FORMAT` | No | Set to `json` for JSON log output | `""` (human-readable) |
-| `LOG_LEVEL` | No | `DEBUG`, `INFO`, `WARNING`, or `ERROR` | `INFO` |
+| Variable           | Required                    | Description                                                  | Default                      |
+| ------------------ | --------------------------- | ------------------------------------------------------------ | ---------------------------- |
+| `SAP_URL`          | **Yes** <sup>1</sup>        | SAP Web GUI URL                                              | `""`                         |
+| `SAP_USER`         | **Yes** <sup>1</sup>        | SAP username for auto-login                                  | `""`                         |
+| `SAP_PASSWORD`     | **Yes** <sup>1</sup>        | SAP password for auto-login                                  | `""`                         |
+| `SAP_MANDANT`      | **Yes** <sup>1</sup>        | SAP client (3-digit, e.g., `100`)                            | `""`                         |
+| `SAP_LANGUAGE`     | No                          | Login language (`DE` or `EN`)                                | `EN`                         |
+| `BROWSER_MODE`     | No                          | `connect` (existing Chrome) or `launch` (Playwright)         | `connect`                    |
+| `BROWSER_TYPE`     | No                          | `chromium`, `firefox`, or `webkit`                           | `chromium`                   |
+| `BROWSER_HEADLESS` | No                          | Run browser in headless mode                                 | `false`                      |
+| `CDP_URL`          | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL                                 | `http://localhost:9222`      |
+| `GITHUB_PAT`       | No                          | GitHub PAT for `log_feedback` issues and abapGit auth        | —                            |
+| `GITHUB_USER`      | No                          | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
+| `GITHUB_REPO`      | No                          | Repository for feedback issues                               | `Hochfrequenz/sapwebgui.mcp` |
+| `ABAPGIT_PAT`      | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
+| `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                    | `logs5.papertrailapp.com`    |
+| `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                       | `35329`                      |
+| `LOG_FORMAT`       | No                          | Set to `json` for JSON log output                            | `""` (human-readable)        |
+| `LOG_LEVEL`        | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                       | `INFO`                       |
 
 <sup>1</sup> The server starts without these, but SAP login will fail.
 

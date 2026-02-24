@@ -13,6 +13,7 @@
 ### Task 1: Create SE38EditResult model
 
 **Files:**
+
 - Create: `src/sapwebguimcp/models/se38_edit_models.py`
 - Modify: `src/sapwebguimcp/models/__init__.py`
 - Test: `unittests/test_se38_edit.py`
@@ -125,9 +126,10 @@ git commit -m "feat(se38): add SE38EditResult model"
 
 ---
 
-### Task 2: Implement shared _check_and_activate helper
+### Task 2: Implement shared \_check_and_activate helper
 
 **Files:**
+
 - Create: `src/sapwebguimcp/tools/edit_helpers.py`
 - Test: `unittests/test_se38_edit.py` (append)
 
@@ -341,6 +343,7 @@ git commit -m "feat(se38): add shared edit helpers (check/activate, status parsi
 ### Task 3: Implement sap_se38_edit tool
 
 **Files:**
+
 - Create: `src/sapwebguimcp/tools/se38_edit_tools.py`
 - Modify: `src/sapwebguimcp/tools/__init__.py`
 - Modify: `src/sapwebguimcp/server.py`
@@ -532,16 +535,21 @@ def register_se38_edit_tools(mcp: FastMCP) -> None:
 Register the tool:
 
 In `src/sapwebguimcp/tools/__init__.py`, add:
+
 ```python
 from sapwebguimcp.tools.se38_edit_tools import register_se38_edit_tools
 ```
+
 Add `"register_se38_edit_tools"` to `__all__`.
 
 In `src/sapwebguimcp/server.py`, add after the other register calls:
+
 ```python
 register_se38_edit_tools(mcp)
 ```
+
 And add to the import block:
+
 ```python
 from sapwebguimcp.tools import register_se38_edit_tools
 ```
@@ -592,6 +600,7 @@ git commit -m "style: fix linting and formatting for SE38 edit tool"
 ### Task 5: Integration test with real SAP
 
 **Files:**
+
 - Modify: `unittests/test_se38_edit_exploration.py` (append)
 
 **Step 1: Write the integration test**

@@ -77,6 +77,10 @@ from sapwebguimcp.models.sap_results import (
     ToolInfo,
     TransactionResult,
 )
+from sapwebguimcp.models.se09_models import (
+    TransportListResult,
+    TransportRequest,
+)
 from sapwebguimcp.models.se11_models import (
     SE11Entry,
     SE11Error,
@@ -124,10 +128,21 @@ from sapwebguimcp.models.se93_models import (
     SE93TransactionType,
 )
 from sapwebguimcp.models.session_registry import SessionRegistry
+from sapwebguimcp.models.slg1_models import (
+    SLG1FileSummary,
+    SLG1LogEntry,
+    SLG1LogListResult,
+)
 from sapwebguimcp.models.sm37_models import (
     SM37Job,
     SM37JobListResult,
     SM37JobLog,
+)
+from sapwebguimcp.models.st22_models import (
+    ST22Dump,
+    ST22DumpDetail,
+    ST22DumpDetailResult,
+    ST22DumpListResult,
 )
 from sapwebguimcp.models.workflow_models import (
     Workflow,
@@ -260,12 +275,24 @@ __all__ = [
     "SM37Job",
     "SM37JobListResult",
     "SM37JobLog",
+    # ST22 models
+    "ST22Dump",
+    "ST22DumpDetail",
+    "ST22DumpDetailResult",
+    "ST22DumpListResult",
+    # SE09 models
+    "TransportListResult",
+    "TransportRequest",
     # SE93 models
     "SE93Entry",
     "SE93Error",
     "SE93FileSummary",
     "SE93Result",
     "SE93TransactionType",
+    # SLG1 models
+    "SLG1FileSummary",
+    "SLG1LogEntry",
+    "SLG1LogListResult",
     # Workflow models
     "Workflow",
     "WorkflowDeleteResult",

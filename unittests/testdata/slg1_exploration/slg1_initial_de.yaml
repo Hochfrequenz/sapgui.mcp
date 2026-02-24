@@ -1,0 +1,99 @@
+- main "Anwendungslog auswerten":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "Anwendungslog auswerten" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+    - button "Beenden"
+  - text: Objekt
+  - textbox "Objekt"
+  - button "(generische Eingabe)"
+  - text: Unterobjekt
+  - textbox "Unterobjekt"
+  - button "(generische Eingabe)"
+  - text: Ext. Identif.
+  - textbox "Ext. Identif."
+  - group "Zeiteinschränkung":
+    - heading "Zeiteinschränkung" [level=2]
+    - text: von (Datum/Uhrzeit)
+    - textbox "von (Datum/Uhrzeit)": 23.02.2026
+    - 'textbox "Anwendungs-Log: Uhrzeit"': 00:00:00
+    - text: bis (Datum/Uhrzeit)
+    - textbox "bis (Datum/Uhrzeit)": 23.02.2026
+    - 'textbox "Anwendungs-Log: Uhrzeit"': 23:59:59
+  - group "Protokoll verursacht durch":
+    - heading "Protokoll verursacht durch" [level=2]
+    - text: Benutzer
+    - textbox "Benutzer": "*"
+    - text: Transaktionscode
+    - textbox "Transaktionscode": "*"
+    - text: Programm
+    - textbox "Programm": "*"
+  - group "Protokollklasse":
+    - heading "Protokollklasse" [level=2]
+    - radio "nur besonders wichtige Protokolle"
+    - radio "nur wichtige Protokolle"
+    - radio "auch weniger wichtige Protokolle"
+    - radio "alle Protokolle" [checked]
+  - group "Protokollerstellung":
+    - heading "Protokollerstellung" [level=2]
+    - radio "beliebig" [checked]
+    - radio "im Dialog-Betrieb"
+    - radio "im Batch-Betrieb"
+    - radio "im Batch-Input-Betrieb"
+  - group "Protokollquelle und Aufbereitung":
+    - heading "Protokollquelle und Aufbereitung" [level=2]
+    - radio "von der Datenbank komplett aufbereiten" [checked]
+    - radio "von der Datenbank nur Kopfdaten aufbereiten"
+    - radio "aus dem Archiv komplett aufbereiten"
+  - text: 
+  - toolbar:
+    - button "Ausführen Hervorgehoben"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSLG3/0100":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSLG3/0100"
+        - cell
+      - menuitemradio "Transaktion SLG1":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SLG1"
+        - cell
+      - row "E2E-Zeit 166 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "166 ms"
+        - cell
+      - row "WebGUI-Zeit 70 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "70 ms"
+        - cell

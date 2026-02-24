@@ -13,6 +13,7 @@
 ### Task 1: Add MCP Registration Intro
 
 **Files:**
+
 - Modify: `README.md:13` (after "Choose one of these three approaches:")
 
 **Step 1: Add the intro block**
@@ -20,8 +21,8 @@
 Insert the following after line 13 (`Choose one of these three approaches:`) and before the first `<details>` tag:
 
 ```markdown
-
 **Where to register the MCP server:**
+
 - **Claude Code** — add to `.mcp.json` in your project root (per-project config)
 - **Claude Desktop** — add to `claude_desktop_config.json` (global config, path varies by OS — shown in each section below)
 
@@ -44,13 +45,14 @@ git commit -m "docs: add MCP registration intro to README Setup section"
 ### Task 2: Fix EXE Section
 
 **Files:**
+
 - Modify: `README.md` — the `<details>` block starting at line 15 ("Standalone Executable")
 
 **Step 1: Replace the "Step 2: Configure your MCP client" content**
 
 Replace everything from `### Step 2: Configure your MCP client` up to (but not including) `No Docker, no CDP proxy` with:
 
-```markdown
+````markdown
 ### Step 2: Configure your MCP client
 
 **Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
@@ -78,6 +80,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
     }
 }
 ```
+````
 
 #### Claude Code
 
@@ -100,7 +103,8 @@ Add to `.mcp.json` in your project root:
     }
 }
 ```
-```
+
+````
 
 Note: `BROWSER_MODE` defaults to `connect` and `CDP_URL` defaults to `http://localhost:9222`, so they don't need to be set for the EXE path. No `AUDIT_LOG_DIR` since there's no Docker volume mount.
 
@@ -119,20 +123,21 @@ Read the modified section and confirm:
 ```bash
 git add README.md
 git commit -m "docs: expand EXE section with complete env vars and both client configs"
-```
+````
 
 ---
 
 ### Task 3: Fix Docker Section
 
 **Files:**
+
 - Modify: `README.md` — the Docker `<details>` block, specifically "Step 3: Configure your MCP client"
 
 **Step 1: Replace the Docker Step 3 content**
 
 Replace the `### Step 3: Configure your MCP client` section (from that heading through the end of the "Option B: Claude Code" JSON block, up to "Then start Claude code:") with:
 
-```markdown
+````markdown
 ### Step 3: Configure your MCP client
 
 **Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
@@ -148,6 +153,7 @@ First, create the audit logs directory:
 ```powershell
 mkdir $env:USERPROFILE\sap-audit-logs
 ```
+````
 
 Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
 
@@ -237,7 +243,8 @@ Add to `.mcp.json` in your project root:
     }
 }
 ```
-```
+
+````
 
 Key changes from current:
 - SAP_LANGUAGE changed from DE to DE (keep — already DE in current)
@@ -260,20 +267,21 @@ Confirm:
 ```bash
 git add README.md
 git commit -m "docs: fix Docker section with required/optional distinction and GITHUB_PAT note"
-```
+````
 
 ---
 
 ### Task 4: Fix Dev/Python Section
 
 **Files:**
+
 - Modify: `README.md` — the Development Setup `<details>` block
 
 **Step 1: Replace the "Configure Claude Desktop for local development" content**
 
 Replace from `### Configure Claude Desktop for local development` through the end of the JSON block (before `</details>`) with:
 
-```markdown
+````markdown
 ### Configure your MCP client
 
 **Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
@@ -306,6 +314,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
     }
 }
 ```
+````
 
 #### Claude Code
 
@@ -331,7 +340,8 @@ Add to `.mcp.json` in your project root:
     }
 }
 ```
-```
+
+````
 
 Key changes: heading renamed from "Configure Claude Desktop for local development" to "Configure your MCP client". Both clients shown. Full common env vars. Required/optional prose. GITHUB_PAT note. "No CDP proxy needed" note moved to prose above configs. No AUDIT_LOG_DIR.
 
@@ -350,13 +360,14 @@ Confirm:
 ```bash
 git add README.md
 git commit -m "docs: expand Dev/Python section with both client configs and full env vars"
-```
+````
 
 ---
 
 ### Task 5: Update Configuration Reference Table
 
 **Files:**
+
 - Modify: `README.md` — the `## Configuration Reference` section (around line 409)
 
 **Step 1: Replace the Configuration Reference table**
@@ -366,31 +377,32 @@ Replace the existing table with:
 ```markdown
 ## Configuration Reference
 
-| Variable | Required | Description | Default |
-| --- | --- | --- | --- |
-| `SAP_URL` | **Yes** | SAP Web GUI URL | — |
-| `SAP_USER` | **Yes** | SAP username for auto-login | — |
-| `SAP_PASSWORD` | **Yes** | SAP password for auto-login | — |
-| `SAP_MANDANT` | **Yes** | SAP client (3-digit, e.g., `100`) | — |
-| `SAP_LANGUAGE` | No | Login language (`DE` or `EN`) | `EN` |
-| `BROWSER_MODE` | No | `connect` (existing Chrome) or `launch` (Playwright) | `connect` |
-| `BROWSER_TYPE` | No | `chromium`, `firefox`, or `webkit` | `chromium` |
-| `BROWSER_HEADLESS` | No | Run browser in headless mode | `false` |
-| `CDP_URL` | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL | `http://localhost:9222` |
-| `AUDIT_LOG_DIR` | No | Directory for audit logs (JSONL) | — |
-| `GITHUB_PAT` | No | GitHub PAT for `log_feedback` issues and abapGit auth | — |
-| `GITHUB_USER` | No | GitHub username for abapGit (falls back to `x-access-token`) | — |
-| `GITHUB_REPO` | No | Repository for feedback issues | `Hochfrequenz/sapwebgui.mcp` |
-| `ABAPGIT_PAT` | No | Separate PAT for abapGit (overrides `GITHUB_PAT` if set) | — |
-| `PAPERTRAIL_HOST` | No | Papertrail syslog host (empty to disable) | `logs5.papertrailapp.com` |
-| `PAPERTRAIL_PORT` | No | Papertrail syslog port | `35329` |
-| `LOG_FORMAT` | No | Set to `json` for JSON log output | human-readable |
-| `LOG_LEVEL` | No | `DEBUG`, `INFO`, `WARNING`, or `ERROR` | `INFO` |
+| Variable           | Required                    | Description                                                  | Default                      |
+| ------------------ | --------------------------- | ------------------------------------------------------------ | ---------------------------- |
+| `SAP_URL`          | **Yes**                     | SAP Web GUI URL                                              | —                            |
+| `SAP_USER`         | **Yes**                     | SAP username for auto-login                                  | —                            |
+| `SAP_PASSWORD`     | **Yes**                     | SAP password for auto-login                                  | —                            |
+| `SAP_MANDANT`      | **Yes**                     | SAP client (3-digit, e.g., `100`)                            | —                            |
+| `SAP_LANGUAGE`     | No                          | Login language (`DE` or `EN`)                                | `EN`                         |
+| `BROWSER_MODE`     | No                          | `connect` (existing Chrome) or `launch` (Playwright)         | `connect`                    |
+| `BROWSER_TYPE`     | No                          | `chromium`, `firefox`, or `webkit`                           | `chromium`                   |
+| `BROWSER_HEADLESS` | No                          | Run browser in headless mode                                 | `false`                      |
+| `CDP_URL`          | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL                                 | `http://localhost:9222`      |
+| `AUDIT_LOG_DIR`    | No                          | Directory for audit logs (JSONL)                             | —                            |
+| `GITHUB_PAT`       | No                          | GitHub PAT for `log_feedback` issues and abapGit auth        | —                            |
+| `GITHUB_USER`      | No                          | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
+| `GITHUB_REPO`      | No                          | Repository for feedback issues                               | `Hochfrequenz/sapwebgui.mcp` |
+| `ABAPGIT_PAT`      | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
+| `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                    | `logs5.papertrailapp.com`    |
+| `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                       | `35329`                      |
+| `LOG_FORMAT`       | No                          | Set to `json` for JSON log output                            | human-readable               |
+| `LOG_LEVEL`        | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                       | `INFO`                       |
 ```
 
 **Step 2: Verify**
 
 Confirm:
+
 - 18 rows (all env vars from `config.py` + `logging_config.py`)
 - Required column present with **Yes** for SAP credentials
 - CDP_URL shows conditional requirement
@@ -408,10 +420,10 @@ git commit -m "docs: expand Configuration Reference with all env vars and requir
 
 ### Summary of All Changes
 
-| Task | Section | Key Changes |
-|------|---------|-------------|
-| 1 | Setup intro | Add MCP registration explanation (`.mcp.json` vs `claude_desktop_config.json`) |
-| 2 | EXE | Add Claude Code config, expand to 6 env vars, required/optional prose, GITHUB_PAT note |
-| 3 | Docker | Add required/optional prose, GITHUB_PAT note, clean up "Replace:" list |
-| 4 | Dev/Python | Add Claude Code config, expand to 8 env vars, rename heading, required/optional prose |
-| 5 | Config Reference | Add 8 missing vars, add Required column, verify all defaults |
+| Task | Section          | Key Changes                                                                            |
+| ---- | ---------------- | -------------------------------------------------------------------------------------- |
+| 1    | Setup intro      | Add MCP registration explanation (`.mcp.json` vs `claude_desktop_config.json`)         |
+| 2    | EXE              | Add Claude Code config, expand to 6 env vars, required/optional prose, GITHUB_PAT note |
+| 3    | Docker           | Add required/optional prose, GITHUB_PAT note, clean up "Replace:" list                 |
+| 4    | Dev/Python       | Add Claude Code config, expand to 8 env vars, rename heading, required/optional prose  |
+| 5    | Config Reference | Add 8 missing vars, add Required column, verify all defaults                           |

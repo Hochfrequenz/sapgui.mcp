@@ -167,6 +167,19 @@ SE93_PROGRAM_EN = "Program"
 SE93_AUTH_OBJECT_DE = "Berechtigungsobjekt"
 SE93_AUTH_OBJECT_EN = "Authorization object"
 
+# =============================================================================
+# SLG1 - Application Log
+# =============================================================================
+SLG1_INITIAL_SCREEN_DE = "Anwendungslog auswerten"
+SLG1_INITIAL_SCREEN_EN = "Analyze Application Log"
+
+SLG1_LOG_LIST_SCREEN_DE = "Protokolle anzeigen"
+SLG1_LOG_LIST_SCREEN_EN = "Display Logs"
+
+# Status bar message when no logs found
+SLG1_NO_LOGS_FOUND_DE = "Es konnte kein Protokoll auf der Datenbank gefunden werden"
+SLG1_NO_LOGS_FOUND_EN = "No log could be found in the database"
+
 
 # =============================================================================
 # SM37 - Job Overview
@@ -194,6 +207,25 @@ SM37_STATUS_MAP_EN = {
 
 
 # =============================================================================
+# SE09 - Transport Organizer
+# =============================================================================
+
+# User filter field label
+SE09_USER_FIELD_DE = "Benutzer"
+SE09_USER_FIELD_EN = "User"
+
+# Status filter labels
+SE09_MODIFIABLE_DE = "Änderbar"
+SE09_MODIFIABLE_EN = "Modifiable"
+SE09_RELEASED_DE = "Freigegeben"
+SE09_RELEASED_EN = "Released"
+
+# Button labels
+SE09_DISPLAY_BUTTON_DE = "Anzeigen"
+SE09_DISPLAY_BUTTON_EN = "Display"
+
+
+# =============================================================================
 # Helper Functions
 # =============================================================================
 
@@ -215,16 +247,20 @@ def bilingual_pattern(de: str, en: str, *, escape: bool = True) -> str:
     return f"(?:{de}|{en})"
 
 
-def bilingual_pattern_ignorecase(de: str, en: str, *, escape: bool = True) -> str:
-    """
-    Build case-insensitive regex alternation from DE/EN pair.
+# =============================================================================
+# ST22 - Short Dump Analysis (ABAP Runtime Errors)
+# =============================================================================
 
-    Args:
-        de: German string
-        en: English string
-        escape: Whether to escape regex special characters (default True)
+# Detail page section headers
+ST22_WHAT_HAPPENED_DE = "Was ist geschehen?"
+ST22_WHAT_HAPPENED_EN = "What happened?"
 
-    Returns:
-        Regex pattern string (use with re.IGNORECASE flag)
-    """
-    return bilingual_pattern(de, en, escape=escape)
+ST22_HOW_TO_CORRECT_DE = "Was können Sie tun?"
+ST22_HOW_TO_CORRECT_EN = "How to Correct the Error"
+
+ST22_ERROR_ANALYSIS_DE = "Fehleranalyse"
+ST22_ERROR_ANALYSIS_EN = "Error Analysis"
+
+# "No dumps found" status message
+ST22_NO_DUMPS_DE = "Keine Einträge gefunden"
+ST22_NO_DUMPS_EN = "No entries found"

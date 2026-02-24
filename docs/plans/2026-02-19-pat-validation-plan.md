@@ -13,6 +13,7 @@
 ### Task 1: `validate_github_pat()` — Mocked Tests
 
 **Files:**
+
 - Create: `unittests/test_pat_validation.py`
 
 **Step 1: Write the failing tests**
@@ -92,6 +93,7 @@ git commit -m "test: add failing tests for validate_github_pat"
 ### Task 2: `validate_github_pat()` — Implementation
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/abapgit_tools.py` (add function near top, after imports)
 
 **Step 1: Implement the function**
@@ -144,6 +146,7 @@ git commit -m "feat: add validate_github_pat function"
 ### Task 3: Real Integration Test — Expired PAT
 
 **Files:**
+
 - Modify: `unittests/test_pat_validation.py` (add test at bottom)
 
 **Step 1: Write the real integration test**
@@ -182,6 +185,7 @@ git commit -m "test: add real integration test for expired PAT"
 ### Task 4: Startup Validation in `app_lifespan`
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/server.py:88-108` (the `app_lifespan` function)
 
 **Step 1: Write the failing test**
@@ -312,6 +316,7 @@ git commit -m "feat: validate GitHub PAT on server startup"
 ### Task 5: Fix Silent Success in `_analyze_pull_result`
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/abapgit_tools.py:296-298`
 
 **Step 1: Write the failing test**
