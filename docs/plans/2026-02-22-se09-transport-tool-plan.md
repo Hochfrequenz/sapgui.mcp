@@ -362,12 +362,14 @@ async def test_se09_capture_no_transports(sap_mcp_client: ClientSession) -> None
 ```
 
 **Verification:** Run against live SAP to capture snapshots:
+
 ```bash
 SAP_LANGUAGE=DE pytest unittests/test_se09_exploration.py -v -s
 SAP_LANGUAGE=EN pytest unittests/test_se09_exploration.py -v -s
 ```
 
 **Expected output:** YAML snapshot files in `unittests/testdata/se09_exploration/`:
+
 - `se09_initial_de.yaml`, `se09_initial_en.yaml`
 - `se09_transport_list_de.yaml`, `se09_transport_list_en.yaml`
 - `se09_expanded_request_de.yaml`, `se09_expanded_request_en.yaml`
@@ -1247,6 +1249,7 @@ async def test_se09_lookup_no_results(sap_mcp_client: ClientSession) -> None:
 ```
 
 **Verification:** Run against live SAP:
+
 ```bash
 pytest unittests/test_se09_integration.py -v -s
 ```
@@ -1258,22 +1261,26 @@ pytest unittests/test_se09_integration.py -v -s
 **Files:** None (validation only)
 
 **Step 1:** Run type checking:
+
 ```bash
 pyright src/sapwebguimcp/models/se09_models.py src/sapwebguimcp/parsers/se09_parser.py src/sapwebguimcp/tools/se09_tools.py
 ```
 
 **Step 2:** Run linting:
+
 ```bash
 ruff check src/sapwebguimcp/models/se09_models.py src/sapwebguimcp/parsers/se09_parser.py src/sapwebguimcp/tools/se09_tools.py
 ruff format --check src/sapwebguimcp/models/se09_models.py src/sapwebguimcp/parsers/se09_parser.py src/sapwebguimcp/tools/se09_tools.py
 ```
 
 **Step 3:** Run parser unit tests (offline):
+
 ```bash
 pytest unittests/test_se09_parser.py -v
 ```
 
 **Step 4:** Run full test suite to check for regressions:
+
 ```bash
 pytest unittests/ -v --ignore=unittests/test_se09_exploration.py --ignore=unittests/test_se09_integration.py -k "not sap_mcp_client"
 ```
@@ -1305,15 +1312,15 @@ The parser in Task 5 contains placeholder patterns. The actual implementation wo
 
 ### File Summary
 
-| File | Action | Description |
-|---|---|---|
-| `src/sapwebguimcp/models/se09_models.py` | Create | Pydantic models |
-| `src/sapwebguimcp/models/__init__.py` | Modify | Register model exports |
-| `src/sapwebguimcp/lang.py` | Modify | Add SE09 language constants |
-| `src/sapwebguimcp/parsers/se09_parser.py` | Create | Tree snapshot parser |
-| `src/sapwebguimcp/tools/se09_tools.py` | Create | MCP tool implementation |
-| `src/sapwebguimcp/tools/__init__.py` | Modify | Register tool export |
-| `src/sapwebguimcp/server.py` | Modify | Register tool with server |
-| `unittests/test_se09_exploration.py` | Create | Snapshot capture tests |
-| `unittests/test_se09_parser.py` | Create | Offline parser tests |
-| `unittests/test_se09_integration.py` | Create | End-to-end tests |
+| File                                      | Action | Description                 |
+| ----------------------------------------- | ------ | --------------------------- |
+| `src/sapwebguimcp/models/se09_models.py`  | Create | Pydantic models             |
+| `src/sapwebguimcp/models/__init__.py`     | Modify | Register model exports      |
+| `src/sapwebguimcp/lang.py`                | Modify | Add SE09 language constants |
+| `src/sapwebguimcp/parsers/se09_parser.py` | Create | Tree snapshot parser        |
+| `src/sapwebguimcp/tools/se09_tools.py`    | Create | MCP tool implementation     |
+| `src/sapwebguimcp/tools/__init__.py`      | Modify | Register tool export        |
+| `src/sapwebguimcp/server.py`              | Modify | Register tool with server   |
+| `unittests/test_se09_exploration.py`      | Create | Snapshot capture tests      |
+| `unittests/test_se09_parser.py`           | Create | Offline parser tests        |
+| `unittests/test_se09_integration.py`      | Create | End-to-end tests            |

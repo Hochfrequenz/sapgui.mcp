@@ -1,0 +1,91 @@
+- main "Transport Organizer":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "Transport Organizer" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Anlegen..."
+      - button "Weitere Einstellungen..."
+      - button "Standardeinstellungen holen"
+      - button "Transport Organizer Tools"
+      - button "Einzelanzeige..."
+      - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Beenden"
+  - text: Benutzer
+  - textbox "Benutzer": KLEINK
+  - group "Auftragstyp":
+    - heading "Auftragstyp" [level=2]
+    - checkbox "Customizing-Aufträge":  Customizing-Aufträge
+    - checkbox "Workbench-Aufträge" [checked]:  Workbench-Aufträge
+    - checkbox "Transporte von Kopien":  Transporte von Kopien
+    - checkbox "Umzüge":  Umzüge
+  - tablist:
+    - tab "Globale Information" [selected]
+    - tab "Transportanträge"
+  - tabpanel:
+    - button "Auffrischen"
+    - img "Alle Transporte erfolgreich"
+    - button "0"
+    - button "Transporte"
+    - img "Nur abgeschlossene Reparaturen"
+    - button "0"
+    - button "Reparaturen"
+  - group "Auftragsstatus":
+    - heading "Auftragsstatus" [level=2]
+    - checkbox "Änderbar" [checked]:  Änderbar
+    - checkbox "Freigegeben" [checked]:  Freigegeben
+    - textbox "Text für Datumsauswahl"
+    - text: 
+  - button "Anzeigen"
+  - text: 
+  - toolbar:
+    - button "Auswahl anzeigen Hervorgehoben"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro RDDM0001/0100":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "RDDM0001/0100"
+        - cell
+      - menuitemradio "Transaktion SE09":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE09"
+        - cell
+      - row "E2E-Zeit 150 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "150 ms"
+        - cell
+      - row "WebGUI-Zeit 53 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "53 ms"
+        - cell

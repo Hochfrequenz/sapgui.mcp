@@ -1,0 +1,104 @@
+- 'main "Transport Organizer: Aufträge"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "Transport Organizer: Aufträge" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Auffrischen"
+      - button "Auftrag anlegen..."
+      - button "Auftrag anzeigen"
+      - button "Mitarbeiter hinzufügen"
+      - button "Inhaber ändern..."
+      - button "Löschen..."
+      - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Drucken (Strg+P)"
+    - button "Beenden"
+  - table:
+    - rowgroup:
+      - row "Liste":
+        - cell "Liste":
+          - region "Liste":
+            - text: Änderungsaufträge mit Beteiligung von KLEINK (Konstantin Klein)
+            - button
+            - text: 100 Entwickl., übergre. Cust.
+            - button
+            - text: Workbench Workbench-Auftrag
+            - button
+            - text: "-> DUM Dummy Queue"
+            - button
+            - text: Änderbar
+            - button
+            - text: S4UK902153
+            - img
+            - text: KLEINK Zum Test von MCP-basierten edits in se38/se37/se24
+            - button
+            - text: S4UK902096
+            - img
+            - text: KLEINK fuer Z_SUDOKU_SOLVER
+            - button
+            - text: S4UK902008
+            - img
+            - text: KLEINK enthält die beiden repositories für abapgit mcp pull
+            - button
+            - text: S4UK901097
+            - img
+            - text: KLEINK WB - HFQ BO4E
+            - button
+            - text: S4UK901849
+            - img
+            - text: KLEINK Ein Test-Request für Konstantin K
+        - cell
+      - row:
+        - cell
+        - cell
+  - toolbar:
+    - button "Auffrischen Hervorgehoben"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPMSSY0/0120":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPMSSY0/0120"
+        - cell
+      - menuitemradio "Transaktion SE09":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE09"
+        - cell
+      - row "E2E-Zeit 193 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "193 ms"
+        - cell
+      - row "WebGUI-Zeit 106 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "106 ms"
+        - cell

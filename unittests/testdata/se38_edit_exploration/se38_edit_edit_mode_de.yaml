@@ -1,0 +1,83 @@
+- 'main "ABAP Editor: Report ZTEST_MCP_EDIT ändern"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "ABAP Editor: Report ZTEST_MCP_EDIT ändern" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Anzeigen <-> Ändern"
+      - button "Aktiv <-> Inaktiv"
+      - button "Anderes Objekt..."
+      - button "Erweitern"
+      - button "Prüfen"
+      - button "Aktivieren"
+      - button "Direkt"
+      - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Weiter suchen (Strg+G)"
+    - button "Drucken (Strg+P)"
+    - button "Beenden"
+  - text: Report
+  - textbox "Report": ZTEST_MCP_EDIT
+  - button "aktiv"
+  - toolbar:
+    - button "Ausschneiden"
+    - button "Kopieren"
+    - button "Einfügen"
+    - separator
+    - button "Suchen/Ersetzen"
+    - button "Weitersuchen" [disabled]
+    - separator
+    - button "Lokale Datei laden"
+    - button "Als lokale Datei sichern"
+  - textbox: "*&---------------------------------------------------------------------* *& Report ZTEST_MCP_EDIT *&---------------------------------------------------------------------* *& *&---------------------------------------------------------------------* REPORT ZTEST_MCP_EDIT. WRITE 'HELLO WORLD'."
+  - toolbar:
+    - button "Sichern Hervorgehoben"
+    - button "Abbrechen"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLS38E/0500":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLS38E/0500"
+        - cell
+      - menuitemradio "Transaktion SE38":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE38"
+        - cell
+      - row "E2E-Zeit 140 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "140 ms"
+        - cell
+      - row "WebGUI-Zeit 62 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "62 ms"
+        - cell

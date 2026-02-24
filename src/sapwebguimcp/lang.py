@@ -207,6 +207,25 @@ SM37_STATUS_MAP_EN = {
 
 
 # =============================================================================
+# SE09 - Transport Organizer
+# =============================================================================
+
+# User filter field label
+SE09_USER_FIELD_DE = "Benutzer"
+SE09_USER_FIELD_EN = "User"
+
+# Status filter labels
+SE09_MODIFIABLE_DE = "Änderbar"
+SE09_MODIFIABLE_EN = "Modifiable"
+SE09_RELEASED_DE = "Freigegeben"
+SE09_RELEASED_EN = "Released"
+
+# Button labels
+SE09_DISPLAY_BUTTON_DE = "Anzeigen"
+SE09_DISPLAY_BUTTON_EN = "Display"
+
+
+# =============================================================================
 # Helper Functions
 # =============================================================================
 

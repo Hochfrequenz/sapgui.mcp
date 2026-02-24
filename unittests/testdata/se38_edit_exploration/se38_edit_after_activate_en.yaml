@@ -1,0 +1,82 @@
+- 'main "ABAP Editor: Initial Screen"':
+  - banner:
+    - button "Back (F3)"
+    - img "Company Logo"
+    - 'heading "ABAP Editor: Initial Screen" [level=1]'
+    - button "Open system information"
+    - toolbar:
+      - button "Menu"
+      - combobox "Enter transaction code"
+      - text: 
+      - button "Check"
+      - button "Activate"
+      - button "Execute"
+      - button "Where-Used List"
+      - button "Environment Analysis"
+      - button "Online Help"
+      - button "Delete..."
+      - button "Copy..."
+      - button "Rename..."
+      - button "More"
+    - button "Find (Ctrl+F)"
+    - button "Print... (Ctrl+P)"
+    - button "Exit"
+  - text: Program
+  - textbox "Program"
+  - button "Create"
+  - group "Subobjects":
+    - heading "Subobjects" [level=2]
+    - radio "Source Code" [checked]
+    - radio "Variants"
+    - radio "Attributes"
+    - radio "Text elements"
+    - radio "Documentation"
+  - button "Display"
+  - button "Change"
+  - text: 
+  - note "Error Message Bar Specify a program name":
+    - link "View Details"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Client 100":
+        - cell
+        - cell
+        - cell "Client"
+        - cell "100"
+        - cell
+      - menuitemradio "User KLEINK":
+        - cell
+        - cell
+        - cell "User"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Screen SAPLWBABAP/0100":
+        - cell
+        - cell
+        - cell "Screen"
+        - cell "SAPLWBABAP/0100"
+        - cell
+      - menuitemradio "Transaction SE38":
+        - cell
+        - cell
+        - cell "Transaction"
+        - cell "SE38"
+        - cell
+      - row "E2E Time 116 ms":
+        - cell
+        - cell
+        - cell "E2E Time"
+        - cell "116 ms"
+        - cell
+      - row "WebGUI Time 72 ms":
+        - cell
+        - cell
+        - cell "WebGUI Time"
+        - cell "72 ms"
+        - cell

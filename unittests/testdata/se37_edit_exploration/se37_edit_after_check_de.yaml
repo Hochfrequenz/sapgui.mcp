@@ -1,0 +1,92 @@
+- 'main "Function Builder: Z_TEST_MCP_EDIT ändern"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "Function Builder: Z_TEST_MCP_EDIT ändern" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Anzeigen <-> Ändern"
+      - button "Anderes Objekt..."
+      - button "Erweitern"
+      - button "Prüfen"
+      - button "Aktivieren"
+      - button "Testen/Ausführen"
+      - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Weiter suchen (Strg+G)"
+    - button "Drucken... (Strg+P)"
+    - button "Beenden"
+  - text: Funktionsbaustein
+  - textbox "Funktionsbaustein": Z_TEST_MCP_EDIT
+  - button "aktiv"
+  - tablist:
+    - tab "Eigenschaften"
+    - tab "Import"
+    - tab "Export"
+    - tab "Changing"
+    - tab "Tabellen"
+    - tab "Ausnahmen"
+    - tab "Quelltext" [selected]
+  - tabpanel:
+    - toolbar:
+      - button "Ausschneiden"
+      - button "Kopieren"
+      - button "Einfügen"
+      - separator
+      - button "Suchen/Ersetzen"
+      - button "Weitersuchen" [disabled]
+      - separator
+      - button "Lokale Datei laden"
+      - button "Als lokale Datei sichern"
+    - textbox: "FUNCTION Z_TEST_MCP_EDIT. *\"---------------------------------------------------------------------- *\"*\"Lokale Schnittstelle: *\"---------------------------------------------------------------------- ENDFUNCTION."
+  - toolbar:
+    - note "Erfolgreich Meldungsleiste Es wurde kein Syntaxfehler gefunden"
+    - button "Sichern Hervorgehoben"
+    - button "Abbrechen"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSFUNCTION_BUILDER/3000":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSFUNCTION_BUILDER/3000"
+        - cell
+      - menuitemradio "Transaktion SE37":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE37"
+        - cell
+      - row "E2E-Zeit 92 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "92 ms"
+        - cell
+      - row "WebGUI-Zeit 30 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "30 ms"
+        - cell
