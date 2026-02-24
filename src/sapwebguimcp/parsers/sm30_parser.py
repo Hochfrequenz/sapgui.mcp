@@ -14,8 +14,14 @@ import re
 from datetime import UTC, datetime
 
 from sapwebguimcp.lang import (
+    SE16_COLUMN_SELECTION_DE,
+    SE16_COLUMN_SELECTION_EN,
     SM30_INITIAL_SCREEN_DE,
     SM30_INITIAL_SCREEN_EN,
+    SM30_NOT_FOUND_DE,
+    SM30_NOT_FOUND_EN,
+    SM30_ROW_SELECT_HINT_DE,
+    SM30_ROW_SELECT_HINT_EN,
 )
 from sapwebguimcp.models.sm30_models import SM30Row, SM30ViewResult, SM30ViewType
 
@@ -40,7 +46,7 @@ _COLUMNHEADER_PATTERN = re.compile(r'columnheader "(?P<name>[^"]+)"')
 # DE: row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AD Andorra":
 # EN: row "To select a row, press the space bar. AD Andorra":
 _DATA_ROW_PATTERN = re.compile(
-    r'- row "(?:Zum Auswählen einer Zeile|To select a row)',
+    rf'- row "(?:{re.escape(SM30_ROW_SELECT_HINT_DE)}|{re.escape(SM30_ROW_SELECT_HINT_EN)})',
 )
 
 # Gridcell value extraction
@@ -50,14 +56,14 @@ _GRIDCELL_EMPTY_PATTERN = re.compile(r"^\s*- gridcell:\s*$")
 
 # Row selection column names to skip (DE/EN)
 _SELECTION_COLUMN_NAMES = {
-    "Spalte für Zeilenauswahl",
-    "Column for row selection",
+    SE16_COLUMN_SELECTION_DE,
+    SE16_COLUMN_SELECTION_EN,
 }
 
 # Selection gridcell text patterns to skip
 _SELECTION_CELL_PATTERNS = [
-    "Zum Auswählen einer Zeile",
-    "To select a row",
+    SM30_ROW_SELECT_HINT_DE,
+    SM30_ROW_SELECT_HINT_EN,
 ]
 
 # Not found detection
@@ -65,16 +71,13 @@ _SELECTION_CELL_PATTERNS = [
 _NOT_FOUND_PATTERNS = [
     "ist nicht im Dictionary vorhanden",
     "is not in the Dictionary",
-    "existiert nicht",
-    "does not exist",
+    SM30_NOT_FOUND_DE,
+    SM30_NOT_FOUND_EN,
     "nicht vorhanden",
     "not found",
     "kein Pflegedialog",
     "no maintenance dialog",
 ]
-
-# SM34 detection
-_SM34_PATTERN = re.compile(r"SM34", re.IGNORECASE)
 
 # View description from heading
 # DE: heading "Sicht \"Globale Parameter der Länder/Regionen\" anzeigen: Übersicht"
