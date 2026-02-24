@@ -8,6 +8,8 @@ webgui
 sapgui
 
 # German terms (common in SAP documentation/examples)
+aktive
+programms
 offener
 feld
 intervall
@@ -61,6 +63,8 @@ applikation
 # SAP technical terms
 repid
 SHTTP
+TABL
+DUM
 
 # Typos in SAP data (from SAP system, cannot be fixed)
 payed

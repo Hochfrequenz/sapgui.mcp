@@ -20,6 +20,7 @@
 Add a block **before** the three `<details>` sections, after "Choose one of these three approaches:":
 
 > **Where to register the MCP server:**
+>
 > - **Claude Code** — add to `.mcp.json` in your project root (per-project config)
 > - **Claude Desktop** — add to `claude_desktop_config.json` (global config, path varies by OS — shown in each section below)
 >
@@ -61,17 +62,17 @@ Add a block **before** the three `<details>` sections, after "Choose one of thes
 
 ## Env Vars Shown in Setup Sections (common set)
 
-| Variable | Required | In EXE | In Docker | In Dev |
-|----------|----------|--------|-----------|--------|
-| `SAP_URL` | Yes | Yes | Yes | Yes |
-| `SAP_USER` | Yes | Yes | Yes | Yes |
-| `SAP_PASSWORD` | Yes | Yes | Yes | Yes |
-| `SAP_MANDANT` | Yes | Yes | Yes | Yes |
-| `SAP_LANGUAGE` | No | Yes | Yes | Yes |
-| `BROWSER_MODE` | No | No (default ok) | Yes | Yes |
-| `CDP_URL` | Conditional | No (default ok) | Yes | Yes |
-| `AUDIT_LOG_DIR` | No | No | Yes | No |
-| `GITHUB_PAT` | No | Yes (with note) | Yes (with note) | Yes (with note) |
+| Variable        | Required    | In EXE          | In Docker       | In Dev          |
+| --------------- | ----------- | --------------- | --------------- | --------------- |
+| `SAP_URL`       | Yes         | Yes             | Yes             | Yes             |
+| `SAP_USER`      | Yes         | Yes             | Yes             | Yes             |
+| `SAP_PASSWORD`  | Yes         | Yes             | Yes             | Yes             |
+| `SAP_MANDANT`   | Yes         | Yes             | Yes             | Yes             |
+| `SAP_LANGUAGE`  | No          | Yes             | Yes             | Yes             |
+| `BROWSER_MODE`  | No          | No (default ok) | Yes             | Yes             |
+| `CDP_URL`       | Conditional | No (default ok) | Yes             | Yes             |
+| `AUDIT_LOG_DIR` | No          | No              | Yes             | No              |
+| `GITHUB_PAT`    | No          | Yes (with note) | Yes (with note) | Yes (with note) |
 
 All other vars (`BROWSER_TYPE`, `BROWSER_HEADLESS`, `GITHUB_USER`, `GITHUB_REPO`, `ABAPGIT_PAT`, `PAPERTRAIL_*`, `LOG_*`) are in the Configuration Reference table only.
 

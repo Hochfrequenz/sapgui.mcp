@@ -80,19 +80,20 @@ ToolAnnotations(readOnlyHint=True, openWorldHint=False)
 
 ### Status Checkbox Mapping
 
-| Status | DE Label | EN Label |
-|---|---|---|
-| scheduled | Eingeplant | Scheduled |
-| released | Freigegeben | Released |
-| active | Aktiv | Active |
-| finished | Beendet | Finished |
-| canceled | Abgebrochen | Canceled |
+| Status    | DE Label    | EN Label  |
+| --------- | ----------- | --------- |
+| scheduled | Eingeplant  | Scheduled |
+| released  | Freigegeben | Released  |
+| active    | Aktiv       | Active    |
+| finished  | Beendet     | Finished  |
+| canceled  | Abgebrochen | Canceled  |
 
 **"all" = leave all checkboxes unchanged** (SAP default shows all statuses).
 
 ### Date Format Handling
 
 ISO dates (YYYY-MM-DD) must be converted based on `SAP_LANGUAGE`:
+
 - DE → `DD.MM.YYYY`
 - EN → `MM/DD/YYYY`
 
@@ -359,35 +360,46 @@ ToolAnnotations(readOnlyHint=True, openWorldHint=False)
 ## Cross-Cutting Concerns
 
 ### DE/EN Support
+
 All tools follow the established pattern: detect language from `SAP_LANGUAGE` setting, use appropriate button labels and field selectors.
 
 ### Date Format Helper (New)
+
 A shared helper `format_sap_date(iso_date: str, language: str) -> str` will be added for SM37, SLG1, and ST22. Converts ISO dates based on language:
+
 - DE → `DD.MM.YYYY`
 - EN → `MM/DD/YYYY`
 
 ### Session/Agent/Output File Parameters
+
 All tools include `session`, `agent_id`, and `output_file` parameters per established codebase convention.
 
 ### `retrieved_at` Field
+
 All result models include `retrieved_at: AwareDatetime` per established convention.
 
 ### Testing Strategy
+
 Each tool follows the existing pattern:
+
 1. **Exploration tests** — Capture YAML snapshots from real SAP screens
 2. **Parser unit tests** — Validate parsing against captured snapshots (offline, no SAP needed)
 3. **Integration tests** — End-to-end against real SAP (auto-skip if unavailable)
 
 ### Error Handling
+
 - Return `ToolResult(success=False, error="...")` on failure
 - Navigate back to initial screen on error (don't leave SAP in broken state)
 - Handle popups (authorization errors, etc.)
 
 ### MCP Tool Annotations
+
 All five tools are read-only: `ToolAnnotations(readOnlyHint=True, openWorldHint=False)`.
 
 ### Implementation Order
+
 No dependencies between tools — implement in any order, each on its own branch. Recommended order by value:
+
 1. SM37 (job monitoring) — simplest selection screen, immediate value
 2. SM30 (table maintenance) — high value for functional consultants
 3. ST22 (short dumps) — high value for technical consultants
@@ -398,13 +410,13 @@ No dependencies between tools — implement in any order, each on its own branch
 
 - **2026-02-22**: Initial design approved
 - **2026-02-22**: Revised after expert review (Python/MCP/SAP):
-  - Dropped SM30 edit tool (SM30 views too varied for generic editing)
-  - Added `view_type` detection for SM30 (flat vs unsupported)
-  - Replaced ST22 `dump_id` with `dump_index` (dumps have no single ID)
-  - Added `raw_text` fallback for ST22 detail, removed `variables` from v1
-  - Added SLG1 tree expansion strategy with depth and count limits
-  - Added SM37 date format helper and status checkbox DE/EN mapping
-  - Made SE09 object expansion optional (`include_objects=False` default)
-  - Added `retrieved_at`, `session`, `agent_id`, `output_file` to all tools
-  - Renamed `sap_transport_lookup` → `sap_se09_lookup`
-  - Added MCP `ToolAnnotations` to all tools
+    - Dropped SM30 edit tool (SM30 views too varied for generic editing)
+    - Added `view_type` detection for SM30 (flat vs unsupported)
+    - Replaced ST22 `dump_id` with `dump_index` (dumps have no single ID)
+    - Added `raw_text` fallback for ST22 detail, removed `variables` from v1
+    - Added SLG1 tree expansion strategy with depth and count limits
+    - Added SM37 date format helper and status checkbox DE/EN mapping
+    - Made SE09 object expansion optional (`include_objects=False` default)
+    - Added `retrieved_at`, `session`, `agent_id`, `output_file` to all tools
+    - Renamed `sap_transport_lookup` → `sap_se09_lookup`
+    - Added MCP `ToolAnnotations` to all tools

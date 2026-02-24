@@ -55,17 +55,20 @@ class SE38EditResult(BaseModel):
 **ARIA snapshot**: Shows as `textbox` containing all source as a single string with `*` separators.
 
 **Navigation shortcuts**:
+
 - F6 from initial screen → direct change mode (title: "ändern")
 - Ctrl+F1 → toggle display/change mode
 - Ctrl+F2 → syntax check
 - Ctrl+F3 → activate
 
 **Status messages (DE)**:
+
 - Check success: `"Es wurden keine Syntaxfehler in Report ZTEST_MCP_EDIT gefunden"`
 - Activate success: `"Aktives Objekt wurde generiert"`
 - Messages appear as `note` element in toolbar (with prefix "Erfolgreich Meldungsleiste")
 
 **Edit mode indicators**:
+
 - Title contains "ändern" (DE) / "Change" (EN) — vs "anzeigen"/"Display"
 - Cut/Paste buttons enabled (vs `[disabled]` in display mode)
 - Extra toolbar with "Sichern Hervorgehoben" (Save) + "Abbrechen" (Cancel)

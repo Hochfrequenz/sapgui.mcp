@@ -400,6 +400,7 @@ SAP_LANGUAGE=EN pytest unittests/test_slg1_exploration.py -v -s --no-header 2>&1
 ```
 
 **Step 4:** After capturing snapshots, examine the YAML files to understand:
+
 - Exact field labels (DE/EN) on the SLG1 selection screen
 - ALV Tree structure: how `treeitem` roles appear, expand icon selectors
 - Log header columns: log number, object, subobject, ext ID, date, time, user
@@ -407,6 +408,7 @@ SAP_LANGUAGE=EN pytest unittests/test_slg1_exploration.py -v -s --no-header 2>&1
 - Update the `lang.py` constants from Task 3 if needed
 
 **Expected output files:**
+
 - `unittests/testdata/slg1_exploration/slg1_initial_de.yaml`
 - `unittests/testdata/slg1_exploration/slg1_initial_en.yaml`
 - `unittests/testdata/slg1_exploration/slg1_log_list_de.yaml`
@@ -1302,9 +1304,9 @@ mypy src/sapwebguimcp/models/slg1_models.py src/sapwebguimcp/parsers/slg1_parser
 
 - **Task 4 (exploration tests) gates Tasks 5-9.** The parser cannot be finalized without examining real ARIA snapshots from SLG1. The ALV Tree Control renders differently from ALV grids, and the exact `treeitem` structure, column layout, expand icon selectors, and message format are unknown until snapshots are captured.
 - After capturing snapshots in Task 4, update:
-  - `lang.py` constants (Task 3) with verified DE/EN field labels
-  - `slg1_parser.py` regex patterns (Task 5) to match real ARIA tree structure
-  - Exploration test selectors (Task 4, test 03) for tree expand icons
+    - `lang.py` constants (Task 3) with verified DE/EN field labels
+    - `slg1_parser.py` regex patterns (Task 5) to match real ARIA tree structure
+    - Exploration test selectors (Task 4, test 03) for tree expand icons
 
 ### ALV Tree Control Key Facts
 
@@ -1317,11 +1319,11 @@ mypy src/sapwebguimcp/models/slg1_models.py src/sapwebguimcp/parsers/slg1_parser
 
 ### Limits
 
-| Limit | Value | Controlled By |
-|-------|-------|---------------|
-| Max logs | 50 | `MAX_LOGS` in `slg1_parser.py` |
-| Max messages per log | 200 | `MAX_MESSAGES_PER_LOG` in `slg1_parser.py` |
-| Max tree depth | 2 levels | Tool logic (only expand level 1 nodes) |
+| Limit                | Value    | Controlled By                              |
+| -------------------- | -------- | ------------------------------------------ |
+| Max logs             | 50       | `MAX_LOGS` in `slg1_parser.py`             |
+| Max messages per log | 200      | `MAX_MESSAGES_PER_LOG` in `slg1_parser.py` |
+| Max tree depth       | 2 levels | Tool logic (only expand level 1 nodes)     |
 
 ### Branch
 
