@@ -1,0 +1,149 @@
+- 'main "Customizing: Projektbearbeitung"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "Customizing: Projektbearbeitung" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "SAP Referenz-IMG"
+      - button "Projektauswertung"
+    - button "Suchen (Strg+F)"
+    - button "Beenden"
+  - grid "Mein Customizing Arbeitsvorrat":
+    - rowgroup:
+      - text: Mein Customizing Arbeitsvorrat
+      - button "Konfiguration"
+    - rowgroup:
+      - row "Spalte für Zeilenauswahl Projekt Bezeichnung":
+        - columnheader "Spalte für Zeilenauswahl"
+        - columnheader "Projekt"
+        - columnheader "Bezeichnung"
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "Zum Auswählen einer Zeile drücken Sie die Leertaste.":
+        - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+    - rowgroup
+    - rowgroup
+  - button "Aufnehmen in Arbeitsvorrat"
+  - button "Arbeitsvorrat verwalten"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLS_IMG_TOOL_5/0100":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLS_IMG_TOOL_5/0100"
+        - cell
+      - menuitemradio "Transaktion SPRO":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SPRO"
+        - cell
+      - row "E2E-Zeit 113 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "113 ms"
+        - cell
+      - row "WebGUI-Zeit 44 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "44 ms"
+        - cell

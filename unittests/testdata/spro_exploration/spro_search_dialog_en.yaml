@@ -1,0 +1,400 @@
+- main "Display IMG":
+  - banner:
+    - button "Back (F3)"
+    - img "Company Logo"
+    - heading "Display IMG" [level=1]
+    - button "Open system information"
+    - toolbar:
+      - button "Menu"
+      - combobox "Enter transaction code"
+      - text: 
+      - button "Expand All"
+      - button "Position"
+      - button "Existing BC Sets"
+      - button "Apply Filter"
+      - button "Change Log"
+      - button "Compare"
+      - button "Where Else Used"
+      - button "More"
+    - button "Find (Ctrl+F)"
+    - button "Find Next... (Ctrl+G)"
+    - button "Exit"
+  - grid:
+    - row "Column for row selection Structure":
+      - columnheader "Column for row selection"
+      - columnheader "Structure"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 0 Expanded":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "SAP Customizing Implementation Guide":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "SAP Customizing Implementation Guide":
+                  - button "SAP Customizing Implementation Guide"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Commercial Project Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Commercial Project Management":
+                  - button "Commercial Project Management"
+    - row "Row selection disabled.":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell:
+        - group "Level 1":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Activate Business Functions":
+                - cell:
+                  - button "IMG activity documentation"
+                - cell:
+                  - button "IMG - Activity"
+                - cell "Activate Business Functions":
+                  - button "Activate Business Functions"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Conversion of Accounting to SAP S/4HANA":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Conversion of Accounting to SAP S/4HANA":
+                  - button "Conversion of Accounting to SAP S/4HANA"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "ABAP Platform":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "ABAP Platform":
+                  - button "ABAP Platform"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Enterprise Structure":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Enterprise Structure":
+                  - button "Enterprise Structure"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Cross-Application Components":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Cross-Application Components":
+                  - button "Cross-Application Components"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Mobile Application Integration Framework Configuration":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Mobile Application Integration Framework Configuration":
+                  - button "Mobile Application Integration Framework Configuration"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "SAP Portfolio and Project Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "SAP Portfolio and Project Management":
+                  - button "SAP Portfolio and Project Management"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Financial Accounting":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Financial Accounting":
+                  - button "Financial Accounting"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Financial Supply Chain Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Financial Supply Chain Management":
+                  - button "Financial Supply Chain Management"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Multi-Bank Connectivity Connector":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Multi-Bank Connectivity Connector":
+                  - button "Multi-Bank Connectivity Connector"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Strategic Enterprise Management/Business Analytics":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Strategic Enterprise Management/Business Analytics":
+                  - button "Strategic Enterprise Management/Business Analytics"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Controlling":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Controlling":
+                  - button "Controlling"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Planning and Consolidation":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Planning and Consolidation":
+                  - button "Planning and Consolidation"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "SAP S/4HANA for Group Reporting":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "SAP S/4HANA for Group Reporting":
+                  - button "SAP S/4HANA for Group Reporting"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Investment Management":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Investment Management":
+                  - button "Investment Management"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Enterprise Controlling":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Enterprise Controlling":
+                  - button "Enterprise Controlling"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Flexible Real Estate Management (RE-FX)":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Flexible Real Estate Management (RE-FX)":
+                  - button "Flexible Real Estate Management (RE-FX)"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Logistics - General":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Logistics - General":
+                  - button "Logistics - General"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Environment, Health and Safety":
+                - cell:
+                  - button "Documentation"
+                - cell:
+                  - button
+                - cell "Environment, Health and Safety":
+                  - button "Environment, Health and Safety"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Product Safety and Stewardship":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Product Safety and Stewardship":
+                  - button "Product Safety and Stewardship"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Level 1 Collapsed":
+          - group "Press ALT + F7 to start navigation through items. To move through items, use the left and right arrow keys. Press again ALT + F7 to quit the navigation.":
+            - rowgroup:
+              - row "Product Compliance":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Product Compliance":
+                  - button "Product Compliance"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Client 100":
+        - cell
+        - cell
+        - cell "Client"
+        - cell "100"
+        - cell
+      - menuitemradio "User KLEINK":
+        - cell
+        - cell
+        - cell "User"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Screen SAPLSHI01/0200":
+        - cell
+        - cell
+        - cell "Screen"
+        - cell "SAPLSHI01/0200"
+        - cell
+      - menuitemradio "Transaction SIMG":
+        - cell
+        - cell
+        - cell "Transaction"
+        - cell "SIMG"
+        - cell
+      - row "E2E Time 167 ms":
+        - cell
+        - cell
+        - cell "E2E Time"
+        - cell "167 ms"
+        - cell
+      - row "WebGUI Time 108 ms":
+        - cell
+        - cell
+        - cell "WebGUI Time"
+        - cell "108 ms"
+        - cell
+  - dialog "Search in the structure":
+    - heading "Search in the structure" [level=1]
+    - button "Close": 
+    - text: Search Term
+    - textbox "Search Term"
+    - button "Show Extended Search"
+    - button "Show Text Index Info"
+    - toolbar:
+      - button "Continue"
+      - button "Cancel"

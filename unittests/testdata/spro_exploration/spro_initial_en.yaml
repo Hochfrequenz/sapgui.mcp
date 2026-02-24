@@ -1,0 +1,149 @@
+- 'main "Customizing: Execute Project"':
+  - banner:
+    - button "Back (F3)"
+    - img "Company Logo"
+    - 'heading "Customizing: Execute Project" [level=1]'
+    - button "Open system information"
+    - toolbar:
+      - button "Menu"
+      - combobox "Enter transaction code"
+      - text: 
+      - button "SAP Reference IMG"
+      - button "Project Analysis"
+    - button "Find (Ctrl+F)"
+    - button "Exit"
+  - grid "My Customizing Worklist":
+    - rowgroup:
+      - text: My Customizing Worklist
+      - button "Configuration"
+    - rowgroup:
+      - row "Column for row selection Project Name":
+        - columnheader "Column for row selection"
+        - columnheader "Project"
+        - columnheader "Name"
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+      - row "To select a row, press the space bar.":
+        - gridcell "To select a row, press the space bar."
+        - gridcell:
+          - textbox
+        - gridcell:
+          - textbox
+    - rowgroup
+    - rowgroup
+  - button "Add to worklist"
+  - button "Manage Worklist"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Client 100":
+        - cell
+        - cell
+        - cell "Client"
+        - cell "100"
+        - cell
+      - menuitemradio "User KLEINK":
+        - cell
+        - cell
+        - cell "User"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Screen SAPLS_IMG_TOOL_5/0100":
+        - cell
+        - cell
+        - cell "Screen"
+        - cell "SAPLS_IMG_TOOL_5/0100"
+        - cell
+      - menuitemradio "Transaction SPRO":
+        - cell
+        - cell
+        - cell "Transaction"
+        - cell "SPRO"
+        - cell
+      - row "E2E Time 267 ms":
+        - cell
+        - cell
+        - cell "E2E Time"
+        - cell "267 ms"
+        - cell
+      - row "WebGUI Time 126 ms":
+        - cell
+        - cell
+        - cell "WebGUI Time"
+        - cell "126 ms"
+        - cell

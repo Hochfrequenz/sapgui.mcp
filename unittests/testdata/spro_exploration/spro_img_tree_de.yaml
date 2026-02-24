@@ -1,0 +1,389 @@
+- main "IMG anzeigen":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "IMG anzeigen" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Alles expandieren"
+      - button "Positionieren"
+      - button "Vorhandene BC-Sets"
+      - button "Apply Filter"
+      - button "Änderungsprotokoll"
+      - button "Vergleichen"
+      - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Weiter suchen... (Strg+G)"
+    - button "Beenden"
+  - grid:
+    - row "Spalte für Zeilenauswahl Struktur":
+      - columnheader "Spalte für Zeilenauswahl"
+      - columnheader "Struktur"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 0 Expandiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "SAP Customizing Einführungsleitfaden":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "SAP Customizing Einführungsleitfaden":
+                  - button "SAP Customizing Einführungsleitfaden"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Commercial Project Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Commercial Project Management":
+                  - button "Commercial Project Management"
+    - row "Row selection disabled.":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell:
+        - group "Ebene 1":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Business Functions aktivieren":
+                - cell:
+                  - button "Dokumentation zur IMG-Aktivität"
+                - cell:
+                  - button "IMG - Aktivität"
+                - cell "Business Functions aktivieren":
+                  - button "Business Functions aktivieren"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Konvertierung des Rechnungswesens auf SAP S/4HANA":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Konvertierung des Rechnungswesens auf SAP S/4HANA":
+                  - button "Konvertierung des Rechnungswesens auf SAP S/4HANA"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "ABAP Platform":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "ABAP Platform":
+                  - button "ABAP Platform"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Unternehmensstruktur":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Unternehmensstruktur":
+                  - button "Unternehmensstruktur"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Anwendungsübergreifende Komponenten":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Anwendungsübergreifende Komponenten":
+                  - button "Anwendungsübergreifende Komponenten"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - 'row "Mobile Application Integration Framework: Konfiguration"':
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - 'cell "Mobile Application Integration Framework: Konfiguration"':
+                  - 'button "Mobile Application Integration Framework: Konfiguration"'
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "SAP Portfolio and Project Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "SAP Portfolio and Project Management":
+                  - button "SAP Portfolio and Project Management"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Finanzwesen":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Finanzwesen":
+                  - button "Finanzwesen"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Financial Supply Chain Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Financial Supply Chain Management":
+                  - button "Financial Supply Chain Management"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Konnektor für SAP Multi-Bank Connectivity":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Konnektor für SAP Multi-Bank Connectivity":
+                  - button "Konnektor für SAP Multi-Bank Connectivity"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Strategic Enterprise Management/Business Analytics":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Strategic Enterprise Management/Business Analytics":
+                  - button "Strategic Enterprise Management/Business Analytics"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Controlling":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Controlling":
+                  - button "Controlling"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Planning and Consolidation":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Planning and Consolidation":
+                  - button "Planning and Consolidation"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "SAP S/4HANA für Konzernberichtswesen":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "SAP S/4HANA für Konzernberichtswesen":
+                  - button "SAP S/4HANA für Konzernberichtswesen"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Investitionsmanagement":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Investitionsmanagement":
+                  - button "Investitionsmanagement"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Unternehmenscontrolling":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Unternehmenscontrolling":
+                  - button "Unternehmenscontrolling"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Flexibles Immobilienmanagement (RE-FX)":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Flexibles Immobilienmanagement (RE-FX)":
+                  - button "Flexibles Immobilienmanagement (RE-FX)"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Logistik Allgemein":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Logistik Allgemein":
+                  - button "Logistik Allgemein"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Environment, Health & Safety":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Environment, Health & Safety":
+                  - button "Environment, Health & Safety"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Product Safety and Stewardship":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Product Safety and Stewardship":
+                  - button "Product Safety and Stewardship"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Produktkonformität":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Produktkonformität":
+                  - button "Produktkonformität"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSHI01/0200":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSHI01/0200"
+        - cell
+      - menuitemradio "Transaktion SIMG":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SIMG"
+        - cell
+      - row "E2E-Zeit 447 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "447 ms"
+        - cell
+      - row "WebGUI-Zeit 77 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "77 ms"
+        - cell

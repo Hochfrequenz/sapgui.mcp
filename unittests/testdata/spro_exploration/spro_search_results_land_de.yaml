@@ -1,0 +1,608 @@
+- main "IMG anzeigen":
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - heading "IMG anzeigen" [level=1]
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Alles expandieren"
+      - button "Positionieren"
+      - button "Vorhandene BC-Sets"
+      - button "Apply Filter"
+      - button "Änderungsprotokoll"
+      - button "Vergleichen"
+      - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Weiter suchen... (Strg+G)"
+    - button "Beenden"
+  - grid:
+    - row "Spalte für Zeilenauswahl Struktur":
+      - columnheader "Spalte für Zeilenauswahl"
+      - columnheader "Struktur"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 0 Expandiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "SAP Customizing Einführungsleitfaden":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "SAP Customizing Einführungsleitfaden":
+                  - button "SAP Customizing Einführungsleitfaden"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Commercial Project Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Commercial Project Management":
+                  - button "Commercial Project Management"
+    - row "Row selection disabled.":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell:
+        - group "Ebene 1":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Business Functions aktivieren":
+                - cell:
+                  - button "Dokumentation zur IMG-Aktivität"
+                - cell:
+                  - button "IMG - Aktivität"
+                - cell "Business Functions aktivieren":
+                  - button "Business Functions aktivieren"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Konvertierung des Rechnungswesens auf SAP S/4HANA":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Konvertierung des Rechnungswesens auf SAP S/4HANA":
+                  - button "Konvertierung des Rechnungswesens auf SAP S/4HANA"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "ABAP Platform":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "ABAP Platform":
+                  - button "ABAP Platform"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Unternehmensstruktur":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Unternehmensstruktur":
+                  - button "Unternehmensstruktur"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Anwendungsübergreifende Komponenten":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Anwendungsübergreifende Komponenten":
+                  - button "Anwendungsübergreifende Komponenten"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - 'row "Mobile Application Integration Framework: Konfiguration"':
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - 'cell "Mobile Application Integration Framework: Konfiguration"':
+                  - 'button "Mobile Application Integration Framework: Konfiguration"'
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "SAP Portfolio and Project Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "SAP Portfolio and Project Management":
+                  - button "SAP Portfolio and Project Management"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Finanzwesen":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Finanzwesen":
+                  - button "Finanzwesen"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Financial Supply Chain Management":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Financial Supply Chain Management":
+                  - button "Financial Supply Chain Management"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Konnektor für SAP Multi-Bank Connectivity":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Konnektor für SAP Multi-Bank Connectivity":
+                  - button "Konnektor für SAP Multi-Bank Connectivity"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Strategic Enterprise Management/Business Analytics":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Strategic Enterprise Management/Business Analytics":
+                  - button "Strategic Enterprise Management/Business Analytics"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Controlling":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Controlling":
+                  - button "Controlling"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Planning and Consolidation":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Planning and Consolidation":
+                  - button "Planning and Consolidation"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "SAP S/4HANA für Konzernberichtswesen":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "SAP S/4HANA für Konzernberichtswesen":
+                  - button "SAP S/4HANA für Konzernberichtswesen"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Investitionsmanagement":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Investitionsmanagement":
+                  - button "Investitionsmanagement"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Unternehmenscontrolling":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Unternehmenscontrolling":
+                  - button "Unternehmenscontrolling"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Flexibles Immobilienmanagement (RE-FX)":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Flexibles Immobilienmanagement (RE-FX)":
+                  - button "Flexibles Immobilienmanagement (RE-FX)"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Logistik Allgemein":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Logistik Allgemein":
+                  - button "Logistik Allgemein"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Environment, Health & Safety":
+                - cell:
+                  - button "Dokumentation"
+                - cell:
+                  - button
+                - cell "Environment, Health & Safety":
+                  - button "Environment, Health & Safety"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Product Safety and Stewardship":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Product Safety and Stewardship":
+                  - button "Product Safety and Stewardship"
+    - row "Row selection disabled. ":
+      - gridcell "Row selection disabled." [disabled]
+      - gridcell "":
+        - text: 
+        - group "Ebene 1 Komprimiert":
+          - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
+            - rowgroup:
+              - row "Produktkonformität":
+                - cell:
+                  - button
+                - cell:
+                  - button
+                - cell "Produktkonformität":
+                  - button "Produktkonformität"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPLSHI01/0200":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPLSHI01/0200"
+        - cell
+      - menuitemradio "Transaktion SIMG":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SIMG"
+        - cell
+      - row "E2E-Zeit 2626 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "2626 ms"
+        - cell
+      - row "WebGUI-Zeit 169 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "169 ms"
+        - cell
+  - dialog "Trefferliste zum Suchbegriff \"LAND\"":
+    - heading "Trefferliste zum Suchbegriff \"LAND\"" [level=1]
+    - button "Schließen": 
+    - grid:
+      - rowgroup
+      - rowgroup:
+        - row "Spalte für Zeilenauswahl Gefundene Treffer Übergeordneter Knoten Im Bereich":
+          - columnheader "Spalte für Zeilenauswahl"
+          - columnheader "Gefundene Treffer"
+          - columnheader "Übergeordneter Knoten"
+          - columnheader "Im Bereich"
+        - button ""
+        - 'row "Zum Auswählen einer Zeile drücken Sie die Leertaste. BAdI: Plandaten Referenzobjekt zuordnen und ändern Business Add-Ins"':
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - 'gridcell "BAdI: Plandaten Referenzobjekt zuordnen und ändern"':
+            - textbox
+          - gridcell "Business Add-Ins":
+            - textbox
+          - gridcell:
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Abrechnung Deutschland Abrechnung Deutschland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Ausgleichszulage bei Dienstrechtsänderungen (Rheinland-Pfalz) Familien-, Orts- und Sozialzuschlag Abrechnung Deutschland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Ausgleichszulage bei Dienstrechtsänderungen (Rheinland-Pfalz)":
+            - textbox
+          - gridcell "Familien-, Orts- und Sozialzuschlag":
+            - textbox
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Auslandsregelungen Verarbeitung Abrechnung Deutschland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Auslandsregelungen":
+            - textbox
+          - gridcell "Verarbeitung":
+            - textbox
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+        - 'row "Zum Auswählen einer Zeile drücken Sie die Leertaste. BAdI: Text für Bundes- bzw. landesinterne Zwecke anlegen BAdIs in der Personalstandstatistik Abrechnung Deutschland"':
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - 'gridcell "BAdI: Text für Bundes- bzw. landesinterne Zwecke anlegen"':
+            - textbox
+          - gridcell "BAdIs in der Personalstandstatistik":
+            - textbox
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Betriebsstätten für Arbeitskammer Saarland zusammenfassen Betriebsstätten für Arbeitskammerbeiträge Bremen/Saarland Abrechnung Deutschland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Betriebsstätten für Arbeitskammer Saarland zusammenfassen":
+            - textbox
+          - gridcell "Betriebsstätten für Arbeitskammerbeiträge Bremen/Saarland":
+            - textbox
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Betriebsstätten für Arbeitskammerbeiträge Bremen/Saarland Arbeitgeber als Absender einrichten Abrechnung Deutschland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Betriebsstätten für Arbeitskammerbeiträge Bremen/Saarland":
+            - textbox
+          - gridcell "Arbeitgeber als Absender einrichten":
+            - textbox
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Ergänzende Mutterschaftsfristen für Deutschland definieren Abwesenheiten bei Mutterschaft Abrechnung Deutschland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Ergänzende Mutterschaftsfristen für Deutschland definieren":
+            - textbox
+          - gridcell "Abwesenheiten bei Mutterschaft":
+            - textbox
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Felder für bundes-/landesinterne Zwecke füllen Zuordnung der Statistikdaten Abrechnung Deutschland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Felder für bundes-/landesinterne Zwecke füllen":
+            - textbox
+          - gridcell "Zuordnung der Statistikdaten":
+            - textbox
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Merkmal Kennzeichen Ostdeutschland pflegen Abrechnung Abrechnung Deutschland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Merkmal Kennzeichen Ostdeutschland pflegen":
+            - textbox
+          - gridcell "Abrechnung":
+            - textbox
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Zuordnung Kfz-Kennzeichen zu Land/Region pflegen Stammdaten Abrechnung Deutschland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Zuordnung Kfz-Kennzeichen zu Land/Region pflegen":
+            - textbox
+          - gridcell "Stammdaten":
+            - textbox
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Zuordnung Staatsangehörigkeit zu Land/Region pflegen Stammdaten Abrechnung Deutschland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Zuordnung Staatsangehörigkeit zu Land/Region pflegen":
+            - textbox
+          - gridcell "Stammdaten":
+            - textbox
+          - gridcell "Abrechnung Deutschland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Kommunikation mit Inland Revenue (B2A) Besteuerung Abrechnung Neuseeland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Kommunikation mit Inland Revenue (B2A)":
+            - textbox
+          - gridcell "Besteuerung":
+            - textbox
+          - gridcell "Abrechnung Neuseeland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Personalabrechnung Neuseeland Abrechnung Neuseeland":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Personalabrechnung Neuseeland":
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Abrechnung Neuseeland":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Abrechnung Niederlande Abrechnung Niederlande":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Abrechnung Niederlande":
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Abrechnung Niederlande":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Landarbeiterfreibetrag prüfen Steuerfrei-/Absetzbeträge und Steuergrenzen prüfen Abrechnung Österreich":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Landarbeiterfreibetrag prüfen":
+            - textbox
+          - gridcell "Steuerfrei-/Absetzbeträge und Steuergrenzen prüfen":
+            - textbox
+          - gridcell "Abrechnung Österreich":
+            - textbox
+        - 'row "Zum Auswählen einer Zeile drücken Sie die Leertaste. BAdI: Daten für Auslandszahlung ermitteln Ermittlung der Auslandszahlungsdaten Abrechnungsmanagement"':
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - 'gridcell "BAdI: Daten für Auslandszahlung ermitteln"':
+            - textbox
+          - gridcell "Ermittlung der Auslandszahlungsdaten":
+            - textbox
+          - gridcell "Abrechnungsmanagement":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Ermittlung der Auslandszahlungsdaten Business Add-Ins (BAdIs) Abrechnungsmanagement":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Ermittlung der Auslandszahlungsdaten":
+            - textbox
+          - gridcell "Business Add-Ins (BAdIs)":
+            - textbox
+          - gridcell "Abrechnungsmanagement":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Name des Empfängerlandes auf Englisch in Ausgabeformularen Adressverwaltung Adressverwaltung":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Name des Empfängerlandes auf Englisch in Ausgabeformularen":
+            - textbox
+          - gridcell "Adressverwaltung":
+            - textbox
+          - gridcell "Adressverwaltung":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Name des Empfängerlandes auf Englisch in Ausgabeformularen Adressverwaltung Adressverwaltung":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Name des Empfängerlandes auf Englisch in Ausgabeformularen":
+            - textbox
+          - gridcell "Adressverwaltung":
+            - textbox
+          - gridcell "Adressverwaltung":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Grundeinstellungen für den Aufbau der Systemlandschaft Advanced Planning and Optimization (SAP APO) Advanced Planning and Optimization":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Grundeinstellungen für den Aufbau der Systemlandschaft":
+            - textbox
+          - gridcell "Advanced Planning and Optimization (SAP APO)":
+            - textbox
+          - gridcell "Advanced Planning and Optimization":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. FI-, LO-Lokalisierung für Griechenland Länder-/Regionenspezifische Funktionen Allgemeine Anwendungsfunktionen":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "FI-, LO-Lokalisierung für Griechenland":
+            - textbox
+          - gridcell "Länder-/Regionenspezifische Funktionen":
+            - textbox
+          - gridcell "Allgemeine Anwendungsfunktionen":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Systemlandschaft pflegen Easy Enhancement Workbench Allgemeine Anwendungsfunktionen":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Systemlandschaft pflegen":
+            - textbox
+          - gridcell "Easy Enhancement Workbench":
+            - textbox
+          - gridcell "Allgemeine Anwendungsfunktionen":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Russland Länder-/regionenspezifische Einstellungen Allgemeine Bewertung - Neu":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Russland":
+            - textbox
+          - gridcell "Länder-/regionenspezifische Einstellungen":
+            - textbox
+          - gridcell "Allgemeine Bewertung - Neu":
+            - textbox
+        - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. Thailand Länder-/regionenspezifische Einstellungen Allgemeine Bewertung - Neu":
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "Thailand":
+            - textbox
+          - gridcell "Länder-/regionenspezifische Einstellungen":
+            - textbox
+          - gridcell "Allgemeine Bewertung - Neu":
+            - textbox
+      - rowgroup
+      - rowgroup
+    - toolbar:
+      - button "Weiter"
+      - button "Alle markieren"
+      - button "Alle Mark. löschen"
+      - button "Abbrechen"
