@@ -95,7 +95,7 @@ async def _click_display_button(page: Page) -> str | None:
                 await page.wait_for_load_state("networkidle")
                 await page.wait_for_timeout(500)
                 return None
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 logger.warning("Click %r button failed: %r", label, e)
                 continue
 
