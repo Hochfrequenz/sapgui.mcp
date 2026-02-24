@@ -40,8 +40,11 @@ class SM30ViewResult(ToolResult):
     description: str = Field(default="", description="View description from screen title")
     view_type: SM30ViewType = Field(description="Detected view type: 'flat' or 'unsupported'")
     columns: list[str] = Field(default_factory=list, description="Column names in display order")
-    rows: list[SM30Row] = Field(default_factory=list, description="All rows from the view")
-    row_count: int = Field(default=0, description="Number of rows returned")
+    rows: list[SM30Row] = Field(default_factory=list, description="Rows from the first visible page of the view")
+    row_count: int = Field(
+        default=0,
+        description="Total rows in the view (from 'Entry X of N' indicator); may exceed len(rows) for large views",
+    )
     retrieved_at: AwareDatetime = Field(description="UTC timestamp when data was retrieved")
 
 
@@ -57,5 +60,8 @@ class SM30FileSummary(ToolResult):
     description: str = Field(default="", description="View description")
     view_type: SM30ViewType = Field(description="Detected view type")
     columns: list[str] = Field(default_factory=list, description="Column names in order")
-    row_count: int = Field(default=0, description="Total rows written to file")
+    row_count: int = Field(
+        default=0,
+        description="Total rows in the view (from 'Entry X of N' indicator); may exceed len(sample_rows)",
+    )
     sample_rows: list[SM30Row] = Field(default_factory=list, description="Preview of first 5 rows")
