@@ -5,7 +5,7 @@ These models represent view data retrieved from SM30 in display mode,
 including dynamically-parsed column headers and row values.
 """
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import AwareDatetime, BaseModel, Field
 

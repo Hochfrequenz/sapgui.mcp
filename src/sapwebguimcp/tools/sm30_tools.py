@@ -10,15 +10,22 @@ import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+from playwright.async_api import Locator, Page
 
+from sapwebguimcp.lang import (
+    SM30_DISPLAY_BUTTON_DE,
+    SM30_DISPLAY_BUTTON_EN,
+    SM30_TABLE_VIEW_DE,
+    SM30_TABLE_VIEW_EN,
+    bilingual_pattern,
+)
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.sm30_models import SM30FileSummary, SM30ViewResult
 from sapwebguimcp.parsers.sm30_parser import parse_sm30_snapshot
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
+from sapwebguimcp.tools.sap_page_helpers import navigate_transaction
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +37,17 @@ __all__ = ["register_sm30_tools"]
 # =============================================================================
 
 
-async def _find_view_field(page: Any) -> Any:
+async def _find_view_field(page: Page) -> Locator | None:
     """Find the Table/View input field in SM30 using multiple strategies."""
     strategies = [
-        page.get_by_role("textbox", name="Tabelle/Sicht"),
-        page.get_by_role("textbox", name="Table/View"),
+        page.get_by_role("textbox", name=SM30_TABLE_VIEW_DE),
+        page.get_by_role("textbox", name=SM30_TABLE_VIEW_EN),
         page.get_by_role(
             "textbox",
-            name=re.compile(r"Tabelle/Sicht|Table/View", re.I),
+            name=re.compile(
+                bilingual_pattern(SM30_TABLE_VIEW_DE, SM30_TABLE_VIEW_EN),
+                re.I,
+            ),
         ),
     ]
 
@@ -48,7 +58,7 @@ async def _find_view_field(page: Any) -> Any:
     return None
 
 
-async def _fill_view_field(page: Any, view_name: str) -> str | None:
+async def _fill_view_field(page: Page, view_name: str) -> str | None:
     """Fill the view name field in SM30. Returns error string or None."""
     view_field = await _find_view_field(page)
 
@@ -67,7 +77,7 @@ async def _fill_view_field(page: Any, view_name: str) -> str | None:
     return None
 
 
-async def _click_display_button(page: Any) -> str | None:
+async def _click_display_button(page: Page) -> str | None:
     """
     Click the Anzeigen/Display button in SM30.
 
@@ -76,8 +86,7 @@ async def _click_display_button(page: Any) -> str | None:
 
     Returns error string or None on success.
     """
-    # Try Playwright's get_by_role which handles SAP WebGUI button elements
-    for label in ["Anzeigen", "Display"]:
+    for label in [SM30_DISPLAY_BUTTON_DE, SM30_DISPLAY_BUTTON_EN]:
         btn = page.get_by_role("button", name=label, exact=True)
         if await btn.count() > 0:
             try:
@@ -93,15 +102,15 @@ async def _click_display_button(page: Any) -> str | None:
     return "Could not find Anzeigen/Display button in SM30"
 
 
-async def _lookup_view(page: Any, view_name: str) -> SM30ViewResult:
+async def _lookup_view(page: Page, view_name: str) -> SM30ViewResult:
     """Look up a single SM30 view."""
     now = datetime.now(UTC)
 
     # Navigate to SM30
-    tx_result = await sap_transaction_impl("SM30")
-    if not tx_result.success:
+    tx_error = await navigate_transaction(page, "SM30")
+    if tx_error:
         return SM30ViewResult.failure(
-            error=f"Failed to navigate to SM30: {tx_result.error}",
+            error=f"Failed to navigate to SM30: {tx_error}",
             view_name=view_name,
             description="",
             view_type="unsupported",
