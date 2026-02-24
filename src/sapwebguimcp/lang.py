@@ -263,7 +263,7 @@ SM30_ROW_SELECT_HINT_EN = "To select"
 
 # Initial screen title
 SPRO_INITIAL_SCREEN_DE = "Customizing: Projektbearbeitung"
-SPRO_INITIAL_SCREEN_EN = "Customizing: Project Management"
+SPRO_INITIAL_SCREEN_EN = "Customizing: Execute Project"
 
 # Button to enter IMG tree
 SPRO_SAP_REF_IMG_DE = "SAP Referenz-IMG"
