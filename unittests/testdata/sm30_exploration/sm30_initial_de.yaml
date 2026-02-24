@@ -1,0 +1,69 @@
+- 'main "Tabellensicht-Pflege: Einstieg"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Unternehmenslogo"
+    - 'heading "Tabellensicht-Pflege: Einstieg" [level=1]'
+    - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Pflegedialog suchen"
+    - button "Beenden"
+  - text: Tabelle/Sicht
+  - textbox "Tabelle/Sicht"
+  - group "Datenbereich einschränken":
+    - heading "Datenbereich einschränken" [level=2]
+    - radio "Keine Einschränkungen" [checked]
+    - radio "Bedingungen eingeben"
+    - radio "Variante"
+    - 'textbox "erweiterte Tabellenpflege: Name einer Selektionsvariante"'
+  - button "Anzeigen"
+  - button "Pflegen"
+  - button "Transport"
+  - button "Customizing"
+  - text: 
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPMSVMA/0100":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPMSVMA/0100"
+        - cell
+      - menuitemradio "Transaktion SM30":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SM30"
+        - cell
+      - row "E2E-Zeit 83 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "83 ms"
+        - cell
+      - row "WebGUI-Zeit 30 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "30 ms"
+        - cell
