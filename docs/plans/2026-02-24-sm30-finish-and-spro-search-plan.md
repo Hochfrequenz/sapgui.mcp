@@ -471,10 +471,9 @@ __all__ = [
 class SPROActivity(BaseModel):
     """A single IMG customizing activity from SPRO search results."""
 
-    activity_name: str = Field(description="Name of the customizing activity")
-    img_path: str = Field(default="", description="Full IMG path (if available)")
-    transaction_code: str = Field(default="", description="Linked transaction code (e.g., SM30, OY01)")
-    description: str = Field(default="", description="Activity description")
+    activity_name: str = Field(description="Name of the customizing activity (e.g., 'Define Countries')")
+    parent_node: str = Field(default="", description="Immediate parent node in the IMG tree")
+    area: str = Field(default="", description="Broad area/section in the IMG tree")
 
 
 class SPROSearchResult(ToolResult):
