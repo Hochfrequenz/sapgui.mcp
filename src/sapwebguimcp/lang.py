@@ -294,10 +294,6 @@ SPRO_COL_PARENT_EN = "Higher-Level Node"
 SPRO_COL_AREA_DE = "Im Bereich"
 SPRO_COL_AREA_EN = "In Area"
 
-# IMG tree heading
-SPRO_IMG_HEADING_DE = "IMG anzeigen"
-SPRO_IMG_HEADING_EN = "Display IMG"
-
 
 # =============================================================================
 # Helper Functions

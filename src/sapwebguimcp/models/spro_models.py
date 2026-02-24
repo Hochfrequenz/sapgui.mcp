@@ -40,3 +40,4 @@ class SPROFileSummary(ToolResult):
     query: str = Field(description="Search keyword that was used")
     activity_count: int = Field(default=0, description="Total activities found")
     sample_activities: list[SPROActivity] = Field(default_factory=list, description="Preview of first 5 activities")
+    retrieved_at: AwareDatetime = Field(description="UTC timestamp when search was executed")

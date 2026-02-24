@@ -164,7 +164,7 @@ def _save_activity(cells: list[str], activities: list[SPROActivity]) -> None:
     if not cells:
         return
 
-    activity_name = cells[0] if len(cells) > 0 else ""
+    activity_name = cells[0]
     parent_node = cells[1] if len(cells) > 1 else ""
     area = cells[2] if len(cells) > 2 else ""
 

@@ -16,11 +16,12 @@ from mcp.types import ToolAnnotations
 from playwright.async_api import Page
 
 from sapwebguimcp.lang import (
+    SPRO_INITIAL_SCREEN_DE,
+    SPRO_INITIAL_SCREEN_EN,
     SPRO_RESULTS_DIALOG_DE,
     SPRO_RESULTS_DIALOG_EN,
     SPRO_SEARCH_BUTTON_DE,
     SPRO_SEARCH_BUTTON_EN,
-    bilingual_pattern,
 )
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.spro_models import SPROFileSummary, SPROSearchResult
@@ -47,6 +48,11 @@ async def _click_sap_ref_img(page: Page) -> str | None:
     On the SPRO initial screen, F5 triggers the SAP Reference IMG view.
     Returns error string or None on success.
     """
+    # Verify we're on the SPRO initial screen before pressing F5
+    snapshot = await page.locator("body").aria_snapshot()
+    if SPRO_INITIAL_SCREEN_DE not in snapshot and SPRO_INITIAL_SCREEN_EN not in snapshot:
+        return "Not on SPRO initial screen " f"(expected '{SPRO_INITIAL_SCREEN_DE}' or '{SPRO_INITIAL_SCREEN_EN}')"
+
     await page.keyboard.press("F5")
     await page.wait_for_timeout(3000)
     await page.wait_for_load_state("networkidle")
@@ -63,30 +69,19 @@ async def _click_sap_ref_img(page: Page) -> str | None:
 async def _open_search_dialog(page: Page) -> str | None:
     """Open the SPRO search dialog by clicking the search button.
 
-    The search button is a DIV with role=button and title containing
-    'Suchen (Strg+F)' (DE) or 'Find (Ctrl+F)' (EN). Ctrl+F is intercepted
-    by the browser, so we must click the button directly via its title attribute.
+    Ctrl+F is intercepted by the browser, so we click the button directly
+    using Playwright's role-based locator matching the button title.
 
     Returns error string or None on success.
     """
-    # Click search button via title attribute (SAP WebGUI uses DIV buttons)
-    search_pattern = bilingual_pattern(SPRO_SEARCH_BUTTON_DE, SPRO_SEARCH_BUTTON_EN)
-    clicked = await page.evaluate(
-        """(pattern) => {
-            const regex = new RegExp(pattern);
-            const btn = document.querySelector('[title*="Such"][title*="Strg"]') ||
-                        document.querySelector('[title*="Find"][title*="Ctrl"]');
-            if (btn) { btn.click(); return true; }
-            return false;
-        }""",
-        search_pattern,
-    )
+    for label in [SPRO_SEARCH_BUTTON_DE, SPRO_SEARCH_BUTTON_EN]:
+        btn = page.get_by_role("button", name=label, exact=True)
+        if await btn.count() > 0:
+            await btn.click()
+            await page.wait_for_timeout(1500)
+            return None
 
-    if not clicked:
-        return "Could not find search button in IMG toolbar"
-
-    await page.wait_for_timeout(1500)
-    return None
+    return "Could not find search button in IMG toolbar"
 
 
 async def _fill_search_and_execute(page: Page, query: str) -> str | None:
@@ -129,7 +124,7 @@ async def _wait_for_results(page: Page) -> str:
     SPRO search can be slow (10-60+ seconds), especially on first run when
     the text index needs to be built.
 
-    Returns the ARIA snapshot when results are ready, or an error snapshot.
+    Returns the ARIA snapshot when results are ready, or the last snapshot on timeout.
     """
     elapsed_ms = 0
 
@@ -147,14 +142,16 @@ async def _wait_for_results(page: Page) -> str:
             )
             return snapshot
 
-        # Check if loading indicator is gone and no results dialog
-        if "Loading" not in snapshot and "dialog" not in snapshot:
-            # Search completed with no results (dialog closed)
-            logger.info(
-                "SPRO search completed with no results after %d ms",
-                elapsed_ms,
-            )
-            return snapshot
+        # Check if we returned to the IMG tree (search dialog gone, no results)
+        # The search dialog title disappears when search finishes without results
+        if SPRO_SEARCH_BUTTON_DE in snapshot or SPRO_SEARCH_BUTTON_EN in snapshot:
+            # We can see the IMG toolbar again — search is done
+            if "dialog" not in snapshot.lower():
+                logger.info(
+                    "SPRO search completed with no results after %d ms",
+                    elapsed_ms,
+                )
+                return snapshot
 
     # Timeout — return whatever we have
     logger.warning("SPRO search timed out after %d ms", _SEARCH_TIMEOUT_MS)
@@ -301,6 +298,7 @@ def register_spro_tools(mcp: FastMCP) -> None:
                 query=result.query,
                 activity_count=result.activity_count,
                 sample_activities=result.activities[:5],
+                retrieved_at=result.retrieved_at,
             )
 
         return result

@@ -9,7 +9,10 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.parsers.spro_parser import parse_spro_search_results
+from sapwebguimcp.parsers.spro_parser import (
+    _extract_results_section,
+    parse_spro_search_results,
+)
 
 SPRO_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "spro_exploration"
 
@@ -32,7 +35,7 @@ class TestRealSearchResults:
     def test_parses_activities(self, de_search_results: str) -> None:
         result = parse_spro_search_results(de_search_results, "Land")
         assert result.success
-        assert result.activity_count > 0
+        assert result.activity_count == 22
         assert len(result.activities) == result.activity_count
 
     def test_activity_has_name(self, de_search_results: str) -> None:
@@ -227,3 +230,29 @@ class TestSyntheticSnapshots:
         assert result.activities[0].activity_name == "Define Countries"
         assert result.activities[0].parent_node == "Enterprise Structure"
         assert result.activities[0].area == "Financial Accounting"
+
+
+# =============================================================================
+# Internal helper tests
+# =============================================================================
+
+
+class TestExtractResultsSection:
+    """Tests for _extract_results_section helper."""
+
+    def test_extracts_de_section(self) -> None:
+        snapshot = 'prefix\n  - dialog "Trefferliste zum Suchbegriff \\"x\\"":\n    - grid:\nmore'
+        section = _extract_results_section(snapshot)
+        assert section.startswith('dialog "Trefferliste')
+        assert "prefix" not in section
+
+    def test_extracts_en_section(self) -> None:
+        snapshot = 'prefix\n  - dialog "Hit List for Search Term \\"y\\"":\n    - grid:\nmore'
+        section = _extract_results_section(snapshot)
+        assert section.startswith('dialog "Hit List')
+
+    def test_empty_on_no_dialog(self) -> None:
+        assert _extract_results_section("no results dialog here") == ""
+
+    def test_empty_on_empty_input(self) -> None:
+        assert _extract_results_section("") == ""
