@@ -258,6 +258,48 @@ SM30_ROW_SELECT_HINT_EN = "To select"
 
 
 # =============================================================================
+# SPRO - Customizing (Implementation Guide)
+# =============================================================================
+
+# Initial screen title
+SPRO_INITIAL_SCREEN_DE = "Customizing: Projektbearbeitung"
+SPRO_INITIAL_SCREEN_EN = "Customizing: Project Management"
+
+# Button to enter IMG tree
+SPRO_SAP_REF_IMG_DE = "SAP Referenz-IMG"
+SPRO_SAP_REF_IMG_EN = "SAP Reference IMG"
+
+# Search button in IMG toolbar (title attribute)
+SPRO_SEARCH_BUTTON_DE = "Suchen (Strg+F)"
+SPRO_SEARCH_BUTTON_EN = "Find (Ctrl+F)"
+
+# Search dialog
+SPRO_SEARCH_DIALOG_DE = "Suche in der Struktur"
+SPRO_SEARCH_DIALOG_EN = "Search in the structure"
+
+SPRO_SEARCH_FIELD_DE = "Suchbegriff"
+SPRO_SEARCH_FIELD_EN = "Search Term"
+
+# Results dialog title pattern (contains search term)
+SPRO_RESULTS_DIALOG_DE = "Trefferliste zum Suchbegriff"
+SPRO_RESULTS_DIALOG_EN = "Hit List for Search Term"
+
+# Results grid column headers
+SPRO_COL_HITS_DE = "Gefundene Treffer"
+SPRO_COL_HITS_EN = "Hits Found"
+
+SPRO_COL_PARENT_DE = "Übergeordneter Knoten"
+SPRO_COL_PARENT_EN = "Higher-Level Node"
+
+SPRO_COL_AREA_DE = "Im Bereich"
+SPRO_COL_AREA_EN = "In Area"
+
+# IMG tree heading
+SPRO_IMG_HEADING_DE = "IMG anzeigen"
+SPRO_IMG_HEADING_EN = "Display IMG"
+
+
+# =============================================================================
 # Helper Functions
 # =============================================================================
 

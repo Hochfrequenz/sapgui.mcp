@@ -354,9 +354,10 @@ async def test_spro_capture_search_results_country(sap_mcp_client: ClientSession
     )
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
-    # Press Enter to submit — SPRO search can be slow (text index search)
+    # Press Enter to submit — SPRO search can be very slow on first run
+    # (text index may need to be built if no one searched in EN before)
     await call_tool_typed(sap_mcp_client, "browser_keyboard", {"key": "Enter"}, BrowserKeyboardResult)
-    await sap_mcp_client.call_tool("browser_wait", {"timeout": 30000})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 120000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "spro_search_results_country", overwrite=True)
     assert len(snapshot) > 100

@@ -144,6 +144,11 @@ from sapwebguimcp.models.sm37_models import (
     SM37JobListResult,
     SM37JobLog,
 )
+from sapwebguimcp.models.spro_models import (
+    SPROActivity,
+    SPROFileSummary,
+    SPROSearchResult,
+)
 from sapwebguimcp.models.st22_models import (
     ST22Dump,
     ST22DumpDetail,
@@ -299,6 +304,10 @@ __all__ = [
     "SLG1FileSummary",
     "SLG1LogEntry",
     "SLG1LogListResult",
+    # SPRO models
+    "SPROActivity",
+    "SPROFileSummary",
+    "SPROSearchResult",
     # SM30 models
     "SM30FileSummary",
     "SM30Row",
