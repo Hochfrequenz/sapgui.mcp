@@ -209,9 +209,9 @@ def _is_selection_cell(value: str) -> bool:
     return any(pattern in value for pattern in _SELECTION_CELL_PATTERNS)
 
 
-def parse_sm30_rows(
+def parse_sm30_rows(  # pylint: disable=too-many-branches
     snapshot: str, columns: list[str] | None = None
-) -> list[SM30Row]:  # pylint: disable=too-many-branches
+) -> list[SM30Row]:
     """
     Extract data rows from SM30 display grid snapshot.
 
