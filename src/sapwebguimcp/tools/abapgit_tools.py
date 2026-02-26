@@ -410,9 +410,10 @@ def _clean_timestamp(value: str) -> str | None:
 
 
 def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
-    """Parse pipe-delimited WRITE output from Z_ABAPGIT_PULL LIST mode.
+    """Parse tilde-delimited WRITE output from Z_ABAPGIT_PULL LIST mode.
 
-    Expected format per line: name|url|package|branch|deserialized_at|deserialized_by|offline
+    Expected format per line: name~url~package~branch~deserialized_at~deserialized_by~offline
+    Uses ~ as delimiter because SAP WebGUI strips | (pipe) characters from WRITE output.
     Lines that don't match (headers, empty, UI noise) are silently skipped.
     """
     repos: list[AbapGitRepoInfo] = []
@@ -420,7 +421,7 @@ def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
         line = line.strip()
         if not line:
             continue
-        parts = line.split("|")
+        parts = line.split("~")
         if len(parts) < 4:
             continue
         name = parts[0].strip()
