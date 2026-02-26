@@ -167,6 +167,55 @@ def test_abapgit_action_result_requires_repo_name() -> None:
         )  # type: ignore[call-arg]
 
 
+def test_abapgit_repo_info_model() -> None:
+    """Test that AbapGitRepoInfo model validates correctly."""
+    from sapwebguimcp.models.abapgit_models import AbapGitRepoInfo
+
+    repo = AbapGitRepoInfo(
+        name="Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
+        url="https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
+        package="Z_PKG",
+        branch="refs/heads/main",
+        last_pull_at="20260225120000.0000000",
+        last_pull_by="DEVELOPER",
+        is_offline=False,
+    )
+    assert repo.name == "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
+    assert repo.url == "https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
+    assert repo.package == "Z_PKG"
+    assert repo.branch == "refs/heads/main"
+    assert repo.is_offline is False
+
+
+def test_abapgit_list_result_model() -> None:
+    """Test that AbapGitListResult model validates correctly."""
+    from sapwebguimcp.models.abapgit_models import AbapGitListResult, AbapGitRepoInfo
+
+    result = AbapGitListResult(
+        success=True,
+        repos=[
+            AbapGitRepoInfo(
+                name="Z_REPO_A",
+                url="https://github.com/org/Z_REPO_A",
+                package="Z_PKG_A",
+                branch="refs/heads/main",
+            ),
+        ],
+    )
+    assert result.success
+    assert len(result.repos) == 1
+    assert result.repos[0].name == "Z_REPO_A"
+
+
+def test_abapgit_list_result_empty() -> None:
+    """Test empty list result."""
+    from sapwebguimcp.models.abapgit_models import AbapGitListResult
+
+    result = AbapGitListResult(success=True, repos=[])
+    assert result.success
+    assert result.repos == []
+
+
 # =============================================================================
 # Integration Tests (require SAP connection)
 # =============================================================================
