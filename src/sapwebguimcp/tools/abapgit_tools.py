@@ -2,6 +2,7 @@
 abapGit integration tools for SAP Web GUI.
 
 This module provides:
+- List: Enumerate all registered abapGit repositories and their metadata
 - Pull: Fetch and apply changes from a remote git repository via Z_ABAPGIT_PULL
 - SE38 Verification: Read ABAP report source code to verify pulls
 
@@ -488,13 +489,7 @@ async def _abapgit_list_repos() -> AbapGitListResult:
             }
         """)
 
-        if not raw_output:
-            return AbapGitListResult(
-                success=False,
-                error="No output received from Z_ABAPGIT_PULL LIST mode",
-            )
-
-        repos = parse_repo_list_output(raw_output)
+        repos = parse_repo_list_output(raw_output or "")
         logger.info("Found repositories", extra={"count": len(repos)})
 
         return AbapGitListResult(success=True, repos=repos)
