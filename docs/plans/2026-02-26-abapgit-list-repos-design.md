@@ -21,6 +21,7 @@ The existing pull logic runs unchanged when `P_ACTION = 'PULL'` (the default).
 ### Output format
 
 One WRITE line per repo:
+
 ```
 Z_PUBLIC_ABAPGIT_TEST_REPOSITORY|https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY|Z_PKG|refs/heads/main|20260225120000.0000000|DEVELOPER|
 ```

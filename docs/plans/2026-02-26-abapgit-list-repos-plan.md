@@ -13,6 +13,7 @@
 ### Task 1: Add `AbapGitRepoInfo` and `AbapGitListResult` models
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/models/abapgit_models.py`
 - Modify: `src/sapwebguimcp/models/__init__.py`
 - Test: `unittests/test_abapgit_tools.py`
@@ -105,6 +106,7 @@ class AbapGitListResult(ToolResult):
 Add the import of `ToolResult` at the top of `abapgit_models.py` (already has `BaseModel` from pydantic).
 
 Update `src/sapwebguimcp/models/__init__.py` to export the new types:
+
 - Add `AbapGitRepoInfo` and `AbapGitListResult` to the import from `abapgit_models` and `__all__`.
 
 **Step 4: Run test to verify it passes**
@@ -124,6 +126,7 @@ git commit -m "feat: add AbapGitRepoInfo and AbapGitListResult models"
 ### Task 2: Add pipe-delimited line parser and test it
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/abapgit_tools.py`
 - Test: `unittests/test_abapgit_tools.py`
 
@@ -253,6 +256,7 @@ git commit -m "feat: add pipe-delimited repo list parser"
 ### Task 3: Add `sap_abapgit_list_repos` MCP tool implementation
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/abapgit_tools.py`
 
 **Step 1: Add the list implementation function**
@@ -378,6 +382,7 @@ git commit -m "feat: add sap_abapgit_list_repos MCP tool"
 ### Task 4: Extend the ABAP report with LIST mode
 
 **Files:**
+
 - Modify: `unittests/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY/src/z_abapgit_pull.prog.abap`
 
 **Step 1: Add P_ACTION parameter and LIST logic**
@@ -496,6 +501,7 @@ git commit -m "feat: extend Z_ABAPGIT_PULL with LIST mode"
 ### Task 5: Add integration test for `sap_abapgit_list_repos`
 
 **Files:**
+
 - Modify: `unittests/test_abapgit_tools.py`
 
 **Step 1: Write the integration test**
