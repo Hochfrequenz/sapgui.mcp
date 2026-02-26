@@ -508,6 +508,38 @@ async def test_abapgit_e2e_private_repo_pull_and_verify(sap_mcp_client: ClientSe
 
 
 @pytest.mark.anyio
+async def test_abapgit_list_repos(sap_mcp_client: ClientSession) -> None:
+    """
+    Test listing registered abapGit repositories.
+
+    Requires Z_ABAPGIT_PULL to be deployed with LIST support.
+    Verifies that at least the known test repos are returned.
+    """
+    from sapwebguimcp.models.abapgit_models import AbapGitListResult
+
+    # Login first
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # List repos
+    result = await call_tool_typed(sap_mcp_client, "sap_abapgit_list_repos", {}, AbapGitListResult)
+    assert result.success, f"List failed: {result.error}"
+    assert len(result.repos) > 0, "Expected at least one repo"
+
+    # Check that known test repos are present
+    repo_names = [r.name for r in result.repos]
+    assert "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY" in repo_names, (
+        f"Expected Z_PUBLIC_ABAPGIT_TEST_REPOSITORY in {repo_names}"
+    )
+
+    # Check that the public repo has expected metadata
+    public_repo = next(r for r in result.repos if r.name == "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY")
+    assert "github.com" in public_repo.url
+    assert public_repo.package  # Should have a package
+    assert public_repo.is_offline is False
+
+
+@pytest.mark.anyio
 async def test_abapgit_pull_invalid_repo_name(sap_mcp_client: ClientSession) -> None:
     """
     Test that invalid repository names are rejected with a clear error.
