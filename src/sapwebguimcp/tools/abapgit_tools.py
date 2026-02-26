@@ -25,13 +25,13 @@ from mcp.types import ToolAnnotations
 from playwright.async_api import Locator, Page
 
 from sapwebguimcp.models import get_browser_manager
-from sapwebguimcp.models.abapgit_models import AbapGitActionResult
+from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitRepoInfo
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.tools.sap_tool_impl import sap_read_status_bar_impl, sap_transaction_impl
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["register_abapgit_tools", "validate_github_pat"]
+__all__ = ["parse_repo_list_output", "register_abapgit_tools", "validate_github_pat"]
 
 
 async def validate_github_pat(pat: str) -> tuple[bool, str]:
@@ -399,6 +399,38 @@ async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResu
     await page.keyboard.press("Enter")
     await page.wait_for_timeout(5000)
     return await _handle_popup_error(page, repo)
+
+
+def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
+    """Parse pipe-delimited WRITE output from Z_ABAPGIT_PULL LIST mode.
+
+    Expected format per line: name|url|package|branch|deserialized_at|deserialized_by|offline
+    Lines that don't match (headers, empty, UI noise) are silently skipped.
+    """
+    repos: list[AbapGitRepoInfo] = []
+    for line in raw_output.strip().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split("|")
+        if len(parts) < 4:
+            continue
+        name = parts[0].strip()
+        url = parts[1].strip()
+        if not name or not url or ("://" not in url and not url.startswith("file:")):
+            continue
+        repos.append(
+            AbapGitRepoInfo(
+                name=name,
+                url=url,
+                package=parts[2].strip() if len(parts) > 2 else "",
+                branch=parts[3].strip() if len(parts) > 3 else "",
+                last_pull_at=parts[4].strip() or None if len(parts) > 4 else None,
+                last_pull_by=parts[5].strip() or None if len(parts) > 5 else None,
+                is_offline=parts[6].strip().upper() == "X" if len(parts) > 6 else False,
+            )
+        )
+    return repos
 
 
 async def _abapgit_pull_via_api(

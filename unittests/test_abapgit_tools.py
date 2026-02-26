@@ -216,6 +216,63 @@ def test_abapgit_list_result_empty() -> None:
     assert result.repos == []
 
 
+def test_parse_repo_list_output() -> None:
+    """Test parsing pipe-delimited WRITE output from Z_ABAPGIT_PULL LIST mode."""
+    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+
+    raw_output = (
+        "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY|https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
+        "|$Z_PUBLIC_ABAPGIT|refs/heads/main|20260225120000.0000000|DEVELOPER|\n"
+        "Z_PRIVATE_ABAPGIT_TEST_REPOSITORY|https://github.com/Hochfrequenz/Z_PRIVATE_ABAPGIT_TEST_REPOSITORY"
+        "|$Z_PRIVATE_ABAPGIT|refs/heads/main|20260224150000.0000000|ADMIN|"
+    )
+    repos = parse_repo_list_output(raw_output)
+    assert len(repos) == 2
+    assert repos[0].name == "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
+    assert repos[0].url == "https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
+    assert repos[0].package == "$Z_PUBLIC_ABAPGIT"
+    assert repos[0].branch == "refs/heads/main"
+    assert repos[0].last_pull_at == "20260225120000.0000000"
+    assert repos[0].last_pull_by == "DEVELOPER"
+    assert repos[0].is_offline is False
+    assert repos[1].name == "Z_PRIVATE_ABAPGIT_TEST_REPOSITORY"
+
+
+def test_parse_repo_list_output_with_offline() -> None:
+    """Test parsing a repo line with offline flag set."""
+    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+
+    raw_output = "Z_OFFLINE_REPO|file:///path|$Z_OFFLINE|refs/heads/main|||X\n"
+    repos = parse_repo_list_output(raw_output)
+    assert len(repos) == 1
+    assert repos[0].name == "Z_OFFLINE_REPO"
+    assert repos[0].is_offline is True
+    assert repos[0].last_pull_at is None
+    assert repos[0].last_pull_by is None
+
+
+def test_parse_repo_list_output_empty() -> None:
+    """Test parsing empty output."""
+    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+
+    assert parse_repo_list_output("") == []
+    assert parse_repo_list_output("   \n  \n") == []
+
+
+def test_parse_repo_list_output_skips_garbage() -> None:
+    """Test that non-repo lines (SAP UI text, headers) are skipped."""
+    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+
+    raw_output = (
+        "Some SAP header text\n"
+        "Z_REPO|https://github.com/org/Z_REPO|$Z_PKG|refs/heads/main|20260225120000.0000000|DEV|\n"
+        "Another random line\n"
+    )
+    repos = parse_repo_list_output(raw_output)
+    assert len(repos) == 1
+    assert repos[0].name == "Z_REPO"
+
+
 # =============================================================================
 # Integration Tests (require SAP connection)
 # =============================================================================
