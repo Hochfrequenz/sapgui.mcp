@@ -402,6 +402,13 @@ async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResu
     return await _handle_popup_error(page, repo)
 
 
+def _clean_timestamp(value: str) -> str | None:
+    """Return None for empty or initial ABAP TIMESTAMPL values (all zeros)."""
+    if not value or value.replace("0", "").replace(".", "") == "":
+        return None
+    return value
+
+
 def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
     """Parse pipe-delimited WRITE output from Z_ABAPGIT_PULL LIST mode.
 
@@ -426,8 +433,8 @@ def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
                 url=url,
                 package=parts[2].strip() if len(parts) > 2 else "",
                 branch=parts[3].strip() if len(parts) > 3 else "",
-                last_pull_at=parts[4].strip() or None if len(parts) > 4 else None,
-                last_pull_by=parts[5].strip() or None if len(parts) > 5 else None,
+                last_pull_at=(_clean_timestamp(parts[4].strip())) if len(parts) > 4 else None,
+                last_pull_by=(parts[5].strip() or None) if len(parts) > 5 else None,
                 is_offline=parts[6].strip().upper() == "X" if len(parts) > 6 else False,
             )
         )

@@ -273,6 +273,16 @@ def test_parse_repo_list_output_skips_garbage() -> None:
     assert repos[0].name == "Z_REPO"
 
 
+def test_parse_repo_list_output_initial_timestamp() -> None:
+    """Test that initial ABAP TIMESTAMPL (all zeros) is treated as None."""
+    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+
+    raw_output = "Z_REPO|https://github.com/org/Z_REPO|$Z_PKG|refs/heads/main|00000000000000.0000000||\n"
+    repos = parse_repo_list_output(raw_output)
+    assert len(repos) == 1
+    assert repos[0].last_pull_at is None
+
+
 # =============================================================================
 # Integration Tests (require SAP connection)
 # =============================================================================
