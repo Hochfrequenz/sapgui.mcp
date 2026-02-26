@@ -538,9 +538,9 @@ async def test_abapgit_list_repos(sap_mcp_client: ClientSession) -> None:
 
     # Check that known test repos are present
     repo_names = [r.name for r in result.repos]
-    assert "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY" in repo_names, (
-        f"Expected Z_PUBLIC_ABAPGIT_TEST_REPOSITORY in {repo_names}"
-    )
+    assert (
+        "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY" in repo_names
+    ), f"Expected Z_PUBLIC_ABAPGIT_TEST_REPOSITORY in {repo_names}"
 
     # Check that the public repo has expected metadata
     public_repo = next(r for r in result.repos if r.name == "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY")
