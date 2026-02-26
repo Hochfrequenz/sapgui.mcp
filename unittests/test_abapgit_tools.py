@@ -167,6 +167,122 @@ def test_abapgit_action_result_requires_repo_name() -> None:
         )  # type: ignore[call-arg]
 
 
+def test_abapgit_repo_info_model() -> None:
+    """Test that AbapGitRepoInfo model validates correctly."""
+    from sapwebguimcp.models.abapgit_models import AbapGitRepoInfo
+
+    repo = AbapGitRepoInfo(
+        name="Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
+        url="https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
+        package="Z_PKG",
+        branch="refs/heads/main",
+        last_pull_at="20260225120000.0000000",
+        last_pull_by="DEVELOPER",
+        is_offline=False,
+    )
+    assert repo.name == "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
+    assert repo.url == "https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
+    assert repo.package == "Z_PKG"
+    assert repo.branch == "refs/heads/main"
+    assert repo.is_offline is False
+
+
+def test_abapgit_list_result_model() -> None:
+    """Test that AbapGitListResult model validates correctly."""
+    from sapwebguimcp.models.abapgit_models import AbapGitListResult, AbapGitRepoInfo
+
+    result = AbapGitListResult(
+        success=True,
+        repos=[
+            AbapGitRepoInfo(
+                name="Z_REPO_A",
+                url="https://github.com/org/Z_REPO_A",
+                package="Z_PKG_A",
+                branch="refs/heads/main",
+            ),
+        ],
+    )
+    assert result.success
+    assert len(result.repos) == 1
+    assert result.repos[0].name == "Z_REPO_A"
+
+
+def test_abapgit_list_result_empty() -> None:
+    """Test empty list result."""
+    from sapwebguimcp.models.abapgit_models import AbapGitListResult
+
+    result = AbapGitListResult(success=True, repos=[])
+    assert result.success
+    assert result.repos == []
+
+
+def test_parse_repo_list_output() -> None:
+    """Test parsing tilde-delimited WRITE output from Z_ABAPGIT_PULL LIST mode."""
+    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+
+    raw_output = (
+        "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY~https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
+        "~$Z_PUBLIC_ABAPGIT~refs/heads/main~20260225120000.0000000~DEVELOPER~\n"
+        "Z_PRIVATE_ABAPGIT_TEST_REPOSITORY~https://github.com/Hochfrequenz/Z_PRIVATE_ABAPGIT_TEST_REPOSITORY"
+        "~$Z_PRIVATE_ABAPGIT~refs/heads/main~20260224150000.0000000~ADMIN~"
+    )
+    repos = parse_repo_list_output(raw_output)
+    assert len(repos) == 2
+    assert repos[0].name == "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
+    assert repos[0].url == "https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
+    assert repos[0].package == "$Z_PUBLIC_ABAPGIT"
+    assert repos[0].branch == "refs/heads/main"
+    assert repos[0].last_pull_at == "20260225120000.0000000"
+    assert repos[0].last_pull_by == "DEVELOPER"
+    assert repos[0].is_offline is False
+    assert repos[1].name == "Z_PRIVATE_ABAPGIT_TEST_REPOSITORY"
+
+
+def test_parse_repo_list_output_with_offline() -> None:
+    """Test parsing a repo line with offline flag set."""
+    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+
+    raw_output = "Z_OFFLINE_REPO~file:///path~$Z_OFFLINE~refs/heads/main~~~X\n"
+    repos = parse_repo_list_output(raw_output)
+    assert len(repos) == 1
+    assert repos[0].name == "Z_OFFLINE_REPO"
+    assert repos[0].is_offline is True
+    assert repos[0].last_pull_at is None
+    assert repos[0].last_pull_by is None
+
+
+def test_parse_repo_list_output_empty() -> None:
+    """Test parsing empty output."""
+    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+
+    assert parse_repo_list_output("") == []
+    assert parse_repo_list_output("   \n  \n") == []
+
+
+def test_parse_repo_list_output_skips_garbage() -> None:
+    """Test that non-repo lines (SAP UI text, headers) are skipped."""
+    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+
+    raw_output = (
+        "Some SAP header text\n"
+        "Z_REPO~https://github.com/org/Z_REPO~$Z_PKG~refs/heads/main~20260225120000.0000000~DEV~\n"
+        "Another random line\n"
+    )
+    repos = parse_repo_list_output(raw_output)
+    assert len(repos) == 1
+    assert repos[0].name == "Z_REPO"
+
+
+def test_parse_repo_list_output_initial_timestamp() -> None:
+    """Test that initial ABAP TIMESTAMPL (all zeros) is treated as None."""
+    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+
+    raw_output = "Z_REPO~https://github.com/org/Z_REPO~$Z_PKG~refs/heads/main~00000000000000.0000000~~\n"
+    repos = parse_repo_list_output(raw_output)
+    assert len(repos) == 1
+    assert repos[0].last_pull_at is None
+
+
 # =============================================================================
 # Integration Tests (require SAP connection)
 # =============================================================================
@@ -399,6 +515,38 @@ async def test_abapgit_e2e_private_repo_pull_and_verify(sap_mcp_client: ClientSe
     assert expected_text in source_code, (
         f"Expected text '{expected_text}' not found in source code. " f"Got source: {source_code[:500]}..."
     )
+
+
+@pytest.mark.anyio
+async def test_abapgit_list_repos(sap_mcp_client: ClientSession) -> None:
+    """
+    Test listing registered abapGit repositories.
+
+    Requires Z_ABAPGIT_PULL to be deployed with LIST support.
+    Verifies that at least the known test repos are returned.
+    """
+    from sapwebguimcp.models.abapgit_models import AbapGitListResult
+
+    # Login first
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # List repos
+    result = await call_tool_typed(sap_mcp_client, "sap_abapgit_list_repos", {}, AbapGitListResult)
+    assert result.success, f"List failed: {result.error}"
+    assert len(result.repos) > 0, "Expected at least one repo"
+
+    # Check that known test repos are present
+    repo_names = [r.name for r in result.repos]
+    assert (
+        "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY" in repo_names
+    ), f"Expected Z_PUBLIC_ABAPGIT_TEST_REPOSITORY in {repo_names}"
+
+    # Check that the public repo has expected metadata
+    public_repo = next(r for r in result.repos if r.name == "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY")
+    assert "github.com" in public_repo.url
+    assert public_repo.package  # Should have a package
+    assert public_repo.is_offline is False
 
 
 @pytest.mark.anyio

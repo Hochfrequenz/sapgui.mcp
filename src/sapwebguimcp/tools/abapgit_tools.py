@@ -2,6 +2,7 @@
 abapGit integration tools for SAP Web GUI.
 
 This module provides:
+- List: Enumerate all registered abapGit repositories and their metadata
 - Pull: Fetch and apply changes from a remote git repository via Z_ABAPGIT_PULL
 - SE38 Verification: Read ABAP report source code to verify pulls
 
@@ -25,13 +26,13 @@ from mcp.types import ToolAnnotations
 from playwright.async_api import Locator, Page
 
 from sapwebguimcp.models import get_browser_manager
-from sapwebguimcp.models.abapgit_models import AbapGitActionResult
+from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.tools.sap_tool_impl import sap_read_status_bar_impl, sap_transaction_impl
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["register_abapgit_tools", "validate_github_pat"]
+__all__ = ["parse_repo_list_output", "register_abapgit_tools", "validate_github_pat"]
 
 
 async def validate_github_pat(pat: str) -> tuple[bool, str]:
@@ -399,6 +400,116 @@ async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResu
     await page.keyboard.press("Enter")
     await page.wait_for_timeout(5000)
     return await _handle_popup_error(page, repo)
+
+
+def _clean_timestamp(value: str) -> str | None:
+    """Return None for empty or initial ABAP TIMESTAMPL values (all zeros)."""
+    if not value or value.replace("0", "").replace(".", "") == "":
+        return None
+    return value
+
+
+def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
+    """Parse tilde-delimited WRITE output from Z_ABAPGIT_PULL LIST mode.
+
+    Expected format per line: name~url~package~branch~deserialized_at~deserialized_by~offline
+    Uses ~ as delimiter because SAP WebGUI strips | (pipe) characters from WRITE output.
+    Lines that don't match (headers, empty, UI noise) are silently skipped.
+    """
+    repos: list[AbapGitRepoInfo] = []
+    for line in raw_output.strip().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split("~")
+        if len(parts) < 4:
+            continue
+        name = parts[0].strip()
+        url = parts[1].strip()
+        if not name or not url or ("://" not in url and not url.startswith("file:")):
+            continue
+        repos.append(
+            AbapGitRepoInfo(
+                name=name,
+                url=url,
+                package=parts[2].strip() if len(parts) > 2 else "",
+                branch=parts[3].strip() if len(parts) > 3 else "",
+                last_pull_at=(_clean_timestamp(parts[4].strip())) if len(parts) > 4 else None,
+                last_pull_by=(parts[5].strip() or None) if len(parts) > 5 else None,
+                is_offline=parts[6].strip().upper() == "X" if len(parts) > 6 else False,
+            )
+        )
+    return repos
+
+
+async def _abapgit_list_repos() -> AbapGitListResult:
+    """List all registered abapGit repositories via Z_ABAPGIT_PULL P_ACTION=LIST."""
+    logger.info("Listing abapGit repositories")
+
+    browser_manager = await get_browser_manager()
+    page = await browser_manager.get_page()
+    if not page:
+        return AbapGitListResult(
+            success=False,
+            error="No active browser session. Call sap_login first.",
+        )
+
+    try:
+        # Get OK-Code field
+        okcode_result = await _get_okcode_field(page, "LIST")
+        if isinstance(okcode_result, AbapGitActionResult):
+            return AbapGitListResult(success=False, error=okcode_result.error)
+        okcode_field = okcode_result
+
+        # Enter transaction with LIST action
+        tcode_with_params = "/nZ_ABAPGIT_PULL P_ACTION=LIST;"
+        await page.bring_to_front()
+        await page.wait_for_timeout(500)
+        await okcode_field.click()
+        await page.wait_for_timeout(200)
+        await okcode_field.fill("")
+        await okcode_field.fill(tcode_with_params)
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(2000)
+
+        # Check if transaction was found
+        status = await sap_read_status_bar_impl()
+        status_msg = (status.message or "").lower()
+        if "not found" in status_msg or "existiert nicht" in status_msg or "does not exist" in status_msg:
+            return AbapGitListResult(
+                success=False,
+                error=(
+                    "Transaction Z_ABAPGIT_PULL not found. "
+                    "Ensure the report is deployed with LIST support. "
+                    "See docs/plans/2026-02-26-abapgit-list-repos-design.md"
+                ),
+            )
+
+        # Execute report with F8
+        await page.keyboard.press("F8")
+        await page.wait_for_timeout(3000)
+
+        # Read the WRITE output from the screen via JavaScript
+        raw_output = await page.evaluate("""
+            () => {
+                // In SAP Web GUI, ABAP WRITE output is normally rendered inside
+                // the main window content container '#sapwd_main_window_root_contents'.
+                // For robustness, we fall back to 'document.body' in cases where this
+                // container does not exist (e.g. different themes, older WebGUI
+                // layouts, or error pages that bypass the standard shell).
+                const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
+                return body.innerText || body.textContent || '';
+            }
+        """)
+
+        repos = parse_repo_list_output(raw_output or "")
+        logger.info("Found repositories", extra={"count": len(repos)})
+
+        return AbapGitListResult(success=True, repos=repos)
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.exception("abapGit list repos failed")
+        return AbapGitListResult(success=False, error=str(e))
 
 
 async def _abapgit_pull_via_api(
@@ -780,6 +891,32 @@ async def verify_abap_report_content(program_name: str, expected_text: str) -> d
 
 def register_abapgit_tools(mcp: FastMCP) -> None:
     """Register abapGit tools with the MCP server."""
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="abapGit List Repositories",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+        description=(
+            "List all registered abapGit repositories with their metadata. "
+            "Returns repo names, Git URLs, packages, branches, and last pull timestamps. "
+            "Use this to discover the correct repo name before calling sap_abapgit_pull."
+        ),
+    )
+    async def sap_abapgit_list_repos() -> AbapGitListResult:
+        """
+        List all registered abapGit repositories.
+
+        Returns:
+            AbapGitListResult with list of AbapGitRepoInfo objects
+
+        Example:
+            sap_abapgit_list_repos()
+        """
+        return await _abapgit_list_repos()
 
     @mcp.tool(
         annotations=ToolAnnotations(
