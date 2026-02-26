@@ -17,7 +17,7 @@ class AbapGitRepoInfo(BaseModel):
     url: str = Field(description="Remote Git URL")
     package: str = Field(description="ABAP development package (devclass)")
     branch: str = Field(description="Git branch name (e.g. refs/heads/main)")
-    last_pull_at: str | None = Field(default=None, description="Last pull timestamp (ABAP timestampl)")
+    last_pull_at: str | None = Field(default=None, description="Last pull timestamp (ABAP TIMESTAMPL type)")
     last_pull_by: str | None = Field(default=None, description="SAP user who last pulled")
     is_offline: bool = Field(default=False, description="Whether this is an offline repo")
 
