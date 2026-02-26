@@ -492,6 +492,11 @@ async def _abapgit_list_repos() -> AbapGitListResult:
         # Read the WRITE output from the screen via JavaScript
         raw_output = await page.evaluate("""
             () => {
+                // In SAP Web GUI, ABAP WRITE output is normally rendered inside
+                // the main window content container '#sapwd_main_window_root_contents'.
+                // For robustness, we fall back to 'document.body' in cases where this
+                // container does not exist (e.g. different themes, older WebGUI
+                // layouts, or error pages that bypass the standard shell).
                 const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
                 return body.innerText || body.textContent || '';
             }
