@@ -398,13 +398,16 @@ class TestSettingsDialogSelectors:
             pytest.skip("easy_access_de snapshot not available")
         soup = load_snapshot(snapshot)
 
-        elements = css_select(soup, SELECTORS["its_settings"])
+        # Use find(id=...) because Python >=3.13 html.parser handles
+        # SAP's deeply nested/malformed table HTML differently, causing
+        # BeautifulSoup's CSS #id selector to miss elements that Playwright finds fine.
+        element = soup.find(id="tbmnuentryItsOptions")
 
-        assert len(elements) == 1, (
+        assert element is not None, (
             f"ITS settings menu item should be found on German Easy Access screen. "
             f"Selector: {SELECTORS['its_settings']}"
         )
-        label = elements[0].get("aria-label", "")
+        label = element.get("aria-label", "")
         assert "Einstellungen" in label, f"ITS settings label should contain 'Einstellungen', got: {label}"
 
     def test_its_settings_selector_en(self, html_snapshots_path: Path) -> None:
@@ -414,13 +417,16 @@ class TestSettingsDialogSelectors:
             pytest.skip("easy_access_en snapshot not available")
         soup = load_snapshot(snapshot)
 
-        elements = css_select(soup, SELECTORS["its_settings"])
+        # Use find(id=...) because Python >=3.13 html.parser handles
+        # SAP's deeply nested/malformed table HTML differently, causing
+        # BeautifulSoup's CSS #id selector to miss elements that Playwright finds fine.
+        element = soup.find(id="tbmnuentryItsOptions")
 
-        assert len(elements) == 1, (
+        assert element is not None, (
             f"ITS settings menu item should be found on English Easy Access screen. "
             f"Selector: {SELECTORS['its_settings']}"
         )
-        label = elements[0].get("aria-label", "")
+        label = element.get("aria-label", "")
         assert "Settings" in label, f"ITS settings label should contain 'Settings', got: {label}"
 
     def test_settings_button_selector(self, html_snapshots_path: Path) -> None:
