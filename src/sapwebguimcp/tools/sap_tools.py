@@ -333,6 +333,14 @@ SELECTORS: dict[str, str] = {
     "okcode_field": (
         'input[id*="ToolbarOkCode"], ' 'input[name*="okcode" i], ' 'input[id*="okcd" i], ' 'input[id*="OkCodeField" i]'
     ),
+    # Gear icon: "GUI-Aktionen und -Einstellungen" (DE) / "GUI Actions and Settings" (EN).
+    # Dynamic ID but stable title pattern containing "GUI".
+    "gear_icon": (
+        '[aria-haspopup="true"][title*="GUI"][title*="Einstellung"], '
+        '[aria-haspopup="true"][title*="GUI"][title*="Settings"]'
+    ),
+    # Stable ID for "Einstellungen..." / "Settings..." in the gear icon dropdown.
+    "its_settings": "#tbmnuentryItsOptions",
     "settings_button": (
         '[id*="settingsButton"], '
         '[title*="Setting" i], '
@@ -491,9 +499,49 @@ async def _register_new_window_session(
     return new_session_id, session_count, title
 
 
+async def _open_its_settings_dialog(page: Any, steps_taken: list[str]) -> bool:
+    """
+    Open the SAP GUI for HTML settings dialog via gear icon → Einstellungen.
+
+    The gear icon ("GUI-Aktionen und -Einstellungen" / "GUI Actions and Settings")
+    contains a dropdown with "Einstellungen..." / "Settings..." (id=tbmnuentryItsOptions).
+    Clicking that opens the settings dialog where the OK-Code field can be enabled.
+
+    Returns:
+        True if the settings dialog was opened, False otherwise.
+    """
+    # Step 1: Click the gear icon to open its dropdown menu
+    gear_icon = await page.query_selector(SELECTORS["gear_icon"])
+    if not gear_icon:
+        return False
+
+    await gear_icon.click()
+    await page.wait_for_timeout(500)
+    steps_taken.append("Clicked gear icon (GUI settings)")
+
+    # Step 2: Click "Einstellungen..." / "Settings..." in the dropdown
+    its_settings = await page.query_selector(SELECTORS["its_settings"])
+    if not its_settings:
+        # Close the dropdown by pressing Escape
+        await page.keyboard.press("Escape")
+        await page.wait_for_timeout(300)
+        return False
+
+    await its_settings.click()
+    await page.wait_for_timeout(1000)
+    steps_taken.append("Opened SAP GUI for HTML settings dialog")
+    return True
+
+
 async def _enable_okcode_field(page: Any) -> tuple[bool, str]:
     """
     Enable the OK-Code field through SAP Web GUI settings.
+
+    Navigates the gear icon menu (DE: "GUI-Aktionen und -Einstellungen",
+    EN: "GUI Actions and Settings") → "Einstellungen..." / "Settings..."
+    to open the SAP GUI for HTML settings dialog and enable the OK-Code field.
+
+    Falls back to the generic settings button approach if the gear icon is not found.
 
     Returns:
         Tuple of (success: bool, message: str)
@@ -501,28 +549,31 @@ async def _enable_okcode_field(page: Any) -> tuple[bool, str]:
     steps_taken: list[str] = []
 
     try:
-        # Step 1: Try to expand menu if there's an expand button
-        menu_expand = await page.query_selector(SELECTORS["menu_expand"])
-        if menu_expand:
-            await menu_expand.click()
-            await page.wait_for_timeout(500)
-            steps_taken.append("Expanded menu")
+        # Primary approach: gear icon → Einstellungen... (SAP GUI for HTML settings)
+        dialog_opened = await _open_its_settings_dialog(page, steps_taken)
 
-        # Step 2: Find and click settings/gear button
-        settings_btn = await page.query_selector(SELECTORS["settings_button"])
-        if not settings_btn:
-            settings_btn = await page.query_selector(
-                '[role="menu"] [title*="Setting" i], '
-                '[role="menu"] [title*="Einstellung" i], '
-                '[class*="menu"] [title*="Setting" i]'
-            )
+        if not dialog_opened:
+            # Fallback: try to expand menu and find settings button
+            menu_expand = await page.query_selector(SELECTORS["menu_expand"])
+            if menu_expand:
+                await menu_expand.click()
+                await page.wait_for_timeout(500)
+                steps_taken.append("Expanded menu")
 
-        if not settings_btn:
-            return False, "Could not find settings/gear button. Please enable OK-Code field manually."
+            settings_btn = await page.query_selector(SELECTORS["settings_button"])
+            if not settings_btn:
+                settings_btn = await page.query_selector(
+                    '[role="menu"] [title*="Setting" i], '
+                    '[role="menu"] [title*="Einstellung" i], '
+                    '[class*="menu"] [title*="Setting" i]'
+                )
 
-        await settings_btn.click()
-        await page.wait_for_timeout(1000)
-        steps_taken.append("Opened settings")
+            if not settings_btn:
+                return False, "Could not find settings/gear button. Please enable OK-Code field manually."
+
+            await settings_btn.click()
+            await page.wait_for_timeout(1000)
+            steps_taken.append("Opened settings")
 
         # Step 3: Look for OK-Code checkbox or setting
         okcode_checkbox = await page.query_selector(SELECTORS["okcode_checkbox"])
@@ -777,6 +828,31 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         )
                     except Exception:  # pylint: disable=broad-exception-caught
                         pass
+
+                # Check if login succeeded but OK-Code field is hidden (first-time use).
+                # SAP Web GUI hides the OK-Code field by default; it must be enabled via
+                # gear icon → Einstellungen/Settings → OK-Code-Feld anzeigen.
+                title = await page.title()
+                if "sap" in title.lower():
+                    logger.info("SAP page loaded but OK-Code field not visible, attempting to enable")
+                    success, message = await _enable_okcode_field(page)
+                    if success:
+                        okcode_field = await _find_okcode_field(page)
+                        if okcode_field:
+                            logger.info("OK-Code field enabled after login", extra={"message": message})
+                            await _start_keepalive()
+                            if not browser_manager.registry.has_session("s1"):
+                                browser_manager.registry.register(page)
+                            await _capture_sap_identity(page, effective_url, settings.sap_mandant, session_id)
+                            return LoginResult(
+                                url=effective_url,
+                                user=settings.sap_user,
+                                guidance=(
+                                    "OK-Code field was hidden and has been automatically enabled. "
+                                    "RECOMMENDED: Call sap_get_capabilities() to review all available "
+                                    "tools and their descriptions before proceeding."
+                                ),
+                            )
 
                 return LoginResult.failure(
                     "Login attempted but SAP Easy Access not detected. "

@@ -358,6 +358,71 @@ class TestSettingsDialogSelectors:
     the OK-Code field through SAP settings.
     """
 
+    def test_gear_icon_selector_de(self, html_snapshots_path: Path) -> None:
+        """Verify gear icon can be found on German Easy Access screen."""
+        snapshot = get_snapshot_path(html_snapshots_path, "easy_access", lang="de")
+        if snapshot is None:
+            pytest.skip("easy_access_de snapshot not available")
+        soup = load_snapshot(snapshot)
+
+        elements = css_select(soup, SELECTORS["gear_icon"])
+
+        assert len(elements) >= 1, (
+            f"Gear icon should be found on German Easy Access screen. "
+            f"Selector: {SELECTORS['gear_icon']}"
+        )
+        # Verify it has the expected title containing "GUI"
+        title = elements[0].get("title", "")
+        assert "GUI" in title, f"Gear icon title should contain 'GUI', got: {title}"
+
+    def test_gear_icon_selector_en(self, html_snapshots_path: Path) -> None:
+        """Verify gear icon can be found on English Easy Access screen."""
+        snapshot = get_snapshot_path(html_snapshots_path, "easy_access", lang="en")
+        if snapshot is None:
+            pytest.skip("easy_access_en snapshot not available")
+        soup = load_snapshot(snapshot)
+
+        elements = css_select(soup, SELECTORS["gear_icon"])
+
+        assert len(elements) >= 1, (
+            f"Gear icon should be found on English Easy Access screen. "
+            f"Selector: {SELECTORS['gear_icon']}"
+        )
+        title = elements[0].get("title", "")
+        assert "GUI" in title, f"Gear icon title should contain 'GUI', got: {title}"
+
+    def test_its_settings_selector_de(self, html_snapshots_path: Path) -> None:
+        """Verify ITS settings menu item can be found on German Easy Access screen."""
+        snapshot = get_snapshot_path(html_snapshots_path, "easy_access", lang="de")
+        if snapshot is None:
+            pytest.skip("easy_access_de snapshot not available")
+        soup = load_snapshot(snapshot)
+
+        elements = css_select(soup, SELECTORS["its_settings"])
+
+        assert len(elements) == 1, (
+            f"ITS settings menu item should be found on German Easy Access screen. "
+            f"Selector: {SELECTORS['its_settings']}"
+        )
+        label = elements[0].get("aria-label", "")
+        assert "Einstellungen" in label, f"ITS settings label should contain 'Einstellungen', got: {label}"
+
+    def test_its_settings_selector_en(self, html_snapshots_path: Path) -> None:
+        """Verify ITS settings menu item can be found on English Easy Access screen."""
+        snapshot = get_snapshot_path(html_snapshots_path, "easy_access", lang="en")
+        if snapshot is None:
+            pytest.skip("easy_access_en snapshot not available")
+        soup = load_snapshot(snapshot)
+
+        elements = css_select(soup, SELECTORS["its_settings"])
+
+        assert len(elements) == 1, (
+            f"ITS settings menu item should be found on English Easy Access screen. "
+            f"Selector: {SELECTORS['its_settings']}"
+        )
+        label = elements[0].get("aria-label", "")
+        assert "Settings" in label, f"ITS settings label should contain 'Settings', got: {label}"
+
     def test_settings_button_selector(self, html_snapshots_path: Path) -> None:
         """Verify settings button can be found in Easy Access screen."""
         snapshot = get_snapshot_path(html_snapshots_path, "easy_access")
