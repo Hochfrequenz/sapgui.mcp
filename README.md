@@ -520,9 +520,9 @@ The Chrome startup commands in this guide use `C:\Program Files\Google\Chrome\Ap
 
 **Common Chrome paths on Windows:**
 
-| Installation type       | Path                                                                |
-| ----------------------- | ------------------------------------------------------------------- |
-| System-wide (all users) | `C:\Program Files\Google\Chrome\Application\chrome.exe`             |
+| Installation type       | Path                                                                     |
+| ----------------------- | ------------------------------------------------------------------------ |
+| System-wide (all users) | `C:\Program Files\Google\Chrome\Application\chrome.exe`                  |
 | Per-user (current user) | `C:\Users\<YourName>\AppData\Local\Google\Chrome\Application\chrome.exe` |
 
 **How to find your Chrome path (step by step):**
