@@ -38,6 +38,13 @@ def _chrome_debug_commands() -> str:
         "--remote-debugging-port=9222 "
         '--user-data-dir="C:\\temp\\chrome-debug" '
         "--ignore-certificate-errors\n"
+        "\n"
+        "  NOTE: Your Chrome path may differ! Common locations on Windows:\n"
+        '    - "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" (system-wide install)\n'
+        '    - "%LOCALAPPDATA%\\Google\\Chrome\\Application\\chrome.exe" (per-user install)\n'
+        "  To find your Chrome path: right-click the Chrome shortcut on your desktop or\n"
+        '  Start menu → Properties → copy the "Target" field.\n'
+        "\n"
         "  macOS:\n"
         "    /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome "
         "--remote-debugging-port=9222 "

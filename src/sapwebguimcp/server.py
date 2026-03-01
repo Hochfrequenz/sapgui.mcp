@@ -69,7 +69,12 @@ async def _check_cdp_available(cdp_url: str) -> bool:
         return True
     except (httpx.ConnectError, httpx.TimeoutException, OSError):
         if sys.platform == "win32":
-            hint = 'chrome.exe --remote-debugging-port=9222 --user-data-dir="C:\\temp\\chrome-debug"'
+            hint = (
+                '& "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"'
+                ' --remote-debugging-port=9222 --user-data-dir="C:\\temp\\chrome-debug"'
+                " (NOTE: Chrome path may differ — if installed per-user, try"
+                ' "%LOCALAPPDATA%\\Google\\Chrome\\Application\\chrome.exe" instead)'
+            )
         elif sys.platform == "darwin":
             hint = (
                 '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"'
