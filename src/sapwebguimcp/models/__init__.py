@@ -158,9 +158,7 @@ from sapwebguimcp.models.st22_models import (
 from sapwebguimcp.models.workflow_models import (
     Workflow,
     WorkflowDeleteResult,
-    WorkflowError,
     WorkflowListResult,
-    WorkflowRunResult,
     WorkflowSaveInput,
     WorkflowSaveResult,
     WorkflowSubmitResult,
@@ -318,9 +316,7 @@ __all__ = [
     # Workflow models
     "Workflow",
     "WorkflowDeleteResult",
-    "WorkflowError",
     "WorkflowListResult",
-    "WorkflowRunResult",
     "WorkflowSaveInput",
     "WorkflowSaveResult",
     "WorkflowSubmitResult",
