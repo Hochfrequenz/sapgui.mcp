@@ -79,49 +79,13 @@ async def _find_okcode_field(page: Any) -> Any | None:
 
 async def _enable_okcode_field(page: Any) -> tuple[bool, str]:
     """
-    Attempt to enable the OK-Code field via SAP GUI for HTML settings.
-
-    Navigates the gear icon menu (DE: "GUI-Aktionen und -Einstellungen",
-    EN: "GUI Actions and Settings") → "Einstellungen..." / "Settings..."
-    to open the settings dialog and look for the OK-Code checkbox.
+    Attempt to enable the OK-Code field via SAP settings menu.
 
     Returns:
         (success, message) tuple
     """
     try:
-        # Primary approach: gear icon → Einstellungen.../Settings...
-        gear_selector = (
-            '[aria-haspopup="true"][title*="GUI"][title*="Einstellung"], '
-            '[aria-haspopup="true"][title*="GUI"][title*="Settings"]'
-        )
-        gear_icon = await page.query_selector(gear_selector)
-        if gear_icon and await gear_icon.is_visible():
-            await gear_icon.click()
-            await page.wait_for_timeout(500)
-
-            its_settings = await page.query_selector("#tbmnuentryItsOptions")
-            if its_settings:
-                await its_settings.click()
-                await page.wait_for_timeout(1000)
-
-                # Look for OK-Code checkbox in the settings dialog
-                okcode_checkbox = await page.query_selector(
-                    'input[type="checkbox"][id*="okCode" i], '
-                    'input[type="checkbox"][name*="okCode" i]'
-                )
-                if okcode_checkbox:
-                    if not await okcode_checkbox.is_checked():
-                        await okcode_checkbox.click()
-                        await page.wait_for_timeout(300)
-                    await page.keyboard.press("Enter")
-                    await page.wait_for_timeout(500)
-                    return True, "Enabled OK-Code field via gear icon settings"
-            else:
-                # Close dropdown
-                await page.keyboard.press("Escape")
-                await page.wait_for_timeout(300)
-
-        # Fallback: try generic settings selectors
+        # Look for settings/gear icon
         settings_selectors = [
             "span[title*='Einstellungen']",
             "span[title*='Settings']",
