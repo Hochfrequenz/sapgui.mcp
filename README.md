@@ -38,6 +38,15 @@ Download `sapwebgui_mcp_windows_<version>.exe` from
 & "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
 ```
 
+> [!NOTE]
+> **Chrome path may differ.** The path above is for a system-wide Chrome installation. If Chrome was installed only for your user, the path is typically:
+>
+> ```powershell
+> & "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
+> ```
+>
+> Not sure where Chrome is installed? See [Finding your Chrome path](#finding-your-chrome-path) in the Troubleshooting section below.
+
 ### Step 2: Configure your MCP client
 
 **Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
@@ -142,6 +151,15 @@ Chrome must be started with special flags to allow automation. Run in PowerShell
 ```powershell
 & "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
 ```
+
+> [!NOTE]
+> **Chrome path may differ.** If Chrome was installed only for your user, replace the path:
+>
+> ```powershell
+> & "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
+> ```
+>
+> See [Finding your Chrome path](#finding-your-chrome-path) below if the command fails.
 
 Verify it's working:
 
@@ -495,6 +513,42 @@ For repetitive tasks like "create 100 business partners":
 <sup>1</sup> The server starts without these, but SAP login will fail.
 
 ## Troubleshooting
+
+### Finding your Chrome path
+
+The Chrome startup commands in this guide use `C:\Program Files\Google\Chrome\Application\chrome.exe` — the default path for a **system-wide** Chrome installation. If you get an error like _"The system cannot find the path specified"_, Chrome is likely installed in a different location.
+
+**Common Chrome paths on Windows:**
+
+| Installation type       | Path                                                                     |
+| ----------------------- | ------------------------------------------------------------------------ |
+| System-wide (all users) | `C:\Program Files\Google\Chrome\Application\chrome.exe`                  |
+| Per-user (current user) | `C:\Users\<YourName>\AppData\Local\Google\Chrome\Application\chrome.exe` |
+
+**How to find your Chrome path (step by step):**
+
+1. Find your Chrome shortcut (on your desktop or in the Start menu)
+2. **Right-click** the Chrome shortcut → click **Properties**
+3. In the Properties window, look at the **Target** field
+4. Copy the path from that field (everything before any `--` flags)
+
+For example, if the Target field shows:
+
+```
+"C:\Users\JaneDoe\AppData\Local\Google\Chrome\Application\chrome.exe"
+```
+
+Then your Chrome startup command is:
+
+```powershell
+& "C:\Users\JaneDoe\AppData\Local\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
+```
+
+**Quick check in PowerShell** — this command finds Chrome automatically:
+
+```powershell
+Get-Item "C:\Program Files\Google\Chrome\Application\chrome.exe","$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+```
 
 ### "network sap-mcp-network not found"
 
