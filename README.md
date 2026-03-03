@@ -482,11 +482,8 @@ For repetitive tasks like "create 100 business partners":
 | ----------------- | ---------------------------------------------------- |
 | `workflow_list`   | List saved workflows                                 |
 | `workflow_save`   | Save a workflow                                      |
-| `workflow_run`    | Run workflow in bulk (requires MCP Sampling support) |
 | `workflow_submit` | Submit workflow step result                          |
 | `workflow_delete` | Delete a workflow                                    |
-
-> **Note:** `workflow_run` requires MCP Sampling support. As of January 2026, Claude Desktop and Claude Code do NOT support this yet ([tracking issue](https://github.com/anthropics/claude-code/issues/1785)).
 
 ## Configuration Reference
 
