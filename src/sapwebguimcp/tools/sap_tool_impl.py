@@ -2,8 +2,7 @@
 Standalone SAP tool implementations for use in MCP tools.
 
 This module contains the core logic for SAP operations, extracted as
-standalone async functions. These functions can be:
-1. Used by MCP-registered tools (in sap_tools.py)
+standalone async functions used by MCP-registered tools (in sap_tools.py).
 
 The functions follow a consistent pattern:
 - Accept typed parameters
