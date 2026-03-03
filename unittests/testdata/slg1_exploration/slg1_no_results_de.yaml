@@ -19,10 +19,10 @@
   - group "Zeiteinschränkung":
     - heading "Zeiteinschränkung" [level=2]
     - text: von (Datum/Uhrzeit)
-    - textbox "von (Datum/Uhrzeit)": 23.02.2026
+    - textbox "von (Datum/Uhrzeit)": 03.03.2026
     - 'textbox "Anwendungs-Log: Uhrzeit"': 00:00:00
     - text: bis (Datum/Uhrzeit)
-    - textbox "bis (Datum/Uhrzeit)": 23.02.2026
+    - textbox "bis (Datum/Uhrzeit)": 03.03.2026
     - 'textbox "Anwendungs-Log: Uhrzeit"': 23:59:59
   - group "Protokoll verursacht durch":
     - heading "Protokoll verursacht durch" [level=2]
@@ -85,11 +85,11 @@
         - cell "Transaktion"
         - cell "SLG1"
         - cell
-      - row "E2E-Zeit 96 ms":
+      - row "E2E-Zeit 94 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "96 ms"
+        - cell "94 ms"
         - cell
       - row "WebGUI-Zeit 22 ms":
         - cell

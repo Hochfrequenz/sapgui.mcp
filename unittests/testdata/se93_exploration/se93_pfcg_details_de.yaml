@@ -5,16 +5,7 @@
     - heading "Dialogtransaktion anzeigen" [level=1]
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Transaktionscode"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Hilfsmittel"
-      - button "Umfeld"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Anzeigen<->Ändern"
@@ -23,8 +14,8 @@
       - button "Testen"
       - button "Verwendungsnachweis"
       - button "Objektliste anzeigen"
-      - button "Navigationsfenster anzeigen"
       - button "Mehr"
+    - button "Beenden"
   - text: Transaktionscode
   - textbox "Transaktionscode": PFCG
   - text: Paket
@@ -87,15 +78,15 @@
         - cell "Transaktion"
         - cell "SE93"
         - cell
-      - row "E2E-Zeit 127 ms":
+      - row "E2E-Zeit 84 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "127 ms"
+        - cell "84 ms"
         - cell
-      - row "WebGUI-Zeit 47 ms":
+      - row "WebGUI-Zeit 22 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "47 ms"
+        - cell "22 ms"
         - cell

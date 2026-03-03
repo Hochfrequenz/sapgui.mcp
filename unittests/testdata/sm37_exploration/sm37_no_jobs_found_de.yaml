@@ -27,10 +27,10 @@
     - heading "Jobstartbedingung" [level=2]
     - text: von
     - img "Datum"
-    - textbox: 22.02.2026
+    - textbox: 03.03.2026
     - text: bis
     - img "Datum"
-    - textbox: 22.02.2026
+    - textbox: 03.03.2026
     - text: von
     - img "Uhrzeit"
     - textbox
@@ -80,15 +80,15 @@
         - cell "Transaktion"
         - cell "SM37"
         - cell
-      - row "E2E-Zeit 140 ms":
+      - row "E2E-Zeit 97 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "140 ms"
+        - cell "97 ms"
         - cell
-      - row "WebGUI-Zeit 35 ms":
+      - row "WebGUI-Zeit 23 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "35 ms"
+        - cell "23 ms"
         - cell

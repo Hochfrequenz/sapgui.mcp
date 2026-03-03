@@ -5,16 +5,7 @@
     - heading "Reporttransaktion anzeigen" [level=1]
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Transaktionscode"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Hilfsmittel"
-      - button "Umfeld"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Anzeigen<->Ändern"
@@ -23,8 +14,8 @@
       - button "Testen"
       - button "Verwendungsnachweis"
       - button "Objektliste anzeigen"
-      - button "Navigationsfenster anzeigen"
       - button "Mehr"
+    - button "Beenden"
   - text: Transaktionscode
   - textbox "Transaktionscode": SE38
   - text: Paket
@@ -88,15 +79,15 @@
         - cell "Transaktion"
         - cell "SE93"
         - cell
-      - row "E2E-Zeit 116 ms":
+      - row "E2E-Zeit 81 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "116 ms"
+        - cell "81 ms"
         - cell
-      - row "WebGUI-Zeit 49 ms":
+      - row "WebGUI-Zeit 21 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "49 ms"
+        - cell "21 ms"
         - cell

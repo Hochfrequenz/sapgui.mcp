@@ -24,6 +24,7 @@ import httpx
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import Locator, Page
+from playwright.async_api import TimeoutError as PlaywrightTimeout
 
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
@@ -65,9 +66,7 @@ async def validate_github_pat(pat: str) -> tuple[bool, str]:
         return False, f"GitHub API unreachable: {exc}"
 
 
-# =============================================================================
 # Helper Data Structures
-# =============================================================================
 
 
 @dataclass
@@ -81,9 +80,7 @@ class PullParams:
     tcode_with_params: str
 
 
-# =============================================================================
 # Error Detection Helpers
-# =============================================================================
 
 ERROR_KEYWORDS = [
     "not found",
@@ -167,9 +164,7 @@ async def _check_screen_for_errors(page: Page) -> str | None:
     return None
 
 
-# =============================================================================
 # Pull Parameter Validation
-# =============================================================================
 
 
 def _validate_param(value: str, param_name: str, pattern: str, description: str) -> str | None:
@@ -247,9 +242,7 @@ def _validate_and_prepare_params(
     )
 
 
-# =============================================================================
 # OK-Code Field Handling
-# =============================================================================
 
 
 async def _get_okcode_field(page: Page, repo: str) -> Locator | AbapGitActionResult:
@@ -282,9 +275,7 @@ async def _get_okcode_field(page: Page, repo: str) -> Locator | AbapGitActionRes
     return okcode_field_retry
 
 
-# =============================================================================
 # Pull Result Analysis
-# =============================================================================
 
 
 async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
@@ -338,9 +329,7 @@ async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
     )
 
 
-# =============================================================================
 # Main Pull Implementation
-# =============================================================================
 
 
 async def _handle_popup_error(page: Page, repo: str) -> AbapGitActionResult | None:
@@ -388,17 +377,33 @@ async def _execute_pull_transaction(page: Page, params: PullParams, repo: str) -
 
 
 async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResult | None:
-    """Execute F8, confirm dialog, and check for popup errors. Returns error if found."""
-    # Execute report with F8 and check for popup errors
+    """Execute F8 and wait for SAP to finish processing. Returns error if found."""
     await page.keyboard.press("F8")
-    await page.wait_for_timeout(3000)
+
+    # Fast-fail: check for immediate error popups (bad transport, auth error)
+    await page.wait_for_timeout(2000)
     popup_result = await _handle_popup_error(page, repo)
     if popup_result:
         return popup_result
 
-    # Confirm dialog and check again
-    await page.keyboard.press("Enter")
-    await page.wait_for_timeout(5000)
+    # Wait for deserialization to finish (networkidle = 500ms with no requests).
+    try:
+        await page.wait_for_load_state("networkidle", timeout=120_000)
+    except PlaywrightTimeout:
+        logger.warning("networkidle timeout after F8 -- pull may still be running")
+
+    # SAP may show an "Inaktive Objekte" / "Inactive Objects" popup after pull.
+    # The old bare Enter accidentally dismissed it; now we detect it explicitly.
+    snapshot = await page.locator("body").aria_snapshot()
+    if "Inaktive Objekte" in snapshot or "Inactive Objects" in snapshot:
+        logger.info("Detected inactive objects popup, confirming with Enter")
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(2000)
+        try:
+            await page.wait_for_load_state("networkidle", timeout=30_000)
+        except PlaywrightTimeout:
+            pass
+
     return await _handle_popup_error(page, repo)
 
 
@@ -930,8 +935,9 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "Pull changes from a remote git repository using abapGit API. "
             "Uses the Z_ABAPGIT_PULL report/transaction for reliable execution. "
             "WARNING: This overwrites local ABAP objects with remote versions. "
-            "NOTE: The first call may return 'Pull status unknown' — if so, press F8 (Execute/Ausführen) "
-            "again or call this tool a second time to complete the pull."
+            "If the tool reports 'status unknown', the pull may have succeeded. "
+            "Call sap_read_status_bar() to check, or retry with sap_keyboard('F8') "
+            "then sap_read_status_bar()."
         ),
     )
     async def sap_abapgit_pull(
