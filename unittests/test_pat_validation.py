@@ -198,11 +198,14 @@ class TestRunPullAndCheckErrors:
         """If networkidle times out, should log warning and continue (not crash)."""
         from unittest.mock import AsyncMock, patch
 
+        from playwright.async_api import TimeoutError as PlaywrightTimeout
+
         from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
         mock_page = AsyncMock()
         mock_page.keyboard.press = AsyncMock()
-        mock_page.wait_for_load_state = AsyncMock(side_effect=TimeoutError("networkidle timeout"))
+        mock_page.wait_for_timeout = AsyncMock()
+        mock_page.wait_for_load_state = AsyncMock(side_effect=PlaywrightTimeout("networkidle timeout"))
 
         with patch(
             "sapwebguimcp.tools.abapgit_tools._handle_popup_error",

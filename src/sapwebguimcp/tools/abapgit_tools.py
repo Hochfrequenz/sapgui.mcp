@@ -24,6 +24,7 @@ import httpx
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import Locator, Page
+from playwright.async_api import TimeoutError as PlaywrightTimeout
 
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
@@ -390,10 +391,20 @@ async def _execute_pull_transaction(page: Page, params: PullParams, repo: str) -
 async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResult | None:
     """Execute F8 and wait for SAP to finish processing. Returns error if found."""
     await page.keyboard.press("F8")
+
+    # Fast-fail: check for immediate error popups (bad transport, auth error)
+    await page.wait_for_timeout(2000)
+    popup_result = await _handle_popup_error(page, repo)
+    if popup_result:
+        return popup_result
+
+    # Wait for SAP to finish deserialization. networkidle fires when no network
+    # requests for 500ms. If SAP keep-alive polling is more frequent, this will
+    # always timeout -- the graceful degradation path handles that case.
     try:
         await page.wait_for_load_state("networkidle", timeout=120_000)
-    except TimeoutError:
-        logger.warning("networkidle timeout after F8 — pull may still be running")
+    except PlaywrightTimeout:
+        logger.warning("networkidle timeout after F8 -- pull may still be running")
 
     return await _handle_popup_error(page, repo)
 
