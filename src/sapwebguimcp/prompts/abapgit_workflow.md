@@ -28,6 +28,7 @@ abapGit uses a specific file format to serialize ABAP objects. **Incorrect seria
 Key points:
 
 - Each ABAP object is stored as a `.abap` source file plus one or more `.xml` metadata files
+- **All filenames MUST be lowercase** (e.g., `zcl_my_class.clas.abap`, NOT `ZCL_MY_CLASS.clas.abap`). abapGit serializes and expects lowercase filenames even though the ABAP object names are uppercase. Uppercase filenames cause "File not found" errors during pull.
 - File names must follow abapGit naming conventions (e.g., `z_my_report.prog.abap` + `z_my_report.prog.xml`)
 - The `.xml` files contain object metadata (program attributes, text pools, etc.) that SAP needs for deserialization
 - The `.abapgit.xml` in the repository root defines the package mapping and folder logic
