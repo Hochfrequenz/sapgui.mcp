@@ -398,9 +398,8 @@ async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResu
     if popup_result:
         return popup_result
 
-    # Wait for SAP to finish deserialization. networkidle fires when no network
-    # requests for 500ms. If SAP keep-alive polling is more frequent, this will
-    # always timeout -- the graceful degradation path handles that case.
+    # Wait for SAP to finish deserialization. networkidle fires after 500ms with
+    # no network requests. If SAP keep-alive is more frequent, this will timeout.
     try:
         await page.wait_for_load_state("networkidle", timeout=120_000)
     except PlaywrightTimeout:
