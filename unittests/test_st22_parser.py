@@ -145,6 +145,7 @@ class TestParseDumpList:
         dumps = parse_st22_dump_list(snapshot)
 
         assert len(dumps) == 2
+        # Parser returns DOM order (sorting is done in tool layer)
         assert dumps[0].index == 0
         assert dumps[0].time == "14:32:15"
         assert dumps[0].error_type == "RABAX_STATE"
@@ -200,6 +201,43 @@ class TestParseDumpList:
         assert len(dumps) == 3
         for i, dump in enumerate(dumps):
             assert dump.index == i
+
+    def test_dumps_preserve_dom_order(self) -> None:
+        """Parser returns dumps in DOM order (sorting is done in tool layer)."""
+        snapshot = """- grid:
+  - row:
+    - columnheader "Zeit"
+    - columnheader "Laufzeitfehler"
+    - columnheader "Programm"
+    - columnheader "Benutzer"
+  - row:
+    - gridcell "08:15:00"
+    - gridcell "EARLY_ERROR"
+    - gridcell "ZPROG_EARLY"
+    - gridcell "USER1"
+  - row:
+    - gridcell "16:45:30"
+    - gridcell "LATE_ERROR"
+    - gridcell "ZPROG_LATE"
+    - gridcell "USER2"
+  - row:
+    - gridcell "12:00:00"
+    - gridcell "MID_ERROR"
+    - gridcell "ZPROG_MID"
+    - gridcell "USER3"
+"""
+        dumps = parse_st22_dump_list(snapshot)
+        assert len(dumps) == 3
+        # DOM order preserved: 08:15, 16:45, 12:00
+        assert dumps[0].time == "08:15:00"
+        assert dumps[0].error_type == "EARLY_ERROR"
+        assert dumps[0].index == 0
+        assert dumps[1].time == "16:45:30"
+        assert dumps[1].error_type == "LATE_ERROR"
+        assert dumps[1].index == 1
+        assert dumps[2].time == "12:00:00"
+        assert dumps[2].error_type == "MID_ERROR"
+        assert dumps[2].index == 2
 
 
 class TestParseDumpDetail:

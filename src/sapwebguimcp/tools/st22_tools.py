@@ -235,7 +235,7 @@ async def _capture_full_detail(page: Page) -> str:
 # =============================================================================
 
 
-async def _st22_lookup(  # pylint: disable=too-many-return-statements
+async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-locals
     page: Page,
     target_date: str | None,
     dump_index: int | None,
@@ -293,6 +293,17 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements
                 total_count,
             )
 
+    # Sort dumps by time descending (newest first). Keep a mapping from
+    # sorted position to original UI row index for correct DOM row selection.
+    indexed_dumps = [(d.index, d) for d in dumps]  # (ui_row_idx, dump)
+    indexed_dumps.sort(key=lambda pair: pair[1].time, reverse=True)
+    sorted_to_ui: dict[int, int] = {}
+    dumps = []
+    for new_idx, (orig_ui_idx, dump) in enumerate(indexed_dumps):
+        dump.index = new_idx
+        sorted_to_ui[new_idx] = orig_ui_idx
+        dumps.append(dump)
+
     # If no dump_index requested, return the list
     if dump_index is None:
         return ST22DumpListResult(
@@ -320,7 +331,9 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements
 
     target_dump = dumps[dump_index]
 
-    error = await _select_dump_by_index(page, dump_index, len(dumps))
+    # Use the original UI row position for clicking, not the sorted index
+    ui_row_idx = sorted_to_ui[dump_index]
+    error = await _select_dump_by_index(page, ui_row_idx, len(dumps))
     if error:
         return ST22DumpDetailResult.failure(
             error=error,

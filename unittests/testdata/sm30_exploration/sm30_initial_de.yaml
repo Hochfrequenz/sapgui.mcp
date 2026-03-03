@@ -55,15 +55,15 @@
         - cell "Transaktion"
         - cell "SM30"
         - cell
-      - row "E2E-Zeit 83 ms":
+      - row "E2E-Zeit 491 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "83 ms"
+        - cell "491 ms"
         - cell
-      - row "WebGUI-Zeit 30 ms":
+      - row "WebGUI-Zeit 28 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "30 ms"
+        - cell "28 ms"
         - cell
