@@ -375,17 +375,17 @@
         - cell "Transaktion"
         - cell "SIMG"
         - cell
-      - row "E2E-Zeit 249 ms":
+      - row "E2E-Zeit 151 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "249 ms"
+        - cell "151 ms"
         - cell
-      - row "WebGUI-Zeit 174 ms":
+      - row "WebGUI-Zeit 85 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "174 ms"
+        - cell "85 ms"
         - cell
   - dialog "Suche in der Struktur":
     - heading "Suche in der Struktur" [level=1]

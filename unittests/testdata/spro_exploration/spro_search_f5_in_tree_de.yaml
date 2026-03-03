@@ -375,15 +375,15 @@
         - cell "Transaktion"
         - cell "SIMG"
         - cell
-      - row "E2E-Zeit 546 ms":
+      - row "E2E-Zeit 514 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "546 ms"
+        - cell "514 ms"
         - cell
-      - row "WebGUI-Zeit 48 ms":
+      - row "WebGUI-Zeit 43 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "48 ms"
+        - cell "43 ms"
         - cell

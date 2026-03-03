@@ -375,17 +375,17 @@
         - cell "Transaktion"
         - cell "SIMG"
         - cell
-      - row "E2E-Zeit 2626 ms":
+      - row "E2E-Zeit 2663 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "2626 ms"
+        - cell "2663 ms"
         - cell
-      - row "WebGUI-Zeit 169 ms":
+      - row "WebGUI-Zeit 97 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "169 ms"
+        - cell "97 ms"
         - cell
   - dialog "Trefferliste zum Suchbegriff \"LAND\"":
     - heading "Trefferliste zum Suchbegriff \"LAND\"" [level=1]
