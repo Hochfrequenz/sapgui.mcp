@@ -116,7 +116,7 @@ git mv src/ZCL_MY_CLASS.clas.xml src/zcl_my_class.clas.xml
 4. **Test with MCP** - Use this MCP server to navigate to transactions and test your code
 5. **Iterate** - Fix issues in Claude Code, push, pull, test again
 
-### Known Issue: `sap_abapgit_pull` Returns "Pull Status Unknown"
+### Known Issue: `sap_abapgit_pull` Returns "Pull status unknown"
 
 The `sap_abapgit_pull` tool may return "Pull status unknown" on the first call because the SAP status bar is empty after navigating to the report.
 **Workaround:** Simply call `sap_abapgit_pull` a second time, or press F8 (Ausführen/Execute) after the first call to actually trigger the pull execution.
