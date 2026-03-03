@@ -582,6 +582,18 @@ docker logs sap-mcp-cdp-proxy-1
 - If using auto-login, verify `SAP_USER`, `SAP_PASSWORD`, and `SAP_MANDANT` are set
 - Try logging in manually first to verify credentials
 
+### Transaction input field (OK-Code field) not visible
+
+On first use of SAP Web GUI, the transaction input field (called "OK-Code field" in SAP) may be hidden. The MCP server tries to enable it automatically, but if that fails, you can enable it manually:
+
+1. Click the gear icon in the toolbar ("GUI-Aktionen und -Einstellungen" / "GUI Actions and Settings")
+2. Select "Einstellungen..." / "Settings..."
+3. Enable "OK-Code-Feld anzeigen" (Show OK-Code Field)
+
+![SAP Web GUI Settings — Enable OK-Code Field](https://github.com/user-attachments/assets/9ec83ed4-28fd-4712-af88-f90d515ccd7a)
+
+This is a one-time setting that is saved for subsequent logins.
+
 ### Tools timeout or hang
 
 SAP Web GUI can be slow. If operations timeout:
