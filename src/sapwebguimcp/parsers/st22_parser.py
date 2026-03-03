@@ -221,7 +221,8 @@ def parse_st22_dump_list(snapshot: str) -> list[ST22Dump]:  # pylint: disable=to
     2. Row-based format with cell elements
     3. Text-based format from ST22's custom list
 
-    Returns list of ST22Dump entries with sequential 0-based indexes.
+    Returns list of ST22Dump entries with sequential 0-based indexes matching
+    the UI row order (for correct row selection when fetching detail).
     """
     dumps: list[ST22Dump] = []
 
