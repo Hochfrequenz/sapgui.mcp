@@ -5,17 +5,7 @@
     - heading "Transaktionspflege" [level=1]
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Transaktionscode"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Hilfsmittel"
-      - button "Umfeld"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - button "Suchen (Strg+F)"
-    - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Prüfen"
@@ -26,6 +16,8 @@
       - button "Löschen"
       - button "Kopieren"
       - button "Umbenennen"
+    - button "Suchen (Strg+F)"
+    - button "Beenden"
   - text: Transaktionscode
   - textbox "Transaktionscode"
   - button "Anzeigen"
@@ -64,15 +56,15 @@
         - cell "Transaktion"
         - cell "SE93"
         - cell
-      - row "E2E-Zeit 164 ms":
+      - row "E2E-Zeit 88 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "164 ms"
+        - cell "88 ms"
         - cell
-      - row "WebGUI-Zeit 57 ms":
+      - row "WebGUI-Zeit 31 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "57 ms"
+        - cell "31 ms"
         - cell

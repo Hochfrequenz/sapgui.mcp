@@ -68,7 +68,6 @@ async def validate_github_pat(pat: str) -> tuple[bool, str]:
 
 # Helper Data Structures
 
-
 @dataclass
 class PullParams:
     """Parameters for pull operation after validation."""
@@ -331,7 +330,6 @@ async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
 
 # Main Pull Implementation
 
-
 async def _handle_popup_error(page: Page, repo: str) -> AbapGitActionResult | None:
     """Check for error popup and return failure if found, None otherwise."""
     popup_error = await _check_for_error_popup(page)
@@ -393,8 +391,9 @@ async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResu
     except PlaywrightTimeout:
         logger.warning("networkidle timeout after F8 -- pull may still be running")
 
-    # Handle "Inaktive Objekte" / "Inactive Objects" popup that appears after
-    # deserialization. SAP lists objects to activate; Enter confirms the default.
+    # After deserialization SAP may show an "Inaktive Objekte" / "Inactive Objects"
+    # popup. The original code had a bare Enter that accidentally dismissed it;
+    # removing it broke private-repo pulls. Now we detect the popup explicitly.
     snapshot = await page.locator("body").aria_snapshot()
     if "Inaktive Objekte" in snapshot or "Inactive Objects" in snapshot:
         logger.info("Detected inactive objects popup, confirming with Enter")
