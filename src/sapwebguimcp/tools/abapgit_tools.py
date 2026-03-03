@@ -68,6 +68,7 @@ async def validate_github_pat(pat: str) -> tuple[bool, str]:
 
 # Helper Data Structures
 
+
 @dataclass
 class PullParams:
     """Parameters for pull operation after validation."""
@@ -330,6 +331,7 @@ async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
 
 # Main Pull Implementation
 
+
 async def _handle_popup_error(page: Page, repo: str) -> AbapGitActionResult | None:
     """Check for error popup and return failure if found, None otherwise."""
     popup_error = await _check_for_error_popup(page)
@@ -384,16 +386,14 @@ async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResu
     if popup_result:
         return popup_result
 
-    # Wait for SAP to finish deserialization. networkidle fires after 500ms with
-    # no network requests. If SAP keep-alive is more frequent, this will timeout.
+    # Wait for deserialization to finish (networkidle = 500ms with no requests).
     try:
         await page.wait_for_load_state("networkidle", timeout=120_000)
     except PlaywrightTimeout:
         logger.warning("networkidle timeout after F8 -- pull may still be running")
 
-    # After deserialization SAP may show an "Inaktive Objekte" / "Inactive Objects"
-    # popup. The original code had a bare Enter that accidentally dismissed it;
-    # removing it broke private-repo pulls. Now we detect the popup explicitly.
+    # SAP may show an "Inaktive Objekte" / "Inactive Objects" popup after pull.
+    # The old bare Enter accidentally dismissed it; now we detect it explicitly.
     snapshot = await page.locator("body").aria_snapshot()
     if "Inaktive Objekte" in snapshot or "Inactive Objects" in snapshot:
         logger.info("Detected inactive objects popup, confirming with Enter")
