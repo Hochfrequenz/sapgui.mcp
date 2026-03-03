@@ -320,6 +320,40 @@ async def test_abapgit_pull_public_repo(sap_mcp_client: ClientSession) -> None:
 
 
 @pytest.mark.anyio
+async def test_abapgit_pull_returns_status_message(sap_mcp_client: ClientSession) -> None:
+    """
+    Verify that pull returns an actual status message, not 'status unknown'.
+
+    This is a regression test for the bug where hardcoded waits expired before
+    lo_repo->deserialize() finished, leaving the status bar empty.
+    After the fix (networkidle wait), the tool should always report a status message
+    on success — either 'Pull successful:' from ABAP or a clear error.
+    """
+    # Login first
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Pull public repository
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {
+            "repo": "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
+            "trkorr": TEST_REPOS["public"]["trkorr"],
+        },
+        AbapGitActionResult,
+    )
+
+    # The fix ensures we wait for deserialization to complete.
+    # Result should be a clear success with a message, NOT "status unknown".
+    assert result.success, f"Pull failed: {result.error}"
+    assert result.message is not None, "Expected a status message, got None"
+    assert "unknown" not in (result.message or "").lower(), (
+        f"Got ambiguous status: {result.message}. " "networkidle wait should have captured the ABAP MESSAGE."
+    )
+
+
+@pytest.mark.anyio
 async def test_abapgit_pull_private_repo_with_pat(sap_mcp_client: ClientSession) -> None:
     """
     Test pulling a private repository with PAT authentication.
@@ -431,12 +465,8 @@ async def test_abapgit_e2e_public_repo_pull_and_verify(sap_mcp_client: ClientSes
     assert success, f"Git push failed: {output}"
 
     # 3. Pull via abapGit
-    # KNOWN ISSUE: _analyze_pull_result treats empty status bar as success.
-    # If the PAT is expired (HTTP 401), the ABAP report catches cx_root and
-    # sends MESSAGE e398, but extract_status_bar.js may fail to capture it,
-    # causing pull_result.success=True even though the pull didn't update code.
-    # The real failure then only surfaces in step 4 (source code mismatch).
-    # If this test fails at the assert below, check ABAPGIT_PAT validity first.
+    # NOTE: If this test fails at the assert below, check ABAPGIT_PAT validity first.
+    # An expired PAT causes cx_root in ABAP which may surface as a pull error.
     pull_result = await call_tool_typed(
         sap_mcp_client,
         "sap_abapgit_pull",

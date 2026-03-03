@@ -926,8 +926,9 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "Pull changes from a remote git repository using abapGit API. "
             "Uses the Z_ABAPGIT_PULL report/transaction for reliable execution. "
             "WARNING: This overwrites local ABAP objects with remote versions. "
-            "NOTE: The first call may return 'Pull status unknown' — if so, press F8 (Execute/Ausführen) "
-            "again or call this tool a second time to complete the pull."
+            "If the tool reports 'status unknown', the pull may have succeeded. "
+            "Call sap_read_status_bar() to check, or retry with sap_keyboard('F8') "
+            "then sap_read_status_bar()."
         ),
     )
     async def sap_abapgit_pull(

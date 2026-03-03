@@ -192,3 +192,24 @@ class TestRunPullAndCheckErrors:
         # Should NOT press Enter (stale, risks re-executing report)
         enter_calls = [c for c in mock_page.keyboard.press.call_args_list if c == call("Enter")]
         assert enter_calls == [], f"Expected no Enter press, got {enter_calls}"
+
+    @pytest.mark.anyio
+    async def test_networkidle_timeout_degrades_gracefully(self) -> None:
+        """If networkidle times out, should log warning and continue (not crash)."""
+        from unittest.mock import AsyncMock, patch
+
+        from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
+
+        mock_page = AsyncMock()
+        mock_page.keyboard.press = AsyncMock()
+        mock_page.wait_for_load_state = AsyncMock(side_effect=TimeoutError("networkidle timeout"))
+
+        with patch(
+            "sapwebguimcp.tools.abapgit_tools._handle_popup_error",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            # Should NOT raise — timeout is caught and logged
+            result = await _run_pull_and_check_errors(mock_page, "TEST_REPO")
+
+        assert result is None  # No popup error found, continues to _analyze_pull_result
