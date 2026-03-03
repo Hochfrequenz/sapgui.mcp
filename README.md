@@ -485,6 +485,7 @@ For repetitive tasks like "create 100 business partners":
 | `workflow_submit` | Submit workflow to dev team (creates GitHub issue)   |
 | `workflow_delete` | Delete a workflow                                    |
 
+Note: There is currently no bulk runner tool. The `workflow_list` tool returns, for each saved workflow, a prompt or instruction that you (or the calling agent) should follow manually, one item at a time.
 ## Configuration Reference
 
 | Variable           | Required                    | Description                                                  | Default                      |
