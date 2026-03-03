@@ -1,10 +1,8 @@
 """
-Standalone SAP tool implementations for use in MCP tools and sampling.
+Standalone SAP tool implementations for use in MCP tools.
 
 This module contains the core logic for SAP operations, extracted as
-standalone async functions. These functions can be:
-1. Used by MCP-registered tools (in sap_tools.py)
-2. Passed to ctx.sample() for server-side agent loops (in workflow_tools.py)
+standalone async functions used by MCP-registered tools (in sap_tools.py).
 
 The functions follow a consistent pattern:
 - Accept typed parameters
@@ -15,7 +13,7 @@ The functions follow a consistent pattern:
 import logging
 from functools import lru_cache
 from importlib import resources
-from typing import Any, Callable, Coroutine
+from typing import Any
 
 from sapwebguimcp.models import (
     FieldFillError,
@@ -37,7 +35,6 @@ __all__ = [
     "sap_read_status_bar_impl",
     "sap_get_screen_text_impl",
     "sap_get_screen_info_impl",
-    "get_sampling_tools",
 ]
 
 logger = logging.getLogger(__name__)
@@ -373,23 +370,3 @@ async def sap_get_screen_info_impl() -> ScreenInfo:
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("Getting screen info")
         return ScreenInfo.failure(f"Error getting screen info: {e}", title="", url="")
-
-
-def get_sampling_tools() -> list[Callable[..., Coroutine[Any, Any, Any]]]:
-    """
-    Get list of SAP tool functions for use with ctx.sample().
-
-    These functions can be passed to ctx.sample(tools=[...]) to enable
-    the LLM to call SAP operations during server-side agent loops.
-
-    Returns:
-        List of async functions suitable for sampling.
-    """
-    return [
-        sap_transaction_impl,
-        sap_keyboard_impl,
-        sap_fill_form_impl,
-        sap_read_status_bar_impl,
-        sap_get_screen_text_impl,
-        sap_get_screen_info_impl,
-    ]

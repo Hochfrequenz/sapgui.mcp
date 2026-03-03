@@ -2162,13 +2162,8 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
     2. What the navigation pattern looks like (list -> detail -> back)
     3. Context consumption of individual tool calls
 
-    This is the "before" scenario that workflow_run with ctx.sample()
-    is designed to optimize. Each iteration here adds to client context,
-    whereas workflow_run would process all items server-side.
-
-    Note: workflow_run with ctx.sample() cannot be tested here because
-    the test client doesn't support MCP Sampling. This manual test
-    documents the behavior that workflow_run would automate.
+    This test documents the manual iteration pattern for EMMACL cases,
+    showing navigation and context consumption per iteration.
     """
     await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
@@ -2273,9 +2268,6 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
     # - Each browser_wait call: ~150 tokens
     # For 15 cases: ~15 * (300 + 200 + 200 + 150 + 200 + 150) = ~18,000 tokens
     #
-    # With workflow_run using ctx.sample():
-    # - 1 workflow_run call: ~1,500 tokens (call + result with 15 summaries)
-    # Savings: ~16,500 tokens (91% reduction)
     print("\n=== Context Estimation (Manual vs Workflow) ===")
     print(f"Manual approach: ~{cases_to_process * 1200:,} tokens")
     print(f"Workflow approach: ~2,000 tokens (estimated)")

@@ -1,11 +1,9 @@
 """
 Workflow tools for repetitive SAP task automation.
 
-This module provides tools to learn, save, run, and share workflows
-for bulk SAP operations with minimal context consumption.
-
-Key feature: workflow_run uses server-side agent loops via ctx.sample()
-to execute workflows without filling the client's context.
+This module provides tools to save, list, and share reusable prompt workflows.
+Workflows store the prompts needed for common SAP tasks so they can be
+retrieved via workflow_list and executed manually by the user.
 """
 
 import logging
@@ -16,9 +14,7 @@ from fastmcp import Context, FastMCP
 from sapwebguimcp.models import (
     Workflow,
     WorkflowDeleteResult,
-    WorkflowError,
     WorkflowListResult,
-    WorkflowRunResult,
     WorkflowSaveInput,
     WorkflowSaveResult,
     WorkflowSubmitResult,
@@ -31,99 +27,10 @@ from sapwebguimcp.models.workflow_storage import (
     load_workflow,
     save_workflow,
 )
-from sapwebguimcp.tools.sap_tool_impl import get_sampling_tools
 
 __all__ = ["register_workflow_tools"]
 
 _logger = logging.getLogger(__name__)
-
-
-async def _execute_workflow_run(  # pylint: disable=too-many-locals
-    name: str,
-    items: list[dict[str, str]],
-    ctx: Context,
-) -> WorkflowRunResult:
-    """
-    Execute a workflow for multiple items using server-side agent loops.
-
-    This is the implementation extracted from workflow_run to reduce
-    statement count in register_workflow_tools.
-    """
-    _logger.warning(
-        "workflow_run called - using ctx.sample() for server-side agent loops. "
-        "WARNING (January 2026): This tool is UNTESTED because no MCP client currently "
-        "supports both sampling AND SAP authentication. "
-        "See docs/testing/workflow-sampling-copilot-setup.md for client compatibility."
-    )
-
-    workflow = load_workflow(name)
-    if not workflow:
-        return WorkflowRunResult.failure(
-            f"Workflow '{name}' not found. Use workflow_list to see available workflows.",
-            total=len(items),
-        )
-
-    # Fail-fast: test sampling support before processing any items
-    try:
-        await ctx.sample(messages="Test sampling support. Reply with 'OK'.", tools=[])
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        error_str = str(e)
-        if "sampling" in error_str.lower() or "not support" in error_str.lower():
-            return WorkflowRunResult.failure(
-                "Client does not support MCP Sampling. This tool requires a sampling-capable "
-                "client. As of January 2026, Claude Desktop/Code do NOT support sampling. "
-                "Fallback: Use the workflow prompt from workflow_list as guidance and "
-                "execute items manually with individual tool calls.",
-                total=len(items),
-            )
-        # Other errors during test - log but continue (might be transient)
-        _logger.warning("Sampling test failed with unexpected error", extra={"error": error_str})
-
-    results: list[str] = []
-    errors: list[WorkflowError] = []
-
-    for i, item in enumerate(items):
-        await ctx.report_progress(progress=i, total=len(items))
-
-        try:
-            result = await ctx.sample(
-                messages=f"{workflow.prompt}\n\nCurrent item ({i + 1}/{len(items)}):\n"
-                + "\n".join(f"  {k}: {v}" for k, v in item.items())
-                + "\n\nExecute the workflow for this item. Return a short confirmation like "
-                '"BP 12345: Max Mustermann created" on success, or describe the error if it fails.',
-                tools=get_sampling_tools(),
-            )
-            results.append(result.text or f"Item {i + 1} completed")
-            _logger.info(
-                "Workflow item completed", extra={"item": i + 1, "total": len(items), "result": results[-1][:100]}
-            )
-
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            _logger.warning(
-                "Workflow item failed", extra={"item": i + 1, "total": len(items), "error": str(e)}, exc_info=True
-            )
-            item_summary = ", ".join(f"{k}={v}" for k, v in list(item.items())[:3])
-            errors.append(
-                WorkflowError(
-                    input_summary=item_summary + (", ..." if len(item) > 3 else ""),
-                    error=str(e),
-                )
-            )
-
-    await ctx.report_progress(progress=len(items), total=len(items))
-
-    _logger.info(
-        "Workflow completed",
-        extra={"workflow": name, "succeeded": len(results), "total": len(items), "failed": len(errors)},
-    )
-
-    return WorkflowRunResult(
-        total=len(items),
-        succeeded=len(results),
-        failed=len(errors),
-        succeeded_items=results,
-        errors=errors,
-    )
 
 
 async def _create_workflow_issue(
@@ -225,7 +132,9 @@ def register_workflow_tools(mcp: FastMCP) -> None:
         description=(
             "Save a learned workflow for future use. "
             "Use after successfully completing 2-3 iterations manually "
-            "to capture the optimized prompt for bulk execution with workflow_run. "
+            "to capture the optimized prompt for later manual reuse. "
+            "Saved workflows are executed manually by selecting them from workflow_list; "
+            "there is no server-side bulk execution runner. "
             "Args: workflow_input = WorkflowSaveInput with name, description, prompt, "
             "applicable_when, not_applicable_when, and optional author."
         )
@@ -257,23 +166,6 @@ def register_workflow_tools(mcp: FastMCP) -> None:
         except Exception as e:  # pylint: disable=broad-exception-caught
             _logger.exception("Saving workflow", extra={"workflow": workflow_input.name})
             return WorkflowSaveResult.failure(f"Error saving workflow: {e}", name=workflow_input.name, path="")
-
-    @mcp.tool(
-        description=(
-            "Execute a workflow for repetitive SAP tasks using server-side agent loops. "
-            "Use when user requests bulk operations ('create 100...', 'for each entry...', 'repeat for all...'). "
-            "Preserves client context by running iterations server-side via ctx.sample(). "
-            "REQUIRES: MCP Sampling support - Claude Desktop/Code do NOT support sampling (Jan 2026). "
-            "FALLBACK: If sampling unavailable, use workflow_list to get prompt and execute manually. "
-            "WARNING: UNTESTED - no client currently supports both sampling AND SAP auth."
-        )
-    )
-    async def workflow_run(  # pylint: disable=missing-function-docstring
-        name: str,
-        items: list[dict[str, str]],
-        ctx: Context,
-    ) -> WorkflowRunResult:
-        return await _execute_workflow_run(name, items, ctx)
 
     @mcp.tool(
         description=(

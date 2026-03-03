@@ -91,33 +91,6 @@ The ~1.8x speed gain doesn't justify the stability risk.
 
 The MCP round-trip (~200-500ms) is the bottleneck, not DOM operations (~50ms each). Parallelizing the cheap part while the expensive part stays sequential yields minimal gains (~2%) with significant stability risk.
 
-### 3. MCP Sampling (workflow_run)
-
-**Proposal:** Use server-side agent loops via MCP Sampling:
-
-```python
-for item in items:
-    result = await ctx.sample(
-        messages=f"{workflow.prompt}\n\nCurrent item: {item}",
-        tools=get_sampling_tools(),
-    )
-```
-
-**Analysis:**
-
-| Factor           | Impact                                                             |
-| ---------------- | ------------------------------------------------------------------ |
-| Context savings  | Massive (~90% reduction)                                           |
-| Processing model | Sequential (not parallel)                                          |
-| Throughput       | Slower than parallel sub-agents                                    |
-| Client support   | **Not available** (Claude Desktop/Code don't support sampling yet) |
-
-**Verdict: Not currently viable.**
-
-MCP Sampling would solve context explosion but processes sequentially, making it slower than parallel sub-agents. Additionally, no MCP client currently supports both sampling AND SAP authentication.
-
-**Note:** The sampling tools (`get_sampling_tools()`) only operate on the primary session (`s1`) - they don't accept a `session_id` parameter. This is by design: sampling is for sequential execution on one session, while parallel sub-agents use session-specific MCP tool calls.
-
 ---
 
 ## Recommendations
@@ -130,10 +103,6 @@ Continue using **parallel sub-agents with separate sessions**. This is the optim
 2. Sessions are fully isolated at the DOM level
 3. Agents can react to errors and adapt in real-time
 4. Linear scaling with agent count
-
-### For Context Optimization
-
-If context consumption is the bottleneck (not throughput), wait for MCP Sampling support in Claude Code, then use `workflow_run`.
 
 ### What NOT To Do
 

@@ -54,29 +54,6 @@ class Workflow(BaseModel):
         return "\n".join(lines)
 
 
-class WorkflowError(BaseModel):
-    """Details about a failed workflow item."""
-
-    input_summary: str = Field(description="Identifying info of the failed item, e.g. 'Max Mustermann, Berlin'")
-    error: str = Field(description="What went wrong, e.g. 'Pflichtfeld PLZ leer'")
-
-
-class WorkflowRunResult(ToolResult):
-    """Result from workflow_run tool."""
-
-    total: int = Field(default=0, description="Total items to process, e.g. 100")
-    succeeded: int = Field(default=0, description="Successfully completed, e.g. 95")
-    failed: int = Field(default=0, description="Failed items, e.g. 5")
-    succeeded_items: list[str] = Field(
-        default_factory=list,
-        description="Short confirmations, e.g. ['BP 12345: Max Mustermann']",
-    )
-    errors: list[WorkflowError] = Field(
-        default_factory=list,
-        description="Details about failed items",
-    )
-
-
 class WorkflowListResult(ToolResult):
     """Result from workflow_list tool."""
 
