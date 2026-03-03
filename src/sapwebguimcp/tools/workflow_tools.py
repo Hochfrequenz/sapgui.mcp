@@ -134,7 +134,9 @@ def register_workflow_tools(mcp: FastMCP) -> None:
         description=(
             "Save a learned workflow for future use. "
             "Use after successfully completing 2-3 iterations manually "
-            "to capture the optimized prompt for future bulk execution. "
+            "to capture the optimized prompt for later manual reuse. "
+            "Saved workflows are executed manually by selecting them from workflow_list; "
+            "there is no server-side bulk execution runner. "
             "Args: workflow_input = WorkflowSaveInput with name, description, prompt, "
             "applicable_when, not_applicable_when, and optional author."
         )
