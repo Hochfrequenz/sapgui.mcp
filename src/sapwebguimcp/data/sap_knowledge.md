@@ -90,6 +90,24 @@ If you don't have a transaction code for abapGit yet:
 2. **SE38** - Search for programs matching `*abap*git*` (e.g., `ZABAPGIT_STANDALONE`)
 3. **Create transaction** - If needed, use SE93 to create a transaction code pointing to the abapGit program
 
+### ⚠️ abapGit File Naming: Lowercase is Required
+
+**All filenames in an abapGit repository MUST be lowercase.** abapGit serializes and expects filenames in lowercase. While ABAP object names are uppercase internally (e.g., `ZCL_MY_CLASS`), the corresponding files must be lowercase (e.g., `zcl_my_class.clas.abap`, `zcl_my_class.clas.xml`).
+
+**Common mistake:** Creating files with uppercase names like `ZCL_MY_CLASS.clas.abap` — abapGit will fail with:
+
+```
+File not found: zcl_my_class.clas.xml
+Import of object ZCL_MY_CLASS failed
+```
+
+**Fix:** Rename all files to lowercase. Use `git mv` to rename (not just the filesystem) so Git tracks the change:
+
+```bash
+git mv src/ZCL_MY_CLASS.clas.abap src/zcl_my_class.clas.abap
+git mv src/ZCL_MY_CLASS.clas.xml src/zcl_my_class.clas.xml
+```
+
 ### Development Workflow
 
 1. **Write code in Claude Code** - Let Claude Code generate/modify your ABAP code locally
@@ -97,6 +115,11 @@ If you don't have a transaction code for abapGit yet:
 3. **Pull in abapGit** - In SAP, open abapGit and pull the latest changes from the repository
 4. **Test with MCP** - Use this MCP server to navigate to transactions and test your code
 5. **Iterate** - Fix issues in Claude Code, push, pull, test again
+
+### Known Issue: `sap_abapgit_pull` Returns "Pull Status Unknown"
+
+The `sap_abapgit_pull` tool may return "Pull status unknown" on the first call because the SAP status bar is empty after navigating to the report.
+**Workaround:** Simply call `sap_abapgit_pull` a second time, or press F8 (Ausführen/Execute) after the first call to actually trigger the pull execution.
 
 ### Performance Tip: Use a Separate SAP Window (Modus)
 
