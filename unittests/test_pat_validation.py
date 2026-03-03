@@ -159,3 +159,36 @@ class TestAnalyzePullResultFallback:
         assert result.success is False
         assert result.error is not None
         assert "unknown" in result.error.lower() or "empty" in result.error.lower()
+
+
+class TestRunPullAndCheckErrors:
+    """Tests for _run_pull_and_check_errors networkidle wait behavior."""
+
+    @pytest.mark.anyio
+    async def test_uses_networkidle_instead_of_hardcoded_waits(self) -> None:
+        """After F8, should wait for networkidle instead of hardcoded timeouts."""
+        from unittest.mock import AsyncMock, call, patch
+
+        from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
+
+        mock_page = AsyncMock()
+        mock_page.keyboard.press = AsyncMock()
+        mock_page.wait_for_load_state = AsyncMock()
+        mock_page.wait_for_timeout = AsyncMock()
+
+        with patch(
+            "sapwebguimcp.tools.abapgit_tools._handle_popup_error",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            await _run_pull_and_check_errors(mock_page, "TEST_REPO")
+
+        # Should press F8 to execute the report
+        mock_page.keyboard.press.assert_any_call("F8")
+
+        # Should wait for networkidle (not hardcoded timeouts)
+        mock_page.wait_for_load_state.assert_called_once_with("networkidle", timeout=120_000)
+
+        # Should NOT press Enter (stale, risks re-executing report)
+        enter_calls = [c for c in mock_page.keyboard.press.call_args_list if c == call("Enter")]
+        assert enter_calls == [], f"Expected no Enter press, got {enter_calls}"

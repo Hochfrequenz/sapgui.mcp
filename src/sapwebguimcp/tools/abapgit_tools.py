@@ -388,17 +388,13 @@ async def _execute_pull_transaction(page: Page, params: PullParams, repo: str) -
 
 
 async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResult | None:
-    """Execute F8, confirm dialog, and check for popup errors. Returns error if found."""
-    # Execute report with F8 and check for popup errors
+    """Execute F8 and wait for SAP to finish processing. Returns error if found."""
     await page.keyboard.press("F8")
-    await page.wait_for_timeout(3000)
-    popup_result = await _handle_popup_error(page, repo)
-    if popup_result:
-        return popup_result
+    try:
+        await page.wait_for_load_state("networkidle", timeout=120_000)
+    except TimeoutError:
+        logger.warning("networkidle timeout after F8 — pull may still be running")
 
-    # Confirm dialog and check again
-    await page.keyboard.press("Enter")
-    await page.wait_for_timeout(5000)
     return await _handle_popup_error(page, repo)
 
 
