@@ -1,11 +1,9 @@
 """
 Workflow tools for repetitive SAP task automation.
 
-This module provides tools to learn, save, and share workflows
-for bulk SAP operations with minimal context consumption.
-
-Workflows can be learned, saved, shared, and executed manually using
-the prompts from workflow_list.
+This module provides tools to save, list, and share reusable prompt workflows.
+Workflows store the prompts needed for common SAP tasks so they can be
+retrieved via workflow_list and executed manually by the user.
 """
 
 import logging
