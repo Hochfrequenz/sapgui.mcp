@@ -66,9 +66,7 @@ async def validate_github_pat(pat: str) -> tuple[bool, str]:
         return False, f"GitHub API unreachable: {exc}"
 
 
-# =============================================================================
 # Helper Data Structures
-# =============================================================================
 
 
 @dataclass
@@ -82,9 +80,7 @@ class PullParams:
     tcode_with_params: str
 
 
-# =============================================================================
 # Error Detection Helpers
-# =============================================================================
 
 ERROR_KEYWORDS = [
     "not found",
@@ -168,9 +164,7 @@ async def _check_screen_for_errors(page: Page) -> str | None:
     return None
 
 
-# =============================================================================
 # Pull Parameter Validation
-# =============================================================================
 
 
 def _validate_param(value: str, param_name: str, pattern: str, description: str) -> str | None:
@@ -248,9 +242,7 @@ def _validate_and_prepare_params(
     )
 
 
-# =============================================================================
 # OK-Code Field Handling
-# =============================================================================
 
 
 async def _get_okcode_field(page: Page, repo: str) -> Locator | AbapGitActionResult:
@@ -283,9 +275,7 @@ async def _get_okcode_field(page: Page, repo: str) -> Locator | AbapGitActionRes
     return okcode_field_retry
 
 
-# =============================================================================
 # Pull Result Analysis
-# =============================================================================
 
 
 async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
@@ -339,9 +329,7 @@ async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
     )
 
 
-# =============================================================================
 # Main Pull Implementation
-# =============================================================================
 
 
 async def _handle_popup_error(page: Page, repo: str) -> AbapGitActionResult | None:
@@ -404,6 +392,18 @@ async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResu
         await page.wait_for_load_state("networkidle", timeout=120_000)
     except PlaywrightTimeout:
         logger.warning("networkidle timeout after F8 -- pull may still be running")
+
+    # Handle "Inaktive Objekte" / "Inactive Objects" popup that appears after
+    # deserialization. SAP lists objects to activate; Enter confirms the default.
+    snapshot = await page.locator("body").aria_snapshot()
+    if "Inaktive Objekte" in snapshot or "Inactive Objects" in snapshot:
+        logger.info("Detected inactive objects popup, confirming with Enter")
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(2000)
+        try:
+            await page.wait_for_load_state("networkidle", timeout=30_000)
+        except PlaywrightTimeout:
+            pass
 
     return await _handle_popup_error(page, repo)
 
