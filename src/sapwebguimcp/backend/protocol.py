@@ -7,30 +7,34 @@ satisfy it via structural typing — no inheritance required.
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from pydantic import Field
 
+# Import from specific submodules to avoid circular import through models/__init__.py.
+# Only ToolResult needed at runtime (CheckActivateResult subclass).
+# All other model types are used only in annotations (resolved as strings via PEP 563).
 from sapwebguimcp.backend.types import AriaSnapshot
-from sapwebguimcp.models import (
-    ButtonInfo,
-    ClosePopupResult,
-    DropdownFillResult,
-    FieldInfo,
-    FillFormResult,
-    FormFieldsResult,
-    KeyboardResult,
-    LoginResult,
-    PopupInfo,
-    ScreenInfo,
-    ScreenText,
-    SessionStatus,
-    StatusBarInfo,
-    TableCellClickResult,
-    TableData,
-    ToolResult,
-    TransactionResult,
-)
+from sapwebguimcp.models.base import PopupInfo, ToolResult
+
+if TYPE_CHECKING:
+    from sapwebguimcp.models.alv_models import TableCellClickResult
+    from sapwebguimcp.models.sap_results import (
+        ButtonInfo,
+        ClosePopupResult,
+        DropdownFillResult,
+        FieldInfo,
+        FillFormResult,
+        FormFieldsResult,
+        KeyboardResult,
+        LoginResult,
+        ScreenInfo,
+        ScreenText,
+        SessionStatus,
+        StatusBarInfo,
+        TableData,
+        TransactionResult,
+    )
 
 
 class CheckActivateResult(ToolResult):
