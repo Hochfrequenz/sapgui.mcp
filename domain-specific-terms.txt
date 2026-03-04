@@ -37,6 +37,7 @@ variante
 abstrakt
 paket
 programm
+methode
 methoden
 objekt
 definit
