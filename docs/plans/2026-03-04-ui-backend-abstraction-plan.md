@@ -19,7 +19,14 @@
 
 ---
 
-## Phase 1: Foundation (Preparatory — can merge to main independently)
+## Workflow
+
+Phase 1 (Tasks 1-3) is pushed to remote so the developer can merge to main via PRs.
+Phase 2+ starts on a feature branch based on main after Phase 1 is merged.
+
+---
+
+## Phase 1: Foundation (Preparatory — push to remote, developer merges to main)
 
 These are small, non-breaking PRs that reduce the size of the main migration.
 
@@ -191,33 +198,41 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
+from pydantic import Field
+
 from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.models import (
-    ClickResult,
+    ButtonInfo,
+    ClosePopupResult,
     DropdownFillResult,
     FieldInfo,
-    ButtonInfo,
     FillFormResult,
+    FormFieldsResult,
     KeyboardResult,
     LoginResult,
     PopupInfo,
     ScreenInfo,
+    ScreenText,
+    SessionStatus,
     StatusBarInfo,
     TableCellClickResult,
     TableData,
+    ToolResult,
     TransactionResult,
 )
 
 
-class CheckActivateResult:
+class CheckActivateResult(ToolResult):
     """Result of a check-and-activate editor operation."""
 
-    def __init__(
-        self, success: bool, messages: list[str], activated: bool
-    ) -> None:
-        self.success = success
-        self.messages = messages
-        self.activated = activated
+    messages: list[str] = Field(
+        default_factory=list,
+        description="Check and activate status messages",
+    )
+    activated: bool = Field(
+        default=False,
+        description="Whether the object was successfully activated",
+    )
 
 
 @runtime_checkable
@@ -225,12 +240,17 @@ class SapUiPrimitives(Protocol):
     """Low-level UI interaction — fill, click, type, press."""
 
     async def fill_field(self, label: str, value: str) -> None: ...
+    """Raises ValueError if the field cannot be found or filled."""
 
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult: ...
 
-    async def click_button(self, label: str) -> ClickResult: ...
+    async def fill_grid_cell(
+        self, row: int, column: int | str, value: str
+    ) -> None: ...
 
-    async def click_tab(self, label: str) -> ClickResult: ...
+    async def click_button(self, label: str) -> None: ...
+
+    async def click_tab(self, label: str) -> None: ...
 
     async def press_key(self, key: str) -> KeyboardResult: ...
 
@@ -249,7 +269,13 @@ class SapUiInspection(Protocol):
 
     async def get_screen_info(self) -> ScreenInfo: ...
 
+    async def get_screen_text(
+        self, include_dropdown_options: bool = False
+    ) -> ScreenText: ...
+
     async def discover_fields(self) -> list[FieldInfo]: ...
+
+    async def get_form_fields(self) -> FormFieldsResult: ...
 
     async def discover_buttons(self) -> list[ButtonInfo]: ...
 
@@ -281,6 +307,8 @@ class SapNavigation(Protocol):
 
     async def enter_transaction(self, tcode: str) -> TransactionResult: ...
 
+    async def get_session_status(self) -> SessionStatus: ...
+
     async def wait_for_ready(self, timeout_ms: int = 15000) -> None: ...
 
     async def bring_to_front(self) -> None: ...
@@ -290,13 +318,9 @@ class SapNavigation(Protocol):
 class SapEditor(Protocol):
     """Source code editor operations (SE38/SE24/SE37 editors)."""
 
-    async def read_editor_source(
-        self, editor_selector: str = "textarea[id*='textedit']"
-    ) -> str | None: ...
+    async def read_editor_source(self) -> str | None: ...
 
-    async def replace_editor_source(
-        self, code: str, editor_selector: str = "textarea[id*='textedit']"
-    ) -> bool: ...
+    async def replace_editor_source(self, code: str) -> bool: ...
 
     async def check_and_activate(self) -> CheckActivateResult: ...
 
@@ -308,8 +332,10 @@ class SapPopup(Protocol):
     async def check_popup(self) -> PopupInfo | None: ...
 
     async def dismiss_popup(
-        self, button_label: str | None = None
-    ) -> None: ...
+        self,
+        button_label: str | None = None,
+        use_close_button: bool = False,
+    ) -> ClosePopupResult: ...
 
 
 @runtime_checkable
@@ -353,6 +379,9 @@ __all__ = [
     "SapUiPrimitives",
 ]
 ```
+
+> **Note:** After Phase 1 is pushed, the developer merges Tasks 1-3 to main via PRs.
+> Phase 2+ begins on a feature branch based on the updated main.
 
 **Step 5: Run test to verify it passes**
 
