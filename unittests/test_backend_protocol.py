@@ -50,3 +50,10 @@ def test_check_activate_result_with_values() -> None:
     )
     assert result.activated is True
     assert len(result.messages) == 2
+
+
+def test_webgui_backend_implements_protocol() -> None:
+    """WebGuiBackend must satisfy the SapUiBackend protocol."""
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
+    assert issubclass(WebGuiBackend, SapUiBackend)
