@@ -7,24 +7,22 @@ returning strongly-typed Pydantic models with parameter and exception details.
 
 import json
 import logging
-import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.models import (
     SE37Entry,
     SE37Error,
     SE37FileSummary,
     SE37Result,
-    get_browser_manager,
 )
 from sapwebguimcp.parsers.se37_parser import SE37TabSnapshots, parse_se37_snapshot
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
 
 logger = logging.getLogger(__name__)
 
@@ -39,83 +37,46 @@ MAX_INLINE_OBJECTS = 5
 # =============================================================================
 
 
-async def _find_fm_field(page: Any) -> Any:
-    """Find the function module input field in SE37 using multiple strategies."""
-    # Build list of locator strategies to try in order
-    strategies = [
-        # Strategy 1: Try by role with exact name matches
-        *[
-            page.get_by_role("textbox", name=name)
-            for name in ["Funktionsbaustein", "Function module", "Function Module"]
-        ],
-        # Strategy 2: Try regex pattern for function module field
-        page.get_by_role("textbox", name=re.compile(r"Funktionsbaustein|Function\s+[Mm]odule", re.I)),
-        # Strategy 3: Try by input title attribute (common in SAP Web GUI)
-        page.locator("input[title*='Funktionsbaustein'], input[title*='Function module']").first,
-        # Strategy 4: Try by placeholder or aria-label
-        page.locator("[aria-label*='Funktionsbaustein'], [aria-label*='Function']").first,
-        # Strategy 5: First visible input field on the page (last resort)
-        page.locator("input:visible").first,
-    ]
-
-    for field in strategies:
-        if await field.count() > 0:
-            return field
-
-    return None
-
-
-async def _fill_fm_field(page: Any, fm_name: str) -> SE37Error | None:
+async def _fill_fm_field(backend: SapUiBackend, fm_name: str) -> SE37Error | None:
     """Fill the function module name field in SE37. Returns error or None."""
     now = datetime.now(UTC)
 
-    fm_field = await _find_fm_field(page)
+    # Try multiple label variants (DE and EN)
+    labels = [
+        "Funktionsbaustein",
+        "Function module",
+        "Function Module",
+    ]
 
-    if fm_field is None or await fm_field.count() == 0:
-        return SE37Error(
-            function_module=fm_name,
-            error="Could not find function module field in SE37",
-            retrieved_at=now,
-        )
+    for label in labels:
+        try:
+            await backend.fill_field(label, fm_name.upper())
+            return None
+        except ValueError:  # pylint: disable=broad-exception-caught
+            continue
 
-    # Clear the field first by selecting all and deleting
-    await fm_field.click(click_count=3)
-    await page.wait_for_timeout(100)
-    await page.keyboard.press("Delete")
-    await page.wait_for_timeout(50)
-
-    # Type the function module name
-    await page.keyboard.type(fm_name.upper())
-    await page.wait_for_timeout(100)
-    return None
-
-
-async def _click_display_button(page: Any) -> None:
-    """Click the Display button (F7)."""
-    await page.wait_for_timeout(300)
-    await page.keyboard.press("F7")
-    await page.wait_for_timeout(1000)  # Wait longer for SAP to process
-    await page.wait_for_load_state("networkidle")
-    await page.wait_for_timeout(500)  # Additional wait for page state to settle
+    return SE37Error(
+        function_module=fm_name,
+        error="Could not find function module field in SE37",
+        retrieved_at=now,
+    )
 
 
-async def _check_fm_not_found(page: Any, fm_name: str) -> SE37Error | None:
-    """Check if function module was not found by verifying page state. Returns error or None."""
+async def _check_fm_not_found(backend: SapUiBackend, fm_name: str) -> SE37Error | None:
+    """Check if function module was not found by examining the snapshot. Returns error or None."""
     now = datetime.now(UTC)
 
-    # Primary check: Are we still on the initial screen?
-    # If we successfully displayed a function module, the page title changes
-    page_title = await page.title()
-    is_initial_screen = "Einstieg" in page_title or "Initial" in page_title
+    snapshot = await backend.get_snapshot()
+    snapshot_lower = str(snapshot).lower()
+
+    # Check if we're still on the initial screen
+    is_initial_screen = "einstieg" in snapshot_lower or "initial screen" in snapshot_lower
 
     if not is_initial_screen:
         # We're on a display screen, so the function module was found
         return None
 
-    # We're still on initial screen - check status bar for specific error message
-    status_bar = page.locator("#sapStatusBarAll, [id*='STATUSBAR']").first
-    status_text = await status_bar.text_content() if await status_bar.count() > 0 else ""
-
+    # Check for "not found" error messages
     not_found_msgs = {
         "ist noch nicht vorhanden",
         "does not exist",
@@ -125,13 +86,11 @@ async def _check_fm_not_found(page: Any, fm_name: str) -> SE37Error | None:
         "existiert nicht",
     }
 
-    if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
+    if any(msg in snapshot_lower for msg in not_found_msgs):
         error_msg = f"Function module '{fm_name}' not found"
     else:
-        # Still on initial screen but no clear error
         error_msg = f"Function module '{fm_name}' not found (still on initial screen)"
 
-    # Don't press F3 here - the next /nSE37 will handle navigation
     return SE37Error(
         function_module=fm_name,
         error=error_msg,
@@ -139,21 +98,7 @@ async def _check_fm_not_found(page: Any, fm_name: str) -> SE37Error | None:
     )
 
 
-async def _click_tab(page: Any, tab_name: str) -> bool:
-    """Click a tab by name. Returns True if successful."""
-    try:
-        tab = page.locator(f"[role='tab']:has-text('{tab_name}')")
-        if await tab.count() > 0:
-            await tab.click()
-            await page.wait_for_timeout(300)
-            await page.wait_for_load_state("networkidle")
-            return True
-    except Exception:  # pylint: disable=broad-exception-caught
-        logger.debug("Failed to click tab", extra={"tab": tab_name})
-    return False
-
-
-async def _capture_tab_snapshot(page: Any, tab_name: str) -> str | None:
+async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | None:
     """Click a tab and capture its snapshot. Returns snapshot or None."""
     # Try German and English tab names
     tab_names = {
@@ -166,21 +111,22 @@ async def _capture_tab_snapshot(page: Any, tab_name: str) -> str | None:
 
     names_to_try = tab_names.get(tab_name, [tab_name])
     for name in names_to_try:
-        if await _click_tab(page, name):
-            await page.wait_for_timeout(200)
-            snapshot: str = await page.locator("body").aria_snapshot()
-            return snapshot
+        try:
+            await backend.click_tab(name)
+            snapshot = await backend.get_snapshot()
+            return str(snapshot)
+        except ValueError:
+            continue
 
     return None
 
 
-async def _lookup_single_fm(page: Any, fm_name: str) -> SE37Entry | SE37Error:
+async def _lookup_single_fm(backend: SapUiBackend, fm_name: str) -> SE37Entry | SE37Error:
     """Look up a single function module in SE37."""
     now = datetime.now(UTC)
 
     # Navigate to SE37
-    await page.wait_for_timeout(300)
-    tx_result = await sap_transaction_impl("SE37")
+    tx_result = await backend.enter_transaction("SE37")
     if not tx_result.success:
         return SE37Error(
             function_module=fm_name,
@@ -189,42 +135,32 @@ async def _lookup_single_fm(page: Any, fm_name: str) -> SE37Entry | SE37Error:
         )
 
     # Wait for SE37 screen to be ready
-    await page.wait_for_timeout(500)
-    await page.wait_for_load_state("networkidle")
-
-    # Try to find the function module field with multiple strategies
-    fm_field = await _find_fm_field(page)
-    if fm_field is None or await fm_field.count() == 0:
-        page_title = await page.title()
-        return SE37Error(
-            function_module=fm_name,
-            error=f"SE37 screen did not load or field not found (page title: '{page_title}')",
-            retrieved_at=now,
-        )
+    await backend.wait_for_ready()
 
     # Fill function module name
-    error = await _fill_fm_field(page, fm_name)
+    error = await _fill_fm_field(backend, fm_name)
     if error:
         return error
 
-    # Click display
-    await _click_display_button(page)
+    # Click display (F7)
+    await backend.press_key("F7")
+    await backend.wait_for_ready()
 
     # Check for not found error
-    error = await _check_fm_not_found(page, fm_name)
+    error = await _check_fm_not_found(backend, fm_name)
     if error:
         return error
 
     # Get main snapshot first
-    main_snapshot = await page.locator("body").aria_snapshot()
-    logger.debug("Got main snapshot", extra={"object": fm_name, "length": len(main_snapshot)})
+    main_snapshot = await backend.get_snapshot()
+    logger.debug("Got main snapshot", extra={"object": fm_name, "length": len(str(main_snapshot))})
 
     # Capture each tab
-    import_raw = await _capture_tab_snapshot(page, "import")
-    export_raw = await _capture_tab_snapshot(page, "export")
-    changing_raw = await _capture_tab_snapshot(page, "changing")
-    tables_raw = await _capture_tab_snapshot(page, "tables")
-    exceptions_raw = await _capture_tab_snapshot(page, "exceptions")
+    import_raw = await _capture_tab_snapshot(backend, "import")
+    export_raw = await _capture_tab_snapshot(backend, "export")
+    changing_raw = await _capture_tab_snapshot(backend, "changing")
+    tables_raw = await _capture_tab_snapshot(backend, "tables")
+    exceptions_raw = await _capture_tab_snapshot(backend, "exceptions")
     tab_snapshots = SE37TabSnapshots(
         import_tab=AriaSnapshot(import_raw) if import_raw is not None else None,
         export_tab=AriaSnapshot(export_raw) if export_raw is not None else None,
@@ -235,7 +171,7 @@ async def _lookup_single_fm(page: Any, fm_name: str) -> SE37Entry | SE37Error:
 
     # Parse all snapshots
     return parse_se37_snapshot(
-        snapshot=AriaSnapshot(main_snapshot),
+        snapshot=AriaSnapshot(str(main_snapshot)),
         fm_name=fm_name,
         tab_snapshots=tab_snapshots,
     )
@@ -289,10 +225,8 @@ def register_se37_tools(mcp: FastMCP) -> None:
         if not fm_list:
             return SE37Result.failure("No function modules provided")
 
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_se37_lookup")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_se37_lookup")
         except ValueError as e:
             return SE37Result.failure(f"Session error: {e}")
 
@@ -301,7 +235,7 @@ def register_se37_tools(mcp: FastMCP) -> None:
 
         for fm_name in fm_list:
             try:
-                result = await _lookup_single_fm(page, fm_name)
+                result = await _lookup_single_fm(backend, fm_name)
                 if isinstance(result, SE37Entry):
                     entries.append(result)
                 else:

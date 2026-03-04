@@ -91,10 +91,14 @@ async def scrape_tstc(
         - transactions: list of dicts with TCODE, PGMNA, DESSION
     """
     # Import here to avoid circular imports
+    from sapwebguimcp.backend.manager import get_backend
     from sapwebguimcp.tools.se16_tools import _execute_se16_query
+
+    backend = await get_backend()
 
     # Query TSTC table
     result = await _execute_se16_query(
+        backend,
         table="TSTC",
         filters=None,
         max_hits=max_hits,
@@ -260,7 +264,7 @@ async def enrich_with_se93(
         Dict with enrichment statistics
     """
     # Import here to avoid circular imports
-    from sapwebguimcp.models import get_browser_manager
+    from sapwebguimcp.backend.manager import get_backend
     from sapwebguimcp.tools.se93_tools import _lookup_single_tcode
 
     # Load TSTC data
@@ -312,9 +316,8 @@ async def enrich_with_se93(
     failed = 0
     errors: list[dict[str, str]] = []
 
-    # Get browser page
-    browser_manager = await get_browser_manager()
-    page = await browser_manager.get_current_page()
+    # Get backend
+    backend = await get_backend()
 
     # Process in batches
     for batch_start in range(0, total, batch_size):
@@ -330,7 +333,7 @@ async def enrich_with_se93(
 
             # Call SE93 lookup
             try:
-                result = await _lookup_single_tcode(page, txn.tcode)
+                result = await _lookup_single_tcode(backend, txn.tcode)
 
                 if isinstance(result, SE93Entry):
                     # Apply enrichment

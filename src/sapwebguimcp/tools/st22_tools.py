@@ -16,13 +16,13 @@ import json
 import logging
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-from playwright.async_api import Page
 
+from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.types import AriaSnapshot
-from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.st22_models import (
     ST22DumpDetailResult,
@@ -34,8 +34,10 @@ from sapwebguimcp.parsers.st22_parser import (
     parse_st22_dump_list,
     parse_st22_initial_screen,
 )
-from sapwebguimcp.tools.sap_page_helpers import navigate_transaction
 from sapwebguimcp.utils import SapLanguage, format_sap_date
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -47,38 +49,32 @@ __all__ = ["register_st22_tools"]
 # =============================================================================
 
 
-async def _navigate_to_st22(page: Page) -> str | None:
+async def _navigate_to_st22(backend: "SapUiBackend") -> str | None:
     """Navigate to ST22. Returns error message or None on success."""
-    tx_error = await navigate_transaction(page, "ST22")
-    if tx_error:
-        return f"Failed to navigate to ST22: {tx_error}"
+    tx_result = await backend.enter_transaction("ST22")
+    if not tx_result.success:
+        return f"Failed to navigate to ST22: {tx_result.error}"
 
-    await page.wait_for_timeout(500)
-    await page.wait_for_load_state("networkidle")
-    await page.wait_for_timeout(500)
+    await backend.wait_for_ready()
     return None
 
 
-async def _clear_user_field(page: Page) -> None:
+async def _clear_user_field(backend: "SapUiBackend") -> None:
     """Clear the Benutzer/User field to search for all users.
 
     ST22 pre-fills the user field with the current user.
-    We need to clear it using Playwright's fill() which works directly.
+    We need to clear it using the backend's fill_field.
     """
-    # Try DE label first, then EN
     for label in ["Benutzer", "User"]:
-        field = page.get_by_role("textbox", name=label)
-        if await field.count() > 0:
-            try:
-                await field.fill("")
-                await page.wait_for_timeout(100)
-                return
-            except Exception:  # pylint: disable=broad-exception-caught
-                logger.debug("Could not clear user field with label=%r", label)
+        try:
+            await backend.fill_field(label, "")
+            return
+        except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+            logger.debug("Could not clear user field with label=%r", label)
     logger.debug("User field not found for clearing")
 
 
-async def _fill_date_field(page: Page, target_date: str, language: SapLanguage) -> str | None:
+async def _fill_date_field(backend: "SapUiBackend", target_date: str, language: SapLanguage) -> str | None:
     """Fill the date field with a formatted date. Returns error or None."""
     try:
         formatted = format_sap_date(target_date, language)
@@ -87,19 +83,16 @@ async def _fill_date_field(page: Page, target_date: str, language: SapLanguage) 
 
     # Find and fill the Datum/Date field
     for label in ["Datum", "Date"]:
-        field = page.get_by_role("textbox", name=label)
-        if await field.count() > 0:
-            try:
-                await field.fill(formatted)
-                await page.wait_for_timeout(100)
-                return None
-            except Exception:  # pylint: disable=broad-exception-caught
-                logger.debug("Could not fill date field with label=%r", label)
+        try:
+            await backend.fill_field(label, formatted)
+            return None
+        except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+            logger.debug("Could not fill date field with label=%r", label)
 
     return "Could not find date field"
 
 
-async def _try_quick_button(page: Page, target_date: str | None) -> bool:
+async def _try_quick_button(backend: "SapUiBackend", target_date: str | None) -> bool:
     """Try to use Heute/Today or Gestern/Yesterday quick buttons.
 
     These buttons navigate directly to the dump list for all users,
@@ -118,21 +111,17 @@ async def _try_quick_button(page: Page, target_date: str | None) -> bool:
         return False
 
     for label in labels:
-        btn = page.get_by_role("button", name=label, exact=True)
-        if await btn.count() > 0:
-            try:
-                await btn.click()
-                await page.wait_for_timeout(1500)
-                await page.wait_for_load_state("networkidle")
-                await page.wait_for_timeout(500)
-                return True
-            except Exception:  # pylint: disable=broad-exception-caught
-                logger.debug("Quick button click failed for label=%r", label)
+        try:
+            await backend.click_button(label)
+            await backend.wait_for_ready()
+            return True
+        except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+            logger.debug("Quick button click failed for label=%r", label)
 
     return False
 
 
-async def _execute_search(page: Page, target_date: str | None) -> str | None:
+async def _execute_search(backend: "SapUiBackend", target_date: str | None) -> str | None:
     """Execute the ST22 search. Returns error or None.
 
     Strategy:
@@ -143,69 +132,46 @@ async def _execute_search(page: Page, target_date: str | None) -> str | None:
     language: SapLanguage = settings.sap_language
 
     # Strategy 1: Quick buttons for today/yesterday
-    if await _try_quick_button(page, target_date):
+    if await _try_quick_button(backend, target_date):
         return None
 
     # Strategy 2: Manual search with date field + F8
     # Clear user field to search for all users
-    await _clear_user_field(page)
+    await _clear_user_field(backend)
 
     # Fill date if specified
     if target_date:
-        error = await _fill_date_field(page, target_date, language)
+        error = await _fill_date_field(backend, target_date, language)
         if error:
             return error
 
     # Press F8 to execute
-    await page.keyboard.press("F8")
-    await page.wait_for_timeout(1500)
-    await page.wait_for_load_state("networkidle")
-    await page.wait_for_timeout(500)
+    await backend.press_key("F8")
+    await backend.wait_for_ready()
 
     return None
 
 
-async def _select_dump_by_index(page: Page, dump_index: int, dump_count: int) -> str | None:
-    """Select a dump from the list by double-clicking the row.
+async def _select_dump_by_index(backend: "SapUiBackend", dump_index: int, dump_count: int) -> str | None:
+    """Select a dump from the list by double-clicking the row via click_table_cell.
 
     Returns error message or None on success.
     """
     if dump_index < 0 or dump_index >= dump_count:
         return f"dump_index {dump_index} out of range (0..{dump_count - 1})"
 
-    # Find data rows in the grid (skip header rows)
-    rows = page.locator("[role='row']")
-    row_count = await rows.count()
-
-    # Skip header row(s) - find the first data row by looking for gridcell children
-    data_row_idx = 0
-    for i in range(row_count):
-        row = rows.nth(i)
-        gridcells = row.locator("[role='gridcell']")
-        if await gridcells.count() > 0:
-            if data_row_idx == dump_index:
-                await row.dblclick()
-                await page.wait_for_timeout(2000)
-                await page.wait_for_load_state("networkidle")
-                await page.wait_for_timeout(500)
-                return None
-            data_row_idx += 1
-
-    # If role='row' approach didn't work, try a simpler approach
-    # Skip first row (header), click the target row
-    target_row = dump_index + 1  # +1 for header
-    if target_row < row_count:
-        row = rows.nth(target_row)
-        await row.dblclick()
-        await page.wait_for_timeout(2000)
-        await page.wait_for_load_state("networkidle")
-        await page.wait_for_timeout(500)
+    try:
+        # Use click_table_cell with dblclick action, row is 1-based in the backend
+        result = await backend.click_table_cell(row=dump_index + 1, column=0, action="dblclick")
+        if not result.success:
+            return f"Could not select dump at index {dump_index}: {result.error}"
+        await backend.wait_for_ready()
         return None
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        return f"Could not find row at index {dump_index}: {e}"
 
-    return f"Could not find row at index {dump_index} (total visible rows: {row_count})"
 
-
-async def _capture_full_detail(page: Page) -> str:
+async def _capture_full_detail(backend: "SapUiBackend") -> str:
     """Capture the full dump detail by scrolling and collecting snapshots.
 
     ST22 detail is a long scrollable text. Scroll down and concatenate
@@ -214,19 +180,19 @@ async def _capture_full_detail(page: Page) -> str:
     snapshots: list[str] = []
 
     # Capture initial view
-    snapshot = await page.locator("body").aria_snapshot()
-    snapshots.append(snapshot)
+    snapshot = await backend.get_snapshot()
+    snapshots.append(str(snapshot))
 
     # Scroll down to capture more content (up to 10 pages)
     for _ in range(10):
-        await page.keyboard.press("PageDown")
-        await page.wait_for_timeout(300)
-        new_snapshot = await page.locator("body").aria_snapshot()
+        await backend.press_key("PageDown")
+        new_snapshot = await backend.get_snapshot()
+        new_snapshot_str = str(new_snapshot)
 
         # Stop if we get the same content (reached bottom)
-        if new_snapshot == snapshots[-1]:
+        if new_snapshot_str == snapshots[-1]:
             break
-        snapshots.append(new_snapshot)
+        snapshots.append(new_snapshot_str)
 
     return "\n".join(snapshots)
 
@@ -237,7 +203,7 @@ async def _capture_full_detail(page: Page) -> str:
 
 
 async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-locals
-    page: Page,
+    backend: "SapUiBackend",
     target_date: str | None,
     dump_index: int | None,
 ) -> ST22DumpListResult | ST22DumpDetailResult:
@@ -246,7 +212,7 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
     date_str = target_date or date.today().isoformat()
 
     # Navigate to ST22
-    error = await _navigate_to_st22(page)
+    error = await _navigate_to_st22(backend)
     if error:
         return ST22DumpListResult.failure(
             error=error,
@@ -257,7 +223,7 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
         )
 
     # Execute search for the target date
-    error = await _execute_search(page, target_date)
+    error = await _execute_search(backend, target_date)
     if error:
         return ST22DumpListResult.failure(
             error=error,
@@ -268,11 +234,11 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
         )
 
     # Capture dump list snapshot
-    list_snapshot = await page.locator("body").aria_snapshot()
-    logger.debug("ST22 list snapshot captured, length=%r", len(list_snapshot))
+    list_snapshot = await backend.get_snapshot()
+    logger.debug("ST22 list snapshot captured, length=%r", len(str(list_snapshot)))
 
     # Check for "no dumps" message
-    if is_no_dumps_message(AriaSnapshot(list_snapshot)):
+    if is_no_dumps_message(list_snapshot):
         # Still a success - just no dumps found
         return ST22DumpListResult(
             dumps=[],
@@ -282,11 +248,11 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
         )
 
     # Parse the dump list
-    dumps = parse_st22_dump_list(AriaSnapshot(list_snapshot))
+    dumps = parse_st22_dump_list(list_snapshot)
 
     # If still on the initial screen (quick buttons didn't navigate), try parsing counts
     if not dumps:
-        counts = parse_st22_initial_screen(AriaSnapshot(list_snapshot))
+        counts = parse_st22_initial_screen(list_snapshot)
         total_count = counts.get("today", 0) if target_date is None else 0
         if total_count > 0:
             logger.warning(
@@ -334,7 +300,7 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
 
     # Use the original UI row position for clicking, not the sorted index
     ui_row_idx = sorted_to_ui[dump_index]
-    error = await _select_dump_by_index(page, ui_row_idx, len(dumps))
+    error = await _select_dump_by_index(backend, ui_row_idx, len(dumps))
     if error:
         return ST22DumpDetailResult.failure(
             error=error,
@@ -343,7 +309,7 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
         )
 
     # Capture detail by scrolling through pages
-    detail_snapshot = await _capture_full_detail(page)
+    detail_snapshot = await _capture_full_detail(backend)
 
     # Parse the detail
     detail = parse_st22_dump_detail(AriaSnapshot(detail_snapshot))
@@ -405,21 +371,23 @@ def register_st22_tools(mcp: FastMCP) -> None:
             ST22DumpListResult (when dump_index is None) with list of dumps, or
             ST22DumpDetailResult (when dump_index is set) with full dump details
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_st22_lookup")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_st22_lookup")
         except ValueError as e:
             now = datetime.now(UTC)
             error_msg = f"Session error: {e}"
             if dump_index is not None:
                 return ST22DumpDetailResult.failure(error=error_msg, detail=None, retrieved_at=now)
             return ST22DumpListResult.failure(
-                error=error_msg, dumps=[], dump_count=0, date_searched=date or "", retrieved_at=now
+                error=error_msg,
+                dumps=[],
+                dump_count=0,
+                date_searched=date or "",
+                retrieved_at=now,
             )
 
         try:
-            result = await _st22_lookup(page, date, dump_index)
+            result = await _st22_lookup(backend, date, dump_index)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("ST22 lookup failed")
             now = datetime.now(UTC)
@@ -427,7 +395,11 @@ def register_st22_tools(mcp: FastMCP) -> None:
             if dump_index is not None:
                 return ST22DumpDetailResult.failure(error=error_msg, detail=None, retrieved_at=now)
             return ST22DumpListResult.failure(
-                error=error_msg, dumps=[], dump_count=0, date_searched=date or "", retrieved_at=now
+                error=error_msg,
+                dumps=[],
+                dump_count=0,
+                date_searched=date or "",
+                retrieved_at=now,
             )
 
         # Write to file if requested (only on success)

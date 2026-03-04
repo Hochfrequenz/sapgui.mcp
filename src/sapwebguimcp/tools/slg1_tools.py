@@ -9,13 +9,13 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-from playwright.async_api import Page
 
+from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.types import AriaSnapshot
-from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.slg1_models import (
     SLG1FileSummary,
@@ -26,8 +26,10 @@ from sapwebguimcp.parsers.slg1_parser import (
     is_slg1_no_results,
     parse_slg1_log_list,
 )
-from sapwebguimcp.tools.sap_page_helpers import fill_form_on_page, navigate_transaction, read_status_bar
 from sapwebguimcp.utils import SapLanguage, format_sap_date
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ __all__ = ["register_slg1_tools"]
 
 
 async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
-    page: Page,
+    backend: "SapUiBackend",
     object_name: str,
     subobject: str | None = None,
     external_id: str | None = None,
@@ -49,10 +51,10 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
     language: SapLanguage = settings.sap_language
 
     # Navigate to SLG1
-    tx_error = await navigate_transaction(page, "SLG1")
-    if tx_error:
+    tx_result = await backend.enter_transaction("SLG1")
+    if not tx_result.success:
         return SLG1LogListResult.failure(
-            f"Failed to navigate to SLG1: {tx_error}",
+            f"Failed to navigate to SLG1: {tx_result.error}",
             logs=[],
             log_count=0,
             logs_truncated=False,
@@ -60,8 +62,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
         )
 
     # Wait for SLG1 selection screen to fully load
-    await page.wait_for_timeout(500)
-    await page.wait_for_load_state("networkidle")
+    await backend.wait_for_ready()
 
     # Build fields dict based on language
     # Field labels from real ARIA snapshot:
@@ -91,20 +92,19 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
             fields["To (Date/Time)"] = format_sap_date(to_date, language)
 
     # Fill selection screen
-    not_found = await fill_form_on_page(page, fields)
-    if not_found:
-        logger.warning("SLG1 fields not found: %r", not_found)
+    fill_result = await backend.fill_form(fields)
+    if fill_result.not_found:
+        logger.warning("SLG1 fields not found: %r", fill_result.not_found)
 
     # Execute search (F8)
-    await page.keyboard.press("F8")
-    await page.wait_for_timeout(3000)
-    await page.wait_for_load_state("networkidle")
+    await backend.press_key("F8")
+    await backend.wait_for_ready()
 
     # Capture result snapshot
-    snapshot: str = await page.locator("body").aria_snapshot()
+    snapshot: AriaSnapshot = await backend.get_snapshot()
 
     # Check for no results (explicit status bar message)
-    if is_slg1_no_results(AriaSnapshot(snapshot)):
+    if is_slg1_no_results(snapshot):
         return SLG1LogListResult(
             logs=[],
             log_count=0,
@@ -114,11 +114,11 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
         )
 
     # If still on initial screen after F8, read status bar for error details
-    if is_slg1_initial_screen(AriaSnapshot(snapshot)):
-        sb_type, sb_message = await read_status_bar(page)
-        if sb_type in ("error", "warning", "E", "W"):
+    if is_slg1_initial_screen(snapshot):
+        sb_info = await backend.get_status_bar()
+        if sb_info.type in ("error", "warning", "E", "W"):
             return SLG1LogListResult.failure(
-                f"SLG1 error: {sb_message}",
+                f"SLG1 error: {sb_info.message}",
                 logs=[],
                 log_count=0,
                 logs_truncated=False,
@@ -134,7 +134,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
         )
 
     # Parse the log list
-    result = parse_slg1_log_list(AriaSnapshot(snapshot))
+    result = parse_slg1_log_list(snapshot)
     result.filters_applied = _build_filters(object_name, subobject, external_id, from_date, to_date)
     return result
 
@@ -210,10 +210,8 @@ def register_slg1_tools(mcp: FastMCP) -> None:
             SLG1LogListResult with log entries, or
             SLG1FileSummary with file path when output_file is provided.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_slg1_lookup")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_slg1_lookup")
         except ValueError as e:
             return SLG1LogListResult.failure(
                 f"Session error: {e}",
@@ -225,7 +223,7 @@ def register_slg1_tools(mcp: FastMCP) -> None:
 
         try:
             result = await _slg1_lookup(
-                page,
+                backend,
                 object,
                 subobject,
                 external_id,

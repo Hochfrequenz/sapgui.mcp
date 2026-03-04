@@ -14,15 +14,10 @@ from typing import Any
 from fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
 
-from sapwebguimcp.backend.types import AriaSnapshot
-from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row, get_browser_manager
+from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.backend.protocol import SapUiBackend
+from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row
 from sapwebguimcp.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
-from sapwebguimcp.tools.sap_tool_impl import (
-    _load_js,
-    sap_fill_form_impl,
-    sap_keyboard_impl,
-    sap_transaction_impl,
-)
 from sapwebguimcp.tools.se11_tools import _lookup_single_object
 
 logger = logging.getLogger(__name__)
@@ -51,7 +46,7 @@ MAX_PAGES = 800
 # =============================================================================
 
 
-async def _get_field_order_from_se11(table: str) -> dict[str, int] | None:
+async def _get_field_order_from_se11(backend: SapUiBackend, table: str) -> dict[str, int] | None:
     """
     Get field order from SE11 for a table.
 
@@ -60,15 +55,12 @@ async def _get_field_order_from_se11(table: str) -> dict[str, int] | None:
 
     The order in SE11 matches the row order in SE16N's selection criteria grid.
     """
-    page = await (await get_browser_manager()).get_current_page()
-
     try:
-        result = await _lookup_single_object(page, table, "table")
+        result = await _lookup_single_object(backend, table, "table")
 
         # Press F3 (Back) to exit SE11 and return to clean state
         # This prevents state issues when navigating to SE16N next
-        await page.keyboard.press("F3")
-        await page.wait_for_timeout(500)
+        await backend.press_key("F3")
 
         # Check if we got an SE11Entry (success) vs SE11Error
         if hasattr(result, "fields") and result.fields:
@@ -112,7 +104,7 @@ def _empty_failure(
     )
 
 
-async def _fill_se16n_table_name(table: str) -> str | None:
+async def _fill_se16n_table_name(backend: SapUiBackend, table: str) -> str | None:
     """
     Fill SE16N table name field.
 
@@ -122,19 +114,21 @@ async def _fill_se16n_table_name(table: str) -> str | None:
         Error message if failed, None if successful.
     """
     # Try English label first
-    fill_result = await sap_fill_form_impl({"Table": table.upper()}, strict=False)
-    if "Table" not in fill_result.not_found:
+    try:
+        await backend.fill_field("Table", table.upper())
         return None
+    except ValueError:  # pylint: disable=broad-exception-caught
+        pass
 
     # Try German label
-    fill_result = await sap_fill_form_impl({"Tabelle": table.upper()}, strict=False)
-    if "Tabelle" in fill_result.not_found:
-        return f"Failed to set table name field. Not found: {fill_result.not_found}"
+    try:
+        await backend.fill_field("Tabelle", table.upper())
+        return None
+    except ValueError:  # pylint: disable=broad-exception-caught
+        return "Failed to set table name field. Field not found with labels 'Table' or 'Tabelle'."
 
-    return None
 
-
-async def _type_table_name_with_validation(page: Any, table: str) -> str | None:
+async def _type_table_name_with_validation(backend: SapUiBackend, table: str) -> str | None:
     """
     Type table name in SE16N and trigger validation with Enter.
 
@@ -144,6 +138,8 @@ async def _type_table_name_with_validation(page: Any, table: str) -> str | None:
     Returns:
         Error message if failed, None if successful.
     """
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+
     # Find and click on the table textbox, then type the table name
     for textbox_name in ["Table", "Tabelle"]:
         try:
@@ -154,28 +150,30 @@ async def _type_table_name_with_validation(page: Any, table: str) -> str | None:
                 await textbox.type(table.upper(), delay=50)  # Type slowly
                 logger.info("Typed table name", extra={"table": table, "field": textbox_name})
 
-                # Use sap_keyboard_impl to send Enter - waits for networkidle
+                # Press Enter to trigger table validation - waits for networkidle
                 logger.info("Pressing Enter to trigger table validation")
-                await sap_keyboard_impl("Enter")
+                await backend.press_key("Enter")
                 return None
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning("Typing in table field", extra={"field": textbox_name, "error": str(e)})
 
-    # Fallback to fill_form approach
-    if fill_error := await _fill_se16n_table_name(table):
+    # Fallback to fill_field approach
+    if fill_error := await _fill_se16n_table_name(backend, table):
         return fill_error
-    logger.warning("Used fallback fill_form for table name")
-    await sap_keyboard_impl("Enter")
+    logger.warning("Used fallback fill_field for table name")
+    await backend.press_key("Enter")
     return None
 
 
-async def _wait_for_grid_rows(page: Any, timeout_seconds: int = 5) -> bool:
+async def _wait_for_grid_rows(backend: SapUiBackend, timeout_seconds: int = 5) -> bool:
     """
     Wait for SE16N selection criteria grid to populate with data rows.
 
     Returns:
         True if grid has rows, False if timeout.
     """
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+
     for i in range(timeout_seconds * 2):  # Poll every 500ms
         result = await page.evaluate("""
             () => {
@@ -202,7 +200,7 @@ async def _wait_for_grid_rows(page: Any, timeout_seconds: int = 5) -> bool:
     return False
 
 
-async def _fill_se16n_max_hits(max_hits: int) -> None:
+async def _fill_se16n_max_hits(backend: SapUiBackend, max_hits: int) -> None:
     """
     Fill SE16N max hits field.
 
@@ -210,16 +208,21 @@ async def _fill_se16n_max_hits(max_hits: int) -> None:
     the field has a default value.
     """
     # Try English label first
-    fill_result = await sap_fill_form_impl({"Max. Number of Hits": str(max_hits)}, strict=False)
-    if "Max. Number of Hits" not in fill_result.not_found:
+    try:
+        await backend.fill_field("Max. Number of Hits", str(max_hits))
         return
+    except ValueError:  # pylint: disable=broad-exception-caught
+        pass
 
     # Try German label
-    await sap_fill_form_impl({"Maximale Trefferzahl": str(max_hits)}, strict=False)
+    try:
+        await backend.fill_field("Maximale Trefferzahl", str(max_hits))
+    except ValueError:  # pylint: disable=broad-exception-caught
+        pass
 
 
 async def _fill_filter_with_playwright(
-    page: Any, element_id: str | None, selector: str | None, value: str, field_name: str
+    backend: SapUiBackend, element_id: str | None, selector: str | None, value: str, field_name: str
 ) -> bool:
     """
     Fill a filter field using Playwright's native click + type.
@@ -230,6 +233,8 @@ async def _fill_filter_with_playwright(
     Returns:
         True if fill succeeded, False otherwise.
     """
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+
     # Try by element ID first (use attribute selector for IDs with special chars)
     if element_id:
         try:
@@ -267,7 +272,9 @@ async def _fill_filter_with_playwright(
     return False
 
 
-async def _fill_filter_by_index(page: Any, find_js: str, field_name: str, value: str, row_index: int) -> str | None:
+async def _fill_filter_by_index(
+    backend: SapUiBackend, find_js: str, field_name: str, value: str, row_index: int
+) -> str | None:
     """
     Fill a single filter field using index-based approach.
 
@@ -276,6 +283,8 @@ async def _fill_filter_by_index(page: Any, find_js: str, field_name: str, value:
     Returns:
         Error message if failed, None if successful.
     """
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+
     # Find the element using JS
     result = await page.evaluate(find_js, {"rowIndex": row_index, "fieldName": field_name})
 
@@ -303,13 +312,15 @@ async def _fill_filter_by_index(page: Any, find_js: str, field_name: str, value:
     )
 
     # Fill using Playwright
-    if await _fill_filter_with_playwright(page, element_id, selector, value, field_name):
+    if await _fill_filter_with_playwright(backend, element_id, selector, value, field_name):
         return None
 
     return f"Found element for {field_name} but Playwright fill failed"
 
 
-async def _fill_se16n_filters(filters: dict[str, str] | None, field_order: dict[str, int] | None) -> list[str]:
+async def _fill_se16n_filters(  # pylint: disable=too-many-locals
+    backend: SapUiBackend, filters: dict[str, str] | None, field_order: dict[str, int] | None
+) -> list[str]:
     """
     Fill filter values in SE16N selection criteria grid using row indices.
 
@@ -322,6 +333,7 @@ async def _fill_se16n_filters(filters: dict[str, str] | None, field_order: dict[
     2. Playwright's native click + type fills the value (triggers proper SAP events)
 
     Args:
+        backend: SapUiBackend instance
         filters: Dict of {field_name: value} to filter on.
                  Field names should be technical names (e.g., "TCODE", "PGMNA").
         field_order: Dict mapping field names to row indices from SE11.
@@ -334,11 +346,13 @@ async def _fill_se16n_filters(filters: dict[str, str] | None, field_order: dict[
         return []
 
     errors: list[str] = []
-    page = await (await get_browser_manager()).get_current_page()
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
     # Load appropriate JS based on whether we have field order
-    find_js = _load_js("find_se16_filter_input.js") if field_order else None
-    fill_js = _load_js("fill_se16_filter.js") if not field_order else None
+    from sapwebguimcp.backend.webgui.js_helpers import load_js  # pylint: disable=import-outside-toplevel
+
+    find_js = load_js("find_se16_filter_input.js") if field_order else None
+    fill_js = load_js("fill_se16_filter.js") if not field_order else None
 
     if not field_order:
         logger.warning("No field order available, falling back to name-based filter search")
@@ -355,7 +369,7 @@ async def _fill_se16n_filters(filters: dict[str, str] | None, field_order: dict[
                     continue
 
                 # Fill using index-based approach
-                error = await _fill_filter_by_index(page, find_js, field_upper, value, field_order[field_upper])
+                error = await _fill_filter_by_index(backend, find_js, field_upper, value, field_order[field_upper])
                 if error:
                     errors.append(error)
 
@@ -417,8 +431,9 @@ def _check_selection_screen_columns(columns: list[str]) -> bool:
     return de_matches >= 2 or en_matches >= 2
 
 
-async def _focus_grid(page: Any) -> None:
+async def _focus_grid(backend: SapUiBackend) -> None:
     """Focus the ALV grid for pagination (required for PageDown to work)."""
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
     try:
         grid = page.locator("[role='grid']").first
         if await grid.count() > 0:
@@ -429,7 +444,7 @@ async def _focus_grid(page: Any) -> None:
 
 
 async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
-    page: Any,
+    backend: SapUiBackend,
     total_hits: int,
     columns: list[str],
     ctx: Context | None = None,
@@ -441,7 +456,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
     rows from each page until all are collected or no new rows found.
 
     Args:
-        page: Playwright page object
+        backend: SapUiBackend instance
         total_hits: Expected total rows (from "Number of Hits")
         columns: Column names for row parsing
         ctx: FastMCP context for progress reporting (optional)
@@ -457,9 +472,11 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
     # Deduplicate by first column only (typically the primary key). See issue #136.
     first_col = columns[0] if columns else None
 
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+
     while len(all_rows) < total_hits and page_num < MAX_PAGES:
         # Get snapshot and parse rows
-        snapshot = await page.locator("body").aria_snapshot()
+        snapshot = await backend.get_snapshot()
         rows = parse_se16_rows(snapshot, columns)
 
         if not rows:
@@ -520,7 +537,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
             break
 
         # PageDown to next page
-        await sap_keyboard_impl("PageDown")
+        await backend.press_key("PageDown")
         await page.wait_for_timeout(int(PAGE_WAIT_TIME.total_seconds() * 1000))
         page_num += 1
 
@@ -528,6 +545,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
 
 
 async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
+    backend: SapUiBackend,
     table: str,
     filters: dict[str, str] | None,
     max_hits: int,
@@ -537,6 +555,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     Execute SE16N query and collect results.
 
     Args:
+        backend: SapUiBackend instance
         table: Table name to query
         filters: Optional filter dict {field_name: value}
         max_hits: Maximum rows to return
@@ -546,40 +565,41 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
         SE16Result with collected data
     """
     now = datetime.now(UTC)
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
     # If filters are provided, get field order from SE11 FIRST
     # (before navigating to SE16N, since SE11 lookup changes the screen)
     field_order: dict[str, int] | None = None
     if filters:
         logger.info("Getting field order from SE11", extra={"table": table})
-        field_order = await _get_field_order_from_se11(table)
+        field_order = await _get_field_order_from_se11(backend, table)
         if field_order is None:
             logger.warning("Could not get field order from SE11, filters may not work")
 
     # Navigate to SE16N
-    if not (await sap_transaction_impl("SE16N")).success:
+    tx_result = await backend.enter_transaction("SE16N")
+    if not tx_result.success:
         return _empty_failure("Failed to navigate to SE16N", table, now)
 
-    page = await (await get_browser_manager()).get_current_page()
     await page.wait_for_timeout(1000)  # Wait for SE16N screen to render
 
     # Fill table name - with validation trigger if filters are provided
     fill_error: str | None = None
     if filters:
-        fill_error = await _type_table_name_with_validation(page, table)
+        fill_error = await _type_table_name_with_validation(backend, table)
         if not fill_error:
-            await _wait_for_grid_rows(page, timeout_seconds=5)
-            filter_errors = await _fill_se16n_filters(filters, field_order)
+            await _wait_for_grid_rows(backend, timeout_seconds=5)
+            filter_errors = await _fill_se16n_filters(backend, filters, field_order)
             if filter_errors:
                 logger.warning("Some filters could not be applied", extra={"errors": filter_errors})
     else:
-        fill_error = await _fill_se16n_table_name(table)
+        fill_error = await _fill_se16n_table_name(backend, table)
 
     if fill_error:
         return _empty_failure(fill_error, table, now)
 
     # Set max hits
-    await _fill_se16n_max_hits(max_hits)
+    await _fill_se16n_max_hits(backend, max_hits)
 
     # Click on the table name field to ensure focus is in the main screen area
     # (not stuck in filter grid which can interfere with F8)
@@ -595,21 +615,22 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
 
     # Execute query (F8) and wait for results
     logger.info("Executing query with F8")
-    await sap_keyboard_impl("F8")
+    await backend.press_key("F8")
     await page.wait_for_timeout(3000)
 
     # Get snapshot to check for errors and parse results
-    snapshot = await page.locator("body").aria_snapshot()
+    snapshot = await backend.get_snapshot()
+    snapshot_str = str(snapshot)
 
     # Check for table not found errors
-    if table_error := _check_table_not_found(snapshot, table):
+    if table_error := _check_table_not_found(snapshot_str, table):
         # Log first 500 chars of snapshot for debugging
-        logger.warning("Check failed", extra={"snapshot_preview": snapshot[:500]})
+        logger.warning("Check failed", extra={"snapshot_preview": snapshot_str[:500]})
         return _empty_failure(table_error, table, now)
 
     # Parse hit count and columns
-    total_hits = parse_se16_hit_count(AriaSnapshot(snapshot))
-    columns = parse_se16_columns(AriaSnapshot(snapshot))
+    total_hits = parse_se16_hit_count(snapshot)
+    columns = parse_se16_columns(snapshot)
 
     if not columns:
         return _empty_failure(
@@ -641,8 +662,8 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
         )
 
     # Focus grid and collect all rows with pagination
-    await _focus_grid(page)
-    rows = [SE16Row(data=row) for row in await _collect_rows_with_pagination(page, total_hits, columns, ctx)]
+    await _focus_grid(backend)
+    rows = [SE16Row(data=row) for row in await _collect_rows_with_pagination(backend, total_hits, columns, ctx)]
 
     return SE16Result(
         table=table,
@@ -704,11 +725,8 @@ def register_se16_tools(mcp: FastMCP) -> None:
             SE16Result with all rows (inline), or
             SE16FileSummary with file path and preview (when output_file provided)
         """
-        browser_manager = await get_browser_manager()
-
-        # Validate session exists and check agent binding at entry point
         try:
-            browser_manager.get_session_page_checked(session, agent_id, "sap_se16_query")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_se16_query")
         except ValueError as e:
             now = datetime.now(UTC)
             return SE16Result.failure(
@@ -724,7 +742,7 @@ def register_se16_tools(mcp: FastMCP) -> None:
 
         logger.info("Querying table", extra={"table": table, "max_hits": max_hits})
 
-        result = await _execute_se16_query(table, filters, max_hits, ctx)
+        result = await _execute_se16_query(backend, table, filters, max_hits, ctx)
 
         # Write to file if requested
         if output_file and result.success:
