@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE37_DISPLAY_PREFIX_EN,
     SE37_DISPLAY_SUFFIX_DE,
@@ -201,7 +202,7 @@ def _is_fm_not_found(snapshot: str, fm_name: str) -> bool:
     return any(pattern.lower() in snapshot_lower for pattern in not_found_patterns)
 
 
-def parse_se37_parameters_snapshot(snapshot: str, category: SE37ParameterCategory) -> list[SE37Parameter]:
+def parse_se37_parameters_snapshot(snapshot: AriaSnapshot, category: SE37ParameterCategory) -> list[SE37Parameter]:
     """
     Parse parameters from a SE37 tab snapshot.
 
@@ -215,7 +216,7 @@ def parse_se37_parameters_snapshot(snapshot: str, category: SE37ParameterCategor
     return _parse_parameter_rows(snapshot, category)
 
 
-def parse_se37_exceptions_snapshot(snapshot: str) -> list[SE37Exception]:
+def parse_se37_exceptions_snapshot(snapshot: AriaSnapshot) -> list[SE37Exception]:
     """
     Parse exceptions from a SE37 Exceptions tab snapshot.
 
@@ -240,7 +241,7 @@ class SE37TabSnapshots:
 
 
 def parse_se37_snapshot(
-    snapshot: str,
+    snapshot: AriaSnapshot,
     fm_name: str,
     tab_snapshots: SE37TabSnapshots | None = None,
 ) -> SE37Entry | SE37Error:

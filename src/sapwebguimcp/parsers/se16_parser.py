@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE16_COLUMN_SELECTION_DE,
     SE16_COLUMN_SELECTION_EN,
@@ -122,7 +123,7 @@ def _coerce_value(value: str) -> Any:
 # =============================================================================
 
 
-def parse_se16_hit_count(snapshot: str) -> int:
+def parse_se16_hit_count(snapshot: AriaSnapshot) -> int:
     """
     Extract the "Number of Hits" value from SE16N results screen.
 
@@ -144,7 +145,7 @@ def parse_se16_hit_count(snapshot: str) -> int:
     return 0
 
 
-def parse_se16_columns(snapshot: str) -> list[str]:
+def parse_se16_columns(snapshot: AriaSnapshot) -> list[str]:
     """
     Extract column names from the SE16N grid header row.
 
@@ -223,7 +224,7 @@ def _extract_gridcell_value(line: str) -> str | None:
     return None
 
 
-def parse_se16_rows(snapshot: str, columns: list[str] | None = None) -> list[dict[str, Any]]:
+def parse_se16_rows(snapshot: AriaSnapshot, columns: list[str] | None = None) -> list[dict[str, Any]]:
     """
     Extract data rows from SE16N grid snapshot.
 
@@ -291,7 +292,7 @@ def _cells_to_row_dict(cells: list[str], columns: list[str]) -> dict[str, Any]:
     return row_dict
 
 
-def parse_se16_snapshot(snapshot: str) -> SE16ParseResult:
+def parse_se16_snapshot(snapshot: AriaSnapshot) -> SE16ParseResult:
     """
     Parse a complete SE16N snapshot into columns and rows.
 

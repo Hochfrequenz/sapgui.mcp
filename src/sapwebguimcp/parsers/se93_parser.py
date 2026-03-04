@@ -13,6 +13,7 @@ import logging
 import re
 from datetime import UTC, datetime
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE93_AUTH_OBJECT_DE,
     SE93_AUTH_OBJECT_EN,
@@ -169,7 +170,7 @@ def _extract_type_specific_fields(
     return None, selection_screen, start_variant
 
 
-def parse_se93_snapshot(snapshot: str, tcode: str) -> SE93Entry | SE93Error:
+def parse_se93_snapshot(snapshot: AriaSnapshot, tcode: str) -> SE93Entry | SE93Error:
     """
     Parse SE93 transaction display snapshot into structured data.
 

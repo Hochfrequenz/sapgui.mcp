@@ -17,6 +17,7 @@ ST22 structure (DE/EN):
 import logging
 import re
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     ST22_ERROR_ANALYSIS_DE,
     ST22_ERROR_ANALYSIS_EN,
@@ -49,7 +50,7 @@ _MAX_RAW_TEXT_LENGTH = 10240
 _DUMP_COUNT_PATTERN = re.compile(r'button "(\d+)\s+(?:Laufzeitfehler|Runtime Errors?)"')
 
 
-def parse_st22_initial_screen(snapshot: str) -> dict[str, int]:
+def parse_st22_initial_screen(snapshot: AriaSnapshot) -> dict[str, int]:
     """Parse the ST22 initial screen to extract dump counts.
 
     Returns dict with keys "today" and "yesterday" mapping to dump counts.
@@ -77,7 +78,7 @@ def parse_st22_initial_screen(snapshot: str) -> dict[str, int]:
     return counts
 
 
-def is_no_dumps_message(snapshot: str) -> bool:
+def is_no_dumps_message(snapshot: AriaSnapshot) -> bool:
     """Check if the snapshot contains a 'no dumps found' status message."""
     return (
         ST22_NO_DUMPS_DE.lower() in snapshot.lower()
@@ -213,7 +214,7 @@ def _flush_row(
         )
 
 
-def parse_st22_dump_list(snapshot: str) -> list[ST22Dump]:  # pylint: disable=too-many-branches,too-many-locals
+def parse_st22_dump_list(snapshot: AriaSnapshot) -> list[ST22Dump]:  # pylint: disable=too-many-branches,too-many-locals
     """Parse the ST22 dump list from an ARIA snapshot.
 
     Handles multiple formats:
@@ -430,7 +431,7 @@ def _extract_call_stack(text: str) -> list[str]:
     return stack[:50]  # Cap at 50 entries
 
 
-def parse_st22_dump_detail(snapshot: str) -> ST22DumpDetail:
+def parse_st22_dump_detail(snapshot: AriaSnapshot) -> ST22DumpDetail:
     """Parse ST22 dump detail from an ARIA snapshot.
 
     Best-effort parsing: extracts known sections when possible,

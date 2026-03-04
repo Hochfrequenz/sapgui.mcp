@@ -22,13 +22,16 @@ import json
 import logging
 import re
 import time
-from functools import lru_cache
 from importlib import resources
 from typing import Any, Optional
 from urllib.parse import urlparse
 
 from fastmcp import Context, FastMCP
 
+from sapwebguimcp.backend.webgui.js_helpers import load_js as _load_js
+from sapwebguimcp.backend.webgui.js_helpers import (
+    load_js_with_field_utils as _load_js_with_field_utils,
+)
 from sapwebguimcp.middleware.logging import set_sap_identity
 from sapwebguimcp.models import (
     AlvCellInfo,
@@ -86,20 +89,6 @@ from sapwebguimcp.utils import is_sap_shortcut
 __all__ = ["register_sap_tools", "SELECTORS", "parse_shortcut_from_title"]
 
 logger = logging.getLogger(__name__)
-
-
-@lru_cache(maxsize=16)
-def _load_js(filename: str) -> str:
-    """Load a JavaScript file from the sapwebguimcp.js package."""
-    return resources.files("sapwebguimcp.js").joinpath(filename).read_text(encoding="utf-8")
-
-
-@lru_cache(maxsize=8)
-def _load_js_with_field_utils(filename: str) -> str:
-    """Load a JS file with find_field_utils.js prepended (for set_field.js and fill_form_fields.js)."""
-    utils = _load_js("find_field_utils.js")
-    tool = _load_js(filename)
-    return utils + "\n" + tool
 
 
 async def _capture_sap_identity(

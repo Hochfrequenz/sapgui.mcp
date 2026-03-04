@@ -11,10 +11,12 @@ The functions follow a consistent pattern:
 """
 
 import logging
-from functools import lru_cache
-from importlib import resources
 from typing import Any
 
+from sapwebguimcp.backend.webgui.js_helpers import load_js as _load_js
+from sapwebguimcp.backend.webgui.js_helpers import (
+    load_js_with_field_utils as _load_js_with_field_utils,
+)
 from sapwebguimcp.models import (
     FieldFillError,
     FillFormResult,
@@ -38,20 +40,6 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-
-
-@lru_cache(maxsize=16)
-def _load_js(filename: str) -> str:
-    """Load a JavaScript file from the sapwebguimcp.js package."""
-    return resources.files("sapwebguimcp.js").joinpath(filename).read_text(encoding="utf-8")
-
-
-@lru_cache(maxsize=8)
-def _load_js_with_field_utils(filename: str) -> str:
-    """Load a JS file with find_field_utils.js prepended (for set_field.js and fill_form_fields.js)."""
-    utils = _load_js("find_field_utils.js")
-    tool = _load_js(filename)
-    return utils + "\n" + tool
 
 
 async def _find_okcode_field(page: Any) -> Any | None:

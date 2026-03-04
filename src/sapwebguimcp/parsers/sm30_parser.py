@@ -13,6 +13,7 @@ import logging
 import re
 from datetime import UTC, datetime
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE16_COLUMN_SELECTION_DE,
     SE16_COLUMN_SELECTION_EN,
@@ -103,7 +104,7 @@ _ROW_COUNT_PATTERN = re.compile(
 # =============================================================================
 
 
-def detect_sm30_view_type(snapshot: str) -> SM30ViewType:
+def detect_sm30_view_type(snapshot: AriaSnapshot) -> SM30ViewType:
     """
     Detect whether the SM30 snapshot shows a flat table or an unsupported view type.
 
@@ -159,7 +160,7 @@ def _extract_total_row_count(snapshot: str) -> int | None:
 # =============================================================================
 
 
-def parse_sm30_columns(snapshot: str) -> list[str]:
+def parse_sm30_columns(snapshot: AriaSnapshot) -> list[str]:
     """
     Extract column names from the SM30 grid header row.
 
@@ -210,7 +211,7 @@ def _is_selection_cell(value: str) -> bool:
 
 
 def parse_sm30_rows(  # pylint: disable=too-many-branches
-    snapshot: str, columns: list[str] | None = None
+    snapshot: AriaSnapshot, columns: list[str] | None = None
 ) -> list[SM30Row]:
     """
     Extract data rows from SM30 display grid snapshot.
@@ -304,7 +305,7 @@ def _save_row(
 
 
 def parse_sm30_snapshot(
-    snapshot: str,
+    snapshot: AriaSnapshot,
     view_name: str,
 ) -> SM30ViewResult:
     """

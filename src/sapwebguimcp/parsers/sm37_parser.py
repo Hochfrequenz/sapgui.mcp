@@ -15,6 +15,7 @@ Column headers appear as buttons: "Jobname", "Status", "Startdatum", etc.
 import logging
 import re
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import SM37_STATUS_MAP_DE, SM37_STATUS_MAP_EN
 from sapwebguimcp.models.sm37_models import SM37Job, SM37JobLog
 
@@ -44,13 +45,13 @@ _JOB_LIST_HEADING_DE = "Jobübersicht"
 _JOB_LIST_HEADING_EN = "Job Overview"
 
 
-def is_no_jobs_found(snapshot: str) -> bool:
+def is_no_jobs_found(snapshot: AriaSnapshot) -> bool:
     """Check if the snapshot indicates no jobs were found."""
     snapshot_lower = snapshot.lower()
     return any(pattern in snapshot_lower for pattern in _NO_JOBS_PATTERNS)
 
 
-def is_job_list_screen(snapshot: str) -> bool:
+def is_job_list_screen(snapshot: AriaSnapshot) -> bool:
     """Check if we're on the job list results screen (not the selection screen)."""
     return _JOB_LIST_HEADING_DE in snapshot or _JOB_LIST_HEADING_EN in snapshot
 
@@ -145,7 +146,7 @@ def _parse_job_row(text: str) -> SM37Job | None:
     )
 
 
-def parse_sm37_job_list(snapshot: str) -> list[SM37Job]:
+def parse_sm37_job_list(snapshot: AriaSnapshot) -> list[SM37Job]:
     """
     Parse the SM37 job list from an ARIA snapshot.
 
@@ -203,7 +204,7 @@ def parse_sm37_job_list(snapshot: str) -> list[SM37Job]:
 # =============================================================================
 
 
-def parse_sm37_job_log(snapshot: str, job_name: str) -> SM37JobLog:
+def parse_sm37_job_log(snapshot: AriaSnapshot, job_name: str) -> SM37JobLog:
     """
     Parse the SM37 job log from an ARIA snapshot.
 
