@@ -15,6 +15,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import Page
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SPRO_IMG_HEADING_DE,
     SPRO_IMG_HEADING_EN,
@@ -216,7 +217,7 @@ async def _search_img(page: Page, query: str) -> SPROSearchResult:
     snapshot = await _wait_for_results(page)
     logger.debug("SPRO search snapshot length=%d", len(snapshot))
 
-    return parse_spro_search_results(snapshot, query)
+    return parse_spro_search_results(AriaSnapshot(snapshot), query)
 
 
 # =============================================================================

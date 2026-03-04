@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE24_CLASS_BUILDER_DE,
     SE24_CLASS_BUILDER_EN,
@@ -273,7 +274,7 @@ def _parse_attribute_rows(snapshot: str) -> list[SE24Attribute]:
     return attributes
 
 
-def parse_se24_methods_snapshot(snapshot: str) -> list[SE24Method]:
+def parse_se24_methods_snapshot(snapshot: AriaSnapshot) -> list[SE24Method]:
     """
     Parse methods from a SE24 Methods tab snapshot.
 
@@ -286,7 +287,7 @@ def parse_se24_methods_snapshot(snapshot: str) -> list[SE24Method]:
     return _parse_method_rows(snapshot)
 
 
-def parse_se24_attributes_snapshot(snapshot: str) -> list[SE24Attribute]:
+def parse_se24_attributes_snapshot(snapshot: AriaSnapshot) -> list[SE24Attribute]:
     """
     Parse attributes from a SE24 Attributes tab snapshot.
 
@@ -303,13 +304,13 @@ def parse_se24_attributes_snapshot(snapshot: str) -> list[SE24Attribute]:
 class SE24TabSnapshots:
     """Container for SE24 tab snapshots."""
 
-    methods_tab: str | None = None
-    attributes_tab: str | None = None
-    interfaces_tab: str | None = None
+    methods_tab: AriaSnapshot | None = None
+    attributes_tab: AriaSnapshot | None = None
+    interfaces_tab: AriaSnapshot | None = None
 
 
 def parse_se24_snapshot(
-    snapshot: str,
+    snapshot: AriaSnapshot,
     class_name: str,
     tab_snapshots: SE24TabSnapshots | None = None,
 ) -> SE24Entry | SE24Error:

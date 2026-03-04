@@ -24,6 +24,7 @@ import logging
 import re
 from datetime import UTC, datetime
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE09_MODIFIABLE_DE,
     SE09_MODIFIABLE_EN,
@@ -110,7 +111,7 @@ def _is_transport_number(text: str) -> bool:
 
 
 def parse_se09_transport_list(
-    snapshot: str,
+    snapshot: AriaSnapshot,
     *,
     include_objects: bool = False,  # pylint: disable=unused-argument  # reserved for future use
 ) -> TransportListResult:

@@ -13,6 +13,7 @@ import logging
 import re
 from datetime import UTC, datetime
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SM30_ROW_SELECT_HINT_DE,
     SM30_ROW_SELECT_HINT_EN,
@@ -79,7 +80,7 @@ def _extract_results_section(snapshot: str) -> str:
 
 
 def parse_spro_search_results(  # pylint: disable=too-many-branches
-    snapshot: str,
+    snapshot: AriaSnapshot,
     query: str,
 ) -> SPROSearchResult:
     """

@@ -15,6 +15,7 @@ from typing import Any
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.models import (
     SE37Entry,
     SE37Error,
@@ -219,17 +220,22 @@ async def _lookup_single_fm(page: Any, fm_name: str) -> SE37Entry | SE37Error:
     logger.debug("Got main snapshot", extra={"object": fm_name, "length": len(main_snapshot)})
 
     # Capture each tab
+    import_raw = await _capture_tab_snapshot(page, "import")
+    export_raw = await _capture_tab_snapshot(page, "export")
+    changing_raw = await _capture_tab_snapshot(page, "changing")
+    tables_raw = await _capture_tab_snapshot(page, "tables")
+    exceptions_raw = await _capture_tab_snapshot(page, "exceptions")
     tab_snapshots = SE37TabSnapshots(
-        import_tab=await _capture_tab_snapshot(page, "import"),
-        export_tab=await _capture_tab_snapshot(page, "export"),
-        changing_tab=await _capture_tab_snapshot(page, "changing"),
-        tables_tab=await _capture_tab_snapshot(page, "tables"),
-        exceptions_tab=await _capture_tab_snapshot(page, "exceptions"),
+        import_tab=AriaSnapshot(import_raw) if import_raw is not None else None,
+        export_tab=AriaSnapshot(export_raw) if export_raw is not None else None,
+        changing_tab=AriaSnapshot(changing_raw) if changing_raw is not None else None,
+        tables_tab=AriaSnapshot(tables_raw) if tables_raw is not None else None,
+        exceptions_tab=AriaSnapshot(exceptions_raw) if exceptions_raw is not None else None,
     )
 
     # Parse all snapshots
     return parse_se37_snapshot(
-        snapshot=main_snapshot,
+        snapshot=AriaSnapshot(main_snapshot),
         fm_name=fm_name,
         tab_snapshots=tab_snapshots,
     )

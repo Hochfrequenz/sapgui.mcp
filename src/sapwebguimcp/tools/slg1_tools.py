@@ -14,6 +14,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import Page
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.slg1_models import (
@@ -103,7 +104,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
     snapshot: str = await page.locator("body").aria_snapshot()
 
     # Check for no results (explicit status bar message)
-    if is_slg1_no_results(snapshot):
+    if is_slg1_no_results(AriaSnapshot(snapshot)):
         return SLG1LogListResult(
             logs=[],
             log_count=0,
@@ -113,7 +114,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
         )
 
     # If still on initial screen after F8, read status bar for error details
-    if is_slg1_initial_screen(snapshot):
+    if is_slg1_initial_screen(AriaSnapshot(snapshot)):
         sb_type, sb_message = await read_status_bar(page)
         if sb_type in ("error", "warning", "E", "W"):
             return SLG1LogListResult.failure(
@@ -133,7 +134,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
         )
 
     # Parse the log list
-    result = parse_slg1_log_list(snapshot)
+    result = parse_slg1_log_list(AriaSnapshot(snapshot))
     result.filters_applied = _build_filters(object_name, subobject, external_id, from_date, to_date)
     return result
 

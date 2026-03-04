@@ -17,6 +17,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import Locator, Page
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE09_DISPLAY_BUTTON_DE,
     SE09_DISPLAY_BUTTON_EN,
@@ -158,7 +159,7 @@ async def _lookup_transports(
     snapshot: str = await page.locator("body").aria_snapshot()
 
     # Parse the transport list
-    return parse_se09_transport_list(snapshot)
+    return parse_se09_transport_list(AriaSnapshot(snapshot))
 
 
 # =============================================================================

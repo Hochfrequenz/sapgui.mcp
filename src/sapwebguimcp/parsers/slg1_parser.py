@@ -27,6 +27,7 @@ import logging
 import re
 from datetime import UTC, datetime
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SLG1_INITIAL_SCREEN_DE,
     SLG1_INITIAL_SCREEN_EN,
@@ -74,19 +75,19 @@ _DATE_TIME_USER_PATTERN = re.compile(r'button "(\d{2}[./]\d{2}[./]\d{4}\s+\d{2}:
 _COLUMN_HEADER_PATTERN = re.compile(r'row ".*Protokollnummer|row ".*Log Number', re.IGNORECASE)
 
 
-def is_slg1_initial_screen(snapshot: str) -> bool:
+def is_slg1_initial_screen(snapshot: AriaSnapshot) -> bool:
     """Check if we're on the SLG1 selection screen."""
     header = "\n".join(snapshot.split("\n")[:10])
     return SLG1_INITIAL_SCREEN_DE.lower() in header.lower() or SLG1_INITIAL_SCREEN_EN.lower() in header.lower()
 
 
-def is_slg1_log_list_screen(snapshot: str) -> bool:
+def is_slg1_log_list_screen(snapshot: AriaSnapshot) -> bool:
     """Check if we're on the SLG1 log list/display screen."""
     header = "\n".join(snapshot.split("\n")[:10])
     return SLG1_LOG_LIST_SCREEN_DE.lower() in header.lower() or SLG1_LOG_LIST_SCREEN_EN.lower() in header.lower()
 
 
-def is_slg1_no_results(snapshot: str) -> bool:
+def is_slg1_no_results(snapshot: AriaSnapshot) -> bool:
     """Check if SLG1 returned no logs (status bar message or still on initial screen)."""
     snapshot_lower = snapshot.lower()
     return SLG1_NO_LOGS_FOUND_DE.lower() in snapshot_lower or SLG1_NO_LOGS_FOUND_EN.lower() in snapshot_lower
@@ -264,7 +265,7 @@ def _parse_single_row(row_lines: list[str]) -> SLG1LogEntry | None:  # pylint: d
         return None
 
 
-def parse_slg1_log_list(snapshot: str) -> SLG1LogListResult:
+def parse_slg1_log_list(snapshot: AriaSnapshot) -> SLG1LogListResult:
     """
     Parse the full SLG1 result into a SLG1LogListResult.
 

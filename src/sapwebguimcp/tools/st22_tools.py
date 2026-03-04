@@ -21,6 +21,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import Page
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.st22_models import (
@@ -271,7 +272,7 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
     logger.debug("ST22 list snapshot captured, length=%r", len(list_snapshot))
 
     # Check for "no dumps" message
-    if is_no_dumps_message(list_snapshot):
+    if is_no_dumps_message(AriaSnapshot(list_snapshot)):
         # Still a success - just no dumps found
         return ST22DumpListResult(
             dumps=[],
@@ -281,11 +282,11 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
         )
 
     # Parse the dump list
-    dumps = parse_st22_dump_list(list_snapshot)
+    dumps = parse_st22_dump_list(AriaSnapshot(list_snapshot))
 
     # If still on the initial screen (quick buttons didn't navigate), try parsing counts
     if not dumps:
-        counts = parse_st22_initial_screen(list_snapshot)
+        counts = parse_st22_initial_screen(AriaSnapshot(list_snapshot))
         total_count = counts.get("today", 0) if target_date is None else 0
         if total_count > 0:
             logger.warning(
@@ -345,7 +346,7 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
     detail_snapshot = await _capture_full_detail(page)
 
     # Parse the detail
-    detail = parse_st22_dump_detail(detail_snapshot)
+    detail = parse_st22_dump_detail(AriaSnapshot(detail_snapshot))
 
     # Enrich detail with data from the list entry
     detail.short_text = target_dump.short_text
