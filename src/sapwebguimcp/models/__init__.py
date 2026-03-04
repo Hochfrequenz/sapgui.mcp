@@ -4,6 +4,11 @@ Data models for SAP Web GUI MCP Server.
 This module contains Pydantic models and configuration classes.
 """
 
+from sapwebguimcp.backend.webgui.browser import (
+    BrowserManager,
+    close_browser_manager,
+    get_browser_manager,
+)
 from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
 from sapwebguimcp.models.alv_models import (
     AlvCellInfo,
@@ -12,11 +17,6 @@ from sapwebguimcp.models.alv_models import (
     TableCellClickResult,
 )
 from sapwebguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, SessionId, TCode, ToolResult
-from sapwebguimcp.models.browser import (
-    BrowserManager,
-    close_browser_manager,
-    get_browser_manager,
-)
 from sapwebguimcp.models.browser_results import (
     BrowserKeyboardResult,
     ClickResult,
