@@ -19,15 +19,12 @@ from sapwebguimcp.models.base import PopupButton, PopupInfo
 from sapwebguimcp.models.sap_results import (
     ButtonInfo,
     ClosePopupResult,
-    DiscoveredButtons,
-    DiscoveredFields,
     DropdownFillResult,
     DropdownInfo,
     FieldFillError,
     FieldInfo,
     FillFormResult,
     FormField,
-    FormFieldsProcessResult,
     FormFieldsResult,
     KeyboardResult,
     LoginResult,
@@ -110,7 +107,7 @@ def _escape_css_selector(selector: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-class WebGuiBackend:
+class WebGuiBackend:  # pylint: disable=too-many-public-methods
     """SapUiBackend implementation using Playwright browser automation.
 
     Each instance wraps a single Playwright ``Page`` (one SAP session).
@@ -184,7 +181,7 @@ class WebGuiBackend:
     # SapNavigation
     # ===================================================================
 
-    async def login(
+    async def login(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         url: str,
         username: str,
@@ -587,7 +584,7 @@ class WebGuiBackend:
     async def get_form_fields(self) -> FormFieldsResult:
         """Discover fillable form fields with type information."""
         try:
-            from sapwebguimcp.models.sap_results import SapFieldType
+            from sapwebguimcp.models.sap_results import SapFieldType  # pylint: disable=import-outside-toplevel
 
             raw_fields = await self._page.evaluate(load_js("detect_form_fields.js"))
             fields = [
@@ -740,7 +737,7 @@ class WebGuiBackend:
         try:
             result = await self._page.evaluate(load_js("get_dropdown_options.js"), element_id)
             if result.get("success"):
-                return result.get("options", [])
+                return list(result.get("options", []))
         except Exception:  # pylint: disable=broad-exception-caught
             logger.warning("Getting dropdown options for %r", label)
         return []
@@ -775,7 +772,7 @@ class WebGuiBackend:
 
     async def read_editor_source(self) -> str | None:
         """Read the current source code from the SAP editor textarea."""
-        from playwright.async_api import Error as PlaywrightError
+        from playwright.async_api import Error as PlaywrightError  # pylint: disable=import-outside-toplevel
 
         try:
             textarea = self._page.locator("textarea[id*='textedit']").first
@@ -788,7 +785,7 @@ class WebGuiBackend:
 
     async def replace_editor_source(self, code: str) -> bool:
         """Replace the entire editor content with new source code."""
-        from playwright.async_api import Error as PlaywrightError
+        from playwright.async_api import Error as PlaywrightError  # pylint: disable=import-outside-toplevel
 
         try:
             textarea = self._page.locator("textarea[id*='textedit']").first
@@ -862,7 +859,7 @@ class WebGuiBackend:
             close_button_id=result.get("close_button_id"),
         )
 
-    async def dismiss_popup(
+    async def dismiss_popup(  # pylint: disable=too-many-branches
         self,
         button_label: str | None = None,
         use_close_button: bool = False,

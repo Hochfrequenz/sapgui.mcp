@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 _VALID_BACKEND_TYPES = {"webgui"}
 
 
-class BackendManager:
+class BackendManager:  # pylint: disable=too-few-public-methods
     """Manages SapUiBackend instances across sessions.
 
     Wraps the existing BrowserManager/SessionRegistry for WebGUI.
@@ -23,7 +23,7 @@ class BackendManager:
 
     def __init__(self, backend_type: str = "webgui") -> None:
         if backend_type not in _VALID_BACKEND_TYPES:
-            raise ValueError(f"Unknown backend type '{backend_type}'. " f"Valid types: {_VALID_BACKEND_TYPES}")
+            raise ValueError(f"Unknown backend type '{backend_type}'. Valid types: {_VALID_BACKEND_TYPES}")
         self.backend_type = backend_type
         self._backends: dict[str, WebGuiBackend] = {}  # Cache by session ID
 
@@ -39,7 +39,7 @@ class BackendManager:
         if the underlying page is still the same, creates a new one otherwise.
         """
         if self.backend_type == "webgui":
-            from sapwebguimcp.backend.webgui.browser import (
+            from sapwebguimcp.backend.webgui.browser import (  # pylint: disable=import-outside-toplevel
                 get_browser_manager,
             )
 
@@ -47,7 +47,7 @@ class BackendManager:
             page = await browser_manager.get_or_create_session_page_checked(session, agent_id, tool_name)
             session_key = session or "s1"
             cached = self._backends.get(session_key)
-            if cached is not None and cached._page is page:
+            if cached is not None and cached._page is page:  # pylint: disable=protected-access
                 return cached
             backend = WebGuiBackend(page)
             self._backends[session_key] = backend
@@ -57,15 +57,14 @@ class BackendManager:
 
 # -- Singleton --
 
-_backend_manager: BackendManager | None = None
+_backend_manager: BackendManager | None = None  # pylint: disable=invalid-name
 
 
 def get_backend_manager() -> BackendManager:
     """Get the global BackendManager singleton (lazy init)."""
-    global _backend_manager  # noqa: PLW0603
+    global _backend_manager  # noqa: PLW0603  # pylint: disable=global-statement
     if _backend_manager is None:
-        # Read backend type from settings/env
-        from sapwebguimcp.models.config import get_settings
+        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
 
         settings = get_settings()
         backend_type = getattr(settings, "sap_ui_backend", "webgui")
@@ -88,5 +87,5 @@ async def get_backend(
 
 def reset_backend_manager() -> None:
     """Reset the singleton (for testing)."""
-    global _backend_manager  # noqa: PLW0603
+    global _backend_manager  # noqa: PLW0603  # pylint: disable=global-statement
     _backend_manager = None

@@ -21,12 +21,19 @@
 
 ## Workflow
 
-Phase 1 (Tasks 1-3) is pushed to remote so the developer can merge to main via PRs.
-Phase 2+ starts on a feature branch based on main after Phase 1 is merged.
+Phase 1 (Tasks 1-3) was merged to main via squash merge.
+
+Phase 2 (Tasks 2-10) implements the protocol hierarchy, WebGuiBackend, and BackendManager.
+This is purely additive — no existing tool behavior changes. Implemented on
+branch `feat/ui-backend-abstraction` and submitted as a **foundation PR** for
+early merge to main (non-breaking, reduces the size of the later migration PR).
+
+Phase 3+ (Tasks 11-23) performs the actual tool migration and cleanup.
+Starts on a new feature branch after the foundation PR is merged.
 
 ---
 
-## Phase 1: Foundation (Preparatory — push to remote, developer merges to main)
+## Phase 1: Foundation (Preparatory — merged to main)
 
 These are small, non-breaking PRs that reduce the size of the main migration.
 
@@ -469,7 +476,7 @@ git commit -m "refactor: move JS helpers to backend/webgui/js_helpers.py"
 
 ---
 
-## Phase 2: WebGuiBackend Implementation (feature branch)
+## Phase 2: WebGuiBackend Implementation (foundation PR: `feat/ui-backend-abstraction`)
 
 From here on, work on a feature branch `feat/ui-backend-abstraction` based on main (after Phase 1 PRs are merged).
 
@@ -927,7 +934,7 @@ git commit -m "feat: add BackendManager with get_backend() entry point"
 
 ---
 
-## Phase 3: Tool Migration (same feature branch)
+## Phase 3: Tool Migration (new feature branch after foundation PR merges)
 
 Each task follows the same pattern:
 1. Replace `get_browser_manager()` + page retrieval with `get_backend()`
