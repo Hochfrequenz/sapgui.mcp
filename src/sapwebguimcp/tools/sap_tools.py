@@ -29,9 +29,7 @@ from urllib.parse import urlparse
 from fastmcp import Context, FastMCP
 
 from sapwebguimcp.backend.webgui.js_helpers import load_js as _load_js
-from sapwebguimcp.backend.webgui.js_helpers import (
-    load_js_with_field_utils as _load_js_with_field_utils,
-)
+from sapwebguimcp.backend.webgui.js_helpers import load_js_with_field_utils as _load_js_with_field_utils
 from sapwebguimcp.middleware.logging import set_sap_identity
 from sapwebguimcp.models import (
     AlvCellInfo,

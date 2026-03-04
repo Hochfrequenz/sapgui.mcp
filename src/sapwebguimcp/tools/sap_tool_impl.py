@@ -14,9 +14,7 @@ import logging
 from typing import Any
 
 from sapwebguimcp.backend.webgui.js_helpers import load_js as _load_js
-from sapwebguimcp.backend.webgui.js_helpers import (
-    load_js_with_field_utils as _load_js_with_field_utils,
-)
+from sapwebguimcp.backend.webgui.js_helpers import load_js_with_field_utils as _load_js_with_field_utils
 from sapwebguimcp.models import (
     FieldFillError,
     FillFormResult,

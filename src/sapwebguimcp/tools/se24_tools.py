@@ -15,6 +15,7 @@ from typing import Any
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.models import (
     SE24Entry,
     SE24Error,
@@ -221,15 +222,18 @@ async def _lookup_single_class(page: Any, class_name: str) -> SE24Entry | SE24Er
     logger.debug("Got main snapshot", extra={"object": class_name, "length": len(main_snapshot)})
 
     # Capture each tab
+    methods_raw = await _capture_tab_snapshot(page, "methods")
+    attributes_raw = await _capture_tab_snapshot(page, "attributes")
+    interfaces_raw = await _capture_tab_snapshot(page, "interfaces")
     tab_snapshots = SE24TabSnapshots(
-        methods_tab=await _capture_tab_snapshot(page, "methods"),
-        attributes_tab=await _capture_tab_snapshot(page, "attributes"),
-        interfaces_tab=await _capture_tab_snapshot(page, "interfaces"),
+        methods_tab=AriaSnapshot(methods_raw) if methods_raw is not None else None,
+        attributes_tab=AriaSnapshot(attributes_raw) if attributes_raw is not None else None,
+        interfaces_tab=AriaSnapshot(interfaces_raw) if interfaces_raw is not None else None,
     )
 
     # Parse all snapshots
     return parse_se24_snapshot(
-        snapshot=main_snapshot,
+        snapshot=AriaSnapshot(main_snapshot),
         class_name=class_name,
         tab_snapshots=tab_snapshots,
     )

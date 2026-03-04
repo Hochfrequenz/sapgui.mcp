@@ -12,5 +12,5 @@ def test_aria_snapshot_is_str_subtype() -> None:
 
 def test_aria_snapshot_distinct_from_raw_str() -> None:
     """AriaSnapshot should be a NewType, not just str."""
-    snapshot = AriaSnapshot("body:\n  heading \"Title\"")
-    assert snapshot == "body:\n  heading \"Title\""
+    snapshot = AriaSnapshot('body:\n  heading "Title"')
+    assert snapshot == 'body:\n  heading "Title"'

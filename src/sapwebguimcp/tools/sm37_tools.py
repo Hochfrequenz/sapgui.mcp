@@ -16,6 +16,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import Locator, Page
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.sm37_models import SM37JobListResult, SM37JobLog
@@ -220,7 +221,7 @@ async def _fetch_job_log(page: Page, language: SapLanguage) -> SM37JobLog | None
             await page.wait_for_timeout(1000)
             return None
 
-        job_log = parse_sm37_job_log(snapshot, "")
+        job_log = parse_sm37_job_log(AriaSnapshot(snapshot), "")
 
         # Navigate back (F3)
         await page.keyboard.press("F3")
@@ -280,7 +281,7 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
 
     snapshot = await page.locator("body").aria_snapshot()
 
-    if is_no_jobs_found(snapshot):
+    if is_no_jobs_found(AriaSnapshot(snapshot)):
         return SM37JobListResult(
             jobs=[],
             job_count=0,
@@ -288,7 +289,7 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
             retrieved_at=now,
         )
 
-    jobs = parse_sm37_job_list(snapshot)
+    jobs = parse_sm37_job_list(AriaSnapshot(snapshot))
 
     if len(jobs) > _MAX_JOBS:
         logger.warning("Truncating job list total=%d max=%d", len(jobs), _MAX_JOBS)

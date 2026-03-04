@@ -1,4 +1,5 @@
 """JavaScript file loading helpers for the WebGUI backend."""
+
 from functools import lru_cache
 from importlib import resources
 
@@ -6,11 +7,7 @@ from importlib import resources
 @lru_cache(maxsize=16)
 def load_js(filename: str) -> str:
     """Load a JavaScript file from the sapwebguimcp.js package."""
-    return (
-        resources.files("sapwebguimcp.js")
-        .joinpath(filename)
-        .read_text(encoding="utf-8")
-    )
+    return resources.files("sapwebguimcp.js").joinpath(filename).read_text(encoding="utf-8")
 
 
 @lru_cache(maxsize=8)

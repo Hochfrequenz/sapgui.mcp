@@ -14,6 +14,7 @@ from typing import Any
 from fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row, get_browser_manager
 from sapwebguimcp.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
 from sapwebguimcp.tools.sap_tool_impl import (
@@ -607,8 +608,8 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
         return _empty_failure(table_error, table, now)
 
     # Parse hit count and columns
-    total_hits = parse_se16_hit_count(snapshot)
-    columns = parse_se16_columns(snapshot)
+    total_hits = parse_se16_hit_count(AriaSnapshot(snapshot))
+    columns = parse_se16_columns(AriaSnapshot(snapshot))
 
     if not columns:
         return _empty_failure(

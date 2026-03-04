@@ -15,6 +15,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from playwright.async_api import Locator, Page
 
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SM30_DISPLAY_BUTTON_DE,
     SM30_DISPLAY_BUTTON_EN,
@@ -160,7 +161,7 @@ async def _lookup_view(page: Page, view_name: str) -> SM30ViewResult:
         len(snapshot),
     )
 
-    return parse_sm30_snapshot(snapshot, view_name)
+    return parse_sm30_snapshot(AriaSnapshot(snapshot), view_name)
 
 
 # =============================================================================
