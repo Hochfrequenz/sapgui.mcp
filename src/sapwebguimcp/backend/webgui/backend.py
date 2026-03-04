@@ -86,19 +86,20 @@ def _parse_toolbar_note(snapshot_text: str) -> tuple[bool, str]:
     return False, message
 
 
+_UNESCAPED_CSS_SPECIAL = re.compile(r"(?<!\\)([:\[\]#,])")
+
+
 def _escape_css_selector(selector: str) -> str:
-    """Escape special CSS characters in SAP element IDs."""
+    """Escape special CSS characters in SAP element IDs.
+
+    Uses a negative-lookbehind so already-escaped characters (``\\:``)
+    are left alone while unescaped ones are escaped.  This correctly
+    handles partially-escaped selectors like ``#M0\\:48::btn[5]``.
+    """
     if not selector or not selector.startswith("#"):
         return selector
     id_part = selector[1:]
-    if any(f"\\{c}" in id_part for c in ":[]#,"):
-        return selector  # Already escaped
-    escaped_id = ""
-    for char in id_part:
-        if char in r":[]#,":
-            escaped_id += f"\\{char}"
-        else:
-            escaped_id += char
+    escaped_id = _UNESCAPED_CSS_SPECIAL.sub(r"\\\1", id_part)
     return f"#{escaped_id}"
 
 

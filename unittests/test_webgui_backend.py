@@ -50,6 +50,11 @@ def test_escape_css_selector_no_special_chars() -> None:
     assert _escape_css_selector("#simple-id") == "#simple-id"
 
 
+def test_escape_css_selector_partially_escaped() -> None:
+    """Partially-escaped selectors should only escape the unescaped chars."""
+    assert _escape_css_selector(r"#M0\:48::btn[5]") == r"#M0\:48\:\:btn\[5\]"
+
+
 def test_escape_css_selector_empty() -> None:
     """Empty selector should pass through."""
     assert _escape_css_selector("") == ""
