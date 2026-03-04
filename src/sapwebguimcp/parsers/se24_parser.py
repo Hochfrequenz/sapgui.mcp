@@ -194,6 +194,7 @@ def _parse_method_rows(snapshot: str) -> list[SE24Method]:
         desc = cells[4] if len(cells) > 4 else ""
 
         is_static = "static" in method_kind.lower()
+        is_abstract = "abstract" in method_kind.lower() or "abstrakt" in method_kind.lower()
         is_constructor = name.upper() in ("CONSTRUCTOR", "CLASS_CONSTRUCTOR")
 
         methods.append(
@@ -201,7 +202,7 @@ def _parse_method_rows(snapshot: str) -> list[SE24Method]:
                 name=name,
                 visibility=visibility,
                 is_static=is_static,
-                is_abstract=False,
+                is_abstract=is_abstract,
                 is_constructor=is_constructor,
                 description=desc.strip(),
             )

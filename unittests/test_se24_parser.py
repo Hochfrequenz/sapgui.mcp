@@ -176,6 +176,51 @@ class TestParseMethodsSnapshot:
         assert len(methods) == 1
         assert methods[0].is_constructor is True
 
+    def test_synthetic_abstract_method(self) -> None:
+        """Parse a synthetic Abstract Method row."""
+        snapshot = """- grid:
+  - rowgroup:
+    - row "header":
+      - columnheader "Methode"
+    - row "MY_METHOD Abstract Method Public Leer Does something":
+      - gridcell "MY_METHOD":
+        - textbox
+      - gridcell "Abstract Method":
+        - textbox
+      - gridcell "Public":
+        - textbox
+      - gridcell "Leer"
+      - gridcell "Does something":
+        - textbox
+"""
+        methods = parse_se24_methods_snapshot(snapshot)
+        assert len(methods) == 1
+        assert methods[0].name == "MY_METHOD"
+        assert methods[0].is_abstract is True
+        assert methods[0].is_static is False
+
+    def test_synthetic_abstract_method_german(self) -> None:
+        """Parse a synthetic Abstrakte Methode row (German)."""
+        snapshot = """- grid:
+  - rowgroup:
+    - row "header":
+      - columnheader "Methode"
+    - row "MY_METHOD Abstrakte Methode Public Leer Tut etwas":
+      - gridcell "MY_METHOD":
+        - textbox
+      - gridcell "Abstrakte Methode":
+        - textbox
+      - gridcell "Public":
+        - textbox
+      - gridcell "Leer"
+      - gridcell "Tut etwas":
+        - textbox
+"""
+        methods = parse_se24_methods_snapshot(snapshot)
+        assert len(methods) == 1
+        assert methods[0].is_abstract is True
+        assert methods[0].is_static is False
+
     def test_method_without_description(self) -> None:
         """Method with empty description gridcell."""
         snapshot = """- grid:
