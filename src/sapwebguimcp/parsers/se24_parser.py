@@ -304,9 +304,9 @@ def parse_se24_attributes_snapshot(snapshot: AriaSnapshot) -> list[SE24Attribute
 class SE24TabSnapshots:
     """Container for SE24 tab snapshots."""
 
-    methods_tab: str | None = None
-    attributes_tab: str | None = None
-    interfaces_tab: str | None = None
+    methods_tab: AriaSnapshot | None = None
+    attributes_tab: AriaSnapshot | None = None
+    interfaces_tab: AriaSnapshot | None = None
 
 
 def parse_se24_snapshot(

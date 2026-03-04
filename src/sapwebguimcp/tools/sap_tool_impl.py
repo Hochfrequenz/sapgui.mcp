@@ -31,6 +31,7 @@ from sapwebguimcp.utils import is_sap_shortcut
 
 __all__ = [
     "_load_js",
+    "_load_js_with_field_utils",
     "sap_transaction_impl",
     "sap_keyboard_impl",
     "sap_fill_form_impl",

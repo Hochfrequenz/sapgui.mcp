@@ -233,11 +233,11 @@ def parse_se37_exceptions_snapshot(snapshot: AriaSnapshot) -> list[SE37Exception
 class SE37TabSnapshots:
     """Container for SE37 tab snapshots."""
 
-    import_tab: str | None = None
-    export_tab: str | None = None
-    changing_tab: str | None = None
-    tables_tab: str | None = None
-    exceptions_tab: str | None = None
+    import_tab: AriaSnapshot | None = None
+    export_tab: AriaSnapshot | None = None
+    changing_tab: AriaSnapshot | None = None
+    tables_tab: AriaSnapshot | None = None
+    exceptions_tab: AriaSnapshot | None = None
 
 
 def parse_se37_snapshot(
