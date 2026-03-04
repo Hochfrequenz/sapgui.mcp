@@ -154,7 +154,7 @@ pydantic-settings==2.13.1
     # via
     #   mcp
     #   sapwebguimcp (pyproject.toml)
-pydocket==0.17.8
+pydocket==0.18.0
     # via fastmcp
 pyee==13.0.1
     # via playwright
