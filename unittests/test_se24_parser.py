@@ -363,7 +363,6 @@ class TestParseFullSnapshot:
             tab_snapshots=SE24TabSnapshots(methods_tab=methods),
         )
 
-
         assert isinstance(result, SE24Entry)
         assert result.class_name == "CL_SALV_TABLE"
         assert len(result.methods) >= 10
@@ -380,7 +379,6 @@ class TestParseFullSnapshot:
             tab_snapshots=SE24TabSnapshots(methods_tab=methods, attributes_tab=attributes),
         )
 
-
         assert isinstance(result, SE24Entry)
         assert result.class_name == "CL_ABAP_CHAR_UTILITIES"
         assert result.object_type == "class"
@@ -396,7 +394,6 @@ class TestParseFullSnapshot:
             class_name="ZZZNOTEXIST_CLASS_99",
         )
 
-
         assert isinstance(result, SE24Error)
         assert "not found" in result.error.lower() or "initial screen" in result.error.lower()
 
@@ -404,7 +401,6 @@ class TestParseFullSnapshot:
         """Without tab snapshots, methods and attributes are empty."""
         main = _load_snapshot("se24_cl_salv_table_main")
         result = parse_se24_snapshot(snapshot=main, class_name="CL_SALV_TABLE")
-
 
         assert isinstance(result, SE24Entry)
         assert result.methods == []
