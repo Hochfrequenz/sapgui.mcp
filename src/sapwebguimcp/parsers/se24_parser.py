@@ -93,6 +93,14 @@ def _extract_gridcell_rows(snapshot: str) -> list[list[str]]:
     (containing ``columnheader``), and collects quoted gridcell values.
     Empty gridcells (checkboxes, buttons without text) are skipped, so
     positions correspond only to cells that carry a text value.
+
+    The lookahead split on ``row "..."`` is intentionally broad — it will
+    match header rows, status rows, and rowgroup separators alike.  We rely
+    on two subsequent filters (``columnheader`` check and ``gridcell``
+    presence) plus the caller's ``name[0].isalpha()`` guard to discard
+    non-data rows.  This is simpler and more robust than anchoring the
+    split to a specific YAML indentation level, which could break if the
+    accessibility-tree nesting depth changes.
     """
     rows: list[list[str]] = []
     parts = re.split(r'(?=\s+- row ")', snapshot)
@@ -186,6 +194,10 @@ def _parse_method_rows(snapshot: str) -> list[SE24Method]:
         if len(cells) < 3:
             continue
         name = cells[0]
+        # SAP ABAP identifiers always start with a letter (A-Z); this
+        # filters out spurious rows (status bars, separators) that passed
+        # through _extract_gridcell_rows.  Interface methods like
+        # IF_SALV_GUI~METHOD also start with a letter, so no false negatives.
         if not name or not name[0].isalpha():
             continue
         method_kind = cells[1] if len(cells) > 1 else ""
@@ -194,6 +206,8 @@ def _parse_method_rows(snapshot: str) -> list[SE24Method]:
         desc = cells[4] if len(cells) > 4 else ""
 
         is_static = "static" in method_kind.lower()
+        # EN: "Abstract Method", DE: "Abstrakte Methode" — the German
+        # root "abstrakt" differs from English "abstract" (k vs c).
         is_abstract = "abstract" in method_kind.lower() or "abstrakt" in method_kind.lower()
         is_constructor = name.upper() in ("CONSTRUCTOR", "CLASS_CONSTRUCTOR")
 
@@ -229,10 +243,16 @@ def _parse_attribute_rows(snapshot: str) -> list[SE24Attribute]:
         if len(cells) < 3:
             continue
         name = cells[0]
+        # Same isalpha() guard as _parse_method_rows — SAP identifiers
+        # always start with a letter, so this filters non-data rows.
         if not name or not name[0].isalpha():
             continue
         attr_kind = cells[1] if len(cells) > 1 else ""
         visibility = _map_visibility(cells[2] if len(cells) > 2 else None)
+        # cells[3] is the typing keyword ("Type" / "Like") — skipped
+        # because _GRIDCELL_VALUE_RE only captures quoted text values and
+        # the typing column always has a quoted value, so it occupies a
+        # stable position in the cells list.
         type_ref = cells[4] if len(cells) > 4 else ""
         desc = cells[5] if len(cells) > 5 else ""
 

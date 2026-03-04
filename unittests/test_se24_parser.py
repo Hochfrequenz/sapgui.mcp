@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from sapwebguimcp.models.se24_models import SE24Entry, SE24Error
 from sapwebguimcp.parsers.se24_parser import (
     SE24TabSnapshots,
     parse_se24_attributes_snapshot,
@@ -362,7 +363,6 @@ class TestParseFullSnapshot:
             tab_snapshots=SE24TabSnapshots(methods_tab=methods),
         )
 
-        from sapwebguimcp.models.se24_models import SE24Entry
 
         assert isinstance(result, SE24Entry)
         assert result.class_name == "CL_SALV_TABLE"
@@ -380,7 +380,6 @@ class TestParseFullSnapshot:
             tab_snapshots=SE24TabSnapshots(methods_tab=methods, attributes_tab=attributes),
         )
 
-        from sapwebguimcp.models.se24_models import SE24Entry
 
         assert isinstance(result, SE24Entry)
         assert result.class_name == "CL_ABAP_CHAR_UTILITIES"
@@ -397,7 +396,6 @@ class TestParseFullSnapshot:
             class_name="ZZZNOTEXIST_CLASS_99",
         )
 
-        from sapwebguimcp.models.se24_models import SE24Error
 
         assert isinstance(result, SE24Error)
         assert "not found" in result.error.lower() or "initial screen" in result.error.lower()
@@ -407,7 +405,6 @@ class TestParseFullSnapshot:
         main = _load_snapshot("se24_cl_salv_table_main")
         result = parse_se24_snapshot(snapshot=main, class_name="CL_SALV_TABLE")
 
-        from sapwebguimcp.models.se24_models import SE24Entry
 
         assert isinstance(result, SE24Entry)
         assert result.methods == []
