@@ -552,14 +552,17 @@ from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils
 from sapwebguimcp.models import (
     ButtonInfo,
-    ClickResult,
+    ClosePopupResult,
     DropdownFillResult,
     FieldInfo,
     FillFormResult,
+    FormFieldsResult,
     KeyboardResult,
     LoginResult,
     PopupInfo,
     ScreenInfo,
+    ScreenText,
+    SessionStatus,
     StatusBarInfo,
     TableCellClickResult,
     TableData,
@@ -607,6 +610,11 @@ class WebGuiBackend:
         #   await self.wait_for_ready()
         raise NotImplementedError("TODO: extract from sap_tool_impl.py")
 
+    async def get_session_status(self) -> SessionStatus:
+        """Check session health (OK-Code field present, login form, timeouts)."""
+        # Implementation extracted from sap_tools.py sap_session_status (~line 1014).
+        raise NotImplementedError("TODO: extract from sap_tools.py")
+
     async def wait_for_ready(self, timeout_ms: int = 15000) -> None:
         """Wait for SAP page to finish loading."""
         await self._page.wait_for_load_state(
@@ -635,10 +643,11 @@ git commit -m "feat: add WebGuiBackend skeleton with navigation methods"
 - Modify: `src/sapwebguimcp/backend/webgui/backend.py`
 
 Add the `SapUiPrimitives` methods to `WebGuiBackend`. Extract logic from:
-- `fill_field` ← `sap_tool_impl.py` `_load_js("set_field.js")` pattern
+- `fill_field` ← `sap_tool_impl.py` `_load_js("set_field.js")` pattern. Raises `ValueError` on failure.
 - `fill_form` ← `sap_tool_impl.py` `sap_fill_form_impl` (lines ~130-180)
-- `click_button` ← `sap_tools.py` button click logic + `discover_buttons.js`
-- `click_tab` ← `se24_tools.py` `_click_tab` helper pattern
+- `fill_grid_cell` ← `se16_tools.py` filter filling logic + `fill_se16_filter.js`. For filling grid/table cells by row+column (needed by SE16 filters).
+- `click_button` ← `sap_tools.py` button click logic + `discover_buttons.js`. Returns `None`.
+- `click_tab` ← `se24_tools.py` `_click_tab` helper pattern. Returns `None`.
 - `press_key` ← `sap_tool_impl.py` `sap_keyboard_impl` (lines ~80-128)
 - `type_text` ← `page.keyboard.type()` wrapper
 - `select_dropdown` ← `sap_tools.py` dropdown selection logic
@@ -685,12 +694,14 @@ git commit -m "feat: implement SapUiPrimitives methods in WebGuiBackend"
 Add the `SapUiInspection` methods. Extract logic from:
 - `get_status_bar` ← `sap_tool_impl.py` `sap_read_status_bar_impl` + `extract_status_bar.js`
 - `get_screen_info` ← `sap_tool_impl.py` `sap_get_screen_info_impl` + `extract_screen_info.js`
+- `get_screen_text` ← `sap_tool_impl.py` `sap_get_screen_text_impl` + `extract_screen_text.js`. Accepts `include_dropdown_options: bool`. Returns `ScreenText`.
 - `discover_fields` ← `sap_tools.py` `sap_discover_fields` + `discover_fields.js`
+- `get_form_fields` ← `sap_tools.py` `sap_get_form_fields` + `detect_form_fields.js`. Returns `FormFieldsResult`.
 - `discover_buttons` ← `sap_tools.py` `sap_get_shortcuts` + `discover_buttons.js`
 - `get_snapshot` ← `page.locator("body").aria_snapshot()` → wrap in `AriaSnapshot()`
 - `take_screenshot` ← `page.screenshot(full_page=True)`
 - `read_table` ← `sap_tools.py` `sap_read_table` + `extract_table_data.js`
-- `click_table_cell` ← `sap_tools.py` `sap_click_table_cell` + `click_table_cell.js`
+- `click_table_cell` ← `sap_tools.py` `sap_click_table_cell` + `click_table_cell.js`. Signature: `(row: int, column: int | str, action: str = "click") -> TableCellClickResult`
 - `get_dropdown_options` ← `sap_tools.py` + `get_dropdown_options.js`
 
 **Key pattern:**
@@ -746,7 +757,7 @@ git commit -m "feat: implement SapEditor methods in WebGuiBackend"
 
 Extract logic from:
 - `check_popup` ← `sap_tools.py` popup detection + `check_popup.js`
-- `dismiss_popup` ← `sap_tools.py` popup dismissal pattern
+- `dismiss_popup` ← `sap_tools.py` popup dismissal pattern. Signature: `(button_label: str | None = None, use_close_button: bool = False) -> ClosePopupResult`
 
 **Step: Verify protocol compliance**
 
@@ -826,6 +837,7 @@ class BackendManager:
                 f"Valid types: {_VALID_BACKEND_TYPES}"
             )
         self.backend_type = backend_type
+        self._backends: dict[str, WebGuiBackend] = {}  # Cache by session ID
 
     async def get_or_create(
         self,
@@ -833,7 +845,11 @@ class BackendManager:
         agent_id: str | None = None,
         tool_name: str = "",
     ) -> SapUiBackend:
-        """Get or create a backend instance for the given session."""
+        """Get or create a backend instance for the given session.
+
+        Caches WebGuiBackend instances by session ID. Returns cached instance
+        if the underlying page is still the same, creates a new one otherwise.
+        """
         if self.backend_type == "webgui":
             from sapwebguimcp.backend.webgui.browser import (
                 get_browser_manager,
@@ -843,7 +859,13 @@ class BackendManager:
             page = await browser_manager.get_or_create_session_page_checked(
                 session, agent_id, tool_name
             )
-            return WebGuiBackend(page)
+            session_key = session or "s1"
+            cached = self._backends.get(session_key)
+            if cached is not None and cached._page is page:
+                return cached
+            backend = WebGuiBackend(page)
+            self._backends[session_key] = backend
+            return backend
         raise ValueError(f"No implementation for backend '{self.backend_type}'")
 
 
@@ -917,44 +939,59 @@ Each task follows the same pattern:
 
 ---
 
-### Task 11: Migrate `sap_tool_impl.py`
+### Task 11: Delete `sap_tool_impl.py`
 
 **Files:**
-- Modify: `src/sapwebguimcp/tools/sap_tool_impl.py`
+- Delete: `src/sapwebguimcp/tools/sap_tool_impl.py`
+- Modify: All files that import from `sap_tool_impl.py` (update to use `get_backend()` directly or import JS helpers from `backend.webgui.js_helpers`)
 
-This file contains shared implementations used by other tools. After migration, these functions should accept a `SapUiBackend` instead of operating on a `Page` directly.
+Per design review: `sap_tool_impl.py` is a double-delegation layer — its functions just wrap backend methods. Delete it outright instead of migrating. All callers switch to using `get_backend()` directly.
 
-**However**, since these functions will essentially become thin wrappers around backend methods, the cleaner approach is to **remove them** and have callers use the backend directly. But to avoid breaking all callers at once, first update them to delegate to the backend:
+**Step 1: Identify all importers**
 
-```python
-# sap_tool_impl.py — after migration
-
-from sapwebguimcp.backend import SapUiBackend, get_backend
-
-async def sap_transaction_impl(
-    tcode: str,
-    session: str | None = None,
-    agent_id: str | None = None,
-) -> TransactionResult:
-    backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_transaction")
-    return await backend.enter_transaction(tcode)
-
-async def sap_keyboard_impl(
-    key: str,
-    session: str | None = None,
-    agent_id: str | None = None,
-) -> KeyboardResult:
-    backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keyboard")
-    return await backend.press_key(key)
-
-# Same pattern for sap_fill_form_impl, sap_read_status_bar_impl, etc.
+```bash
+grep -r "from sapwebguimcp.tools.sap_tool_impl import" src/sapwebguimcp/
 ```
 
-Remove all `from playwright.async_api import Page` imports from this file.
+Typical imports to replace:
+- `sap_transaction_impl` → `backend.enter_transaction()`
+- `sap_keyboard_impl` → `backend.press_key()`
+- `sap_fill_form_impl` → `backend.fill_form()`
+- `sap_read_status_bar_impl` → `backend.get_status_bar()`
+- `sap_get_screen_info_impl` → `backend.get_screen_info()`
+- `sap_get_screen_text_impl` → `backend.get_screen_text()`
+- `_load_js` / `_load_js_with_field_utils` → `from sapwebguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils`
+
+**Step 2: Update each caller to use backend directly**
+
+Each file that imported from `sap_tool_impl.py` now calls `get_backend()` and uses protocol methods. Example:
+
+```python
+# BEFORE (in some tool file)
+from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
+result = await sap_transaction_impl(tcode, session, agent_id)
+
+# AFTER
+from sapwebguimcp.backend import get_backend
+backend = await get_backend(session=session, agent_id=agent_id, tool_name="...")
+result = await backend.enter_transaction(tcode)
+```
+
+**Step 3: Delete `sap_tool_impl.py`**
+
+```bash
+git rm src/sapwebguimcp/tools/sap_tool_impl.py
+```
+
+**Step 4: Run tests**
+
+```bash
+cd /c/github/sapwebgui.mcp && tox -e type_check
+```
 
 **Commit:**
 ```bash
-git commit -m "refactor: migrate sap_tool_impl.py to use backend protocol"
+git commit -m "refactor: delete sap_tool_impl.py, callers use backend directly"
 ```
 
 ---
@@ -988,21 +1025,22 @@ async def sap_transaction(tcode, new_window, session, agent_id):
 - `sap_transaction` → `backend.enter_transaction()`
 - `sap_keyboard` → `backend.press_key()`
 - `sap_fill_form` → `backend.fill_form()`
-- `sap_set_field` → `backend.fill_field()`
-- `sap_get_screen_text` → combination of inspection methods
+- `sap_set_field` → `backend.fill_field()` (raises `ValueError` on failure)
+- `sap_get_screen_text` → `backend.get_screen_text(include_dropdown_options=...)` (returns `ScreenText`)
 - `sap_get_screen_info` → `backend.get_screen_info()`
 - `sap_read_status_bar` → `backend.get_status_bar()`
-- `sap_get_form_fields` → `backend.discover_fields()`
+- `sap_get_form_fields` → `backend.get_form_fields()` (returns `FormFieldsResult`)
 - `sap_discover_fields` → `backend.discover_fields()`
 - `sap_get_shortcuts` / `sap_discover_buttons` → `backend.discover_buttons()`
 - `sap_read_table` → `backend.read_table()`
-- `sap_click_table_cell` → `backend.click_table_cell()`
+- `sap_click_table_cell` → `backend.click_table_cell(row, column, action)` (returns `TableCellClickResult`)
 - `sap_select_dropdown_option` → `backend.select_dropdown()`
+- `sap_get_dropdown_options` → `backend.get_dropdown_options(label)`
 - `sap_keepalive_start/stop` → These need special handling (timers that periodically interact with page). The keepalive logic may need to stay partly in the tool layer with backend calls.
 
 **Special cases:**
-- `sap_transaction` with `new_window=True` — This opens a new SAP session. The session-creation logic (waiting for new page, registering in SessionRegistry) needs to stay in the `BackendManager`, not the tool. Consider adding a `BackendManager.create_new_session()` method.
-- `sap_get_screen_text` — This tool combines multiple JS extractions (screen text, dropdowns). May need a dedicated backend method or composition of existing ones.
+- `sap_transaction` with `new_window=True` — Session-creation logic (waiting for new page, registering in SessionRegistry) belongs on `BackendManager`, not the protocol. Add `BackendManager.create_new_session()` method.
+- `sap_get_screen_text` — Maps directly to `backend.get_screen_text(include_dropdown_options=True/False)`, which internally combines the JS extractions. The protocol method handles the complexity.
 
 **Commit:**
 ```bash
@@ -1011,42 +1049,57 @@ git commit -m "refactor: migrate sap_tools.py to use backend protocol"
 
 ---
 
-### Task 13: Migrate `sap_page_helpers.py`
+### Task 13: Delete `sap_page_helpers.py`
 
 **Files:**
-- Modify: `src/sapwebguimcp/tools/sap_page_helpers.py`
+- Delete: `src/sapwebguimcp/tools/sap_page_helpers.py`
+- Modify: All files that import from `sap_page_helpers.py`
 
-These helpers (`navigate_transaction`, `fill_form_on_page`, `read_status_bar`) currently take a `Page` argument. Change them to accept `SapUiBackend`:
+These helpers (`navigate_transaction`, `fill_form_on_page`, `read_status_bar`) become one-liners when using the backend protocol. Delete the file outright and replace callers with direct backend calls.
+
+**Step 1: Identify all importers**
+
+```bash
+grep -r "from sapwebguimcp.tools.sap_page_helpers import" src/sapwebguimcp/
+```
+
+**Step 2: Replace each call**
 
 ```python
 # BEFORE
-async def navigate_transaction(page: Page, tcode: str) -> str | None:
-    ...
+from sapwebguimcp.tools.sap_page_helpers import navigate_transaction
+error = await navigate_transaction(page, "SE24")
 
 # AFTER
-async def navigate_transaction(backend: SapUiBackend, tcode: str) -> str | None:
-    result = await backend.enter_transaction(tcode)
-    if not result.success:
-        return result.error
-    return None
+result = await backend.enter_transaction("SE24")
+if not result.success:
+    return ...  # handle error using result.error
 ```
 
-Or better: since these are now one-liners, callers can use the backend directly and this file can be removed entirely in a later cleanup.
+Similarly:
+- `fill_form_on_page(page, fields)` → `await backend.fill_form(fields)`
+- `read_status_bar(page)` → `await backend.get_status_bar()`
+
+**Step 3: Delete the file**
+
+```bash
+git rm src/sapwebguimcp/tools/sap_page_helpers.py
+```
 
 **Commit:**
 ```bash
-git commit -m "refactor: migrate sap_page_helpers.py to use backend protocol"
+git commit -m "refactor: delete sap_page_helpers.py, callers use backend directly"
 ```
 
 ---
 
-### Task 14: Migrate edit tools
+### Task 14: Migrate edit tools and delete `edit_helpers.py`
 
 **Files:**
 - Modify: `src/sapwebguimcp/tools/se24_edit_tools.py`
 - Modify: `src/sapwebguimcp/tools/se37_edit_tools.py`
 - Modify: `src/sapwebguimcp/tools/se38_edit_tools.py`
-- Remove/modify: `src/sapwebguimcp/tools/edit_helpers.py` (logic moved to WebGuiBackend in Task 8)
+- Delete: `src/sapwebguimcp/tools/edit_helpers.py` (logic moved to WebGuiBackend in Task 8)
 
 **Migration pattern:**
 
@@ -1061,14 +1114,25 @@ success, messages, activated = await check_and_activate(page)
 backend = await get_backend(session=session, ...)
 backup = await backend.read_editor_source()
 await backend.replace_editor_source(new_code)
-result = await backend.check_and_activate()
+result = await backend.check_and_activate()  # returns CheckActivateResult (ToolResult subclass)
+# Use result.success, result.messages, result.activated — NOT tuple unpacking
 ```
 
-`edit_helpers.py` can be reduced to just `parse_toolbar_note()` (a pure string function) or removed if that logic moves into WebGuiBackend too.
+**Important:** `check_and_activate()` returns a `CheckActivateResult` (a Pydantic `ToolResult` subclass), not a tuple. Callers access fields via `result.success`, `result.messages`, `result.activated`.
+
+**Handling `edit_helpers.py`:**
+- `read_editor_source`, `replace_editor_source`, `check_and_activate` → moved into `WebGuiBackend` (Task 8)
+- `dismiss_language_dialog` → private method `_dismiss_language_dialog()` on `WebGuiBackend`
+- `parse_toolbar_note` → private function `_parse_toolbar_note()` in `backend/webgui/backend.py`
+- Delete `edit_helpers.py` entirely
+
+```bash
+git rm src/sapwebguimcp/tools/edit_helpers.py
+```
 
 **Commit:**
 ```bash
-git commit -m "refactor: migrate edit tools to use backend protocol"
+git commit -m "refactor: migrate edit tools to backend protocol, delete edit_helpers.py"
 ```
 
 ---
@@ -1107,12 +1171,12 @@ entry = parse_se24_snapshot(snapshot)
 
 **Important:** The label used in `fill_field()` must work in both DE and EN. The WebGuiBackend's `fill_field` implementation should try multiple label variants (the JS-based `set_field.js` already does fuzzy matching by label text). Verify this works for each transaction.
 
-**SE16 special case:** SE16 uses custom JS (`fill_se16_filter.js`, `find_se16_filter_input.js`) for filter fields. These don't map cleanly to `fill_field()`. Options:
-1. Add a WebGUI-specific helper method accessed via the page (breaks abstraction)
-2. Use `fill_form()` which uses `fill_form_fields.js` (may work if SE16 fields have labels)
-3. Add `fill_filter(column: str, value: str)` to the protocol for table filter scenarios
+**SE16 special case:** SE16 filter fields are grid cells, not labelled form fields. Use `backend.fill_grid_cell(row, column, value)` from the `SapUiPrimitives` protocol. The `WebGuiBackend` implementation uses `fill_se16_filter.js` internally.
 
-Decision: Try option 2 first. If SE16 filter fields don't have standard labels, add a protocol method.
+```python
+# SE16 filter filling
+await backend.fill_grid_cell(row=0, column="MATNR", value="1000")
+```
 
 **Commit per tool group or individually:**
 ```bash
@@ -1130,8 +1194,15 @@ git commit -m "refactor: migrate SE24/SE37/SE11/SE16/SE93 lookup tools to backen
 - Modify: `src/sapwebguimcp/tools/spro_tools.py`
 - Modify: `src/sapwebguimcp/tools/st22_tools.py`
 - Modify: `src/sapwebguimcp/tools/se09_tools.py`
+- Audit: `src/sapwebguimcp/tools/catalog_tools.py`
+- Audit: `src/sapwebguimcp/tools/class_tools.py`
+- Audit: `src/sapwebguimcp/tools/fm_tools.py`
+- Audit: `src/sapwebguimcp/tools/table_tools.py`
+- Audit: `src/sapwebguimcp/tools/workflow_tools.py`
 
 These all follow the same pattern as lookup tools: navigate to transaction, fill fields, press F-key, read snapshot/table, parse results.
+
+**Audit step:** Check the "Audit" files above for any direct Playwright imports. If they use `Page` or `get_browser_manager()`, migrate them too. If they only use parsers/models, no change needed.
 
 **SM37 special case:** Uses checkbox interactions (`page.get_by_role("checkbox").check()`). Add protocol support via `fill_field` for checkboxes or a dedicated method if needed. The `fill_form_fields.js` may already handle checkbox fields.
 
@@ -1147,7 +1218,20 @@ git commit -m "refactor: migrate monitoring tools (SM37/SLG1/SM30/SPRO/ST22/SE09
 **Files:**
 - Modify: `src/sapwebguimcp/tools/abapgit_tools.py`
 
-This is the largest tool file after sap_tools.py (1000 lines). Same migration pattern. Uses `sap_transaction_impl` and `sap_read_status_bar_impl` from `sap_tool_impl.py` — after Task 11 these already delegate to the backend.
+This is the largest tool file after sap_tools.py (~1000 lines). Same migration pattern. Previously imported from `sap_tool_impl.py` — since that file was deleted in Task 11, update all calls to use `get_backend()` directly:
+
+```python
+# BEFORE
+from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl, sap_read_status_bar_impl
+await sap_transaction_impl(tcode, session, agent_id)
+status = await sap_read_status_bar_impl(session, agent_id)
+
+# AFTER
+from sapwebguimcp.backend import get_backend
+backend = await get_backend(session=session, agent_id=agent_id, tool_name="...")
+await backend.enter_transaction(tcode)
+status = await backend.get_status_bar()
+```
 
 **Commit:**
 ```bash
@@ -1254,15 +1338,20 @@ git commit -m "refactor: update server.py to use BackendManager lifecycle"
 
 **Files:**
 - Modify: `src/sapwebguimcp/models/__init__.py` — remove `BrowserManager`, `get_browser_manager`, `close_browser_manager` re-exports (or keep as deprecated with a warning)
-- Modify: `src/sapwebguimcp/tools/sap_tool_impl.py` — remove functions that are now just one-line backend delegations (callers use backend directly)
-- Remove: `src/sapwebguimcp/tools/sap_page_helpers.py` — if all callers migrated to backend
-- Modify: `src/sapwebguimcp/tools/edit_helpers.py` — remove functions moved to WebGuiBackend, keep `parse_toolbar_note` if still used
+
+Note: `sap_tool_impl.py` was already deleted in Task 11, `sap_page_helpers.py` in Task 13, and `edit_helpers.py` in Task 14. This task handles remaining cleanup.
 
 **Verify no Playwright imports remain in tools/:**
 ```bash
 grep -r "from playwright" src/sapwebguimcp/tools/
 ```
 Expected: Only `browser_tools.py` should have Playwright imports.
+
+**Also verify no stale imports from deleted files:**
+```bash
+grep -r "sap_tool_impl\|sap_page_helpers\|edit_helpers" src/sapwebguimcp/tools/
+```
+Expected: No matches (all callers updated in earlier tasks).
 
 **Commit:**
 ```bash
@@ -1271,12 +1360,14 @@ git commit -m "chore: remove old re-exports and dead code after migration"
 
 ---
 
-### Task 22: Run full test suite and fix regressions
+### Task 22: Run full CI suite and fix regressions
+
+Use `tox` environments to match CI exactly.
 
 **Step 1: Run unit tests**
 
 ```bash
-python -m pytest unittests/ -k "not integration and not exploration" -v --timeout=60
+cd /c/github/sapwebgui.mcp && python -m pytest unittests/ -k "not integration and not exploration" -v --timeout=60
 ```
 
 Fix any failures. Common issues:
@@ -1284,25 +1375,29 @@ Fix any failures. Common issues:
 - Function signatures changed (Page → SapUiBackend)
 - Missing re-exports
 
-**Step 2: Run type checking**
+**Step 2: Run type checking (matches CI)**
 
 ```bash
-python -m mypy src/sapwebguimcp/backend/ --ignore-missing-imports
+cd /c/github/sapwebgui.mcp && tox -e type_check
 ```
 
-**Step 3: Run linting**
+**Step 3: Run formatting check (matches CI)**
 
 ```bash
-python -m pylint src/sapwebguimcp/backend/
-python -m black src/sapwebguimcp/ --check
-python -m isort src/sapwebguimcp/ --check
+cd /c/github/sapwebgui.mcp && tox -e formatting
 ```
 
-**Step 4: Format**
+**Step 4: Auto-fix formatting if needed**
 
 ```bash
-python -m black src/sapwebguimcp/
-python -m isort src/sapwebguimcp/
+cd /c/github/sapwebgui.mcp && python -m black src/ unittests/
+cd /c/github/sapwebgui.mcp && python -m isort src/ unittests/
+```
+
+**Step 5: Run spelling check (matches CI)**
+
+```bash
+cd /c/github/sapwebgui.mcp && tox -e spelling
 ```
 
 **Commit:**
@@ -1346,4 +1441,4 @@ git commit -m "feat: add SAP_UI_BACKEND config option (default: webgui)"
 
 **Total files created:** 6 new files in `backend/`
 **Total files modified:** ~30 tool and model files
-**Total files potentially removed:** 2 (`sap_page_helpers.py`, parts of `edit_helpers.py`)
+**Total files deleted:** 3 (`sap_tool_impl.py`, `sap_page_helpers.py`, `edit_helpers.py`)
