@@ -571,8 +571,8 @@ async def test_se24_lookup_methods_parsing(sap_mcp_client: ClientSession) -> Non
     assert result.success
     entry = result.entries[0]
 
-    # CL_SALV_TABLE should have methods
-    # The exact count may vary, but it should have at least some methods
-    # Note: Methods may be empty if YAML snapshots haven't been captured yet
-    # This test verifies the tool runs without errors
     assert entry.class_name == "CL_SALV_TABLE"
+    # CL_SALV_TABLE has many interface methods (IF_SALV_GUI_OM_*)
+    assert len(entry.methods) >= 10, f"Expected >=10 methods, got {len(entry.methods)}"
+    method_names = {m.name for m in entry.methods}
+    assert any("~" in n for n in method_names), "Expected interface methods with ~ separator"

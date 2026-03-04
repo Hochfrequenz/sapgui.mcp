@@ -5,17 +5,7 @@
     - 'heading "Class Builder: Interface IF_SERIALIZABLE_OBJECT anzeigen" [level=1]'
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Interface"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Hilfsmittel"
-      - button "Umfeld"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - button "Drucken (Strg+P)"
-    - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Anzeigen <-> Ändern"
@@ -25,8 +15,9 @@
       - button "Prüfen"
       - button "Aktivieren"
       - button "Verwendung Klasse / Interface"
-      - button "Objektliste anzeigen"
       - button "Mehr"
+    - button "Drucken (Strg+P)"
+    - button "Beenden"
   - text: Interface
   - textbox "Interface": IF_SERIALIZABLE_OBJECT
   - button "realisiert / Aktiv"
@@ -62,6 +53,30 @@
           - columnheader "Methodentyp"
           - columnheader "Beschreibung"
         - button ""
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
+        - row "Leer":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell "Leer"
+          - gridcell:
+            - textbox
         - row "Leer":
           - gridcell:
             - textbox
@@ -210,15 +225,15 @@
         - cell "Transaktion"
         - cell "SE24"
         - cell
-      - row "E2E-Zeit 218 ms":
+      - row "E2E-Zeit 253 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "218 ms"
+        - cell "253 ms"
         - cell
-      - row "WebGUI-Zeit 95 ms":
+      - row "WebGUI-Zeit 86 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "95 ms"
+        - cell "86 ms"
         - cell

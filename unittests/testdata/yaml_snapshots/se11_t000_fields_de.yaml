@@ -5,20 +5,7 @@
     - 'heading "Dictionary: Tabelle anzeigen" [level=1]'
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Tabelle"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Hilfsmittel"
-      - button "Zusätze"
-      - button "Umfeld"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - button "Suchen (Strg+F)"
-    - button "Weiter suchen (Strg+G)"
-    - button "Drucken... (Strg+P)"
-    - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Anzeigen <-> Ändern"
@@ -27,8 +14,11 @@
       - button "Aktivieren"
       - button "Verwendungsnachweis"
       - button "Objektliste anzeigen"
-      - button "Navigationsfenster anzeigen"
       - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Weiter suchen (Strg+G)"
+    - button "Drucken... (Strg+P)"
+    - button "Beenden"
   - text: Transp.Tabelle
   - textbox "Transp.Tabelle": T000
   - button "aktiv"
@@ -337,6 +327,50 @@
             - textbox
           - gridcell:
             - textbox
+        - 'row "Zum Auswählen einer Zeile drücken Sie die Leertaste. CCIMAILDIS  CCIMAILDIS CHAR 1 0 0 Mandantensteuerung: Erlaubnis für Starten von CATT und eCATT"':
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "CCIMAILDIS":
+            - textbox
+          - gridcell:
+            - checkbox [disabled]
+          - gridcell "":
+            - checkbox "" [checked] [disabled]
+          - gridcell "CCIMAILDIS":
+            - textbox
+          - gridcell "CHAR":
+            - button "CHAR"
+          - gridcell "1":
+            - textbox
+          - gridcell "0":
+            - textbox
+          - gridcell "0":
+            - textbox "Koordinatensystem"
+          - 'gridcell "Mandantensteuerung: Erlaubnis für Starten von CATT und eCATT"':
+            - textbox
+          - gridcell:
+            - textbox
+        - 'row "Zum Auswählen einer Zeile drücken Sie die Leertaste. CCTEMPLOCK  CCTEMPLOCK CHAR 1 0 0 Client Control: Kennzeichen, daß Mandant derzeit gesperrt"':
+          - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
+          - gridcell "CCTEMPLOCK":
+            - textbox
+          - gridcell:
+            - checkbox [disabled]
+          - gridcell "":
+            - checkbox "" [checked] [disabled]
+          - gridcell "CCTEMPLOCK":
+            - textbox
+          - gridcell "CHAR":
+            - button "CHAR"
+          - gridcell "1":
+            - textbox
+          - gridcell "0":
+            - textbox
+          - gridcell "0":
+            - textbox "Koordinatensystem"
+          - 'gridcell "Client Control: Kennzeichen, daß Mandant derzeit gesperrt"':
+            - textbox
+          - gridcell:
+            - textbox
       - rowgroup
       - rowgroup
   - menu:
@@ -371,15 +405,15 @@
         - cell "Transaktion"
         - cell "SE11"
         - cell
-      - row "E2E-Zeit 314 ms":
+      - row "E2E-Zeit 450 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "314 ms"
+        - cell "450 ms"
         - cell
-      - row "WebGUI-Zeit 146 ms":
+      - row "WebGUI-Zeit 173 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "146 ms"
+        - cell "173 ms"
         - cell

@@ -14,8 +14,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sapwebguimcp.lang import (
-    SE24_ABSTRACT_DE,
-    SE24_ABSTRACT_EN,
     SE24_CLASS_BUILDER_DE,
     SE24_CLASS_BUILDER_EN,
     SE24_CLASS_DE,
@@ -35,10 +33,6 @@ from sapwebguimcp.lang import (
     SE24_PRIVATE_EN,
     SE24_PROTECTED_DE,
     SE24_PROTECTED_EN,
-    SE24_PUBLIC_DE,
-    SE24_PUBLIC_EN,
-    SE24_STATIC_DE,
-    SE24_STATIC_EN,
     bilingual_pattern,
 )
 from sapwebguimcp.models.se24_models import (
@@ -82,40 +76,43 @@ _OBJECT_TYPE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# Visibility pattern for methods and attributes (Public/Private/Protected in DE/EN)
-_VISIBILITY_PATTERN = (
-    f"{SE24_PUBLIC_EN}|{SE24_PRIVATE_EN}|{SE24_PROTECTED_EN}" f"|{SE24_PUBLIC_DE}|{SE24_PRIVATE_DE}|{SE24_PROTECTED_DE}"
-)
-
-# Method row pattern - extract method info from grid row
-# Uses explicit constants: SE24_PUBLIC/PRIVATE/PROTECTED_DE/EN, SE24_STATIC_DE/EN, SE24_ABSTRACT_DE/EN
-# Format varies, but typically: "METHOD_NAME visibility [static] [abstract] Description"
-_METHOD_ROW_PATTERN = re.compile(
-    r'row "(?P<name>[A-Z0-9_]+)'
-    rf"(?:\\s+(?P<visibility>{_VISIBILITY_PATTERN}))?"
-    rf"(?:\\s+(?P<static>{SE24_STATIC_EN}|{SE24_STATIC_DE}))?"
-    rf"(?:\\s+(?P<abstract>{SE24_ABSTRACT_EN}|{SE24_ABSTRACT_DE}))?"
-    r'(?:\\s+(?P<desc>[^"]*))?"\\s*:',
-    re.IGNORECASE,
-)
-
-# Attribute row pattern
-# Uses explicit constants: SE24_PUBLIC/PRIVATE/PROTECTED_DE/EN
-_ATTRIBUTE_ROW_PATTERN = re.compile(
-    r'row "(?P<name>[A-Z0-9_]+)'
-    rf"(?:\\s+(?P<visibility>{_VISIBILITY_PATTERN}))?"
-    r"(?:\\s+(?P<type_ref>[A-Z0-9_]+))?"
-    r'(?:\\s+(?P<desc>[^"]*))?"\\s*:',
-    re.IGNORECASE,
-)
-
-# Check if checkbox is checked (for static, constant, etc.)
-_CHECKBOX_CHECKED_PATTERN = re.compile(r"checkbox[^]]*\[checked\]", re.IGNORECASE)
+# Gridcell value extraction: matches gridcells with a quoted text value.
+# Empty gridcells (checkboxes, buttons without text) are skipped.
+_GRIDCELL_VALUE_RE = re.compile(r'gridcell "([^"]*)"')
 
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
+
+def _extract_gridcell_rows(snapshot: str) -> list[list[str]]:
+    """Extract data rows from a grid as lists of gridcell text values.
+
+    Splits the snapshot by ``row "..."`` markers, skips header rows
+    (containing ``columnheader``), and collects quoted gridcell values.
+    Empty gridcells (checkboxes, buttons without text) are skipped, so
+    positions correspond only to cells that carry a text value.
+
+    The lookahead split on ``row "..."`` is intentionally broad — it will
+    match header rows, status rows, and rowgroup separators alike.  We rely
+    on two subsequent filters (``columnheader`` check and ``gridcell``
+    presence) plus the caller's ``name[0].isalpha()`` guard to discard
+    non-data rows.  This is simpler and more robust than anchoring the
+    split to a specific YAML indentation level, which could break if the
+    accessibility-tree nesting depth changes.
+    """
+    rows: list[list[str]] = []
+    parts = re.split(r'(?=\s+- row ")', snapshot)
+    for part in parts:
+        if "columnheader" in part:
+            continue
+        if "gridcell" not in part:
+            continue
+        cells = _GRIDCELL_VALUE_RE.findall(part)
+        if cells:
+            rows.append(cells)
+    return rows
 
 
 def _map_visibility(visibility_str: str | None) -> SE24Visibility:
@@ -182,18 +179,37 @@ def _is_class_not_found(snapshot: str, class_name: str) -> bool:
 
 
 def _parse_method_rows(snapshot: str) -> list[SE24Method]:
-    """Parse method rows from Methods tab grid."""
+    """Parse method rows from Methods tab grid using gridcell values.
+
+    Grid columns (quoted gridcells only, empty cells skipped):
+        [0] Method name  (may include IF_*~ prefix for interface methods)
+        [1] Art          ("Instance Method" / "Static Method")
+        [2] Visibility   ("Public" / "Private" / "Protected")
+        [3] Method type  ("Leer" / "Empty" – ignored)
+        [4] Description  (optional)
+    """
     methods: list[SE24Method] = []
 
-    for match in _METHOD_ROW_PATTERN.finditer(snapshot):
-        name = match.group("name")
-        visibility = _map_visibility(match.group("visibility"))
-        is_static = match.group("static") is not None
-        is_abstract = match.group("abstract") is not None
-        desc = match.group("desc") or ""
+    for cells in _extract_gridcell_rows(snapshot):
+        if len(cells) < 3:
+            continue
+        name = cells[0]
+        # SAP ABAP identifiers always start with a letter (A-Z); this
+        # filters out spurious rows (status bars, separators) that passed
+        # through _extract_gridcell_rows.  Interface methods like
+        # IF_SALV_GUI~METHOD also start with a letter, so no false negatives.
+        if not name or not name[0].isalpha():
+            continue
+        method_kind = cells[1] if len(cells) > 1 else ""
+        visibility = _map_visibility(cells[2] if len(cells) > 2 else None)
+        # cells[3] is method type ("Leer"), skip
+        desc = cells[4] if len(cells) > 4 else ""
 
-        # Check for constructor
-        is_constructor = name.upper() == "CONSTRUCTOR" or name.upper() == "CLASS_CONSTRUCTOR"
+        is_static = "static" in method_kind.lower()
+        # EN: "Abstract Method", DE: "Abstrakte Methode" — the German
+        # root "abstrakt" differs from English "abstract" (k vs c).
+        is_abstract = "abstract" in method_kind.lower() or "abstrakt" in method_kind.lower()
+        is_constructor = name.upper() in ("CONSTRUCTOR", "CLASS_CONSTRUCTOR")
 
         methods.append(
             SE24Method(
@@ -210,26 +226,38 @@ def _parse_method_rows(snapshot: str) -> list[SE24Method]:
 
 
 def _parse_attribute_rows(snapshot: str) -> list[SE24Attribute]:
-    """Parse attribute rows from Attributes tab grid."""
+    """Parse attribute rows from Attributes tab grid using gridcell values.
+
+    Grid columns (quoted gridcells only, empty cells skipped):
+        [0] Attribute name
+        [1] Art           ("Constant" / "Static Attribute" / "Instance Attribute")
+        [2] Visibility    ("Public" / "Private" / "Protected")
+        [3] Typing        ("Type" / "Like" / etc.)
+        [4] Type ref      ("STRING", "I", "ABAP_CHAR1", ...)
+        [5] Description   (optional)
+        [6] Initial value (optional)
+    """
     attributes: list[SE24Attribute] = []
 
-    for match in _ATTRIBUTE_ROW_PATTERN.finditer(snapshot):
-        name = match.group("name")
-        visibility = _map_visibility(match.group("visibility"))
-        type_ref = match.group("type_ref") or ""
-        desc = match.group("desc") or ""
+    for cells in _extract_gridcell_rows(snapshot):
+        if len(cells) < 3:
+            continue
+        name = cells[0]
+        # Same isalpha() guard as _parse_method_rows — SAP identifiers
+        # always start with a letter, so this filters non-data rows.
+        if not name or not name[0].isalpha():
+            continue
+        attr_kind = cells[1] if len(cells) > 1 else ""
+        visibility = _map_visibility(cells[2] if len(cells) > 2 else None)
+        # cells[3] is the typing keyword ("Type" / "Like") — skipped
+        # because _GRIDCELL_VALUE_RE only captures quoted text values and
+        # the typing column always has a quoted value, so it occupies a
+        # stable position in the cells list.
+        type_ref = cells[4] if len(cells) > 4 else ""
+        desc = cells[5] if len(cells) > 5 else ""
 
-        # Get row content to check checkboxes
-        row_start = match.start()
-        row_end = snapshot.find("\\n        - row", row_start + 1)
-        if row_end == -1:
-            row_end = len(snapshot)
-        row_content = snapshot[row_start:row_end]
-
-        # Check for static and constant flags via checkboxes
-        checked_count = len(_CHECKBOX_CHECKED_PATTERN.findall(row_content))
-        is_static = checked_count >= 1
-        is_constant = checked_count >= 2
+        is_constant = "constant" in attr_kind.lower()
+        is_static = is_constant or "static" in attr_kind.lower()
 
         attributes.append(
             SE24Attribute(

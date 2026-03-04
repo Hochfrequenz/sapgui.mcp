@@ -13,7 +13,6 @@
       - button "Standardeinstellungen holen"
       - button "Transport Organizer Tools"
       - button "Einzelanzeige..."
-      - button "Mehr"
     - button "Suchen (Strg+F)"
     - button "Beenden"
   - text: Benutzer
@@ -78,15 +77,15 @@
         - cell "Transaktion"
         - cell "SE09"
         - cell
-      - row "E2E-Zeit 84 ms":
+      - row "E2E-Zeit 91 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "84 ms"
+        - cell "91 ms"
         - cell
-      - row "WebGUI-Zeit 37 ms":
+      - row "WebGUI-Zeit 47 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "37 ms"
+        - cell "47 ms"
         - cell

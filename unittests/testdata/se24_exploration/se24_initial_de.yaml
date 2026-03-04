@@ -5,18 +5,7 @@
     - 'heading "Class Builder: Einstieg" [level=1]'
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Objekttyp"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Hilfsmittel"
-      - button "Umfeld"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - button "Suchen (Strg+F)"
-    - button "Drucken... (Strg+P)"
-    - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Syntax"
@@ -24,9 +13,10 @@
       - button "In der Testumgebung"
       - button "Verwendung Klasse / Interface"
       - button "Hilfe zur Anwendung"
-      - button "Klasse/Interface löschen"
-      - button "Klasse/Interface kopieren"
       - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Drucken... (Strg+P)"
+    - button "Beenden"
   - text: Objekttyp
   - textbox "Objekttyp"
   - button "Anzeigen"
@@ -65,15 +55,15 @@
         - cell "Transaktion"
         - cell "SE24"
         - cell
-      - row "E2E-Zeit 227 ms":
+      - row "E2E-Zeit 144 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "227 ms"
+        - cell "144 ms"
         - cell
-      - row "WebGUI-Zeit 117 ms":
+      - row "WebGUI-Zeit 75 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "117 ms"
+        - cell "75 ms"
         - cell
