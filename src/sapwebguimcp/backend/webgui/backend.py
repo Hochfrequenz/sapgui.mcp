@@ -162,7 +162,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception as e:  # pylint: disable=broad-exception-caught
             return False, f"Error enabling OK-Code field: {e}"
 
-    async def _dismiss_language_dialog(self) -> None:
+    async def dismiss_language_dialog(self) -> None:
         """Handle SAP's 'Different original and logon languages' popup."""
         snap = await self._page.locator("body").aria_snapshot()
         if "Different original and logon languages" not in snap and "Originalsprache und Anmeldesprache" not in snap:

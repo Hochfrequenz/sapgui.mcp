@@ -162,6 +162,9 @@ class SapEditor(Protocol):
     async def check_and_activate(self) -> CheckActivateResult:
         """Run syntax check (Ctrl+F2) and activate (Ctrl+F3)."""
 
+    async def dismiss_language_dialog(self) -> None:
+        """Dismiss the 'Different original and logon languages' dialog if present."""
+
 
 @runtime_checkable
 class SapPopup(Protocol):
