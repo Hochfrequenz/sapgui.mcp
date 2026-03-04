@@ -900,7 +900,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 elif matched_button.accesskey:
                     await self._page.keyboard.press(f"Alt+{matched_button.accesskey}")
                 else:
-                    await self._page.click(f"button:has-text('{matched_button.label}')")
+                    await self._page.get_by_role("button", name=matched_button.label).click()
                 clicked_label = matched_button.label
 
             await self._page.wait_for_timeout(500)
