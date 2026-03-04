@@ -174,7 +174,7 @@ python-json-logger==4.0.0
     # via pydocket
 python-multipart==0.0.22
     # via mcp
-pytz==2025.2
+pytz==2026.1.post1
     # via croniter
 pywin32==311 ; sys_platform == "win32"
     # via
