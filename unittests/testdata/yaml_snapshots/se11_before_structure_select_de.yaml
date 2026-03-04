@@ -5,18 +5,7 @@
     - 'heading "ABAP Dictionary: Einstieg" [level=1]'
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Dictionary Objekt"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Hilfsmittel"
-      - button "Umfeld"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - button "Suchen (Strg+F)"
-    - button "Drucken... (Strg+P)"
-    - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Prüfen"
@@ -26,6 +15,9 @@
       - button "Online Handbuch"
       - button "Löschen"
       - button "Kopieren..."
+    - button "Suchen (Strg+F)"
+    - button "Drucken... (Strg+P)"
+    - button "Beenden"
   - radio "Datenbanktabelle" [checked]
   - textbox "Tabellenname, 16-stellig"
   - radio "View"
@@ -76,15 +68,15 @@
         - cell "Transaktion"
         - cell "SE11"
         - cell
-      - row "E2E-Zeit 233 ms":
+      - row "E2E-Zeit 101 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "233 ms"
+        - cell "101 ms"
         - cell
-      - row "WebGUI-Zeit 103 ms":
+      - row "WebGUI-Zeit 38 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "103 ms"
+        - cell "38 ms"
         - cell

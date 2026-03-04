@@ -5,18 +5,7 @@
     - 'heading "Class Builder: Klasse CL_ABAP_CHAR_UTILITIES anzeigen" [level=1]'
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Klasse"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Hilfsmittel"
-      - button "Umfeld"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - button "Suchen (Strg+F)"
-    - button "Drucken (Strg+P)"
-    - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Anzeigen <-> Ändern"
@@ -26,8 +15,10 @@
       - button "Prüfen"
       - button "Aktivieren"
       - button "In der Testumgebung"
-      - button "Verwendung Klasse / Interface"
       - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Drucken (Strg+P)"
+    - button "Beenden"
   - text: Klasse/Interface
   - textbox "Klasse/Interface": CL_ABAP_CHAR_UTILITIES
   - button "realisiert / Aktiv"
@@ -333,6 +324,63 @@
             - textbox
           - gridcell:
             - textbox
+        - row "SPACE_STR_LANGU Static Attribute Private Type LANGU Sprachkennzeichen zu SPACE_STR":
+          - gridcell "SPACE_STR_LANGU":
+            - textbox
+          - gridcell "Static Attribute":
+            - textbox
+          - gridcell "Private":
+            - textbox
+          - gridcell:
+            - checkbox [disabled]
+          - gridcell "Type":
+            - textbox
+          - gridcell "LANGU":
+            - textbox
+          - gridcell:
+            - button "Direkte Typeingabe"
+          - gridcell "Sprachkennzeichen zu SPACE_STR":
+            - textbox
+          - gridcell:
+            - textbox
+        - row "Type":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - checkbox [disabled]
+          - gridcell "Type":
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - button "Direkte Typeingabe"
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+        - row "Type":
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - checkbox [disabled]
+          - gridcell "Type":
+            - textbox
+          - gridcell:
+            - textbox
+          - gridcell:
+            - button "Direkte Typeingabe"
+          - gridcell:
+            - textbox
+          - gridcell:
+            - textbox
       - rowgroup
       - rowgroup
   - menu:
@@ -367,15 +415,15 @@
         - cell "Transaktion"
         - cell "SE24"
         - cell
-      - row "E2E-Zeit 184 ms":
+      - row "E2E-Zeit 215 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "184 ms"
+        - cell "215 ms"
         - cell
-      - row "WebGUI-Zeit 106 ms":
+      - row "WebGUI-Zeit 149 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "106 ms"
+        - cell "149 ms"
         - cell

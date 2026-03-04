@@ -5,18 +5,7 @@
     - 'heading "Class Builder: Klasse CL_SALV_TABLE anzeigen" [level=1]'
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Klasse"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Hilfsmittel"
-      - button "Umfeld"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - button "Suchen (Strg+F)"
-    - button "Drucken (Strg+P)"
-    - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Anzeigen <-> Ändern"
@@ -26,8 +15,10 @@
       - button "Prüfen"
       - button "Aktivieren"
       - button "In der Testumgebung"
-      - button "Verwendung Klasse / Interface"
       - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Drucken (Strg+P)"
+    - button "Beenden"
   - text: Klasse/Interface
   - textbox "Klasse/Interface": CL_SALV_TABLE
   - button "realisiert / Aktiv"
@@ -208,6 +199,36 @@
           - gridcell "Leer"
           - gridcell "Get Height of HTML Header":
             - textbox
+        - row "IF_SALV_GUI_OM_TABLE_INFO~GET_END_OF_LIST_PRINT Instance Method Public Leer Get Display Object for Footer (Print)":
+          - gridcell "IF_SALV_GUI_OM_TABLE_INFO~GET_END_OF_LIST_PRINT":
+            - textbox
+          - gridcell "Instance Method":
+            - textbox
+          - gridcell "Public":
+            - textbox
+          - gridcell "Leer"
+          - gridcell "Get Display Object for Footer (Print)":
+            - textbox
+        - row "IF_SALV_GUI_OM_TABLE_INFO~GET_EVENT Instance Method Public Leer Get Event Object":
+          - gridcell "IF_SALV_GUI_OM_TABLE_INFO~GET_EVENT":
+            - textbox
+          - gridcell "Instance Method":
+            - textbox
+          - gridcell "Public":
+            - textbox
+          - gridcell "Leer"
+          - gridcell "Get Event Object":
+            - textbox
+        - row "IF_SALV_GUI_OM_TABLE_INFO~GET_FILTERS Instance Method Public Leer Get Filter Object":
+          - gridcell "IF_SALV_GUI_OM_TABLE_INFO~GET_FILTERS":
+            - textbox
+          - gridcell "Instance Method":
+            - textbox
+          - gridcell "Public":
+            - textbox
+          - gridcell "Leer"
+          - gridcell "Get Filter Object":
+            - textbox
       - rowgroup
       - rowgroup
   - note "Erfolgreich Meldungsleiste Änderungen werden vom quellbasierten Class Builder nicht unterstützt":
@@ -244,15 +265,15 @@
         - cell "Transaktion"
         - cell "SE24"
         - cell
-      - row "E2E-Zeit 301 ms":
+      - row "E2E-Zeit 285 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "301 ms"
+        - cell "285 ms"
         - cell
-      - row "WebGUI-Zeit 91 ms":
+      - row "WebGUI-Zeit 93 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "91 ms"
+        - cell "93 ms"
         - cell

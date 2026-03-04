@@ -5,17 +5,7 @@
     - heading "Allgemeine Tabellenanzeige" [level=1]
     - button "Systeminformationen öffnen"
     - toolbar:
-      - button "Tabellenanzeige"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Zusätze"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - button "Suchen (Strg+F)"
-    - button "Weiter suchen (Strg+G)"
-    - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Online"
@@ -24,9 +14,10 @@
       - button "Alle markieren"
       - button "Schlüsselfelder für Ausgabe markieren"
       - button "Alle Mark. löschen"
-      - button "Zeile löschen"
-      - button "Alle Eingaben"
       - button "Mehr"
+    - button "Suchen (Strg+F)"
+    - button "Weiter suchen (Strg+G)"
+    - button "Beenden"
   - text: Tabelle
   - textbox "Tabelle"
   - button "More Information"
@@ -303,15 +294,15 @@
         - cell "Transaktion"
         - cell "SE16N"
         - cell
-      - row "E2E-Zeit 143 ms":
+      - row "E2E-Zeit 126 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "143 ms"
+        - cell "126 ms"
         - cell
-      - row "WebGUI-Zeit 92 ms":
+      - row "WebGUI-Zeit 72 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "92 ms"
+        - cell "72 ms"
         - cell
