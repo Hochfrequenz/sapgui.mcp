@@ -29,7 +29,7 @@ jobs:
         run: tox exec -e build_executable -- pip freeze > dist/build-dependencies.txt
 
       - name: Upload Executable as Artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sapwebgui_mcp_windows
           path: |
