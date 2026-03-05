@@ -213,9 +213,7 @@ class TestRunPullAndCheckErrors:
         from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
         mock_backend = self._mock_backend_no_popup()
-        mock_backend._page.wait_for_load_state = AsyncMock(
-            side_effect=PlaywrightTimeout("networkidle timeout")
-        )
+        mock_backend._page.wait_for_load_state = AsyncMock(side_effect=PlaywrightTimeout("networkidle timeout"))
 
         with patch(
             "sapwebguimcp.tools.abapgit_tools._handle_popup_error",
