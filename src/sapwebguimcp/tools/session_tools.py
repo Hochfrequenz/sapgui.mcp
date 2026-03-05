@@ -2,13 +2,13 @@
 
 import logging
 
+from sapwebguimcp.backend.webgui.browser import get_browser_manager
 from sapwebguimcp.models import (
     SessionBindResult,
     SessionCloseResult,
     SessionInfo,
     SessionListResult,
     SessionReleaseResult,
-    get_browser_manager,
 )
 
 __all__ = [

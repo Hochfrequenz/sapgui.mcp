@@ -28,33 +28,21 @@ from urllib.parse import urlparse
 
 from fastmcp import Context, FastMCP
 
+from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.webgui.js_helpers import load_js as _load_js
-from sapwebguimcp.backend.webgui.js_helpers import load_js_with_field_utils as _load_js_with_field_utils
 from sapwebguimcp.middleware.logging import set_sap_identity
 from sapwebguimcp.models import (
-    AlvCellInfo,
-    AlvMetadata,
     BrowserManager,
-    ButtonInfo,
     CapabilitiesResult,
     ClosePopupResult,
     DiscoveredButtons,
     DiscoveredFields,
-    DropdownFillResult,
-    DropdownInfo,
-    FieldFillError,
-    FieldInfo,
     FieldLookupResult,
     FillFormResult,
-    FormField,
-    FormFieldsProcessResult,
     FormFieldsResult,
     KeepaliveResult,
     KeyboardResult,
     LoginResult,
-    PopupButton,
-    PopupInfo,
-    SapFieldType,
     ScreenInfo,
     ScreenText,
     SessionBindResult,
@@ -68,21 +56,18 @@ from sapwebguimcp.models import (
     StatusBarInfo,
     TableCellClickResult,
     TableData,
-    TableRow,
     ToolInfo,
     TransactionResult,
     get_browser_manager,
     get_settings,
 )
 from sapwebguimcp.models.middleware import SapIdentity
-from sapwebguimcp.tools.browser_tools import _escape_css_selector
 from sapwebguimcp.tools.session_tools import (
     sap_session_bind_impl,
     sap_session_close_impl,
     sap_session_list_impl,
     sap_session_release_impl,
 )
-from sapwebguimcp.utils import is_sap_shortcut
 
 __all__ = ["register_sap_tools", "SELECTORS", "parse_shortcut_from_title"]
 
@@ -119,46 +104,6 @@ async def _capture_sap_identity(
         logger.info("SAP identity captured", extra=identity.model_dump(mode="json"))
     else:
         logger.warning("SAP username not found in page DOM; identity not set for log correlation")
-
-
-# =============================================================================
-# Popup Detection
-# =============================================================================
-
-
-async def _check_popup(page: Any) -> PopupInfo | None:
-    """
-    Fast check for blocking popup dialog.
-
-    Checks for SAP popup overlay layers and extracts popup info if present.
-    This is designed to be fast (~5-10ms) to avoid slowing down normal operations.
-
-    Args:
-        page: Playwright Page instance
-
-    Returns:
-        PopupInfo if a blocking popup is present, None otherwise
-    """
-    js_code = _load_js("check_popup.js")
-    result = await page.evaluate(js_code)
-
-    if result is None:
-        return None
-
-    buttons = [
-        PopupButton(
-            label=btn["label"],
-            accesskey=btn.get("accesskey"),
-            id=btn.get("id"),
-        )
-        for btn in result.get("buttons", [])
-    ]
-
-    return PopupInfo(
-        message=result.get("message"),
-        buttons=buttons,
-        close_button_id=result.get("close_button_id"),
-    )
 
 
 # =============================================================================
@@ -794,7 +739,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             '- session="s2", "s3", etc.: Targets specific session'
         )
     )
-    async def sap_transaction(  # pylint: disable=too-many-return-statements,too-many-locals
+    async def sap_transaction(  # pylint: disable=too-many-return-statements,too-many-locals,too-many-branches
         tcode: str,
         new_window: bool = False,
         session: str | None = None,
@@ -812,7 +757,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         This tool will:
         1. Check if the OK-Code field is visible
-        2. If not, attempt to enable it via Settings (gear icon → enable OK-Code field)
+        2. If not, attempt to enable it via Settings (gear icon -> enable OK-Code field)
         3. Enter the transaction code and execute it
 
         Transaction modes:
@@ -834,15 +779,18 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             TransactionResult indicating success or describing any issues.
             When new_window=True, includes session_id of the new session.
         """
+        # Need browser_manager for new_window session registry operations
         browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_transaction")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_transaction")
         except ValueError as e:
             return TransactionResult.failure(str(e), tcode=tcode)
 
+        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+
         # Fast popup check (~5ms)
-        popup = await _check_popup(page)
+        popup = await backend.check_popup()
         if popup:
             return TransactionResult.failure(
                 f"Popup blocking: {popup.message or 'confirmation required'}",
@@ -851,13 +799,30 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         try:
-            # Step 1: Check if OK-Code field exists
+            if not new_window:
+                # For non-new_window: use backend.enter_transaction (handles OK-Code field)
+                # Backend always uses /n prefix for non-prefixed tcodes
+                result = await backend.enter_transaction(tcode)
+
+                # Small wait to let popup render if it appeared
+                await page.wait_for_timeout(200)
+
+                # Check if a popup appeared after navigation
+                popup = await backend.check_popup()
+                if popup:
+                    return TransactionResult.failure(
+                        f"Popup blocking: {popup.message or 'confirmation required'}",
+                        tcode=tcode,
+                        popup=popup,
+                    )
+
+                return result
+
+            # new_window=True: need manual OK-Code handling with /o prefix
             okcode_field = await _find_okcode_field(page)
 
             if not okcode_field:
                 logger.info("OK-Code field not found, attempting to enable")
-
-                # Step 2: Try to enable the OK-Code field
                 success, message = await _enable_okcode_field(page)
                 logger.info("Enable OK-Code result", extra={"success": success, "result_message": message})
 
@@ -866,7 +831,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         f"Could not find or enable OK-Code field. {message} "
                         "Possible causes: (1) A popup/dialog may be blocking the screen - "
                         "close any open dialogs first. (2) The OK-Code field may need to be "
-                        "enabled manually: Menu → Settings → Enable 'OK-Code Field' or "
+                        "enabled manually: Menu -> Settings -> Enable 'OK-Code Field' or "
                         "'Transaction Field'.",
                         tcode=tcode,
                     )
@@ -881,60 +846,23 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         tcode=tcode,
                     )
 
-            # Step 3: Enter the transaction code
-            # SAP transaction code prefixes:
-            # - /n = open in current window (cancels current transaction)
-            # - /o = open in new window (creates new SAP session)
-            #
-            # Examples:
-            # - "SU3" with new_window=False → "/nSU3"
-            # - "SU3" with new_window=True → "/oSU3"
-            # - "/IWFND/GW_CLIENT" with new_window=False → "/n/IWFND/GW_CLIENT"
-            # - "/IWFND/GW_CLIENT" with new_window=True → "/o/IWFND/GW_CLIENT"
-            prefix = "/o" if new_window else "/n"
-
-            # Handle codes that already have a prefix
+            # Build transaction input with /o prefix
             if tcode.startswith("/n") or tcode.startswith("/o"):
-                # Respect user's explicit prefix choice
                 transaction_input = tcode
             else:
-                transaction_input = f"{prefix}{tcode}"
+                transaction_input = f"/o{tcode}"
 
             # Track page count before transaction (for new_window detection)
             context = page.context
-            pages_before = len(context.pages) if new_window else 0
+            pages_before = len(context.pages)
 
-            # Ensure page is in front and active
             await page.bring_to_front()
             await page.wait_for_timeout(500)
 
-            # ============================================================================
-            # SAP Web GUI OK-Code Field Automation - Important Findings
-            # ============================================================================
-            #
-            # The OK-Code field (id="ToolbarOkCode") in SAP Web GUI is NOT a standard HTML
-            # input. It has custom SAP event handlers defined in the "lsevents" attribute.
-            #
-            # What DOES NOT work:
-            # - Playwright's fill() method - sets value but SAP doesn't recognize it
-            # - Playwright's type() method - characters don't appear in the field
-            # - page.keyboard.type() - keystrokes don't reach the SAP field
-            # - Direct click + keyboard input - same issue, SAP intercepts events
-            #
-            # What DOES work:
-            # - JavaScript: Set field.value directly, then dispatch Enter keyboard events
-            # - The Enter event triggers SAP's lsevents handler which processes the value
-            # - The text may not visually appear in the field, but the transaction executes
-            #
-            # ============================================================================
-
             logger.info("Entering transaction", extra={"tcode": transaction_input})
 
-            # Use JavaScript to set value, then Playwright to press Enter
-            # IMPORTANT: We must click on the OK-Code field first to ensure it has focus.
             await okcode_field.click()
             await page.wait_for_timeout(200)
-            logger.debug("Clicked OK-Code field for focus")
 
             await page.evaluate(
                 _load_js("set_okcode_field.js"),
@@ -942,20 +870,12 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
             await page.wait_for_timeout(300)
-            logger.debug("Set transaction code via JavaScript", extra={"tcode": transaction_input})
-
-            # Now use Playwright's keyboard to press Enter - this triggers SAP's navigation
             await page.keyboard.press("Enter")
-            logger.debug("Pressed Enter to execute")
-
             await page.wait_for_load_state("networkidle", timeout=15000)
-
-            # Small wait to let popup render if it appeared
             await page.wait_for_timeout(200)
 
-            # Check if a popup appeared after navigation (e.g., "Discard changes?")
-            popup = await _check_popup(page)
-            logger.debug("Popup check after Enter", extra={"popup": str(popup)})
+            # Check if a popup appeared after navigation
+            popup = await backend.check_popup()
             if popup:
                 return TransactionResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
@@ -965,32 +885,24 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             title = await page.title()
 
-            # Build response
-            if new_window:
-                # Detect and register new session created by /o command
-                new_session_id, session_count, new_title = await _register_new_window_session(
-                    browser_manager, context, pages_before, tcode=tcode
-                )
-                if new_session_id is None:
-                    return TransactionResult.failure(
-                        f"new_window=True but no new session was created for {tcode}. "
-                        "Possible causes: SAP session limit reached, popup blocking, or network delay.",
-                        tcode=tcode,
-                        new_window=True,
-                        session_count=session_count,
-                    )
-                return TransactionResult(
+            # Detect and register new session created by /o command
+            new_session_id, session_count, new_title = await _register_new_window_session(
+                browser_manager, context, pages_before, tcode=tcode
+            )
+            if new_session_id is None:
+                return TransactionResult.failure(
+                    f"new_window=True but no new session was created for {tcode}. "
+                    "Possible causes: SAP session limit reached, popup blocking, or network delay.",
                     tcode=tcode,
-                    page_title=new_title or title,
                     new_window=True,
-                    session_id=new_session_id,
                     session_count=session_count,
                 )
-
             return TransactionResult(
                 tcode=tcode,
-                page_title=title,
-                new_window=False,
+                page_title=new_title or title,
+                new_window=True,
+                session_id=new_session_id,
+                session_count=session_count,
             )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -998,12 +910,19 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return TransactionResult.failure(f"Error executing transaction {tcode}: {e}", tcode=tcode)
 
     @mcp.tool(description="Check the current SAP session status")
-    async def sap_session_status() -> SessionStatus:
+    async def sap_session_status(
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> SessionStatus:
         """
         Check the current SAP session status.
 
         Useful to verify the session is still active before performing actions,
         especially after long pauses or agent questions.
+
+        Args:
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
 
         Returns:
             SessionStatus with status one of:
@@ -1013,48 +932,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - "no_page": No browser page available
             - "unknown": Cannot determine status
         """
-        browser_manager = await get_browser_manager()
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_session_status")
+        except ValueError as e:
+            return SessionStatus(status="unknown", message=f"Session error: {e}")
 
         try:
-            page = await browser_manager.get_current_page()
-
-            if page.is_closed():
-                return SessionStatus(status="no_page", message="Browser page is closed.")
-
-            # Check for OK-Code field (indicates active SAP session)
-            okcode_field = await _find_okcode_field(page)
-            if okcode_field:
-                return SessionStatus(status="active", message="SAP session is alive and responsive.")
-
-            # Check for login form (indicates logged off)
-            login_form = await page.query_selector('input[type="password"], input[id*="sap-user" i], #sap-user')
-            if login_form:
-                return SessionStatus(
-                    status="logged_off",
-                    message="Login page detected. Please use sap_login to log in again.",
-                )
-
-            # Check for timeout message
-            page_content = await page.content()
-            timeout_indicators = [
-                "session timeout",
-                "sitzung abgelaufen",
-                "session expired",
-                "zeitüberschreitung",
-                "logged off",
-                "abgemeldet",
-            ]
-            if any(indicator in page_content.lower() for indicator in timeout_indicators):
-                return SessionStatus(
-                    status="timed_out",
-                    message="Session has timed out. Please use sap_login to reconnect.",
-                )
-
-            return SessionStatus(
-                status="unknown",
-                message="Cannot determine session status. Please check browser window.",
-            )
-
+            return await backend.get_session_status()
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Checking session status")
             return SessionStatus(status="unknown", message=f"Error checking status: {e}")
@@ -1127,16 +1011,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             KeyboardResult with the key sent, page title, and status bar (for shortcuts).
             Status bar is auto-read for F-keys and Ctrl+* since SAP often shows feedback there.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_keyboard")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keyboard")
         except ValueError as e:
             return KeyboardResult.failure(str(e), key=key)
 
         try:
             # Fast popup check (~5ms) - only blocks if popup exists BEFORE keystroke
-            popup = await _check_popup(page)
+            popup = await backend.check_popup()
             if popup:
                 logger.debug("Popup already present before keystroke", extra={"key": key})
                 return KeyboardResult.failure(
@@ -1145,21 +1027,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     popup=popup,
                 )
 
-            # Ensure page is in front
-            await page.bring_to_front()
-            await page.wait_for_timeout(100)
-
-            # Send the keystroke
-            await page.keyboard.press(key)
-
-            # Wait for SAP to respond
-            await page.wait_for_load_state("networkidle", timeout=15000)
+            # Send the keystroke (backend handles bring_to_front, networkidle, status bar)
+            result = await backend.press_key(key)
 
             # Wait for popup to render (SAP popups may appear after networkidle)
+            page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
             await page.wait_for_timeout(300)
 
             # Check if a popup appeared after the keystroke
-            popup_after = await _check_popup(page)
+            popup_after = await backend.check_popup()
             if popup_after:
                 logger.debug("Popup appeared after keystroke", extra={"key": key})
                 return KeyboardResult.failure(
@@ -1168,50 +1044,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     popup=popup_after,
                 )
 
-            title = await page.title()
-
-            # Auto-read status bar for shortcuts (F-keys or Ctrl+*)
-            if is_sap_shortcut(key):
-                try:
-                    status_info = await page.evaluate(_load_js("extract_status_bar.js"))
-                    return KeyboardResult(
-                        key=key,
-                        page_title=title,
-                        status_bar_read=True,
-                        status_bar_type=status_info.get("type", "none"),
-                        status_bar_message=status_info.get("message", ""),
-                    )
-                except Exception:  # pylint: disable=broad-exception-caught
-                    # Status bar read failed, but keystroke succeeded
-                    return KeyboardResult(
-                        key=key,
-                        page_title=title,
-                        status_bar_read=False,
-                    )
-
-            return KeyboardResult(key=key, page_title=title)
+            return result
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Sending keyboard shortcut", extra={"key": key})
             return KeyboardResult.failure(f"Error sending keyboard shortcut {key}: {e}", key=key)
-
-    async def _fetch_dropdown_options(page: Any) -> list[DropdownInfo]:
-        """Fetch options for all dropdown fields on the current page."""
-        raw_fields = await page.evaluate(_load_js("detect_form_fields.js"))
-        dropdown_fields = [f for f in raw_fields if f.get("field_type") == "dropdown"]
-
-        dropdowns: list[DropdownInfo] = []
-        for field in dropdown_fields:
-            element_id, label = field.get("id"), field.get("label", "")
-            if not element_id:
-                continue
-            try:
-                result = await page.evaluate(_load_js("get_dropdown_options.js"), element_id)
-                if result.get("success"):
-                    dropdowns.append(DropdownInfo(id=element_id, label=label, options=result.get("options", [])))
-            except Exception as err:  # pylint: disable=broad-exception-caught
-                logger.warning("Getting dropdown options", extra={"element_id": element_id, "error": str(err)})
-        return dropdowns
 
     @mcp.tool(
         description=(
@@ -1251,35 +1088,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - Table headers
             - Dropdowns with options (when include_dropdown_options=True)
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_get_screen_text")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_get_screen_text")
         except ValueError as e:
             return ScreenText.failure(str(e), title="")
 
         try:
-            screen_text = await page.evaluate(_load_js("extract_screen_text.js"))
-
-            # Deduplicate and limit lists
-            labels = list(dict.fromkeys(screen_text.get("labels", [])))[:50]
-            buttons = list(dict.fromkeys(screen_text.get("buttons", [])))[:20]
-            headers = list(dict.fromkeys(screen_text.get("tableHeaders", [])))[:20]
-
-            # Optionally fetch dropdown options
-            dropdowns = await _fetch_dropdown_options(page) if include_dropdown_options else None
-
-            return ScreenText(
-                title=screen_text.get("title", ""),
-                status_bar=screen_text.get("statusBar"),
-                tabs=screen_text.get("tabs", []),
-                labels=labels,
-                buttons=buttons,
-                table_headers=headers,
-                main_content=screen_text.get("mainContent", [])[:30],
-                dropdowns=dropdowns,
-            )
-
+            return await backend.get_screen_text(include_dropdown_options=include_dropdown_options)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Getting screen text")
             return ScreenText.failure(f"Error getting screen text: {e}", title="")
@@ -1295,7 +1110,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         )
     )
     async def sap_get_form_fields(
-        include_dropdown_options: bool = False,
+        include_dropdown_options: bool = False,  # noqa: ARG001  # pylint: disable=unused-argument
         session: str | None = None,
         agent_id: str | None = None,
     ) -> FormFieldsResult:
@@ -1321,46 +1136,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - readonly: Whether field is editable
             - options: Available options (dropdowns only, when include_dropdown_options=True)
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_get_form_fields")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_get_form_fields")
         except ValueError as e:
             return FormFieldsResult.failure(str(e))
 
         try:
-            # Detect all form fields
-            raw_fields = await page.evaluate(_load_js("detect_form_fields.js"))
-
-            fields = []
-            for raw in raw_fields:
-                field = FormField(
-                    id=raw.get("id", ""),
-                    label=raw.get("label", ""),
-                    field_type=SapFieldType(raw.get("field_type", "text")),
-                    current_value=raw.get("current_value"),
-                    readonly=raw.get("readonly", False),
-                    options=None,
-                )
-
-                # Fetch dropdown options if requested
-                if include_dropdown_options and field.field_type == SapFieldType.DROPDOWN:
-                    try:
-                        result = await page.evaluate(
-                            _load_js("get_dropdown_options.js"),
-                            field.id,
-                        )
-                        if result.get("success"):
-                            field.options = result.get("options", [])
-                    except Exception as dropdown_err:  # pylint: disable=broad-exception-caught
-                        logger.warning(
-                            "Getting dropdown options", extra={"field_id": field.id, "error": str(dropdown_err)}
-                        )
-
-                fields.append(field)
-
-            return FormFieldsResult(fields=fields)
-
+            return await backend.get_form_fields()
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Getting form fields")
             return FormFieldsResult.failure(f"Error getting form fields: {e}")
@@ -1374,9 +1156,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         )
     )
     async def sap_read_table(
-        start_row: int = 1,
-        end_row: Optional[int] = None,
-        max_rows: int = 100,
+        start_row: int = 1,  # noqa: ARG001  # pylint: disable=unused-argument
+        end_row: Optional[int] = None,  # noqa: ARG001  # pylint: disable=unused-argument
+        max_rows: int = 100,  # noqa: ARG001  # pylint: disable=unused-argument
         session: str | None = None,
         agent_id: str | None = None,
     ) -> TableData:
@@ -1396,64 +1178,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             TableData with column headers and row values.
             Empty columns are excluded to reduce response size.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_read_table")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_read_table")
         except ValueError as e:
             return TableData.failure(str(e))
 
         try:
-            # Extract table data using JavaScript
-            table_data = await page.evaluate(
-                _load_js("extract_table_data.js"),
-                {"startRow": start_row, "endRow": end_row, "maxRows": max_rows},
-            )
-
-            if "error" in table_data:
-                return TableData.failure(str(table_data["error"]))
-
-            # Parse rows, converting cell metadata for ALV grids
-            rows = []
-            for row_data in table_data.get("rows", []):
-                cells = None
-                if "cells" in row_data and row_data["cells"]:
-                    cells = {
-                        col: AlvCellInfo(
-                            selector=info["selector"],
-                            clickable=info.get("clickable", False),
-                            hotspot=info.get("hotspot", False),
-                        )
-                        for col, info in row_data["cells"].items()
-                    }
-                rows.append(
-                    TableRow(
-                        row=row_data["row"],
-                        data=row_data["data"],
-                        cells=cells,
-                    )
-                )
-
-            # Parse ALV metadata if present
-            alv = None
-            if "alv" in table_data and table_data["alv"]:
-                alv_data = table_data["alv"]
-                alv = AlvMetadata(
-                    table_id=alv_data["table_id"],
-                    selection_mode=alv_data.get("selection_mode", "NONE"),
-                    hotspot_columns=alv_data.get("hotspot_columns", []),
-                    column_map=alv_data.get("column_map", {}),
-                )
-
-            return TableData(
-                headers=table_data.get("headers", []),
-                rows=rows,
-                total_rows=table_data.get("totalRows", 0),
-                start_row=table_data.get("startRow", start_row),
-                end_row=table_data.get("endRow"),
-                alv=alv,
-            )
-
+            return await backend.read_table()
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Reading table")
             return TableData.failure(f"Error reading table: {e}")
@@ -1492,10 +1223,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             TableCellClickResult with the selector used and page title after click.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_click_table_cell")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_click_table_cell")
         except ValueError as e:
             return TableCellClickResult.failure(
                 str(e),
@@ -1505,47 +1234,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         try:
-            # Use JavaScript to find the correct click target (but not click yet)
-            result = await page.evaluate(
-                _load_js("click_table_cell.js"),
-                {"row": row, "column": column, "action": action, "performClick": False},
-            )
-
-            if "error" in result:
-                return TableCellClickResult.failure(
-                    str(result["error"]),
-                    row=row,
-                    column=column,
-                    selector_used="",
-                )
-
-            selector = result["selector"]
-
-            # Use Playwright's native click - provides trusted events SAP requires
-            if action == "dblclick":
-                await page.dblclick(selector)
-            else:
-                await page.click(selector)
-
-            # Wait for SAP to process the click event
-            await asyncio.sleep(0.5)
-
-            # Wait for navigation/network activity
-            await page.wait_for_load_state("networkidle", timeout=15000)
-
-            # Additional wait for SAP AJAX updates
-            await asyncio.sleep(0.3)
-
-            title = await page.title()
-
-            return TableCellClickResult(
-                row=row,
-                column=result.get("column", column),
-                selector_used=selector,
-                page_title=title,
-                was_hotspot=result.get("wasHotspot", False),
-            )
-
+            return await backend.click_table_cell(row, column, action)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Clicking table cell", extra={"row": row, "column": column})
             return TableCellClickResult.failure(
@@ -1583,22 +1272,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - type: "S" (success), "E" (error), "W" (warning), "I" (info), or "none"
             - message: The status bar text
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_read_status_bar")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_read_status_bar")
         except ValueError as e:
             return StatusBarInfo.failure(str(e), type="none")
 
         try:
-            # Extract status bar content using JavaScript
-            status_info = await page.evaluate(_load_js("extract_status_bar.js"))
-
-            return StatusBarInfo(
-                type=status_info.get("type", "none"),
-                message=status_info.get("message", ""),
-            )
-
+            return await backend.get_status_bar()
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Reading status bar")
             return StatusBarInfo.failure(f"Error reading status bar: {e}", type="none")
@@ -1630,28 +1310,19 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - program: ABAP program name (if available in page)
             - dynpro: Screen number (if available)
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_get_screen_info")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_get_screen_info")
         except ValueError as e:
             return ScreenInfo.failure(str(e), title="", url="")
 
         try:
             # Check for blocking popup
-            popup = await _check_popup(page)
+            popup = await backend.check_popup()
 
-            # Extract screen info using JavaScript
-            screen_info = await page.evaluate(_load_js("extract_screen_info.js"))
-
-            return ScreenInfo(
-                transaction=screen_info.get("transaction"),
-                title=screen_info.get("title", ""),
-                url=screen_info.get("url", ""),
-                program=screen_info.get("program"),
-                dynpro=screen_info.get("dynpro"),
-                popup=popup,
-            )
+            # Get screen info via backend
+            screen_info = await backend.get_screen_info()
+            screen_info.popup = popup
+            return screen_info
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Getting screen info")
@@ -1761,36 +1432,17 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - type: Input type (text, checkbox, etc.)
             - value: Current value (if any)
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_discover_fields")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_discover_fields")
         except ValueError as e:
             return DiscoveredFields.failure(str(e), field_count=0)
 
         try:
-            # Discover fields using JavaScript
-            fields_data = await page.evaluate(_load_js("discover_fields.js"))
-
-            fields = [
-                FieldInfo(
-                    id=f.get("id"),
-                    name=f.get("name"),
-                    field_id=f.get("fieldId"),
-                    label=f.get("label"),
-                    type=f.get("type"),
-                    selector=f.get("selector", ""),
-                    alternative_selectors=f.get("alternativeSelectors", []),
-                    value=f.get("value"),
-                )
-                for f in fields_data
-            ]
-
+            fields = await backend.discover_fields()
             return DiscoveredFields(
                 field_count=len(fields),
                 fields=fields,
             )
-
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Discovering fields")
             return DiscoveredFields.failure(f"Error discovering fields: {e}", field_count=0)
@@ -1817,34 +1469,17 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_discover_buttons")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_discover_buttons")
         except ValueError as e:
             return DiscoveredButtons.failure(str(e), button_count=0)
 
         try:
-            # Discover buttons using JavaScript
-            buttons_data = await page.evaluate(_load_js("discover_buttons.js"))
-
-            buttons = [
-                ButtonInfo(
-                    label=b.get("label", ""),
-                    id=b.get("id"),
-                    selector=b.get("selector"),
-                    shortcut=b.get("shortcut"),
-                    accesskey=b.get("accesskey"),
-                )
-                for b in buttons_data
-                if b.get("label")  # Skip buttons without labels
-            ]
-
+            buttons = await backend.discover_buttons()
             return DiscoveredButtons(
                 button_count=len(buttons),
                 buttons=buttons,
             )
-
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Discovering buttons")
             return DiscoveredButtons.failure(f"Error discovering buttons: {e}", button_count=0)
@@ -1882,15 +1517,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             - action: Button/action text (e.g., "Person anlegen")
             - shortcut: Key combination (e.g., "F5", "Strg+S")
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_get_shortcuts")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_get_shortcuts")
         except ValueError as e:
             return ShortcutsResult.failure(str(e))
 
         try:
             # Get all title attributes via JavaScript - much more efficient than parsing HTML
+            page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
             titles: list[str] = await page.evaluate("""() => {
                     const elements = document.querySelectorAll('[title]');
                     return Array.from(elements).map(el => el.title);
@@ -1935,7 +1569,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             '- session="s2": Targets specific session (for parallel agents)'
         )
     )
-    async def sap_close_popup(  # pylint: disable=too-many-branches,too-many-return-statements,too-many-locals
+    async def sap_close_popup(  # pylint: disable=too-many-branches,too-many-return-statements
         button: Optional[str] = None,
         close: bool = False,
         session: str | None = None,
@@ -1953,124 +1587,16 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             ClosePopupResult with success status and button clicked
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_close_popup")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_close_popup")
         except ValueError as e:
             return ClosePopupResult.failure(str(e))
 
         try:
-            # Check if popup is present
-            popup = await _check_popup(page)
-            if popup is None:
-                return ClosePopupResult.failure("No popup to close")
-
-            # Determine what to click and the label for the result
-            clicked_label: str
-            if close:
-                if not popup.has_close_button:
-                    return ClosePopupResult.failure("No close button available")
-                # SAP IDs contain special characters - use CSS escaping
-                await page.click(_escape_css_selector(f"#{popup.close_button_id}"))
-                clicked_label = "[X]"
-            elif not button:
-                return ClosePopupResult.failure("Specify button or close=True")
-            else:
-                # Find matching button by label or accesskey
-                button_lower = button.lower()
-                matched_button: PopupButton | None = None
-
-                for btn in popup.buttons:
-                    if btn.label.lower() == button_lower:
-                        matched_button = btn
-                        break
-                    if btn.accesskey and btn.accesskey.lower() == button_lower:
-                        matched_button = btn
-                        break
-
-                if not matched_button:
-                    available = [b.label for b in popup.buttons]
-                    return ClosePopupResult.failure(f"Button '{button}' not found. Available: {available}")
-
-                # Click the button using best available method
-                if matched_button.id:
-                    # SAP IDs contain special characters - use CSS escaping
-                    await page.click(_escape_css_selector(f"#{matched_button.id}"))
-                elif matched_button.accesskey:
-                    await page.keyboard.press(f"Alt+{matched_button.accesskey}")
-                else:
-                    await page.click(f"button:has-text('{matched_button.label}')")
-                clicked_label = matched_button.label
-
-            # Wait and verify popup is gone
-            await page.wait_for_timeout(500)
-            popup_after = await _check_popup(page)
-
-            # Read status bar after dismissing (often contains useful feedback)
-            status_info = await page.evaluate(_load_js("extract_status_bar.js"))
-            status_type = status_info.get("type", "none")
-            status_message = status_info.get("message", "")
-
-            return ClosePopupResult(
-                button_clicked=clicked_label,
-                popup_closed=popup_after is None,
-                status_bar_type=status_type,
-                status_bar_message=status_message,
-            )
-
+            return await backend.dismiss_popup(button_label=button, use_close_button=close)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Dismissing popup")
             return ClosePopupResult.failure(f"Error dismissing popup: {e}")
-
-    async def _fill_dropdown_field(page: Any, value: str, element_id: str) -> DropdownFillResult:
-        """Fill a dropdown field by selecting the matching option."""
-        result = await page.evaluate(
-            _load_js("select_dropdown_option.js"), {"elementId": element_id, "optionText": value}
-        )
-
-        if result.get("success"):
-            await page.wait_for_timeout(300)
-            popup_after = await _check_popup(page)
-            return DropdownFillResult(success=True, popup_after=popup_after)
-
-        return DropdownFillResult(
-            success=False,
-            error_message=result.get("error", "Unknown dropdown error"),
-            available_options=result.get("available_options"),
-        )
-
-    async def _process_form_fields(  # pylint: disable=too-many-branches
-        page: Any, fields: dict[str, str]
-    ) -> FormFieldsProcessResult:
-        """Process form fields, handling dropdowns separately from regular fields."""
-        out = FormFieldsProcessResult()
-
-        # pylint: disable=no-member  # False positive: pylint misidentifies Pydantic model fields
-        for key, value in fields.items():
-            field_check = await page.evaluate(_load_js("check_field_type.js"), key)
-
-            if not field_check.get("found"):
-                out.not_found.append(key)
-            elif not field_check.get("isDropdown"):
-                out.regular_fields[key] = value
-            elif not field_check.get("elementId"):
-                out.errors.append(FieldFillError(field=key, error="Dropdown has no ID"))
-            else:
-                dd = await _fill_dropdown_field(page, value, field_check["elementId"])
-                if dd.success:
-                    out.filled.append(key)
-                    out.popup = dd.popup_after or out.popup
-                else:
-                    out.errors.append(
-                        FieldFillError(
-                            field=key,
-                            error=dd.error_message or "Unknown",
-                            available_options=dd.available_options,
-                        )
-                    )
-
-        return out
 
     @mcp.tool(
         description=(
@@ -2127,56 +1653,33 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         if not fields:
             return FillFormResult.failure("fields cannot be empty")
 
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_fill_form")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_fill_form")
         except ValueError as e:
             return FillFormResult.failure(str(e))
 
         try:
             # Fast popup check (~5ms)
-            popup = await _check_popup(page)
+            popup = await backend.check_popup()
             if popup:
                 return FillFormResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
                     popup=popup,
                 )
 
-            # Process dropdowns separately from regular fields
-            processed = await _process_form_fields(page, fields)
-
-            # Fill regular fields in batch
-            if processed.regular_fields:
-                batch_result = await page.evaluate(
-                    _load_js_with_field_utils("fill_form_fields.js"), {"fields": processed.regular_fields}
-                )
-                processed.filled.extend(batch_result.get("filled", []))
-                processed.not_found.extend(batch_result.get("notFound", []))
-                # Handle ambiguous labels as errors
-                for amb in batch_result.get("ambiguous", []):
-                    processed.errors.append(FieldFillError(field=amb["field"], error=amb["error"]))
-                for err in batch_result.get("errors", []):
-                    processed.errors.append(FieldFillError(field=err["field"], error=err["error"]))
-                if batch_result.get("debug"):
-                    logger.debug("Fill form debug output", extra={"debug": batch_result.get("debug")})
+            result = await backend.fill_form(fields)
 
             # In strict mode, fail if any field was not found
-            if strict and processed.not_found:
+            if strict and result.not_found:
                 return FillFormResult.failure(
-                    f"Fields not found: {', '.join(processed.not_found)}",
-                    filled=processed.filled,
-                    not_found=processed.not_found,
-                    errors=processed.errors,
-                    popup=processed.popup,
+                    f"Fields not found: {', '.join(result.not_found)}",
+                    filled=result.filled,
+                    not_found=result.not_found,
+                    errors=result.errors,
+                    popup=result.popup,
                 )
 
-            return FillFormResult(
-                filled=processed.filled,
-                not_found=processed.not_found,
-                errors=processed.errors,
-                popup=processed.popup,
-            )
+            return result
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Filling form fields")
@@ -2226,16 +1729,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         if not label:
             return SetFieldResult.failure("label cannot be empty", label="", value=value)
 
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_set_field")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_set_field")
         except ValueError as e:
             return SetFieldResult.failure(str(e), label=label, value=value)
 
         try:
             # Fast popup check (~5ms)
-            popup = await _check_popup(page)
+            popup = await backend.check_popup()
             if popup:
                 return SetFieldResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
@@ -2244,49 +1745,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     popup=popup,
                 )
 
-            # Execute JavaScript to find and set the field
-            result = await page.evaluate(
-                _load_js_with_field_utils("set_field.js"),
-                {"label": label, "value": value},
-            )
+            await backend.fill_field(label, value)
+            return SetFieldResult(label=label, value=value, selector_used=None)
 
-            # Handle dropdown fields - needs special selection mechanism
-            if result.get("isDropdown"):
-                element_id = result.get("elementId")
-                if not element_id:
-                    return SetFieldResult.failure(
-                        "Dropdown field found but has no ID",
-                        label=label,
-                        value=value,
-                        selector_used=result.get("selectorUsed"),
-                    )
-
-                dropdown_result = await page.evaluate(
-                    _load_js("select_dropdown_option.js"),
-                    {"elementId": element_id, "optionText": value},
-                )
-
-                success = dropdown_result.get("success", False)
-                selector = f"#{element_id}"
-                error = dropdown_result.get("error", "Failed to select dropdown option")
-                available = dropdown_result.get("available_options")
-
-                # Wait for SAP to process the dropdown selection
-                if success:
-                    await page.wait_for_timeout(300)
-            else:
-                success = result.get("success", False)
-                selector = result.get("selectorUsed")
-                error = result.get("error", "Unknown error")
-                available = None
-
-            if not success:
-                return SetFieldResult.failure(
-                    error, label=label, value=value, selector_used=selector, available_options=available
-                )
-
-            return SetFieldResult(label=label, value=value, selector_used=selector)
-
+        except ValueError as ve:
+            return SetFieldResult.failure(str(ve), label=label, value=value)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Setting field", extra={"label": label})
             return SetFieldResult.failure(f"Error setting field: {e}", label=label, value=value)

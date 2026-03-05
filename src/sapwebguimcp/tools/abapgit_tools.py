@@ -18,18 +18,20 @@ The tool will provide a link to the source code.
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-from playwright.async_api import Locator, Page
+from playwright.async_api import Page
 from playwright.async_api import TimeoutError as PlaywrightTimeout
 
-from sapwebguimcp.models import get_browser_manager
+from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
 from sapwebguimcp.models.config import get_settings
-from sapwebguimcp.tools.sap_tool_impl import sap_read_status_bar_impl, sap_transaction_impl
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -245,42 +247,52 @@ def _validate_and_prepare_params(
 # OK-Code Field Handling
 
 
-async def _get_okcode_field(page: Page, repo: str) -> Locator | AbapGitActionResult:
-    """Find or enable OK-Code field. Returns error result if not available."""
+async def _enter_tcode_via_okcode(
+    backend: "SapUiBackend", tcode_with_params: str, repo: str
+) -> AbapGitActionResult | None:
+    """Enter a parameterised transaction via the OK-Code field. Returns error or None."""
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
     from sapwebguimcp.tools.sap_tool_impl import (  # pylint: disable=import-outside-toplevel
         _enable_okcode_field,
         _find_okcode_field,
     )
 
-    okcode_field: Locator | None = await _find_okcode_field(page)
-    if okcode_field:
-        return okcode_field
+    okcode_field = await _find_okcode_field(page)
+    if not okcode_field:
+        logger.info("OK-Code field not found, attempting to enable it")
+        success, message = await _enable_okcode_field(page)
+        if not success:
+            return AbapGitActionResult.failure_result(
+                action="pull",
+                repo_name=repo,
+                error=f"Could not find or enable OK-Code field: {message}",
+            )
+        okcode_field = await _find_okcode_field(page)
+        if not okcode_field:
+            return AbapGitActionResult.failure_result(
+                action="pull",
+                repo_name=repo,
+                error="OK-Code field still not visible after enabling",
+            )
 
-    logger.info("OK-Code field not found, attempting to enable it")
-    success, message = await _enable_okcode_field(page)
-    if not success:
-        return AbapGitActionResult.failure_result(
-            action="pull",
-            repo_name=repo,
-            error=f"Could not find or enable OK-Code field: {message}",
-        )
-
-    okcode_field_retry: Locator | None = await _find_okcode_field(page)
-    if not okcode_field_retry:
-        return AbapGitActionResult.failure_result(
-            action="pull",
-            repo_name=repo,
-            error="OK-Code field still not visible after enabling",
-        )
-    return okcode_field_retry
+    await backend.bring_to_front()
+    await page.wait_for_timeout(500)
+    await okcode_field.click()
+    await page.wait_for_timeout(200)
+    await okcode_field.fill("")
+    await okcode_field.fill(tcode_with_params)
+    await backend.press_key("Enter")
+    await page.wait_for_timeout(2000)
+    return None
 
 
 # Pull Result Analysis
 
 
-async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
+async def _analyze_pull_result(backend: "SapUiBackend", repo: str) -> AbapGitActionResult:
     """Analyze status bar and screen to determine pull result."""
-    status = await sap_read_status_bar_impl()
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+    status = await backend.get_status_bar()
     msg = status.message or ""
     msg_type = status.type or ""
     msg_lower = msg.lower()
@@ -298,7 +310,7 @@ async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
 
     # Retry status bar read
     await page.wait_for_timeout(2000)
-    status = await sap_read_status_bar_impl()
+    status = await backend.get_status_bar()
     final_msg = status.message or msg
     final_type = status.type or msg_type
     final_lower = final_msg.lower()
@@ -315,7 +327,7 @@ async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
         return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=screen_error or final_msg)
 
     # Treat ambiguous result based on whether we got any status message.
-    # Empty status bar may mask auth errors (expired PAT → cx_root in ABAP).
+    # Empty status bar may mask auth errors (expired PAT -> cx_root in ABAP).
     if not final_msg:
         return AbapGitActionResult.failure_result(
             action="pull",
@@ -332,36 +344,27 @@ async def _analyze_pull_result(page: Page, repo: str) -> AbapGitActionResult:
 # Main Pull Implementation
 
 
-async def _handle_popup_error(page: Page, repo: str) -> AbapGitActionResult | None:
+async def _handle_popup_error(backend: "SapUiBackend", repo: str) -> AbapGitActionResult | None:
     """Check for error popup and return failure if found, None otherwise."""
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
     popup_error = await _check_for_error_popup(page)
     if popup_error:
-        await page.keyboard.press("Enter")
+        await backend.press_key("Enter")
         await page.wait_for_timeout(500)
         return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=popup_error)
     return None
 
 
-async def _execute_pull_transaction(page: Page, params: PullParams, repo: str) -> AbapGitActionResult | None:
+async def _execute_pull_transaction(
+    backend: "SapUiBackend", params: PullParams, repo: str
+) -> AbapGitActionResult | None:
     """Execute pull transaction and return failure result if error, None if OK to continue."""
-    # Get OK-Code field
-    okcode_result = await _get_okcode_field(page, repo)
-    if isinstance(okcode_result, AbapGitActionResult):
-        return okcode_result
-    okcode_field = okcode_result
-
-    # Enter transaction with parameters
-    await page.bring_to_front()
-    await page.wait_for_timeout(500)
-    await okcode_field.click()
-    await page.wait_for_timeout(200)
-    await okcode_field.fill("")
-    await okcode_field.fill(params.tcode_with_params)
-    await page.keyboard.press("Enter")
-    await page.wait_for_timeout(2000)
+    okcode_error = await _enter_tcode_via_okcode(backend, params.tcode_with_params, repo)
+    if okcode_error:
+        return okcode_error
 
     # Check if transaction was found
-    status = await sap_read_status_bar_impl()
+    status = await backend.get_status_bar()
     status_msg = (status.message or "").lower()
     tx_not_found = "not found" in status_msg or "existiert nicht" in status_msg or "does not exist" in status_msg
     if tx_not_found:
@@ -376,13 +379,14 @@ async def _execute_pull_transaction(page: Page, params: PullParams, repo: str) -
     return None
 
 
-async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResult | None:
+async def _run_pull_and_check_errors(backend: "SapUiBackend", repo: str) -> AbapGitActionResult | None:
     """Execute F8 and wait for SAP to finish processing. Returns error if found."""
-    await page.keyboard.press("F8")
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+    await backend.press_key("F8")
 
     # Fast-fail: check for immediate error popups (bad transport, auth error)
     await page.wait_for_timeout(2000)
-    popup_result = await _handle_popup_error(page, repo)
+    popup_result = await _handle_popup_error(backend, repo)
     if popup_result:
         return popup_result
 
@@ -394,17 +398,17 @@ async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResu
 
     # SAP may show an "Inaktive Objekte" / "Inactive Objects" popup after pull.
     # The old bare Enter accidentally dismissed it; now we detect it explicitly.
-    snapshot = await page.locator("body").aria_snapshot()
-    if "Inaktive Objekte" in snapshot or "Inactive Objects" in snapshot:
+    snapshot = await backend.get_snapshot()
+    if "Inaktive Objekte" in str(snapshot) or "Inactive Objects" in str(snapshot):
         logger.info("Detected inactive objects popup, confirming with Enter")
-        await page.keyboard.press("Enter")
+        await backend.press_key("Enter")
         await page.wait_for_timeout(2000)
         try:
             await page.wait_for_load_state("networkidle", timeout=30_000)
         except PlaywrightTimeout:
             pass
 
-    return await _handle_popup_error(page, repo)
+    return await _handle_popup_error(backend, repo)
 
 
 def _clean_timestamp(value: str) -> str | None:
@@ -447,38 +451,19 @@ def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
     return repos
 
 
-async def _abapgit_list_repos() -> AbapGitListResult:
+async def _abapgit_list_repos(backend: "SapUiBackend") -> AbapGitListResult:
     """List all registered abapGit repositories via Z_ABAPGIT_PULL P_ACTION=LIST."""
     logger.info("Listing abapGit repositories")
-
-    browser_manager = await get_browser_manager()
-    page = await browser_manager.get_page()
-    if not page:
-        return AbapGitListResult(
-            success=False,
-            error="No active browser session. Call sap_login first.",
-        )
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
     try:
-        # Get OK-Code field
-        okcode_result = await _get_okcode_field(page, "LIST")
-        if isinstance(okcode_result, AbapGitActionResult):
-            return AbapGitListResult(success=False, error=okcode_result.error)
-        okcode_field = okcode_result
-
-        # Enter transaction with LIST action
         tcode_with_params = "/nZ_ABAPGIT_PULL P_ACTION=LIST;"
-        await page.bring_to_front()
-        await page.wait_for_timeout(500)
-        await okcode_field.click()
-        await page.wait_for_timeout(200)
-        await okcode_field.fill("")
-        await okcode_field.fill(tcode_with_params)
-        await page.keyboard.press("Enter")
-        await page.wait_for_timeout(2000)
+        okcode_error = await _enter_tcode_via_okcode(backend, tcode_with_params, "LIST")
+        if okcode_error:
+            return AbapGitListResult(success=False, error=okcode_error.error)
 
         # Check if transaction was found
-        status = await sap_read_status_bar_impl()
+        status = await backend.get_status_bar()
         status_msg = (status.message or "").lower()
         if "not found" in status_msg or "existiert nicht" in status_msg or "does not exist" in status_msg:
             return AbapGitListResult(
@@ -491,17 +476,12 @@ async def _abapgit_list_repos() -> AbapGitListResult:
             )
 
         # Execute report with F8
-        await page.keyboard.press("F8")
+        await backend.press_key("F8")
         await page.wait_for_timeout(3000)
 
         # Read the WRITE output from the screen via JavaScript
         raw_output = await page.evaluate("""
             () => {
-                // In SAP Web GUI, ABAP WRITE output is normally rendered inside
-                // the main window content container '#sapwd_main_window_root_contents'.
-                // For robustness, we fall back to 'document.body' in cases where this
-                // container does not exist (e.g. different themes, older WebGUI
-                // layouts, or error pages that bypass the standard shell).
                 const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
                 return body.innerText || body.textContent || '';
             }
@@ -518,6 +498,7 @@ async def _abapgit_list_repos() -> AbapGitListResult:
 
 
 async def _abapgit_pull_via_api(
+    backend: "SapUiBackend",
     repo: str,
     trkorr: str | None,
     username: str | None,
@@ -525,13 +506,6 @@ async def _abapgit_pull_via_api(
 ) -> AbapGitActionResult:
     """Pull changes using the Z_ABAPGIT_PULL transaction (abapGit ABAP API)."""
     logger.info("Starting abapGit Pull via API", extra={"repo": repo})
-
-    browser_manager = await get_browser_manager()
-    page = await browser_manager.get_page()
-    if not page:
-        return AbapGitActionResult.failure_result(
-            action="pull", repo_name=repo, error="No active browser session. Call sap_login first."
-        )
 
     try:
         # Validate and prepare parameters
@@ -546,16 +520,16 @@ async def _abapgit_pull_via_api(
         )
 
         # Execute transaction
-        tx_error = await _execute_pull_transaction(page, params, repo)
+        tx_error = await _execute_pull_transaction(backend, params, repo)
         if tx_error:
             return tx_error
 
         # Run pull and check for popup errors
-        popup_error = await _run_pull_and_check_errors(page, repo)
+        popup_error = await _run_pull_and_check_errors(backend, repo)
         if popup_error:
             return popup_error
 
-        return await _analyze_pull_result(page, repo)
+        return await _analyze_pull_result(backend, repo)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("abapGit pull via API", extra={"repo": repo})
@@ -567,8 +541,9 @@ async def _abapgit_pull_via_api(
 # =============================================================================
 
 
-async def _fill_se38_program_field(page: Page, program_name: str) -> bool:
+async def _fill_se38_program_field(backend: "SapUiBackend", program_name: str) -> bool:
     """Fill the program name field in SE38 using various strategies."""
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
     input_selectors = [
         "input[name*='PROGRAM']",
         "input[id*='PROGRAM']",
@@ -586,18 +561,14 @@ async def _fill_se38_program_field(page: Page, program_name: str) -> bool:
         except Exception:  # pylint: disable=broad-exception-caught
             continue
 
-    # Try sap_fill_form as fallback
+    # Try backend.fill_form as fallback
     try:
-        from sapwebguimcp.tools.sap_tool_impl import (  # pylint: disable=import-outside-toplevel
-            sap_fill_form_impl,
-        )
-
-        fill_result = await sap_fill_form_impl({"Programm": program_name, "Program": program_name}, strict=False)
-        if fill_result.success:
-            logger.info("Filled program name using sap_fill_form")
+        fill_result = await backend.fill_form({"Programm": program_name, "Program": program_name})
+        if not fill_result.not_found or len(fill_result.not_found) < 2:
+            logger.info("Filled program name using backend.fill_form")
             return True
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.warning("sap_fill_form fallback failed", extra={"error": str(e)})
+        logger.warning("backend.fill_form fallback failed", extra={"error": str(e)})
 
     return False
 
@@ -782,21 +753,22 @@ async def _try_direct_se38_selectors(page: Page) -> str | None:
     return None
 
 
-async def _navigate_to_se38(page: Page) -> str | None:
+async def _navigate_to_se38(backend: "SapUiBackend") -> str | None:
     """Navigate to SE38 and return error message if failed, None if OK."""
-    await page.bring_to_front()
-    await page.keyboard.press("Escape")
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+    await backend.bring_to_front()
+    await backend.press_key("Escape")
     await page.wait_for_timeout(500)
-    await page.keyboard.press("F3")
+    await backend.press_key("F3")
     await page.wait_for_timeout(3000)
 
     try:
         await page.wait_for_selector("#ToolbarOkCode", state="visible", timeout=5000)
     except Exception:  # pylint: disable=broad-exception-caught
-        await page.keyboard.press("F3")
+        await backend.press_key("F3")
         await page.wait_for_timeout(3000)
 
-    tx_result = await sap_transaction_impl("SE38", new_window=False)
+    tx_result = await backend.enter_transaction("SE38")
     return None if tx_result.success else f"Failed to open SE38: {tx_result.error}"
 
 
@@ -818,35 +790,31 @@ async def _find_source_code(page: Page) -> str | None:
     return source_code if source_code and _is_actual_abap_source(source_code) else None
 
 
-async def read_se38_source(program_name: str) -> dict[str, Any]:
+async def read_se38_source(backend: "SapUiBackend", program_name: str) -> dict[str, Any]:
     """Read ABAP report source code from SE38."""
-    browser_manager = await get_browser_manager()
-    page = await browser_manager.get_current_page()
-
-    if page is None:
-        return {"success": False, "error": "No browser page available"}
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
     try:
-        nav_error = await _navigate_to_se38(page)
+        nav_error = await _navigate_to_se38(backend)
         if nav_error:
             return {"success": False, "error": nav_error}
 
         await page.wait_for_timeout(2000)
-        if not await _fill_se38_program_field(page, program_name):
+        if not await _fill_se38_program_field(backend, program_name):
             return {"success": False, "error": "Could not find program input field"}
 
         # Press F7 (Display) and handle entry screen
         logger.info("Pressing F7 to display source code")
-        await page.keyboard.press("F7")
+        await backend.press_key("F7")
         await page.wait_for_timeout(3000)
 
         page_title = await page.title()
         logger.info("Page title after F7", extra={"title": page_title})
         if "Einstieg" in page_title or "Entry" in page_title:
-            await page.keyboard.press("Enter")
+            await backend.press_key("Enter")
             await page.wait_for_timeout(2000)
             if "Einstieg" in (await page.title()) or "Entry" in (await page.title()):
-                await page.keyboard.press("F8")
+                await backend.press_key("F8")
                 await page.wait_for_timeout(3000)
 
         await page.wait_for_timeout(1000)
@@ -870,9 +838,9 @@ async def read_se38_source(program_name: str) -> dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-async def verify_abap_report_content(program_name: str, expected_text: str) -> dict[str, Any]:
+async def verify_abap_report_content(backend: "SapUiBackend", program_name: str, expected_text: str) -> dict[str, Any]:
     """Verify that an ABAP report contains expected text."""
-    result = await read_se38_source(program_name)
+    result = await read_se38_source(backend, program_name)
 
     if not result.get("success"):
         return result
@@ -911,9 +879,16 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "Use this to discover the correct repo name before calling sap_abapgit_pull."
         ),
     )
-    async def sap_abapgit_list_repos() -> AbapGitListResult:
+    async def sap_abapgit_list_repos(
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> AbapGitListResult:
         """
         List all registered abapGit repositories.
+
+        Args:
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
 
         Returns:
             AbapGitListResult with list of AbapGitRepoInfo objects
@@ -921,7 +896,11 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         Example:
             sap_abapgit_list_repos()
         """
-        return await _abapgit_list_repos()
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_abapgit_list_repos")
+        except ValueError as e:
+            return AbapGitListResult(success=False, error=f"Session error: {e}")
+        return await _abapgit_list_repos(backend)
 
     @mcp.tool(
         annotations=ToolAnnotations(
@@ -940,17 +919,19 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "then sap_read_status_bar()."
         ),
     )
-    async def sap_abapgit_pull(
+    async def sap_abapgit_pull(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         repo: str,
         trkorr: str | None = None,
         username: str | None = None,
         pat: str | None = None,
+        session: str | None = None,
+        agent_id: str | None = None,
     ) -> AbapGitActionResult:
         """
         Pull changes from a remote git repository using abapGit API.
 
         WARNING: Pull overwrites local ABAP objects with remote versions.
-        NOTE: First call may return "Pull status unknown" — call again or press F8 to complete.
+        NOTE: First call may return "Pull status unknown" -- call again or press F8 to complete.
         IMPORTANT: All filenames must be lowercase (e.g., zcl_my_class.clas.abap, not uppercase).
 
         Args:
@@ -960,6 +941,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             username: GitHub username (optional for public repos)
             pat: GitHub Personal Access Token (optional for public repos,
                  falls back to ABAPGIT_PAT or GITHUB_PAT environment variables)
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
 
         Returns:
             AbapGitActionResult with success status and details
@@ -968,7 +951,11 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             sap_abapgit_pull(repo="Z_PUBLIC_REPO")
             sap_abapgit_pull(repo="Z_PUBLIC_REPO", trkorr="S4UK902008")
         """
-        return await _abapgit_pull_via_api(repo, trkorr, username, pat)
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_abapgit_pull")
+        except ValueError as e:
+            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=f"Session error: {e}")
+        return await _abapgit_pull_via_api(backend, repo, trkorr, username, pat)
 
     @mcp.tool(
         annotations=ToolAnnotations(
@@ -984,12 +971,18 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "Useful for verifying abapGit pull operations."
         ),
     )
-    async def sap_read_se38_source(program_name: str) -> dict[str, Any]:
+    async def sap_read_se38_source(
+        program_name: str,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Read ABAP report source code from SE38.
 
         Args:
             program_name: The ABAP program/report name (e.g., Z_REPORT_TEST)
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
 
         Returns:
             Dict with success, source_code, program_name, error fields
@@ -997,4 +990,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         Example:
             sap_read_se38_source(program_name="Z_MY_REPORT")
         """
-        return await read_se38_source(program_name)
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_read_se38_source")
+        except ValueError as e:
+            return {"success": False, "error": f"Session error: {e}"}
+        return await read_se38_source(backend, program_name)
