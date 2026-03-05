@@ -24,6 +24,7 @@ from fastmcp import FastMCP
 from fastmcp.utilities.types import File, Image
 
 from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.backend.webgui.backend import _escape_css_selector
 from sapwebguimcp.models import (
     BrowserKeyboardResult,
     ClickResult,
@@ -44,47 +45,6 @@ logger = logging.getLogger(__name__)
 # Threshold for returning HTML as File instead of inline (50KB)
 # This prevents context bloat for large SAP pages
 _HTML_SIZE_THRESHOLD_BYTES = 50 * 1024
-
-
-def _escape_css_selector(selector: str) -> str:
-    """
-    Escape special CSS characters in selectors.
-
-    SAP generates IDs like 'M0:48::btn[5]' which contain special CSS characters.
-    This function escapes them so they work as valid CSS selectors.
-
-    If the selector is already escaped (contains patterns like \\# or \\,),
-    it will be returned as-is to avoid double-escaping.
-
-    Args:
-        selector: CSS selector string
-
-    Returns:
-        Escaped CSS selector
-    """
-    if not selector:
-        return selector
-
-    # If it's an ID selector (starts with #), escape special chars in the ID part
-    if selector.startswith("#"):
-        id_part = selector[1:]
-
-        # Check if already escaped - look for backslash followed by special chars
-        # This prevents double-escaping of selectors from sap_read_table cells
-        if any(f"\\{c}" in id_part for c in ":[]#,"):
-            return selector  # Already escaped
-
-        # Escape CSS special characters: : [ ] # ,
-        # SAP ALV grids use IDs like "grid#C120#1,2#if" which need # and , escaped
-        escaped_id = ""
-        for char in id_part:
-            if char in r":[]#,":
-                escaped_id += f"\\{char}"
-            else:
-                escaped_id += char
-        return f"#{escaped_id}"
-
-    return selector
 
 
 def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements

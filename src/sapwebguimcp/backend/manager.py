@@ -64,11 +64,7 @@ def get_backend_manager() -> BackendManager:
     """Get the global BackendManager singleton (lazy init)."""
     global _backend_manager  # noqa: PLW0603  # pylint: disable=global-statement
     if _backend_manager is None:
-        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
-
-        settings = get_settings()
-        backend_type = getattr(settings, "sap_ui_backend", "webgui")
-        _backend_manager = BackendManager(backend_type=backend_type)
+        _backend_manager = BackendManager(backend_type="webgui")
     return _backend_manager
 
 
