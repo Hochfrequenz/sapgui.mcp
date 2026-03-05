@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 abapGit integration tools for SAP Web GUI.
 
@@ -247,15 +248,51 @@ def _validate_and_prepare_params(
 # OK-Code Field Handling
 
 
+async def _find_okcode_field(page: Any) -> Any | None:
+    """Find the OK-Code field on the page."""
+    element = await page.query_selector("#ToolbarOkCode")
+    if element and await element.is_visible():
+        return element
+    for selector in [
+        "input[id*='OkCode']",
+        "input[lsdata*='OKCODE']",
+        "#M0\\:46\\:11\\:1",
+    ]:
+        element = await page.query_selector(selector)
+        if element and await element.is_visible():
+            return element
+    return None
+
+
+async def _enable_okcode_field(page: Any) -> tuple[bool, str]:
+    """Attempt to enable the OK-Code field via SAP settings menu."""
+    try:
+        for selector in [
+            "span[title*='Einstellungen']",
+            "span[title*='Settings']",
+            "[lsdata*='SETTINGS']",
+            "span.urBtnEmph[title]",
+        ]:
+            element = await page.query_selector(selector)
+            if element and await element.is_visible():
+                await element.click()
+                await page.wait_for_timeout(500)
+                for option_selector in ["text=OK-Code", "text=Transaktionsfeld", "text=Transaction Field"]:
+                    option = await page.query_selector(option_selector)
+                    if option and await option.is_visible():
+                        await option.click()
+                        await page.wait_for_timeout(300)
+                        return True, "Enabled OK-Code field via settings menu"
+        return False, "Could not find settings menu or OK-Code option"
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        return False, f"Error enabling OK-Code field: {e}"
+
+
 async def _enter_tcode_via_okcode(
     backend: "SapUiBackend", tcode_with_params: str, repo: str
 ) -> AbapGitActionResult | None:
     """Enter a parameterised transaction via the OK-Code field. Returns error or None."""
     page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    from sapwebguimcp.tools.sap_tool_impl import (  # pylint: disable=import-outside-toplevel
-        _enable_okcode_field,
-        _find_okcode_field,
-    )
 
     okcode_field = await _find_okcode_field(page)
     if not okcode_field:

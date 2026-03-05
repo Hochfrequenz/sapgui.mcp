@@ -31,8 +31,8 @@ from fastmcp import Context, FastMCP
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.webgui.js_helpers import load_js as _load_js
 from sapwebguimcp.middleware.logging import set_sap_identity
+from sapwebguimcp.backend.webgui.browser import BrowserManager, get_browser_manager
 from sapwebguimcp.models import (
-    BrowserManager,
     CapabilitiesResult,
     ClosePopupResult,
     DiscoveredButtons,
@@ -58,7 +58,6 @@ from sapwebguimcp.models import (
     TableData,
     ToolInfo,
     TransactionResult,
-    get_browser_manager,
     get_settings,
 )
 from sapwebguimcp.models.middleware import SapIdentity

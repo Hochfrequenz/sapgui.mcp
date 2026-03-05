@@ -16,7 +16,7 @@ from fastmcp.server.middleware.logging import LoggingMiddleware
 
 from sapwebguimcp.logging_config import configure_logging
 from sapwebguimcp.middleware import ToolCallLoggingMiddleware
-from sapwebguimcp.models import close_browser_manager
+from sapwebguimcp.backend.webgui.browser import close_browser_manager
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.prompts import register_prompts
 from sapwebguimcp.resources import register_feedback_resources, register_intent_resources
