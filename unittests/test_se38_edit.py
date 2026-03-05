@@ -57,7 +57,7 @@ class TestParseStatusNote:
     """Tests for parsing status bar notes from ARIA snapshots."""
 
     def test_parse_check_success_de(self) -> None:
-        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = '- note "Erfolgreich Meldungsleiste Es wurden keine Syntaxfehler in Report ZTEST_MCP_EDIT gefunden"'
         success, message = parse_toolbar_note(snapshot)
@@ -65,7 +65,7 @@ class TestParseStatusNote:
         assert "keine Syntaxfehler" in message or "No syntax errors" in message
 
     def test_parse_activate_success_de(self) -> None:
-        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = '- note "Erfolgreich Meldungsleiste Aktives Objekt wurde generiert"'
         success, message = parse_toolbar_note(snapshot)
@@ -73,7 +73,7 @@ class TestParseStatusNote:
         assert "generiert" in message or "generated" in message
 
     def test_parse_check_failure_de(self) -> None:
-        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = '- note "Fehler Meldungsleiste Syntaxfehler in Zeile 3"'
         success, message = parse_toolbar_note(snapshot)
@@ -81,7 +81,7 @@ class TestParseStatusNote:
         assert "Syntaxfehler" in message
 
     def test_parse_check_success_en(self) -> None:
-        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = '- note "Success Message Bar No syntax errors found in Report ZTEST_MCP_EDIT"'
         success, message = parse_toolbar_note(snapshot)
@@ -89,7 +89,7 @@ class TestParseStatusNote:
         assert "No syntax errors" in message
 
     def test_parse_activate_success_en(self) -> None:
-        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = '- note "Success Message Bar Object activated"'
         success, message = parse_toolbar_note(snapshot)
@@ -97,7 +97,7 @@ class TestParseStatusNote:
         assert "Object activated" in message
 
     def test_parse_check_failure_en(self) -> None:
-        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = '- note "Error Message Bar Specify a program name"'
         success, message = parse_toolbar_note(snapshot)
@@ -105,7 +105,7 @@ class TestParseStatusNote:
         assert "Specify a program name" in message
 
     def test_parse_no_note(self) -> None:
-        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = "- button 'Aktivieren'"
         success, message = parse_toolbar_note(snapshot)
