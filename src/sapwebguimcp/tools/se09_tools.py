@@ -59,7 +59,7 @@ async def _set_checkbox_state(backend: "SapUiBackend", label: str, should_be_che
     try:
         value = "X" if should_be_checked else ""
         await backend.fill_field(label, value)
-    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.warning("Failed to set checkbox '%s', skipping", label)
 
 
@@ -74,7 +74,7 @@ async def _set_request_type_filter(backend: "SapUiBackend", request_type: str) -
         await _set_checkbox_state(backend, "Workbench", False)
 
 
-async def _set_status_filter(backend: "SapUiBackend", status: str) -> None:  # pylint: disable=too-many-branches
+async def _set_status_filter(backend: "SapUiBackend", status: str) -> None:
     """Set status filter checkboxes on SE09 selection screen."""
     # Try DE labels first, then EN
     mod_labels = [SE09_MODIFIABLE_DE, SE09_MODIFIABLE_EN]
@@ -82,43 +82,19 @@ async def _set_status_filter(backend: "SapUiBackend", status: str) -> None:  # p
 
     if status == "all":
         for label in rel_labels:
-            try:
-                await _set_checkbox_state(backend, label, True)
-                break
-            except Exception:  # pylint: disable=broad-exception-caught
-                continue
+            await _set_checkbox_state(backend, label, True)
         for label in mod_labels:
-            try:
-                await _set_checkbox_state(backend, label, True)
-                break
-            except Exception:  # pylint: disable=broad-exception-caught
-                continue
+            await _set_checkbox_state(backend, label, True)
     elif status == "modifiable":
         for label in mod_labels:
-            try:
-                await _set_checkbox_state(backend, label, True)
-                break
-            except Exception:  # pylint: disable=broad-exception-caught
-                continue
+            await _set_checkbox_state(backend, label, True)
         for label in rel_labels:
-            try:
-                await _set_checkbox_state(backend, label, False)
-                break
-            except Exception:  # pylint: disable=broad-exception-caught
-                continue
+            await _set_checkbox_state(backend, label, False)
     elif status == "released":
         for label in rel_labels:
-            try:
-                await _set_checkbox_state(backend, label, True)
-                break
-            except Exception:  # pylint: disable=broad-exception-caught
-                continue
+            await _set_checkbox_state(backend, label, True)
         for label in mod_labels:
-            try:
-                await _set_checkbox_state(backend, label, False)
-                break
-            except Exception:  # pylint: disable=broad-exception-caught
-                continue
+            await _set_checkbox_state(backend, label, False)
 
 
 async def _click_display_button(backend: "SapUiBackend") -> None:

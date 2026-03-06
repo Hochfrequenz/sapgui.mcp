@@ -100,7 +100,7 @@ class SapUiInspection(Protocol):
     async def discover_fields(self) -> list[FieldInfo]:
         """Discover input fields on the current screen."""
 
-    async def get_form_fields(self) -> FormFieldsResult:
+    async def get_form_fields(self, *, include_dropdown_options: bool = False) -> FormFieldsResult:
         """Detect form fields with their current values and types."""
 
     async def discover_buttons(self) -> list[ButtonInfo]:
@@ -112,7 +112,12 @@ class SapUiInspection(Protocol):
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the current page as PNG bytes."""
 
-    async def read_table(self) -> TableData:
+    async def read_table(
+        self,
+        start_row: int = 1,
+        end_row: int | None = None,
+        max_rows: int = 100,
+    ) -> TableData:
         """Read data from an ALV grid or table on the screen."""
 
     async def click_table_cell(self, row: int, column: int | str, action: str = "click") -> TableCellClickResult:

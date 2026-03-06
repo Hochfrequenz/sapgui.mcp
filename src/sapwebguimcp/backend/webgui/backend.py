@@ -250,7 +250,15 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             return LoginResult.failure(f"Error during SAP login: {e}", url=url)
 
     async def enter_transaction(self, tcode: str) -> TransactionResult:
-        """Enter a transaction code via the OK-Code field."""
+        """Enter a transaction code via the OK-Code field.
+
+        Supports parameterised transactions (e.g. ``/NZ_ABAPGIT_PULL P_REPO=...``).
+        The ``TransactionResult.tcode`` field stores only the base tcode
+        (first token before any parameters).
+        """
+        # TransactionResult.tcode validates against a strict pattern;
+        # extract the base tcode (first token) for the result model.
+        base_tcode = tcode.split()[0] if " " in tcode else tcode
         try:
             okcode_field = await self._find_okcode_field()
             if not okcode_field:
@@ -258,13 +266,13 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 if not success:
                     return TransactionResult.failure(
                         f"Could not find or enable OK-Code field. {message}",
-                        tcode=tcode,
+                        tcode=base_tcode,
                     )
                 okcode_field = await self._find_okcode_field()
                 if not okcode_field:
                     return TransactionResult.failure(
                         "OK-Code field still not visible after enabling.",
-                        tcode=tcode,
+                        tcode=base_tcode,
                     )
 
             if tcode.startswith("/n") or tcode.startswith("/o"):
@@ -285,11 +293,11 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             await self._page.wait_for_load_state("networkidle", timeout=15000)
 
             title = await self._page.title()
-            return TransactionResult(tcode=tcode, page_title=title)
+            return TransactionResult(tcode=base_tcode, page_title=title)
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Executing transaction")
-            return TransactionResult.failure(f"Error executing transaction {tcode}: {e}", tcode=tcode)
+            return TransactionResult.failure(f"Error executing transaction {tcode}: {e}", tcode=base_tcode)
 
     async def get_session_status(self) -> SessionStatus:
         """Check session health."""
@@ -582,23 +590,29 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             for f in fields_data
         ]
 
-    async def get_form_fields(self) -> FormFieldsResult:
+    async def get_form_fields(self, *, include_dropdown_options: bool = False) -> FormFieldsResult:
         """Discover fillable form fields with type information."""
         try:
             from sapwebguimcp.models.sap_results import SapFieldType  # pylint: disable=import-outside-toplevel
 
             raw_fields = await self._page.evaluate(load_js("detect_form_fields.js"))
-            fields = [
-                FormField(
-                    id=raw.get("id", ""),
-                    label=raw.get("label", ""),
-                    field_type=SapFieldType(raw.get("field_type", "text")),
-                    current_value=raw.get("current_value"),
-                    readonly=raw.get("readonly", False),
-                    options=None,
+            fields = []
+            for raw in raw_fields:
+                options: list[str] | None = None
+                if include_dropdown_options and raw.get("field_type") == "dropdown":
+                    label = raw.get("label", "")
+                    if label:
+                        options = await self.get_dropdown_options(label)
+                fields.append(
+                    FormField(
+                        id=raw.get("id", ""),
+                        label=raw.get("label", ""),
+                        field_type=SapFieldType(raw.get("field_type", "text")),
+                        current_value=raw.get("current_value"),
+                        readonly=raw.get("readonly", False),
+                        options=options,
+                    )
                 )
-                for raw in raw_fields
-            ]
             return FormFieldsResult(fields=fields)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Getting form fields")
@@ -628,12 +642,17 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         """Take a screenshot of the current page."""
         return await self._page.screenshot(full_page=True)
 
-    async def read_table(self) -> TableData:
+    async def read_table(
+        self,
+        start_row: int = 1,
+        end_row: int | None = None,
+        max_rows: int = 100,
+    ) -> TableData:
         """Read rows from an ALV grid or table on the current screen."""
         try:
             table_data = await self._page.evaluate(
                 load_js("extract_table_data.js"),
-                {"startRow": 1, "endRow": None, "maxRows": 100},
+                {"startRow": start_row, "endRow": end_row, "maxRows": max_rows},
             )
 
             if "error" in table_data:

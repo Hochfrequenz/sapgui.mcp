@@ -30,16 +30,20 @@ async def _open_class_in_change_mode(backend: SapUiBackend, class_name: str) -> 
     await backend.enter_transaction("SE24")
 
     # Fill class name field (DE: "Objekttyp", EN: "Object Type")
-    try:
-        await backend.fill_field("Objekttyp", class_name)
-    except ValueError:
-        await backend.fill_field("Object Type", class_name)
+    for label in ("Objekttyp", "Object Type"):
+        try:
+            await backend.fill_field(label, class_name)
+            break
+        except ValueError:
+            continue
+    else:
+        return "Could not find class name field"
 
     # F7 to display first (reliable in both DE/EN), then toggle to change mode
     await backend.press_key("F7")
     await backend.wait_for_ready()
 
-    snapshot = await backend.get_snapshot()
+    snapshot = str(await backend.get_snapshot())
     if "Class Builder" not in snapshot and "Klasse" not in snapshot:
         return f"F7 failed to display class. Page: {str(snapshot)[:400]}"
 

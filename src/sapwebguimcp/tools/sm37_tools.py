@@ -68,7 +68,7 @@ async def _set_status_checkboxes(backend: "SapUiBackend", statuses: list[str], l
             # Use fill_field with "X" to check, "" to uncheck
             value = "X" if should_be_checked else ""
             await backend.fill_field(label, value)
-        except (ValueError, Exception) as e:  # pylint: disable=broad-exception-caught
+        except Exception as e:  # pylint: disable=broad-exception-caught
             errors.append(f"Failed to set checkbox '{label}': {e}")
             logger.warning("Checkbox error label=%r error=%s", label, e)
 

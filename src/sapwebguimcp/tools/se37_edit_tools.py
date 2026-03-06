@@ -24,19 +24,20 @@ async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -
     await backend.enter_transaction("SE37")
 
     # Fill FM name field (DE: "Funktionsbaustein", EN: "Function Module")
-    try:
-        await backend.fill_field("Funktionsbaustein", function_module)
-    except ValueError:
+    for label in ("Funktionsbaustein", "Function Module", "Function module"):
         try:
-            await backend.fill_field("Function Module", function_module)
+            await backend.fill_field(label, function_module)
+            break
         except ValueError:
-            await backend.fill_field("Function module", function_module)
+            continue
+    else:
+        return "Could not find function module name field"
 
     # F7 to display first (reliable in both DE/EN), then toggle to change mode
     await backend.press_key("F7")
     await backend.wait_for_ready()
 
-    snapshot = await backend.get_snapshot()
+    snapshot = str(await backend.get_snapshot())
     if "Function Builder" not in snapshot and "Funktionsbaustein" not in snapshot:
         return f"F7 failed to display function module. Page: {str(snapshot)[:400]}"
 

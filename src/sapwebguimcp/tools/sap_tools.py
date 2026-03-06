@@ -1109,7 +1109,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         )
     )
     async def sap_get_form_fields(
-        include_dropdown_options: bool = False,  # noqa: ARG001  # pylint: disable=unused-argument
+        include_dropdown_options: bool = False,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> FormFieldsResult:
@@ -1141,7 +1141,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return FormFieldsResult.failure(str(e))
 
         try:
-            return await backend.get_form_fields()
+            return await backend.get_form_fields(include_dropdown_options=include_dropdown_options)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Getting form fields")
             return FormFieldsResult.failure(f"Error getting form fields: {e}")
@@ -1155,9 +1155,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         )
     )
     async def sap_read_table(
-        start_row: int = 1,  # noqa: ARG001  # pylint: disable=unused-argument
-        end_row: Optional[int] = None,  # noqa: ARG001  # pylint: disable=unused-argument
-        max_rows: int = 100,  # noqa: ARG001  # pylint: disable=unused-argument
+        start_row: int = 1,
+        end_row: Optional[int] = None,
+        max_rows: int = 100,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> TableData:
@@ -1183,7 +1183,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return TableData.failure(str(e))
 
         try:
-            return await backend.read_table()
+            return await backend.read_table(start_row=start_row, end_row=end_row, max_rows=max_rows)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Reading table")
             return TableData.failure(f"Error reading table: {e}")
@@ -1745,7 +1745,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 )
 
             await backend.fill_field(label, value)
-            return SetFieldResult(label=label, value=value, selector_used=None)
+            # selector_used is unavailable via the backend protocol (fill_field returns None)
+            return SetFieldResult(label=label, value=value)
 
         except ValueError as ve:
             return SetFieldResult.failure(str(ve), label=label, value=value)

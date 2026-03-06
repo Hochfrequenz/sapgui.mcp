@@ -69,7 +69,7 @@ async def _clear_user_field(backend: "SapUiBackend") -> None:
         try:
             await backend.fill_field(label, "")
             return
-        except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+        except Exception:  # pylint: disable=broad-exception-caught
             logger.debug("Could not clear user field with label=%r", label)
     logger.debug("User field not found for clearing")
 
@@ -86,7 +86,7 @@ async def _fill_date_field(backend: "SapUiBackend", target_date: str, language: 
         try:
             await backend.fill_field(label, formatted)
             return None
-        except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+        except Exception:  # pylint: disable=broad-exception-caught
             logger.debug("Could not fill date field with label=%r", label)
 
     return "Could not find date field"
@@ -115,7 +115,7 @@ async def _try_quick_button(backend: "SapUiBackend", target_date: str | None) ->
             await backend.click_button(label)
             await backend.wait_for_ready()
             return True
-        except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+        except Exception:  # pylint: disable=broad-exception-caught
             logger.debug("Quick button click failed for label=%r", label)
 
     return False

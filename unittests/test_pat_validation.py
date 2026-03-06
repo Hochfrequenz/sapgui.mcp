@@ -1,6 +1,9 @@
 """Tests for GitHub Personal Access Token (PAT) validation."""
 
+from __future__ import annotations
+
 import logging
+from unittest.mock import AsyncMock
 
 import pytest
 import respx
@@ -134,7 +137,7 @@ class TestAnalyzePullResultFallback:
     @pytest.mark.anyio
     async def test_empty_status_returns_failure(self) -> None:
         """Empty status bar should return failure, not success."""
-        from unittest.mock import AsyncMock, PropertyMock, patch
+        from unittest.mock import patch
 
         from sapwebguimcp.tools.abapgit_tools import _analyze_pull_result
 
@@ -160,9 +163,9 @@ class TestRunPullAndCheckErrors:
     """Tests for _run_pull_and_check_errors networkidle wait behavior."""
 
     @staticmethod
-    def _mock_backend_no_popup() -> "AsyncMock":
+    def _mock_backend_no_popup() -> AsyncMock:
         """Create a mock backend whose _page returns no inactive objects popup."""
-        from unittest.mock import AsyncMock, MagicMock
+        from unittest.mock import MagicMock
 
         mock_page = AsyncMock()
         mock_page.keyboard.press = AsyncMock()
@@ -180,7 +183,7 @@ class TestRunPullAndCheckErrors:
     @pytest.mark.anyio
     async def test_uses_networkidle_instead_of_hardcoded_waits(self) -> None:
         """After F8, should wait for networkidle instead of hardcoded timeouts."""
-        from unittest.mock import AsyncMock, call, patch
+        from unittest.mock import call, patch
 
         from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
@@ -200,13 +203,13 @@ class TestRunPullAndCheckErrors:
         mock_backend._page.wait_for_load_state.assert_called_once_with("networkidle", timeout=120_000)
 
         # Without inactive objects popup, should NOT press Enter
-        enter_calls = [c for c in mock_backend._page.keyboard.press.call_args_list if c == call("Enter")]
+        enter_calls = [c for c in mock_backend.press_key.call_args_list if c == call("Enter")]
         assert enter_calls == [], f"Expected no Enter press, got {enter_calls}"
 
     @pytest.mark.anyio
     async def test_networkidle_timeout_degrades_gracefully(self) -> None:
         """If networkidle times out, should log warning and continue (not crash)."""
-        from unittest.mock import AsyncMock, patch
+        from unittest.mock import patch
 
         from playwright.async_api import TimeoutError as PlaywrightTimeout
 
@@ -228,7 +231,7 @@ class TestRunPullAndCheckErrors:
     @pytest.mark.anyio
     async def test_inactive_objects_popup_confirmed_with_enter(self) -> None:
         """When 'Inaktive Objekte' popup appears after pull, it should be confirmed."""
-        from unittest.mock import AsyncMock, call, patch
+        from unittest.mock import call, patch
 
         from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
