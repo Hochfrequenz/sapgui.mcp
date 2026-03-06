@@ -13,6 +13,7 @@
 ### Task 1: Update the unit test for `_run_pull_and_check_errors` behavior
 
 **Files:**
+
 - Modify: `unittests/test_pat_validation.py` (add new test class at end of file)
 
 **Step 1: Write the failing test**
@@ -63,6 +64,7 @@ Expected: FAIL — current code uses `wait_for_timeout` not `wait_for_load_state
 ### Task 2: Fix `_run_pull_and_check_errors` to use networkidle
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/abapgit_tools.py:390-402`
 
 **Step 1: Replace the function body**
@@ -70,6 +72,7 @@ Expected: FAIL — current code uses `wait_for_timeout` not `wait_for_load_state
 In `src/sapwebguimcp/tools/abapgit_tools.py`, replace `_run_pull_and_check_errors` (lines 390-402):
 
 Old:
+
 ```python
 async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResult | None:
     """Execute F8, confirm dialog, and check for popup errors. Returns error if found."""
@@ -87,6 +90,7 @@ async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResu
 ```
 
 New:
+
 ```python
 async def _run_pull_and_check_errors(page: Page, repo: str) -> AbapGitActionResult | None:
     """Execute F8 and wait for SAP to finish processing. Returns error if found."""
@@ -128,6 +132,7 @@ empty' on successful pulls when deserialization exceeds 8 seconds."
 ### Task 3: Update the tool description with workaround note
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/abapgit_tools.py:929-933`
 
 **Step 1: Update the description**
@@ -135,6 +140,7 @@ empty' on successful pulls when deserialization exceeds 8 seconds."
 In `src/sapwebguimcp/tools/abapgit_tools.py`, change the `sap_abapgit_pull` tool description (line 929-933):
 
 Old:
+
 ```python
         description=(
             "Pull changes from a remote git repository using abapGit API. "
@@ -144,6 +150,7 @@ Old:
 ```
 
 New:
+
 ```python
         description=(
             "Pull changes from a remote git repository using abapGit API. "
@@ -179,6 +186,7 @@ git commit -m "docs: add F8 workaround note to sap_abapgit_pull description"
 ### Task 4: Update the stale comment in the E2E test
 
 **Files:**
+
 - Modify: `unittests/test_abapgit_tools.py:434-438`
 
 **Step 1: Update the comment**
@@ -186,6 +194,7 @@ git commit -m "docs: add F8 workaround note to sap_abapgit_pull description"
 In `unittests/test_abapgit_tools.py`, the comment at lines 434-438 references the old behavior ("treats empty status bar as success"). Update it:
 
 Old:
+
 ```python
     # KNOWN ISSUE: _analyze_pull_result treats empty status bar as success.
     # If the PAT is expired (HTTP 401), the ABAP report catches cx_root and
@@ -196,6 +205,7 @@ Old:
 ```
 
 New:
+
 ```python
     # NOTE: If this test fails at the assert below, check ABAPGIT_PAT validity first.
     # An expired PAT causes cx_root in ABAP which may surface as a pull error.
@@ -221,6 +231,7 @@ It validates the fix end-to-end: a pull that previously returned "status unknown
 proper success message because `networkidle` waits for deserialization to complete.
 
 **Files:**
+
 - Modify: `unittests/test_abapgit_tools.py` (add new test after `test_abapgit_pull_public_repo`)
 
 **Step 1: Add the integration test**
@@ -287,6 +298,7 @@ unexpected network behavior), the function degrades gracefully — logs a warnin
 the popup check instead of crashing.
 
 **Files:**
+
 - Modify: `unittests/test_pat_validation.py` (add to `TestRunPullAndCheckErrors` class)
 
 **Step 1: Write the test**

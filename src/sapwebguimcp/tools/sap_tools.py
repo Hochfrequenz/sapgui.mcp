@@ -29,9 +29,9 @@ from urllib.parse import urlparse
 from fastmcp import Context, FastMCP
 
 from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.backend.webgui.browser import BrowserManager, get_browser_manager
 from sapwebguimcp.backend.webgui.js_helpers import load_js as _load_js
 from sapwebguimcp.middleware.logging import set_sap_identity
-from sapwebguimcp.backend.webgui.browser import BrowserManager, get_browser_manager
 from sapwebguimcp.models import (
     CapabilitiesResult,
     ClosePopupResult,

@@ -478,12 +478,12 @@ Add to `.mcp.json` in your project root:
 
 For repetitive tasks like "create 100 business partners":
 
-| Tool              | Description                                          |
-| ----------------- | ---------------------------------------------------- |
-| `workflow_list`   | List saved workflows                                 |
-| `workflow_save`   | Save a workflow                                      |
-| `workflow_submit` | Submit workflow to dev team (creates GitHub issue)   |
-| `workflow_delete` | Delete a workflow                                    |
+| Tool              | Description                                        |
+| ----------------- | -------------------------------------------------- |
+| `workflow_list`   | List saved workflows                               |
+| `workflow_save`   | Save a workflow                                    |
+| `workflow_submit` | Submit workflow to dev team (creates GitHub issue) |
+| `workflow_delete` | Delete a workflow                                  |
 
 Note: There is currently no bulk runner tool. The `workflow_list` tool returns, for each saved workflow, a prompt or instruction that you (or the calling agent) should follow manually, one item at a time.
 
