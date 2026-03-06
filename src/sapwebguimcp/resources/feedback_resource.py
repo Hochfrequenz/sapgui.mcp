@@ -1,8 +1,9 @@
 """MCP resource for retrieving feedback logs."""
 
+import json
+
 from fastmcp import FastMCP
 
-from sapwebguimcp.models import FeedbackEntry
 from sapwebguimcp.tools.feedback_tools import get_session_feedback
 
 __all__ = ["register_feedback_resources"]
@@ -12,7 +13,7 @@ def register_feedback_resources(mcp: FastMCP) -> None:
     """Register feedback log resources with the MCP server."""
 
     @mcp.resource("feedback://session/{session_id}")
-    def get_feedback_log(session_id: str) -> list[FeedbackEntry]:
+    def get_feedback_log(session_id: str) -> str:
         """
         Get all feedback log entries for a session.
 
@@ -28,6 +29,7 @@ def register_feedback_resources(mcp: FastMCP) -> None:
             session_id: The session ID to retrieve logs for
 
         Returns:
-            List of feedback entries
+            JSON string of feedback entries
         """
-        return get_session_feedback(session_id)
+        entries = get_session_feedback(session_id)
+        return json.dumps([e.model_dump(mode="json") for e in entries])

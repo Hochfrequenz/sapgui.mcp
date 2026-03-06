@@ -1,8 +1,9 @@
 """MCP resource for retrieving intent logs."""
 
+import json
+
 from fastmcp import FastMCP
 
-from sapwebguimcp.models import IntentEntry
 from sapwebguimcp.tools.intent_tools import get_session_intents
 
 __all__ = ["register_intent_resources"]
@@ -12,7 +13,7 @@ def register_intent_resources(mcp: FastMCP) -> None:
     """Register intent log resources with the MCP server."""
 
     @mcp.resource("intent://session/{session_id}")
-    def get_intent_log(session_id: str) -> list[IntentEntry]:
+    def get_intent_log(session_id: str) -> str:
         """
         Get all intent log entries for a session.
 
@@ -23,6 +24,7 @@ def register_intent_resources(mcp: FastMCP) -> None:
             session_id: The session ID to retrieve logs for
 
         Returns:
-            List of intent entries
+            JSON string of intent entries
         """
-        return get_session_intents(session_id)
+        entries = get_session_intents(session_id)
+        return json.dumps([e.model_dump(mode="json") for e in entries])
