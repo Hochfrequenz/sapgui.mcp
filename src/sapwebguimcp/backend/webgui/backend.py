@@ -369,7 +369,9 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             )
             if not dropdown_result.get("success"):
                 error = dropdown_result.get("error", "Failed to select dropdown option")
-                raise ValueError(f"Could not fill dropdown '{label}': {error}")
+                exc = ValueError(f"Could not fill dropdown '{label}': {error}")
+                exc.available_options = dropdown_result.get("available_options")  # type: ignore[attr-defined]
+                raise exc
             await self._page.wait_for_timeout(300)
             return
 

@@ -1749,7 +1749,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SetFieldResult(label=label, value=value)
 
         except ValueError as ve:
-            return SetFieldResult.failure(str(ve), label=label, value=value)
+            available = getattr(ve, "available_options", None)
+            return SetFieldResult.failure(
+                str(ve), label=label, value=value, available_options=available
+            )
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Setting field", extra={"label": label})
             return SetFieldResult.failure(f"Error setting field: {e}", label=label, value=value)
