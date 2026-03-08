@@ -296,13 +296,16 @@ async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error 
         except ValueError:  # pylint: disable=broad-exception-caught
             continue
 
-    # Fallback: try using _page locator by ID
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    table_field = page.locator('[id*="TBMA_VAL"], [id*="TBMA-VAL"]').first
-    if await table_field.count() > 0:
-        await table_field.click(click_count=3)
-        await page.keyboard.type(name.upper())
-        return None
+    # Fallback: fill first visible input by CSS selector
+    try:
+        fields = await backend.discover_fields()
+        if fields:
+            selector = fields[0].selector
+            if selector:
+                await backend.fill_field(selector, name.upper())
+                return None
+    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+        pass
 
     return SE11Error(
         name=name,
@@ -316,17 +319,24 @@ async def _fill_structure_name_field(backend: SapUiBackend, name: str) -> SE11Er
     """Fill the structure/data type name field in SE11. Returns error or None."""
     now = datetime.now(UTC)
 
-    # Try labels with the Dictionary Type pattern (DE/EN)
-    # These use regex patterns so we need to use _page directly for the regex matching
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    type_field = page.get_by_role(
-        "textbox",
-        name=re.compile(bilingual_pattern(SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN, escape=False), re.I),
-    )
-    if await type_field.count() > 0:
-        await type_field.click(click_count=3)
-        await page.keyboard.type(name.upper())
-        return None
+    # Try DE and EN labels for the Dictionary Type field
+    for label in [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]:
+        try:
+            await backend.fill_field(label, name.upper())
+            return None
+        except ValueError:  # pylint: disable=broad-exception-caught
+            continue
+
+    # Fallback: fill first visible input by CSS selector
+    try:
+        fields = await backend.discover_fields()
+        if fields:
+            selector = fields[0].selector
+            if selector:
+                await backend.fill_field(selector, name.upper())
+                return None
+    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+        pass
 
     return SE11Error(
         name=name,

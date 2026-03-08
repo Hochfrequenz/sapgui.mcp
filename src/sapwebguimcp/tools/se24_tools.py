@@ -57,6 +57,19 @@ async def _fill_class_field(backend: SapUiBackend, class_name: str) -> SE24Error
         except ValueError:  # pylint: disable=broad-exception-caught
             continue
 
+    # Fallback: find the first visible input field by CSS selector.
+    # SE24 initial screen typically has a single input field whose label
+    # may not match standard text due to SAP's non-standard HTML.
+    try:
+        fields = await backend.discover_fields()
+        if fields:
+            selector = fields[0].selector
+            if selector:
+                await backend.fill_field(selector, class_name.upper())
+                return None
+    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+        pass
+
     return SE24Error(
         class_name=class_name,
         error="Could not find class/interface field in SE24",

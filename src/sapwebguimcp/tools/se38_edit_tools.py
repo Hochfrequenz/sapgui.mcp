@@ -23,7 +23,15 @@ async def _navigate_and_open_editor(backend: SapUiBackend, program_name: str) ->
     try:
         await backend.fill_field("Programm", program_name)
     except ValueError:
-        await backend.fill_field("Program", program_name)
+        try:
+            await backend.fill_field("Program", program_name)
+        except ValueError:
+            # Fallback: fill first visible input by CSS selector
+            fields = await backend.discover_fields()
+            if fields and fields[0].selector:
+                await backend.fill_field(fields[0].selector, program_name)
+            else:
+                return "Could not find program name field"
 
     await backend.press_key("F6")
     await backend.wait_for_ready()

@@ -37,7 +37,15 @@ async def _open_class_in_change_mode(backend: SapUiBackend, class_name: str) -> 
         except ValueError:
             continue
     else:
-        return "Could not find class name field"
+        # Fallback: fill first visible input by CSS selector
+        try:
+            fields = await backend.discover_fields()
+            if fields and fields[0].selector:
+                await backend.fill_field(fields[0].selector, class_name)
+            else:
+                return "Could not find class name field"
+        except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+            return "Could not find class name field"
 
     # F7 to display first (reliable in both DE/EN), then toggle to change mode
     await backend.press_key("F7")
