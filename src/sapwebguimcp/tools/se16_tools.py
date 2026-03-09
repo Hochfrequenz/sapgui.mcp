@@ -133,7 +133,7 @@ async def _fill_se16n_table_name(backend: SapUiBackend, table: str) -> str | Non
         if fields and fields[0].selector:
             await backend.fill_field(fields[0].selector, table.upper())
             return None
-    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         pass
 
     return "Failed to set table name field. Field not found with labels 'Table' or 'Tabelle'."

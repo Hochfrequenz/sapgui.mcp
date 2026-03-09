@@ -308,7 +308,7 @@ async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error 
             if selector:
                 await backend.fill_field(selector, name.upper())
                 return None
-    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         pass
 
     return SE11Error(
@@ -339,7 +339,7 @@ async def _fill_structure_name_field(backend: SapUiBackend, name: str) -> SE11Er
             if selector:
                 await backend.fill_field(selector, name.upper())
                 return None
-    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         pass
 
     return SE11Error(

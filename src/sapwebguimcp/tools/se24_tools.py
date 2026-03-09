@@ -67,7 +67,7 @@ async def _fill_class_field(backend: SapUiBackend, class_name: str) -> SE24Error
             if selector:
                 await backend.fill_field(selector, class_name.upper())
                 return None
-    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         pass
 
     return SE24Error(

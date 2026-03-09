@@ -65,7 +65,7 @@ async def _fill_fm_field(backend: SapUiBackend, fm_name: str) -> SE37Error | Non
             if selector:
                 await backend.fill_field(selector, fm_name.upper())
                 return None
-    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         pass
 
     return SE37Error(
