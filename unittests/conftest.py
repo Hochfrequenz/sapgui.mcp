@@ -56,12 +56,8 @@ def lang_strings(sap_language: SapLanguage) -> dict[str, str]:
         BP_POSTAL_CODE_EN,
         BP_YES_BUTTON_DE,
         BP_YES_BUTTON_EN,
-        SE38_CONTINUE_BUTTON_DE,
-        SE38_CONTINUE_BUTTON_EN,
         SE38_CREATE_BUTTON_DE,
         SE38_CREATE_BUTTON_EN,
-        SE38_LONG_DOC_BUTTON_DE,
-        SE38_LONG_DOC_BUTTON_EN,
         SM30_MAINTAIN_BUTTON_DE,
         SM30_MAINTAIN_BUTTON_EN,
     )
@@ -75,8 +71,6 @@ def lang_strings(sap_language: SapLanguage) -> dict[str, str]:
             "gp_role_default": BP_GP_ROLE_DEFAULT_DE,
             "grouping_label": BP_GROUPING_LABEL_DE,
             "create": SE38_CREATE_BUTTON_DE,
-            "continue": SE38_CONTINUE_BUTTON_DE,
-            "long_doc": SE38_LONG_DOC_BUTTON_DE,
             "maintain": SM30_MAINTAIN_BUTTON_DE,
         }
     return {
@@ -87,8 +81,6 @@ def lang_strings(sap_language: SapLanguage) -> dict[str, str]:
         "gp_role_default": BP_GP_ROLE_DEFAULT_EN,
         "grouping_label": BP_GROUPING_LABEL_EN,
         "create": SE38_CREATE_BUTTON_EN,
-        "continue": SE38_CONTINUE_BUTTON_EN,
-        "long_doc": SE38_LONG_DOC_BUTTON_EN,
         "maintain": SM30_MAINTAIN_BUTTON_EN,
     }
 
