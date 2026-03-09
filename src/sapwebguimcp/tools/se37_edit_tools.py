@@ -38,7 +38,7 @@ async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -
                 await backend.fill_field(fields[0].selector, function_module)
             else:
                 return "Could not find function module name field"
-        except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+        except Exception:  # pylint: disable=broad-exception-caught
             return "Could not find function module name field"
 
     # F7 to display first (reliable in both DE/EN), then toggle to change mode
