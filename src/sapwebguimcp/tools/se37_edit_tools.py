@@ -47,7 +47,7 @@ async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -
 
     snapshot = str(await backend.get_snapshot())
     if "Function Builder" not in snapshot and "Funktionsbaustein" not in snapshot:
-        return f"F7 failed to display function module. Page: {str(snapshot)[:400]}"
+        return f"F7 failed to display function module. Page: {snapshot[:400]}"
 
     await backend.dismiss_language_dialog()
 

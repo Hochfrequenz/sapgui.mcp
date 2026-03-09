@@ -53,7 +53,7 @@ async def _open_class_in_change_mode(backend: SapUiBackend, class_name: str) -> 
 
     snapshot = str(await backend.get_snapshot())
     if "Class Builder" not in snapshot and "Klasse" not in snapshot:
-        return f"F7 failed to display class. Page: {str(snapshot)[:400]}"
+        return f"F7 failed to display class. Page: {snapshot[:400]}"
 
     await backend.dismiss_language_dialog()
 
@@ -78,10 +78,14 @@ async def _select_method_and_open_source(backend: SapUiBackend, class_name: str,
     Returns error message or None on success.
     """
     # Ensure we're on the Methods tab (DE: "Methoden", EN: "Methods")
-    try:
-        await backend.click_tab("Methoden")
-    except Exception:  # pylint: disable=broad-exception-caught
-        await backend.click_tab("Methods")
+    for tab_label in ("Methoden", "Methods"):
+        try:
+            await backend.click_tab(tab_label)
+            break
+        except ValueError:
+            continue
+    else:
+        return "Could not find 'Methoden'/'Methods' tab"
     await backend.wait_for_ready()
 
     # Select the method in the grid by finding it in the table

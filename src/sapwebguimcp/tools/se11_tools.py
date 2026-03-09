@@ -226,6 +226,8 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
 
 async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11Error | None:
     """Wait for SE11 table screen and select the table radio. Returns error or None."""
+    from playwright.async_api import TimeoutError as PlaywrightTimeout  # pylint: disable=import-outside-toplevel
+
     now = datetime.now(UTC)
     # Uses explicit constants: SE11_DATABASE_TABLE_DE, SE11_DATABASE_TABLE_EN
     # Radio buttons don't have a backend protocol method, use _page directly
@@ -236,7 +238,7 @@ async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11E
 
     try:
         await table_radio.wait_for(state="visible", timeout=10000)
-    except TimeoutError:
+    except PlaywrightTimeout:
         snapshot = await backend.get_snapshot()
         logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
         return SE11Error(
@@ -256,6 +258,8 @@ async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11E
 
 async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> SE11Error | None:
     """Wait for SE11 structure screen and select the data type radio. Returns error or None."""
+    from playwright.async_api import TimeoutError as PlaywrightTimeout  # pylint: disable=import-outside-toplevel
+
     now = datetime.now(UTC)
     # Uses explicit constants: SE11_DATA_TYPE_DE, SE11_DATA_TYPE_EN
     # Radio buttons don't have a backend protocol method, use _page directly
@@ -266,7 +270,7 @@ async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> S
 
     try:
         await type_radio.wait_for(state="visible", timeout=10000)
-    except TimeoutError:
+    except PlaywrightTimeout:
         snapshot = await backend.get_snapshot()
         logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
         return SE11Error(
