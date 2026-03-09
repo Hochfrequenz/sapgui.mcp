@@ -13,6 +13,7 @@ from pathlib import Path
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+from playwright.async_api import TimeoutError as PlaywrightTimeout
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
@@ -236,7 +237,7 @@ async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11E
 
     try:
         await table_radio.wait_for(state="visible", timeout=10000)
-    except TimeoutError:
+    except PlaywrightTimeout:
         snapshot = await backend.get_snapshot()
         logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
         return SE11Error(
@@ -266,7 +267,7 @@ async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> S
 
     try:
         await type_radio.wait_for(state="visible", timeout=10000)
-    except TimeoutError:
+    except PlaywrightTimeout:
         snapshot = await backend.get_snapshot()
         logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
         return SE11Error(

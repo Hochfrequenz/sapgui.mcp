@@ -118,7 +118,7 @@ async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | N
             await backend.click_tab(name)
             snapshot = await backend.get_snapshot()
             return str(snapshot)
-        except ValueError:
+        except Exception:  # pylint: disable=broad-exception-caught
             continue
 
     return None

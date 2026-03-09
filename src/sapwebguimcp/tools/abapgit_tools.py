@@ -439,7 +439,7 @@ async def _abapgit_list_repos(backend: "SapUiBackend") -> AbapGitListResult:
         tcode_with_params = "/nZ_ABAPGIT_PULL P_ACTION=LIST;"
         okcode_error = await _enter_tcode_via_okcode(backend, tcode_with_params, "LIST")
         if okcode_error:
-            return AbapGitListResult(success=False, error=okcode_error.error)
+            return AbapGitListResult(success=False, error=okcode_error.error or "Unknown error entering transaction")
 
         # Check if transaction was found
         status = await backend.get_status_bar()
