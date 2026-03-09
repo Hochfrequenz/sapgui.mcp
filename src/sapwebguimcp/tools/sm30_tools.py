@@ -63,7 +63,7 @@ async def _click_display_button(backend: "SapUiBackend") -> str | None:
             await backend.click_button(label)
             await backend.wait_for_ready()
             return None
-        except (ValueError, Exception) as e:  # pylint: disable=broad-exception-caught
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning("Click %r button failed: %r", label, e)
             continue
 

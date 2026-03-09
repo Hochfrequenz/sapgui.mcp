@@ -64,7 +64,7 @@ async def _fill_tcode_field(backend: SapUiBackend, tcode: str) -> SE93Error | No
             if selector:
                 await backend.fill_field(selector, tcode.upper())
                 return None
-    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         pass
 
     return SE93Error(
