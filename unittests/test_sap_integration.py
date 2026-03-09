@@ -2373,6 +2373,27 @@ async def test_sap_get_shortcuts_no_duplicates(sap_mcp_client: ClientSession) ->
         seen.add(key)
 
 
+@pytest.mark.anyio
+async def test_sap_get_shortcuts_on_se09(sap_mcp_client: ClientSession) -> None:
+    """Regression: sap_get_shortcuts crashed on SE09 with 'NoneType' has no attribute 'strip'.
+
+    SE09 (Transport Organizer) has elements with title attributes that resolve to
+    null/undefined in JS. This caused parse_shortcut_from_title to crash.
+
+    This test captures an HTML snapshot of the SE09 screen for offline unit testing,
+    then verifies sap_get_shortcuts completes without error.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE09"})
+
+    # Capture HTML snapshot for offline unit test
+    await capture_html_snapshot(sap_mcp_client, "se09_shortcuts", overwrite=True)
+
+    # This used to crash: 'NoneType' object has no attribute 'strip'
+    data = await call_tool_typed(sap_mcp_client, "sap_get_shortcuts", {}, ShortcutsResult)
+    assert data.success, f"sap_get_shortcuts failed on SE09: {data.error}"
+
+
 # =============================================================================
 # Popup Handling Tests (fixes #54, #44, #57)
 # =============================================================================

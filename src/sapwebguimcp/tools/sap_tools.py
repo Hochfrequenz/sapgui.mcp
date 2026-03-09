@@ -242,6 +242,8 @@ def parse_shortcut_from_title(title: str) -> ShortcutInfo | None:
         >>> parse_shortcut_from_title("Created (2024-01-01)")  # Not a shortcut
         None
     """
+    if not title:
+        return None
     match = _SHORTCUT_PATTERN.match(title.strip())
     if not match:
         return None
@@ -1526,7 +1528,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
             titles: list[str] = await page.evaluate("""() => {
                     const elements = document.querySelectorAll('[title]');
-                    return Array.from(elements).map(el => el.title);
+                    return Array.from(elements).map(el => el.title).filter(Boolean);
                 }""")
 
             # Parse titles for shortcuts
