@@ -7,26 +7,25 @@ returning structured data with dynamically-parsed columns and rows.
 
 import json
 import logging
-import re
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-from playwright.async_api import Locator, Page
 
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.lang import (
     SM30_DISPLAY_BUTTON_DE,
     SM30_DISPLAY_BUTTON_EN,
     SM30_TABLE_VIEW_DE,
     SM30_TABLE_VIEW_EN,
-    bilingual_pattern,
 )
-from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.sm30_models import SM30FileSummary, SM30ViewResult
 from sapwebguimcp.parsers.sm30_parser import parse_sm30_snapshot
-from sapwebguimcp.tools.sap_page_helpers import navigate_transaction
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -38,80 +37,48 @@ __all__ = ["register_sm30_tools"]
 # =============================================================================
 
 
-async def _find_view_field(page: Page) -> Locator | None:
-    """Find the Table/View input field in SM30 using multiple strategies."""
-    strategies = [
-        page.get_by_role("textbox", name=SM30_TABLE_VIEW_DE),
-        page.get_by_role("textbox", name=SM30_TABLE_VIEW_EN),
-        page.get_by_role(
-            "textbox",
-            name=re.compile(
-                bilingual_pattern(SM30_TABLE_VIEW_DE, SM30_TABLE_VIEW_EN),
-                re.I,
-            ),
-        ),
-    ]
-
-    for field in strategies:
-        if await field.count() > 0:
-            return field
-
-    return None
-
-
-async def _fill_view_field(page: Page, view_name: str) -> str | None:
+async def _fill_view_field(backend: "SapUiBackend", view_name: str) -> str | None:
     """Fill the view name field in SM30. Returns error string or None."""
-    view_field = await _find_view_field(page)
+    for label in [SM30_TABLE_VIEW_DE, SM30_TABLE_VIEW_EN]:
+        try:
+            await backend.fill_field(label, view_name.upper())
+            return None
+        except ValueError:
+            continue
 
-    if view_field is None or await view_field.count() == 0:
-        return "Could not find Table/View field in SM30"
-
-    # Clear the field
-    await view_field.click(click_count=3)
-    await page.wait_for_timeout(100)
-    await page.keyboard.press("Delete")
-    await page.wait_for_timeout(50)
-
-    # Type the view name
-    await page.keyboard.type(view_name.upper())
-    await page.wait_for_timeout(100)
-    return None
+    return "Could not find Table/View field in SM30"
 
 
-async def _click_display_button(page: Page) -> str | None:
+async def _click_display_button(backend: "SapUiBackend") -> str | None:
     """
     Click the Anzeigen/Display button in SM30.
 
-    SM30 does not use standard F5/F7 keys for Display. We use Playwright's
-    native button click which properly triggers SAP WebGUI's event handlers.
+    SM30 does not use standard F5/F7 keys for Display. We click the button
+    directly using the backend's click_button method.
 
     Returns error string or None on success.
     """
     for label in [SM30_DISPLAY_BUTTON_DE, SM30_DISPLAY_BUTTON_EN]:
-        btn = page.get_by_role("button", name=label, exact=True)
-        if await btn.count() > 0:
-            try:
-                await btn.click()
-                await page.wait_for_timeout(2000)
-                await page.wait_for_load_state("networkidle")
-                await page.wait_for_timeout(500)
-                return None
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.warning("Click %r button failed: %r", label, e)
-                continue
+        try:
+            await backend.click_button(label)
+            await backend.wait_for_ready()
+            return None
+        except (ValueError, Exception) as e:  # pylint: disable=broad-exception-caught
+            logger.warning("Click %r button failed: %r", label, e)
+            continue
 
     return "Could not find Anzeigen/Display button in SM30"
 
 
-async def _lookup_view(page: Page, view_name: str) -> SM30ViewResult:
+async def _lookup_view(backend: "SapUiBackend", view_name: str) -> SM30ViewResult:
     """Look up a single SM30 view."""
     now = datetime.now(UTC)
 
     # Navigate to SM30
-    tx_error = await navigate_transaction(page, "SM30")
-    if tx_error:
+    tx_result = await backend.enter_transaction("SM30")
+    if not tx_result.success:
         return SM30ViewResult.failure(
-            error=f"Failed to navigate to SM30: {tx_error}",
+            error=f"Failed to navigate to SM30: {tx_result.error}",
             view_name=view_name,
             description="",
             view_type="unsupported",
@@ -122,11 +89,10 @@ async def _lookup_view(page: Page, view_name: str) -> SM30ViewResult:
         )
 
     # Wait for SM30 screen to be ready
-    await page.wait_for_timeout(500)
-    await page.wait_for_load_state("networkidle")
+    await backend.wait_for_ready()
 
     # Fill view name
-    fill_error = await _fill_view_field(page, view_name)
+    fill_error = await _fill_view_field(backend, view_name)
     if fill_error:
         return SM30ViewResult.failure(
             error=fill_error,
@@ -140,7 +106,7 @@ async def _lookup_view(page: Page, view_name: str) -> SM30ViewResult:
         )
 
     # Click Display button
-    click_error = await _click_display_button(page)
+    click_error = await _click_display_button(backend)
     if click_error:
         return SM30ViewResult.failure(
             error=click_error,
@@ -154,14 +120,14 @@ async def _lookup_view(page: Page, view_name: str) -> SM30ViewResult:
         )
 
     # Get snapshot and parse
-    snapshot = await page.locator("body").aria_snapshot()
+    snapshot = await backend.get_snapshot()
     logger.debug(
         "Got SM30 snapshot view=%r length=%d",
         view_name,
-        len(snapshot),
+        len(str(snapshot)),
     )
 
-    return parse_sm30_snapshot(AriaSnapshot(snapshot), view_name)
+    return parse_sm30_snapshot(snapshot, view_name)
 
 
 # =============================================================================
@@ -207,10 +173,9 @@ def register_sm30_tools(mcp: FastMCP) -> None:
             SM30FileSummary with file path and preview (when output_file provided)
         """
         now = datetime.now(UTC)
-        browser_manager = await get_browser_manager()
 
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_sm30_lookup")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_sm30_lookup")
         except ValueError as e:
             return SM30ViewResult.failure(
                 error=f"Session error: {e}",
@@ -224,7 +189,7 @@ def register_sm30_tools(mcp: FastMCP) -> None:
             )
 
         try:
-            result = await _lookup_view(page, view_name)
+            result = await _lookup_view(backend, view_name)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Looking up SM30 view=%r", view_name)
             result = SM30ViewResult.failure(

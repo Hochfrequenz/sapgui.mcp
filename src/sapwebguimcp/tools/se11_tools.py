@@ -10,12 +10,12 @@ import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-from playwright.async_api import TimeoutError as PlaywrightTimeout
 
+from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.lang import (
     SE11_DATA_TYPE_DE,
     SE11_DATA_TYPE_EN,
@@ -50,9 +50,7 @@ from sapwebguimcp.models import (
     SE11FileSummary,
     SE11ObjectType,
     SE11Result,
-    get_browser_manager,
 )
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
 
 logger = logging.getLogger(__name__)
 
@@ -226,10 +224,14 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
 # =============================================================================
 
 
-async def _wait_for_se11_table_screen(page: Any, name: str) -> SE11Error | None:
+async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11Error | None:
     """Wait for SE11 table screen and select the table radio. Returns error or None."""
+    from playwright.async_api import TimeoutError as PlaywrightTimeout  # pylint: disable=import-outside-toplevel
+
     now = datetime.now(UTC)
     # Uses explicit constants: SE11_DATABASE_TABLE_DE, SE11_DATABASE_TABLE_EN
+    # Radio buttons don't have a backend protocol method, use _page directly
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
     table_radio = page.get_by_role(
         "radio", name=re.compile(bilingual_pattern(SE11_DATABASE_TABLE_DE, SE11_DATABASE_TABLE_EN), re.I)
     )
@@ -237,13 +239,13 @@ async def _wait_for_se11_table_screen(page: Any, name: str) -> SE11Error | None:
     try:
         await table_radio.wait_for(state="visible", timeout=10000)
     except PlaywrightTimeout:
-        page_title = await page.title()
-        logger.warning("Page title when radio not found", extra={"page_title": page_title})
+        snapshot = await backend.get_snapshot()
+        logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
         return SE11Error(
             name=name,
             object_type="table",
             error=(
-                f"SE11 screen did not load (page title: '{page_title}'). "
+                "SE11 screen did not load. "
                 "Could not find 'Database table' / 'Datenbanktabelle' radio button. "
                 "This tool currently supports German (DE) and English (EN) SAP languages."
             ),
@@ -251,14 +253,17 @@ async def _wait_for_se11_table_screen(page: Any, name: str) -> SE11Error | None:
         )
 
     await table_radio.click()
-    await page.wait_for_timeout(100)
     return None
 
 
-async def _wait_for_se11_structure_screen(page: Any, name: str) -> SE11Error | None:
+async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> SE11Error | None:
     """Wait for SE11 structure screen and select the data type radio. Returns error or None."""
+    from playwright.async_api import TimeoutError as PlaywrightTimeout  # pylint: disable=import-outside-toplevel
+
     now = datetime.now(UTC)
     # Uses explicit constants: SE11_DATA_TYPE_DE, SE11_DATA_TYPE_EN
+    # Radio buttons don't have a backend protocol method, use _page directly
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
     type_radio = page.get_by_role(
         "radio", name=re.compile(bilingual_pattern(SE11_DATA_TYPE_DE, SE11_DATA_TYPE_EN), re.I)
     )
@@ -266,13 +271,13 @@ async def _wait_for_se11_structure_screen(page: Any, name: str) -> SE11Error | N
     try:
         await type_radio.wait_for(state="visible", timeout=10000)
     except PlaywrightTimeout:
-        page_title = await page.title()
-        logger.warning("Page title when radio not found", extra={"page_title": page_title})
+        snapshot = await backend.get_snapshot()
+        logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
         return SE11Error(
             name=name,
             object_type="structure",
             error=(
-                f"SE11 screen did not load (page title: '{page_title}'). "
+                "SE11 screen did not load. "
                 "Could not find 'Data type' / 'Datentyp' radio button. "
                 "This tool currently supports German (DE) and English (EN) SAP languages."
             ),
@@ -280,90 +285,99 @@ async def _wait_for_se11_structure_screen(page: Any, name: str) -> SE11Error | N
         )
 
     await type_radio.click()
-    await page.wait_for_timeout(100)
     return None
 
 
-async def _fill_table_name_field(page: Any, name: str) -> SE11Error | None:
+async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error | None:
     """Fill the table name field in SE11. Returns error or None."""
     now = datetime.now(UTC)
 
-    # Try multiple selectors for the table name field
-    # Uses explicit constants: SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN
-    table_field = page.locator('[id*="TBMA_VAL"], [id*="TBMA-VAL"]').first
-    if await table_field.count() == 0:
-        table_field = page.get_by_role(
-            "textbox", name=re.compile(bilingual_pattern(SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN), re.I)
-        )
-    if await table_field.count() == 0:
-        table_field = page.locator(f"input[title*='{SE11_TABLE_NAME_DE}'], input[title*='{SE11_TABLE_NAME_EN}']").first
+    # Try DE and EN labels
+    for label in [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]:
+        try:
+            await backend.fill_field(label, name.upper())
+            return None
+        except ValueError:  # pylint: disable=broad-exception-caught
+            continue
 
-    if await table_field.count() == 0:
-        return SE11Error(
-            name=name,
-            object_type="table",
-            error="Could not find table name field in SE11",
-            retrieved_at=now,
-        )
+    # Fallback: fill first visible input by CSS selector
+    try:
+        fields = await backend.discover_fields()
+        if fields:
+            selector = fields[0].selector
+            if selector:
+                await backend.fill_field(selector, name.upper())
+                return None
+    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+        pass
 
-    await table_field.click(click_count=3)
-    await page.wait_for_timeout(50)
-    await page.keyboard.type(name.upper())
-    return None
+    return SE11Error(
+        name=name,
+        object_type="table",
+        error="Could not find table name field in SE11",
+        retrieved_at=now,
+    )
 
 
-async def _fill_structure_name_field(page: Any, name: str) -> SE11Error | None:
+async def _fill_structure_name_field(backend: SapUiBackend, name: str) -> SE11Error | None:
     """Fill the structure/data type name field in SE11. Returns error or None."""
     now = datetime.now(UTC)
 
-    # Uses explicit constants: SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN (regex patterns)
-    type_field = page.get_by_role(
-        "textbox",
-        name=re.compile(bilingual_pattern(SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN, escape=False), re.I),
+    # Try DE and EN labels for the Dictionary Type field
+    for label in [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]:
+        try:
+            await backend.fill_field(label, name.upper())
+            return None
+        except ValueError:  # pylint: disable=broad-exception-caught
+            continue
+
+    # Fallback: fill first visible input by CSS selector
+    try:
+        fields = await backend.discover_fields()
+        if fields:
+            selector = fields[0].selector
+            if selector:
+                await backend.fill_field(selector, name.upper())
+                return None
+    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+        pass
+
+    return SE11Error(
+        name=name,
+        object_type="structure",
+        error="Could not find data type name field in SE11",
+        retrieved_at=now,
     )
-    if await type_field.count() == 0:
-        return SE11Error(
-            name=name,
-            object_type="structure",
-            error="Could not find data type name field in SE11",
-            retrieved_at=now,
-        )
-
-    await type_field.click(click_count=3)
-    await page.wait_for_timeout(50)
-    await page.keyboard.type(name.upper())
-    return None
 
 
-async def _click_display_button(page: Any, name: str) -> None:
+async def _click_display_button(backend: SapUiBackend, name: str) -> None:
     """Click the Display button or fall back to F7."""
-    await page.wait_for_timeout(500)
-    # Uses explicit constants: SE11_DISPLAY_BUTTON_DE, SE11_DISPLAY_BUTTON_EN
-    display_button = page.get_by_role(
-        "button", name=re.compile(rf"^{SE11_DISPLAY_BUTTON_DE}$|^{SE11_DISPLAY_BUTTON_EN}$", re.I)
-    )
+    # Try DE and EN display button labels
+    for label in [SE11_DISPLAY_BUTTON_DE, SE11_DISPLAY_BUTTON_EN]:
+        try:
+            await backend.click_button(label)
+            await backend.wait_for_ready()
+            return
+        except ValueError:  # pylint: disable=broad-exception-caught
+            continue
 
-    if await display_button.count() > 0:
-        await display_button.first.click(force=True)
-    else:
-        logger.warning("Display button not found, falling back to F7", extra={"object": name})
-        await page.keyboard.press("F7")
-
-    await page.wait_for_timeout(500)
-    await page.wait_for_load_state("networkidle")
+    # Fall back to F7
+    logger.warning("Display button not found, falling back to F7", extra={"object": name})
+    await backend.press_key("F7")
+    await backend.wait_for_ready()
 
 
-async def _check_object_not_found(page: Any, name: str, object_type: SE11ObjectType) -> SE11Error | None:
+async def _check_object_not_found(backend: SapUiBackend, name: str, object_type: SE11ObjectType) -> SE11Error | None:
     """Check if the status bar shows 'object not found'. Returns error or None."""
     now = datetime.now(UTC)
-    status_bar = page.locator("#sapStatusBarAll, [id*='STATUSBAR']").first
-    status_text = await status_bar.text_content() if await status_bar.count() > 0 else ""
+    status = await backend.get_status_bar()
+    status_text = status.message or ""
 
     # Uses explicit constants: SE11_NOT_EXIST_DE/EN, SE11_NOT_FOUND_DE/EN
     not_found_msgs = {SE11_NOT_EXIST_DE, SE11_NOT_EXIST_EN, SE11_NOT_FOUND_DE, SE11_NOT_FOUND_EN}
     if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
-        await page.keyboard.press("F3")
-        await page.wait_for_load_state("networkidle")
+        await backend.press_key("F3")
+        await backend.wait_for_ready()
         return SE11Error(
             name=name,
             object_type=object_type,
@@ -375,14 +389,13 @@ async def _check_object_not_found(page: Any, name: str, object_type: SE11ObjectT
 
 
 async def _lookup_single_object(  # pylint: disable=too-many-return-statements
-    page: Any, name: str, object_type: SE11ObjectType
+    backend: SapUiBackend, name: str, object_type: SE11ObjectType
 ) -> SE11Entry | SE11Error:
     """Look up a single table or structure in SE11."""
     now = datetime.now(UTC)
 
     # Navigate to SE11
-    await page.wait_for_timeout(300)
-    tx_result = await sap_transaction_impl("SE11")
+    tx_result = await backend.enter_transaction("SE11")
     if not tx_result.success:
         return SE11Error(
             name=name,
@@ -393,38 +406,39 @@ async def _lookup_single_object(  # pylint: disable=too-many-return-statements
 
     # Wait for screen and select object type
     if object_type == "table":
-        error = await _wait_for_se11_table_screen(page, name)
+        error = await _wait_for_se11_table_screen(backend, name)
         if error:
             return error
-        error = await _fill_table_name_field(page, name)
+        error = await _fill_table_name_field(backend, name)
         if error:
             return error
     else:
-        error = await _wait_for_se11_structure_screen(page, name)
+        error = await _wait_for_se11_structure_screen(backend, name)
         if error:
             return error
-        error = await _fill_structure_name_field(page, name)
+        error = await _fill_structure_name_field(backend, name)
         if error:
             return error
 
     # Click display and check for errors
-    await _click_display_button(page, name)
+    await _click_display_button(backend, name)
 
-    error = await _check_object_not_found(page, name, object_type)
+    error = await _check_object_not_found(backend, name, object_type)
     if error:
         return error
 
     # Get and parse snapshot
-    snapshot = await page.locator("body").aria_snapshot()
-    logger.debug("Got snapshot", extra={"object": name, "length": len(snapshot)})
+    snapshot = await backend.get_snapshot()
+    snapshot_str = str(snapshot)
+    logger.debug("Got snapshot", extra={"object": name, "length": len(snapshot_str)})
 
-    parse_result = _parse_se11_yaml(snapshot, object_type)
+    parse_result = _parse_se11_yaml(snapshot_str, object_type)
 
     # Handle parse failure - save debug snapshot
     if isinstance(parse_result, SE11Error):
         logger.warning("Parse failed", extra={"object": name, "error": parse_result.error})
         debug_path = Path(f"se11_debug_{name}.yaml")
-        debug_path.write_text(snapshot, encoding="utf-8")
+        debug_path.write_text(snapshot_str, encoding="utf-8")
         logger.warning("Saved debug snapshot", extra={"path": str(debug_path)})
         return SE11Error(name=name, object_type=object_type, error=parse_result.error, retrieved_at=now)
 
@@ -514,10 +528,8 @@ def register_se11_tools(mcp: FastMCP) -> None:
         if not name_list:
             return SE11Result.failure("No names provided")
 
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_se11_lookup")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_se11_lookup")
         except ValueError as e:
             return SE11Result.failure(f"Session error: {e}")
 
@@ -526,7 +538,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
 
         for name in name_list:
             try:
-                result = await _lookup_single_object(page, name, object_type)
+                result = await _lookup_single_object(backend, name, object_type)
                 if isinstance(result, SE11Entry):
                     entries.append(result)
                 else:

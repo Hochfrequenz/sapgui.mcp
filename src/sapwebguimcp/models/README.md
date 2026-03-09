@@ -58,43 +58,27 @@ class SapWebGuiSettings(BaseSettings):
 
 2. Update the `__all__` export if adding new public classes.
 
-## Browser Manager (`browser.py`)
+## Backend Abstraction (`backend/`)
 
-The `BrowserManager` class manages persistent Playwright browser sessions.
-
-### Key Features
-
-- **Singleton pattern**: One browser instance shared across all tool calls
-- **Named pages**: Multiple pages can be managed by name
-- **Persistent sessions**: Pages survive between tool calls (login once, use many times)
-- **Connect mode** (default): Connects to an existing Chrome browser via CDP
+SAP UI operations are abstracted behind the `SapUiBackend` protocol. Tools access the
+backend via `get_backend()` instead of touching Playwright directly.
 
 ### Usage
 
 ```python
-from sapwebguimcp.models import get_browser_manager
+from sapwebguimcp.backend.manager import get_backend
 
-manager = await get_browser_manager()
-page = await manager.get_current_page()
-await page.goto("https://example.com")
+backend = await get_backend(session=session, agent_id=agent_id, tool_name="my_tool")
+await backend.enter_transaction("SE16")
+snapshot = await backend.get_snapshot()
 ```
 
-### Adding Browser Features
+### Architecture
 
-To add new browser capabilities:
-
-1. Add methods to `BrowserManager` class
-2. Export in `__init__.py` if needed
-3. Add tests in `unittests/test_browser.py`
-
-Example - adding a method to take screenshots:
-
-```python
-async def take_screenshot(self, path: str) -> bytes:
-    """Take a screenshot of the current page."""
-    page = await self.get_current_page()
-    return await page.screenshot(path=path)
-```
+- **`backend/protocol.py`** — `SapUiBackend` protocol (5 sub-protocols)
+- **`backend/webgui/backend.py`** — `WebGuiBackend` (Playwright-based implementation)
+- **`backend/manager.py`** — `BackendManager` singleton, `get_backend()` entry point
+- **`backend/webgui/browser.py`** — `BrowserManager` for low-level browser lifecycle
 
 ## Type Hints
 

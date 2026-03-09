@@ -80,6 +80,9 @@ class SapUiPrimitives(Protocol):
     async def type_text(self, text: str) -> None:
         """Type text into the currently focused element."""
 
+    async def set_checkbox(self, label: str, checked: bool) -> None:
+        """Set a checkbox by its ARIA label. Raises ``ValueError`` if not found."""
+
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select an option from a dropdown field."""
 
@@ -100,7 +103,7 @@ class SapUiInspection(Protocol):
     async def discover_fields(self) -> list[FieldInfo]:
         """Discover input fields on the current screen."""
 
-    async def get_form_fields(self) -> FormFieldsResult:
+    async def get_form_fields(self, *, include_dropdown_options: bool = False) -> FormFieldsResult:
         """Detect form fields with their current values and types."""
 
     async def discover_buttons(self) -> list[ButtonInfo]:
@@ -112,7 +115,12 @@ class SapUiInspection(Protocol):
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the current page as PNG bytes."""
 
-    async def read_table(self) -> TableData:
+    async def read_table(
+        self,
+        start_row: int = 1,
+        end_row: int | None = None,
+        max_rows: int = 100,
+    ) -> TableData:
         """Read data from an ALV grid or table on the screen."""
 
     async def click_table_cell(self, row: int, column: int | str, action: str = "click") -> TableCellClickResult:
@@ -161,6 +169,9 @@ class SapEditor(Protocol):
 
     async def check_and_activate(self) -> CheckActivateResult:
         """Run syntax check (Ctrl+F2) and activate (Ctrl+F3)."""
+
+    async def dismiss_language_dialog(self) -> None:
+        """Dismiss the 'Different original and logon languages' dialog if present."""
 
 
 @runtime_checkable

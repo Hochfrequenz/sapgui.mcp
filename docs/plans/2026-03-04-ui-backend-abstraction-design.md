@@ -22,13 +22,13 @@ All MCP tools currently interact with SAP through Playwright/CDP browser automat
 
 ## Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Interface mechanism | `typing.Protocol` (structural typing) | More Pythonic, no inheritance required, lighter coupling |
-| Backend selection | `SAP_UI_BACKEND=webgui` env var at startup | Simple, one backend per server instance |
-| Migration strategy | Feature branch, incremental commits, atomic merge to main | No mixed approaches on main |
-| Abstraction level | SAP-semantic operations (label-based, not selector-based) | Hides implementation details completely |
-| Snapshot typing | `NewType("AriaSnapshot", str)` now, generify with `TypeVar` when desktop arrives | Self-documenting types, easy to evolve |
+| Decision            | Choice                                                                           | Rationale                                                |
+| ------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Interface mechanism | `typing.Protocol` (structural typing)                                            | More Pythonic, no inheritance required, lighter coupling |
+| Backend selection   | `SAP_UI_BACKEND=webgui` env var at startup                                       | Simple, one backend per server instance                  |
+| Migration strategy  | Feature branch, incremental commits, atomic merge to main                        | No mixed approaches on main                              |
+| Abstraction level   | SAP-semantic operations (label-based, not selector-based)                        | Hides implementation details completely                  |
+| Snapshot typing     | `NewType("AriaSnapshot", str)` now, generify with `TypeVar` when desktop arrives | Self-documenting types, easy to evolve                   |
 
 ## Architecture
 
@@ -168,6 +168,7 @@ async def sap_se24_lookup(class_name, session, ...):
 `browser_*` tools (`browser_click`, `browser_fill`, `browser_evaluate`, `browser_get_html`, `browser_snapshot`, `browser_screenshot`) are inherently WebGUI-specific (CSS selectors, JavaScript execution).
 
 They stay as direct Playwright wrappers and are conditionally registered:
+
 - When `SAP_UI_BACKEND=webgui`: registered normally
 - When a non-browser backend is active: not registered
 
@@ -213,6 +214,7 @@ src/sapwebguimcp/
 ```
 
 Key moves:
+
 - `models/browser.py` → `backend/webgui/browser.py`
 - JS loading helpers → `backend/webgui/js_helpers.py`
 - `get_browser_manager()` → `get_backend()` from `backend/manager.py`

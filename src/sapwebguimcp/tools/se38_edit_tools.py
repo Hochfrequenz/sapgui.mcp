@@ -8,56 +8,48 @@ syntax check, activation, and auto-revert on failure.
 import logging
 
 from fastmcp import FastMCP
-from playwright.async_api import Error as PlaywrightError
-from playwright.async_api import Page
 
-from sapwebguimcp.models.browser import get_browser_manager
+from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models.se38_edit_models import SE38EditResult
-from sapwebguimcp.tools.edit_helpers import check_and_activate, read_editor_source, replace_editor_source
-from sapwebguimcp.tools.sap_tool_impl import _find_okcode_field, _load_js
 
 logger = logging.getLogger(__name__)
 
 
-async def _navigate_and_open_editor(page: Page, program_name: str) -> str | None:
+async def _navigate_and_open_editor(backend: SapUiBackend, program_name: str) -> str | None:
     """Navigate to SE38 on the given page, fill program name, enter change mode, return error or None."""
-    # Navigate via OK-code field directly on the provided page (not via sap_transaction_impl
-    # which always uses the primary session page).
-    okcode_field = await _find_okcode_field(page)
-    if not okcode_field:
-        return "Could not find OK-Code field on page"
+    await backend.enter_transaction("SE38")
 
-    await okcode_field.click()
-    await page.wait_for_timeout(200)
-    await page.evaluate(_load_js("set_okcode_field.js"), {"transactionInput": "/nSE38"})
-    await page.wait_for_timeout(300)
-    await page.keyboard.press("Enter")
-    await page.wait_for_load_state("networkidle", timeout=15000)
+    try:
+        await backend.fill_field("Programm", program_name)
+    except ValueError:
+        try:
+            await backend.fill_field("Program", program_name)
+        except ValueError:
+            # Fallback: fill first visible input by CSS selector
+            try:
+                fields = await backend.discover_fields()
+                if fields and fields[0].selector:
+                    await backend.fill_field(fields[0].selector, program_name)
+                else:
+                    return "Could not find program name field"
+            except Exception:  # pylint: disable=broad-exception-caught
+                return "Could not find program name field"
 
-    await page.wait_for_timeout(1000)
-
-    field = page.get_by_role("textbox", name="Programm")
-    if not await field.is_visible(timeout=2000):
-        field = page.get_by_role("textbox", name="Program")
-    await field.click(click_count=3)
-    await page.keyboard.press("Delete")
-    await page.keyboard.type(program_name)
-
-    await page.keyboard.press("F6")
-    await page.wait_for_timeout(2000)
-    await page.wait_for_load_state("networkidle")
+    await backend.press_key("F6")
+    await backend.wait_for_ready()
     return None
 
 
-async def _edit_check_activate(page: Page, program_name: str, new_source: str) -> SE38EditResult:
+async def _edit_check_activate(backend: SapUiBackend, program_name: str, new_source: str) -> SE38EditResult:
     """Core edit logic: read backup, replace, check, activate, revert on failure."""
     # Navigate and open editor
-    nav_error = await _navigate_and_open_editor(page, program_name)
+    nav_error = await _navigate_and_open_editor(backend, program_name)
     if nav_error:
         return SE38EditResult.failure(error=nav_error, program_name=program_name, backup_source="", activated=False)
 
     # Read current source (backup)
-    backup_source = await read_editor_source(page) or ""
+    backup_source = await backend.read_editor_source() or ""
     if not backup_source:
         return SE38EditResult.failure(
             error="Could not read current source code from editor. Is the report accessible?",
@@ -69,7 +61,7 @@ async def _edit_check_activate(page: Page, program_name: str, new_source: str) -
     logger.info("SE38 edit: backup saved for %s (%d chars)", program_name, len(backup_source))
 
     # Replace editor content
-    replaced = await replace_editor_source(page, new_source)
+    replaced = await backend.replace_editor_source(new_source)
     if not replaced:
         return SE38EditResult.failure(
             error="Failed to replace editor content",
@@ -79,25 +71,27 @@ async def _edit_check_activate(page: Page, program_name: str, new_source: str) -
         )
 
     # Check and activate
-    success, messages, activated = await check_and_activate(page)
+    result = await backend.check_and_activate()
 
-    if not success:
+    if not result.success:
         logger.warning("SE38 edit: check/activate failed for %s, reverting", program_name)
-        reverted = await replace_editor_source(page, backup_source)
+        reverted = await backend.replace_editor_source(backup_source)
         if reverted:
-            revert_ok, revert_msgs, _ = await check_and_activate(page)
-            if revert_ok:
-                messages.append("Auto-reverted to original source and re-activated successfully")
+            revert_result = await backend.check_and_activate()
+            if revert_result.success:
+                result.messages.append("Auto-reverted to original source and re-activated successfully")
             else:
-                messages.append(f"Auto-reverted source but re-activation failed: {'; '.join(revert_msgs)}")
+                result.messages.append(
+                    f"Auto-reverted source but re-activation failed: {'; '.join(revert_result.messages)}"
+                )
         else:
-            messages.append("WARNING: Auto-revert failed! Manual intervention needed.")
+            result.messages.append("WARNING: Auto-revert failed! Manual intervention needed.")
 
         return SE38EditResult.failure(
-            error=f"Check/activate failed: {'; '.join(messages)}",
+            error=f"Check/activate failed: {'; '.join(result.messages)}",
             program_name=program_name,
             backup_source=backup_source,
-            check_messages=messages,
+            check_messages=result.messages,
             activated=False,
         )
 
@@ -105,8 +99,8 @@ async def _edit_check_activate(page: Page, program_name: str, new_source: str) -
         success=True,
         program_name=program_name,
         backup_source=backup_source,
-        check_messages=messages,
-        activated=activated,
+        check_messages=result.messages,
+        activated=result.activated,
     )
 
 
@@ -148,8 +142,7 @@ def register_se38_edit_tools(mcp: FastMCP) -> None:
         program_name = program_name.strip().upper()
 
         try:
-            browser_manager = await get_browser_manager()
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_se38_edit")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_se38_edit")
         except ValueError as exc:
             return SE38EditResult.failure(
                 error=f"Session error: {exc}",
@@ -159,8 +152,8 @@ def register_se38_edit_tools(mcp: FastMCP) -> None:
             )
 
         try:
-            return await _edit_check_activate(page, program_name, new_source)
-        except (PlaywrightError, OSError) as exc:
+            return await _edit_check_activate(backend, program_name, new_source)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.exception("SE38 edit failed for %s", program_name)
             return SE38EditResult.failure(
                 error=f"Unexpected error: {exc}",

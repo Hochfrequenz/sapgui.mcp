@@ -67,9 +67,9 @@ Create a new file in the `tools/` directory:
 
 import logging
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
-from sapwebguimcp.models import get_browser_manager
+from sapwebguimcp.backend.manager import get_backend
 
 __all__ = ["register_my_custom_tools"]
 
@@ -80,7 +80,10 @@ def register_my_custom_tools(mcp: FastMCP) -> None:
     """Register custom tools with the MCP server."""
 
     @mcp.tool()
-    async def my_tool(param1: str, param2: int | None = None) -> str:
+    async def my_tool(
+        param1: str, param2: int | None = None,
+        session: str | None = None, agent_id: str | None = None,
+    ) -> str:
         """
         Description of what this tool does.
 
@@ -91,11 +94,10 @@ def register_my_custom_tools(mcp: FastMCP) -> None:
         Returns:
             Status message indicating success or describing any issues.
         """
-        manager = await get_browser_manager()
-        page = await manager.get_current_page()
+        backend = await get_backend(session=session, agent_id=agent_id, tool_name="my_tool")
 
         try:
-            await page.click(f"#{param1}")
+            await backend.click_button(param1)
             return f"Success: {param1}"
         except Exception as e:
             logger.exception("Error in my_tool")

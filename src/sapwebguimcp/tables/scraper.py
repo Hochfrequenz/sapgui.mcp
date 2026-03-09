@@ -67,13 +67,16 @@ async def get_table_list_from_dd02l(
     Returns:
         List of table names
     """
+    from sapwebguimcp.backend.manager import get_backend
     from sapwebguimcp.tools.se16_tools import _execute_se16_query
 
+    backend = await get_backend()
     all_tables: set[str] = set()
 
     for prefix in prefixes:
         logger.info("Querying DD02L", extra={"prefix": f"{prefix}*"})
         result = await _execute_se16_query(
+            backend,
             table="DD02L",
             filters={"TABNAME": f"{prefix}*"},
             max_hits=max_hits,
@@ -90,14 +93,13 @@ async def get_table_list_from_dd02l(
 
 async def _lookup_table_se11(table_name: str) -> TableInfo | str:
     """Look up a single table in SE11 and return TableInfo or error string."""
-    from sapwebguimcp.models import get_browser_manager
+    from sapwebguimcp.backend.manager import get_backend
     from sapwebguimcp.models.se11_models import SE11Entry
     from sapwebguimcp.tools.se11_tools import _lookup_single_object
 
-    browser_manager = await get_browser_manager()
-    page = await browser_manager.get_current_page()
+    backend = await get_backend()
 
-    result = await _lookup_single_object(page, table_name, "table")
+    result = await _lookup_single_object(backend, table_name, "table")
 
     if isinstance(result, SE11Entry):
         fields = [

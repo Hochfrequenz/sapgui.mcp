@@ -23,6 +23,8 @@ from typing import Literal, Optional
 from fastmcp import FastMCP
 from fastmcp.utilities.types import File, Image
 
+from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.backend.webgui.backend import _escape_css_selector
 from sapwebguimcp.models import (
     BrowserKeyboardResult,
     ClickResult,
@@ -34,7 +36,6 @@ from sapwebguimcp.models import (
     SelectOptionResult,
     SnapshotResult,
     WaitResult,
-    get_browser_manager,
 )
 
 __all__ = ["register_browser_tools"]
@@ -44,47 +45,6 @@ logger = logging.getLogger(__name__)
 # Threshold for returning HTML as File instead of inline (50KB)
 # This prevents context bloat for large SAP pages
 _HTML_SIZE_THRESHOLD_BYTES = 50 * 1024
-
-
-def _escape_css_selector(selector: str) -> str:
-    """
-    Escape special CSS characters in selectors.
-
-    SAP generates IDs like 'M0:48::btn[5]' which contain special CSS characters.
-    This function escapes them so they work as valid CSS selectors.
-
-    If the selector is already escaped (contains patterns like \\# or \\,),
-    it will be returned as-is to avoid double-escaping.
-
-    Args:
-        selector: CSS selector string
-
-    Returns:
-        Escaped CSS selector
-    """
-    if not selector:
-        return selector
-
-    # If it's an ID selector (starts with #), escape special chars in the ID part
-    if selector.startswith("#"):
-        id_part = selector[1:]
-
-        # Check if already escaped - look for backslash followed by special chars
-        # This prevents double-escaping of selectors from sap_read_table cells
-        if any(f"\\{c}" in id_part for c in ":[]#,"):
-            return selector  # Already escaped
-
-        # Escape CSS special characters: : [ ] # ,
-        # SAP ALV grids use IDs like "grid#C120#1,2#if" which need # and , escaped
-        escaped_id = ""
-        for char in id_part:
-            if char in r":[]#,":
-                escaped_id += f"\\{char}"
-            else:
-                escaped_id += char
-        return f"#{escaped_id}"
-
-    return selector
 
 
 def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements
@@ -113,12 +73,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_snapshot")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="browser_snapshot")
         except ValueError as e:
             return SnapshotResult.failure(str(e), selector=selector)
+
+        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
         try:
             if selector:
@@ -164,16 +124,16 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_screenshot")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="browser_screenshot")
         except ValueError as e:
             return ScreenshotResult.failure(
                 str(e),
                 full_page=full_page,
                 selector=selector,
             )
+
+        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
         try:
             if selector:
@@ -221,13 +181,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_click")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="browser_click")
         except ValueError as e:
             return ClickResult.failure(str(e), selector=selector)
 
+        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
         escaped_selector = _escape_css_selector(selector)
 
         try:
@@ -262,13 +221,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_fill")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="browser_fill")
         except ValueError as e:
             return FillResult.failure(str(e), selector=selector, value=value)
 
+        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
         escaped_selector = _escape_css_selector(selector)
 
         try:
@@ -304,12 +262,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_keyboard")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="browser_keyboard")
         except ValueError as e:
             return BrowserKeyboardResult.failure(str(e), key=key, text=text)
+
+        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
         try:
             if key:
@@ -344,12 +302,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_navigate")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="browser_navigate")
         except ValueError as e:
             return NavigateResult.failure(str(e), url=url)
+
+        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
         try:
             await page.goto(url)
@@ -383,14 +341,14 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
         """
-        browser_manager = await get_browser_manager()
-
         script_snippet = script[:100] if len(script) > 100 else script
 
         try:
-            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_evaluate")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="browser_evaluate")
         except ValueError as e:
             return EvaluateResult.failure(str(e), script_snippet=script_snippet)
+
+        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
         try:
             result = await page.evaluate(script)
@@ -432,14 +390,14 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
         """
-        browser_manager = await get_browser_manager()
-
         timeout_td = timedelta(milliseconds=timeout)
 
         try:
-            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_wait")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="browser_wait")
         except ValueError as e:
             return WaitResult.failure(str(e), selector=selector, state=state, timeout=timeout_td)
+
+        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
         try:
             if selector:
@@ -478,12 +436,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_get_html")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="browser_get_html")
         except ValueError as e:
             return HtmlResult.failure(str(e), selector=selector, outer=outer)
+
+        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
         try:
             if selector:
@@ -546,13 +504,12 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
         """
-        browser_manager = await get_browser_manager()
-
         try:
-            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, "browser_select_option")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="browser_select_option")
         except ValueError as e:
             return SelectOptionResult.failure(str(e), selector=selector)
 
+        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
         escaped_selector = _escape_css_selector(selector)
 
         try:

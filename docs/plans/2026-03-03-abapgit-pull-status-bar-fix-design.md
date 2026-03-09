@@ -36,10 +36,12 @@ Add guidance to the `sap_abapgit_pull` tool description: if the tool reports "st
 ## Scope
 
 ### Changed
+
 - `abapgit_tools.py`: `_run_pull_and_check_errors()` — networkidle wait, remove Enter
 - `abapgit_tools.py`: `sap_abapgit_pull` tool description — add workaround note
 
 ### Unchanged
+
 - `z_abapgit_pull.prog.abap` — ABAP report works correctly
 - `extract_status_bar.js` — JS extraction works when message exists
 - `_analyze_pull_result()` — existing retry logic serves as safety net

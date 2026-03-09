@@ -372,3 +372,17 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
         async with ClientSession(read, write) as session:
             await session.initialize()
             yield session
+
+            # Teardown: navigate back to Easy Access (main menu) to prevent
+            # SAP session state from bleeding into subsequent tests.
+            # All integration tests share the same Chrome browser via CDP,
+            # so leftover popups or sub-screens can cause cascade failures.
+            try:
+                # Dismiss any open popups
+                for _ in range(3):
+                    await session.call_tool("sap_keyboard", {"key": "Escape"})
+                # Press Back (F3) multiple times to return to main menu
+                for _ in range(5):
+                    await session.call_tool("sap_keyboard", {"key": "F3"})
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass  # Best effort — don't fail teardown

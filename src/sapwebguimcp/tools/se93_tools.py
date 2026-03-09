@@ -7,23 +7,21 @@ returning strongly-typed Pydantic models with transaction details.
 
 import json
 import logging
-import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models import (
     SE93Entry,
     SE93Error,
     SE93FileSummary,
     SE93Result,
-    get_browser_manager,
 )
 from sapwebguimcp.parsers.se93_parser import parse_se93_snapshot
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
 
 logger = logging.getLogger(__name__)
 
@@ -38,112 +36,74 @@ MAX_INLINE_OBJECTS = 10
 # =============================================================================
 
 
-async def _find_tcode_field(page: Any) -> Any:
-    """Find the transaction code input field in SE93 using multiple strategies."""
-    # Build list of locator strategies to try in order
-    strategies = [
-        # Strategy 1: Try by role with exact name matches
-        *[
-            page.get_by_role("textbox", name=name)
-            for name in ["Transaktionscode", "Transaction code", "Transaction Code"]
-        ],
-        # Strategy 2: Try regex pattern for transaction code field
-        page.get_by_role("textbox", name=re.compile(r"Transaktion|Transaction", re.I)),
-        # Strategy 3: Try by input title attribute (common in SAP Web GUI)
-        page.locator("input[title*='Transaktionscode'], input[title*='Transaction code']").first,
-        # Strategy 4: Try by placeholder or aria-label
-        page.locator("[aria-label*='Transaktion'], [aria-label*='Transaction']").first,
-        # Strategy 5: First visible input field on the page (last resort)
-        page.locator("input:visible").first,
-    ]
-
-    for field in strategies:
-        if await field.count() > 0:
-            return field
-
-    return None
-
-
-async def _fill_tcode_field(page: Any, tcode: str) -> SE93Error | None:
+async def _fill_tcode_field(backend: SapUiBackend, tcode: str) -> SE93Error | None:
     """Fill the transaction code field in SE93. Returns error or None."""
     now = datetime.now(UTC)
 
-    tcode_field = await _find_tcode_field(page)
+    # Try multiple label variants (DE and EN)
+    labels = [
+        "Transaktionscode",
+        "Transaction code",
+        "Transaction Code",
+    ]
 
-    if tcode_field is None or await tcode_field.count() == 0:
-        return SE93Error(
-            tcode=tcode,
-            error="Could not find transaction code field in SE93",
-            retrieved_at=now,
-        )
+    for label in labels:
+        try:
+            await backend.fill_field(label, tcode.upper())
+            return None
+        except ValueError:  # pylint: disable=broad-exception-caught
+            continue
 
-    # Clear the field first by selecting all and deleting
-    await tcode_field.click(click_count=3)
-    await page.wait_for_timeout(100)
-    await page.keyboard.press("Delete")
-    await page.wait_for_timeout(50)
+    # Fallback: find the first visible input field by CSS selector.
+    # SE93 initial screen typically has a single input field whose label
+    # may not match standard text due to SAP's non-standard HTML.
+    try:
+        fields = await backend.discover_fields()
+        if fields:
+            selector = fields[0].selector
+            if selector:
+                await backend.fill_field(selector, tcode.upper())
+                return None
+    except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+        pass
 
-    # Type the transaction code
-    await page.keyboard.type(tcode.upper())
-    await page.wait_for_timeout(100)
-    return None
-
-
-async def _click_display_button(page: Any) -> None:
-    """Click the Display button (F7)."""
-    await page.wait_for_timeout(300)
-    await page.keyboard.press("F7")
-    await page.wait_for_timeout(1000)  # Wait longer for SAP to process
-    await page.wait_for_load_state("networkidle")
-    await page.wait_for_timeout(500)  # Additional wait for page state to settle
-
-
-async def _check_tcode_not_found(page: Any, tcode: str) -> SE93Error | None:
-    """Check if transaction was not found by verifying page state. Returns error or None."""
-    now = datetime.now(UTC)
-
-    # Primary check: Are we still on the initial screen?
-    # If we successfully displayed a transaction, the page title changes
-    page_title = await page.title()
-    is_initial_screen = "Transaktionspflege" in page_title or "Transaction Maintenance" in page_title
-
-    if not is_initial_screen:
-        # We're on a display screen, so the transaction was found
-        return None
-
-    # We're still on initial screen - check status bar for specific error message
-    status_bar = page.locator("#sapStatusBarAll, [id*='STATUSBAR']").first
-    status_text = await status_bar.text_content() if await status_bar.count() > 0 else ""
-
-    not_found_msgs = {
-        "existiert nicht",
-        "does not exist",
-        "nicht gefunden",
-        "not found",
-        "nicht vorhanden",
-    }
-
-    if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
-        error_msg = f"Transaction '{tcode}' not found"
-    else:
-        # Still on initial screen but no clear error
-        error_msg = f"Transaction '{tcode}' not found (still on initial screen)"
-
-    # Don't press F3 here - the next /nSE93 will handle navigation
     return SE93Error(
         tcode=tcode,
-        error=error_msg,
+        error="Could not find transaction code field in SE93",
         retrieved_at=now,
     )
 
 
-async def _lookup_single_tcode(page: Any, tcode: str) -> SE93Entry | SE93Error:
+async def _check_tcode_not_found(backend: SapUiBackend, tcode: str) -> SE93Error | None:
+    """Check if transaction was not found by examining the status bar. Returns error or None."""
+    now = datetime.now(UTC)
+
+    # Check status bar for specific error messages (narrow, avoids false positives)
+    status = await backend.get_status_bar()
+    status_text = (status.message or "").lower()
+
+    not_found_msgs = {"existiert nicht", "does not exist", "nicht gefunden", "not found", "nicht vorhanden"}
+    if status_text and any(msg in status_text for msg in not_found_msgs):
+        return SE93Error(tcode=tcode, error=f"Transaction '{tcode}' not found", retrieved_at=now)
+
+    # Secondary check: verify we left the initial screen
+    snapshot = await backend.get_snapshot()
+    snapshot_lower = str(snapshot).lower()
+    is_initial_screen = "transaktionspflege" in snapshot_lower or "transaction maintenance" in snapshot_lower
+    if is_initial_screen:
+        return SE93Error(
+            tcode=tcode, error=f"Transaction '{tcode}' not found (still on initial screen)", retrieved_at=now
+        )
+
+    return None
+
+
+async def _lookup_single_tcode(backend: SapUiBackend, tcode: str) -> SE93Entry | SE93Error:
     """Look up a single transaction code in SE93."""
     now = datetime.now(UTC)
 
     # Navigate to SE93
-    await page.wait_for_timeout(300)
-    tx_result = await sap_transaction_impl("SE93")
+    tx_result = await backend.enter_transaction("SE93")
     if not tx_result.success:
         return SE93Error(
             tcode=tcode,
@@ -152,34 +112,24 @@ async def _lookup_single_tcode(page: Any, tcode: str) -> SE93Entry | SE93Error:
         )
 
     # Wait for SE93 screen to be ready
-    await page.wait_for_timeout(500)
-    await page.wait_for_load_state("networkidle")
-
-    # Try to find the transaction code field with multiple strategies
-    tcode_field = await _find_tcode_field(page)
-    if tcode_field is None or await tcode_field.count() == 0:
-        page_title = await page.title()
-        return SE93Error(
-            tcode=tcode,
-            error=f"SE93 screen did not load or field not found (page title: '{page_title}')",
-            retrieved_at=now,
-        )
+    await backend.wait_for_ready()
 
     # Fill transaction code
-    error = await _fill_tcode_field(page, tcode)
+    error = await _fill_tcode_field(backend, tcode)
     if error:
         return error
 
-    # Click display
-    await _click_display_button(page)
+    # Click display (F7)
+    await backend.press_key("F7")
+    await backend.wait_for_ready()
 
     # Check for not found error
-    error = await _check_tcode_not_found(page, tcode)
+    error = await _check_tcode_not_found(backend, tcode)
     if error:
         return error
 
     # Get and parse snapshot
-    snapshot = await page.locator("body").aria_snapshot()
+    snapshot = await backend.get_snapshot()
     logger.debug("Got snapshot", extra={"object": tcode, "length": len(snapshot)})
 
     return parse_se93_snapshot(snapshot, tcode)
@@ -231,10 +181,8 @@ def register_se93_tools(mcp: FastMCP) -> None:
         if not tcode_list:
             return SE93Result.failure("No transaction codes provided")
 
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_se93_lookup")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_se93_lookup")
         except ValueError as e:
             return SE93Result.failure(f"Session error: {e}")
 
@@ -243,7 +191,7 @@ def register_se93_tools(mcp: FastMCP) -> None:
 
         for tcode in tcode_list:
             try:
-                result = await _lookup_single_tcode(page, tcode)
+                result = await _lookup_single_tcode(backend, tcode)
                 if isinstance(result, SE93Entry):
                     entries.append(result)
                 else:

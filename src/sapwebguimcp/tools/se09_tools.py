@@ -8,15 +8,14 @@ and parses the flat text list from the ARIA snapshot.
 
 import json
 import logging
-import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-from playwright.async_api import Locator, Page
 
+from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE09_DISPLAY_BUTTON_DE,
@@ -27,12 +26,12 @@ from sapwebguimcp.lang import (
     SE09_RELEASED_EN,
     SE09_USER_FIELD_DE,
     SE09_USER_FIELD_EN,
-    bilingual_pattern,
 )
-from sapwebguimcp.models import get_browser_manager
 from sapwebguimcp.models.se09_models import TransportListResult
 from sapwebguimcp.parsers.se09_parser import parse_se09_transport_list
-from sapwebguimcp.tools.sap_page_helpers import navigate_transaction
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -44,87 +43,80 @@ __all__ = ["register_se09_tools"]
 # =============================================================================
 
 
-_USER_FIELD_RE = re.compile(bilingual_pattern(SE09_USER_FIELD_DE, SE09_USER_FIELD_EN), re.I)
-_MODIFIABLE_RE = re.compile(bilingual_pattern(SE09_MODIFIABLE_DE, SE09_MODIFIABLE_EN), re.I)
-_RELEASED_RE = re.compile(bilingual_pattern(SE09_RELEASED_DE, SE09_RELEASED_EN), re.I)
-_DISPLAY_RE = re.compile(f"^{bilingual_pattern(SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN)}$", re.I)
-
-
-async def _fill_user_field(page: Page, username: str) -> None:
+async def _fill_user_field(backend: "SapUiBackend", username: str) -> None:
     """Fill the username filter field in SE09."""
-    user_field = page.get_by_role("textbox", name=_USER_FIELD_RE)
-    if await user_field.count() > 0:
-        await user_field.click(click_count=3)
-        await page.wait_for_timeout(100)
-        await page.keyboard.press("Delete")
-        await page.wait_for_timeout(50)
-        await page.keyboard.type(username.upper())
-        await page.wait_for_timeout(100)
+    for label in [SE09_USER_FIELD_DE, SE09_USER_FIELD_EN]:
+        try:
+            await backend.fill_field(label, username.upper())
+            return
+        except ValueError:
+            continue
+    logger.warning("User field not found in SE09 for any label")
 
 
-async def _safe_checkbox_click(page: Page, checkbox: Locator, should_be_checked: bool) -> None:
-    """Safely click a checkbox if it's enabled and in the wrong state."""
-    if await checkbox.count() == 0:
-        return
-    is_disabled = await checkbox.get_attribute("aria-disabled")
-    if is_disabled == "true":
-        logger.warning("Checkbox is disabled, skipping click")
-        return
+async def _set_checkbox_state(backend: "SapUiBackend", label: str, should_be_checked: bool) -> None:
+    """Safely set a checkbox to checked or unchecked state."""
     try:
-        is_checked = await checkbox.is_checked()
-        if is_checked != should_be_checked:
-            await checkbox.click()
-            await page.wait_for_timeout(200)
-    except Exception:  # pylint: disable=broad-exception-caught
-        logger.warning("Failed to click checkbox, skipping")
+        await backend.set_checkbox(label, should_be_checked)
+    except ValueError:
+        logger.warning("Failed to set checkbox '%s', skipping", label)
 
 
-async def _set_request_type_filter(page: Page, request_type: str) -> None:
+async def _set_request_type_filter(backend: "SapUiBackend", request_type: str) -> None:
     """Set request type checkboxes on SE09 selection screen."""
     if request_type == "all":
         return  # Both already checked by default
 
-    wb_cb = page.get_by_role("checkbox", name=re.compile(r"Workbench", re.I))
-    cust_cb = page.get_by_role("checkbox", name=re.compile(r"Customizing", re.I))
-
     if request_type == "workbench":
-        await _safe_checkbox_click(page, cust_cb, should_be_checked=False)
+        await _set_checkbox_state(backend, "Customizing", False)
     elif request_type == "customizing":
-        await _safe_checkbox_click(page, wb_cb, should_be_checked=False)
+        await _set_checkbox_state(backend, "Workbench", False)
 
 
-async def _set_status_filter(page: Page, status: str) -> None:
+async def _try_set_checkbox(backend: "SapUiBackend", labels: list[str], checked: bool) -> None:
+    """Try setting a checkbox using multiple label variants (DE/EN). First match wins."""
+    for label in labels:
+        try:
+            await backend.set_checkbox(label, checked)
+            return
+        except ValueError:
+            continue
+    logger.warning("Checkbox not found for any label: %s", labels)
+
+
+async def _set_status_filter(backend: "SapUiBackend", status: str) -> None:
     """Set status filter checkboxes on SE09 selection screen."""
-    mod_cb = page.get_by_role("checkbox", name=_MODIFIABLE_RE)
-    rel_cb = page.get_by_role("checkbox", name=_RELEASED_RE)
+    mod_labels = [SE09_MODIFIABLE_DE, SE09_MODIFIABLE_EN]
+    rel_labels = [SE09_RELEASED_DE, SE09_RELEASED_EN]
 
     if status == "all":
-        await _safe_checkbox_click(page, rel_cb, should_be_checked=True)
-        await _safe_checkbox_click(page, mod_cb, should_be_checked=True)
+        await _try_set_checkbox(backend, rel_labels, True)
+        await _try_set_checkbox(backend, mod_labels, True)
     elif status == "modifiable":
-        await _safe_checkbox_click(page, mod_cb, should_be_checked=True)
-        await _safe_checkbox_click(page, rel_cb, should_be_checked=False)
+        await _try_set_checkbox(backend, mod_labels, True)
+        await _try_set_checkbox(backend, rel_labels, False)
     elif status == "released":
-        await _safe_checkbox_click(page, rel_cb, should_be_checked=True)
-        await _safe_checkbox_click(page, mod_cb, should_be_checked=False)
+        await _try_set_checkbox(backend, rel_labels, True)
+        await _try_set_checkbox(backend, mod_labels, False)
 
 
-async def _click_display_button(page: Page) -> None:
+async def _click_display_button(backend: "SapUiBackend") -> None:
     """Click the Anzeigen/Display button to execute the search."""
-    btn = page.get_by_role("button", name=_DISPLAY_RE)
-    if await btn.count() > 0:
-        await btn.click()
-    else:
-        logger.warning("Anzeigen/Display button not found, trying F8")
-        await page.keyboard.press("F8")
+    for label in [SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN]:
+        try:
+            await backend.click_button(label)
+            await backend.wait_for_ready()
+            return
+        except ValueError:
+            continue
 
-    await page.wait_for_timeout(2000)
-    await page.wait_for_load_state("networkidle")
-    await page.wait_for_timeout(500)
+    logger.warning("Anzeigen/Display button not found, trying F8")
+    await backend.press_key("F8")
+    await backend.wait_for_ready()
 
 
 async def _lookup_transports(
-    page: Page,
+    backend: "SapUiBackend",
     username: str | None,
     request_type: str,
     status: str,
@@ -133,33 +125,32 @@ async def _lookup_transports(
     now = datetime.now(UTC)
 
     # Navigate to SE09 using session-aware helper
-    tx_error = await navigate_transaction(page, "SE09")
-    if tx_error:
+    tx_result = await backend.enter_transaction("SE09")
+    if not tx_result.success:
         return TransportListResult.failure(
-            error=f"Failed to navigate to SE09: {tx_error}",
+            error=f"Failed to navigate to SE09: {tx_result.error}",
             requests=[],
             request_count=0,
             retrieved_at=now,
         )
 
-    await page.wait_for_timeout(500)
-    await page.wait_for_load_state("networkidle")
+    await backend.wait_for_ready()
 
     # Apply filters on selection screen
     if username is not None:
-        await _fill_user_field(page, username)
+        await _fill_user_field(backend, username)
 
-    await _set_request_type_filter(page, request_type)
-    await _set_status_filter(page, status)
+    await _set_request_type_filter(backend, request_type)
+    await _set_status_filter(backend, status)
 
     # Click Anzeigen/Display button
-    await _click_display_button(page)
+    await _click_display_button(backend)
 
     # Capture snapshot
-    snapshot: str = await page.locator("body").aria_snapshot()
+    snapshot: AriaSnapshot = await backend.get_snapshot()
 
     # Parse the transport list
-    return parse_se09_transport_list(AriaSnapshot(snapshot))
+    return parse_se09_transport_list(snapshot)
 
 
 # =============================================================================
@@ -208,10 +199,8 @@ def register_se09_tools(mcp: FastMCP) -> None:
         """
         now = datetime.now(UTC)
 
-        browser_manager = await get_browser_manager()
-
         try:
-            page = browser_manager.get_session_page_checked(session, agent_id, "sap_se09_lookup")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_se09_lookup")
         except ValueError as e:
             return TransportListResult.failure(
                 error=f"Session error: {e}",
@@ -222,7 +211,7 @@ def register_se09_tools(mcp: FastMCP) -> None:
 
         try:
             result = await _lookup_transports(
-                page=page,
+                backend=backend,
                 username=username,
                 request_type=request_type,
                 status=status,
