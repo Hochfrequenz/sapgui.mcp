@@ -52,10 +52,14 @@ async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -
     await backend.dismiss_language_dialog()
 
     # Switch from display to change mode via toggle button
-    try:
-        await backend.click_button("Anzeigen <-> Ändern")
-    except Exception:  # pylint: disable=broad-exception-caught
-        await backend.click_button("Display <-> Change")
+    for toggle_label in ("Anzeigen <-> Ändern", "Display <-> Change"):
+        try:
+            await backend.click_button(toggle_label)
+            break
+        except ValueError:
+            continue
+    else:
+        return "Could not find 'Display <-> Change' toggle button"
     await backend.wait_for_ready()
 
     await backend.dismiss_language_dialog()

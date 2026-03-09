@@ -65,10 +65,8 @@ async def _set_status_checkboxes(backend: "SapUiBackend", statuses: list[str], l
         should_be_checked = status_name in statuses
 
         try:
-            # Use fill_field with "X" to check, "" to uncheck
-            value = "X" if should_be_checked else ""
-            await backend.fill_field(label, value)
-        except Exception as e:  # pylint: disable=broad-exception-caught
+            await backend.set_checkbox(label, should_be_checked)
+        except ValueError as e:
             errors.append(f"Failed to set checkbox '{label}': {e}")
             logger.warning("Checkbox error label=%r error=%s", label, e)
 
@@ -156,6 +154,10 @@ async def _fetch_job_log(backend: "SapUiBackend", language: SapLanguage) -> SM37
     Clicks the Job-Log button, validates the screen changed, then parses the log.
     """
     try:
+        # Select the first job row before clicking Job-Log
+        await backend.click_table_cell(1, 0, "click")
+        await backend.wait_for_ready()
+
         # Click the Job-Log button
         log_button_text = "Job-Log" if language == "DE" else "Job Log"
         try:

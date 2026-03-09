@@ -95,10 +95,22 @@ async def _fill_search_and_execute(backend: "SapUiBackend", query: str) -> str |
 
     The search dialog textbox is a ct='CBS' field that requires real
     keyboard input (Playwright fill/JS value assignment don't trigger
-    SAP's server-side state). We type via keyboard and press Enter.
+    SAP's server-side state). We click the textbox to focus, then type
+    via keyboard and press Enter.
 
     Returns error string or None on success.
     """
+    # Focus the search textbox inside the dialog.
+    # Radio buttons and dialog-scoped inputs don't map cleanly to the
+    # backend protocol — use _page directly (same pattern as SE11 radios).
+    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+    search_input = page.locator("[role='dialog'] input[role='textbox']")
+    try:
+        await search_input.click()
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.warning("Could not click search input, attempting Tab focus")
+        await backend.press_key("Tab")
+
     # Clear any existing text and type the query
     await backend.press_key("Control+a")
     await backend.press_key("Delete")

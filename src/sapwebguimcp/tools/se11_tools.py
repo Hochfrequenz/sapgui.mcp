@@ -236,7 +236,7 @@ async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11E
 
     try:
         await table_radio.wait_for(state="visible", timeout=10000)
-    except Exception:  # pylint: disable=broad-exception-caught
+    except TimeoutError:
         snapshot = await backend.get_snapshot()
         logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
         return SE11Error(
@@ -266,7 +266,7 @@ async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> S
 
     try:
         await type_radio.wait_for(state="visible", timeout=10000)
-    except Exception:  # pylint: disable=broad-exception-caught
+    except TimeoutError:
         snapshot = await backend.get_snapshot()
         logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
         return SE11Error(

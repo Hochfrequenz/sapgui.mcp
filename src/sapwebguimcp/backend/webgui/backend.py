@@ -482,6 +482,21 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         """Type text character by character."""
         await self._page.keyboard.type(text)
 
+    async def set_checkbox(self, label: str, checked: bool) -> None:
+        """Set a checkbox by its ARIA label."""
+        cb = self._page.get_by_role("checkbox", name=label, exact=True)
+        if await cb.count() == 0:
+            # Fallback: case-insensitive
+            cb = self._page.get_by_role("checkbox", name=re.compile(re.escape(label), re.IGNORECASE))
+            if await cb.count() == 0:
+                raise ValueError(f"Checkbox '{label}' not found")
+            cb = cb.first
+        if checked:
+            await cb.check()
+        else:
+            await cb.uncheck()
+        await self._page.wait_for_timeout(200)
+
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select a dropdown option by label and option text."""
         # First check the field type to get the element ID

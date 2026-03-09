@@ -80,6 +80,9 @@ class SapUiPrimitives(Protocol):
     async def type_text(self, text: str) -> None:
         """Type text into the currently focused element."""
 
+    async def set_checkbox(self, label: str, checked: bool) -> None:
+        """Set a checkbox by its ARIA label. Raises ``ValueError`` if not found."""
+
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select an option from a dropdown field."""
 

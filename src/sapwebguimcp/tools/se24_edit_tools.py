@@ -58,10 +58,14 @@ async def _open_class_in_change_mode(backend: SapUiBackend, class_name: str) -> 
     await backend.dismiss_language_dialog()
 
     # Switch from display to change mode via "Display <-> Change" / "Anzeigen <-> Ändern"
-    try:
-        await backend.click_button("Anzeigen <-> Ändern")
-    except Exception:  # pylint: disable=broad-exception-caught
-        await backend.click_button("Display <-> Change")
+    for toggle_label in ("Anzeigen <-> Ändern", "Display <-> Change"):
+        try:
+            await backend.click_button(toggle_label)
+            break
+        except ValueError:
+            continue
+    else:
+        return "Could not find 'Display <-> Change' toggle button"
     await backend.wait_for_ready()
 
     await backend.dismiss_language_dialog()
@@ -96,7 +100,7 @@ async def _select_method_and_open_source(backend: SapUiBackend, class_name: str,
             str(snapshot)[:200],
         )
         return f"Method '{method_name}' not found in class '{class_name}' methods grid"
-    await backend.click_table_cell(row_index, 0, "click")
+    await backend.click_table_cell(row_index + 1, 0, "click")  # 1-based row index
     await backend.wait_for_ready()
 
     # Click "Quelltext" / "Sourcecode" / "Source Code" button to open method source

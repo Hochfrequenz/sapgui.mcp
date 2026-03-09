@@ -78,39 +78,29 @@ async def _fill_class_field(backend: SapUiBackend, class_name: str) -> SE24Error
 
 
 async def _check_class_not_found(backend: SapUiBackend, class_name: str) -> SE24Error | None:
-    """Check if class was not found by examining the snapshot. Returns error or None."""
+    """Check if class was not found by examining the status bar. Returns error or None."""
     now = datetime.now(UTC)
 
+    # Check status bar for specific error messages (narrow, avoids false positives)
+    status = await backend.get_status_bar()
+    status_text = (status.message or "").lower()
+
+    not_found_msgs = {"existiert nicht", "does not exist", "nicht gefunden", "not found", "nicht vorhanden"}
+    if status_text and any(msg in status_text for msg in not_found_msgs):
+        return SE24Error(class_name=class_name, error=f"Class/interface '{class_name}' not found", retrieved_at=now)
+
+    # Secondary check: verify we left the initial screen
     snapshot = await backend.get_snapshot()
     snapshot_lower = str(snapshot).lower()
-
-    # Check for "not found" error messages in the snapshot
-    not_found_msgs = {
-        "existiert nicht",
-        "does not exist",
-        "nicht gefunden",
-        "not found",
-        "nicht vorhanden",
-    }
-
-    # Check if we're still on the initial screen
     is_initial_screen = "einstieg" in snapshot_lower or "initial screen" in snapshot_lower
+    if is_initial_screen:
+        return SE24Error(
+            class_name=class_name,
+            error=f"Class/interface '{class_name}' not found (still on initial screen)",
+            retrieved_at=now,
+        )
 
-    if not is_initial_screen:
-        # We're on a display screen, so the class was found
-        return None
-
-    # We're still on initial screen - check for specific error messages
-    if any(msg in snapshot_lower for msg in not_found_msgs):
-        error_msg = f"Class/interface '{class_name}' not found"
-    else:
-        error_msg = f"Class/interface '{class_name}' not found (still on initial screen)"
-
-    return SE24Error(
-        class_name=class_name,
-        error=error_msg,
-        retrieved_at=now,
-    )
+    return None
 
 
 async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | None:

@@ -57,9 +57,8 @@ async def _fill_user_field(backend: "SapUiBackend", username: str) -> None:
 async def _set_checkbox_state(backend: "SapUiBackend", label: str, should_be_checked: bool) -> None:
     """Safely set a checkbox to checked or unchecked state."""
     try:
-        value = "X" if should_be_checked else ""
-        await backend.fill_field(label, value)
-    except Exception:  # pylint: disable=broad-exception-caught
+        await backend.set_checkbox(label, should_be_checked)
+    except ValueError:
         logger.warning("Failed to set checkbox '%s', skipping", label)
 
 
@@ -74,27 +73,31 @@ async def _set_request_type_filter(backend: "SapUiBackend", request_type: str) -
         await _set_checkbox_state(backend, "Workbench", False)
 
 
+async def _try_set_checkbox(backend: "SapUiBackend", labels: list[str], checked: bool) -> None:
+    """Try setting a checkbox using multiple label variants (DE/EN). First match wins."""
+    for label in labels:
+        try:
+            await backend.set_checkbox(label, checked)
+            return
+        except ValueError:
+            continue
+    logger.warning("Checkbox not found for any label: %s", labels)
+
+
 async def _set_status_filter(backend: "SapUiBackend", status: str) -> None:
     """Set status filter checkboxes on SE09 selection screen."""
-    # Try DE labels first, then EN
     mod_labels = [SE09_MODIFIABLE_DE, SE09_MODIFIABLE_EN]
     rel_labels = [SE09_RELEASED_DE, SE09_RELEASED_EN]
 
     if status == "all":
-        for label in rel_labels:
-            await _set_checkbox_state(backend, label, True)
-        for label in mod_labels:
-            await _set_checkbox_state(backend, label, True)
+        await _try_set_checkbox(backend, rel_labels, True)
+        await _try_set_checkbox(backend, mod_labels, True)
     elif status == "modifiable":
-        for label in mod_labels:
-            await _set_checkbox_state(backend, label, True)
-        for label in rel_labels:
-            await _set_checkbox_state(backend, label, False)
+        await _try_set_checkbox(backend, mod_labels, True)
+        await _try_set_checkbox(backend, rel_labels, False)
     elif status == "released":
-        for label in rel_labels:
-            await _set_checkbox_state(backend, label, True)
-        for label in mod_labels:
-            await _set_checkbox_state(backend, label, False)
+        await _try_set_checkbox(backend, rel_labels, True)
+        await _try_set_checkbox(backend, mod_labels, False)
 
 
 async def _click_display_button(backend: "SapUiBackend") -> None:

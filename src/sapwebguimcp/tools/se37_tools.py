@@ -76,20 +76,13 @@ async def _fill_fm_field(backend: SapUiBackend, fm_name: str) -> SE37Error | Non
 
 
 async def _check_fm_not_found(backend: SapUiBackend, fm_name: str) -> SE37Error | None:
-    """Check if function module was not found by examining the snapshot. Returns error or None."""
+    """Check if function module was not found by examining the status bar. Returns error or None."""
     now = datetime.now(UTC)
 
-    snapshot = await backend.get_snapshot()
-    snapshot_lower = str(snapshot).lower()
+    # Check status bar for specific error messages (narrow, avoids false positives)
+    status = await backend.get_status_bar()
+    status_text = (status.message or "").lower()
 
-    # Check if we're still on the initial screen
-    is_initial_screen = "einstieg" in snapshot_lower or "initial screen" in snapshot_lower
-
-    if not is_initial_screen:
-        # We're on a display screen, so the function module was found
-        return None
-
-    # Check for "not found" error messages
     not_found_msgs = {
         "ist noch nicht vorhanden",
         "does not exist",
@@ -98,17 +91,21 @@ async def _check_fm_not_found(backend: SapUiBackend, fm_name: str) -> SE37Error 
         "nicht vorhanden",
         "existiert nicht",
     }
+    if status_text and any(msg in status_text for msg in not_found_msgs):
+        return SE37Error(function_module=fm_name, error=f"Function module '{fm_name}' not found", retrieved_at=now)
 
-    if any(msg in snapshot_lower for msg in not_found_msgs):
-        error_msg = f"Function module '{fm_name}' not found"
-    else:
-        error_msg = f"Function module '{fm_name}' not found (still on initial screen)"
+    # Secondary check: verify we left the initial screen
+    snapshot = await backend.get_snapshot()
+    snapshot_lower = str(snapshot).lower()
+    is_initial_screen = "einstieg" in snapshot_lower or "initial screen" in snapshot_lower
+    if is_initial_screen:
+        return SE37Error(
+            function_module=fm_name,
+            error=f"Function module '{fm_name}' not found (still on initial screen)",
+            retrieved_at=now,
+        )
 
-    return SE37Error(
-        function_module=fm_name,
-        error=error_msg,
-        retrieved_at=now,
-    )
+    return None
 
 
 async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | None:

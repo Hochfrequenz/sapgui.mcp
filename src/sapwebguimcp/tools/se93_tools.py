@@ -75,38 +75,27 @@ async def _fill_tcode_field(backend: SapUiBackend, tcode: str) -> SE93Error | No
 
 
 async def _check_tcode_not_found(backend: SapUiBackend, tcode: str) -> SE93Error | None:
-    """Check if transaction was not found by examining the snapshot. Returns error or None."""
+    """Check if transaction was not found by examining the status bar. Returns error or None."""
     now = datetime.now(UTC)
 
+    # Check status bar for specific error messages (narrow, avoids false positives)
+    status = await backend.get_status_bar()
+    status_text = (status.message or "").lower()
+
+    not_found_msgs = {"existiert nicht", "does not exist", "nicht gefunden", "not found", "nicht vorhanden"}
+    if status_text and any(msg in status_text for msg in not_found_msgs):
+        return SE93Error(tcode=tcode, error=f"Transaction '{tcode}' not found", retrieved_at=now)
+
+    # Secondary check: verify we left the initial screen
     snapshot = await backend.get_snapshot()
     snapshot_lower = str(snapshot).lower()
-
-    # Check if we're still on the initial screen
     is_initial_screen = "transaktionspflege" in snapshot_lower or "transaction maintenance" in snapshot_lower
+    if is_initial_screen:
+        return SE93Error(
+            tcode=tcode, error=f"Transaction '{tcode}' not found (still on initial screen)", retrieved_at=now
+        )
 
-    if not is_initial_screen:
-        # We're on a display screen, so the transaction was found
-        return None
-
-    # Check for "not found" error messages
-    not_found_msgs = {
-        "existiert nicht",
-        "does not exist",
-        "nicht gefunden",
-        "not found",
-        "nicht vorhanden",
-    }
-
-    if any(msg in snapshot_lower for msg in not_found_msgs):
-        error_msg = f"Transaction '{tcode}' not found"
-    else:
-        error_msg = f"Transaction '{tcode}' not found (still on initial screen)"
-
-    return SE93Error(
-        tcode=tcode,
-        error=error_msg,
-        retrieved_at=now,
-    )
+    return None
 
 
 async def _lookup_single_tcode(backend: SapUiBackend, tcode: str) -> SE93Entry | SE93Error:
