@@ -216,6 +216,25 @@ def test_abapgit_list_result_empty() -> None:
     assert result.repos == []
 
 
+def test_abapgit_list_result_failure_requires_error() -> None:
+    """Test that AbapGitListResult(success=False) requires a non-empty error string."""
+    import pytest
+    from pydantic import ValidationError
+
+    from sapwebguimcp.models.abapgit_models import AbapGitListResult
+
+    with pytest.raises(ValidationError):
+        AbapGitListResult(success=False, error=None)
+
+    with pytest.raises(ValidationError):
+        AbapGitListResult(success=False, error="")
+
+    # Valid failure case
+    result = AbapGitListResult(success=False, error="Something went wrong")
+    assert not result.success
+    assert result.error == "Something went wrong"
+
+
 def test_parse_repo_list_output() -> None:
     """Test parsing tilde-delimited WRITE output from Z_ABAPGIT_PULL LIST mode."""
     from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
