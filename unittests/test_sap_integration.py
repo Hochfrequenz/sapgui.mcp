@@ -720,7 +720,7 @@ async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> N
 async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -> None:
     """Test SM37 when no jobs match selection criteria.
 
-    Uses current user (default) which typically has no scheduled jobs,
+    Uses a non-existent job name to guarantee no results,
     resulting in "Kein Job entspricht den Selektionsbedingungen" message.
     """
     await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
@@ -731,9 +731,14 @@ async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -
     # Capture HTML snapshot for offline selector testing (before filling form)
     await capture_html_snapshot(sap_mcp_client, "sm37_initial")
 
-    # Use defaults (current user) - typically no jobs
+    # Use a non-existent job name to guarantee "no jobs" result.
+    # Previously used "*" (all jobs for current user), but that fails
+    # when the user has any jobs (scheduled, finished, etc.).
     fill_result = await call_tool_typed(
-        sap_mcp_client, "browser_fill", {"selector": "input[lsdata*='JOBNAME']", "value": "*"}, FillResult
+        sap_mcp_client,
+        "browser_fill",
+        {"selector": "input[lsdata*='JOBNAME']", "value": "ZZZNOTEXIST_JOB_99"},
+        FillResult,
     )
     assert fill_result.success, f"Failed to fill JOBNAME field: {fill_result.error}"
 
