@@ -360,9 +360,6 @@ async def test_se09_find_customizing_transports(sap_mcp_client: ClientSession) -
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success
 
-    # Capture snapshot with wildcard user to see ARIA structure
-    login2 = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
-
     tx = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE09"}, TransactionResult)
     assert tx.success
 
