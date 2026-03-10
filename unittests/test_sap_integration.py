@@ -3490,3 +3490,45 @@ async def test_sm37_lookup_canceled_status_filter(sap_mcp_client: ClientSession)
         assert status_lower in ("canceled", "abgebrochen"), (
             f"Expected 'canceled'/'abgebrochen' status but got '{job.status}'. " "Checkbox filter may not be working."
         )
+
+
+@pytest.mark.anyio
+async def test_sm37_lookup_with_date_filter(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_sm37_lookup with date range filter.
+
+    Verifies that the from_date and to_date parameters are correctly filled
+    into the SM37 selection screen date fields. Uses a narrow date range
+    (today only) to verify the fields are found and set without error.
+
+    This test covers the fix for GitHub issue #304 where the ARIA labels
+    for date fields were wrong (e.g., "von (Datum/Uhrzeit)" instead of "von Datum").
+
+    Works in both DE and EN via the language-aware label lookup.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    # Use today's date as both from and to — guarantees a valid range
+    from datetime import UTC, datetime
+
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_sm37_lookup",
+        {
+            "job_name": "*",
+            "username": "*",
+            "from_date": today,
+            "to_date": today,
+        },
+        SM37JobListResult,
+    )
+
+    assert result.success, f"sap_sm37_lookup with date filter failed: {result.error}"
+    assert (
+        result.filters_applied.get("from_date") == today
+    ), f"Expected from_date='{today}' in filters, got {result.filters_applied}"
+    assert (
+        result.filters_applied.get("to_date") == today
+    ), f"Expected to_date='{today}' in filters, got {result.filters_applied}"
