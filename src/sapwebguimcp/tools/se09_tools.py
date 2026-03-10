@@ -47,9 +47,7 @@ __all__ = ["register_se09_tools"]
 
 async def _fill_user_field(backend: "SapUiBackend", username: str) -> None:
     """Fill the username filter field in SE09."""
-    result = await backend.fill_form(
-        {SE09_USER_FIELD_DE: username.upper(), SE09_USER_FIELD_EN: username.upper()}
-    )
+    result = await backend.fill_form({SE09_USER_FIELD_DE: username.upper(), SE09_USER_FIELD_EN: username.upper()})
     if not result.filled:
         logger.warning("User field not found in SE09 for any label")
 
@@ -180,9 +178,7 @@ async def _expand_transport_nodes(backend: "SapUiBackend") -> int:
     """
     expanded: set[str] = set()
     for _ in range(30):  # safety limit
-        result = await backend.evaluate_javascript(
-            f"({_JS_CLICK_NEXT_EXPAND})({json.dumps(list(expanded))})"
-        )
+        result = await backend.evaluate_javascript(f"({_JS_CLICK_NEXT_EXPAND})({json.dumps(list(expanded))})")
         if isinstance(result, str):
             result = json.loads(result)
         if not result or not result.get("remaining"):

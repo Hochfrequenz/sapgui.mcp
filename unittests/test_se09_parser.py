@@ -284,5 +284,3 @@ class TestExpandedTreeTaskAssignment:
         ]
         _assign_tasks_from_expanded_text(requests, {"S4UK902153"}, [])
         assert len(requests[0].tasks) == 0
-
-
