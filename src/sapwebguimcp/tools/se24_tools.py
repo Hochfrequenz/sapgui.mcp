@@ -282,11 +282,12 @@ def register_se24_tools(mcp: FastMCP) -> None:
         errors: list[SE24Error] = []
 
         for class_name in class_list:
-            # Each lookup starts fresh with /nSE24 which cancels any current
-            # transaction and opens SE24 from scratch.  This avoids fragile F3
-            # (Back) navigation that depends on the current screen state.
-            # enter_transaction verifies the Enter keypress was processed and
-            # retries automatically on race conditions.
+            # Navigate to Easy Access first to ensure a clean starting state,
+            # then open SE24.  This is simple and robust — no state from a
+            # previous lookup can leak into the next one.
+            await backend.enter_transaction("/n")
+            await backend.wait_for_ready()
+
             tx_result = await backend.enter_transaction("SE24")
             if not tx_result.success:
                 errors.append(
