@@ -38,37 +38,85 @@ MAX_INLINE_OBJECTS = 5
 
 
 async def _fill_class_field(backend: SapUiBackend, class_name: str) -> SE24Error | None:
-    """Fill the class/interface name field in SE24. Returns error or None."""
+    """Fill the class/interface name field in SE24. Returns error or None.
+
+    Uses fill_form with both DE/EN labels.  If none match (SAP WebGUI
+    sometimes omits the HTML title attribute), falls back to
+    ``set_field`` which uses Playwright's ARIA-based locator.
+    """
     now = datetime.now(UTC)
+    upper_name = class_name.upper()
 
-    # Try multiple label variants (DE and EN)
-    labels = [
-        "Objekttyp",
-        "Object type",
-        "Object Type",
-        "Klasse/Interface",
-        "Class/Interface",
-    ]
+    # Try fill_form first (JS-based, matches by HTML title / lsdata label)
+    result = await backend.fill_form(
+        {
+            "Objekttyp": upper_name,
+            "Object type": upper_name,
+            "Object Type": upper_name,
+            "Klasse/Interface": upper_name,
+            "Class/Interface": upper_name,
+        }
+    )
+    if result.filled:
+        return None
 
-    for label in labels:
+    # Fallback: use fill_field (label-based, single field).
+    # fill_field uses findInputByLabel which tries title, lsdata, aria-label,
+    # and text node proximity. If fill_form missed, fill_field may find it
+    # via a different matching strategy.
+    for label in ["Objekttyp", "Object type", "Klasse/Interface", "Class/Interface"]:
         try:
-            await backend.fill_field(label, class_name.upper())
+            await backend.fill_field(label, upper_name)
             return None
-        except ValueError:  # pylint: disable=broad-exception-caught
+        except ValueError:
             continue
 
-    # Fallback: find the first visible input field by CSS selector.
-    # SE24 initial screen typically has a single input field whose label
-    # may not match standard text due to SAP's non-standard HTML.
+    # Last resort: use JS to find textbox by ARIA role and name.
+    # The SE24 initial screen has exactly one textbox for the class name.
+    js_fill_objekttyp = """(value) => {
+        // Find the textbox by its accessible name (matches ARIA snapshot)
+        const labels = ['Objekttyp', 'Object type', 'Klasse/Interface', 'Class/Interface'];
+        for (const label of labels) {
+            // Try title attribute
+            const byTitle = document.querySelector(`input[title="${label}"]`);
+            if (byTitle) {
+                byTitle.focus();
+                byTitle.value = value;
+                byTitle.dispatchEvent(new Event('input', {bubbles: true}));
+                byTitle.dispatchEvent(new Event('change', {bubbles: true}));
+                return {filled: true, strategy: 'title', label};
+            }
+        }
+        // Try all visible input[type=text] that are NOT the transaction code field
+        const inputs = document.querySelectorAll('input[type="text"]');
+        for (const input of inputs) {
+            // Skip the transaction code combobox input
+            const role = input.getAttribute('role');
+            if (role === 'combobox') continue;
+            const ct = input.getAttribute('ct');
+            if (ct === 'CB') continue;
+            // Skip inputs inside toolbars (transaction code area)
+            if (input.closest('[role="toolbar"]')) continue;
+            if (input.closest('[role="banner"]')) continue;
+            // Check if visible and not already filled
+            if (input.offsetParent === null) continue;
+            input.focus();
+            input.value = value;
+            input.dispatchEvent(new Event('input', {bubbles: true}));
+            input.dispatchEvent(new Event('change', {bubbles: true}));
+            return {filled: true, strategy: 'first-visible-input', id: input.id};
+        }
+        return {filled: false};
+    }"""
     try:
-        fields = await backend.discover_fields()
-        if fields:
-            selector = fields[0].selector
-            if selector:
-                await backend.fill_field(selector, class_name.upper())
-                return None
+        result = await backend.evaluate_javascript(f"({js_fill_objekttyp})('{upper_name}')")
+        if isinstance(result, str):
+            result = json.loads(result)
+        if result and result.get("filled"):
+            logger.info("SE24 field filled via JS fallback: %s", result)
+            return None
     except Exception:  # pylint: disable=broad-exception-caught
-        pass
+        logger.debug("JS fallback for SE24 field fill failed", exc_info=True)
 
     return SE24Error(
         class_name=class_name,
