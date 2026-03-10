@@ -6,6 +6,7 @@ The tool navigates to SE09, applies filters, clicks Anzeigen (Display),
 and parses the flat text list from the ARIA snapshot.
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -46,32 +47,38 @@ __all__ = ["register_se09_tools"]
 
 async def _fill_user_field(backend: "SapUiBackend", username: str) -> None:
     """Fill the username filter field in SE09."""
-    for label in [SE09_USER_FIELD_DE, SE09_USER_FIELD_EN]:
-        try:
-            await backend.fill_field(label, username.upper())
-            return
-        except ValueError:
-            continue
-    logger.warning("User field not found in SE09 for any label")
+    result = await backend.fill_form(
+        {SE09_USER_FIELD_DE: username.upper(), SE09_USER_FIELD_EN: username.upper()}
+    )
+    if not result.filled:
+        logger.warning("User field not found in SE09 for any label")
 
 
 async def _set_checkbox_state(backend: "SapUiBackend", label: str, should_be_checked: bool) -> None:
     """Safely set a checkbox to checked or unchecked state."""
     try:
         await backend.set_checkbox(label, should_be_checked)
+        # SAP WebGUI checkboxes may trigger partial page reloads
+        await backend.wait_for_ready()
     except ValueError:
         logger.warning("Failed to set checkbox '%s', skipping", label)
 
 
 async def _set_request_type_filter(backend: "SapUiBackend", request_type: str) -> None:
-    """Set request type checkboxes on SE09 selection screen."""
-    if request_type == "all":
-        return  # Both already checked by default
+    """Set request type checkboxes on SE09 selection screen.
 
-    if request_type == "workbench":
+    Note: By default only Workbench is checked in SE09.
+    Customizing must be explicitly checked when needed.
+    """
+    if request_type == "all":
+        # Default only has Workbench checked — also check Customizing
+        await _set_checkbox_state(backend, "Customizing", True)
+    elif request_type == "workbench":
+        # Already default — but ensure Customizing is off
         await _set_checkbox_state(backend, "Customizing", False)
     elif request_type == "customizing":
         await _set_checkbox_state(backend, "Workbench", False)
+        await _set_checkbox_state(backend, "Customizing", True)
 
 
 async def _try_set_checkbox(backend: "SapUiBackend", labels: list[str], checked: bool) -> None:
@@ -102,7 +109,36 @@ async def _set_status_filter(backend: "SapUiBackend", status: str) -> None:
 
 
 async def _click_display_button(backend: "SapUiBackend") -> None:
-    """Click the Anzeigen/Display button to execute the search."""
+    """Click the Anzeigen/Display button to execute the search.
+
+    Uses JS to click the button by its element ID, which is more reliable
+    than Playwright's click() for SAP WebGUI custom button controls.
+    """
+    # Find the Anzeigen/Display button by text and click it via JS,
+    # dispatching a proper mousedown+mouseup+click sequence
+    js_click_display = """() => {
+        const buttons = document.querySelectorAll('[role="button"]');
+        for (const btn of buttons) {
+            const text = btn.textContent?.trim() || '';
+            if (text === 'Anzeigen' || text === 'Display') {
+                // SAP WebGUI needs mousedown+mouseup for proper event handling
+                btn.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true}));
+                btn.dispatchEvent(new MouseEvent('mouseup', {bubbles: true, cancelable: true}));
+                btn.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+                return {clicked: text, id: btn.id};
+            }
+        }
+        return {clicked: null};
+    }"""
+    result = await backend.evaluate_javascript(js_click_display)
+    if isinstance(result, str):
+        result = json.loads(result)
+    if result and result.get("clicked"):
+        logger.info("Clicked display button '%s' (id=%s)", result["clicked"], result.get("id"))
+        await backend.wait_for_ready()
+        return
+
+    # Fallback: try Playwright click
     for label in [SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN]:
         try:
             await backend.click_button(label)
@@ -111,16 +147,14 @@ async def _click_display_button(backend: "SapUiBackend") -> None:
         except ValueError:
             continue
 
-    logger.warning("Anzeigen/Display button not found, trying F8")
-    await backend.press_key("F8")
-    await backend.wait_for_ready()
+    logger.warning("Anzeigen/Display button not found")
 
 
 _JS_CLICK_NEXT_EXPAND = """(skip) => {
     const region = document.querySelector('[role="region"]');
     if (!region) return {clicked: null, remaining: false};
     const children = [...region.children];
-    const transportPattern = /^[A-Z0-9]{3}K\\d{6}$/;
+    const transportPattern = /^[A-Z0-9]{3}K\\d{6}(\\s+\\d{3})?$/;
     const skipSet = new Set(skip);
     for (let i = 0; i < children.length; i++) {
         const el = children[i];
@@ -230,6 +264,16 @@ async def _lookup_transports(
 
     await backend.wait_for_ready()
 
+    # Verify SE09 loaded — sometimes enter_transaction returns before navigation completes.
+    # If still on Easy Access, retry once with extra wait time.
+    verify_snap: AriaSnapshot = await backend.get_snapshot()
+    if "Transport Organizer" not in verify_snap:
+        logger.warning("SE09 not loaded after enter_transaction, retrying")
+        await backend.enter_transaction("SE09")
+        await backend.wait_for_ready()
+        # Extra wait — SE09 initial screen can be slow to render
+        await backend.wait_for_ready(timeout_ms=3000)
+
     # Apply filters on selection screen
     if username is not None:
         await _fill_user_field(backend, username)
@@ -237,11 +281,25 @@ async def _lookup_transports(
     await _set_request_type_filter(backend, request_type)
     await _set_status_filter(backend, status)
 
+    # Allow SAP to process checkbox changes before clicking display
+    await backend.wait_for_ready()
+
     # Click Anzeigen/Display button
     await _click_display_button(backend)
 
-    # Capture snapshot (collapsed view) to get request numbers
-    snapshot: AriaSnapshot = await backend.get_snapshot()
+    # SE09 results may take a moment to render, especially with wildcard user.
+    # The results screen title is "Transport Organizer: Aufträge" (DE) or
+    # "Transport Organizer: Requests" (EN), while the initial screen is just
+    # "Transport Organizer".
+    # Poll for up to 10 seconds for the results screen to appear.
+    snapshot = AriaSnapshot("")
+    for attempt in range(5):
+        snapshot = await backend.get_snapshot()
+        if "Transport Organizer:" in snapshot:
+            break
+        logger.info("SE09 results not yet loaded (attempt %d), waiting 2s", attempt + 1)
+        await asyncio.sleep(2)
+
     result = parse_se09_transport_list(snapshot)
 
     if not include_objects or not result.requests:
@@ -272,7 +330,7 @@ def _assign_tasks_from_expanded_text(
     and tasks interleaved. Tasks appear between their parent request and
     the next request. Any transport number NOT in ``request_numbers`` is a task.
     """
-    transport_re = re.compile(r"^[A-Z0-9]{3}K\d{6}$")
+    transport_re = re.compile(r"^([A-Z0-9]{3}K\d{6})(?:\s+\d{3})?$")
     request_map = {r.request_number: r for r in requests}
 
     current_request = None
@@ -280,10 +338,12 @@ def _assign_tasks_from_expanded_text(
     while i < len(text_lines):
         line = text_lines[i]
 
-        if transport_re.match(line):
-            if line in request_numbers:
+        m = transport_re.match(line)
+        if m:
+            transport_num = m.group(1)  # 10-char transport number without client suffix
+            if transport_num in request_numbers:
                 # This is a request — set as current parent
-                current_request = request_map.get(line)
+                current_request = request_map.get(transport_num)
             elif current_request is not None:
                 # This is a task under the current request
                 owner = ""
@@ -297,7 +357,7 @@ def _assign_tasks_from_expanded_text(
 
                 current_request.tasks.append(
                     TransportTask(
-                        task_number=line,
+                        task_number=transport_num,
                         owner=owner,
                         description=description,
                     )

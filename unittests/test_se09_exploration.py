@@ -360,45 +360,44 @@ async def test_se09_find_customizing_transports(sap_mcp_client: ClientSession) -
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success
 
-    # Try with empty username to see all users' customizing transports
-    result = await call_tool_typed(
+    # Capture snapshot with wildcard user to see ARIA structure
+    login2 = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    tx = await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE09"}, TransactionResult)
+    assert tx.success
+
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
+
+    # Fill username with * (wildcard)
+    await call_tool_typed(
         sap_mcp_client,
-        "sap_se09_lookup",
-        {"username": "", "request_type": "customizing", "status": "all"},
-        TransportListResult,
+        "sap_fill_form",
+        {"fields": {"Benutzer": "*", "User": "*"}},
+        FillFormResult,
     )
 
-    print(f"Customizing transports (empty user): {result.request_count}")
-    for req in result.requests:
-        print(f"  {req.request_number} owner={req.owner} status={req.status} desc={req.description}")
+    # Uncheck Workbench, keep only Customizing
+    try:
+        await sap_mcp_client.call_tool("sap_set_checkbox", {"label": "Workbench", "checked": False})
+    except Exception:
+        pass
 
-    # Try with wildcard
-    result_star = await call_tool_typed(
-        sap_mcp_client,
-        "sap_se09_lookup",
-        {"username": "*", "request_type": "customizing", "status": "all"},
-        TransportListResult,
+    # Check both modifiable and released
+    try:
+        await sap_mcp_client.call_tool("sap_set_checkbox", {"label": "Freigegeben", "checked": True})
+    except Exception:
+        try:
+            await sap_mcp_client.call_tool("sap_set_checkbox", {"label": "Released", "checked": True})
+        except Exception:
+            pass
+
+    # Click Anzeigen
+    await sap_mcp_client.call_tool(
+        "browser_click",
+        {"selector": 'role=button[name="Anzeigen"]'},
     )
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
-    print(f"\nCustomizing transports (wildcard): {result_star.request_count}")
-    for req in result_star.requests:
-        print(f"  {req.request_number} owner={req.owner} status={req.status} desc={req.description}")
-
-    # Also check all types for all users
-    result_all = await call_tool_typed(
-        sap_mcp_client,
-        "sap_se09_lookup",
-        {"username": "*", "request_type": "all", "status": "all"},
-        TransportListResult,
-    )
-
-    print(f"\nAll transports (wildcard): {result_all.request_count}")
-    types_seen: set[str] = set()
-    owners_seen: set[str] = set()
-    for req in result_all.requests:
-        types_seen.add(req.request_type)
-        owners_seen.add(req.owner)
-        print(f"  {req.request_number} type={req.request_type} owner={req.owner} status={req.status}")
-
-    print(f"\nTypes seen: {types_seen}")
-    print(f"Owners seen: {owners_seen}")
+    yaml_content = await capture_yaml_snapshot(sap_mcp_client, "se09_customizing_wildcard", overwrite=True)
+    print(f"Customizing wildcard snapshot ({len(yaml_content)} chars):")
+    print(yaml_content[:2000])

@@ -127,21 +127,25 @@ async def test_se09_lookup_include_objects(sap_mcp_client: ClientSession) -> Non
 
 @pytest.mark.anyio
 async def test_se09_lookup_customizing_only(sap_mcp_client: ClientSession) -> None:
-    """Test filtering by customizing request type returns no errors."""
+    """Test filtering by customizing request type with wildcard user."""
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success
 
+    # Use username="*" to search across all users (KLEINK has no customizing transports)
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_se09_lookup",
-        {"request_type": "customizing"},
+        {"username": "*", "request_type": "customizing", "status": "all"},
         TransportListResult,
     )
 
     assert result.success, f"SE09 lookup failed: {result.error}"
-    # Customizing transports may or may not exist for the current user
-    assert result.request_count >= 0
+    assert result.request_count > 0, "Expected customizing transports with wildcard user"
+
     for req in result.requests:
+        assert len(req.request_number) == 10
+        assert req.request_number[3] == "K"
+        assert req.owner != ""
         if req.request_type:
             assert req.request_type == "Customizing", f"Expected Customizing, got {req.request_type}"
 
@@ -213,3 +217,29 @@ async def test_se09_lookup_all_types_all_status(sap_mcp_client: ClientSession) -
         assert len(req.request_number) == 10
         assert req.request_number[3] == "K"
         assert req.owner != ""
+
+
+@pytest.mark.anyio
+async def test_se09_lookup_mixed_workbench_and_customizing(sap_mcp_client: ClientSession) -> None:
+    """Test that both workbench and customizing transports are parsed with wildcard user."""
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se09_lookup",
+        {"username": "*", "request_type": "all", "status": "all"},
+        TransportListResult,
+    )
+
+    assert result.success, f"SE09 lookup failed: {result.error}"
+    assert result.request_count > 0
+
+    types_found = {req.request_type for req in result.requests if req.request_type}
+    assert "Workbench" in types_found, f"Expected Workbench in {types_found}"
+    assert "Customizing" in types_found, f"Expected Customizing in {types_found}"
+
+    # Verify both modifiable and released statuses exist
+    statuses_found = {req.status for req in result.requests if req.status}
+    assert "Modifiable" in statuses_found, f"Expected Modifiable in {statuses_found}"
+    assert "Released" in statuses_found, f"Expected Released in {statuses_found}"

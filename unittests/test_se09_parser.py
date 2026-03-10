@@ -122,6 +122,51 @@ class TestNoTransportsParsing:
         assert result.request_count == 0
 
 
+class TestCustomizingWildcardParsing:
+    """Tests for parsing customizing transports with wildcard user."""
+
+    def test_parse_customizing_wildcard_snapshot(self) -> None:
+        """Customizing snapshot with wildcard user should parse requests."""
+        snapshot = _load_snapshot("se09_customizing_wildcard")
+        result = parse_se09_transport_list(snapshot)
+
+        assert result.success
+        assert result.request_count > 0
+
+    def test_customizing_transport_numbers_are_valid(self) -> None:
+        """Transport numbers with client suffix should be parsed to 10 chars."""
+        snapshot = _load_snapshot("se09_customizing_wildcard")
+        result = parse_se09_transport_list(snapshot)
+
+        for req in result.requests:
+            assert len(req.request_number) == 10, f"Bad number: {req.request_number}"
+            assert req.request_number[3] == "K", f"Missing K: {req.request_number}"
+
+    def test_customizing_requests_have_owner(self) -> None:
+        """Each customizing request should have an owner."""
+        snapshot = _load_snapshot("se09_customizing_wildcard")
+        result = parse_se09_transport_list(snapshot)
+
+        for req in result.requests:
+            assert req.owner != "", f"Empty owner for {req.request_number}"
+
+    def test_customizing_requests_have_status(self) -> None:
+        """Customizing requests should have Modifiable or Released status."""
+        snapshot = _load_snapshot("se09_customizing_wildcard")
+        result = parse_se09_transport_list(snapshot)
+
+        for req in result.requests:
+            assert req.status in ("Modifiable", "Released"), f"Bad status: {req.status} for {req.request_number}"
+
+    def test_known_customizing_transport_present(self) -> None:
+        """Known customizing transport S4UK901835 should be present."""
+        snapshot = _load_snapshot("se09_customizing_wildcard")
+        result = parse_se09_transport_list(snapshot)
+
+        numbers = {r.request_number for r in result.requests}
+        assert "S4UK901835" in numbers, f"S4UK901835 not in {numbers}"
+
+
 class TestEdgeCases:
     """Tests for edge cases."""
 
@@ -239,3 +284,5 @@ class TestExpandedTreeTaskAssignment:
         ]
         _assign_tasks_from_expanded_text(requests, {"S4UK902153"}, [])
         assert len(requests[0].tasks) == 0
+
+
