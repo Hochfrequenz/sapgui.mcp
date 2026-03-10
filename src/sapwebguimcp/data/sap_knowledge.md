@@ -59,7 +59,24 @@ So if you search say for a report in se38 which starts with "Z" and contains "en
 1. **Check the status bar** - SAP shows errors, warnings, and info messages there
 2. **Look for popups** - A popup may be waiting for your response - check if it's an error, confirmation, or help dialog
 3. **Try F3 (Back)** - Often helps to back out and retry
-4. **Start over** - Either by restarting the transaction or using sap_login again (changes will be lost)
+4. **Reset to Easy Access first** - If inputs seem stuck or fields aren't being picked up, use `sap_transaction("YOUR_TCODE", reset_first=True)`. This navigates to SAP Easy Access (`/n`) first, clearing all residual state (popups, error messages, field values) before opening the transaction. This is the most reliable way to recover from state bleeding.
+5. **Start over** - Either by restarting the transaction or using sap_login again (changes will be lost)
+
+### State Bleeding Between Transactions
+
+SAP WebGUI can "bleed" state between sequential transactions. Symptoms:
+
+- Fields don't accept new values (previous values persist)
+- F7/F8 doesn't execute (SAP didn't register the field change)
+- Status bar shows errors from the previous transaction
+
+**Root cause:** SAP WebGUI hooks into low-level keyboard events (`keydown`/`keyup`), not the standard DOM `input`/`change` events that JavaScript-based field fills trigger. After navigating between transactions, SAP's internal model may not detect JS-only value changes.
+
+**Solutions (in order of preference):**
+
+1. **`reset_first=True`** - Use `sap_transaction("SE24", reset_first=True)` to navigate to Easy Access before entering the transaction. This clears all residual state.
+2. **Manual `/n` reset** - Call `sap_keyboard("Enter")` with `/n` in the OK-code field, then re-enter your transaction.
+3. **Real keyboard typing** - If a field value isn't being picked up, try clearing the field and retyping the value manually using `sap_keyboard` with individual keystrokes.
 
 After you found out how to solve a specific problem without these workarounds, consider providing feedback to the devs.
 

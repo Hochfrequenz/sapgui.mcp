@@ -743,6 +743,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     async def sap_transaction(  # pylint: disable=too-many-return-statements,too-many-locals,too-many-branches
         tcode: str,
         new_window: bool = False,
+        reset_first: bool = False,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> TransactionResult:
@@ -773,6 +774,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             tcode: Transaction code (e.g., VA01, MM03, SE80, SU01)
             new_window: If True, open in new SAP session window (preserves current transaction).
                         The new session is auto-registered and session_id is returned.
+            reset_first: If True, navigate to SAP Easy Access (/n) before entering
+                        the transaction. Use this when inputs seem stuck, fields aren't
+                        updating, or the previous transaction left the session in a bad
+                        state.  Ignored when new_window=True.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -789,6 +794,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return TransactionResult.failure(str(e), tcode=tcode)
 
         page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+
+        # Reset to SAP Easy Access first if requested (clears all residual state).
+        if reset_first and not new_window:
+            await backend.enter_transaction("/n")
+            await backend.wait_for_ready()
 
         # Fast popup check (~5ms)
         popup = await backend.check_popup()
