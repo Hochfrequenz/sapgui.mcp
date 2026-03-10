@@ -112,18 +112,21 @@ ERROR_PATTERNS = [
     ("error:", "Error"),
 ]
 
-_TRANSPORT_REQUIRED_PATTERNS = [
+# Additional transport-related patterns beyond ERROR_PATTERNS above.
+# Keep in sync: ERROR_PATTERNS covers "transport required" / "transport erforderlich"
+# for generic error detection; this list adds patterns for the enrichment check.
+_TRANSPORT_REQUIRED_PATTERNS = (
     "transport required",
     "transport erforderlich",
     "provide p_trkorr",
     "p_trkorr=",
     "transportauftrag",
-]
+)
 
 _TRANSPORT_REQUIRED_GUIDANCE = (
     "A transport request (TRKORR) is required for this pull. "
-    "Use sap_se09_lookup to find an open transport request, "
-    "then retry: sap_abapgit_pull(repo=..., trkorr='<TRKORR>')"
+    "Look up an open transport request (e.g. via SE09/SE10) and "
+    "retry: sap_abapgit_pull(repo=..., trkorr='<TRKORR>')"
 )
 
 
@@ -136,7 +139,7 @@ def _is_transport_required_error(error_text: str) -> bool:
 def _enrich_transport_error(error_text: str) -> str:
     """If the error is transport-related, append actionable guidance."""
     if _is_transport_required_error(error_text):
-        return f"{error_text}. {_TRANSPORT_REQUIRED_GUIDANCE}"
+        return f"{error_text.rstrip('. ')}. {_TRANSPORT_REQUIRED_GUIDANCE}"
     return error_text
 
 
@@ -926,7 +929,7 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "Uses the Z_ABAPGIT_PULL report/transaction for reliable execution. "
             "WARNING: This overwrites local ABAP objects with remote versions. "
             "If SAP requires a transport request, the tool returns an error with guidance. "
-            "Use sap_se09_lookup to find an open TRKORR, then retry with trkorr=... "
+            "Look up an open transport (e.g. via SE09/SE10), then retry with trkorr=... "
             "If the tool reports 'status unknown', the pull may have succeeded. "
             "Call sap_read_status_bar() to check, or retry with sap_keyboard('F8') "
             "then sap_read_status_bar()."

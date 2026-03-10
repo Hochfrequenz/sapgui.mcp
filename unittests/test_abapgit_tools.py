@@ -14,6 +14,7 @@ import pytest
 from mcp import ClientSession
 
 from sapwebguimcp.models import AbapGitActionResult, LoginResult
+from sapwebguimcp.tools.abapgit_tools import _enrich_transport_error, _is_transport_required_error
 
 from .abapgit_test_helpers import TEST_REPOS, generate_test_marker, git_commit_and_push, modify_test_repo
 from .conftest import call_tool_raw, call_tool_typed
@@ -141,8 +142,6 @@ def test_settings_loads_abapgit_from_env(abapgit_env_vars: None) -> None:
 
 def test_is_transport_required_error() -> None:
     """Test detection of transport-required error messages."""
-    from sapwebguimcp.tools.abapgit_tools import _is_transport_required_error
-
     # Positive cases — various SAP transport error messages
     assert _is_transport_required_error("Transport required. Provide P_TRKORR= KS")
     assert _is_transport_required_error("transport erforderlich")
@@ -159,12 +158,10 @@ def test_is_transport_required_error() -> None:
 
 def test_enrich_transport_error_adds_guidance() -> None:
     """Test that transport errors get actionable guidance appended."""
-    from sapwebguimcp.tools.abapgit_tools import _enrich_transport_error
-
     # Transport error should get guidance
     enriched = _enrich_transport_error("Transport required. Provide P_TRKORR= KS")
     assert "Transport required" in enriched
-    assert "sap_se09_lookup" in enriched
+    assert "SE09" in enriched
     assert "trkorr=" in enriched
 
     # Non-transport error should pass through unchanged
@@ -172,12 +169,22 @@ def test_enrich_transport_error_adds_guidance() -> None:
     assert _enrich_transport_error(original) == original
 
 
+def test_enrich_transport_error_strips_trailing_period() -> None:
+    """Test that enriched error does not produce double-period sentence boundary."""
+    enriched = _enrich_transport_error("Transport required.")
+    # Should not have ". ." or ".." at the junction (but "..." in repo=... is fine)
+    assert ". ." not in enriched, f"Double period at sentence boundary in: {enriched}"
+    # The original trailing period should be stripped before appending guidance
+    assert not enriched.startswith("Transport required.. "), f"Trailing period not stripped: {enriched}"
+
+    enriched2 = _enrich_transport_error("Transport required. Provide P_TRKORR= KS.")
+    assert ". ." not in enriched2, f"Double period at sentence boundary in: {enriched2}"
+
+
 def test_enrich_transport_error_german() -> None:
     """Test that German transport errors also get guidance."""
-    from sapwebguimcp.tools.abapgit_tools import _enrich_transport_error
-
     enriched = _enrich_transport_error("Transport erforderlich")
-    assert "sap_se09_lookup" in enriched
+    assert "SE09" in enriched
     assert "trkorr=" in enriched
 
 
@@ -669,9 +676,7 @@ async def test_abapgit_pull_without_trkorr_returns_transport_guidance(sap_mcp_cl
     # Error should contain actionable guidance
     error_lower = result.error.lower()
     assert "transport" in error_lower, f"Expected 'transport' in error but got: {result.error}"
-    assert (
-        "sap_se09_lookup" in result.error
-    ), f"Expected guidance mentioning 'sap_se09_lookup' in error but got: {result.error}"
+    assert "se09" in error_lower, f"Expected guidance mentioning 'SE09' in error but got: {result.error}"
     assert "trkorr" in error_lower, f"Expected 'trkorr' in error but got: {result.error}"
 
 
