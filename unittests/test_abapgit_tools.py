@@ -139,6 +139,48 @@ def test_settings_loads_abapgit_from_env(abapgit_env_vars: None) -> None:
     assert settings.abapgit_pat == "ghp_test_token_12345"
 
 
+def test_is_transport_required_error() -> None:
+    """Test detection of transport-required error messages."""
+    from sapwebguimcp.tools.abapgit_tools import _is_transport_required_error
+
+    # Positive cases — various SAP transport error messages
+    assert _is_transport_required_error("Transport required. Provide P_TRKORR= KS")
+    assert _is_transport_required_error("transport erforderlich")
+    assert _is_transport_required_error("Transport Required")
+    assert _is_transport_required_error("Please provide P_TRKORR= for this operation")
+    assert _is_transport_required_error("Transportauftrag fehlt")
+
+    # Negative cases — unrelated errors
+    assert not _is_transport_required_error("Repository not found")
+    assert not _is_transport_required_error("Pull successful")
+    assert not _is_transport_required_error("Authentication failed")
+    assert not _is_transport_required_error("")
+
+
+def test_enrich_transport_error_adds_guidance() -> None:
+    """Test that transport errors get actionable guidance appended."""
+    from sapwebguimcp.tools.abapgit_tools import _enrich_transport_error
+
+    # Transport error should get guidance
+    enriched = _enrich_transport_error("Transport required. Provide P_TRKORR= KS")
+    assert "Transport required" in enriched
+    assert "sap_se09_lookup" in enriched
+    assert "trkorr=" in enriched
+
+    # Non-transport error should pass through unchanged
+    original = "Repository not found"
+    assert _enrich_transport_error(original) == original
+
+
+def test_enrich_transport_error_german() -> None:
+    """Test that German transport errors also get guidance."""
+    from sapwebguimcp.tools.abapgit_tools import _enrich_transport_error
+
+    enriched = _enrich_transport_error("Transport erforderlich")
+    assert "sap_se09_lookup" in enriched
+    assert "trkorr=" in enriched
+
+
 def test_abapgit_action_result_requires_action() -> None:
     """Test that action field is required."""
     from datetime import UTC, datetime
@@ -596,6 +638,41 @@ async def test_abapgit_list_repos(sap_mcp_client: ClientSession) -> None:
     assert "github.com" in public_repo.url
     assert public_repo.package  # Should have a package
     assert public_repo.is_offline is False
+
+
+@pytest.mark.anyio
+async def test_abapgit_pull_without_trkorr_returns_transport_guidance(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that pulling without trkorr on a system requiring transports
+    returns an actionable error with guidance to use sap_se09_lookup.
+
+    Fixes #254.
+    """
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Pull without trkorr — SAP should require a transport request
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {"repo": "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"},
+        AbapGitActionResult,
+    )
+
+    # The pull should fail because no transport was provided
+    assert not result.success, (
+        f"Expected failure (transport required) but got success: {result.message}. "
+        "Does this SAP system not require transport requests?"
+    )
+    assert result.error is not None
+
+    # Error should contain actionable guidance
+    error_lower = result.error.lower()
+    assert "transport" in error_lower, f"Expected 'transport' in error but got: {result.error}"
+    assert (
+        "sap_se09_lookup" in result.error
+    ), f"Expected guidance mentioning 'sap_se09_lookup' in error but got: {result.error}"
+    assert "trkorr" in error_lower, f"Expected 'trkorr' in error but got: {result.error}"
 
 
 @pytest.mark.anyio
