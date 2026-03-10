@@ -576,3 +576,45 @@ async def test_se24_lookup_methods_parsing(sap_mcp_client: ClientSession) -> Non
     assert len(entry.methods) >= 10, f"Expected >=10 methods, got {len(entry.methods)}"
     method_names = {m.name for m in entry.methods}
     assert any("~" in n for n in method_names), "Expected interface methods with ~ separator"
+
+
+@pytest.mark.anyio
+async def test_se24_lookup_attributes_parsing(sap_mcp_client: ClientSession) -> None:
+    """
+    Test that class attributes are correctly parsed (regression for #292).
+
+    CL_ABAP_CHAR_UTILITIES has 13+ public constants (HORIZONTAL_TAB, NEWLINE,
+    CR_LF, etc.).  A previous bug caused attributes[] to be empty because the
+    Attribute tab was never actually selected.
+    """
+    from sapwebguimcp.models import SE24Result
+
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se24_lookup",
+        {"classes": "CL_ABAP_CHAR_UTILITIES"},
+        SE24Result,
+    )
+
+    assert result.success, f"SE24 lookup failed: {result.error}"
+    entry = result.entries[0]
+
+    assert entry.class_name == "CL_ABAP_CHAR_UTILITIES"
+    # CL_ABAP_CHAR_UTILITIES has 13+ public constants
+    assert len(entry.attributes) >= 13, (
+        f"Expected >=13 attributes, got {len(entry.attributes)}: " f"{[a.name for a in entry.attributes]}"
+    )
+
+    attr_names = {a.name for a in entry.attributes}
+    # Well-known constants that must be present
+    for expected in ("HORIZONTAL_TAB", "NEWLINE", "CR_LF", "CHARSIZE"):
+        assert expected in attr_names, f"Expected attribute {expected} not found in {attr_names}"
+
+    # Verify attribute properties
+    for attr in entry.attributes:
+        if attr.name in ("HORIZONTAL_TAB", "NEWLINE", "CR_LF"):
+            assert attr.is_constant, f"{attr.name} should be a constant"
+            assert attr.visibility == "public", f"{attr.name} should be public"
