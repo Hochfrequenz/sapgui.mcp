@@ -19,6 +19,7 @@ import pytest
 from mcp import ClientSession
 
 from sapwebguimcp.models import EvaluateResult, FillFormResult, LoginResult, SnapshotResult, TransactionResult
+from sapwebguimcp.models.se09_models import TransportListResult
 
 from .conftest import call_tool_typed
 
@@ -347,3 +348,57 @@ async def test_se09_capture_expanded_tree(sap_mcp_client: ClientSession) -> None
     yaml_content = await capture_yaml_snapshot(sap_mcp_client, "se09_kleink_expanded", overwrite=True)
     assert len(yaml_content) > 100
     print(f"Expanded snapshot size: {len(yaml_content)} chars")
+
+
+@pytest.mark.anyio
+async def test_se09_find_customizing_transports(sap_mcp_client: ClientSession) -> None:
+    """Find users with customizing transports for integration test setup.
+
+    This exploration test queries SE09 for customizing-only transports
+    without a user filter to discover which users have them.
+    """
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success
+
+    # Try with empty username to see all users' customizing transports
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se09_lookup",
+        {"username": "", "request_type": "customizing", "status": "all"},
+        TransportListResult,
+    )
+
+    print(f"Customizing transports (empty user): {result.request_count}")
+    for req in result.requests:
+        print(f"  {req.request_number} owner={req.owner} status={req.status} desc={req.description}")
+
+    # Try with wildcard
+    result_star = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se09_lookup",
+        {"username": "*", "request_type": "customizing", "status": "all"},
+        TransportListResult,
+    )
+
+    print(f"\nCustomizing transports (wildcard): {result_star.request_count}")
+    for req in result_star.requests:
+        print(f"  {req.request_number} owner={req.owner} status={req.status} desc={req.description}")
+
+    # Also check all types for all users
+    result_all = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se09_lookup",
+        {"username": "*", "request_type": "all", "status": "all"},
+        TransportListResult,
+    )
+
+    print(f"\nAll transports (wildcard): {result_all.request_count}")
+    types_seen: set[str] = set()
+    owners_seen: set[str] = set()
+    for req in result_all.requests:
+        types_seen.add(req.request_type)
+        owners_seen.add(req.owner)
+        print(f"  {req.request_number} type={req.request_type} owner={req.owner} status={req.status}")
+
+    print(f"\nTypes seen: {types_seen}")
+    print(f"Owners seen: {owners_seen}")
