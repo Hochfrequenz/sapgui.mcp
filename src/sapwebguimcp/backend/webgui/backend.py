@@ -387,11 +387,15 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
         Returns True if a field was filled, False otherwise.
         """
-        result = await self._page.evaluate(
-            load_js("find_main_input.js"),
-            {"value": value, "labels": labels},
-        )
-        return bool(result and result.get("filled"))
+        try:
+            result = await self._page.evaluate(
+                load_js("find_main_input.js"),
+                {"value": value, "labels": labels},
+            )
+            return bool(result and result.get("filled"))
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("fill_main_input failed for labels=%s", labels, exc_info=True)
+            return False
 
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
         """Fill multiple SAP form fields in a single call."""

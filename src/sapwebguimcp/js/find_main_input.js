@@ -12,15 +12,25 @@
 (args) => {
     const { value, labels } = args;
 
-    // 1. Try title-attribute match for each label
+    // 1. Try title-attribute match for each label (iterate to avoid CSS injection)
+    //    Apply the same toolbar/banner/combobox filters as step 2.
+    const inputsWithTitle = document.querySelectorAll('input[title]');
     for (const label of labels) {
-        const byTitle = document.querySelector(`input[title="${label}"]`);
-        if (byTitle && byTitle.offsetParent !== null) {
-            byTitle.focus();
-            byTitle.value = value;
-            byTitle.dispatchEvent(new Event('input', { bubbles: true }));
-            byTitle.dispatchEvent(new Event('change', { bubbles: true }));
-            return { filled: true, strategy: 'title', label, id: byTitle.id };
+        for (const input of inputsWithTitle) {
+            if (input.getAttribute('title') !== label) continue;
+            // Skip combobox / toolbar / banner / hidden / disabled
+            if (input.getAttribute('role') === 'combobox') continue;
+            if (input.getAttribute('ct') === 'CB') continue;
+            if (input.closest('[role="toolbar"]')) continue;
+            if (input.closest('[role="banner"]')) continue;
+            if (input.offsetParent === null) continue;
+            if (input.disabled || input.readOnly) continue;
+
+            input.focus();
+            input.value = value;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            return { filled: true, strategy: 'title', label, id: input.id };
         }
     }
 
