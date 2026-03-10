@@ -3431,6 +3431,67 @@ async def test_se16_query_after_se09(sap_mcp_client: ClientSession) -> None:
     assert result.total_hits > 0, "Expected at least one transport in E070"
 
 
+# =============================================================================
+# SM37 Checkbox / Status Filter Tests
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_sm37_lookup_finished_status_filter(sap_mcp_client: ClientSession) -> None:
+    """Test that SM37 status checkbox filtering actually works.
+
+    Verifies that set_checkbox properly toggles SAP checkboxes by filtering
+    for only 'finished' jobs. If checkboxes didn't work (the old fill_field("X")
+    bug), all default statuses would remain and results would include non-finished jobs.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_sm37_lookup",
+        {"job_name": "*", "username": "*", "status": ["finished"]},
+        SM37JobListResult,
+    )
+
+    assert result.success, f"SM37 lookup failed: {result.error}"
+
+    # If checkboxes work, all returned jobs should have 'finished' status
+    for job in result.jobs:
+        status_lower = (job.status or "").lower()
+        assert status_lower in ("finished", "fertig"), (
+            f"Expected 'finished'/'fertig' status but got '{job.status}'. "
+            "Checkbox filter may not be working (set_checkbox bug)."
+        )
+
+
+@pytest.mark.anyio
+async def test_sm37_lookup_canceled_status_filter(sap_mcp_client: ClientSession) -> None:
+    """Test SM37 with 'canceled' status filter to verify checkbox unchecking works.
+
+    'Canceled' is NOT checked by default in SAP. If set_checkbox works, only
+    canceled jobs should appear. If checkboxes silently fail, we'd get the
+    default mix (all except 'scheduled').
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_sm37_lookup",
+        {"job_name": "*", "username": "*", "status": ["canceled"]},
+        SM37JobListResult,
+    )
+
+    assert result.success, f"SM37 lookup failed: {result.error}"
+
+    # Even if no canceled jobs exist, the query should succeed
+    # If there ARE results, they must all be canceled
+    for job in result.jobs:
+        status_lower = (job.status or "").lower()
+        assert status_lower in ("canceled", "abgebrochen"), (
+            f"Expected 'canceled'/'abgebrochen' status but got '{job.status}'. " "Checkbox filter may not be working."
+        )
+
+
 @pytest.mark.anyio
 async def test_sm37_lookup_with_date_filter(sap_mcp_client: ClientSession) -> None:
     """
