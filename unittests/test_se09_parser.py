@@ -8,7 +8,9 @@ from pathlib import Path
 
 import pytest
 
+from sapwebguimcp.models.se09_models import TransportRequest
 from sapwebguimcp.parsers.se09_parser import parse_se09_transport_list
+from sapwebguimcp.tools.se09_tools import _assign_tasks_from_expanded_text
 
 # Path to captured YAML snapshots
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se09_exploration"
@@ -137,3 +139,103 @@ class TestEdgeCases:
         result = parse_se09_transport_list(snapshot)
 
         assert result.retrieved_at is not None
+
+
+class TestExpandedTreeTaskAssignment:
+    """Tests for _assign_tasks_from_expanded_text."""
+
+    def test_tasks_assigned_to_correct_request(self) -> None:
+        """Tasks should be assigned to their parent request."""
+        requests = [
+            TransportRequest(request_number="S4UK902153", owner="KLEINK", description="Test"),
+            TransportRequest(request_number="S4UK902096", owner="KLEINK", description="Solver"),
+        ]
+        request_numbers = {"S4UK902153", "S4UK902096"}
+        text_lines = [
+            "S4UK902153",
+            "KLEINK Test",
+            "S4UK902154",
+            "KLEINK Entwickl./Korrektur",
+            "S4UK902096",
+            "KLEINK Solver",
+            "S4UK902097",
+            "KLEINK Entwickl./Korrektur",
+        ]
+
+        _assign_tasks_from_expanded_text(requests, request_numbers, text_lines)
+
+        assert len(requests[0].tasks) == 1
+        assert requests[0].tasks[0].task_number == "S4UK902154"
+        assert requests[0].tasks[0].owner == "KLEINK"
+        assert requests[0].tasks[0].description == "Entwickl./Korrektur"
+
+        assert len(requests[1].tasks) == 1
+        assert requests[1].tasks[0].task_number == "S4UK902097"
+
+    def test_multiple_tasks_per_request(self) -> None:
+        """A request can have multiple tasks."""
+        requests = [
+            TransportRequest(request_number="S4UK901097", owner="KLEINK", description="WB"),
+        ]
+        request_numbers = {"S4UK901097"}
+        text_lines = [
+            "S4UK901097",
+            "KLEINK WB",
+            "S4UK901203",
+            "HAFFML Entwickl./Korrektur",
+            "S4UK901877",
+            "BECKT Reparatur",
+            "S4UK901098",
+            "KLEINK Entwickl./Korrektur",
+        ]
+
+        _assign_tasks_from_expanded_text(requests, request_numbers, text_lines)
+
+        assert len(requests[0].tasks) == 3
+        assert requests[0].tasks[0].task_number == "S4UK901203"
+        assert requests[0].tasks[0].owner == "HAFFML"
+        assert requests[0].tasks[1].task_number == "S4UK901877"
+        assert requests[0].tasks[1].owner == "BECKT"
+        assert requests[0].tasks[2].task_number == "S4UK901098"
+        assert requests[0].tasks[2].owner == "KLEINK"
+
+    def test_no_tasks_when_no_expansion(self) -> None:
+        """Requests should have no tasks if only requests are in the text."""
+        requests = [
+            TransportRequest(request_number="S4UK902153", owner="KLEINK", description="Test"),
+        ]
+        request_numbers = {"S4UK902153"}
+        text_lines = [
+            "S4UK902153",
+            "KLEINK Test",
+        ]
+
+        _assign_tasks_from_expanded_text(requests, request_numbers, text_lines)
+
+        assert len(requests[0].tasks) == 0
+
+    def test_task_without_description(self) -> None:
+        """Tasks with only a transport number (no following description) should work."""
+        requests = [
+            TransportRequest(request_number="S4UK902153", owner="KLEINK", description="Test"),
+        ]
+        request_numbers = {"S4UK902153"}
+        text_lines = [
+            "S4UK902153",
+            "KLEINK Test",
+            "S4UK902154",
+        ]
+
+        _assign_tasks_from_expanded_text(requests, request_numbers, text_lines)
+
+        assert len(requests[0].tasks) == 1
+        assert requests[0].tasks[0].task_number == "S4UK902154"
+        assert requests[0].tasks[0].owner == ""
+
+    def test_empty_text_lines(self) -> None:
+        """Empty text lines should not crash."""
+        requests = [
+            TransportRequest(request_number="S4UK902153", owner="KLEINK", description="Test"),
+        ]
+        _assign_tasks_from_expanded_text(requests, {"S4UK902153"}, [])
+        assert len(requests[0].tasks) == 0

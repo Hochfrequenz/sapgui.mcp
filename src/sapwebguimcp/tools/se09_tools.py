@@ -8,6 +8,7 @@ and parses the flat text list from the ARIA snapshot.
 
 import json
 import logging
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -27,7 +28,7 @@ from sapwebguimcp.lang import (
     SE09_USER_FIELD_DE,
     SE09_USER_FIELD_EN,
 )
-from sapwebguimcp.models.se09_models import TransportListResult
+from sapwebguimcp.models.se09_models import TransportListResult, TransportRequest, TransportTask
 from sapwebguimcp.parsers.se09_parser import parse_se09_transport_list
 
 if TYPE_CHECKING:
@@ -115,11 +116,104 @@ async def _click_display_button(backend: "SapUiBackend") -> None:
     await backend.wait_for_ready()
 
 
+_JS_CLICK_NEXT_EXPAND = """(skip) => {
+    const region = document.querySelector('[role="region"]');
+    if (!region) return {clicked: null, remaining: false};
+    const children = [...region.children];
+    const transportPattern = /^[A-Z0-9]{3}K\\d{6}$/;
+    const skipSet = new Set(skip);
+    for (let i = 0; i < children.length; i++) {
+        const el = children[i];
+        if (el.getAttribute('role') !== 'button') continue;
+        for (let j = 1; j <= 3 && i + j < children.length; j++) {
+            const sibText = children[i + j].textContent?.trim() || '';
+            if (transportPattern.test(sibText) && !skipSet.has(sibText)) {
+                el.click();
+                return {clicked: sibText, remaining: true};
+            }
+        }
+    }
+    return {clicked: null, remaining: false};
+}"""
+
+
+async def _expand_transport_nodes(backend: "SapUiBackend") -> int:
+    """Expand all transport request/task nodes in the SE09 tree.
+
+    Clicks the expand button next to each transport number, one at a time,
+    re-querying the DOM after each click since SAP re-renders the list.
+    Returns the number of nodes expanded.
+    """
+    expanded: set[str] = set()
+    for _ in range(30):  # safety limit
+        result = await backend.evaluate_javascript(
+            f"({_JS_CLICK_NEXT_EXPAND})({json.dumps(list(expanded))})"
+        )
+        if isinstance(result, str):
+            result = json.loads(result)
+        if not result or not result.get("remaining"):
+            break
+        expanded.add(result["clicked"])
+        await backend.wait_for_ready()
+    return len(expanded)
+
+
+async def _extract_tree_text_lines(backend: "SapUiBackend") -> list[str]:
+    """Extract all text content from the SE09 tree region via JS.
+
+    Reads text from all children of the region element. Because the ABAP LIST
+    control only renders visible rows, this scrolls through the list to capture
+    everything.
+    """
+    js_extract = """() => {
+        const region = document.querySelector('[role="region"]');
+        if (!region) return [];
+        return [...region.children]
+            .filter(el => {
+                const role = el.getAttribute('role');
+                const text = el.textContent?.trim();
+                return text || role === 'button' || role === 'img';
+            })
+            .map(el => ({
+                role: el.getAttribute('role') || 'div',
+                text: el.textContent?.trim() || '',
+                id: el.id
+            }));
+    }"""
+
+    all_items: list[dict[str, str]] = []
+    seen_ids: set[str] = set()
+
+    # Extract visible content, scroll down, repeat until no new content
+    for _ in range(10):  # max 10 scroll pages
+        items = await backend.evaluate_javascript(f"({js_extract})()")
+        if isinstance(items, str):
+            items = json.loads(items)
+
+        new_count = 0
+        for item in items:
+            if item["id"] not in seen_ids:
+                seen_ids.add(item["id"])
+                all_items.append(item)
+                new_count += 1
+
+        if new_count == 0:
+            break  # no new content after scrolling
+
+        # Scroll down in the list
+        await backend.press_key("PageDown")
+        await backend.wait_for_ready()
+
+    # Convert to text lines, filtering out empty/button/img entries
+    return [item["text"] for item in all_items if item["text"]]
+
+
 async def _lookup_transports(
     backend: "SapUiBackend",
     username: str | None,
     request_type: str,
     status: str,
+    include_objects: bool = False,
 ) -> TransportListResult:
     """Look up transports in SE09."""
     now = datetime.now(UTC)
@@ -146,11 +240,69 @@ async def _lookup_transports(
     # Click Anzeigen/Display button
     await _click_display_button(backend)
 
-    # Capture snapshot
+    # Capture snapshot (collapsed view) to get request numbers
     snapshot: AriaSnapshot = await backend.get_snapshot()
+    result = parse_se09_transport_list(snapshot)
 
-    # Parse the transport list
-    return parse_se09_transport_list(snapshot)
+    if not include_objects or not result.requests:
+        return result
+
+    # Expand transport nodes to reveal tasks
+    request_numbers = {r.request_number for r in result.requests}
+    expanded_count = await _expand_transport_nodes(backend)
+    logger.info("Expanded %d transport tree nodes", expanded_count)
+
+    # Extract all text from the expanded tree
+    text_lines = await _extract_tree_text_lines(backend)
+
+    # Map tasks to their parent requests
+    _assign_tasks_from_expanded_text(result.requests, request_numbers, text_lines)
+
+    return result
+
+
+def _assign_tasks_from_expanded_text(
+    requests: list[TransportRequest],
+    request_numbers: set[str],
+    text_lines: list[str],
+) -> None:
+    """Assign tasks to their parent requests from the expanded tree text.
+
+    After expanding transport nodes, the text lines contain both requests
+    and tasks interleaved. Tasks appear between their parent request and
+    the next request. Any transport number NOT in ``request_numbers`` is a task.
+    """
+    transport_re = re.compile(r"^[A-Z0-9]{3}K\d{6}$")
+    request_map = {r.request_number: r for r in requests}
+
+    current_request = None
+    i = 0
+    while i < len(text_lines):
+        line = text_lines[i]
+
+        if transport_re.match(line):
+            if line in request_numbers:
+                # This is a request — set as current parent
+                current_request = request_map.get(line)
+            elif current_request is not None:
+                # This is a task under the current request
+                owner = ""
+                description = ""
+                if i + 1 < len(text_lines) and not transport_re.match(text_lines[i + 1]):
+                    parts = text_lines[i + 1].split(None, 1)
+                    if parts:
+                        owner = parts[0]
+                        description = parts[1] if len(parts) > 1 else ""
+                    i += 1
+
+                current_request.tasks.append(
+                    TransportTask(
+                        task_number=line,
+                        owner=owner,
+                        description=description,
+                    )
+                )
+        i += 1
 
 
 # =============================================================================
@@ -179,6 +331,7 @@ def register_se09_tools(mcp: FastMCP) -> None:
         username: str | None = None,
         request_type: Literal["workbench", "customizing", "all"] = "all",
         status: Literal["modifiable", "released", "all"] = "modifiable",
+        include_objects: bool = False,
         output_file: str | None = None,
         session: str | None = None,
         agent_id: str | None = None,
@@ -190,12 +343,14 @@ def register_se09_tools(mcp: FastMCP) -> None:
             username: Filter by owner (default: current SAP user)
             request_type: Filter by type - "workbench", "customizing", or "all"
             status: Filter by status - "modifiable", "released", or "all" (default: "modifiable")
+            include_objects: If True, expand the tree to include tasks under each request.
+                This is slower (~2s per transport) but provides task details.
             output_file: If provided, write results to this JSON file (on success only).
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
-            TransportListResult with requests
+            TransportListResult with requests (and tasks if include_objects=True)
         """
         now = datetime.now(UTC)
 
@@ -215,6 +370,7 @@ def register_se09_tools(mcp: FastMCP) -> None:
                 username=username,
                 request_type=request_type,
                 status=status,
+                include_objects=include_objects,
             )
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Error looking up transports in SE09")

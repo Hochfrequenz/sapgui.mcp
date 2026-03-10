@@ -94,3 +94,32 @@ async def test_se09_lookup_no_results(sap_mcp_client: ClientSession) -> None:
     else:
         # May fail if the user field is not accepted or checkboxes disabled
         assert "error" in result.error.lower() or "timeout" in result.error.lower()
+
+
+@pytest.mark.anyio
+async def test_se09_lookup_include_objects(sap_mcp_client: ClientSession) -> None:
+    """Test sap_se09_lookup with include_objects=True to get tasks."""
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se09_lookup",
+        {"username": "KLEINK", "include_objects": True},
+        TransportListResult,
+    )
+
+    assert result.success, f"SE09 lookup failed: {result.error}"
+    assert result.request_count > 0
+
+    # At least one request should have tasks (KLEINK has modifiable transports with tasks)
+    requests_with_tasks = [r for r in result.requests if r.tasks]
+    assert len(requests_with_tasks) > 0, "Expected at least one request with tasks"
+
+    # Verify task structure
+    for req in result.requests:
+        for task in req.tasks:
+            assert len(task.task_number) == 10
+            assert task.task_number[3] == "K"
+            # Task number should be different from request number
+            assert task.task_number != req.request_number
