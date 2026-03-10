@@ -43,6 +43,8 @@ from sapwebguimcp.lang import (
     SE11_TRANSPARENT_TABLE_EN,
     bilingual_pattern,
 )
+from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
+
 from sapwebguimcp.models import (
     SE11Entry,
     SE11Error,
@@ -289,19 +291,11 @@ async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> S
 
 
 async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error | None:
-    """Fill the table name field in SE11. Returns error or None."""
+    """Fill the table name field in SE11 using real keyboard events. Returns error or None."""
     now = datetime.now(UTC)
+    labels = [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]
 
-    # Try DE and EN labels
-    for label in [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]:
-        try:
-            await backend.fill_field(label, name.upper())
-            return None
-        except ValueError:  # pylint: disable=broad-exception-caught
-            continue
-
-    # Fallback: fill main form input, skipping toolbar/combobox inputs.
-    if await backend.fill_main_input(name.upper(), [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]):
+    if await fill_field_with_keyboard(backend, labels, name.upper()):
         return None
 
     return SE11Error(
@@ -313,19 +307,11 @@ async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error 
 
 
 async def _fill_structure_name_field(backend: SapUiBackend, name: str) -> SE11Error | None:
-    """Fill the structure/data type name field in SE11. Returns error or None."""
+    """Fill the structure/data type name field in SE11 using real keyboard events. Returns error or None."""
     now = datetime.now(UTC)
+    labels = [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]
 
-    # Try DE and EN labels for the Dictionary Type field
-    for label in [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]:
-        try:
-            await backend.fill_field(label, name.upper())
-            return None
-        except ValueError:  # pylint: disable=broad-exception-caught
-            continue
-
-    # Fallback: fill main form input, skipping toolbar/combobox inputs.
-    if await backend.fill_main_input(name.upper(), [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]):
+    if await fill_field_with_keyboard(backend, labels, name.upper()):
         return None
 
     return SE11Error(
