@@ -60,45 +60,53 @@ async def _fill_class_field(backend: SapUiBackend, class_name: str) -> SE24Error
         "Class/Interface",
     ]
 
-    # Build labels as a JS array literal (safe — labels are hardcoded strings).
+    # Find, focus, click, and select-all in a single JS roundtrip.
+    # Returns true if a field was found, false otherwise.
+    # The actual value will be typed via type_text (real keyboard events).
     labels_js = "[" + ",".join(f'"{lbl}"' for lbl in labels) + "]"
-    field_id = await backend.evaluate_javascript(f"""(() => {{
+    found = await backend.evaluate_javascript(f"""(() => {{
             const labels = {labels_js};
-            const inputs = document.querySelectorAll('input[title]');
+
+            function isUsableInput(input) {{
+                if (input.getAttribute('role') === 'combobox') return false;
+                if (input.getAttribute('ct') === 'CB') return false;
+                if (input.closest('[role="toolbar"]')) return false;
+                if (input.closest('[role="banner"]')) return false;
+                if (input.offsetParent === null) return false;
+                if (input.disabled || input.readOnly) return false;
+                return true;
+            }}
+
+            function activateInput(input) {{
+                input.focus();
+                input.click();
+                input.select();
+                return true;
+            }}
+
+            // 1. Match by title attribute (DE/EN label variants).
+            const titledInputs = document.querySelectorAll('input[title]');
             for (const label of labels) {{
-                for (const input of inputs) {{
+                for (const input of titledInputs) {{
                     if (input.getAttribute('title') !== label) continue;
-                    if (input.getAttribute('role') === 'combobox') continue;
-                    if (input.getAttribute('ct') === 'CB') continue;
-                    if (input.closest('[role="toolbar"]')) continue;
-                    if (input.closest('[role="banner"]')) continue;
-                    if (input.offsetParent === null) continue;
-                    if (input.disabled || input.readOnly) continue;
-                    input.focus();
-                    input.click();
-                    input.select();
-                    return input.id || null;
+                    if (!isUsableInput(input)) continue;
+                    return activateInput(input);
                 }}
             }}
+
+            // 2. Fallback: first visible text input not in toolbar/banner.
             const allInputs = document.querySelectorAll(
                 'input[type="text"], input:not([type])'
             );
             for (const input of allInputs) {{
-                if (input.getAttribute('role') === 'combobox') continue;
-                if (input.getAttribute('ct') === 'CB') continue;
-                if (input.closest('[role="toolbar"]')) continue;
-                if (input.closest('[role="banner"]')) continue;
-                if (input.offsetParent === null) continue;
-                if (input.disabled || input.readOnly) continue;
-                input.focus();
-                input.click();
-                input.select();
-                return input.id || null;
+                if (!isUsableInput(input)) continue;
+                return activateInput(input);
             }}
-            return '__NOT_FOUND__';
+
+            return false;
         }})()""")
 
-    if field_id == "__NOT_FOUND__":
+    if not found:
         return SE24Error(
             class_name=class_name,
             error="Could not find class/interface field in SE24",
@@ -155,6 +163,9 @@ async def _fill_and_display(backend: SapUiBackend, class_name: str) -> SE24Error
         if error:
             return error
 
+        # Brief wait for SAP to register the typed value before pressing F7.
+        await asyncio.sleep(0.3)
+
         # Click display (F7)
         await backend.press_key("F7")
         await backend.wait_for_ready()
@@ -183,9 +194,14 @@ async def _fill_and_display(backend: SapUiBackend, class_name: str) -> SE24Error
         if navigated:
             return None
 
+    # Include status bar text for debugging — might contain a SAP error
+    # that isn't in _NOT_FOUND_MSGS.
+    final_status = await backend.get_status_bar()
+    status_hint = f" (status: {final_status.message})" if final_status.message else ""
+
     return SE24Error(
         class_name=class_name,
-        error=f"Class/interface '{class_name}' not found (still on initial screen after retries)",
+        error=f"Class/interface '{class_name}' not found (still on initial screen after retries){status_hint}",
         retrieved_at=datetime.now(UTC),
     )
 

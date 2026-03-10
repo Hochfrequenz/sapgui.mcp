@@ -114,6 +114,9 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     Each instance wraps a single Playwright ``Page`` (one SAP session).
     """
 
+    _TX_MAX_RETRIES: int = 3
+    """Max retries for ``enter_transaction`` when Enter is not processed."""
+
     def __init__(self, page: Page) -> None:
         self._page = page
 
@@ -337,8 +340,6 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Executing transaction")
             return TransactionResult.failure(f"Error executing transaction {tcode}: {e}", tcode=base_tcode)
-
-    _TX_MAX_RETRIES: int = 3
 
     async def _verify_transaction_submitted(self, transaction_input: str, title_before: str) -> bool:
         """Return True if the transaction navigation actually happened.
