@@ -61,6 +61,7 @@ async def _get_field_order_from_se11(backend: SapUiBackend, table: str) -> dict[
         # Press F3 (Back) to exit SE11 and return to clean state
         # This prevents state issues when navigating to SE16N next
         await backend.press_key("F3")
+        await backend.wait_for_ready()
 
         # Check if we got an SE11Entry (success) vs SE11Error
         if hasattr(result, "fields") and result.fields:
@@ -232,14 +233,39 @@ async def _fill_se16n_max_hits(backend: SapUiBackend, max_hits: int) -> None:
         pass
 
 
+async def _fill_filter_element(
+    page: Any,  # noqa: ANN401 — Playwright Page
+    element: Any,  # noqa: ANN401 — Playwright Locator
+    value: str,
+    field_name: str,
+    strategy: str,
+) -> bool:
+    """Fill a single filter element using element-targeted input.
+
+    Uses element.fill() + element.press_sequentially() to type into the
+    specific element rather than page.keyboard which types into whatever
+    has focus (bug: could type into the table name field instead).
+    """
+    await element.click()
+    await page.wait_for_timeout(100)
+    await element.fill("")  # Clear existing value
+    await element.press_sequentially(value, delay=30)
+    # Tab away to blur and commit the value to SAP
+    await page.keyboard.press("Tab")
+    await page.wait_for_timeout(300)
+    logger.info("Filled filter via Playwright (%s)", strategy, extra={"field": field_name, "value": value})
+    return True
+
+
 async def _fill_filter_with_playwright(
     backend: SapUiBackend, element_id: str | None, selector: str | None, value: str, field_name: str
 ) -> bool:
     """
-    Fill a filter field using Playwright's native click + type.
+    Fill a filter field using Playwright's element-targeted input.
 
-    Tries element ID first, then selector. Uses Ctrl+A to clear before typing.
-    After typing, clicks on body to blur and commit the value to SAP.
+    Tries element ID first, then selector. Uses element.fill() to clear
+    and element.press_sequentially() to type, ensuring input goes to the
+    correct element (not whatever happens to have focus).
 
     Returns:
         True if fill succeeded, False otherwise.
@@ -251,15 +277,7 @@ async def _fill_filter_with_playwright(
         try:
             element = page.locator(f'[id="{element_id}"]')
             if await element.count() > 0:
-                await element.click()
-                await page.wait_for_timeout(100)
-                await page.keyboard.press("Control+a")
-                await page.keyboard.type(value, delay=30)
-                # Click body to blur and commit the value
-                await page.locator("body").click(position={"x": 10, "y": 10})
-                await page.wait_for_timeout(300)
-                logger.info("Filled filter via Playwright (id)", extra={"field": field_name, "value": value})
-                return True
+                return await _fill_filter_element(page, element, value, field_name, "id")
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning("Playwright fill by ID failed", extra={"error": str(e)})
 
@@ -268,15 +286,7 @@ async def _fill_filter_with_playwright(
         try:
             element = page.locator(selector)
             if await element.count() > 0:
-                await element.click()
-                await page.wait_for_timeout(100)
-                await page.keyboard.press("Control+a")
-                await page.keyboard.type(value, delay=30)
-                # Click body to blur and commit the value
-                await page.locator("body").click(position={"x": 10, "y": 10})
-                await page.wait_for_timeout(300)
-                logger.info("Filled filter via Playwright (selector)", extra={"field": field_name, "value": value})
-                return True
+                return await _fill_filter_element(page, element, value, field_name, "selector")
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning("Playwright fill by selector failed", extra={"error": str(e)})
 
@@ -590,7 +600,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     # Navigate to SE16N
     tx_result = await backend.enter_transaction("SE16N")
     if not tx_result.success:
-        return _empty_failure("Failed to navigate to SE16N", table, now)
+        return _empty_failure(f"Failed to navigate to SE16N: {tx_result.error}", table, now)
 
     await page.wait_for_timeout(1000)  # Wait for SE16N screen to render
 
@@ -603,6 +613,11 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
             filter_errors = await _fill_se16n_filters(backend, filters, field_order)
             if filter_errors:
                 logger.warning("Some filters could not be applied", extra={"errors": filter_errors})
+            # Re-fill table name after filter filling — filter input via
+            # page.keyboard could have corrupted it (fixes #289, #290)
+            refill_error = await _fill_se16n_table_name(backend, table)
+            if refill_error:
+                logger.warning("Could not re-fill table name after filters", extra={"error": refill_error})
     else:
         fill_error = await _fill_se16n_table_name(backend, table)
 
