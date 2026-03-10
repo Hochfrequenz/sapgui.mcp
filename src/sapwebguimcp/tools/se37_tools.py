@@ -122,20 +122,13 @@ async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | N
     return None
 
 
-async def _lookup_single_fm(backend: SapUiBackend, fm_name: str) -> SE37Entry | SE37Error:
-    """Look up a single function module in SE37."""
-    now = datetime.now(UTC)
+async def _lookup_fm_on_initial_screen(backend: SapUiBackend, fm_name: str) -> SE37Entry | SE37Error:
+    """Look up a function module assuming we're already on the SE37 initial screen.
 
-    # Navigate to SE37
-    tx_result = await backend.enter_transaction("SE37")
-    if not tx_result.success:
-        return SE37Error(
-            function_module=fm_name,
-            error=f"Failed to navigate to SE37: {tx_result.error}",
-            retrieved_at=now,
-        )
-
-    # Wait for SE37 screen to be ready
+    The caller handles navigation (``enter_transaction``) and state reset
+    (``/n`` between lookups) to prevent state bleeding in batch mode.
+    """
+    # Ensure the SE37 screen is fully loaded before interacting.
     await backend.wait_for_ready()
 
     # Fill function module name
@@ -235,8 +228,25 @@ def register_se37_tools(mcp: FastMCP) -> None:
         errors: list[SE37Error] = []
 
         for fm_name in fm_list:
+            # Navigate to Easy Access first to ensure a clean starting state,
+            # then open SE37.  This prevents state bleeding between lookups.
+            await backend.enter_transaction("/n")
+            await backend.wait_for_ready()
+
+            tx_result = await backend.enter_transaction("SE37")
+            if not tx_result.success:
+                errors.append(
+                    SE37Error(
+                        function_module=fm_name,
+                        error=f"Failed to navigate to SE37: {tx_result.error}",
+                        retrieved_at=datetime.now(UTC),
+                    )
+                )
+                continue
+            await backend.wait_for_ready()
+
             try:
-                result = await _lookup_single_fm(backend, fm_name)
+                result = await _lookup_fm_on_initial_screen(backend, fm_name)
                 if isinstance(result, SE37Entry):
                     entries.append(result)
                 else:

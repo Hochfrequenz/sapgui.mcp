@@ -18,7 +18,7 @@ from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row
 from sapwebguimcp.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
-from sapwebguimcp.tools.se11_tools import _lookup_single_object
+from sapwebguimcp.tools.se11_tools import _lookup_object_on_initial_screen
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,15 @@ async def _get_field_order_from_se11(backend: SapUiBackend, table: str) -> dict[
     The order in SE11 matches the row order in SE16N's selection criteria grid.
     """
     try:
-        result = await _lookup_single_object(backend, table, "table")
+        # Navigate to SE11 with clean state
+        await backend.enter_transaction("/n")
+        await backend.wait_for_ready()
+        tx_result = await backend.enter_transaction("SE11")
+        if not tx_result.success:
+            return None
+        await backend.wait_for_ready()
+
+        result = await _lookup_object_on_initial_screen(backend, table, "table")
 
         # Press F3 (Back) to exit SE11 and return to clean state
         # This prevents state issues when navigating to SE16N next

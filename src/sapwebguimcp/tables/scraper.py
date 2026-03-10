@@ -95,11 +95,19 @@ async def _lookup_table_se11(table_name: str) -> TableInfo | str:
     """Look up a single table in SE11 and return TableInfo or error string."""
     from sapwebguimcp.backend.manager import get_backend
     from sapwebguimcp.models.se11_models import SE11Entry
-    from sapwebguimcp.tools.se11_tools import _lookup_single_object
+    from sapwebguimcp.tools.se11_tools import _lookup_object_on_initial_screen
 
     backend = await get_backend()
 
-    result = await _lookup_single_object(backend, table_name, "table")
+    # Navigate to SE11 with clean state
+    await backend.enter_transaction("/n")
+    await backend.wait_for_ready()
+    tx_result = await backend.enter_transaction("SE11")
+    if not tx_result.success:
+        return f"Failed to navigate to SE11: {tx_result.error}"
+    await backend.wait_for_ready()
+
+    result = await _lookup_object_on_initial_screen(backend, table_name, "table")
 
     if isinstance(result, SE11Entry):
         fields = [

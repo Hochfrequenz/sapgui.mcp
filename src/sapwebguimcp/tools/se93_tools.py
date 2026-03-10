@@ -89,20 +89,13 @@ async def _check_tcode_not_found(backend: SapUiBackend, tcode: str) -> SE93Error
     return None
 
 
-async def _lookup_single_tcode(backend: SapUiBackend, tcode: str) -> SE93Entry | SE93Error:
-    """Look up a single transaction code in SE93."""
-    now = datetime.now(UTC)
+async def _lookup_tcode_on_initial_screen(backend: SapUiBackend, tcode: str) -> SE93Entry | SE93Error:
+    """Look up a transaction code assuming we're already on the SE93 initial screen.
 
-    # Navigate to SE93
-    tx_result = await backend.enter_transaction("SE93")
-    if not tx_result.success:
-        return SE93Error(
-            tcode=tcode,
-            error=f"Failed to navigate to SE93: {tx_result.error}",
-            retrieved_at=now,
-        )
-
-    # Wait for SE93 screen to be ready
+    The caller handles navigation (``enter_transaction``) and state reset
+    (``/n`` between lookups) to prevent state bleeding in batch mode.
+    """
+    # Ensure the SE93 screen is fully loaded before interacting.
     await backend.wait_for_ready()
 
     # Fill transaction code
@@ -181,8 +174,25 @@ def register_se93_tools(mcp: FastMCP) -> None:
         errors: list[SE93Error] = []
 
         for tcode in tcode_list:
+            # Navigate to Easy Access first to ensure a clean starting state,
+            # then open SE93.  This prevents state bleeding between lookups.
+            await backend.enter_transaction("/n")
+            await backend.wait_for_ready()
+
+            tx_result = await backend.enter_transaction("SE93")
+            if not tx_result.success:
+                errors.append(
+                    SE93Error(
+                        tcode=tcode,
+                        error=f"Failed to navigate to SE93: {tx_result.error}",
+                        retrieved_at=datetime.now(UTC),
+                    )
+                )
+                continue
+            await backend.wait_for_ready()
+
             try:
-                result = await _lookup_single_tcode(backend, tcode)
+                result = await _lookup_tcode_on_initial_screen(backend, tcode)
                 if isinstance(result, SE93Entry):
                     entries.append(result)
                 else:
