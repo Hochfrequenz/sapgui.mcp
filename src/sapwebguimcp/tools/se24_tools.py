@@ -104,7 +104,12 @@ async def _check_class_not_found(backend: SapUiBackend, class_name: str) -> SE24
 
 
 async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | None:
-    """Click a tab and capture its snapshot. Returns snapshot or None."""
+    """Click a tab and capture its snapshot. Returns snapshot or None.
+
+    After clicking, verifies the tab is actually ``[selected]`` in the ARIA
+    snapshot.  SAP WebGUI sometimes needs an extra ``wait_for_ready`` before
+    the tab content is rendered.
+    """
     # Try German and English tab names
     tab_names = {
         "methods": ["Methoden", "Methods"],
@@ -116,11 +121,24 @@ async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | N
     for name in names_to_try:
         try:
             await backend.click_tab(name)
-            snapshot = await backend.get_snapshot()
-            return str(snapshot)
+            await backend.wait_for_ready()
+            snapshot = str(await backend.get_snapshot())
+            # Verify the tab actually switched by checking [selected] marker
+            if f'tab "{name}" [selected]' in snapshot:
+                return snapshot
+            logger.warning("Tab '%s' clicked but not selected in snapshot, retrying", name)
+            # Retry once — SAP may need a moment
+            await backend.click_tab(name)
+            await backend.wait_for_ready()
+            snapshot = str(await backend.get_snapshot())
+            if f'tab "{name}" [selected]' in snapshot:
+                return snapshot
+            logger.warning("Tab '%s' still not selected after retry", name)
         except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("Tab '%s' click failed, trying next variant", name, exc_info=True)
             continue
 
+    logger.warning("Could not activate tab '%s' with any label variant", tab_name)
     return None
 
 
