@@ -61,6 +61,7 @@ async def _get_field_order_from_se11(backend: SapUiBackend, table: str) -> dict[
         # Press F3 (Back) to exit SE11 and return to clean state
         # This prevents state issues when navigating to SE16N next
         await backend.press_key("F3")
+        await backend.wait_for_ready()
 
         # Check if we got an SE11Entry (success) vs SE11Error
         if hasattr(result, "fields") and result.fields:
@@ -599,7 +600,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     # Navigate to SE16N
     tx_result = await backend.enter_transaction("SE16N")
     if not tx_result.success:
-        return _empty_failure("Failed to navigate to SE16N", table, now)
+        return _empty_failure(f"Failed to navigate to SE16N: {tx_result.error}", table, now)
 
     await page.wait_for_timeout(1000)  # Wait for SE16N screen to render
 
