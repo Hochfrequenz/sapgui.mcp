@@ -128,14 +128,9 @@ async def _fill_se16n_table_name(backend: SapUiBackend, table: str) -> str | Non
     except ValueError:  # pylint: disable=broad-exception-caught
         pass
 
-    # Fallback: fill first visible input by CSS selector
-    try:
-        fields = await backend.discover_fields()
-        if fields and fields[0].selector:
-            await backend.fill_field(fields[0].selector, table.upper())
-            return None
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
+    # Fallback: fill main form input, skipping toolbar/combobox inputs.
+    if await backend.fill_main_input(table.upper(), ["Table", "Tabelle"]):
+        return None
 
     return "Failed to set table name field. Field not found with labels 'Table' or 'Tabelle'."
 

@@ -378,6 +378,25 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         if not result.get("success"):
             raise ValueError(f"Could not fill field '{label}': {result.get('error', 'Unknown error')}")
 
+    async def fill_main_input(self, value: str, labels: list[str]) -> bool:
+        """Fill the main form input, skipping toolbar/combobox inputs.
+
+        This is a safe alternative to ``discover_fields()[0]`` which may
+        pick the transaction code combobox.  Tries title-attribute match
+        first, then falls back to the first visible non-toolbar text input.
+
+        Returns True if a field was filled, False otherwise.
+        """
+        try:
+            result = await self._page.evaluate(
+                load_js("find_main_input.js"),
+                {"value": value, "labels": labels},
+            )
+            return bool(result and result.get("filled"))
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("fill_main_input failed for labels=%s", labels, exc_info=True)
+            return False
+
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
         """Fill multiple SAP form fields in a single call."""
         if not fields:

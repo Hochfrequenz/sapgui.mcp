@@ -71,52 +71,10 @@ async def _fill_class_field(backend: SapUiBackend, class_name: str) -> SE24Error
         except ValueError:
             continue
 
-    # Last resort: use JS to find textbox by ARIA role and name.
-    # The SE24 initial screen has exactly one textbox for the class name.
-    js_fill_objekttyp = """(value) => {
-        // Find the textbox by its accessible name (matches ARIA snapshot)
-        const labels = ['Objekttyp', 'Object type', 'Klasse/Interface', 'Class/Interface'];
-        for (const label of labels) {
-            // Try title attribute
-            const byTitle = document.querySelector(`input[title="${label}"]`);
-            if (byTitle) {
-                byTitle.focus();
-                byTitle.value = value;
-                byTitle.dispatchEvent(new Event('input', {bubbles: true}));
-                byTitle.dispatchEvent(new Event('change', {bubbles: true}));
-                return {filled: true, strategy: 'title', label};
-            }
-        }
-        // Try all visible input[type=text] that are NOT the transaction code field
-        const inputs = document.querySelectorAll('input[type="text"]');
-        for (const input of inputs) {
-            // Skip the transaction code combobox input
-            const role = input.getAttribute('role');
-            if (role === 'combobox') continue;
-            const ct = input.getAttribute('ct');
-            if (ct === 'CB') continue;
-            // Skip inputs inside toolbars (transaction code area)
-            if (input.closest('[role="toolbar"]')) continue;
-            if (input.closest('[role="banner"]')) continue;
-            // Check if visible and not already filled
-            if (input.offsetParent === null) continue;
-            input.focus();
-            input.value = value;
-            input.dispatchEvent(new Event('input', {bubbles: true}));
-            input.dispatchEvent(new Event('change', {bubbles: true}));
-            return {filled: true, strategy: 'first-visible-input', id: input.id};
-        }
-        return {filled: false};
-    }"""
-    try:
-        result = await backend.evaluate_javascript(f"({js_fill_objekttyp})('{upper_name}')")
-        if isinstance(result, str):
-            result = json.loads(result)
-        if result and result.get("filled"):
-            logger.info("SE24 field filled via JS fallback: %s", result)
-            return None
-    except Exception:  # pylint: disable=broad-exception-caught
-        logger.debug("JS fallback for SE24 field fill failed", exc_info=True)
+    # Fallback: fill main form input, skipping toolbar/combobox inputs.
+    labels = ["Objekttyp", "Object type", "Klasse/Interface", "Class/Interface"]
+    if await backend.fill_main_input(upper_name, labels):
+        return None
 
     return SE24Error(
         class_name=class_name,
