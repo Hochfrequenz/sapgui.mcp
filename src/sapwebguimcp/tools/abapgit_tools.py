@@ -112,6 +112,36 @@ ERROR_PATTERNS = [
     ("error:", "Error"),
 ]
 
+# Additional transport-related patterns beyond ERROR_PATTERNS above.
+# Keep in sync: ERROR_PATTERNS covers "transport required" / "transport erforderlich"
+# for generic error detection; this list adds patterns for the enrichment check.
+_TRANSPORT_REQUIRED_PATTERNS = (
+    "transport required",
+    "transport erforderlich",
+    "provide p_trkorr",
+    "p_trkorr=",
+    "transportauftrag",
+)
+
+_TRANSPORT_REQUIRED_GUIDANCE = (
+    "A transport request (TRKORR) is required for this pull. "
+    "Look up an open transport request (e.g. via SE09/SE10) and "
+    "retry: sap_abapgit_pull(repo=..., trkorr='<TRKORR>')"
+)
+
+
+def _is_transport_required_error(error_text: str) -> bool:
+    """Check if an error message indicates a transport request is required."""
+    lower = error_text.lower()
+    return any(pattern in lower for pattern in _TRANSPORT_REQUIRED_PATTERNS)
+
+
+def _enrich_transport_error(error_text: str) -> str:
+    """If the error is transport-related, append actionable guidance."""
+    if _is_transport_required_error(error_text):
+        return f"{error_text.rstrip('. ')}. {_TRANSPORT_REQUIRED_GUIDANCE}"
+    return error_text
+
 
 async def _check_for_error_popup(page: Page) -> str | None:
     """Check for SAP error popup dialog and extract message text."""
@@ -285,7 +315,7 @@ async def _analyze_pull_result(backend: "SapUiBackend", repo: str) -> AbapGitAct
     if is_success:
         return AbapGitActionResult.success_result(action="pull", repo_name=repo, message=msg)
     if is_error:
-        return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=msg)
+        return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=_enrich_transport_error(msg))
 
     # Retry status bar read
     await page.wait_for_timeout(2000)
@@ -303,7 +333,9 @@ async def _analyze_pull_result(backend: "SapUiBackend", repo: str) -> AbapGitAct
     if is_final_success:
         return AbapGitActionResult.success_result(action="pull", repo_name=repo, message=final_msg)
     if is_final_error or screen_error:
-        return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=screen_error or final_msg)
+        return AbapGitActionResult.failure_result(
+            action="pull", repo_name=repo, error=_enrich_transport_error(screen_error or final_msg)
+        )
 
     # Treat ambiguous result based on whether we got any status message.
     # Empty status bar may mask auth errors (expired PAT -> cx_root in ABAP).
@@ -330,7 +362,9 @@ async def _handle_popup_error(backend: "SapUiBackend", repo: str) -> AbapGitActi
     if popup_error:
         await backend.press_key("Enter")
         await page.wait_for_timeout(500)
-        return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=popup_error)
+        return AbapGitActionResult.failure_result(
+            action="pull", repo_name=repo, error=_enrich_transport_error(popup_error)
+        )
     return None
 
 
@@ -893,6 +927,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "Pull changes from a remote git repository using abapGit API. "
             "Uses the Z_ABAPGIT_PULL report/transaction for reliable execution. "
             "WARNING: This overwrites local ABAP objects with remote versions. "
+            "If SAP requires a transport request, the tool returns an error with guidance. "
+            "Look up an open transport (e.g. via SE09/SE10), then retry with trkorr=... "
             "If the tool reports 'status unknown', the pull may have succeeded. "
             "Call sap_read_status_bar() to check, or retry with sap_keyboard('F8') "
             "then sap_read_status_bar()."
