@@ -1,9 +1,12 @@
 - 'main "Class Builder: Interface IF_SERIALIZABLE_OBJECT anzeigen"':
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - 'heading "Class Builder: Interface IF_SERIALIZABLE_OBJECT anzeigen" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -16,8 +19,8 @@
       - button "Aktivieren"
       - button "Verwendung Klasse / Interface"
       - button "Mehr"
-    - button "Drucken (Strg+P)"
-    - button "Beenden"
+      - button "Drucken (Strg+P)"
+      - button "Beenden"
   - text: Interface
   - textbox "Interface": IF_SERIALIZABLE_OBJECT
   - button "realisiert / Aktiv"
@@ -52,7 +55,7 @@
           - columnheader "Art"
           - columnheader "Methodentyp"
           - columnheader "Beschreibung"
-        - button ""
+        - button "Konfiguration": 
         - row "Leer":
           - gridcell:
             - textbox
@@ -191,8 +194,6 @@
             - textbox
       - rowgroup
       - rowgroup
-  - note "Erfolgreich Meldungsleiste Änderungen werden vom quellbasierten Class Builder nicht unterstützt":
-    - link "Details anzeigen"
   - menu:
     - rowgroup:
       - menuitemradio "System S4U (100)" [checked]:
@@ -225,15 +226,15 @@
         - cell "Transaktion"
         - cell "SE24"
         - cell
-      - row "E2E-Zeit 253 ms":
+      - row "E2E-Zeit 134 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "253 ms"
+        - cell "134 ms"
         - cell
-      - row "WebGUI-Zeit 86 ms":
+      - row "WebGUI-Zeit 42 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "86 ms"
+        - cell "42 ms"
         - cell

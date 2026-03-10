@@ -1,9 +1,12 @@
 - 'main "Class Builder: Klasse CL_ABAP_CHAR_UTILITIES anzeigen"':
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - 'heading "Class Builder: Klasse CL_ABAP_CHAR_UTILITIES anzeigen" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -16,9 +19,9 @@
       - button "Aktivieren"
       - button "In der Testumgebung"
       - button "Mehr"
-    - button "Suchen (Strg+F)"
-    - button "Drucken (Strg+P)"
-    - button "Beenden"
+      - button "Suchen (Strg+F)"
+      - button "Drucken (Strg+P)"
+      - button "Beenden"
   - text: Klasse/Interface
   - textbox "Klasse/Interface": CL_ABAP_CHAR_UTILITIES
   - button "realisiert / Aktiv"
@@ -57,8 +60,8 @@
           - columnheader
           - columnheader "Beschreibung"
           - columnheader "Initialer Wert"
-        - button ""
-        - row "BYTE_ORDER_MARK_LITTLE Constant Public Type ABAP_BYTE_ORDER_MARK Unicode - Little Endian 'FFFE'":
+        - button "Konfiguration": 
+        - row "BYTE_ORDER_MARK_LITTLE Constant Public Type ABAP_BYTE_ORDER_MARK Direkte Typeingabe Unicode - Little Endian 'FFFE'":
           - gridcell "BYTE_ORDER_MARK_LITTLE":
             - textbox
           - gridcell "Constant":
@@ -71,13 +74,13 @@
             - textbox
           - gridcell "ABAP_BYTE_ORDER_MARK":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Unicode - Little Endian":
             - textbox
           - gridcell "'FFFE'":
             - textbox
-        - row "BYTE_ORDER_MARK_BIG Constant Public Type ABAP_BYTE_ORDER_MARK Unicode - Big Endian 'FEFF'":
+        - row "BYTE_ORDER_MARK_BIG Constant Public Type ABAP_BYTE_ORDER_MARK Direkte Typeingabe Unicode - Big Endian 'FEFF'":
           - gridcell "BYTE_ORDER_MARK_BIG":
             - textbox
           - gridcell "Constant":
@@ -90,13 +93,13 @@
             - textbox
           - gridcell "ABAP_BYTE_ORDER_MARK":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Unicode - Big Endian":
             - textbox
           - gridcell "'FEFF'":
             - textbox
-        - row "BYTE_ORDER_MARK_UTF8 Constant Public Type ABAP_BYTE_ORDER_UTF8 UTF-8-Darstellung von FEFF 'EFBBBF'":
+        - row "BYTE_ORDER_MARK_UTF8 Constant Public Type ABAP_BYTE_ORDER_UTF8 Direkte Typeingabe UTF-8-Darstellung von FEFF 'EFBBBF'":
           - gridcell "BYTE_ORDER_MARK_UTF8":
             - textbox
           - gridcell "Constant":
@@ -109,13 +112,13 @@
             - textbox
           - gridcell "ABAP_BYTE_ORDER_UTF8":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "UTF-8-Darstellung von FEFF":
             - textbox
           - gridcell "'EFBBBF'":
             - textbox
-        - row "CHARSIZE Constant Public Type I Länge eines Zeichens in Byte %_CHARSIZE":
+        - row "CHARSIZE Constant Public Type I Direkte Typeingabe Länge eines Zeichens in Byte %_CHARSIZE":
           - gridcell "CHARSIZE":
             - textbox
           - gridcell "Constant":
@@ -128,13 +131,13 @@
             - textbox
           - gridcell "I":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Länge eines Zeichens in Byte":
             - textbox
           - gridcell "%_CHARSIZE":
             - textbox
-        - row "ENDIAN Constant Public Type ABAP_ENDIAN Bytereihenfolge des Applikationsservers %_ENDIAN":
+        - row "ENDIAN Constant Public Type ABAP_ENDIAN Direkte Typeingabe Bytereihenfolge des Applikationsservers %_ENDIAN":
           - gridcell "ENDIAN":
             - textbox
           - gridcell "Constant":
@@ -147,13 +150,13 @@
             - textbox
           - gridcell "ABAP_ENDIAN":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Bytereihenfolge des Applikationsservers":
             - textbox
           - gridcell "%_ENDIAN":
             - textbox
-        - row "MINCHAR Constant Public Type ABAP_CHAR1 Kleinstmöglicher Wert %_MINCHAR":
+        - row "MINCHAR Constant Public Type ABAP_CHAR1 Direkte Typeingabe Kleinstmöglicher Wert %_MINCHAR":
           - gridcell "MINCHAR":
             - textbox
           - gridcell "Constant":
@@ -166,13 +169,13 @@
             - textbox
           - gridcell "ABAP_CHAR1":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Kleinstmöglicher Wert":
             - textbox
           - gridcell "%_MINCHAR":
             - textbox
-        - row "MAXCHAR Constant Public Type ABAP_CHAR1 Größtmöglicher Wert %_MAXCHAR":
+        - row "MAXCHAR Constant Public Type ABAP_CHAR1 Direkte Typeingabe Größtmöglicher Wert %_MAXCHAR":
           - gridcell "MAXCHAR":
             - textbox
           - gridcell "Constant":
@@ -185,13 +188,13 @@
             - textbox
           - gridcell "ABAP_CHAR1":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Größtmöglicher Wert":
             - textbox
           - gridcell "%_MAXCHAR":
             - textbox
-        - row "HORIZONTAL_TAB Constant Public Type ABAP_CHAR1 Zeichen \"horizontaler Tabulator-Stop\" %_HORIZONTAL_TAB":
+        - row "HORIZONTAL_TAB Constant Public Type ABAP_CHAR1 Direkte Typeingabe Zeichen \"horizontaler Tabulator-Stop\" %_HORIZONTAL_TAB":
           - gridcell "HORIZONTAL_TAB":
             - textbox
           - gridcell "Constant":
@@ -204,13 +207,13 @@
             - textbox
           - gridcell "ABAP_CHAR1":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Zeichen \"horizontaler Tabulator-Stop\"":
             - textbox
           - gridcell "%_HORIZONTAL_TAB":
             - textbox
-        - row "VERTICAL_TAB Constant Public Type ABAP_CHAR1 Zeichen \"vertikaler Tabulator-Stop\" %_VERTICAL_TAB":
+        - row "VERTICAL_TAB Constant Public Type ABAP_CHAR1 Direkte Typeingabe Zeichen \"vertikaler Tabulator-Stop\" %_VERTICAL_TAB":
           - gridcell "VERTICAL_TAB":
             - textbox
           - gridcell "Constant":
@@ -223,13 +226,13 @@
             - textbox
           - gridcell "ABAP_CHAR1":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Zeichen \"vertikaler Tabulator-Stop\"":
             - textbox
           - gridcell "%_VERTICAL_TAB":
             - textbox
-        - row "NEWLINE Constant Public Type ABAP_CHAR1 Zeichen \"neue Zeile\" %_NEWLINE":
+        - row "NEWLINE Constant Public Type ABAP_CHAR1 Direkte Typeingabe Zeichen \"neue Zeile\" %_NEWLINE":
           - gridcell "NEWLINE":
             - textbox
           - gridcell "Constant":
@@ -242,13 +245,13 @@
             - textbox
           - gridcell "ABAP_CHAR1":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Zeichen \"neue Zeile\"":
             - textbox
           - gridcell "%_NEWLINE":
             - textbox
-        - row "CR_LF Constant Public Type ABAP_CR_LF Zeichenpaar \"Wagenrücklauf u. Zeilenvorschub\" %_CR_LF":
+        - row "CR_LF Constant Public Type ABAP_CR_LF Direkte Typeingabe Zeichenpaar \"Wagenrücklauf u. Zeilenvorschub\" %_CR_LF":
           - gridcell "CR_LF":
             - textbox
           - gridcell "Constant":
@@ -261,13 +264,13 @@
             - textbox
           - gridcell "ABAP_CR_LF":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Zeichenpaar \"Wagenrücklauf u. Zeilenvorschub\"":
             - textbox
           - gridcell "%_CR_LF":
             - textbox
-        - row "FORM_FEED Constant Public Type ABAP_CHAR1 Zeichen \"Seitenvorschub\" %_FORMFEED":
+        - row "FORM_FEED Constant Public Type ABAP_CHAR1 Direkte Typeingabe Zeichen \"Seitenvorschub\" %_FORMFEED":
           - gridcell "FORM_FEED":
             - textbox
           - gridcell "Constant":
@@ -280,13 +283,13 @@
             - textbox
           - gridcell "ABAP_CHAR1":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Zeichen \"Seitenvorschub\"":
             - textbox
           - gridcell "%_FORMFEED":
             - textbox
-        - row "BACKSPACE Constant Public Type ABAP_CHAR1 Zeichen \"Backspace\" %_BACKSPACE":
+        - row "BACKSPACE Constant Public Type ABAP_CHAR1 Direkte Typeingabe Zeichen \"Backspace\" %_BACKSPACE":
           - gridcell "BACKSPACE":
             - textbox
           - gridcell "Constant":
@@ -299,13 +302,13 @@
             - textbox
           - gridcell "ABAP_CHAR1":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Zeichen \"Backspace\"":
             - textbox
           - gridcell "%_BACKSPACE":
             - textbox
-        - row "SPACE_STR Static Attribute Private Type STRING String mit Whitespace-Zeichen":
+        - row "SPACE_STR Static Attribute Private Type STRING Direkte Typeingabe String mit Whitespace-Zeichen":
           - gridcell "SPACE_STR":
             - textbox
           - gridcell "Static Attribute":
@@ -318,13 +321,13 @@
             - textbox
           - gridcell "STRING":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "String mit Whitespace-Zeichen":
             - textbox
           - gridcell:
             - textbox
-        - row "SPACE_STR_LANGU Static Attribute Private Type LANGU Sprachkennzeichen zu SPACE_STR":
+        - row "SPACE_STR_LANGU Static Attribute Private Type LANGU Direkte Typeingabe Sprachkennzeichen zu SPACE_STR":
           - gridcell "SPACE_STR_LANGU":
             - textbox
           - gridcell "Static Attribute":
@@ -337,13 +340,13 @@
             - textbox
           - gridcell "LANGU":
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell "Sprachkennzeichen zu SPACE_STR":
             - textbox
           - gridcell:
             - textbox
-        - row "Type":
+        - row "Type Direkte Typeingabe":
           - gridcell:
             - textbox
           - gridcell:
@@ -356,13 +359,13 @@
             - textbox
           - gridcell:
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell:
             - textbox
           - gridcell:
             - textbox
-        - row "Type":
+        - row "Type Direkte Typeingabe":
           - gridcell:
             - textbox
           - gridcell:
@@ -375,7 +378,7 @@
             - textbox
           - gridcell:
             - textbox
-          - gridcell:
+          - gridcell "Direkte Typeingabe":
             - button "Direkte Typeingabe"
           - gridcell:
             - textbox
@@ -415,15 +418,15 @@
         - cell "Transaktion"
         - cell "SE24"
         - cell
-      - row "E2E-Zeit 215 ms":
+      - row "E2E-Zeit 112 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "215 ms"
+        - cell "112 ms"
         - cell
-      - row "WebGUI-Zeit 149 ms":
+      - row "WebGUI-Zeit 58 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "149 ms"
+        - cell "58 ms"
         - cell
