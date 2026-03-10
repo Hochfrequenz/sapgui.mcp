@@ -31,14 +31,10 @@ async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -
         except ValueError:
             continue
     else:
-        # Fallback: fill first visible input by CSS selector
-        try:
-            fields = await backend.discover_fields()
-            if fields and fields[0].selector:
-                await backend.fill_field(fields[0].selector, function_module)
-            else:
-                return "Could not find function module name field"
-        except Exception:  # pylint: disable=broad-exception-caught
+        # Fallback: fill main form input, skipping toolbar/combobox inputs.
+        if not await backend.fill_main_input(
+            function_module, ["Funktionsbaustein", "Function Module", "Function module"]
+        ):
             return "Could not find function module name field"
 
     # F7 to display first (reliable in both DE/EN), then toggle to change mode

@@ -300,16 +300,9 @@ async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error 
         except ValueError:  # pylint: disable=broad-exception-caught
             continue
 
-    # Fallback: fill first visible input by CSS selector
-    try:
-        fields = await backend.discover_fields()
-        if fields:
-            selector = fields[0].selector
-            if selector:
-                await backend.fill_field(selector, name.upper())
-                return None
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
+    # Fallback: fill main form input, skipping toolbar/combobox inputs.
+    if await backend.fill_main_input(name.upper(), [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]):
+        return None
 
     return SE11Error(
         name=name,
@@ -331,16 +324,9 @@ async def _fill_structure_name_field(backend: SapUiBackend, name: str) -> SE11Er
         except ValueError:  # pylint: disable=broad-exception-caught
             continue
 
-    # Fallback: fill first visible input by CSS selector
-    try:
-        fields = await backend.discover_fields()
-        if fields:
-            selector = fields[0].selector
-            if selector:
-                await backend.fill_field(selector, name.upper())
-                return None
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
+    # Fallback: fill main form input, skipping toolbar/combobox inputs.
+    if await backend.fill_main_input(name.upper(), [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]):
+        return None
 
     return SE11Error(
         name=name,
