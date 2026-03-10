@@ -333,9 +333,8 @@ async def _analyze_pull_result(backend: "SapUiBackend", repo: str) -> AbapGitAct
     if is_final_success:
         return AbapGitActionResult.success_result(action="pull", repo_name=repo, message=final_msg)
     if is_final_error or screen_error:
-        raw_error = screen_error or final_msg
         return AbapGitActionResult.failure_result(
-            action="pull", repo_name=repo, error=_enrich_transport_error(raw_error)
+            action="pull", repo_name=repo, error=_enrich_transport_error(screen_error or final_msg)
         )
 
     # Treat ambiguous result based on whether we got any status message.
