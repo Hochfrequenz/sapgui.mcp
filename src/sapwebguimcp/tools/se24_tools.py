@@ -5,6 +5,7 @@ This module provides a tool to look up class/interface metadata from SE24,
 returning strongly-typed Pydantic models with method and attribute details.
 """
 
+import asyncio
 import json
 import logging
 from datetime import UTC, datetime
@@ -38,10 +39,19 @@ MAX_INLINE_OBJECTS = 5
 
 
 async def _fill_class_field(backend: SapUiBackend, class_name: str) -> SE24Error | None:
-    """Fill the class/interface name field in SE24. Returns error or None."""
-    now = datetime.now(UTC)
+    """Fill the class/interface name field in SE24. Returns error or None.
 
-    # Try multiple label variants (DE and EN)
+    Uses JS to find the field element among multiple label variants, then
+    focuses it and clicks it.  Follows with ``type_text`` (real Playwright
+    keyboard events) to type the class name.  This ensures SAP WebGUI's
+    framework registers the value via ``keydown``/``keyup`` events, which
+    JS-only ``el.value = ...`` doesn't trigger reliably.
+    """
+    now = datetime.now(UTC)
+    upper_name = class_name.upper()
+
+    # Find the field element via JS and get its ID so we can click it.
+    # This reuses the same label-matching logic as fill_field/fill_main_input.
     labels = [
         "Objekttyp",
         "Object type",
@@ -50,48 +60,63 @@ async def _fill_class_field(backend: SapUiBackend, class_name: str) -> SE24Error
         "Class/Interface",
     ]
 
-    for label in labels:
-        try:
-            await backend.fill_field(label, class_name.upper())
-            return None
-        except ValueError:  # pylint: disable=broad-exception-caught
-            continue
+    # Build labels as a JS array literal (safe — labels are hardcoded strings).
+    labels_js = "[" + ",".join(f'"{lbl}"' for lbl in labels) + "]"
+    field_id = await backend.evaluate_javascript(f"""(() => {{
+            const labels = {labels_js};
+            const inputs = document.querySelectorAll('input[title]');
+            for (const label of labels) {{
+                for (const input of inputs) {{
+                    if (input.getAttribute('title') !== label) continue;
+                    if (input.getAttribute('role') === 'combobox') continue;
+                    if (input.getAttribute('ct') === 'CB') continue;
+                    if (input.closest('[role="toolbar"]')) continue;
+                    if (input.closest('[role="banner"]')) continue;
+                    if (input.offsetParent === null) continue;
+                    if (input.disabled || input.readOnly) continue;
+                    input.focus();
+                    input.click();
+                    input.select();
+                    return input.id || null;
+                }}
+            }}
+            const allInputs = document.querySelectorAll(
+                'input[type="text"], input:not([type])'
+            );
+            for (const input of allInputs) {{
+                if (input.getAttribute('role') === 'combobox') continue;
+                if (input.getAttribute('ct') === 'CB') continue;
+                if (input.closest('[role="toolbar"]')) continue;
+                if (input.closest('[role="banner"]')) continue;
+                if (input.offsetParent === null) continue;
+                if (input.disabled || input.readOnly) continue;
+                input.focus();
+                input.click();
+                input.select();
+                return input.id || null;
+            }}
+            return '__NOT_FOUND__';
+        }})()""")
 
-    # Fallback: fill main form input, skipping toolbar/combobox inputs.
-    if await backend.fill_main_input(class_name.upper(), labels):
-        return None
-
-    return SE24Error(
-        class_name=class_name,
-        error="Could not find class/interface field in SE24",
-        retrieved_at=now,
-    )
-
-
-async def _check_class_not_found(backend: SapUiBackend, class_name: str) -> SE24Error | None:
-    """Check if class was not found by examining the status bar. Returns error or None."""
-    now = datetime.now(UTC)
-
-    # Check status bar for specific error messages (narrow, avoids false positives)
-    status = await backend.get_status_bar()
-    status_text = (status.message or "").lower()
-
-    not_found_msgs = {"existiert nicht", "does not exist", "nicht gefunden", "not found", "nicht vorhanden"}
-    if status_text and any(msg in status_text for msg in not_found_msgs):
-        return SE24Error(class_name=class_name, error=f"Class/interface '{class_name}' not found", retrieved_at=now)
-
-    # Secondary check: verify we left the initial screen
-    snapshot = await backend.get_snapshot()
-    snapshot_lower = str(snapshot).lower()
-    is_initial_screen = "einstieg" in snapshot_lower or "initial screen" in snapshot_lower
-    if is_initial_screen:
+    if field_id == "__NOT_FOUND__":
         return SE24Error(
             class_name=class_name,
-            error=f"Class/interface '{class_name}' not found (still on initial screen)",
+            error="Could not find class/interface field in SE24",
             retrieved_at=now,
         )
 
+    # Type the class name with real keyboard events.
+    # The field is already focused and text selected from the JS above.
+    await backend.type_text(upper_name)
+
     return None
+
+
+_NOT_FOUND_MSGS = frozenset({"existiert nicht", "does not exist", "nicht gefunden", "not found", "nicht vorhanden"})
+
+# How long to wait for F7 navigation to complete before declaring failure.
+_F7_POLL_INTERVAL_MS = 500
+_F7_MAX_POLLS = 10  # 10 * 500ms = 5 seconds max wait
 
 
 async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | None:
@@ -115,33 +140,67 @@ async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | N
     return None
 
 
-async def _lookup_single_class(backend: SapUiBackend, class_name: str) -> SE24Entry | SE24Error:
-    """Look up a single class/interface in SE24."""
-    now = datetime.now(UTC)
+async def _fill_and_display(backend: SapUiBackend, class_name: str) -> SE24Error | None:
+    """Fill the class field and press F7 (Display). Returns error or None.
 
-    # Navigate to SE24
-    tx_result = await backend.enter_transaction("SE24")
-    if not tx_result.success:
-        return SE24Error(
-            class_name=class_name,
-            error=f"Failed to navigate to SE24: {tx_result.error}",
-            retrieved_at=now,
-        )
+    Retries once if still on the initial screen after F7, because SAP's
+    WebGUI sometimes doesn't register the JS-based field fill on the first
+    attempt (especially after ``/nSE24`` navigation in batch mode).
+    """
+    for attempt in range(2):
+        if attempt > 0:
+            logger.info("Retrying fill+F7 for %s (attempt %d)", class_name, attempt + 1)
 
-    # Wait for SE24 screen to be ready
+        error = await _fill_class_field(backend, class_name)
+        if error:
+            return error
+
+        # Click display (F7)
+        await backend.press_key("F7")
+        await backend.wait_for_ready()
+
+        # Check for definitive "not found" error — no retry needed.
+        status = await backend.get_status_bar()
+        status_text = (status.message or "").lower()
+        if status_text and any(msg in status_text for msg in _NOT_FOUND_MSGS):
+            return SE24Error(
+                class_name=class_name,
+                error=f"Class/interface '{class_name}' not found",
+                retrieved_at=datetime.now(UTC),
+            )
+
+        # Poll: wait for the page to leave the initial screen.
+        navigated = False
+        for poll in range(_F7_MAX_POLLS):
+            snapshot = await backend.get_snapshot()
+            snapshot_lower = str(snapshot).lower()
+            if "einstieg" not in snapshot_lower and "initial screen" not in snapshot_lower:
+                navigated = True
+                break
+            logger.debug("SE24 still on initial screen, poll %d/%d", poll + 1, _F7_MAX_POLLS)
+            await asyncio.sleep(_F7_POLL_INTERVAL_MS / 1000)
+
+        if navigated:
+            return None
+
+    return SE24Error(
+        class_name=class_name,
+        error=f"Class/interface '{class_name}' not found (still on initial screen after retries)",
+        retrieved_at=datetime.now(UTC),
+    )
+
+
+async def _lookup_class_on_initial_screen(backend: SapUiBackend, class_name: str) -> SE24Entry | SE24Error:
+    """Look up a class assuming we're already on the SE24 initial screen.
+
+    After a successful lookup, the browser will be on the class detail screen.
+    The caller handles navigation between lookups (via ``enter_transaction``).
+    """
+    # Ensure the SE24 screen is fully loaded before interacting.
     await backend.wait_for_ready()
 
-    # Fill class name
-    error = await _fill_class_field(backend, class_name)
-    if error:
-        return error
-
-    # Click display (F7)
-    await backend.press_key("F7")
-    await backend.wait_for_ready()
-
-    # Check for not found error
-    error = await _check_class_not_found(backend, class_name)
+    # Fill class name, press F7, and verify we left the initial screen.
+    error = await _fill_and_display(backend, class_name)
     if error:
         return error
 
@@ -223,8 +282,25 @@ def register_se24_tools(mcp: FastMCP) -> None:
         errors: list[SE24Error] = []
 
         for class_name in class_list:
+            # Each lookup starts fresh with /nSE24 which cancels any current
+            # transaction and opens SE24 from scratch.  This avoids fragile F3
+            # (Back) navigation that depends on the current screen state.
+            # enter_transaction verifies the Enter keypress was processed and
+            # retries automatically on race conditions.
+            tx_result = await backend.enter_transaction("SE24")
+            if not tx_result.success:
+                errors.append(
+                    SE24Error(
+                        class_name=class_name,
+                        error=f"Failed to navigate to SE24: {tx_result.error}",
+                        retrieved_at=datetime.now(UTC),
+                    )
+                )
+                continue
+            await backend.wait_for_ready()
+
             try:
-                result = await _lookup_single_class(backend, class_name)
+                result = await _lookup_class_on_initial_screen(backend, class_name)
                 if isinstance(result, SE24Entry):
                     entries.append(result)
                 else:

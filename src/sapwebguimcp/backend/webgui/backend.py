@@ -255,49 +255,121 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         Supports parameterised transactions (e.g. ``/NZ_ABAPGIT_PULL P_REPO=...``).
         The ``TransactionResult.tcode`` field stores only the base tcode
         (first token before any parameters).
+
+        Verifies that navigation actually happened after pressing Enter and
+        retries up to ``_TX_MAX_RETRIES`` times if the OK-code field still
+        contains the unsubmitted transaction code (race condition where
+        ``keyboard.press("Enter")`` fires before SAP processes the field value).
         """
         # TransactionResult.tcode validates against a strict pattern;
         # extract the base tcode (first token) for the result model.
         base_tcode = tcode.split()[0] if " " in tcode else tcode
         try:
-            okcode_field = await self._find_okcode_field()
-            if not okcode_field:
-                success, message = await self._enable_okcode_field()
-                if not success:
-                    return TransactionResult.failure(
-                        f"Could not find or enable OK-Code field. {message}",
-                        tcode=base_tcode,
-                    )
-                okcode_field = await self._find_okcode_field()
-                if not okcode_field:
-                    return TransactionResult.failure(
-                        "OK-Code field still not visible after enabling.",
-                        tcode=base_tcode,
-                    )
-
             if tcode.startswith("/n") or tcode.startswith("/o"):
                 transaction_input = tcode
             else:
                 transaction_input = f"/n{tcode}"
 
-            await self._page.bring_to_front()
-            await self._page.wait_for_timeout(500)
-            await okcode_field.click()
-            await self._page.wait_for_timeout(200)
-            await self._page.evaluate(
-                load_js("set_okcode_field.js"),
-                {"transactionInput": transaction_input},
-            )
-            await self._page.wait_for_timeout(300)
-            await self._page.keyboard.press("Enter")
-            await self._page.wait_for_load_state("networkidle", timeout=15000)
+            for attempt in range(1, self._TX_MAX_RETRIES + 1):
+                # Re-find the OK-code field on every attempt to avoid stale
+                # DOM references after page transitions.
+                okcode_field = await self._find_okcode_field()
+                if not okcode_field:
+                    success, message = await self._enable_okcode_field()
+                    if not success:
+                        return TransactionResult.failure(
+                            f"Could not find or enable OK-Code field. {message}",
+                            tcode=base_tcode,
+                        )
+                    okcode_field = await self._find_okcode_field()
+                    if not okcode_field:
+                        return TransactionResult.failure(
+                            "OK-Code field still not visible after enabling.",
+                            tcode=base_tcode,
+                        )
 
-            title = await self._page.title()
-            return TransactionResult(tcode=base_tcode, page_title=title)
+                await self._page.bring_to_front()
+                await self._page.wait_for_timeout(500)
+
+                # Capture page title before navigation to detect change.
+                title_before = await self._page.title()
+
+                await okcode_field.click()
+                await self._page.wait_for_timeout(200)
+                await self._page.evaluate(
+                    load_js("set_okcode_field.js"),
+                    {"transactionInput": transaction_input},
+                )
+                await self._page.wait_for_timeout(300)
+                await self._page.keyboard.press("Enter")
+
+                try:
+                    await self._page.wait_for_load_state("networkidle", timeout=15000)
+                except Exception:  # pylint: disable=broad-exception-caught
+                    logger.debug("networkidle timeout on attempt %d", attempt)
+
+                # Verify navigation actually happened by checking that either
+                # the page title changed or the OK-code field was cleared.
+                navigated = await self._verify_transaction_submitted(transaction_input, title_before)
+                if navigated:
+                    title = await self._page.title()
+                    if attempt > 1:
+                        logger.info(
+                            "enter_transaction succeeded on attempt %d",
+                            attempt,
+                            extra={"tcode": tcode},
+                        )
+                    return TransactionResult(tcode=base_tcode, page_title=title)
+
+                logger.warning(
+                    "enter_transaction: Enter not processed (attempt %d/%d)",
+                    attempt,
+                    self._TX_MAX_RETRIES,
+                    extra={"tcode": tcode},
+                )
+
+            return TransactionResult.failure(
+                f"Navigation to {tcode} failed after {self._TX_MAX_RETRIES} attempts "
+                "(Enter keypress not processed by SAP)",
+                tcode=base_tcode,
+            )
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Executing transaction")
             return TransactionResult.failure(f"Error executing transaction {tcode}: {e}", tcode=base_tcode)
+
+    _TX_MAX_RETRIES: int = 3
+
+    async def _verify_transaction_submitted(self, transaction_input: str, title_before: str) -> bool:
+        """Return True if the transaction navigation actually happened.
+
+        Checks two signals:
+        1. The page title changed (SAP updates the title on navigation).
+        2. The OK-code field no longer holds the transaction string we typed.
+
+        Navigation is considered successful if *either* signal fires:
+        - Title changed → definitive navigation.
+        - Field cleared → SAP processed the Enter (even if the title stays
+          the same, e.g. ``/nSE24`` from within SE24).
+        """
+        try:
+            title_after = await self._page.title()
+            if title_after != title_before:
+                return True
+
+            ok_field = await self._page.query_selector("#ToolbarOkCode")
+            if not ok_field:
+                return True
+            current_value = await ok_field.get_attribute("value") or ""
+            field_has_our_value = current_value.strip().upper() == transaction_input.strip().upper()
+
+            # If the field still holds our exact transaction string, Enter
+            # was not processed — need to retry.
+            return not field_has_our_value
+
+        except Exception:  # pylint: disable=broad-exception-caught
+            # Element detached / page navigated → success.
+            return True
 
     async def get_session_status(self) -> SessionStatus:
         """Check session health."""
