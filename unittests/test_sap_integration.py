@@ -142,6 +142,7 @@ from sapwebguimcp.models import (
     SessionStatus,
     SetFieldResult,
     ShortcutsResult,
+    SM37JobListResult,
     SnapshotResult,
     StatusBarInfo,
     TableCellClickResult,
@@ -3402,6 +3403,34 @@ async def test_se16_query_filter_multiple_results(sap_mcp_client: ClientSession)
         )
 
 
+@pytest.mark.anyio
+async def test_se16_query_after_se09(sap_mcp_client: ClientSession) -> None:
+    """Regression: sap_se16_query puts filter value into table name field when called from SE09.
+
+    The filter filling code used page.keyboard.type() which types into whatever has
+    focus, not the target element. If the filter element click didn't properly transfer
+    focus, the keyboard input went to the table name field instead.
+
+    Fixes #289, #290.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    # Navigate to SE09 first (the starting point from the bug report)
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE09"})
+
+    # Now query E070 with a filter — this is what triggered the bug
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "E070", "filters": {"AS4USER": "*"}, "max_hits": 10},
+        SE16Result,
+    )
+
+    assert result.success, f"sap_se16_query failed after SE09: {result.error}"
+    assert result.table == "E070", f"Expected table='E070', got '{result.table}'"
+    assert result.total_hits > 0, "Expected at least one transport in E070"
+
+
 # =============================================================================
 # SM37 Checkbox / Status Filter Tests
 # =============================================================================
@@ -3415,8 +3444,6 @@ async def test_sm37_lookup_finished_status_filter(sap_mcp_client: ClientSession)
     for only 'finished' jobs. If checkboxes didn't work (the old fill_field("X")
     bug), all default statuses would remain and results would include non-finished jobs.
     """
-    from sapwebguimcp.models.sm37_models import SM37JobListResult
-
     await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     result = await call_tool_typed(
@@ -3445,8 +3472,6 @@ async def test_sm37_lookup_canceled_status_filter(sap_mcp_client: ClientSession)
     canceled jobs should appear. If checkboxes silently fail, we'd get the
     default mix (all except 'scheduled').
     """
-    from sapwebguimcp.models.sm37_models import SM37JobListResult
-
     await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
 
     result = await call_tool_typed(
