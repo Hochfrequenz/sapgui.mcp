@@ -111,11 +111,11 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
         checkbox_errors = await _set_status_checkboxes(backend, statuses, language)
         errors.extend(checkbox_errors)
 
-    # Date fields
+    # Date fields — aria-labels are "von Datum"/"From Date" and "bis Datum"/"To Date"
     if from_date or to_date:
         if from_date:
             sap_from = format_sap_date(from_date, language)
-            for label in ["von (Datum/Uhrzeit)", "From (Date/Time)"]:
+            for label in ["von Datum", "From Date"]:
                 try:
                     await backend.fill_field(label, sap_from)
                     break
@@ -126,7 +126,7 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
 
         if to_date:
             sap_to = format_sap_date(to_date, language)
-            for label in ["bis (Datum/Uhrzeit)", "To (Date/Time)"]:
+            for label in ["bis Datum", "To Date"]:
                 try:
                     await backend.fill_field(label, sap_to)
                     break
