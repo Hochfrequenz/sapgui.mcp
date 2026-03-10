@@ -47,7 +47,8 @@ __all__ = [
 # =============================================================================
 
 # Transport number: 3-char system ID (alphanumeric) + K + 6 digits
-_TRANSPORT_NUMBER_RE = re.compile(r"^[A-Z0-9]{3}K\d{6}$")
+# Optionally followed by a space and 3-digit client number (e.g., "S4UK901835 100")
+_TRANSPORT_NUMBER_RE = re.compile(r"^[A-Z0-9]{3}K\d{6}(?:\s+\d{3})?$")
 
 # Text line in ARIA snapshot: "- text: <content>" or "- text: "<content>""
 _TEXT_LINE_RE = re.compile(r'^\s*- text:\s*"?(?P<content>[^"]*)"?\s*$')
@@ -106,8 +107,13 @@ def _extract_text_lines(snapshot: str) -> list[str]:
 
 
 def _is_transport_number(text: str) -> bool:
-    """Check if text is a transport number."""
+    """Check if text is a transport number (with optional client suffix)."""
     return bool(_TRANSPORT_NUMBER_RE.match(text.strip()))
+
+
+def _extract_transport_number(text: str) -> str:
+    """Extract the 10-char transport number from text, stripping any client suffix."""
+    return text.strip()[:10]
 
 
 def parse_se09_transport_list(
@@ -175,6 +181,7 @@ def _parse_transport_entries(text_lines: list[str]) -> list[TransportRequest]:
             continue
 
         if _is_transport_number(line):
+            transport_number = _extract_transport_number(line)
             owner, description = "", ""
             if i + 1 < len(text_lines):
                 next_line = text_lines[i + 1]
@@ -187,7 +194,7 @@ def _parse_transport_entries(text_lines: list[str]) -> list[TransportRequest]:
 
             requests.append(
                 TransportRequest(
-                    request_number=line.strip(),
+                    request_number=transport_number,
                     description=description,
                     owner=owner,
                     status=current_status,

@@ -412,6 +412,10 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 f"Could not fill grid cell row={row} column={column}: " f"{result.get('error', 'Unknown error')}"
             )
 
+    async def evaluate_javascript(self, script: str) -> Any:
+        """Evaluate a JavaScript expression in the browser and return the result."""
+        return await self._page.evaluate(script)
+
     async def click_button(self, label: str) -> None:
         """Click a button by label text."""
         # Try ARIA role-based selector first (most reliable for SAP)

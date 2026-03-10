@@ -1,0 +1,131 @@
+- 'main "Transport Organizer: Aufträge"':
+  - banner:
+    - button "Zurück (F3)"
+    - img "Company Logo"
+    - 'heading "Transport Organizer: Aufträge" [level=1]'
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
+    - toolbar:
+      - button "Menü"
+      - combobox "Bitte Transaktionscode eingeben"
+      - text: 
+      - button "Auffrischen"
+      - button "Auftrag anlegen..."
+      - button "Auftrag anzeigen"
+      - button "Mitarbeiter hinzufügen"
+      - button "Inhaber ändern..."
+      - button "Löschen..."
+      - button "Mehr"
+      - button "Suchen (Strg+F)"
+      - button "Drucken (Strg+P)"
+      - button "Beenden"
+  - table:
+    - rowgroup:
+      - row "Liste":
+        - cell "Liste":
+          - region "Liste":
+            - text: Auftragsselektion ohne Einschränkung des Benutzernamens
+            - button
+            - text: 100 Entwickl., übergre. Cust.
+            - button
+            - text: "-> /S4UALL/ Alle Mandanten"
+            - button
+            - text: Änderbar
+            - button
+            - text: S4UK901835 100
+            - img
+            - text: "RICHARZJ Customizing FI-CA: Bildvariante Rückläufer"
+            - button
+            - text: S4UK901371 100
+            - img
+            - text: DOBESCHR RTP-Komponente definieren RTP Gas
+            - button
+            - text: S4UK901368 100
+            - img
+            - text: DOBESCHR Tagesoffset Gastag definiert
+            - button
+            - text: S4UK901319 100
+            - img
+            - text: DOBESCHR Neue Maßeinheit Blindmehrarbeit
+            - button
+            - text: S4UK901087 100
+            - img
+            - text: PAGELSDORFK Toc from S4UK901086
+            - button
+            - text: S4UK900911 100
+            - img
+            - text: LIPPOLDA CUST_100_Allgemein ODATA Services aktiveren ZUI2_FIORI
+            - button
+            - text: S4UK900803 100
+            - img
+            - text: "RICHARZJ Customizing FI-CA: Vorgänge"
+            - button
+            - text: S4UK900801 100
+            - img
+            - text: WENINGERR Customizing Kotenstand Grundliste
+            - button
+            - text: Freigegeben
+            - button
+            - text: S4UK902249 100
+            - img
+            - text: SPECHTM BC-Sets übergreifend März 26
+            - button
+            - text: S4UK900603 100
+            - img
+            - text: MANNN CU HFQ DXP Customizing Basic
+            - button
+            - text: S4UK901821 100
+            - img
+            - text: DETZERF Nummernkreise_Profile definieren
+        - cell
+      - row:
+        - cell
+        - cell
+  - toolbar:
+    - button "Auffrischen Hervorgehoben"
+  - menu:
+    - rowgroup:
+      - menuitemradio "System S4U (100)" [checked]:
+        - cell ""
+        - cell
+        - cell "System"
+        - cell "S4U (100)"
+        - cell
+      - menuitemradio "Mandant 100":
+        - cell
+        - cell
+        - cell "Mandant"
+        - cell "100"
+        - cell
+      - menuitemradio "Benutzer KLEINK":
+        - cell
+        - cell
+        - cell "Benutzer"
+        - cell "KLEINK"
+        - cell
+      - menuitemradio "Dynpro SAPMSSY0/0120":
+        - cell
+        - cell
+        - cell "Dynpro"
+        - cell "SAPMSSY0/0120"
+        - cell
+      - menuitemradio "Transaktion SE09":
+        - cell
+        - cell
+        - cell "Transaktion"
+        - cell "SE09"
+        - cell
+      - row "E2E-Zeit 815 ms":
+        - cell
+        - cell
+        - cell "E2E-Zeit"
+        - cell "815 ms"
+        - cell
+      - row "WebGUI-Zeit 239 ms":
+        - cell
+        - cell
+        - cell "WebGUI-Zeit"
+        - cell "239 ms"
+        - cell

@@ -7,7 +7,7 @@ satisfy it via structural typing — no inheritance required.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from pydantic import Field
 
@@ -85,6 +85,9 @@ class SapUiPrimitives(Protocol):
 
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select an option from a dropdown field."""
+
+    async def evaluate_javascript(self, script: str) -> Any:
+        """Evaluate a JavaScript expression in the browser and return the result."""
 
 
 @runtime_checkable

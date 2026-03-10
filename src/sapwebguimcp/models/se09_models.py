@@ -12,6 +12,7 @@ from sapwebguimcp.models.base import ToolResult
 __all__ = [
     "TransportListResult",
     "TransportRequest",
+    "TransportTask",
 ]
 
 
