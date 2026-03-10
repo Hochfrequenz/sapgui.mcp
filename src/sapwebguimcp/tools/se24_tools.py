@@ -40,9 +40,10 @@ MAX_INLINE_OBJECTS = 5
 async def _fill_class_field(backend: SapUiBackend, class_name: str) -> SE24Error | None:
     """Fill the class/interface name field in SE24. Returns error or None.
 
-    Uses fill_form with both DE/EN labels.  If none match (SAP WebGUI
+    Uses ``fill_form`` with both DE/EN labels. If none match (SAP WebGUI
     sometimes omits the HTML title attribute), falls back to
-    ``set_field`` which uses Playwright's ARIA-based locator.
+    ``backend.fill_field(...)`` for each candidate label and finally to
+    ``backend.fill_main_input(...)`` as a last-resort JS-based heuristic.
     """
     now = datetime.now(UTC)
     upper_name = class_name.upper()
