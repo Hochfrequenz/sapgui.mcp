@@ -54,18 +54,9 @@ async def _fill_tcode_field(backend: SapUiBackend, tcode: str) -> SE93Error | No
         except ValueError:  # pylint: disable=broad-exception-caught
             continue
 
-    # Fallback: find the first visible input field by CSS selector.
-    # SE93 initial screen typically has a single input field whose label
-    # may not match standard text due to SAP's non-standard HTML.
-    try:
-        fields = await backend.discover_fields()
-        if fields:
-            selector = fields[0].selector
-            if selector:
-                await backend.fill_field(selector, tcode.upper())
-                return None
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
+    # Fallback: fill main form input, skipping toolbar/combobox inputs.
+    if await backend.fill_main_input(tcode.upper(), labels):
+        return None
 
     return SE93Error(
         tcode=tcode,

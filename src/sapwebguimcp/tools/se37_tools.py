@@ -55,18 +55,9 @@ async def _fill_fm_field(backend: SapUiBackend, fm_name: str) -> SE37Error | Non
         except ValueError:  # pylint: disable=broad-exception-caught
             continue
 
-    # Fallback: find the first visible input field by CSS selector.
-    # SE37 initial screen typically has a single input field whose label
-    # may not match standard text due to SAP's non-standard HTML.
-    try:
-        fields = await backend.discover_fields()
-        if fields:
-            selector = fields[0].selector
-            if selector:
-                await backend.fill_field(selector, fm_name.upper())
-                return None
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
+    # Fallback: fill main form input, skipping toolbar/combobox inputs.
+    if await backend.fill_main_input(fm_name.upper(), labels):
+        return None
 
     return SE37Error(
         function_module=fm_name,

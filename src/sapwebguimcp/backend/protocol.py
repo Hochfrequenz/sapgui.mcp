@@ -62,6 +62,9 @@ class SapUiPrimitives(Protocol):
     async def fill_field(self, label: str, value: str) -> None:
         """Fill a labelled input field. Raises ``ValueError`` on failure."""
 
+    async def fill_main_input(self, value: str, labels: list[str]) -> bool:
+        """Fill the main form input, skipping toolbar/combobox inputs."""
+
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
         """Fill multiple form fields at once."""
 
