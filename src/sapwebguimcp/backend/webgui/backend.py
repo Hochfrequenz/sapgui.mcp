@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """WebGUI backend implementation using Playwright/CDP.
 
 Each ``WebGuiBackend`` instance wraps a single Playwright ``Page``
