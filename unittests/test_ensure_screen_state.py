@@ -152,6 +152,20 @@ class TestEnsureScreenStateRadios:
         assert diff.radios_changed == {}
         backend.set_radio_button.assert_not_called()
 
+    @pytest.mark.anyio
+    async def test_radio_desired_false_is_noop(self) -> None:
+        """radios={label: False} should be a no-op — you cannot deselect a radio."""
+        backend = _mock_backend(_SE11_TABLE_SELECTED, _SE11_TABLE_SELECTED)
+        target = SelectionScreenState(
+            radios={"Datenbanktabelle": False, "View": False},
+        )
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is True
+        assert diff.radios_changed == {}
+        backend.set_radio_button.assert_not_called()
+
 
 class TestEnsureScreenStateFields:
     """Test text field transitions."""
@@ -465,6 +479,34 @@ class TestEnsureScreenStateTransitions:
         assert "Customizing-Aufträge" in diff.checkboxes_changed
         # Only 1 backend call (Customizing-Aufträge was False → True)
         backend.set_checkbox.assert_called_once_with("Customizing-Aufträge", True)
+
+    @pytest.mark.anyio
+    async def test_bilingual_target_en_screen_ignores_de_labels(self) -> None:
+        """On an EN screen, DE labels produce warnings but don't fail."""
+        en_screen = (
+            '- checkbox "Workbench Requests" [checked]:  Workbench Requests\n'
+            '- checkbox "Customizing Requests":  Customizing Requests\n'
+        )
+        target = bilingual_target(
+            checkboxes_de={"Workbench-Aufträge": True, "Customizing-Aufträge": True},
+            checkboxes_en={"Workbench Requests": True, "Customizing Requests": True},
+        )
+        after = (
+            '- checkbox "Workbench Requests" [checked]:  Workbench Requests\n'
+            '- checkbox "Customizing Requests" [checked]:  Customizing Requests\n'
+        )
+        backend = _mock_backend(en_screen, after)
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is True
+        # DE labels not found → warnings
+        assert any("Workbench-Aufträge" in w for w in diff.warnings)
+        assert any("Customizing-Aufträge" in w for w in diff.warnings)
+        # EN label changed
+        assert "Customizing Requests" in diff.checkboxes_changed
+        # Only 1 backend call (Customizing Requests was False → True)
+        backend.set_checkbox.assert_called_once_with("Customizing Requests", True)
 
     @pytest.mark.anyio
     async def test_radio_verification_failure(self) -> None:

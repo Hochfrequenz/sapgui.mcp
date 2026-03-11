@@ -99,16 +99,21 @@ def parse_selection_screen_state(snapshot: str) -> SelectionScreenState:  # pyli
             continue
 
     # Detect ambiguous labels (same label appears 2+ times for same type)
+    # and exclude them from the state dicts — the value would be unreliable
+    # (last-writer-wins) and ensure_screen_state refuses to act on them anyway.
     ambiguous: list[str] = []
     for label, count in Counter(checkbox_labels).items():
         if count > 1:
             ambiguous.append(label)
+            checkboxes.pop(label, None)
     for label, count in Counter(radio_labels).items():
         if count > 1:
             ambiguous.append(label)
+            radios.pop(label, None)
     for label, count in Counter(field_labels).items():
         if count > 1:
             ambiguous.append(label)
+            fields.pop(label, None)
 
     return SelectionScreenState(
         checkboxes=checkboxes,

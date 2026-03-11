@@ -147,22 +147,34 @@ class TestParseSelectionScreenState:
         assert state.fields == {}
 
     def test_ambiguous_checkbox_labels_detected(self) -> None:
-        """If two checkboxes share a label, it should be flagged as ambiguous."""
+        """If two checkboxes share a label, it should be flagged and excluded from dict."""
         fake_snapshot = (
             '- checkbox "Status" [checked]:  Status\n'
             '- checkbox "Status":  Status\n'
         )
         state = parse_selection_screen_state(fake_snapshot)
         assert "Status" in state.ambiguous_labels
+        assert "Status" not in state.checkboxes  # excluded — value would be unreliable
 
     def test_ambiguous_textbox_labels_detected(self) -> None:
-        """If two textboxes share a label, it should be flagged as ambiguous."""
+        """If two textboxes share a label, it should be flagged and excluded from dict."""
         fake_snapshot = (
             '- textbox "Date": 01.01.2026\n'
             '- textbox "Date": 31.12.2026\n'
         )
         state = parse_selection_screen_state(fake_snapshot)
         assert "Date" in state.ambiguous_labels
+        assert "Date" not in state.fields  # excluded — value would be unreliable
+
+    def test_ambiguous_radio_labels_excluded(self) -> None:
+        """Ambiguous radio labels should be flagged and excluded from dict."""
+        fake_snapshot = (
+            '- radio "Option" [checked]\n'
+            '- radio "Option"\n'
+        )
+        state = parse_selection_screen_state(fake_snapshot)
+        assert "Option" in state.ambiguous_labels
+        assert "Option" not in state.radios
 
 
 class TestFormFieldCheckedField:
