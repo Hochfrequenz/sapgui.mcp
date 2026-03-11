@@ -22,6 +22,7 @@ from sapwebguimcp.parsers.sm37_parser import (
     parse_sm37_job_list,
     parse_sm37_job_log,
 )
+from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 if TYPE_CHECKING:
@@ -45,32 +46,6 @@ _STATUS_CHECKBOX_MAP: dict[str, tuple[str, str]] = {
 }
 
 _ALL_STATUSES = list(_STATUS_CHECKBOX_MAP.keys())
-
-
-async def _set_status_checkboxes(backend: "SapUiBackend", statuses: list[str], language: str) -> list[str]:
-    """
-    Set status checkboxes on the SM37 selection screen.
-
-    If statuses contains all statuses, leave unchanged.
-    Otherwise, uncheck all and check only requested.
-    """
-    if not statuses or set(statuses) == set(_ALL_STATUSES):
-        return []
-
-    errors: list[str] = []
-
-    for status_name in _ALL_STATUSES:
-        de_label, en_label = _STATUS_CHECKBOX_MAP[status_name]
-        label = de_label if language.upper() == "DE" else en_label
-        should_be_checked = status_name in statuses
-
-        try:
-            await backend.set_checkbox(label, should_be_checked)
-        except ValueError as e:
-            errors.append(f"Failed to set checkbox '{label}': {e}")
-            logger.warning("Checkbox error label=%r error=%s", label, e)
-
-    return errors
 
 
 async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches
@@ -106,10 +81,30 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
         else:
             errors.append("Could not find username field")
 
-    # Set status checkboxes
-    if statuses:
-        checkbox_errors = await _set_status_checkboxes(backend, statuses, language)
-        errors.extend(checkbox_errors)
+    # Build target for status checkboxes — always explicitly set all 6
+    effective_statuses = set(statuses) if statuses else set(_ALL_STATUSES)
+    target = bilingual_target(
+        checkboxes_de={
+            "Geplant": "scheduled" in effective_statuses,
+            "Freigegeben": "released" in effective_statuses,
+            "Bereit": "ready" in effective_statuses,
+            "Aktiv": "active" in effective_statuses,
+            "Fertig": "finished" in effective_statuses,
+            "Abgebrochen": "canceled" in effective_statuses,
+        },
+        checkboxes_en={
+            "Scheduled": "scheduled" in effective_statuses,
+            "Released": "released" in effective_statuses,
+            "Ready": "ready" in effective_statuses,
+            "Active": "active" in effective_statuses,
+            "Finished": "finished" in effective_statuses,
+            "Canceled": "canceled" in effective_statuses,
+        },
+    )
+    state_result = await ensure_screen_state(backend, target)
+    if not state_result.success:
+        errors.append(f"Failed to set status checkboxes: {state_result.error}")
+    errors.extend(state_result.warnings)
 
     # Date fields — aria-labels are "von Datum"/"From Date" and "bis Datum"/"To Date"
     if from_date or to_date:
