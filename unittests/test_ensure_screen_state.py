@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, call
 import pytest
 
 from sapwebguimcp.models.screen_state import SelectionScreenState
-from sapwebguimcp.tools.screen_state_helpers import ensure_screen_state
+from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 
 
 def _mock_backend(snapshot_before: str, snapshot_after: str) -> AsyncMock:
@@ -230,3 +230,86 @@ class TestEnsureScreenStateCombined:
         backend.set_checkbox.assert_called_once_with("Customizing-Aufträge", True)
         backend.set_radio_button.assert_called_once_with("View")
         backend.fill_field.assert_called_once_with("Benutzer", "ADMIN")
+
+
+class TestEnsureScreenStateResilience:
+    """Test that exceptions in one control don't block others."""
+
+    @pytest.mark.anyio
+    async def test_checkbox_exception_does_not_block_radio(self) -> None:
+        """If set_checkbox raises, radio should still be applied."""
+        before = (
+            '- checkbox "Workbench-Aufträge":  Workbench-Aufträge\n'
+            '- radio "Datenbanktabelle" [checked]\n'
+            '- radio "View"\n'
+        )
+        after = (
+            '- checkbox "Workbench-Aufträge":  Workbench-Aufträge\n'
+            '- radio "Datenbanktabelle"\n'
+            '- radio "View" [checked]\n'
+        )
+        backend = _mock_backend(before, after)
+        backend.set_checkbox = AsyncMock(side_effect=ValueError("element detached"))
+
+        target = SelectionScreenState(
+            checkboxes={"Workbench-Aufträge": True},
+            radios={"View": True},
+        )
+
+        diff = await ensure_screen_state(backend, target)
+
+        # Checkbox failed but radio succeeded
+        assert any("Workbench-Aufträge" in w for w in diff.warnings)
+        backend.set_radio_button.assert_called_once_with("View")
+        assert "View" in diff.radios_changed
+
+    @pytest.mark.anyio
+    async def test_missing_field_label_produces_warning(self) -> None:
+        """Fields not found on screen should produce warnings, not backend calls."""
+        backend = _mock_backend(_SE09_WORKBENCH_ONLY, _SE09_WORKBENCH_ONLY)
+        target = SelectionScreenState(
+            fields={"NonExistentField": "value"},
+        )
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is True
+        assert any("NonExistentField" in w for w in diff.warnings)
+        backend.fill_field.assert_not_called()
+
+
+class TestBilingualTarget:
+    """Test bilingual_target() merging logic."""
+
+    def test_merges_de_en_checkboxes(self) -> None:
+        target = bilingual_target(
+            checkboxes_de={"Werkbank": True},
+            checkboxes_en={"Workbench": True},
+        )
+        assert target.checkboxes == {"Werkbank": True, "Workbench": True}
+
+    def test_merges_de_en_radios(self) -> None:
+        target = bilingual_target(
+            radios_de={"Datenbanktabelle": True},
+            radios_en={"Database table": True},
+        )
+        assert target.radios == {"Datenbanktabelle": True, "Database table": True}
+
+    def test_merges_de_en_fields(self) -> None:
+        target = bilingual_target(
+            fields_de={"Benutzer": "KLEINK"},
+            fields_en={"User": "KLEINK"},
+        )
+        assert target.fields == {"Benutzer": "KLEINK", "User": "KLEINK"}
+
+    def test_none_inputs_produce_empty(self) -> None:
+        target = bilingual_target()
+        assert target.checkboxes == {}
+        assert target.radios == {}
+        assert target.fields == {}
+
+    def test_partial_inputs(self) -> None:
+        target = bilingual_target(checkboxes_de={"Foo": True})
+        assert target.checkboxes == {"Foo": True}
+        assert target.radios == {}
+        assert target.fields == {}

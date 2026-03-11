@@ -82,7 +82,10 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
         errors.append(f"Failed to set selection screen state: {state_result.error}")
     errors.extend(state_result.warnings)
 
-    # Date fields — aria-labels are "von Datum"/"From Date" and "bis Datum"/"To Date"
+    # Date fields are filled manually (not via ensure_screen_state) because they
+    # require format_sap_date() which depends on the configured language setting.
+    # The ARIA snapshot values use SAP's display format which may differ from the
+    # input format, making snapshot-based verification unreliable for dates.
     if from_date or to_date:
         if from_date:
             sap_from = format_sap_date(from_date, language)

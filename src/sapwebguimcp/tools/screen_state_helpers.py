@@ -67,6 +67,9 @@ async def _apply_changes(
 
     for label, desired_val in target.fields.items():
         field_actual = current.fields.get(label)
+        if field_actual is None:
+            diff.warnings.append(f"Field '{label}' not found on screen")
+            continue
         if field_actual != desired_val:
             try:
                 await backend.fill_field(label, desired_val)
