@@ -129,7 +129,7 @@ This project uses:
 
 - [Black](https://github.com/psf/black) for code formatting
 - [isort](https://pycqa.github.io/isort/) for import sorting
-- [pylint](https://pylint.org/) for linting
+- [pylint](https://pylint.org/) for linting — when disabling rules use **speaking names** (`# pylint: disable=too-many-lines`), not codes (`# pylint: disable=C0302`)
 - [mypy](https://mypy.readthedocs.io/) for type checking
 - [codespell](https://github.com/codespell-project/codespell) for spell checking
 
