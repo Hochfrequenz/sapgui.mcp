@@ -86,6 +86,9 @@ class SapUiPrimitives(Protocol):
     async def set_checkbox(self, label: str, checked: bool) -> None:
         """Set a checkbox by its ARIA label. Raises ``ValueError`` if not found."""
 
+    async def set_radio_button(self, label: str) -> None:
+        """Select a radio button by its ARIA label. Raises ``ValueError`` if not found."""
+
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select an option from a dropdown field."""
 

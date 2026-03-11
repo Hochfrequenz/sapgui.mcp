@@ -594,6 +594,20 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             await cb.uncheck()
         await self._page.wait_for_timeout(200)
 
+    async def set_radio_button(self, label: str) -> None:
+        """Select a radio button by its ARIA label."""
+        radio = self._page.get_by_role("radio", name=label, exact=True)
+        if await radio.count() == 0:
+            # Fallback: case-insensitive
+            radio = self._page.get_by_role(
+                "radio", name=re.compile(re.escape(label), re.IGNORECASE)
+            )
+            if await radio.count() == 0:
+                raise ValueError(f"Radio button '{label}' not found")
+            radio = radio.first
+        await radio.check()
+        await self._page.wait_for_timeout(200)
+
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select a dropdown option by label and option text."""
         # First check the field type to get the element ID
