@@ -224,6 +224,7 @@ USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 ## Selection Screen State Management
 
 For general-purpose exploration of unknown screens:
+
 - Use `sap_get_form_fields` to see all controls including checkbox/radio `checked` state
 - Use `sap_set_checkbox(label, checked)` to toggle a checkbox
 - Use `sap_set_radio_button(label)` to select a radio button

@@ -3,7 +3,7 @@
     - button "Zurück (F3)"
     - img "Company Logo"
     - 'heading "Class Builder: Klasse CL_ABAP_CHAR_UTILITIES anzeigen" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
     - toolbar:
       - button "S4U (100)"
       - separator
@@ -266,15 +266,15 @@
         - cell "Transaktion"
         - cell "SE24"
         - cell
-      - row "E2E-Zeit 140 ms":
+      - row "E2E-Zeit 202 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "140 ms"
+        - cell "202 ms"
         - cell
-      - row "WebGUI-Zeit 46 ms":
+      - row "WebGUI-Zeit 95 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "46 ms"
+        - cell "95 ms"
         - cell

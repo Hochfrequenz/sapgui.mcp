@@ -599,9 +599,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         radio = self._page.get_by_role("radio", name=label, exact=True)
         if await radio.count() == 0:
             # Fallback: case-insensitive
-            radio = self._page.get_by_role(
-                "radio", name=re.compile(re.escape(label), re.IGNORECASE)
-            )
+            radio = self._page.get_by_role("radio", name=re.compile(re.escape(label), re.IGNORECASE))
             if await radio.count() == 0:
                 raise ValueError(f"Radio button '{label}' not found")
             radio = radio.first

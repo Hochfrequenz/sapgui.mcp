@@ -40,8 +40,6 @@ __all__ = ["register_se09_tools"]
 # =============================================================================
 
 
-
-
 async def _click_display_button(backend: "SapUiBackend") -> None:
     """Click the Anzeigen/Display button to execute the search.
 

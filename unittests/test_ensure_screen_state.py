@@ -192,10 +192,7 @@ class TestEnsureScreenStateAmbiguity:
     @pytest.mark.anyio
     async def test_refuses_ambiguous_checkbox(self) -> None:
         """Should fail if targeting an ambiguous label."""
-        ambiguous_snapshot = (
-            '- checkbox "Status" [checked]:  Status\n'
-            '- checkbox "Status":  Status\n'
-        )
+        ambiguous_snapshot = '- checkbox "Status" [checked]:  Status\n' '- checkbox "Status":  Status\n'
         backend = _mock_backend(ambiguous_snapshot, ambiguous_snapshot)
         target = SelectionScreenState(
             checkboxes={"Status": True},

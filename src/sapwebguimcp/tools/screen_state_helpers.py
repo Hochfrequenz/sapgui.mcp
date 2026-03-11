@@ -45,7 +45,8 @@ async def _apply_changes(
                 await backend.set_checkbox(label, desired)
                 await backend.wait_for_ready()
                 diff.checkboxes_changed[label] = StateChange(
-                    was=str(cb_actual), now=str(desired),
+                    was=str(cb_actual),
+                    now=str(desired),
                 )
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 diff.warnings.append(f"Failed to set checkbox '{label}': {exc}")
@@ -60,7 +61,8 @@ async def _apply_changes(
                 await backend.set_radio_button(label)
                 await backend.wait_for_ready()
                 diff.radios_changed[label] = StateChange(
-                    was=str(radio_actual), now=str(desired),
+                    was=str(radio_actual),
+                    now=str(desired),
                 )
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 diff.warnings.append(f"Failed to set radio '{label}': {exc}")
@@ -75,7 +77,8 @@ async def _apply_changes(
                 await backend.fill_field(label, desired_val)
                 await backend.wait_for_ready()
                 diff.fields_changed[label] = StateChange(
-                    was=field_actual or "", now=desired_val,
+                    was=field_actual or "",
+                    now=desired_val,
                 )
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 diff.warnings.append(f"Failed to fill field '{label}': {exc}")
@@ -90,25 +93,19 @@ def _verify_state(
     for label, desired in target.checkboxes.items():
         cb_val = actual_after.checkboxes.get(label)
         if cb_val is not None and cb_val != desired:
-            diff.mismatches.append(
-                f"Checkbox '{label}': expected {desired}, still {cb_val}"
-            )
+            diff.mismatches.append(f"Checkbox '{label}': expected {desired}, still {cb_val}")
 
     for label, desired in target.radios.items():
         if not desired:
             continue  # only verify selected radios
         radio_val = actual_after.radios.get(label)
         if radio_val is not None and radio_val != desired:
-            diff.mismatches.append(
-                f"Radio '{label}': expected selected, still unselected"
-            )
+            diff.mismatches.append(f"Radio '{label}': expected selected, still unselected")
 
     for label, desired_val in target.fields.items():
         field_val = actual_after.fields.get(label)
         if field_val is not None and field_val != desired_val:
-            diff.mismatches.append(
-                f"Field '{label}': expected '{desired_val}', still '{field_val}'"
-            )
+            diff.mismatches.append(f"Field '{label}': expected '{desired_val}', still '{field_val}'")
 
 
 async def ensure_screen_state(
@@ -133,8 +130,7 @@ async def ensure_screen_state(
     ambiguous_hits = ambiguous_targets & set(current.ambiguous_labels)
     if ambiguous_hits:
         return ScreenStateDiff.failure(
-            error=f"Ambiguous labels on screen — cannot safely target: "
-            f"{', '.join(sorted(ambiguous_hits))}",
+            error=f"Ambiguous labels on screen — cannot safely target: " f"{', '.join(sorted(ambiguous_hits))}",
         )
 
     diff = ScreenStateDiff()

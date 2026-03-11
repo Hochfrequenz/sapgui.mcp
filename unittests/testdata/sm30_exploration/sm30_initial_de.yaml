@@ -3,7 +3,7 @@
     - button "Zurück (F3)"
     - img "Company Logo"
     - 'heading "Tabellensicht-Pflege: Einstieg" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
     - toolbar:
       - button "S4U (100)"
       - separator
@@ -58,15 +58,15 @@
         - cell "Transaktion"
         - cell "SM30"
         - cell
-      - row "E2E-Zeit 89 ms":
+      - row "E2E-Zeit 122 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "89 ms"
+        - cell "122 ms"
         - cell
-      - row "WebGUI-Zeit 30 ms":
+      - row "WebGUI-Zeit 49 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "30 ms"
+        - cell "49 ms"
         - cell

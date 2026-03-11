@@ -36,12 +36,12 @@ _RADIO_RE = re.compile(
 )
 
 # Matches: textbox "LABEL": VALUE
-_TEXTBOX_RE = re.compile(
-    r'-\s+textbox\s+"([^"]+)":\s*(.*)'  # - textbox "LABEL": VALUE
-)
+_TEXTBOX_RE = re.compile(r'-\s+textbox\s+"([^"]+)":\s*(.*)')  # - textbox "LABEL": VALUE
 
 
-def parse_selection_screen_state(snapshot: str) -> SelectionScreenState:  # pylint: disable=too-many-locals,too-many-branches
+def parse_selection_screen_state(
+    snapshot: str,
+) -> SelectionScreenState:  # pylint: disable=too-many-locals,too-many-branches
     """Parse checkbox, radio, and text field state from an ARIA snapshot.
 
     Args:

@@ -14,23 +14,23 @@
 
 ## File Structure
 
-| File | Responsibility |
-|------|----------------|
-| `src/sapwebguimcp/models/screen_state.py` | `SelectionScreenState`, `StateChange`, `ScreenStateDiff` Pydantic models |
-| `src/sapwebguimcp/parsers/screen_state_parser.py` | `parse_selection_screen_state()` — pure ARIA snapshot → state extraction |
-| `src/sapwebguimcp/tools/screen_state_helpers.py` | `ensure_screen_state()`, `bilingual_target()` — transition + verify logic |
-| `src/sapwebguimcp/backend/protocol.py` | Add `set_radio_button()` to `SapUiPrimitives` (line ~87) |
-| `src/sapwebguimcp/backend/webgui/backend.py` | Implement `set_radio_button()` (after `set_checkbox` at line ~595) |
-| `src/sapwebguimcp/models/sap_results.py` | Add `checked: bool \| None` to `FormField` (line ~31) |
-| `src/sapwebguimcp/js/detect_form_fields.js` | Return `el.checked` for checkbox/radio (line ~113) |
-| `src/sapwebguimcp/tools/sap_tools.py` | Register `sap_set_checkbox` and `sap_set_radio_button` MCP tools |
-| `src/sapwebguimcp/tools/se09_tools.py` | Replace `_set_checkbox_state`/`_try_set_checkbox`/`_set_request_type_filter`/`_set_status_filter` (lines 55-111) with `ensure_screen_state` |
-| `src/sapwebguimcp/tools/sm37_tools.py` | Replace `_set_status_checkboxes` (lines 50-73) + fix default-param vulnerability |
-| `src/sapwebguimcp/tools/se11_tools.py` | Replace `_page` radio hacks in `_wait_for_se11_table_screen`/`_wait_for_se11_structure_screen` (lines 228-289) |
-| `unittests/test_screen_state_parser.py` | Parser unit tests against existing + new YAML snapshots |
-| `unittests/test_ensure_screen_state.py` | Transition logic unit tests with mocked backend |
-| `unittests/test_se09_exploration.py` | New snapshot capture tests for SE09 checkbox variants |
-| `unittests/test_sm37_exploration.py` | New snapshot capture tests for SM37 checkbox variants |
+| File                                              | Responsibility                                                                                                                              |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/sapwebguimcp/models/screen_state.py`         | `SelectionScreenState`, `StateChange`, `ScreenStateDiff` Pydantic models                                                                    |
+| `src/sapwebguimcp/parsers/screen_state_parser.py` | `parse_selection_screen_state()` — pure ARIA snapshot → state extraction                                                                    |
+| `src/sapwebguimcp/tools/screen_state_helpers.py`  | `ensure_screen_state()`, `bilingual_target()` — transition + verify logic                                                                   |
+| `src/sapwebguimcp/backend/protocol.py`            | Add `set_radio_button()` to `SapUiPrimitives` (line ~87)                                                                                    |
+| `src/sapwebguimcp/backend/webgui/backend.py`      | Implement `set_radio_button()` (after `set_checkbox` at line ~595)                                                                          |
+| `src/sapwebguimcp/models/sap_results.py`          | Add `checked: bool \| None` to `FormField` (line ~31)                                                                                       |
+| `src/sapwebguimcp/js/detect_form_fields.js`       | Return `el.checked` for checkbox/radio (line ~113)                                                                                          |
+| `src/sapwebguimcp/tools/sap_tools.py`             | Register `sap_set_checkbox` and `sap_set_radio_button` MCP tools                                                                            |
+| `src/sapwebguimcp/tools/se09_tools.py`            | Replace `_set_checkbox_state`/`_try_set_checkbox`/`_set_request_type_filter`/`_set_status_filter` (lines 55-111) with `ensure_screen_state` |
+| `src/sapwebguimcp/tools/sm37_tools.py`            | Replace `_set_status_checkboxes` (lines 50-73) + fix default-param vulnerability                                                            |
+| `src/sapwebguimcp/tools/se11_tools.py`            | Replace `_page` radio hacks in `_wait_for_se11_table_screen`/`_wait_for_se11_structure_screen` (lines 228-289)                              |
+| `unittests/test_screen_state_parser.py`           | Parser unit tests against existing + new YAML snapshots                                                                                     |
+| `unittests/test_ensure_screen_state.py`           | Transition logic unit tests with mocked backend                                                                                             |
+| `unittests/test_se09_exploration.py`              | New snapshot capture tests for SE09 checkbox variants                                                                                       |
+| `unittests/test_sm37_exploration.py`              | New snapshot capture tests for SM37 checkbox variants                                                                                       |
 
 ---
 
@@ -39,6 +39,7 @@
 ### Task 1: Create `SelectionScreenState` and `ScreenStateDiff` models
 
 **Files:**
+
 - Create: `src/sapwebguimcp/models/screen_state.py`
 - Test: `unittests/test_screen_state_parser.py` (model instantiation tests)
 
@@ -202,6 +203,7 @@ git commit -m "feat: add SelectionScreenState and ScreenStateDiff models"
 ### Task 2: Implement `parse_selection_screen_state()`
 
 **Files:**
+
 - Create: `src/sapwebguimcp/parsers/screen_state_parser.py`
 - Modify: `unittests/test_screen_state_parser.py` (add parser tests)
 
@@ -467,6 +469,7 @@ git commit -m "feat: add parse_selection_screen_state() for ARIA snapshot state 
 ### Task 3: Add `set_radio_button()` to backend protocol and implementation
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/backend/protocol.py:86-87` (add method after `set_checkbox`)
 - Modify: `src/sapwebguimcp/backend/webgui/backend.py:582-595` (add impl after `set_checkbox`)
 
@@ -516,6 +519,7 @@ git commit -m "feat: add set_radio_button() to backend protocol and WebGUI imple
 ### Task 4: Implement `ensure_screen_state()` with tests
 
 **Files:**
+
 - Create: `src/sapwebguimcp/tools/screen_state_helpers.py`
 - Create: `unittests/test_ensure_screen_state.py`
 
@@ -914,6 +918,7 @@ git commit -m "feat: add ensure_screen_state() transition logic with verificatio
 ### Task 5: Enrich `FormField` with `checked` state + fix JS
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/models/sap_results.py:25-39`
 - Modify: `src/sapwebguimcp/js/detect_form_fields.js:109-116`
 
@@ -933,15 +938,15 @@ In `src/sapwebguimcp/models/sap_results.py`, add after `current_value` (line 31)
 In `src/sapwebguimcp/js/detect_form_fields.js`, replace the field construction (lines 109-116):
 
 ```javascript
-        const field = {
-            id: el.id || '',
-            label: getLabel(el),
-            field_type: fieldType,
-            current_value: el.value || null,
-            checked: (fieldType === 'checkbox' || fieldType === 'radio') ? el.checked : null,
-            readonly: isReadonly,
-            options: null, // Will be populated separately for dropdowns if requested
-        };
+const field = {
+    id: el.id || '',
+    label: getLabel(el),
+    field_type: fieldType,
+    current_value: el.value || null,
+    checked: fieldType === 'checkbox' || fieldType === 'radio' ? el.checked : null,
+    readonly: isReadonly,
+    options: null, // Will be populated separately for dropdowns if requested
+};
 ```
 
 - [ ] **Step 3: Add `FormField.checked` unit test**
@@ -989,6 +994,7 @@ git commit -m "feat: add checked state to FormField model and detect_form_fields
 ### Task 6: Register `sap_set_checkbox` and `sap_set_radio_button` MCP tools
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/sap_tools.py` (add two new tool registrations)
 
 These expose the backend's `set_checkbox` and `set_radio_button` as MCP tools so the LLM can toggle controls on unknown screens.
@@ -1104,6 +1110,7 @@ git commit -m "feat: expose sap_set_checkbox and sap_set_radio_button as MCP too
 ### Task 7: Collect SE09 selection screen snapshots for different checkbox states
 
 **Files:**
+
 - Modify: `unittests/test_se09_exploration.py` (add snapshot capture tests)
 
 The goal is to capture snapshots with different checkbox combinations, to use as test fixtures for snapshot-pair transition tests. These tests require a live SAP system (they are `@pytest.mark.anyio` exploration tests).
@@ -1256,6 +1263,7 @@ git commit -m "feat: collect SE09 selection screen snapshots and add snapshot-pa
 ### Task 8: Migrate SE09 to `ensure_screen_state()`
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/se09_tools.py:55-111` (replace 4 helper functions)
 - Modify: `src/sapwebguimcp/tools/se09_tools.py:282-286` (replace filter calls in `_lookup_transports`)
 
@@ -1268,6 +1276,7 @@ In `src/sapwebguimcp/tools/se09_tools.py`:
 1. Remove functions `_set_checkbox_state` (lines 55-63), `_set_request_type_filter` (lines 65-80), `_try_set_checkbox` (lines 82-91), `_set_status_filter` (lines 94-111).
 
 2. Add import at top:
+
 ```python
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 ```
@@ -1332,12 +1341,14 @@ git commit -m "refactor: migrate SE09 to ensure_screen_state(), remove ad-hoc ch
 ### Task 9: Collect SM37 snapshot variants + migrate SM37
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/sm37_tools.py:50-112`
 - Add exploration test or script to capture SM37 snapshots
 
 - [ ] **Step 1: Collect SM37 snapshots (exploration test)**
 
 Add SM37 snapshot capture tests (similar pattern to SE09 in Task 7). Capture at minimum:
+
 - `sm37_all_statuses_de.yaml` — all 6 checkboxes checked
 - `sm37_finished_only_de.yaml` — only "Fertig" checked
 - `sm37_active_only_de.yaml` — only "Aktiv" checked
@@ -1374,6 +1385,7 @@ In `src/sapwebguimcp/tools/sm37_tools.py`:
 1. Remove `_set_status_checkboxes` function (lines 50-73).
 
 2. Add import:
+
 ```python
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 ```
@@ -1431,6 +1443,7 @@ git commit -m "refactor: migrate SM37 to ensure_screen_state(), fix default-para
 ### Task 10: Migrate SE11 radio buttons to backend protocol
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/se11_tools.py:228-289`
 
 - [ ] **Step 1: Replace `_wait_for_se11_table_screen` radio hack**
@@ -1552,6 +1565,7 @@ git commit -m "refactor: replace SE11 raw _page radio hacks with backend.set_rad
 ### Task 11: Update `sap_knowledge.md` with the new pattern
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/data/sap_knowledge.md`
 
 - [ ] **Step 1: Add selection screen state management section**
@@ -1567,6 +1581,7 @@ desired state before executing. This reads the ARIA snapshot, diffs against the 
 applies only necessary changes, and verifies the result.
 
 For general-purpose exploration of unknown screens:
+
 - Use `sap_get_form_fields` to see all controls including checkbox/radio `checked` state
 - Use `sap_set_checkbox(label, checked)` to toggle a checkbox
 - Use `sap_set_radio_button(label)` to select a radio button
@@ -1610,10 +1625,10 @@ Expected: Clean
 
 The following tools have selection screen controls but are lower risk or lower priority. They should be migrated to `ensure_screen_state()` in follow-up work after the foundation is proven stable:
 
-| Tool | Controls | Current Risk | Notes |
-|------|----------|-------------|-------|
-| **SM30** | 3 radio buttons ("Keine Einschränkungen", "Bedingungen eingeben", "Variante") | Low — tool doesn't interact with radios currently | Migrate when SM30 needs radio button management |
-| **SE38** | Radio buttons (Source Code / Variants / Attributes / Text Elements / Documentation) | Low — tool uses display mode only | Migrate if/when edit workflow needs radio selection |
-| **SLG1** | Text fields only (Object, Subobject, Date range) | Low — no checkboxes/radios | Migrate for consistency, but no statefulness bug risk |
+| Tool     | Controls                                                                            | Current Risk                                      | Notes                                                 |
+| -------- | ----------------------------------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------- |
+| **SM30** | 3 radio buttons ("Keine Einschränkungen", "Bedingungen eingeben", "Variante")       | Low — tool doesn't interact with radios currently | Migrate when SM30 needs radio button management       |
+| **SE38** | Radio buttons (Source Code / Variants / Attributes / Text Elements / Documentation) | Low — tool uses display mode only                 | Migrate if/when edit workflow needs radio selection   |
+| **SLG1** | Text fields only (Object, Subobject, Date range)                                    | Low — no checkboxes/radios                        | Migrate for consistency, but no statefulness bug risk |
 
 Each migration follows the same pattern: declare target state with `bilingual_target()`, call `ensure_screen_state()`, check `success`.

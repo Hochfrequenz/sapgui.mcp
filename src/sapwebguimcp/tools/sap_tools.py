@@ -1799,7 +1799,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             if popup:
                 return SetFieldResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
-                    label=label, value=str(checked), popup=popup,
+                    label=label,
+                    value=str(checked),
+                    popup=popup,
                 )
             await backend.set_checkbox(label, checked)
             await backend.wait_for_ready()
@@ -1840,7 +1842,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             if popup:
                 return SetFieldResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
-                    label=label, value="selected", popup=popup,
+                    label=label,
+                    value="selected",
+                    popup=popup,
                 )
             await backend.set_radio_button(label)
             await backend.wait_for_ready()

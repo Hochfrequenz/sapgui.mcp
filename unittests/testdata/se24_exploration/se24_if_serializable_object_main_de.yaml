@@ -3,7 +3,7 @@
     - button "Zurück (F3)"
     - img "Company Logo"
     - 'heading "Class Builder: Interface IF_SERIALIZABLE_OBJECT anzeigen" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
     - toolbar:
       - button "S4U (100)"
       - separator
@@ -226,15 +226,15 @@
         - cell "Transaktion"
         - cell "SE24"
         - cell
-      - row "E2E-Zeit 126 ms":
+      - row "E2E-Zeit 164 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "126 ms"
+        - cell "164 ms"
         - cell
-      - row "WebGUI-Zeit 46 ms":
+      - row "WebGUI-Zeit 72 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "46 ms"
+        - cell "72 ms"
         - cell

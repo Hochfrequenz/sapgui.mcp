@@ -3,7 +3,7 @@
     - button "Zurück (F3)"
     - img "Company Logo"
     - heading "Transaktionspflege" [level=1]
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
     - toolbar:
       - button "S4U (100)"
       - separator
@@ -59,11 +59,11 @@
         - cell "Transaktion"
         - cell "SE93"
         - cell
-      - row "E2E-Zeit 69 ms":
+      - row "E2E-Zeit 75 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "69 ms"
+        - cell "75 ms"
         - cell
       - row "WebGUI-Zeit 26 ms":
         - cell

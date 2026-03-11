@@ -3,7 +3,7 @@
     - button "Zurück (F3)"
     - img "Company Logo"
     - 'heading "Dictionary: Tabelle anzeigen" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
     - toolbar:
       - button "S4U (100)"
       - separator
@@ -408,15 +408,15 @@
         - cell "Transaktion"
         - cell "SE11"
         - cell
-      - row "E2E-Zeit 297 ms":
+      - row "E2E-Zeit 269 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "297 ms"
+        - cell "269 ms"
         - cell
-      - row "WebGUI-Zeit 140 ms":
+      - row "WebGUI-Zeit 119 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "140 ms"
+        - cell "119 ms"
         - cell

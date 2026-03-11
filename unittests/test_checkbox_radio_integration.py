@@ -52,8 +52,10 @@ async def test_set_checkbox_check(sap_mcp_client: ClientSession) -> None:
     assert tx.success
 
     result = await call_tool_typed(
-        sap_mcp_client, "sap_set_checkbox",
-        {"label": "Workbench", "checked": True}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_checkbox",
+        {"label": "Workbench", "checked": True},
+        SetFieldResult,
     )
     assert result.success, f"set_checkbox failed: {result.error}"
 
@@ -68,8 +70,10 @@ async def test_set_checkbox_uncheck(sap_mcp_client: ClientSession) -> None:
     assert tx.success
 
     result = await call_tool_typed(
-        sap_mcp_client, "sap_set_checkbox",
-        {"label": "Workbench", "checked": False}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_checkbox",
+        {"label": "Workbench", "checked": False},
+        SetFieldResult,
     )
     assert result.success, f"set_checkbox failed: {result.error}"
 
@@ -84,8 +88,10 @@ async def test_set_checkbox_not_found(sap_mcp_client: ClientSession) -> None:
     assert tx.success
 
     result = await call_tool_typed(
-        sap_mcp_client, "sap_set_checkbox",
-        {"label": "NonExistentCheckbox99", "checked": True}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_checkbox",
+        {"label": "NonExistentCheckbox99", "checked": True},
+        SetFieldResult,
     )
     assert not result.success
 
@@ -106,18 +112,18 @@ async def test_set_checkbox_state_visible_in_snapshot(sap_mcp_client: ClientSess
     # Pick a checkbox and set it to unchecked
     target_label = list(state_before["checkboxes"].keys())[0]
     await call_tool_typed(
-        sap_mcp_client, "sap_set_checkbox",
-        {"label": target_label, "checked": False}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_checkbox",
+        {"label": target_label, "checked": False},
+        SetFieldResult,
     )
 
     # Verify via ARIA snapshot
     state_after = await _get_screen_state(sap_mcp_client)
-    assert target_label in state_after["checkboxes"], (
-        f"'{target_label}' should still appear in snapshot after unchecking"
-    )
-    assert state_after["checkboxes"][target_label] is False, (
-        f"'{target_label}' should be unchecked in snapshot"
-    )
+    assert (
+        target_label in state_after["checkboxes"]
+    ), f"'{target_label}' should still appear in snapshot after unchecking"
+    assert state_after["checkboxes"][target_label] is False, f"'{target_label}' should be unchecked in snapshot"
 
 
 # =============================================================================
@@ -135,8 +141,10 @@ async def test_set_radio_button(sap_mcp_client: ClientSession) -> None:
     assert tx.success
 
     result = await call_tool_typed(
-        sap_mcp_client, "sap_set_radio_button",
-        {"label": "Datenbanktabelle"}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_radio_button",
+        {"label": "Datenbanktabelle"},
+        SetFieldResult,
     )
     assert result.success, f"set_radio_button failed: {result.error}"
 
@@ -152,15 +160,19 @@ async def test_set_radio_button_switch(sap_mcp_client: ClientSession) -> None:
 
     # Select "View" radio
     result = await call_tool_typed(
-        sap_mcp_client, "sap_set_radio_button",
-        {"label": "View"}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_radio_button",
+        {"label": "View"},
+        SetFieldResult,
     )
     assert result.success
 
     # Switch to "Datenbanktabelle" radio
     result = await call_tool_typed(
-        sap_mcp_client, "sap_set_radio_button",
-        {"label": "Datenbanktabelle"}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_radio_button",
+        {"label": "Datenbanktabelle"},
+        SetFieldResult,
     )
     assert result.success
 
@@ -175,8 +187,10 @@ async def test_set_radio_button_not_found(sap_mcp_client: ClientSession) -> None
     assert tx.success
 
     result = await call_tool_typed(
-        sap_mcp_client, "sap_set_radio_button",
-        {"label": "NonExistentRadio99"}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_radio_button",
+        {"label": "NonExistentRadio99"},
+        SetFieldResult,
     )
     assert not result.success
 
@@ -201,15 +215,17 @@ async def test_set_radio_button_state_visible_in_snapshot(sap_mcp_client: Client
 
     # Select it
     await call_tool_typed(
-        sap_mcp_client, "sap_set_radio_button",
-        {"label": target_label}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_radio_button",
+        {"label": target_label},
+        SetFieldResult,
     )
 
     # Verify via ARIA snapshot
     state_after = await _get_screen_state(sap_mcp_client)
-    assert state_after["radios"][target_label] is True, (
-        f"'{target_label}' should be selected in snapshot after set_radio_button"
-    )
+    assert (
+        state_after["radios"][target_label] is True
+    ), f"'{target_label}' should be selected in snapshot after set_radio_button"
 
 
 # =============================================================================
@@ -235,8 +251,10 @@ async def test_checkbox_toggle_changes_snapshot(sap_mcp_client: ClientSession) -
 
     # Uncheck it
     result = await call_tool_typed(
-        sap_mcp_client, "sap_set_checkbox",
-        {"label": target_label, "checked": False}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_checkbox",
+        {"label": target_label, "checked": False},
+        SetFieldResult,
     )
     assert result.success, f"set_checkbox failed: {result.error}"
 
@@ -249,8 +267,10 @@ async def test_checkbox_toggle_changes_snapshot(sap_mcp_client: ClientSession) -
 
     # Restore original state
     await call_tool_typed(
-        sap_mcp_client, "sap_set_checkbox",
-        {"label": target_label, "checked": True}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_checkbox",
+        {"label": target_label, "checked": True},
+        SetFieldResult,
     )
 
 
@@ -276,19 +296,17 @@ async def test_radio_switch_changes_snapshot(sap_mcp_client: ClientSession) -> N
 
     # Switch to a different radio
     result = await call_tool_typed(
-        sap_mcp_client, "sap_set_radio_button",
-        {"label": new_selection}, SetFieldResult,
+        sap_mcp_client,
+        "sap_set_radio_button",
+        {"label": new_selection},
+        SetFieldResult,
     )
     assert result.success, f"set_radio_button failed: {result.error}"
 
     # Read state after
     state_after = await _get_screen_state(sap_mcp_client)
-    assert state_after["radios"][new_selection] is True, (
-        f"Expected '{new_selection}' selected after switch"
-    )
-    assert state_after["radios"][old_selection] is False, (
-        f"Expected '{old_selection}' deselected after switch"
-    )
+    assert state_after["radios"][new_selection] is True, f"Expected '{new_selection}' selected after switch"
+    assert state_after["radios"][old_selection] is False, f"Expected '{old_selection}' deselected after switch"
 
 
 @pytest.mark.anyio
@@ -309,8 +327,10 @@ async def test_multiple_checkbox_toggles_are_independent(sap_mcp_client: ClientS
     for label in labels:
         new_value = not checkboxes[label]
         result = await call_tool_typed(
-            sap_mcp_client, "sap_set_checkbox",
-            {"label": label, "checked": new_value}, SetFieldResult,
+            sap_mcp_client,
+            "sap_set_checkbox",
+            {"label": label, "checked": new_value},
+            SetFieldResult,
         )
         assert result.success, f"set_checkbox failed for '{label}': {result.error}"
 
@@ -325,6 +345,8 @@ async def test_multiple_checkbox_toggles_are_independent(sap_mcp_client: ClientS
     # Restore original state
     for label in labels:
         await call_tool_typed(
-            sap_mcp_client, "sap_set_checkbox",
-            {"label": label, "checked": checkboxes[label]}, SetFieldResult,
+            sap_mcp_client,
+            "sap_set_checkbox",
+            {"label": label, "checked": checkboxes[label]},
+            SetFieldResult,
         )

@@ -29,9 +29,11 @@ Additionally, the LLM-facing `sap_get_form_fields` tool does not return checkbox
 This is not purely internal refactoring — some MCP tool signatures and return models change:
 
 ### Return model changes
+
 - **`FormField`** gains a `checked: bool | None` field — the AI can now see checkbox/radio state via `sap_get_form_fields`
 
 ### New MCP tools
+
 - **`sap_set_checkbox(label, checked)`** — toggle a checkbox by its ARIA label. Currently `set_checkbox` exists on the backend but is not exposed as an MCP tool. The AI cannot toggle checkboxes on unknown screens.
 - **`sap_set_radio_button(label)`** — select a radio button by its ARIA label. Currently no way to do this at all — neither backend method nor MCP tool exists.
 
@@ -40,8 +42,8 @@ This is not purely internal refactoring — some MCP tool signatures and return 
 The Playwright ARIA snapshot format already encodes checkbox and radio state:
 
 ```yaml
-- checkbox "Customizing-Aufträge" [checked]:  Customizing-Aufträge
-- checkbox "Workbench-Aufträge":  Workbench-Aufträge
+- checkbox "Customizing-Aufträge" [checked]: Customizing-Aufträge
+- checkbox "Workbench-Aufträge": Workbench-Aufträge
 - radio "Datenbanktabelle" [checked]
 - radio "View"
 - textbox "Benutzer": KLEINK
@@ -88,6 +90,7 @@ class SelectionScreenState(BaseModel):
 ### Component 2: `parse_selection_screen_state(snapshot: str) -> SelectionScreenState`
 
 Pure function. Parses the ARIA snapshot string using regex to extract:
+
 - `checkbox "LABEL" [checked]` → `{"LABEL": True}`
 - `checkbox "LABEL"` (no `[checked]`) → `{"LABEL": False}`
 - `radio "LABEL" [checked]` → `{"LABEL": True}`
@@ -98,11 +101,13 @@ Filters out `[disabled]` elements (they can't be changed anyway).
 Ignores `menuitemradio` (system info dropdowns, not selection screen controls).
 
 **Format notes:**
+
 - Checkboxes may have trailing text after a colon: `checkbox "Label" [checked]:  Label` — the parser only needs the part up to `[checked]`
 - Radio buttons use simpler format: `radio "Label" [checked]` (no trailing colon/text)
 - The parser must handle both shapes
 
 **Ambiguous labels:** SAP screens can have multiple controls with the same label (e.g., two text fields both labelled "Date"). The parser must detect this and report it. When the same label appears more than once for the same control type, `parse_selection_screen_state` should:
+
 1. Include ALL instances (e.g., append a suffix like `"Date"`, `"Date (2)"`) or
 2. Report an `ambiguities` list so callers know which labels are unsafe to use by name alone
 
@@ -193,6 +198,7 @@ async def ensure_screen_state(
 ```
 
 Key behaviors:
+
 - **Only applies diffs** — if the screen already matches target, zero SAP interactions
 - **`wait_for_ready()` after each checkbox/radio change** — SAP may trigger partial page reloads
 - **Radio buttons only need `select`** — selecting one auto-deselects others in the group
@@ -258,6 +264,7 @@ async def set_radio_button(self, label: str) -> None:
 ```
 
 Implementation in `WebGuiBackend`:
+
 ```python
 async def set_radio_button(self, label: str) -> None:
     radio = self._page.get_by_role("radio", name=label, exact=True)
@@ -291,7 +298,7 @@ const field = {
     label: getLabel(el),
     field_type: fieldType,
     current_value: el.value || null,
-    checked: (fieldType === 'checkbox' || fieldType === 'radio') ? el.checked : null,  // NEW
+    checked: fieldType === 'checkbox' || fieldType === 'radio' ? el.checked : null, // NEW
     readonly: isReadonly,
     options: null,
 };
@@ -330,6 +337,7 @@ def bilingual_target(
 ## How Transaction Tools Change
 
 ### Before (SE09, ad-hoc):
+
 ```python
 async def _set_request_type_filter(backend, request_type):
     if request_type == "all":
@@ -342,6 +350,7 @@ async def _set_request_type_filter(backend, request_type):
 ```
 
 ### After (generic):
+
 ```python
 async def _lookup_transports(backend, username, request_type, status, ...):
     target = bilingual_target(
@@ -365,6 +374,7 @@ async def _lookup_transports(backend, username, request_type, status, ...):
 ```
 
 ### SM37 (currently vulnerable):
+
 ```python
 target = bilingual_target(
     checkboxes_de={
@@ -384,6 +394,7 @@ await ensure_screen_state(backend, target)
 ```
 
 ### SE11 (radio buttons):
+
 ```python
 target = bilingual_target(
     radios_de={"Datenbanktabelle": object_type == "table", "Datentyp": object_type == "structure"},
@@ -396,21 +407,22 @@ await ensure_screen_state(backend, target)
 
 ## File Layout
 
-| File | Purpose |
-|------|---------|
-| `src/sapwebguimcp/models/screen_state.py` | `SelectionScreenState`, `ScreenStateDiff` models |
-| `src/sapwebguimcp/parsers/screen_state_parser.py` | `parse_selection_screen_state()` — pure ARIA snapshot parsing |
-| `src/sapwebguimcp/tools/screen_state_helpers.py` | `ensure_screen_state()`, `bilingual_target()` — transition logic |
-| `src/sapwebguimcp/backend/protocol.py` | Add `set_radio_button()` to `SapUiPrimitives` |
-| `src/sapwebguimcp/backend/webgui/backend.py` | Implement `set_radio_button()` |
-| `src/sapwebguimcp/models/sap_results.py` | Add `checked` field to `FormField` |
-| `src/sapwebguimcp/js/detect_form_fields.js` | Return `el.checked` for checkbox/radio |
-| `unittests/test_screen_state_parser.py` | Parser unit tests against existing YAML snapshots |
-| `unittests/test_ensure_screen_state.py` | Transition logic unit tests with mocked backend |
+| File                                              | Purpose                                                          |
+| ------------------------------------------------- | ---------------------------------------------------------------- |
+| `src/sapwebguimcp/models/screen_state.py`         | `SelectionScreenState`, `ScreenStateDiff` models                 |
+| `src/sapwebguimcp/parsers/screen_state_parser.py` | `parse_selection_screen_state()` — pure ARIA snapshot parsing    |
+| `src/sapwebguimcp/tools/screen_state_helpers.py`  | `ensure_screen_state()`, `bilingual_target()` — transition logic |
+| `src/sapwebguimcp/backend/protocol.py`            | Add `set_radio_button()` to `SapUiPrimitives`                    |
+| `src/sapwebguimcp/backend/webgui/backend.py`      | Implement `set_radio_button()`                                   |
+| `src/sapwebguimcp/models/sap_results.py`          | Add `checked` field to `FormField`                               |
+| `src/sapwebguimcp/js/detect_form_fields.js`       | Return `el.checked` for checkbox/radio                           |
+| `unittests/test_screen_state_parser.py`           | Parser unit tests against existing YAML snapshots                |
+| `unittests/test_ensure_screen_state.py`           | Transition logic unit tests with mocked backend                  |
 
 ## Migration Plan
 
 ### Phase 1: Foundation (no tool changes)
+
 1. Add `SelectionScreenState` and `ScreenStateDiff` models
 2. Implement `parse_selection_screen_state()` with unit tests against existing snapshots
 3. Add `set_radio_button()` to backend protocol + WebGUI implementation
@@ -418,6 +430,7 @@ await ensure_screen_state(backend, target)
 5. Add `checked` to `FormField` + fix `detect_form_fields.js`
 
 ### Phase 2: Migrate transaction tools (one at a time)
+
 6. SE09 — replace ad-hoc checkbox logic with `ensure_screen_state()`
 7. SM37 — fix the existing vulnerability + migrate
 8. SE11 — replace raw `page.get_by_role("radio")` with `ensure_screen_state()`
@@ -426,6 +439,7 @@ await ensure_screen_state(backend, target)
 11. SLG1 — migrate text field filling (lower risk, but consistency)
 
 ### Phase 3: Cleanup
+
 12. Remove SE09's `_set_checkbox_state`, `_try_set_checkbox`, `_set_request_type_filter`, `_set_status_filter`
 13. Remove SE11's raw `page.get_by_role("radio")` usage
 14. Update `sap_knowledge.md` with the new pattern
@@ -433,9 +447,11 @@ await ensure_screen_state(backend, target)
 ## Testing Strategy
 
 ### Parser unit tests
+
 Test `parse_selection_screen_state()` against every existing YAML snapshot in `unittests/testdata/` — SE09, SM37, SE11, SM30 initial screens all have checkboxes/radios.
 
 ### Snapshot-pair transition tests
+
 Collect **multiple snapshots per transaction** showing different selection screen states (e.g., SE09 with only Workbench checked, SE09 with only Customizing checked, SM37 with all statuses checked, SM37 with only "Finished" checked). Then test transitions between snapshot pairs:
 
 1. Parse snapshot A → `state_A`
@@ -448,21 +464,23 @@ This tests the full diff+apply+verify cycle without a live SAP system.
 
 **Snapshots to collect (in addition to existing ones):**
 
-| Transaction | Snapshot variant | Key state |
-|---|---|---|
-| SE09 | `se09_workbench_only_de` | Workbench=checked, Customizing=unchecked |
-| SE09 | `se09_customizing_only_de` | Workbench=unchecked, Customizing=checked |
-| SE09 | `se09_both_types_de` | Workbench=checked, Customizing=checked |
-| SE09 | `se09_released_only_de` | Änderbar=unchecked, Freigegeben=checked |
-| SM37 | `sm37_all_statuses_de` | All 6 status checkboxes checked |
-| SM37 | `sm37_finished_only_de` | Only Fertig=checked |
-| SM37 | `sm37_active_only_de` | Only Aktiv=checked |
-| SE11 | `se11_structure_selected_de` | Datentyp radio selected (not Datenbanktabelle) |
-| SE11 | `se11_table_selected_de` | Datenbanktabelle radio selected (default) |
-| SM30 | `sm30_conditions_radio_de` | "Bedingungen eingeben" radio selected |
+| Transaction | Snapshot variant             | Key state                                      |
+| ----------- | ---------------------------- | ---------------------------------------------- |
+| SE09        | `se09_workbench_only_de`     | Workbench=checked, Customizing=unchecked       |
+| SE09        | `se09_customizing_only_de`   | Workbench=unchecked, Customizing=checked       |
+| SE09        | `se09_both_types_de`         | Workbench=checked, Customizing=checked         |
+| SE09        | `se09_released_only_de`      | Änderbar=unchecked, Freigegeben=checked        |
+| SM37        | `sm37_all_statuses_de`       | All 6 status checkboxes checked                |
+| SM37        | `sm37_finished_only_de`      | Only Fertig=checked                            |
+| SM37        | `sm37_active_only_de`        | Only Aktiv=checked                             |
+| SE11        | `se11_structure_selected_de` | Datentyp radio selected (not Datenbanktabelle) |
+| SE11        | `se11_table_selected_de`     | Datenbanktabelle radio selected (default)      |
+| SM30        | `sm30_conditions_radio_de`   | "Bedingungen eingeben" radio selected          |
 
 ### Transition unit tests
+
 Mock backend, verify `ensure_screen_state()`:
+
 - Calls only necessary `set_checkbox`/`set_radio_button`/`fill_field` methods based on diff
 - Reports `success=True` when verification passes
 - Reports `success=False` with specific mismatches when verification fails
@@ -470,6 +488,7 @@ Mock backend, verify `ensure_screen_state()`:
 - Handles missing labels (wrong language) gracefully
 
 ### Integration tests
+
 For each migrated tool, run transition tests against live SAP (same pattern as SE09: "customizing then workbench", "released then modifiable") to verify no state bleeding.
 
 ## Known Limitations

@@ -3,7 +3,7 @@
     - button "Zurück (F3)"
     - img "Company Logo"
     - 'heading "ABAP Editor: Report ZTEST_MCP_EDIT anzeigen" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
     - toolbar:
       - button "S4U (100)"
       - separator
@@ -69,15 +69,15 @@
         - cell "Transaktion"
         - cell "SE38"
         - cell
-      - row "E2E-Zeit 193 ms":
+      - row "E2E-Zeit 213 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "193 ms"
+        - cell "213 ms"
         - cell
-      - row "WebGUI-Zeit 116 ms":
+      - row "WebGUI-Zeit 135 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "116 ms"
+        - cell "135 ms"
         - cell

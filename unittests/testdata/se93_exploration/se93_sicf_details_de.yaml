@@ -3,7 +3,7 @@
     - button "Zurück (F3)"
     - img "Company Logo"
     - heading "Reporttransaktion anzeigen" [level=1]
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
     - toolbar:
       - button "S4U (100)"
       - separator
@@ -82,15 +82,15 @@
         - cell "Transaktion"
         - cell "SE93"
         - cell
-      - row "E2E-Zeit 72 ms":
+      - row "E2E-Zeit 97 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "72 ms"
+        - cell "97 ms"
         - cell
-      - row "WebGUI-Zeit 24 ms":
+      - row "WebGUI-Zeit 41 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "24 ms"
+        - cell "41 ms"
         - cell
