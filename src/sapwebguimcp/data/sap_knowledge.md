@@ -217,9 +217,17 @@ USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 
 **Impact on automation:** If your tool assumes a default checkbox state (e.g., "Workbench is checked by default in SE09"), it will break when the user previously used a different configuration. The checkbox state persists even across browser sessions and logins.
 
-**Solution:** Always explicitly set every checkbox and field to the desired state on every tool invocation. Never assume defaults. Use idempotent `check()`/`uncheck()` calls for checkboxes, and always fill text fields even if you think they already have the right value.
+**Solution:** Transaction-specific tools use `ensure_screen_state()` to always explicitly set the desired state before executing. This reads the ARIA snapshot, diffs against the target, applies only necessary changes, and verifies the result. Labels that don't match the current language produce harmless warnings (bilingual support via `bilingual_target()`).
 
 **Applies to:** All SAP selection screens, not just SE09. Any transaction with a selection screen (SE16, SM37, SLG1, etc.) has this stateful behavior.
+
+## Selection Screen State Management
+
+For general-purpose exploration of unknown screens:
+- Use `sap_get_form_fields` to see all controls including checkbox/radio `checked` state
+- Use `sap_set_checkbox(label, checked)` to toggle a checkbox
+- Use `sap_set_radio_button(label)` to select a radio button
+- These tools are safer than raw `browser_evaluate` for SAP form controls
 
 ## Common Patterns
 
