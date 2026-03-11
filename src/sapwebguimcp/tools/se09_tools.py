@@ -65,14 +65,14 @@ async def _set_checkbox_state(backend: "SapUiBackend", label: str, should_be_che
 async def _set_request_type_filter(backend: "SapUiBackend", request_type: str) -> None:
     """Set request type checkboxes on SE09 selection screen.
 
-    Note: By default only Workbench is checked in SE09.
-    Customizing must be explicitly checked when needed.
+    Always explicitly set both checkboxes because SE09 is stateful —
+    it remembers checkbox state from the previous lookup in the session.
     """
     if request_type == "all":
-        # Default only has Workbench checked — also check Customizing
+        await _set_checkbox_state(backend, "Workbench", True)
         await _set_checkbox_state(backend, "Customizing", True)
     elif request_type == "workbench":
-        # Already default — but ensure Customizing is off
+        await _set_checkbox_state(backend, "Workbench", True)
         await _set_checkbox_state(backend, "Customizing", False)
     elif request_type == "customizing":
         await _set_checkbox_state(backend, "Workbench", False)
@@ -84,6 +84,7 @@ async def _try_set_checkbox(backend: "SapUiBackend", labels: list[str], checked:
     for label in labels:
         try:
             await backend.set_checkbox(label, checked)
+            await backend.wait_for_ready()
             return
         except ValueError:
             continue
@@ -91,19 +92,23 @@ async def _try_set_checkbox(backend: "SapUiBackend", labels: list[str], checked:
 
 
 async def _set_status_filter(backend: "SapUiBackend", status: str) -> None:
-    """Set status filter checkboxes on SE09 selection screen."""
+    """Set status filter checkboxes on SE09 selection screen.
+
+    Always explicitly set both checkboxes because SE09 is stateful —
+    it remembers checkbox state from the previous lookup in the session.
+    """
     mod_labels = [SE09_MODIFIABLE_DE, SE09_MODIFIABLE_EN]
     rel_labels = [SE09_RELEASED_DE, SE09_RELEASED_EN]
 
     if status == "all":
-        await _try_set_checkbox(backend, rel_labels, True)
         await _try_set_checkbox(backend, mod_labels, True)
+        await _try_set_checkbox(backend, rel_labels, True)
     elif status == "modifiable":
         await _try_set_checkbox(backend, mod_labels, True)
         await _try_set_checkbox(backend, rel_labels, False)
     elif status == "released":
-        await _try_set_checkbox(backend, rel_labels, True)
         await _try_set_checkbox(backend, mod_labels, False)
+        await _try_set_checkbox(backend, rel_labels, True)
 
 
 async def _click_display_button(backend: "SapUiBackend") -> None:
@@ -260,14 +265,17 @@ async def _lookup_transports(
 
     await backend.wait_for_ready()
 
-    # Verify SE09 loaded — sometimes enter_transaction returns before navigation completes.
-    # If still on Easy Access, retry once with extra wait time.
+    # Verify SE09 selection screen loaded (not results screen).
+    # The selection screen has the "Anzeigen"/"Display" button; the results
+    # screen title contains a colon ("Transport Organizer: Aufträge").
     verify_snap: AriaSnapshot = await backend.get_snapshot()
-    if "Transport Organizer" not in verify_snap:
-        logger.warning("SE09 not loaded after enter_transaction, retrying")
+    on_selection_screen = "Transport Organizer" in verify_snap and (
+        "Anzeigen" in verify_snap or "Display" in verify_snap
+    )
+    if not on_selection_screen:
+        logger.warning("SE09 selection screen not loaded, retrying")
         await backend.enter_transaction("SE09")
         await backend.wait_for_ready()
-        # Extra wait — SE09 initial screen can be slow to render
         await backend.wait_for_ready(timeout_ms=3000)
 
     # Apply filters on selection screen

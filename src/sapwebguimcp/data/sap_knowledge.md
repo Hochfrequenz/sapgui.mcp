@@ -211,6 +211,16 @@ USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 
 <!-- Add your transaction-specific knowledge here -->
 
+## Stateful Selection Screens
+
+**Problem:** SAP selection screens (SE09, SE16, SM37, etc.) remember their field values and checkbox states across sessions on the SAP side, per user. This means the screen you see when entering a transaction is NOT a clean default — it reflects whatever the user (or an automation tool) last entered.
+
+**Impact on automation:** If your tool assumes a default checkbox state (e.g., "Workbench is checked by default in SE09"), it will break when the user previously used a different configuration. The checkbox state persists even across browser sessions and logins.
+
+**Solution:** Always explicitly set every checkbox and field to the desired state on every tool invocation. Never assume defaults. Use idempotent `check()`/`uncheck()` calls for checkboxes, and always fill text fields even if you think they already have the right value.
+
+**Applies to:** All SAP selection screens, not just SE09. Any transaction with a selection screen (SE16, SM37, SLG1, etc.) has this stateful behavior.
+
 ## Common Patterns
 
 ### ALV Grid Pagination (Feature Request)
