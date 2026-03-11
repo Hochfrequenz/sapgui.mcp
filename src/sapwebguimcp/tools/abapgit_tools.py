@@ -129,6 +129,19 @@ _TRANSPORT_REQUIRED_GUIDANCE = (
     "retry: sap_abapgit_pull(repo=..., trkorr='<TRKORR>')"
 )
 
+_NO_TASK_PATTERNS = (
+    "no modifiable task",
+    "keine modifizierbare aufgabe",
+    "has no task",
+    "keine aufgabe",
+)
+
+_NO_TASK_GUIDANCE = (
+    "The logged-in user has no modifiable task (Aufgabe) in the specified transport. "
+    "Create a task under this transport in SE09, or use a different transport "
+    "where you have a modifiable task."
+)
+
 
 def _is_transport_required_error(error_text: str) -> bool:
     """Check if an error message indicates a transport request is required."""
@@ -136,10 +149,18 @@ def _is_transport_required_error(error_text: str) -> bool:
     return any(pattern in lower for pattern in _TRANSPORT_REQUIRED_PATTERNS)
 
 
+def _is_no_task_error(error_text: str) -> bool:
+    """Check if an error message indicates the user has no task in the transport."""
+    lower = error_text.lower()
+    return any(pattern in lower for pattern in _NO_TASK_PATTERNS)
+
+
 def _enrich_transport_error(error_text: str) -> str:
     """If the error is transport-related, append actionable guidance."""
     if _is_transport_required_error(error_text):
         return f"{error_text.rstrip('. ')}. {_TRANSPORT_REQUIRED_GUIDANCE}"
+    if _is_no_task_error(error_text):
+        return f"{error_text.rstrip('. ')}. {_NO_TASK_GUIDANCE}"
     return error_text
 
 
