@@ -983,10 +983,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         try:
             registered = await mcp.list_tools()
             tools = sorted(
-                [
-                    ToolInfo(name=t.name, description=_compact_description(t.description or ""))
-                    for t in registered
-                ],
+                [ToolInfo(name=t.name, description=_compact_description(t.description or "")) for t in registered],
                 key=lambda t: t.name,
             )
 
