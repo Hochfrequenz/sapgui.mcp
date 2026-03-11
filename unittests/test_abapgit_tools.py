@@ -14,7 +14,11 @@ import pytest
 from mcp import ClientSession
 
 from sapwebguimcp.models import AbapGitActionResult, LoginResult
-from sapwebguimcp.tools.abapgit_tools import _enrich_transport_error, _is_transport_required_error
+from sapwebguimcp.tools.abapgit_tools import (
+    _enrich_transport_error,
+    _is_no_task_error,
+    _is_transport_required_error,
+)
 
 from .abapgit_test_helpers import TEST_REPOS, generate_test_marker, git_commit_and_push, modify_test_repo
 from .conftest import call_tool_raw, call_tool_typed
@@ -186,6 +190,31 @@ def test_enrich_transport_error_german() -> None:
     enriched = _enrich_transport_error("Transport erforderlich")
     assert "SE09" in enriched
     assert "trkorr=" in enriched
+
+
+def test_is_no_task_error() -> None:
+    """Test detection of no-task-in-transport error messages."""
+    # Positive cases
+    assert _is_no_task_error("User KLEINK has no modifiable task in S4UK902263")
+    assert _is_no_task_error("Benutzer KLEINK hat keine modifizierbare Aufgabe")
+    assert _is_no_task_error("has no task in transport")
+
+    # Negative cases
+    assert not _is_no_task_error("Transport required. Provide P_TRKORR=")
+    assert not _is_no_task_error("Pull successful")
+    assert not _is_no_task_error("")
+
+
+def test_enrich_no_task_error_adds_guidance() -> None:
+    """Test that no-task errors get actionable guidance appended."""
+    enriched = _enrich_transport_error("User KLEINK has no modifiable task in S4UK902263")
+    assert "has no modifiable task" in enriched
+    assert "SE09" in enriched
+    assert "task" in enriched.lower()
+
+    # Non-task error should pass through unchanged
+    original = "Repository not found"
+    assert _enrich_transport_error(original) == original
 
 
 def test_abapgit_action_result_requires_action() -> None:
@@ -703,3 +732,45 @@ async def test_abapgit_pull_invalid_repo_name(sap_mcp_client: ClientSession) -> 
     assert not result.success, "Expected failure for invalid repo name"
     assert result.error is not None
     assert "invalid" in result.error.lower() or "alphanumeric" in result.error.lower()
+
+
+@pytest.mark.anyio
+async def test_abapgit_pull_transport_without_user_task(sap_mcp_client: ClientSession) -> None:
+    """
+    Test pulling with a transport where the logged-in user has no task (Aufgabe).
+
+    Bug report: when user KLEINK had no task in a transport, the pull silently
+    succeeded but nothing was actually written. The tool should detect this
+    condition and return a clear error.
+
+    Uses S4UK902263 — a workbench transport (not released) where KLEINK
+    has no task. This transport is hardcoded because we need a specific
+    transport on our test system where the test user has no task —
+    there is no good way to make this fully configurable (frickelig).
+    """
+    # Login first
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Pull with a workbench transport where KLEINK has no task
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {
+            "repo": "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
+            "trkorr": "S4UK902263",
+        },
+        AbapGitActionResult,
+    )
+
+    # The pull must fail — the user has no task in this transport,
+    # so nothing can actually be written. Previously this silently
+    # reported success because the ABAP log was not checked.
+    assert not result.success, (
+        f"Pull silently succeeded with a transport where user has no task. "
+        f"message={result.message}, error={result.error}"
+    )
+    assert result.error is not None
+    error_lower = result.error.lower()
+    assert "task" in error_lower, f"Expected 'task' in error but got: {result.error}"
+    assert result.action == "pull"
