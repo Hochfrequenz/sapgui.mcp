@@ -21,9 +21,19 @@ Additionally, the LLM-facing `sap_get_form_fields` tool does not return checkbox
 
 ## Non-Goals
 
-- Changing MCP tool signatures visible to the AI (internal refactoring only)
 - Handling non-selection-screen statefulness (e.g., ALV grid scroll positions, tree expansion state)
 - Changing how `enter_transaction()` works — the state transition is a separate step after navigation
+
+## MCP Tool Surface Changes
+
+This is not purely internal refactoring — some MCP tool signatures and return models change:
+
+### Return model changes
+- **`FormField`** gains a `checked: bool | None` field — the AI can now see checkbox/radio state via `sap_get_form_fields`
+
+### New MCP tools
+- **`sap_set_checkbox(label, checked)`** — toggle a checkbox by its ARIA label. Currently `set_checkbox` exists on the backend but is not exposed as an MCP tool. The AI cannot toggle checkboxes on unknown screens.
+- **`sap_set_radio_button(label)`** — select a radio button by its ARIA label. Currently no way to do this at all — neither backend method nor MCP tool exists.
 
 ## Key Insight: ARIA Snapshots Already Contain State
 
@@ -46,13 +56,33 @@ No additional JavaScript or DOM queries needed for reading state — just parse 
 ### Component 1: `SelectionScreenState` Model
 
 ```python
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class SelectionScreenState(BaseModel):
-    """Parsed state of a SAP selection screen."""
-    checkboxes: dict[str, bool] = {}   # label -> checked
-    radios: dict[str, bool] = {}       # label -> selected
-    fields: dict[str, str] = {}        # label -> value
+    """Parsed state of a SAP selection screen.
+
+    Represents the current (or desired target) state of all interactive
+    controls on a SAP selection screen: checkboxes, radio buttons, and
+    text input fields. Parsed from ARIA snapshots where checkbox/radio
+    state is encoded via the ``[checked]`` attribute and text field
+    values appear after the colon (``textbox "Label": VALUE``).
+
+    Used both for reading current screen state and for declaring the
+    target state that ``ensure_screen_state()`` should transition to.
+    """
+
+    checkboxes: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Checkbox labels mapped to their checked state (True=checked, False=unchecked)",
+    )
+    radios: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Radio button labels mapped to their selected state (True=selected, False=not selected)",
+    )
+    fields: dict[str, str] = Field(
+        default_factory=dict,
+        description="Text field labels mapped to their current/desired value",
+    )
 ```
 
 ### Component 2: `parse_selection_screen_state(snapshot: str) -> SelectionScreenState`
@@ -134,16 +164,39 @@ Key behaviors:
 
 ```python
 class StateChange(BaseModel):
-    """A single state transition."""
-    was: str
-    now: str
+    """A single state transition for one control.
+
+    Records the previous and new value of a checkbox, radio button,
+    or text field after ``ensure_screen_state()`` applied a change.
+    For checkboxes/radios, values are stringified booleans ("True"/"False").
+    For text fields, values are the actual field content.
+    """
+
+    was: str = Field(description="Previous value before the transition")
+    now: str = Field(description="New value after the transition")
+
 
 class ScreenStateDiff(BaseModel):
-    """What changed during ensure_screen_state."""
-    checkboxes_changed: dict[str, StateChange] = {}  # label -> change
-    radios_changed: dict[str, StateChange] = {}
-    fields_changed: dict[str, StateChange] = {}
-    warnings: list[str] = []
+    """Summary of all changes applied by ``ensure_screen_state()``.
+
+    Returned after transitioning a selection screen from its current
+    state to the target state. Contains only the controls that were
+    actually changed (controls already matching the target are omitted).
+    Useful for logging and debugging state transitions.
+    """
+
+    checkboxes_changed: dict[str, StateChange] = Field(
+        default_factory=dict, description="Checkboxes that were toggled, keyed by label"
+    )
+    radios_changed: dict[str, StateChange] = Field(
+        default_factory=dict, description="Radio buttons that were changed, keyed by label"
+    )
+    fields_changed: dict[str, StateChange] = Field(
+        default_factory=dict, description="Text fields that were updated, keyed by label"
+    )
+    warnings: list[str] = Field(
+        default_factory=list, description="Labels from the target state that were not found on screen"
+    )
 ```
 
 ### Component 5: `set_radio_button()` Backend Protocol Method
