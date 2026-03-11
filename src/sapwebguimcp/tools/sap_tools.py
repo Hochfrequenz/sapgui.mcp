@@ -73,6 +73,21 @@ __all__ = ["register_sap_tools", "SELECTORS", "parse_shortcut_from_title"]
 logger = logging.getLogger(__name__)
 
 
+def _compact_description(description: str) -> str:
+    """Return only the first paragraph of a tool description.
+
+    Tool descriptions often contain boilerplate sections (session parameters,
+    multi-session support examples) after the first ``\\n\\n``.  These are
+    redundant in the capabilities overview because (a) the MCP client already
+    exposes the full description when a tool is invoked and (b) the SAP
+    knowledge base covers session management in detail.
+    """
+    idx = description.find("\n\n")
+    if idx > 0:
+        return description[:idx]
+    return description
+
+
 async def _capture_sap_identity(
     page: Any,
     effective_url: str,
@@ -957,7 +972,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "RECOMMENDED: Call at the start of every SAP session. "
-            "Returns all available tools with their full descriptions. "
+            "Returns available tools with short descriptions and SAP domain knowledge. "
             "Reading this first helps you understand what capabilities are available, "
             "work faster, and avoid common mistakes like clicking buttons when keyboard "
             "shortcuts are available."
@@ -968,7 +983,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         try:
             registered = await mcp.list_tools()
             tools = sorted(
-                [ToolInfo(name=t.name, description=t.description or "") for t in registered],
+                [
+                    ToolInfo(name=t.name, description=_compact_description(t.description or ""))
+                    for t in registered
+                ],
                 key=lambda t: t.name,
             )
 

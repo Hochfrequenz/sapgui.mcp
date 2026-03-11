@@ -396,7 +396,7 @@ class ToolInfo(BaseModel):
     """Information about a single MCP tool."""
 
     name: str = Field(description="Tool name (e.g., 'sap_login', 'browser_click')")
-    description: str = Field(description="Full tool description including usage guidance")
+    description: str = Field(description="Short tool description (first paragraph only)")
 
 
 class CapabilitiesResult(ToolResult):
@@ -404,7 +404,7 @@ class CapabilitiesResult(ToolResult):
 
     tools: list[ToolInfo] = Field(
         default_factory=list,
-        description="All available tools with their names and descriptions",
+        description="All available tools with their names and short descriptions",
     )
     sap_knowledge: str | None = Field(
         default=None,

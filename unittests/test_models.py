@@ -363,6 +363,51 @@ class TestCapabilitiesResult:
         assert '"success":true' in json_str
 
 
+class TestCompactDescription:
+    """Tests for _compact_description helper used by sap_get_capabilities."""
+
+    def test_single_paragraph_unchanged(self) -> None:
+        """Descriptions without paragraph breaks are returned as-is."""
+        from sapwebguimcp.tools.sap_tools import _compact_description
+
+        desc = "Log into SAP Web GUI."
+        assert _compact_description(desc) == desc
+
+    def test_strips_session_parameter_block(self) -> None:
+        """Session parameter boilerplate after \\n\\n is stripped."""
+        from sapwebguimcp.tools.sap_tools import _compact_description
+
+        desc = (
+            "Discover input fields on the current SAP screen.\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session (for parallel agents)'
+        )
+        assert _compact_description(desc) == "Discover input fields on the current SAP screen."
+
+    def test_keeps_first_paragraph_only(self) -> None:
+        """Multi-paragraph descriptions keep only the first paragraph."""
+        from sapwebguimcp.tools.sap_tools import _compact_description
+
+        desc = (
+            "Enter and execute an SAP transaction code. "
+            "IMPORTANT: Do NOT use this for SE11.\n\n"
+            "**Multi-Session Support:**\n"
+            "- new_window=True: Opens in new tab\n\n"
+            "**Session parameter:**\n"
+            "- session=None"
+        )
+        assert _compact_description(desc) == (
+            "Enter and execute an SAP transaction code. IMPORTANT: Do NOT use this for SE11."
+        )
+
+    def test_empty_string(self) -> None:
+        """Empty description returns empty string."""
+        from sapwebguimcp.tools.sap_tools import _compact_description
+
+        assert _compact_description("") == ""
+
+
 class TestLoginResultGuidance:
     """Tests for LoginResult guidance field."""
 
