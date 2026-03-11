@@ -43,8 +43,6 @@ from sapwebguimcp.lang import (
     SE11_TRANSPARENT_TABLE_EN,
     bilingual_pattern,
 )
-from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
-
 from sapwebguimcp.models import (
     SE11Entry,
     SE11Error,
@@ -53,6 +51,7 @@ from sapwebguimcp.models import (
     SE11ObjectType,
     SE11Result,
 )
+from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
 
 logger = logging.getLogger(__name__)
 
