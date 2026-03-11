@@ -5,6 +5,7 @@ This module provides a fast, single-call tool to retrieve table/structure
 metadata from SE11, returning strongly-typed Pydantic models.
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -227,21 +228,15 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
 
 async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11Error | None:
     """Wait for SE11 table screen and select the table radio. Returns error or None."""
-    from playwright.async_api import TimeoutError as PlaywrightTimeout  # pylint: disable=import-outside-toplevel
-
     now = datetime.now(UTC)
-    # Uses explicit constants: SE11_DATABASE_TABLE_DE, SE11_DATABASE_TABLE_EN
-    # Radio buttons don't have a backend protocol method, use _page directly
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    table_radio = page.get_by_role(
-        "radio", name=re.compile(bilingual_pattern(SE11_DATABASE_TABLE_DE, SE11_DATABASE_TABLE_EN), re.I)
-    )
 
-    try:
-        await table_radio.wait_for(state="visible", timeout=10000)
-    except PlaywrightTimeout:
+    # Wait for the screen to load by checking snapshot for radio presence
+    for _ in range(20):  # 20 * 500ms = 10s max
         snapshot = await backend.get_snapshot()
-        logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
+        if "Datenbanktabelle" in snapshot or "Database table" in snapshot:
+            break
+        await asyncio.sleep(0.5)
+    else:
         return SE11Error(
             name=name,
             object_type="table",
@@ -253,27 +248,37 @@ async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11E
             retrieved_at=now,
         )
 
-    await table_radio.click()
-    return None
+    # Select the table radio button via backend protocol
+    for label in [SE11_DATABASE_TABLE_DE, SE11_DATABASE_TABLE_EN]:
+        try:
+            await backend.set_radio_button(label)
+            # Verify the radio click stuck
+            verify_snap = await backend.get_snapshot()
+            if f'radio "{label}" [checked]' in verify_snap:
+                return None
+            logger.warning("Radio '%s' click did not stick", label)
+        except ValueError:
+            continue
+
+    return SE11Error(
+        name=name,
+        object_type="table",
+        error="Could not select 'Database table' / 'Datenbanktabelle' radio button",
+        retrieved_at=now,
+    )
 
 
 async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> SE11Error | None:
     """Wait for SE11 structure screen and select the data type radio. Returns error or None."""
-    from playwright.async_api import TimeoutError as PlaywrightTimeout  # pylint: disable=import-outside-toplevel
-
     now = datetime.now(UTC)
-    # Uses explicit constants: SE11_DATA_TYPE_DE, SE11_DATA_TYPE_EN
-    # Radio buttons don't have a backend protocol method, use _page directly
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    type_radio = page.get_by_role(
-        "radio", name=re.compile(bilingual_pattern(SE11_DATA_TYPE_DE, SE11_DATA_TYPE_EN), re.I)
-    )
 
-    try:
-        await type_radio.wait_for(state="visible", timeout=10000)
-    except PlaywrightTimeout:
+    # Wait for the screen to load by checking snapshot for radio presence
+    for _ in range(20):  # 20 * 500ms = 10s max
         snapshot = await backend.get_snapshot()
-        logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
+        if "Datentyp" in snapshot or "Data type" in snapshot:
+            break
+        await asyncio.sleep(0.5)
+    else:
         return SE11Error(
             name=name,
             object_type="structure",
@@ -285,8 +290,24 @@ async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> S
             retrieved_at=now,
         )
 
-    await type_radio.click()
-    return None
+    # Select the data type radio button via backend protocol
+    for label in [SE11_DATA_TYPE_DE, SE11_DATA_TYPE_EN]:
+        try:
+            await backend.set_radio_button(label)
+            # Verify the radio click stuck
+            verify_snap = await backend.get_snapshot()
+            if f'radio "{label}" [checked]' in verify_snap:
+                return None
+            logger.warning("Radio '%s' click did not stick", label)
+        except ValueError:
+            continue
+
+    return SE11Error(
+        name=name,
+        object_type="structure",
+        error="Could not select 'Data type' / 'Datentyp' radio button",
+        retrieved_at=now,
+    )
 
 
 async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error | None:
