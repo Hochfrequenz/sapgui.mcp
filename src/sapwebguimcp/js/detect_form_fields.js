@@ -111,6 +111,7 @@
             label: getLabel(el),
             field_type: fieldType,
             current_value: el.value || null,
+            checked: (fieldType === 'checkbox' || fieldType === 'radio') ? el.checked : null,
             readonly: isReadonly,
             options: null, // Will be populated separately for dropdowns if requested
         };

@@ -154,3 +154,26 @@ class TestParseSelectionScreenState:
         )
         state = parse_selection_screen_state(fake_snapshot)
         assert "Status" in state.ambiguous_labels
+
+
+class TestFormFieldCheckedField:
+    """Verify FormField model accepts and serializes the new checked field."""
+
+    def test_checkbox_field_checked(self) -> None:
+        from sapwebguimcp.models.sap_results import FormField, SapFieldType
+        field = FormField(id="cb1", label="Workbench", field_type=SapFieldType.CHECKBOX, checked=True)
+        assert field.checked is True
+        data = field.model_dump()
+        assert data["checked"] is True
+
+    def test_text_field_checked_is_none(self) -> None:
+        from sapwebguimcp.models.sap_results import FormField, SapFieldType
+        field = FormField(id="txt1", label="Name", field_type=SapFieldType.TEXT)
+        assert field.checked is None
+        data = field.model_dump()
+        assert data["checked"] is None
+
+    def test_radio_field_unchecked(self) -> None:
+        from sapwebguimcp.models.sap_results import FormField, SapFieldType
+        field = FormField(id="rb1", label="View", field_type=SapFieldType.RADIO, checked=False)
+        assert field.checked is False
