@@ -19,6 +19,9 @@ SE16_ROW_SELECT_HINT_EN = "To select a row"
 SE16_COLUMN_SELECTION_DE = "Spalte für Zeilenauswahl"
 SE16_COLUMN_SELECTION_EN = "Column for row selection"
 
+SE16_NO_ENTRIES_DE = "keine werte gefunden"
+SE16_NO_ENTRIES_EN = "no values found"
+
 # =============================================================================
 # SE11 - ABAP Dictionary
 # =============================================================================

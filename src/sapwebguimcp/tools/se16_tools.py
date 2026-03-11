@@ -16,6 +16,7 @@ from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
+from sapwebguimcp.lang import SE16_NO_ENTRIES_DE, SE16_NO_ENTRIES_EN
 from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row
 from sapwebguimcp.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
 from sapwebguimcp.tools.se11_tools import _lookup_object_on_initial_screen
@@ -431,6 +432,12 @@ def _check_table_not_found(snapshot: str, table: str) -> str | None:
     return None
 
 
+def _check_no_entries_found(snapshot: str) -> bool:
+    """Check if snapshot contains 'no values found' message (empty but existing table)."""
+    snapshot_lower = snapshot.lower()
+    return SE16_NO_ENTRIES_DE in snapshot_lower or SE16_NO_ENTRIES_EN in snapshot_lower
+
+
 def _check_selection_screen_columns(columns: list[str]) -> bool:
     """
     Check if parsed columns indicate we're still on the selection screen.
@@ -568,7 +575,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
     return all_rows
 
 
-async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
+async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements,too-many-statements
     backend: SapUiBackend,
     table: str,
     filters: dict[str, str] | None,
@@ -671,6 +678,19 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
 
     # Check if we're still on selection screen (parsed filter grid instead of results)
     if _check_selection_screen_columns(columns):
+        # Distinguish empty table from non-existent table:
+        # SAP shows "No values found" / "Keine Werte gefunden" for existing tables with no data
+        if _check_no_entries_found(snapshot_str):
+            logger.info("Table exists but has no entries", extra={"table": table})
+            return SE16Result(
+                table=table,
+                total_hits=0,
+                returned_rows=0,
+                truncated=False,
+                columns=[],
+                rows=[],
+                retrieved_at=now,
+            )
         logger.info("Parsed selection screen columns, table likely doesn't exist", extra={"table": table})
         return _empty_failure(
             f"Table '{table}' not found in SAP (still on selection screen)",
