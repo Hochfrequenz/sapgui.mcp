@@ -575,7 +575,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
     return all_rows
 
 
-async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
+async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements,too-many-statements
     backend: SapUiBackend,
     table: str,
     filters: dict[str, str] | None,
