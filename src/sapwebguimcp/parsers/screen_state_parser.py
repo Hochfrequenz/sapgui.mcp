@@ -41,7 +41,7 @@ _TEXTBOX_RE = re.compile(
 )
 
 
-def parse_selection_screen_state(snapshot: str) -> SelectionScreenState:
+def parse_selection_screen_state(snapshot: str) -> SelectionScreenState:  # pylint: disable=too-many-locals,too-many-branches
     """Parse checkbox, radio, and text field state from an ARIA snapshot.
 
     Args:
@@ -60,6 +60,7 @@ def parse_selection_screen_state(snapshot: str) -> SelectionScreenState:
     # Track label counts per type for ambiguity detection
     checkbox_labels: list[str] = []
     radio_labels: list[str] = []
+    field_labels: list[str] = []
 
     for line in snapshot.splitlines():
         # --- Checkboxes ---
@@ -94,6 +95,7 @@ def parse_selection_screen_state(snapshot: str) -> SelectionScreenState:
             if "[disabled]" in line or "[readonly]" in line:
                 continue
             fields[label] = value
+            field_labels.append(label)
             continue
 
     # Detect ambiguous labels (same label appears 2+ times for same type)
@@ -102,6 +104,9 @@ def parse_selection_screen_state(snapshot: str) -> SelectionScreenState:
         if count > 1:
             ambiguous.append(label)
     for label, count in Counter(radio_labels).items():
+        if count > 1:
+            ambiguous.append(label)
+    for label, count in Counter(field_labels).items():
         if count > 1:
             ambiguous.append(label)
 

@@ -155,6 +155,15 @@ class TestParseSelectionScreenState:
         state = parse_selection_screen_state(fake_snapshot)
         assert "Status" in state.ambiguous_labels
 
+    def test_ambiguous_textbox_labels_detected(self) -> None:
+        """If two textboxes share a label, it should be flagged as ambiguous."""
+        fake_snapshot = (
+            '- textbox "Date": 01.01.2026\n'
+            '- textbox "Date": 31.12.2026\n'
+        )
+        state = parse_selection_screen_state(fake_snapshot)
+        assert "Date" in state.ambiguous_labels
+
 
 class TestFormFieldCheckedField:
     """Verify FormField model accepts and serializes the new checked field."""

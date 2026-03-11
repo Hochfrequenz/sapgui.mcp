@@ -53,6 +53,7 @@ from sapwebguimcp.models import (
     SE11Result,
 )
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
+from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 
 logger = logging.getLogger(__name__)
 
@@ -248,24 +249,20 @@ async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11E
             retrieved_at=now,
         )
 
-    # Select the table radio button via backend protocol
-    for label in [SE11_DATABASE_TABLE_DE, SE11_DATABASE_TABLE_EN]:
-        try:
-            await backend.set_radio_button(label)
-            # Verify the radio click stuck
-            verify_snap = await backend.get_snapshot()
-            if f'radio "{label}" [checked]' in verify_snap:
-                return None
-            logger.warning("Radio '%s' click did not stick", label)
-        except ValueError:
-            continue
-
-    return SE11Error(
-        name=name,
-        object_type="table",
-        error="Could not select 'Database table' / 'Datenbanktabelle' radio button",
-        retrieved_at=now,
+    # Select the table radio via ensure_screen_state (with verification)
+    target = bilingual_target(
+        radios_de={SE11_DATABASE_TABLE_DE: True},
+        radios_en={SE11_DATABASE_TABLE_EN: True},
     )
+    result = await ensure_screen_state(backend, target)
+    if not result.success:
+        return SE11Error(
+            name=name,
+            object_type="table",
+            error=f"Could not select 'Database table' / 'Datenbanktabelle' radio: {result.error}",
+            retrieved_at=now,
+        )
+    return None
 
 
 async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> SE11Error | None:
@@ -290,24 +287,20 @@ async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> S
             retrieved_at=now,
         )
 
-    # Select the data type radio button via backend protocol
-    for label in [SE11_DATA_TYPE_DE, SE11_DATA_TYPE_EN]:
-        try:
-            await backend.set_radio_button(label)
-            # Verify the radio click stuck
-            verify_snap = await backend.get_snapshot()
-            if f'radio "{label}" [checked]' in verify_snap:
-                return None
-            logger.warning("Radio '%s' click did not stick", label)
-        except ValueError:
-            continue
-
-    return SE11Error(
-        name=name,
-        object_type="structure",
-        error="Could not select 'Data type' / 'Datentyp' radio button",
-        retrieved_at=now,
+    # Select the data type radio via ensure_screen_state (with verification)
+    target = bilingual_target(
+        radios_de={SE11_DATA_TYPE_DE: True},
+        radios_en={SE11_DATA_TYPE_EN: True},
     )
+    result = await ensure_screen_state(backend, target)
+    if not result.success:
+        return SE11Error(
+            name=name,
+            object_type="structure",
+            error=f"Could not select 'Data type' / 'Datentyp' radio: {result.error}",
+            retrieved_at=now,
+        )
+    return None
 
 
 async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error | None:

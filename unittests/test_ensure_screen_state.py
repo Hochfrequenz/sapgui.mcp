@@ -192,3 +192,41 @@ class TestEnsureScreenStateAmbiguity:
         assert diff.success is False
         assert "ambiguous" in diff.error.lower()
         backend.set_checkbox.assert_not_called()
+
+
+class TestEnsureScreenStateCombined:
+    """Test combined checkbox + radio + field transitions in a single call."""
+
+    @pytest.mark.anyio
+    async def test_combined_transition(self) -> None:
+        """All three control types should be applied and verified in one call."""
+        before = (
+            '- checkbox "Workbench-Aufträge" [checked]:  Workbench-Aufträge\n'
+            '- checkbox "Customizing-Aufträge":  Customizing-Aufträge\n'
+            '- radio "Datenbanktabelle" [checked]\n'
+            '- radio "View"\n'
+            '- textbox "Benutzer": KLEINK\n'
+        )
+        after = (
+            '- checkbox "Workbench-Aufträge" [checked]:  Workbench-Aufträge\n'
+            '- checkbox "Customizing-Aufträge" [checked]:  Customizing-Aufträge\n'
+            '- radio "Datenbanktabelle"\n'
+            '- radio "View" [checked]\n'
+            '- textbox "Benutzer": ADMIN\n'
+        )
+        backend = _mock_backend(before, after)
+        target = SelectionScreenState(
+            checkboxes={"Workbench-Aufträge": True, "Customizing-Aufträge": True},
+            radios={"View": True},
+            fields={"Benutzer": "ADMIN"},
+        )
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is True
+        assert "Customizing-Aufträge" in diff.checkboxes_changed
+        assert "View" in diff.radios_changed
+        assert "Benutzer" in diff.fields_changed
+        backend.set_checkbox.assert_called_once_with("Customizing-Aufträge", True)
+        backend.set_radio_button.assert_called_once_with("View")
+        backend.fill_field.assert_called_once_with("Benutzer", "ADMIN")

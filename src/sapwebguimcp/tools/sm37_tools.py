@@ -34,21 +34,10 @@ __all__ = ["register_sm37_tools"]
 
 _MAX_JOBS = 200
 
-# Checkbox label mapping: canonical name -> (DE label, EN label)
-# Labels match the ARIA checkbox names on the SM37 selection screen.
-_STATUS_CHECKBOX_MAP: dict[str, tuple[str, str]] = {
-    "scheduled": ("Geplant", "Scheduled"),
-    "released": ("Freigegeben", "Released"),
-    "ready": ("Bereit", "Ready"),
-    "active": ("Aktiv", "Active"),
-    "finished": ("Fertig", "Finished"),
-    "canceled": ("Abgebrochen", "Canceled"),
-}
-
-_ALL_STATUSES = list(_STATUS_CHECKBOX_MAP.keys())
+_ALL_STATUSES = ["scheduled", "released", "ready", "active", "finished", "canceled"]
 
 
-async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches
+async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
     backend: "SapUiBackend",
     job_name: str,
     username: str | None,
@@ -60,29 +49,14 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
     """Fill the SM37 selection screen fields."""
     errors: list[str] = []
 
-    # Fill job name - try DE then EN label
-    for label in ["Jobname", "Job name"]:
-        try:
-            await backend.fill_field(label, job_name)
-            break
-        except ValueError:
-            continue
-    else:
-        errors.append("Could not find job name field")
-
-    # Fill username
-    if username is not None:
-        for label in ["Benutzername", "User name"]:
-            try:
-                await backend.fill_field(label, username)
-                break
-            except ValueError:
-                continue
-        else:
-            errors.append("Could not find username field")
-
-    # Build target for status checkboxes — always explicitly set all 6
+    # Build target for checkboxes + text fields in one declarative call
     effective_statuses = set(statuses) if statuses else set(_ALL_STATUSES)
+    fields_de: dict[str, str] = {"Jobname": job_name}
+    fields_en: dict[str, str] = {"Job name": job_name}
+    if username is not None:
+        fields_de["Benutzername"] = username
+        fields_en["User name"] = username
+
     target = bilingual_target(
         checkboxes_de={
             "Geplant": "scheduled" in effective_statuses,
@@ -100,10 +74,12 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
             "Finished": "finished" in effective_statuses,
             "Canceled": "canceled" in effective_statuses,
         },
+        fields_de=fields_de,
+        fields_en=fields_en,
     )
     state_result = await ensure_screen_state(backend, target)
     if not state_result.success:
-        errors.append(f"Failed to set status checkboxes: {state_result.error}")
+        errors.append(f"Failed to set selection screen state: {state_result.error}")
     errors.extend(state_result.warnings)
 
     # Date fields — aria-labels are "von Datum"/"From Date" and "bis Datum"/"To Date"

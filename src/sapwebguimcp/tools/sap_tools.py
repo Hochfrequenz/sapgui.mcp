@@ -1802,6 +1802,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     label=label, value=str(checked), popup=popup,
                 )
             await backend.set_checkbox(label, checked)
+            await backend.wait_for_ready()
             return SetFieldResult(label=label, value=str(checked))
         except ValueError as e:
             return SetFieldResult.failure(str(e), label=label, value=str(checked))
@@ -1842,6 +1843,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     label=label, value="selected", popup=popup,
                 )
             await backend.set_radio_button(label)
+            await backend.wait_for_ready()
             return SetFieldResult(label=label, value="selected")
         except ValueError as e:
             return SetFieldResult.failure(str(e), label=label, value="selected")
