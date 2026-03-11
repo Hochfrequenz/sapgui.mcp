@@ -256,6 +256,34 @@ async def test_se16_query_empty_table(sap_mcp_client: ClientSession) -> None:
 
 
 @pytest.mark.anyio
+async def test_se16_query_existing_table_with_no_data(sap_mcp_client: ClientSession) -> None:
+    """Test sap_se16_query with a table that exists but has no entries.
+
+    Regression test: previously, empty tables were reported as 'Table not found'
+    because the tool stayed on the selection screen after F8 and mistakenly
+    interpreted the selection screen columns as a non-existent table signal.
+    """
+    # Login
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    # EGERH is a standard SAP table that exists but is typically empty
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "EGERH", "max_hits": 10},
+        SE16Result,
+    )
+
+    # Must succeed (table exists) with 0 rows - NOT report "table not found"
+    assert result.success, f"Empty table wrongly reported as error: {result.error}"
+    assert result.table == "EGERH"
+    assert result.total_hits == 0
+    assert result.returned_rows == 0
+    assert len(result.rows) == 0
+
+
+@pytest.mark.anyio
 async def test_se16_query_output_file(sap_mcp_client: ClientSession, tmp_path: Path) -> None:
     """Test sap_se16_query with output_file parameter."""
     # Login
