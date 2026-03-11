@@ -51,6 +51,7 @@ from sapwebguimcp.models import (
     SE11ObjectType,
     SE11Result,
 )
+from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
 
 logger = logging.getLogger(__name__)
 
@@ -289,19 +290,11 @@ async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> S
 
 
 async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error | None:
-    """Fill the table name field in SE11. Returns error or None."""
+    """Fill the table name field in SE11 using real keyboard events. Returns error or None."""
     now = datetime.now(UTC)
+    labels = [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]
 
-    # Try DE and EN labels
-    for label in [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]:
-        try:
-            await backend.fill_field(label, name.upper())
-            return None
-        except ValueError:  # pylint: disable=broad-exception-caught
-            continue
-
-    # Fallback: fill main form input, skipping toolbar/combobox inputs.
-    if await backend.fill_main_input(name.upper(), [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]):
+    if await fill_field_with_keyboard(backend, labels, name.upper()):
         return None
 
     return SE11Error(
@@ -313,19 +306,11 @@ async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error 
 
 
 async def _fill_structure_name_field(backend: SapUiBackend, name: str) -> SE11Error | None:
-    """Fill the structure/data type name field in SE11. Returns error or None."""
+    """Fill the structure/data type name field in SE11 using real keyboard events. Returns error or None."""
     now = datetime.now(UTC)
+    labels = [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]
 
-    # Try DE and EN labels for the Dictionary Type field
-    for label in [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]:
-        try:
-            await backend.fill_field(label, name.upper())
-            return None
-        except ValueError:  # pylint: disable=broad-exception-caught
-            continue
-
-    # Fallback: fill main form input, skipping toolbar/combobox inputs.
-    if await backend.fill_main_input(name.upper(), [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]):
+    if await fill_field_with_keyboard(backend, labels, name.upper()):
         return None
 
     return SE11Error(
@@ -374,21 +359,15 @@ async def _check_object_not_found(backend: SapUiBackend, name: str, object_type:
     return None
 
 
-async def _lookup_single_object(  # pylint: disable=too-many-return-statements
+async def _lookup_object_on_initial_screen(  # pylint: disable=too-many-return-statements
     backend: SapUiBackend, name: str, object_type: SE11ObjectType
 ) -> SE11Entry | SE11Error:
-    """Look up a single table or structure in SE11."""
-    now = datetime.now(UTC)
+    """Look up a table or structure assuming we're already on the SE11 initial screen.
 
-    # Navigate to SE11
-    tx_result = await backend.enter_transaction("SE11")
-    if not tx_result.success:
-        return SE11Error(
-            name=name,
-            object_type=object_type,
-            error=f"Failed to navigate to SE11: {tx_result.error}",
-            retrieved_at=now,
-        )
+    The caller handles navigation (``enter_transaction``) and state reset
+    (``/n`` between lookups) to prevent state bleeding in batch mode.
+    """
+    now = datetime.now(UTC)
 
     # Wait for screen and select object type
     if object_type == "table":
@@ -523,8 +502,26 @@ def register_se11_tools(mcp: FastMCP) -> None:
         errors: list[SE11Error] = []
 
         for name in name_list:
+            # Navigate to Easy Access first to ensure a clean starting state,
+            # then open SE11.  This prevents state bleeding between lookups.
+            await backend.enter_transaction("/n")
+            await backend.wait_for_ready()
+
+            tx_result = await backend.enter_transaction("SE11")
+            if not tx_result.success:
+                errors.append(
+                    SE11Error(
+                        name=name,
+                        object_type=object_type,
+                        error=f"Failed to navigate to SE11: {tx_result.error}",
+                        retrieved_at=datetime.now(UTC),
+                    )
+                )
+                continue
+            await backend.wait_for_ready()
+
             try:
-                result = await _lookup_single_object(backend, name, object_type)
+                result = await _lookup_object_on_initial_screen(backend, name, object_type)
                 if isinstance(result, SE11Entry):
                     entries.append(result)
                 else:

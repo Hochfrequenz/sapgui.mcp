@@ -23,6 +23,7 @@ from sapwebguimcp.models import (
     SE37Result,
 )
 from sapwebguimcp.parsers.se37_parser import SE37TabSnapshots, parse_se37_snapshot
+from sapwebguimcp.tools.field_helpers import fill_and_display
 
 logger = logging.getLogger(__name__)
 
@@ -37,66 +38,12 @@ MAX_INLINE_OBJECTS = 5
 # =============================================================================
 
 
-async def _fill_fm_field(backend: SapUiBackend, fm_name: str) -> SE37Error | None:
-    """Fill the function module name field in SE37. Returns error or None."""
-    now = datetime.now(UTC)
-
-    # Try multiple label variants (DE and EN)
-    labels = [
-        "Funktionsbaustein",
-        "Function module",
-        "Function Module",
-    ]
-
-    for label in labels:
-        try:
-            await backend.fill_field(label, fm_name.upper())
-            return None
-        except ValueError:  # pylint: disable=broad-exception-caught
-            continue
-
-    # Fallback: fill main form input, skipping toolbar/combobox inputs.
-    if await backend.fill_main_input(fm_name.upper(), labels):
-        return None
-
-    return SE37Error(
-        function_module=fm_name,
-        error="Could not find function module field in SE37",
-        retrieved_at=now,
-    )
-
-
-async def _check_fm_not_found(backend: SapUiBackend, fm_name: str) -> SE37Error | None:
-    """Check if function module was not found by examining the status bar. Returns error or None."""
-    now = datetime.now(UTC)
-
-    # Check status bar for specific error messages (narrow, avoids false positives)
-    status = await backend.get_status_bar()
-    status_text = (status.message or "").lower()
-
-    not_found_msgs = {
-        "ist noch nicht vorhanden",
-        "does not exist",
-        "nicht gefunden",
-        "not found",
-        "nicht vorhanden",
-        "existiert nicht",
-    }
-    if status_text and any(msg in status_text for msg in not_found_msgs):
-        return SE37Error(function_module=fm_name, error=f"Function module '{fm_name}' not found", retrieved_at=now)
-
-    # Secondary check: verify we left the initial screen
-    snapshot = await backend.get_snapshot()
-    snapshot_lower = str(snapshot).lower()
-    is_initial_screen = "einstieg" in snapshot_lower or "initial screen" in snapshot_lower
-    if is_initial_screen:
-        return SE37Error(
-            function_module=fm_name,
-            error=f"Function module '{fm_name}' not found (still on initial screen)",
-            retrieved_at=now,
-        )
-
-    return None
+# DE/EN label variants for the function module input field.
+_FM_FIELD_LABELS = [
+    "Funktionsbaustein",
+    "Function module",
+    "Function Module",
+]
 
 
 async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | None:
@@ -122,35 +69,23 @@ async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | N
     return None
 
 
-async def _lookup_single_fm(backend: SapUiBackend, fm_name: str) -> SE37Entry | SE37Error:
-    """Look up a single function module in SE37."""
-    now = datetime.now(UTC)
+async def _lookup_fm_on_initial_screen(backend: SapUiBackend, fm_name: str) -> SE37Entry | SE37Error:
+    """Look up a function module assuming we're already on the SE37 initial screen.
 
-    # Navigate to SE37
-    tx_result = await backend.enter_transaction("SE37")
-    if not tx_result.success:
+    The caller handles navigation (``enter_transaction``) and state reset
+    (``/n`` between lookups) to prevent state bleeding in batch mode.
+    """
+    # Ensure the SE37 screen is fully loaded before interacting.
+    await backend.wait_for_ready()
+
+    # Fill field with real keyboard events, press F7, and verify navigation.
+    error_msg = await fill_and_display(backend, _FM_FIELD_LABELS, fm_name, tcode_label="function module")
+    if error_msg:
         return SE37Error(
             function_module=fm_name,
-            error=f"Failed to navigate to SE37: {tx_result.error}",
-            retrieved_at=now,
+            error=error_msg,
+            retrieved_at=datetime.now(UTC),
         )
-
-    # Wait for SE37 screen to be ready
-    await backend.wait_for_ready()
-
-    # Fill function module name
-    error = await _fill_fm_field(backend, fm_name)
-    if error:
-        return error
-
-    # Click display (F7)
-    await backend.press_key("F7")
-    await backend.wait_for_ready()
-
-    # Check for not found error
-    error = await _check_fm_not_found(backend, fm_name)
-    if error:
-        return error
 
     # Get main snapshot first
     main_snapshot = await backend.get_snapshot()
@@ -235,8 +170,25 @@ def register_se37_tools(mcp: FastMCP) -> None:
         errors: list[SE37Error] = []
 
         for fm_name in fm_list:
+            # Navigate to Easy Access first to ensure a clean starting state,
+            # then open SE37.  This prevents state bleeding between lookups.
+            await backend.enter_transaction("/n")
+            await backend.wait_for_ready()
+
+            tx_result = await backend.enter_transaction("SE37")
+            if not tx_result.success:
+                errors.append(
+                    SE37Error(
+                        function_module=fm_name,
+                        error=f"Failed to navigate to SE37: {tx_result.error}",
+                        retrieved_at=datetime.now(UTC),
+                    )
+                )
+                continue
+            await backend.wait_for_ready()
+
             try:
-                result = await _lookup_single_fm(backend, fm_name)
+                result = await _lookup_fm_on_initial_screen(backend, fm_name)
                 if isinstance(result, SE37Entry):
                     entries.append(result)
                 else:

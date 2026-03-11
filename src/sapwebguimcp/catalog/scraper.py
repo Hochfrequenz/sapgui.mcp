@@ -265,7 +265,7 @@ async def enrich_with_se93(
     """
     # Import here to avoid circular imports
     from sapwebguimcp.backend.manager import get_backend
-    from sapwebguimcp.tools.se93_tools import _lookup_single_tcode
+    from sapwebguimcp.tools.se93_tools import _lookup_tcode_on_initial_screen
 
     # Load TSTC data
     if tstc_data is None:
@@ -331,9 +331,19 @@ async def enrich_with_se93(
 
             logger.info("SE93 enrichment", extra={"processed": processed, "total": total, "tcode": txn.tcode})
 
+            # Navigate to Easy Access first, then SE93 — prevents state bleeding
+            await backend.enter_transaction("/n")
+            await backend.wait_for_ready()
+            tx_result = await backend.enter_transaction("SE93")
+            if not tx_result.success:
+                failed += 1
+                errors.append({"tcode": txn.tcode, "error": f"Failed to navigate to SE93: {tx_result.error}"})
+                continue
+            await backend.wait_for_ready()
+
             # Call SE93 lookup
             try:
-                result = await _lookup_single_tcode(backend, txn.tcode)
+                result = await _lookup_tcode_on_initial_screen(backend, txn.tcode)
 
                 if isinstance(result, SE93Entry):
                     # Apply enrichment

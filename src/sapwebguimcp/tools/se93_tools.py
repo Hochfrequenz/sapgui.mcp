@@ -22,6 +22,7 @@ from sapwebguimcp.models import (
     SE93Result,
 )
 from sapwebguimcp.parsers.se93_parser import parse_se93_snapshot
+from sapwebguimcp.tools.field_helpers import fill_and_display
 
 logger = logging.getLogger(__name__)
 
@@ -36,88 +37,31 @@ MAX_INLINE_OBJECTS = 10
 # =============================================================================
 
 
-async def _fill_tcode_field(backend: SapUiBackend, tcode: str) -> SE93Error | None:
-    """Fill the transaction code field in SE93. Returns error or None."""
-    now = datetime.now(UTC)
-
-    # Try multiple label variants (DE and EN)
-    labels = [
-        "Transaktionscode",
-        "Transaction code",
-        "Transaction Code",
-    ]
-
-    for label in labels:
-        try:
-            await backend.fill_field(label, tcode.upper())
-            return None
-        except ValueError:  # pylint: disable=broad-exception-caught
-            continue
-
-    # Fallback: fill main form input, skipping toolbar/combobox inputs.
-    if await backend.fill_main_input(tcode.upper(), labels):
-        return None
-
-    return SE93Error(
-        tcode=tcode,
-        error="Could not find transaction code field in SE93",
-        retrieved_at=now,
-    )
+# DE/EN label variants for the transaction code input field.
+_TCODE_FIELD_LABELS = [
+    "Transaktionscode",
+    "Transaction code",
+    "Transaction Code",
+]
 
 
-async def _check_tcode_not_found(backend: SapUiBackend, tcode: str) -> SE93Error | None:
-    """Check if transaction was not found by examining the status bar. Returns error or None."""
-    now = datetime.now(UTC)
+async def _lookup_tcode_on_initial_screen(backend: SapUiBackend, tcode: str) -> SE93Entry | SE93Error:
+    """Look up a transaction code assuming we're already on the SE93 initial screen.
 
-    # Check status bar for specific error messages (narrow, avoids false positives)
-    status = await backend.get_status_bar()
-    status_text = (status.message or "").lower()
+    The caller handles navigation (``enter_transaction``) and state reset
+    (``/n`` between lookups) to prevent state bleeding in batch mode.
+    """
+    # Ensure the SE93 screen is fully loaded before interacting.
+    await backend.wait_for_ready()
 
-    not_found_msgs = {"existiert nicht", "does not exist", "nicht gefunden", "not found", "nicht vorhanden"}
-    if status_text and any(msg in status_text for msg in not_found_msgs):
-        return SE93Error(tcode=tcode, error=f"Transaction '{tcode}' not found", retrieved_at=now)
-
-    # Secondary check: verify we left the initial screen
-    snapshot = await backend.get_snapshot()
-    snapshot_lower = str(snapshot).lower()
-    is_initial_screen = "transaktionspflege" in snapshot_lower or "transaction maintenance" in snapshot_lower
-    if is_initial_screen:
-        return SE93Error(
-            tcode=tcode, error=f"Transaction '{tcode}' not found (still on initial screen)", retrieved_at=now
-        )
-
-    return None
-
-
-async def _lookup_single_tcode(backend: SapUiBackend, tcode: str) -> SE93Entry | SE93Error:
-    """Look up a single transaction code in SE93."""
-    now = datetime.now(UTC)
-
-    # Navigate to SE93
-    tx_result = await backend.enter_transaction("SE93")
-    if not tx_result.success:
+    # Fill field with real keyboard events, press F7, and verify navigation.
+    error_msg = await fill_and_display(backend, _TCODE_FIELD_LABELS, tcode, tcode_label="transaction")
+    if error_msg:
         return SE93Error(
             tcode=tcode,
-            error=f"Failed to navigate to SE93: {tx_result.error}",
-            retrieved_at=now,
+            error=error_msg,
+            retrieved_at=datetime.now(UTC),
         )
-
-    # Wait for SE93 screen to be ready
-    await backend.wait_for_ready()
-
-    # Fill transaction code
-    error = await _fill_tcode_field(backend, tcode)
-    if error:
-        return error
-
-    # Click display (F7)
-    await backend.press_key("F7")
-    await backend.wait_for_ready()
-
-    # Check for not found error
-    error = await _check_tcode_not_found(backend, tcode)
-    if error:
-        return error
 
     # Get and parse snapshot
     snapshot = await backend.get_snapshot()
@@ -181,8 +125,25 @@ def register_se93_tools(mcp: FastMCP) -> None:
         errors: list[SE93Error] = []
 
         for tcode in tcode_list:
+            # Navigate to Easy Access first to ensure a clean starting state,
+            # then open SE93.  This prevents state bleeding between lookups.
+            await backend.enter_transaction("/n")
+            await backend.wait_for_ready()
+
+            tx_result = await backend.enter_transaction("SE93")
+            if not tx_result.success:
+                errors.append(
+                    SE93Error(
+                        tcode=tcode,
+                        error=f"Failed to navigate to SE93: {tx_result.error}",
+                        retrieved_at=datetime.now(UTC),
+                    )
+                )
+                continue
+            await backend.wait_for_ready()
+
             try:
-                result = await _lookup_single_tcode(backend, tcode)
+                result = await _lookup_tcode_on_initial_screen(backend, tcode)
                 if isinstance(result, SE93Entry):
                     entries.append(result)
                 else:
