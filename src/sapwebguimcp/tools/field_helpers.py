@@ -120,9 +120,14 @@ async def fill_and_display(
     for attempt in range(2):
         if attempt > 0:
             logger.info("Retrying fill+F7 for %s (attempt %d)", name, attempt + 1)
+            # Extra wait before retry — SAP may need time to render after /n reset.
+            await asyncio.sleep(0.5)
 
         filled = await fill_field_with_keyboard(backend, labels, upper_name)
         if not filled:
+            if attempt == 0:
+                logger.warning("Field not found on first attempt, will retry")
+                continue
             return f"Could not find {tcode_label} field"
 
         # Brief wait for SAP to register the typed value before pressing F7.
