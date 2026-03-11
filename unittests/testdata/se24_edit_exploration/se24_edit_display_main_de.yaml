@@ -1,9 +1,12 @@
 - 'main "Class Builder: Klasse ZCL_TEST_MCP_EDIT anzeigen"':
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - 'heading "Class Builder: Klasse ZCL_TEST_MCP_EDIT anzeigen" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -16,9 +19,9 @@
       - button "Aktivieren"
       - button "In der Testumgebung"
       - button "Mehr"
-    - button "Suchen (Strg+F)"
-    - button "Drucken (Strg+P)"
-    - button "Beenden"
+      - button "Suchen (Strg+F)"
+      - button "Drucken (Strg+P)"
+      - button "Beenden"
   - text: Klasse/Interface
   - textbox "Klasse/Interface": ZCL_TEST_MCP_EDIT
   - button "realisiert / Aktiv"
@@ -58,13 +61,13 @@
           - columnheader "Sichtbarkeit"
           - columnheader "Methodentyp"
           - columnheader "Beschreibung"
-        - button ""
-        - row "Leer":
-          - gridcell:
+        - button "Konfiguration": 
+        - row "DO_SOMETHING Instance Method Private Leer":
+          - gridcell "DO_SOMETHING":
             - textbox
-          - gridcell:
+          - gridcell "Instance Method":
             - textbox
-          - gridcell:
+          - gridcell "Private":
             - textbox
           - gridcell "Leer"
           - gridcell:
@@ -263,15 +266,15 @@
         - cell "Transaktion"
         - cell "SE24"
         - cell
-      - row "E2E-Zeit 270 ms":
+      - row "E2E-Zeit 209 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "270 ms"
+        - cell "209 ms"
         - cell
-      - row "WebGUI-Zeit 149 ms":
+      - row "WebGUI-Zeit 122 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "149 ms"
+        - cell "122 ms"
         - cell

@@ -5,6 +5,7 @@ This module provides a fast, single-call tool to retrieve table/structure
 metadata from SE11, returning strongly-typed Pydantic models.
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -52,6 +53,7 @@ from sapwebguimcp.models import (
     SE11Result,
 )
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
+from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 
 logger = logging.getLogger(__name__)
 
@@ -227,21 +229,15 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
 
 async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11Error | None:
     """Wait for SE11 table screen and select the table radio. Returns error or None."""
-    from playwright.async_api import TimeoutError as PlaywrightTimeout  # pylint: disable=import-outside-toplevel
-
     now = datetime.now(UTC)
-    # Uses explicit constants: SE11_DATABASE_TABLE_DE, SE11_DATABASE_TABLE_EN
-    # Radio buttons don't have a backend protocol method, use _page directly
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    table_radio = page.get_by_role(
-        "radio", name=re.compile(bilingual_pattern(SE11_DATABASE_TABLE_DE, SE11_DATABASE_TABLE_EN), re.I)
-    )
 
-    try:
-        await table_radio.wait_for(state="visible", timeout=10000)
-    except PlaywrightTimeout:
+    # Wait for the screen to load by checking snapshot for radio presence
+    for _ in range(20):  # 20 * 500ms = 10s max
         snapshot = await backend.get_snapshot()
-        logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
+        if "Datenbanktabelle" in snapshot or "Database table" in snapshot:
+            break
+        await asyncio.sleep(0.5)
+    else:
         return SE11Error(
             name=name,
             object_type="table",
@@ -253,27 +249,33 @@ async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11E
             retrieved_at=now,
         )
 
-    await table_radio.click()
+    # Select the table radio via ensure_screen_state (with verification)
+    target = bilingual_target(
+        radios_de={SE11_DATABASE_TABLE_DE: True},
+        radios_en={SE11_DATABASE_TABLE_EN: True},
+    )
+    result = await ensure_screen_state(backend, target)
+    if not result.success:
+        return SE11Error(
+            name=name,
+            object_type="table",
+            error=f"Could not select 'Database table' / 'Datenbanktabelle' radio: {result.error}",
+            retrieved_at=now,
+        )
     return None
 
 
 async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> SE11Error | None:
     """Wait for SE11 structure screen and select the data type radio. Returns error or None."""
-    from playwright.async_api import TimeoutError as PlaywrightTimeout  # pylint: disable=import-outside-toplevel
-
     now = datetime.now(UTC)
-    # Uses explicit constants: SE11_DATA_TYPE_DE, SE11_DATA_TYPE_EN
-    # Radio buttons don't have a backend protocol method, use _page directly
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    type_radio = page.get_by_role(
-        "radio", name=re.compile(bilingual_pattern(SE11_DATA_TYPE_DE, SE11_DATA_TYPE_EN), re.I)
-    )
 
-    try:
-        await type_radio.wait_for(state="visible", timeout=10000)
-    except PlaywrightTimeout:
+    # Wait for the screen to load by checking snapshot for radio presence
+    for _ in range(20):  # 20 * 500ms = 10s max
         snapshot = await backend.get_snapshot()
-        logger.warning("Radio not found, snapshot preview", extra={"snapshot": str(snapshot)[:300]})
+        if "Datentyp" in snapshot or "Data type" in snapshot:
+            break
+        await asyncio.sleep(0.5)
+    else:
         return SE11Error(
             name=name,
             object_type="structure",
@@ -285,7 +287,19 @@ async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> S
             retrieved_at=now,
         )
 
-    await type_radio.click()
+    # Select the data type radio via ensure_screen_state (with verification)
+    target = bilingual_target(
+        radios_de={SE11_DATA_TYPE_DE: True},
+        radios_en={SE11_DATA_TYPE_EN: True},
+    )
+    result = await ensure_screen_state(backend, target)
+    if not result.success:
+        return SE11Error(
+            name=name,
+            object_type="structure",
+            error=f"Could not select 'Data type' / 'Datentyp' radio: {result.error}",
+            retrieved_at=now,
+        )
     return None
 
 

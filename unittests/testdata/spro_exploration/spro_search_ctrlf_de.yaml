@@ -1,9 +1,12 @@
 - main "IMG anzeigen":
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - heading "IMG anzeigen" [level=1]
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -15,15 +18,15 @@
       - button "Änderungsprotokoll"
       - button "Vergleichen"
       - button "Mehr"
-    - button "Suchen (Strg+F)"
-    - button "Weiter suchen... (Strg+G)"
-    - button "Beenden"
+      - button "Suchen (Strg+F)"
+      - button "Weiter suchen... (Strg+G)"
+      - button "Beenden"
   - grid:
     - row "Spalte für Zeilenauswahl Struktur":
       - columnheader "Spalte für Zeilenauswahl"
       - columnheader "Struktur"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 0 Expandiert":
@@ -36,8 +39,8 @@
                   - button
                 - cell "SAP Customizing Einführungsleitfaden":
                   - button "SAP Customizing Einführungsleitfaden"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -50,8 +53,8 @@
                   - button
                 - cell "Commercial Project Management":
                   - button "Commercial Project Management"
-    - row "Row selection disabled.":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert.":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell:
         - group "Ebene 1":
           - group "Zum Starten der Navigation durch die Einträge drücken Sie Alt+F7. Zur Navigation durch die Einträge verwenden Sie die linke und rechte Pfeiltaste. Drücken Sie erneut Alt+F7 zum Verlassen der Navigation.":
@@ -63,8 +66,8 @@
                   - button "IMG - Aktivität"
                 - cell "Business Functions aktivieren":
                   - button "Business Functions aktivieren"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -77,8 +80,8 @@
                   - button
                 - cell "Konvertierung des Rechnungswesens auf SAP S/4HANA":
                   - button "Konvertierung des Rechnungswesens auf SAP S/4HANA"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -91,8 +94,8 @@
                   - button
                 - cell "ABAP Platform":
                   - button "ABAP Platform"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -105,8 +108,8 @@
                   - button
                 - cell "Unternehmensstruktur":
                   - button "Unternehmensstruktur"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -119,8 +122,8 @@
                   - button
                 - cell "Anwendungsübergreifende Komponenten":
                   - button "Anwendungsübergreifende Komponenten"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -133,8 +136,8 @@
                   - button
                 - 'cell "Mobile Application Integration Framework: Konfiguration"':
                   - 'button "Mobile Application Integration Framework: Konfiguration"'
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -147,8 +150,8 @@
                   - button
                 - cell "SAP Portfolio and Project Management":
                   - button "SAP Portfolio and Project Management"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -161,8 +164,8 @@
                   - button
                 - cell "Finanzwesen":
                   - button "Finanzwesen"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -175,8 +178,8 @@
                   - button
                 - cell "Financial Supply Chain Management":
                   - button "Financial Supply Chain Management"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -189,8 +192,8 @@
                   - button
                 - cell "Konnektor für SAP Multi-Bank Connectivity":
                   - button "Konnektor für SAP Multi-Bank Connectivity"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -203,8 +206,8 @@
                   - button
                 - cell "Strategic Enterprise Management/Business Analytics":
                   - button "Strategic Enterprise Management/Business Analytics"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -217,8 +220,8 @@
                   - button
                 - cell "Controlling":
                   - button "Controlling"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -231,8 +234,8 @@
                   - button
                 - cell "Planning and Consolidation":
                   - button "Planning and Consolidation"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -245,8 +248,8 @@
                   - button
                 - cell "SAP S/4HANA für Konzernberichtswesen":
                   - button "SAP S/4HANA für Konzernberichtswesen"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -259,8 +262,8 @@
                   - button
                 - cell "Investitionsmanagement":
                   - button "Investitionsmanagement"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -273,8 +276,8 @@
                   - button
                 - cell "Unternehmenscontrolling":
                   - button "Unternehmenscontrolling"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -287,8 +290,8 @@
                   - button
                 - cell "Flexibles Immobilienmanagement (RE-FX)":
                   - button "Flexibles Immobilienmanagement (RE-FX)"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -301,8 +304,8 @@
                   - button
                 - cell "Logistik Allgemein":
                   - button "Logistik Allgemein"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -315,8 +318,8 @@
                   - button
                 - cell "Environment, Health & Safety":
                   - button "Environment, Health & Safety"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -329,8 +332,8 @@
                   - button
                 - cell "Product Safety and Stewardship":
                   - button "Product Safety and Stewardship"
-    - row "Row selection disabled. ":
-      - gridcell "Row selection disabled." [disabled]
+    - row "Zeilenauswahl deaktiviert. ":
+      - gridcell "Zeilenauswahl deaktiviert."
       - gridcell "":
         - text: 
         - group "Ebene 1 Komprimiert":
@@ -375,15 +378,15 @@
         - cell "Transaktion"
         - cell "SIMG"
         - cell
-      - row "E2E-Zeit 523 ms":
+      - row "E2E-Zeit 210 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "523 ms"
+        - cell "210 ms"
         - cell
-      - row "WebGUI-Zeit 51 ms":
+      - row "WebGUI-Zeit 44 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "51 ms"
+        - cell "44 ms"
         - cell

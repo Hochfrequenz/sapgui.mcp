@@ -1,9 +1,12 @@
 - main "Allgemeine Tabellenanzeige":
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - heading "Allgemeine Tabellenanzeige" [level=1]
     - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -15,9 +18,9 @@
       - button "Schlüsselfelder für Ausgabe markieren"
       - button "Alle Mark. löschen"
       - button "Mehr"
-    - button "Suchen (Strg+F)"
-    - button "Weiter suchen (Strg+G)"
-    - button "Beenden"
+      - button "Suchen (Strg+F)"
+      - button "Weiter suchen (Strg+G)"
+      - button "Beenden"
   - text: Tabelle
   - textbox "Tabelle"
   - button "More Information"
@@ -294,15 +297,15 @@
         - cell "Transaktion"
         - cell "SE16N"
         - cell
-      - row "E2E-Zeit 126 ms":
+      - row "E2E-Zeit 180 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "126 ms"
+        - cell "180 ms"
         - cell
-      - row "WebGUI-Zeit 72 ms":
+      - row "WebGUI-Zeit 115 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "72 ms"
+        - cell "115 ms"
         - cell

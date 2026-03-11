@@ -1,9 +1,12 @@
 - 'main "Dictionary: Tabelle anzeigen"':
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - 'heading "Dictionary: Tabelle anzeigen" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -15,10 +18,10 @@
       - button "Verwendungsnachweis"
       - button "Objektliste anzeigen"
       - button "Mehr"
-    - button "Suchen (Strg+F)"
-    - button "Weiter suchen (Strg+G)"
-    - button "Drucken... (Strg+P)"
-    - button "Beenden"
+      - button "Suchen (Strg+F)"
+      - button "Weiter suchen (Strg+G)"
+      - button "Drucken... (Strg+P)"
+      - button "Beenden"
   - text: Transp.Tabelle
   - textbox "Transp.Tabelle": T000
   - button "aktiv"
@@ -62,7 +65,7 @@
           - columnheader "KoordSystem"
           - columnheader "Kurzbeschreibung"
           - columnheader "Gruppe"
-        - button ""
+        - button "Konfiguration": 
         - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. MANDT   MANDT CLNT 3 0 0 Mandant":
           - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
           - gridcell "MANDT":
@@ -405,15 +408,15 @@
         - cell "Transaktion"
         - cell "SE11"
         - cell
-      - row "E2E-Zeit 450 ms":
+      - row "E2E-Zeit 269 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "450 ms"
+        - cell "269 ms"
         - cell
-      - row "WebGUI-Zeit 173 ms":
+      - row "WebGUI-Zeit 119 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "173 ms"
+        - cell "119 ms"
         - cell

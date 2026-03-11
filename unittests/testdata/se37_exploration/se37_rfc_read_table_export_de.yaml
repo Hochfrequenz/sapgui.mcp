@@ -1,23 +1,14 @@
 - 'main "Function Builder: RFC_READ_TABLE anzeigen"':
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - 'heading "Function Builder: RFC_READ_TABLE anzeigen" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
     - toolbar:
-      - button "Funktionsbaustein"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Hilfsmittel"
-      - button "Umfeld"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - button "Suchen (Strg+F)"
-    - button "Weiter suchen (Strg+G)"
-    - button "Drucken... (Strg+P)"
+      - button "S4U (100)"
+      - separator
     - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Anzeigen <-> Ändern"
@@ -26,9 +17,11 @@
       - button "Prüfen"
       - button "Aktivieren"
       - button "Testen/Ausführen"
-      - button "Verwendungsnachweis"
-      - button "Objektliste anzeigen"
       - button "Mehr"
+      - button "Suchen (Strg+F)"
+      - button "Weiter suchen (Strg+G)"
+      - button "Drucken... (Strg+P)"
+      - button "Beenden"
   - text: Funktionsbaustein
   - textbox "Funktionsbaustein": RFC_READ_TABLE
   - button "aktiv"
@@ -56,7 +49,7 @@
           - columnheader "Wertübergabe"
           - columnheader "Kurztext"
           - columnheader "Langtext"
-        - button ""
+        - button "Konfiguration": 
         - row "ET_DATA TYPE SDTI_RESULT_TAB  Gelesene Daten (Lange Zeilen)":
           - gridcell "ET_DATA":
             - textbox
@@ -312,15 +305,15 @@
         - cell "Transaktion"
         - cell "SE37"
         - cell
-      - row "E2E-Zeit 181 ms":
+      - row "E2E-Zeit 209 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "181 ms"
+        - cell "209 ms"
         - cell
-      - row "WebGUI-Zeit 101 ms":
+      - row "WebGUI-Zeit 86 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "101 ms"
+        - cell "86 ms"
         - cell

@@ -22,6 +22,7 @@ from sapwebguimcp.parsers.sm37_parser import (
     parse_sm37_job_list,
     parse_sm37_job_log,
 )
+from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 if TYPE_CHECKING:
@@ -33,47 +34,10 @@ __all__ = ["register_sm37_tools"]
 
 _MAX_JOBS = 200
 
-# Checkbox label mapping: canonical name -> (DE label, EN label)
-# Labels match the ARIA checkbox names on the SM37 selection screen.
-_STATUS_CHECKBOX_MAP: dict[str, tuple[str, str]] = {
-    "scheduled": ("Geplant", "Scheduled"),
-    "released": ("Freigegeben", "Released"),
-    "ready": ("Bereit", "Ready"),
-    "active": ("Aktiv", "Active"),
-    "finished": ("Fertig", "Finished"),
-    "canceled": ("Abgebrochen", "Canceled"),
-}
-
-_ALL_STATUSES = list(_STATUS_CHECKBOX_MAP.keys())
+_ALL_STATUSES = ["scheduled", "released", "ready", "active", "finished", "canceled"]
 
 
-async def _set_status_checkboxes(backend: "SapUiBackend", statuses: list[str], language: str) -> list[str]:
-    """
-    Set status checkboxes on the SM37 selection screen.
-
-    If statuses contains all statuses, leave unchanged.
-    Otherwise, uncheck all and check only requested.
-    """
-    if not statuses or set(statuses) == set(_ALL_STATUSES):
-        return []
-
-    errors: list[str] = []
-
-    for status_name in _ALL_STATUSES:
-        de_label, en_label = _STATUS_CHECKBOX_MAP[status_name]
-        label = de_label if language.upper() == "DE" else en_label
-        should_be_checked = status_name in statuses
-
-        try:
-            await backend.set_checkbox(label, should_be_checked)
-        except ValueError as e:
-            errors.append(f"Failed to set checkbox '{label}': {e}")
-            logger.warning("Checkbox error label=%r error=%s", label, e)
-
-    return errors
-
-
-async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches
+async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
     backend: "SapUiBackend",
     job_name: str,
     username: str | None,
@@ -85,33 +49,43 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
     """Fill the SM37 selection screen fields."""
     errors: list[str] = []
 
-    # Fill job name - try DE then EN label
-    for label in ["Jobname", "Job name"]:
-        try:
-            await backend.fill_field(label, job_name)
-            break
-        except ValueError:
-            continue
-    else:
-        errors.append("Could not find job name field")
-
-    # Fill username
+    # Build target for checkboxes + text fields in one declarative call
+    effective_statuses = set(statuses) if statuses else set(_ALL_STATUSES)
+    fields_de: dict[str, str] = {"Jobname": job_name}
+    fields_en: dict[str, str] = {"Job name": job_name}
     if username is not None:
-        for label in ["Benutzername", "User name"]:
-            try:
-                await backend.fill_field(label, username)
-                break
-            except ValueError:
-                continue
-        else:
-            errors.append("Could not find username field")
+        fields_de["Benutzername"] = username
+        fields_en["User name"] = username
 
-    # Set status checkboxes
-    if statuses:
-        checkbox_errors = await _set_status_checkboxes(backend, statuses, language)
-        errors.extend(checkbox_errors)
+    target = bilingual_target(
+        checkboxes_de={
+            "Geplant": "scheduled" in effective_statuses,
+            "Freigegeben": "released" in effective_statuses,
+            "Bereit": "ready" in effective_statuses,
+            "Aktiv": "active" in effective_statuses,
+            "Fertig": "finished" in effective_statuses,
+            "Abgebrochen": "canceled" in effective_statuses,
+        },
+        checkboxes_en={
+            "Scheduled": "scheduled" in effective_statuses,
+            "Released": "released" in effective_statuses,
+            "Ready": "ready" in effective_statuses,
+            "Active": "active" in effective_statuses,
+            "Finished": "finished" in effective_statuses,
+            "Canceled": "canceled" in effective_statuses,
+        },
+        fields_de=fields_de,
+        fields_en=fields_en,
+    )
+    state_result = await ensure_screen_state(backend, target)
+    if not state_result.success:
+        errors.append(f"Failed to set selection screen state: {state_result.error}")
+    errors.extend(state_result.warnings)
 
-    # Date fields — aria-labels are "von Datum"/"From Date" and "bis Datum"/"To Date"
+    # Date fields are filled manually (not via ensure_screen_state) because they
+    # require format_sap_date() which depends on the configured language setting.
+    # The ARIA snapshot values use SAP's display format which may differ from the
+    # input format, making snapshot-based verification unreliable for dates.
     if from_date or to_date:
         if from_date:
             sap_from = format_sap_date(from_date, language)

@@ -1,22 +1,14 @@
 - 'main "Function Builder: Einstieg"':
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - 'heading "Function Builder: Einstieg" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
     - toolbar:
-      - button "Funktionsbaustein"
-      - button "Bearbeiten"
-      - button "Springen"
-      - button "Hilfsmittel"
-      - button "Umfeld"
-      - button "System"
-      - button "Hilfe"
-      - button "GUI-Aktionen und -Einstellungen"
-    - button "Beenden"
-    - button "Suchen (Strg+F)"
-    - button "Drucken (Strg+P)"
+      - button "S4U (100)"
+      - separator
     - toolbar:
+      - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Prüfen"
@@ -26,8 +18,10 @@
       - button "Online-Handbuch"
       - button "Löschen"
       - button "Kopieren..."
-      - button "Umbenennen..."
-      - button "Umhängen..."
+      - button "Mehr"
+      - button "Suchen (Strg+F)"
+      - button "Drucken (Strg+P)"
+      - button "Beenden"
   - text: Funktionsbaustein
   - textbox "Funktionsbaustein"
   - button "Anzeigen"
@@ -66,15 +60,15 @@
         - cell "Transaktion"
         - cell "SE37"
         - cell
-      - row "E2E-Zeit 195 ms":
+      - row "E2E-Zeit 125 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "195 ms"
+        - cell "125 ms"
         - cell
-      - row "WebGUI-Zeit 110 ms":
+      - row "WebGUI-Zeit 42 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "110 ms"
+        - cell "42 ms"
         - cell

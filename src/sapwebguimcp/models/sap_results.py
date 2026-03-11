@@ -29,6 +29,10 @@ class FormField(BaseModel):
     label: str = Field(description="Visible label text associated with this field")
     field_type: SapFieldType = Field(description="Type of input control: text, dropdown, checkbox, or radio")
     current_value: str | None = Field(default=None, description="Current field value, or None if empty")
+    checked: bool | None = Field(
+        default=None,
+        description="True/False for checkbox/radio fields, None for text/dropdown",
+    )
     readonly: bool = Field(
         default=False, description="True if field cannot be edited (HTML readonly/disabled attribute)"
     )

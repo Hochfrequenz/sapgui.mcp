@@ -22,15 +22,10 @@ from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE09_DISPLAY_BUTTON_DE,
     SE09_DISPLAY_BUTTON_EN,
-    SE09_MODIFIABLE_DE,
-    SE09_MODIFIABLE_EN,
-    SE09_RELEASED_DE,
-    SE09_RELEASED_EN,
-    SE09_USER_FIELD_DE,
-    SE09_USER_FIELD_EN,
 )
 from sapwebguimcp.models.se09_models import TransportListResult, TransportRequest, TransportTask
 from sapwebguimcp.parsers.se09_parser import parse_se09_transport_list
+from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 
 if TYPE_CHECKING:
     from sapwebguimcp.backend.protocol import SapUiBackend
@@ -43,72 +38,6 @@ __all__ = ["register_se09_tools"]
 # =============================================================================
 # SE09 Navigation Helpers
 # =============================================================================
-
-
-async def _fill_user_field(backend: "SapUiBackend", username: str) -> None:
-    """Fill the username filter field in SE09."""
-    result = await backend.fill_form({SE09_USER_FIELD_DE: username.upper(), SE09_USER_FIELD_EN: username.upper()})
-    if not result.filled:
-        logger.warning("User field not found in SE09 for any label")
-
-
-async def _set_checkbox_state(backend: "SapUiBackend", label: str, should_be_checked: bool) -> None:
-    """Safely set a checkbox to checked or unchecked state."""
-    try:
-        await backend.set_checkbox(label, should_be_checked)
-        # SAP WebGUI checkboxes may trigger partial page reloads
-        await backend.wait_for_ready()
-    except ValueError:
-        logger.warning("Failed to set checkbox '%s', skipping", label)
-
-
-async def _set_request_type_filter(backend: "SapUiBackend", request_type: str) -> None:
-    """Set request type checkboxes on SE09 selection screen.
-
-    Always explicitly set both checkboxes because SE09 is stateful —
-    it remembers checkbox state from the previous lookup in the session.
-    """
-    if request_type == "all":
-        await _set_checkbox_state(backend, "Workbench", True)
-        await _set_checkbox_state(backend, "Customizing", True)
-    elif request_type == "workbench":
-        await _set_checkbox_state(backend, "Workbench", True)
-        await _set_checkbox_state(backend, "Customizing", False)
-    elif request_type == "customizing":
-        await _set_checkbox_state(backend, "Workbench", False)
-        await _set_checkbox_state(backend, "Customizing", True)
-
-
-async def _try_set_checkbox(backend: "SapUiBackend", labels: list[str], checked: bool) -> None:
-    """Try setting a checkbox using multiple label variants (DE/EN). First match wins."""
-    for label in labels:
-        try:
-            await backend.set_checkbox(label, checked)
-            await backend.wait_for_ready()
-            return
-        except ValueError:
-            continue
-    logger.warning("Checkbox not found for any label: %s", labels)
-
-
-async def _set_status_filter(backend: "SapUiBackend", status: str) -> None:
-    """Set status filter checkboxes on SE09 selection screen.
-
-    Always explicitly set both checkboxes because SE09 is stateful —
-    it remembers checkbox state from the previous lookup in the session.
-    """
-    mod_labels = [SE09_MODIFIABLE_DE, SE09_MODIFIABLE_EN]
-    rel_labels = [SE09_RELEASED_DE, SE09_RELEASED_EN]
-
-    if status == "all":
-        await _try_set_checkbox(backend, mod_labels, True)
-        await _try_set_checkbox(backend, rel_labels, True)
-    elif status == "modifiable":
-        await _try_set_checkbox(backend, mod_labels, True)
-        await _try_set_checkbox(backend, rel_labels, False)
-    elif status == "released":
-        await _try_set_checkbox(backend, mod_labels, False)
-        await _try_set_checkbox(backend, rel_labels, True)
 
 
 async def _click_display_button(backend: "SapUiBackend") -> None:
@@ -243,7 +172,7 @@ async def _extract_tree_text_lines(backend: "SapUiBackend") -> list[str]:
     return [item["text"] for item in all_items if item["text"]]
 
 
-async def _lookup_transports(
+async def _lookup_transports(  # pylint: disable=too-many-locals
     backend: "SapUiBackend",
     username: str | None,
     request_type: str,
@@ -278,15 +207,31 @@ async def _lookup_transports(
         await backend.wait_for_ready()
         await backend.wait_for_ready(timeout_ms=3000)
 
-    # Apply filters on selection screen
-    if username is not None:
-        await _fill_user_field(backend, username)
-
-    await _set_request_type_filter(backend, request_type)
-    await _set_status_filter(backend, status)
-
-    # Allow SAP to process checkbox changes before clicking display
-    await backend.wait_for_ready()
+    # Build target state for selection screen
+    target = bilingual_target(
+        checkboxes_de={
+            "Workbench-Aufträge": request_type in ("all", "workbench"),
+            "Customizing-Aufträge": request_type in ("all", "customizing"),
+            "Änderbar": status in ("all", "modifiable"),
+            "Freigegeben": status in ("all", "released"),
+        },
+        checkboxes_en={
+            "Workbench Requests": request_type in ("all", "workbench"),
+            "Customizing Requests": request_type in ("all", "customizing"),
+            "Modifiable": status in ("all", "modifiable"),
+            "Released": status in ("all", "released"),
+        },
+        fields_de={"Benutzer": username.upper()} if username else {},
+        fields_en={"User": username.upper()} if username else {},
+    )
+    state_result = await ensure_screen_state(backend, target)
+    if not state_result.success:
+        return TransportListResult.failure(
+            error=f"Failed to set SE09 selection screen: {state_result.error}",
+            requests=[],
+            request_count=0,
+            retrieved_at=now,
+        )
 
     # Click Anzeigen/Display button
     await _click_display_button(backend)

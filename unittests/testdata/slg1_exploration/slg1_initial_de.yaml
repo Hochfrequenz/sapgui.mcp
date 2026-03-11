@@ -1,14 +1,17 @@
 - main "Anwendungslog auswerten":
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - heading "Anwendungslog auswerten" [level=1]
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
-    - button "Beenden"
+      - button "Beenden"
   - text: Objekt
   - textbox "Objekt"
   - button "(generische Eingabe)"
@@ -20,10 +23,10 @@
   - group "Zeiteinschränkung":
     - heading "Zeiteinschränkung" [level=2]
     - text: von (Datum/Uhrzeit)
-    - textbox "von (Datum/Uhrzeit)": 03.03.2026
+    - textbox "von (Datum/Uhrzeit)": 11.03.2026
     - 'textbox "Anwendungs-Log: Uhrzeit"': 00:00:00
     - text: bis (Datum/Uhrzeit)
-    - textbox "bis (Datum/Uhrzeit)": 03.03.2026
+    - textbox "bis (Datum/Uhrzeit)": 11.03.2026
     - 'textbox "Anwendungs-Log: Uhrzeit"': 23:59:59
   - group "Protokoll verursacht durch":
     - heading "Protokoll verursacht durch" [level=2]
@@ -85,15 +88,15 @@
         - cell "Transaktion"
         - cell "SLG1"
         - cell
-      - row "E2E-Zeit 109 ms":
+      - row "E2E-Zeit 121 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "109 ms"
+        - cell "121 ms"
         - cell
-      - row "WebGUI-Zeit 44 ms":
+      - row "WebGUI-Zeit 40 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "44 ms"
+        - cell "40 ms"
         - cell

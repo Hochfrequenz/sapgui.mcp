@@ -1,9 +1,12 @@
 - 'main "ABAP Editor: Einstieg"':
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - 'heading "ABAP Editor: Einstieg" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -17,9 +20,9 @@
       - button "Löschen..."
       - button "Kopieren..."
       - button "Mehr"
-    - button "Suchen (Strg+F)"
-    - button "Drucken... (Strg+P)"
-    - button "Beenden"
+      - button "Suchen (Strg+F)"
+      - button "Drucken... (Strg+P)"
+      - button "Beenden"
   - text: Programm
   - textbox "Programm"
   - button "Anlegen"
@@ -65,15 +68,15 @@
         - cell "Transaktion"
         - cell "SE38"
         - cell
-      - row "E2E-Zeit 110 ms":
+      - row "E2E-Zeit 208 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "110 ms"
+        - cell "208 ms"
         - cell
-      - row "WebGUI-Zeit 33 ms":
+      - row "WebGUI-Zeit 68 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "33 ms"
+        - cell "68 ms"
         - cell

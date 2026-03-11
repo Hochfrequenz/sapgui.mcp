@@ -1,9 +1,12 @@
 - main "Jobübersicht":
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - heading "Jobübersicht" [level=1]
     - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -16,16 +19,16 @@
       - button "Job-Log"
       - button "Step"
       - button "Mehr"
-    - button "Suchen (Strg+F)"
-    - button "Weiter suchen (Strg+G)"
-    - button "Drucken (Strg+P)"
-    - button "Beenden"
+      - button "Suchen (Strg+F)"
+      - button "Weiter suchen (Strg+G)"
+      - button "Drucken (Strg+P)"
+      - button "Beenden"
   - table:
     - rowgroup:
       - row "Liste":
         - cell "Liste":
           - region "Liste":
-            - text: "Jobübersicht von : 03.03.2026 um : : : bis : 03.03.2026 um : : : Selektierte Jobnamen : * Selektierte Benutzernamen : *"
+            - text: "Jobübersicht von : 11.03.2026 um : : : bis : 11.03.2026 um : : : Selektierte Jobnamen : * Selektierte Benutzernamen : *"
             - checkbox [disabled]
             - text: geplant
             - checkbox [checked] [disabled]
@@ -54,25 +57,25 @@
             - button "Man"
             - button "Verzögerungsgru"
             - checkbox
-            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB freigegeben 0 0 210
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB freigegeben 0 10 310
+            - checkbox
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB freigegeben 0 10 310
             - checkbox
             - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB freigegeben 0 0 210
             - checkbox
-            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB freigegeben 0 0 310
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB freigegeben 0 0 210
             - checkbox
-            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB freigegeben 0 0 310
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 11.03.2026 00:00:37 1 37 210
             - checkbox
-            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 03.03.2026 00:00:13 0 13 210
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 11.03.2026 00:00:37 1 37 210
             - checkbox
-            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 03.03.2026 00:00:13 0 13 210
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 11.03.2026 00:01:37 1 37 310
             - checkbox
-            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 03.03.2026 00:01:13 0 13 310
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 11.03.2026 00:01:37 1 37 310
             - checkbox
-            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 03.03.2026 00:01:13 0 13 310
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 11.03.2026 00:03:37 1 37 210
             - checkbox
-            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 03.03.2026 00:03:13 0 13 210
-            - checkbox
-            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 03.03.2026 00:03:13 0 13 210
+            - text: /APE/RP_TRIGGER_TRDOC_MASS TENNHARDTB fertig 11.03.2026 00:03:37 0 37 210
         - cell
       - row:
         - cell
@@ -109,15 +112,15 @@
         - cell "Transaktion"
         - cell "SM37"
         - cell
-      - row "E2E-Zeit 677 ms":
+      - row "E2E-Zeit 650 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "677 ms"
+        - cell "650 ms"
         - cell
-      - row "WebGUI-Zeit 155 ms":
+      - row "WebGUI-Zeit 172 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "155 ms"
+        - cell "172 ms"
         - cell
