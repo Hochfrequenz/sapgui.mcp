@@ -102,6 +102,14 @@ Ignores `menuitemradio` (system info dropdowns, not selection screen controls).
 - Radio buttons use simpler format: `radio "Label" [checked]` (no trailing colon/text)
 - The parser must handle both shapes
 
+**Ambiguous labels:** SAP screens can have multiple controls with the same label (e.g., two text fields both labelled "Date"). The parser must detect this and report it. When the same label appears more than once for the same control type, `parse_selection_screen_state` should:
+1. Include ALL instances (e.g., append a suffix like `"Date"`, `"Date (2)"`) or
+2. Report an `ambiguities` list so callers know which labels are unsafe to use by name alone
+
+`ensure_screen_state` must refuse to set ambiguous labels (return `success=False` with a clear error) rather than silently targeting the wrong control. This mirrors how `fill_form_fields.js` already detects ambiguity and returns `ambiguous: true` instead of filling the wrong field.
+
+For transaction tools that know their screen layout, they can use CSS selectors or element IDs as fallback keys in the target state dict (just like `sap_fill_form` accepts both label text and CSS selectors).
+
 **Unit-testable** against every existing YAML snapshot in `unittests/testdata/`.
 
 ### Component 3: `ensure_screen_state(backend, target: SelectionScreenState) -> ScreenStateDiff`
@@ -148,7 +156,38 @@ async def ensure_screen_state(
         if actual != desired:
             await backend.fill_field(label, desired)
             await backend.wait_for_ready()  # SAP text fields can trigger field-exit events
-            diff.fields_changed[label] = (actual or "", desired)
+            diff.fields_changed[label] = StateChange(was=actual or "", now=desired)
+
+    # --- Verification: re-read snapshot and compare against target ---
+    verify_snapshot = await backend.get_snapshot()
+    actual_after = parse_selection_screen_state(verify_snapshot)
+
+    for label, desired in target.checkboxes.items():
+        actual = actual_after.checkboxes.get(label)
+        if actual is not None and actual != desired:
+            diff.mismatches.append(
+                f"Checkbox '{label}': expected {desired}, still {actual}"
+            )
+
+    for label, desired in target.radios.items():
+        actual = actual_after.radios.get(label)
+        if actual is not None and actual != desired:
+            diff.mismatches.append(
+                f"Radio '{label}': expected {desired}, still {actual}"
+            )
+
+    for label, desired in target.fields.items():
+        actual = actual_after.fields.get(label)
+        if actual is not None and actual != desired:
+            diff.mismatches.append(
+                f"Field '{label}': expected '{desired}', still '{actual}'"
+            )
+
+    if diff.mismatches:
+        return ScreenStateDiff.failure(
+            error=f"Screen state verification failed: {'; '.join(diff.mismatches)}",
+            **diff.model_dump(exclude={"success", "error"}),
+        )
 
     return diff
 ```
@@ -158,7 +197,8 @@ Key behaviors:
 - **`wait_for_ready()` after each checkbox/radio change** — SAP may trigger partial page reloads
 - **Radio buttons only need `select`** — selecting one auto-deselects others in the group
 - **Warnings for missing labels** — handles DE/EN differences gracefully; callers can provide both labels
-- **Returns diff** for logging/debugging
+- **Verification after apply** — re-reads the ARIA snapshot and compares actual vs. target; returns `success=False` with specific mismatch details if the screen didn't reach the target state
+- **Returns diff** — callers (both internal tools and the LLM) can inspect what changed and whether it succeeded
 
 ### Component 4: `ScreenStateDiff` Model
 
@@ -176,13 +216,17 @@ class StateChange(BaseModel):
     now: str = Field(description="New value after the transition")
 
 
-class ScreenStateDiff(BaseModel):
-    """Summary of all changes applied by ``ensure_screen_state()``.
+class ScreenStateDiff(ToolResult):
+    """Result of transitioning a SAP selection screen to a target state.
 
-    Returned after transitioning a selection screen from its current
-    state to the target state. Contains only the controls that were
-    actually changed (controls already matching the target are omitted).
-    Useful for logging and debugging state transitions.
+    Extends ``ToolResult`` so callers get ``success``/``error`` semantics.
+    After applying all changes, ``ensure_screen_state()`` re-reads the
+    ARIA snapshot and verifies every target control matches. If any
+    control did not reach its target value, ``success=False`` and
+    ``mismatches`` lists the specific controls that failed.
+
+    When ``success=True``, the screen is guaranteed to be in the
+    requested target state and the tool can safely proceed.
     """
 
     checkboxes_changed: dict[str, StateChange] = Field(
@@ -195,7 +239,12 @@ class ScreenStateDiff(BaseModel):
         default_factory=dict, description="Text fields that were updated, keyed by label"
     )
     warnings: list[str] = Field(
-        default_factory=list, description="Labels from the target state that were not found on screen"
+        default_factory=list,
+        description="Labels from the target state that were not found on screen (e.g. wrong-language labels)",
+    )
+    mismatches: list[str] = Field(
+        default_factory=list,
+        description="Controls that did not reach their target value after applying changes",
     )
 ```
 
@@ -383,13 +432,48 @@ await ensure_screen_state(backend, target)
 
 ## Testing Strategy
 
-- **Parser unit tests**: Test `parse_selection_screen_state()` against every existing YAML snapshot in `unittests/testdata/` — SE09, SM37, SE11, SM30 initial screens all have checkboxes/radios
-- **Transition unit tests**: Mock backend, verify `ensure_screen_state()` calls only the necessary `set_checkbox`/`set_radio_button`/`fill_field` methods based on diff
-- **Integration tests**: For each migrated tool, run the same transition tests as SE09 (e.g., "customizing then workbench", "released then modifiable") to verify no state bleeding
+### Parser unit tests
+Test `parse_selection_screen_state()` against every existing YAML snapshot in `unittests/testdata/` — SE09, SM37, SE11, SM30 initial screens all have checkboxes/radios.
+
+### Snapshot-pair transition tests
+Collect **multiple snapshots per transaction** showing different selection screen states (e.g., SE09 with only Workbench checked, SE09 with only Customizing checked, SM37 with all statuses checked, SM37 with only "Finished" checked). Then test transitions between snapshot pairs:
+
+1. Parse snapshot A → `state_A`
+2. Parse snapshot B → `state_B` (this is the target)
+3. Run `ensure_screen_state` with a mocked backend starting from `state_A`, targeting `state_B`
+4. Verify the mock received exactly the right `set_checkbox`/`set_radio_button`/`fill_field` calls
+5. Verify the verification step would pass (mock returns `state_B` on second snapshot read)
+
+This tests the full diff+apply+verify cycle without a live SAP system.
+
+**Snapshots to collect (in addition to existing ones):**
+
+| Transaction | Snapshot variant | Key state |
+|---|---|---|
+| SE09 | `se09_workbench_only_de` | Workbench=checked, Customizing=unchecked |
+| SE09 | `se09_customizing_only_de` | Workbench=unchecked, Customizing=checked |
+| SE09 | `se09_both_types_de` | Workbench=checked, Customizing=checked |
+| SE09 | `se09_released_only_de` | Änderbar=unchecked, Freigegeben=checked |
+| SM37 | `sm37_all_statuses_de` | All 6 status checkboxes checked |
+| SM37 | `sm37_finished_only_de` | Only Fertig=checked |
+| SM37 | `sm37_active_only_de` | Only Aktiv=checked |
+| SE11 | `se11_structure_selected_de` | Datentyp radio selected (not Datenbanktabelle) |
+| SE11 | `se11_table_selected_de` | Datenbanktabelle radio selected (default) |
+| SM30 | `sm30_conditions_radio_de` | "Bedingungen eingeben" radio selected |
+
+### Transition unit tests
+Mock backend, verify `ensure_screen_state()`:
+- Calls only necessary `set_checkbox`/`set_radio_button`/`fill_field` methods based on diff
+- Reports `success=True` when verification passes
+- Reports `success=False` with specific mismatches when verification fails
+- Refuses to act on ambiguous labels
+- Handles missing labels (wrong language) gracefully
+
+### Integration tests
+For each migrated tool, run transition tests against live SAP (same pattern as SE09: "customizing then workbench", "released then modifiable") to verify no state bleeding.
 
 ## Known Limitations
 
-- **Single snapshot read**: `ensure_screen_state` reads the snapshot once and applies diffs. If a checkbox change triggers a SAP page reload that adds/removes other controls, the pre-read state may become stale. A post-change verification read could catch mismatches — worth adding if we encounter this in practice.
 - **SE09 uses substring label matching**: The current SE09 code matches "Workbench" inside "Workbench-Aufträge". The migration to exact ARIA labels is more robust but is a behavioral change that needs testing.
 
 ## Risks
