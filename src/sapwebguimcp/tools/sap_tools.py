@@ -1767,6 +1767,88 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Setting field", extra={"label": label})
             return SetFieldResult.failure(f"Error setting field: {e}", label=label, value=value)
 
+    @mcp.tool(
+        description=(
+            "Set a SAP checkbox to checked or unchecked by its label text.\n\n"
+            "Use sap_get_form_fields first to see available checkboxes and their current state.\n\n"
+            "Args:\n"
+            "- label: Checkbox label text (e.g., 'Workbench-Aufträge', 'Freigegeben')\n"
+            "- checked: True to check, False to uncheck\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session'
+        ),
+    )
+    async def sap_set_checkbox(
+        label: str,
+        checked: bool,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> SetFieldResult:
+        """Set a SAP checkbox to checked or unchecked."""
+        if not label:
+            return SetFieldResult.failure("label cannot be empty", label="", value=str(checked))
+
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_set_checkbox")
+        except ValueError as e:
+            return SetFieldResult.failure(str(e), label=label, value=str(checked))
+
+        try:
+            popup = await backend.check_popup()
+            if popup:
+                return SetFieldResult.failure(
+                    f"Popup blocking: {popup.message or 'confirmation required'}",
+                    label=label, value=str(checked), popup=popup,
+                )
+            await backend.set_checkbox(label, checked)
+            return SetFieldResult(label=label, value=str(checked))
+        except ValueError as e:
+            return SetFieldResult.failure(str(e), label=label, value=str(checked))
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Setting checkbox")
+            return SetFieldResult.failure(f"Error setting checkbox: {e}", label=label, value=str(checked))
+
+    @mcp.tool(
+        description=(
+            "Select a SAP radio button by its label text.\n\n"
+            "Use sap_get_form_fields first to see available radio buttons and which is selected.\n\n"
+            "Args:\n"
+            "- label: Radio button label text (e.g., 'Datenbanktabelle', 'Database table')\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session'
+        ),
+    )
+    async def sap_set_radio_button(
+        label: str,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> SetFieldResult:
+        """Select a SAP radio button."""
+        if not label:
+            return SetFieldResult.failure("label cannot be empty", label="", value="")
+
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_set_radio_button")
+        except ValueError as e:
+            return SetFieldResult.failure(str(e), label=label, value="selected")
+
+        try:
+            popup = await backend.check_popup()
+            if popup:
+                return SetFieldResult.failure(
+                    f"Popup blocking: {popup.message or 'confirmation required'}",
+                    label=label, value="selected", popup=popup,
+                )
+            await backend.set_radio_button(label)
+            return SetFieldResult(label=label, value="selected")
+        except ValueError as e:
+            return SetFieldResult.failure(str(e), label=label, value="selected")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Setting radio button")
+            return SetFieldResult.failure(f"Error setting radio button: {e}", label=label, value="selected")
+
     # =========================================================================
     # Session Management Tools
     # =========================================================================
