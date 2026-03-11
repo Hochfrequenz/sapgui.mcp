@@ -1,9 +1,12 @@
 - 'main "ABAP Editor: Report ZTEST_MCP_EDIT ändern"':
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - 'heading "ABAP Editor: Report ZTEST_MCP_EDIT ändern" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -16,10 +19,10 @@
       - button "Aktivieren"
       - button "Direkt"
       - button "Mehr"
-    - button "Suchen (Strg+F)"
-    - button "Weiter suchen (Strg+G)"
-    - button "Drucken (Strg+P)"
-    - button "Beenden"
+      - button "Suchen (Strg+F)"
+      - button "Weiter suchen (Strg+G)"
+      - button "Drucken (Strg+P)"
+      - button "Beenden"
   - text: Report
   - textbox "Report": ZTEST_MCP_EDIT
   - button "aktiv"
@@ -33,7 +36,7 @@
     - separator
     - button "Lokale Datei laden"
     - button "Als lokale Datei sichern"
-  - textbox: "*&---------------------------------------------------------------------* *& Report ZTEST_MCP_EDIT *&---------------------------------------------------------------------* *& *&---------------------------------------------------------------------* REPORT ZTEST_MCP_EDIT. WRITE 'HELLO WORLD'."
+  - textbox: REPORT ZTEST_MCP_EDIT. WRITE 'HELLO WORLD'. * MCP edit integration test.
   - toolbar:
     - button "Sichern Hervorgehoben"
     - button "Abbrechen"
@@ -69,15 +72,15 @@
         - cell "Transaktion"
         - cell "SE38"
         - cell
-      - row "E2E-Zeit 109 ms":
+      - row "E2E-Zeit 93 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "109 ms"
+        - cell "93 ms"
         - cell
-      - row "WebGUI-Zeit 25 ms":
+      - row "WebGUI-Zeit 27 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "25 ms"
+        - cell "27 ms"
         - cell

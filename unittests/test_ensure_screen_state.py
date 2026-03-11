@@ -278,6 +278,222 @@ class TestEnsureScreenStateResilience:
         backend.fill_field.assert_not_called()
 
 
+class TestEnsureScreenStateTransitions:
+    """Test realistic state A → state B transitions with mock backend."""
+
+    @pytest.mark.anyio
+    async def test_uncheck_all_checkboxes(self) -> None:
+        """Transition from multiple checked to all unchecked."""
+        before = (
+            '- checkbox "Workbench-Aufträge" [checked]:  Workbench-Aufträge\n'
+            '- checkbox "Customizing-Aufträge" [checked]:  Customizing-Aufträge\n'
+            '- checkbox "Änderbar" [checked]:  Änderbar\n'
+            '- checkbox "Freigegeben" [checked]:  Freigegeben\n'
+        )
+        after = (
+            '- checkbox "Workbench-Aufträge":  Workbench-Aufträge\n'
+            '- checkbox "Customizing-Aufträge":  Customizing-Aufträge\n'
+            '- checkbox "Änderbar":  Änderbar\n'
+            '- checkbox "Freigegeben":  Freigegeben\n'
+        )
+        backend = _mock_backend(before, after)
+        target = SelectionScreenState(
+            checkboxes={
+                "Workbench-Aufträge": False,
+                "Customizing-Aufträge": False,
+                "Änderbar": False,
+                "Freigegeben": False,
+            },
+        )
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is True
+        assert len(diff.checkboxes_changed) == 4
+        assert backend.set_checkbox.call_count == 4
+        # Each checkbox should be called with False
+        for label in target.checkboxes:
+            backend.set_checkbox.assert_any_call(label, False)
+
+    @pytest.mark.anyio
+    async def test_partial_checkbox_toggle(self) -> None:
+        """Only checkboxes that differ from target should be changed."""
+        before = (
+            '- checkbox "Geplant" [checked]:  Geplant\n'
+            '- checkbox "Freigegeben":  Freigegeben\n'
+            '- checkbox "Bereit":  Bereit\n'
+            '- checkbox "Aktiv":  Aktiv\n'
+            '- checkbox "Fertig" [checked]:  Fertig\n'
+            '- checkbox "Abgebrochen":  Abgebrochen\n'
+        )
+        # Target: check all statuses — Geplant and Fertig already match
+        after = (
+            '- checkbox "Geplant" [checked]:  Geplant\n'
+            '- checkbox "Freigegeben" [checked]:  Freigegeben\n'
+            '- checkbox "Bereit" [checked]:  Bereit\n'
+            '- checkbox "Aktiv" [checked]:  Aktiv\n'
+            '- checkbox "Fertig" [checked]:  Fertig\n'
+            '- checkbox "Abgebrochen" [checked]:  Abgebrochen\n'
+        )
+        backend = _mock_backend(before, after)
+        target = SelectionScreenState(
+            checkboxes={
+                "Geplant": True,
+                "Freigegeben": True,
+                "Bereit": True,
+                "Aktiv": True,
+                "Fertig": True,
+                "Abgebrochen": True,
+            },
+        )
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is True
+        # Only 4 changed (Freigegeben, Bereit, Aktiv, Abgebrochen)
+        assert len(diff.checkboxes_changed) == 4
+        assert "Geplant" not in diff.checkboxes_changed
+        assert "Fertig" not in diff.checkboxes_changed
+        assert backend.set_checkbox.call_count == 4
+
+    @pytest.mark.anyio
+    async def test_radio_switch_with_field_change(self) -> None:
+        """Switch radio and change text field in one transition."""
+        before = (
+            '- radio "Datenbanktabelle" [checked]\n'
+            '- radio "View"\n'
+            '- radio "Datentyp"\n'
+            '- textbox "Datenbankrelation": T000\n'
+        )
+        after = (
+            '- radio "Datenbanktabelle"\n'
+            '- radio "View" [checked]\n'
+            '- radio "Datentyp"\n'
+            '- textbox "Datenbankrelation": ZSOMEVIEW\n'
+        )
+        backend = _mock_backend(before, after)
+        target = SelectionScreenState(
+            radios={"View": True},
+            fields={"Datenbankrelation": "ZSOMEVIEW"},
+        )
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is True
+        assert "View" in diff.radios_changed
+        assert "Datenbankrelation" in diff.fields_changed
+        backend.set_radio_button.assert_called_once_with("View")
+        backend.fill_field.assert_called_once_with("Datenbankrelation", "ZSOMEVIEW")
+
+    @pytest.mark.anyio
+    async def test_field_already_matching_not_touched(self) -> None:
+        """If field already has the target value, fill_field should not be called."""
+        backend = _mock_backend(_SE11_TABLE_SELECTED, _SE11_TABLE_SELECTED)
+        target = SelectionScreenState(
+            fields={"Datenbankrelation": "T000"},
+        )
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is True
+        assert diff.fields_changed == {}
+        backend.fill_field.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_sm37_full_selection_screen_transition(self) -> None:
+        """Simulate SM37 selection screen: set job name, user, and toggle statuses."""
+        before = (
+            '- checkbox "Geplant":  Geplant\n'
+            '- checkbox "Freigegeben":  Freigegeben\n'
+            '- checkbox "Bereit":  Bereit\n'
+            '- checkbox "Aktiv":  Aktiv\n'
+            '- checkbox "Fertig" [checked]:  Fertig\n'
+            '- checkbox "Abgebrochen":  Abgebrochen\n'
+            '- textbox "Jobname": *\n'
+            '- textbox "Benutzername": KLEINK\n'
+        )
+        after = (
+            '- checkbox "Geplant":  Geplant\n'
+            '- checkbox "Freigegeben":  Freigegeben\n'
+            '- checkbox "Bereit":  Bereit\n'
+            '- checkbox "Aktiv":  Aktiv\n'
+            '- checkbox "Fertig" [checked]:  Fertig\n'
+            '- checkbox "Abgebrochen" [checked]:  Abgebrochen\n'
+            '- textbox "Jobname": ZBILLING*\n'
+            '- textbox "Benutzername": *\n'
+        )
+        backend = _mock_backend(before, after)
+        target = SelectionScreenState(
+            checkboxes={"Fertig": True, "Abgebrochen": True},
+            fields={"Jobname": "ZBILLING*", "Benutzername": "*"},
+        )
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is True
+        # Only Abgebrochen changed (Fertig was already True)
+        assert len(diff.checkboxes_changed) == 1
+        assert "Abgebrochen" in diff.checkboxes_changed
+        # Both fields changed
+        assert "Jobname" in diff.fields_changed
+        assert "Benutzername" in diff.fields_changed
+
+    @pytest.mark.anyio
+    async def test_bilingual_target_de_screen_ignores_en_labels(self) -> None:
+        """On a DE screen, EN labels produce warnings but don't fail."""
+        de_screen = (
+            '- checkbox "Workbench-Aufträge" [checked]:  Workbench-Aufträge\n'
+            '- checkbox "Customizing-Aufträge":  Customizing-Aufträge\n'
+        )
+        target = bilingual_target(
+            checkboxes_de={"Workbench-Aufträge": True, "Customizing-Aufträge": True},
+            checkboxes_en={"Workbench Requests": True, "Customizing Requests": True},
+        )
+        after = (
+            '- checkbox "Workbench-Aufträge" [checked]:  Workbench-Aufträge\n'
+            '- checkbox "Customizing-Aufträge" [checked]:  Customizing-Aufträge\n'
+        )
+        backend = _mock_backend(de_screen, after)
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is True
+        # EN labels not found → warnings
+        assert any("Workbench Requests" in w for w in diff.warnings)
+        assert any("Customizing Requests" in w for w in diff.warnings)
+        # DE label changed
+        assert "Customizing-Aufträge" in diff.checkboxes_changed
+        # Only 1 backend call (Customizing-Aufträge was False → True)
+        backend.set_checkbox.assert_called_once_with("Customizing-Aufträge", True)
+
+    @pytest.mark.anyio
+    async def test_radio_verification_failure(self) -> None:
+        """If radio didn't stick after apply, return failure with mismatch."""
+        # Backend says it applied, but verification snapshot still shows old state
+        backend = _mock_backend(_SE11_TABLE_SELECTED, _SE11_TABLE_SELECTED)
+        target = SelectionScreenState(
+            radios={"View": True},
+        )
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is False
+        assert any("View" in m for m in diff.mismatches)
+
+    @pytest.mark.anyio
+    async def test_field_verification_failure(self) -> None:
+        """If field value didn't stick, return failure with mismatch."""
+        backend = _mock_backend(_SE11_TABLE_SELECTED, _SE11_TABLE_SELECTED)
+        target = SelectionScreenState(
+            fields={"Datenbankrelation": "MARA"},
+        )
+
+        diff = await ensure_screen_state(backend, target)
+
+        assert diff.success is False
+        assert any("Datenbankrelation" in m for m in diff.mismatches)
+
+
 class TestBilingualTarget:
     """Test bilingual_target() merging logic."""
 

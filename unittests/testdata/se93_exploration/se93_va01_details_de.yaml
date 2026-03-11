@@ -1,9 +1,12 @@
 - main "Dialogtransaktion anzeigen":
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - heading "Dialogtransaktion anzeigen" [level=1]
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -15,7 +18,7 @@
       - button "Verwendungsnachweis"
       - button "Objektliste anzeigen"
       - button "Mehr"
-    - button "Beenden"
+      - button "Beenden"
   - text: Transaktionscode
   - textbox "Transaktionscode": VA01
   - text: Paket
@@ -78,15 +81,15 @@
         - cell "Transaktion"
         - cell "SE93"
         - cell
-      - row "E2E-Zeit 89 ms":
+      - row "E2E-Zeit 79 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "89 ms"
+        - cell "79 ms"
         - cell
-      - row "WebGUI-Zeit 22 ms":
+      - row "WebGUI-Zeit 30 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "22 ms"
+        - cell "30 ms"
         - cell

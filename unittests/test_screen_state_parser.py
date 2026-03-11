@@ -68,22 +68,22 @@ class TestParseSelectionScreenState:
     """Tests for parse_selection_screen_state against real ARIA snapshots."""
 
     def test_se09_initial_checkboxes(self) -> None:
-        """SE09 initial screen has Customizing checked, Workbench unchecked."""
+        """SE09 initial screen has Workbench checked, Customizing unchecked."""
         snapshot = _load_snapshot("se09_exploration/se09_initial_de.yaml")
         state = parse_selection_screen_state(snapshot)
 
         assert "Customizing-Aufträge" in state.checkboxes
-        assert state.checkboxes["Customizing-Aufträge"] is True
+        assert state.checkboxes["Customizing-Aufträge"] is False
         assert "Workbench-Aufträge" in state.checkboxes
-        assert state.checkboxes["Workbench-Aufträge"] is False
+        assert state.checkboxes["Workbench-Aufträge"] is True
 
     def test_se09_initial_status_checkboxes(self) -> None:
-        """SE09 initial screen has Änderbar and Freigegeben both checked."""
+        """SE09 initial screen has Änderbar checked, Freigegeben unchecked."""
         snapshot = _load_snapshot("se09_exploration/se09_initial_de.yaml")
         state = parse_selection_screen_state(snapshot)
 
         assert state.checkboxes["Änderbar"] is True
-        assert state.checkboxes["Freigegeben"] is True
+        assert state.checkboxes["Freigegeben"] is False
 
     def test_se09_initial_textbox(self) -> None:
         """SE09 initial screen has a Benutzer textbox."""

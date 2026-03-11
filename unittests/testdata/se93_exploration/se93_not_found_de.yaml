@@ -1,9 +1,12 @@
 - main "Transaktionspflege":
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - heading "Transaktionspflege" [level=1]
     - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -16,8 +19,8 @@
       - button "Löschen"
       - button "Kopieren"
       - button "Umbenennen"
-    - button "Suchen (Strg+F)"
-    - button "Beenden"
+      - button "Suchen (Strg+F)"
+      - button "Beenden"
   - text: Transaktionscode
   - textbox "Transaktionscode": ZZZNOTEXIST99
   - button "Anzeigen"
@@ -56,15 +59,15 @@
         - cell "Transaktion"
         - cell "SE93"
         - cell
-      - row "E2E-Zeit 73 ms":
+      - row "E2E-Zeit 57 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "73 ms"
+        - cell "57 ms"
         - cell
-      - row "WebGUI-Zeit 32 ms":
+      - row "WebGUI-Zeit 20 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "32 ms"
+        - cell "20 ms"
         - cell

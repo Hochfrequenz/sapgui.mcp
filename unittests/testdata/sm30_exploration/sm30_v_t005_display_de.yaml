@@ -1,9 +1,12 @@
 - 'main "Sicht \"Globale Parameter der Länder/Regionen\" anzeigen: Übersicht"':
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - 'heading "Sicht \"Globale Parameter der Länder/Regionen\" anzeigen: Übersicht" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -12,9 +15,9 @@
       - button "Alle markieren"
       - button "Block markieren"
       - button "Alle entmarkieren"
-    - button "Drucken (Strg+P)"
-    - button "Bearbeiten Hervorgehoben"
-    - button "Beenden"
+      - button "Drucken (Strg+P)"
+      - button "Bearbeiten Hervorgehoben"
+      - button "Beenden"
   - grid:
     - rowgroup
     - rowgroup:
@@ -22,7 +25,7 @@
         - columnheader "Spalte für Zeilenauswahl"
         - columnheader "Land/Reg."
         - columnheader "Land/Region"
-      - button ""
+      - button "Konfiguration": 
       - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AD Andorra":
         - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
         - gridcell "AD":
@@ -132,15 +135,15 @@
         - cell "Transaktion"
         - cell "SM30"
         - cell
-      - row "E2E-Zeit 368 ms":
+      - row "E2E-Zeit 371 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "368 ms"
+        - cell "371 ms"
         - cell
-      - row "WebGUI-Zeit 27 ms":
+      - row "WebGUI-Zeit 30 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "27 ms"
+        - cell "30 ms"
         - cell

@@ -1,16 +1,19 @@
 - main "Einfache Jobauswahl":
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - heading "Einfache Jobauswahl" [level=1]
     - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Erweiterte Jobauswahl"
       - button "Informationen"
-    - button "Beenden"
+      - button "Beenden"
   - text: Jobname
   - textbox "Jobname": ZZZNOTEXIST_JOB_99
   - text: Benutzername
@@ -27,10 +30,10 @@
     - heading "Jobstartbedingung" [level=2]
     - text: von
     - img "Datum"
-    - textbox: 03.03.2026
+    - textbox: 11.03.2026
     - text: bis
     - img "Datum"
-    - textbox: 03.03.2026
+    - textbox: 11.03.2026
     - text: von
     - img "Uhrzeit"
     - textbox
@@ -80,15 +83,15 @@
         - cell "Transaktion"
         - cell "SM37"
         - cell
-      - row "E2E-Zeit 97 ms":
+      - row "E2E-Zeit 90 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "97 ms"
+        - cell "90 ms"
         - cell
-      - row "WebGUI-Zeit 23 ms":
+      - row "WebGUI-Zeit 37 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "23 ms"
+        - cell "37 ms"
         - cell

@@ -272,9 +272,9 @@
         - cell "E2E-Zeit"
         - cell "182 ms"
         - cell
-      - row "WebGUI-Zeit 49 ms":
+      - row "WebGUI-Zeit 45 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "49 ms"
+        - cell "45 ms"
         - cell

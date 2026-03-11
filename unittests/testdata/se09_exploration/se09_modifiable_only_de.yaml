@@ -1,9 +1,12 @@
 - 'main "Transport Organizer: Aufträge"':
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - 'heading "Transport Organizer: Aufträge" [level=1]'
-    - button "Systeminformationen öffnen"
+    - button "Systeminformationen schließen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
@@ -15,21 +18,31 @@
       - button "Inhaber ändern..."
       - button "Löschen..."
       - button "Mehr"
-    - button "Suchen (Strg+F)"
-    - button "Drucken (Strg+P)"
-    - button "Beenden"
+      - button "Suchen (Strg+F)"
+      - button "Drucken (Strg+P)"
+      - button "Beenden"
   - table:
     - rowgroup:
       - row "Liste":
         - cell "Liste":
           - region "Liste":
-            - text: Workbench-Aufträge mit Beteiligung von KLEINK (Konstantin Klein)
+            - text: Änderungsaufträge mit Beteiligung von KLEINK (Konstantin Klein)
             - button
             - text: 100 Entwickl., übergre. Cust.
+            - button
+            - text: Workbench Workbench-Auftrag
             - button
             - text: "-> DUM Dummy Queue"
             - button
             - text: Änderbar
+            - button
+            - text: S4UK902261
+            - img
+            - text: KLEINK Paket für Ulli
+            - button
+            - text: S4UK901796
+            - img
+            - text: KEMPERU Workbenchauftrag von Kemperu
             - button
             - text: S4UK902153
             - img
@@ -88,15 +101,15 @@
         - cell "Transaktion"
         - cell "SE09"
         - cell
-      - row "E2E-Zeit 221 ms":
+      - row "E2E-Zeit 331 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "221 ms"
+        - cell "331 ms"
         - cell
-      - row "WebGUI-Zeit 143 ms":
+      - row "WebGUI-Zeit 240 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "143 ms"
+        - cell "240 ms"
         - cell

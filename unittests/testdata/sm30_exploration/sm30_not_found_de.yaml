@@ -1,15 +1,18 @@
 - 'main "Tabellensicht-Pflege: Einstieg"':
   - banner:
     - button "Zurück (F3)"
-    - img "Unternehmenslogo"
+    - img "Company Logo"
     - 'heading "Tabellensicht-Pflege: Einstieg" [level=1]'
     - button "Systeminformationen öffnen"
+    - toolbar:
+      - button "S4U (100)"
+      - separator
     - toolbar:
       - button "Menü"
       - combobox "Bitte Transaktionscode eingeben"
       - text: 
       - button "Pflegedialog suchen"
-    - button "Beenden"
+      - button "Beenden"
   - text: Tabelle/Sicht
   - textbox "Tabelle/Sicht": ZZZNOTEXIST99
   - group "Datenbereich einschränken":
@@ -56,15 +59,15 @@
         - cell "Transaktion"
         - cell "SM30"
         - cell
-      - row "E2E-Zeit 66 ms":
+      - row "E2E-Zeit 57 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "66 ms"
+        - cell "57 ms"
         - cell
-      - row "WebGUI-Zeit 18 ms":
+      - row "WebGUI-Zeit 19 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "18 ms"
+        - cell "19 ms"
         - cell

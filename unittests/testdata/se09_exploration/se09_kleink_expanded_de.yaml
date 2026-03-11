@@ -27,23 +27,21 @@
         - cell "Liste":
           - region "Liste":
             - button
-            - text: SAP Gateway Business Suite Enablement - Service
+            - text: Klasse (ABAP Objects)
             - button
-            - text: SAP Gateway Business Suite Enablement -Vocabulary Annotation
+            - text: Paket
             - button
-            - text: Zuordnung Service > Ber.objekte 37B5C0881C6FFC85344D5A85228DB2HT 82F9E125970C1CE1686164550C21FFHT 9F7F28AD8FDF61047C14ED3F2DB266HT DA609EF6F68EBD392D3E073137AF93HT
+            - text: Domäne
             - button
-            - text: Tabelle
+            - text: Datenelement
             - button
-            - text: Tabellentyp
+            - text: Funktionsgruppe /HFQ/CTR_MIG_CT /HFQ/CTR_PARA
             - button
-            - text: View
+            - text: Nachrichtenklasse
             - button
-            - text: S4UK901204
-            - img
-            - text: HAFFML Entwickl./Korrektur
+            - text: Programm /HFQ/RP_CREATE_MOS_CTR_MASS
             - button
-            - text: Data Definition Language Source /HFQ/CDS_BO_MALO_202106 /HFQ/CDS_BO_MARKTLOKATION /HFQ/CDS_BO_MESSLOKATION /HFQ/CDS_COM_MESSLOKATIONSZUO /HFQ/CDS_COM_MESSLOKATIONSZUOR
+            - text: Tabelle /HFQ/CTR_MIG_AR /HFQ/CTR_MIG_CT /HFQ/CTR_PARA /HFQ/MOS_CTR_MIG /HFQ/MOS_CTR_MIG_UPL
         - cell
       - row:
         - cell
@@ -82,15 +80,15 @@
         - cell "Transaktion"
         - cell "SE09"
         - cell
-      - row "E2E-Zeit 105 ms":
+      - row "E2E-Zeit 278 ms":
         - cell
         - cell
         - cell "E2E-Zeit"
-        - cell "105 ms"
+        - cell "278 ms"
         - cell
-      - row "WebGUI-Zeit 63 ms":
+      - row "WebGUI-Zeit 205 ms":
         - cell
         - cell
         - cell "WebGUI-Zeit"
-        - cell "63 ms"
+        - cell "205 ms"
         - cell
