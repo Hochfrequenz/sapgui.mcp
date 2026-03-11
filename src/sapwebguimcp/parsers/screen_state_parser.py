@@ -17,6 +17,8 @@ ARIA format examples (from real SAP screens)::
 
 import re
 from collections import Counter
+from dataclasses import dataclass, field
+from typing import Any
 
 from sapwebguimcp.models.screen_state import SelectionScreenState
 
@@ -39,9 +41,61 @@ _RADIO_RE = re.compile(
 _TEXTBOX_RE = re.compile(r'-\s+textbox\s+"([^"]+)":\s*(.*)')  # - textbox "LABEL": VALUE
 
 
+@dataclass
+class _ParseAccumulator:
+    """Mutable accumulator for parsed ARIA snapshot controls."""
+
+    checkboxes: dict[str, bool] = field(default_factory=dict)
+    radios: dict[str, bool] = field(default_factory=dict)
+    fields: dict[str, str] = field(default_factory=dict)
+    checkbox_labels: list[str] = field(default_factory=list)
+    radio_labels: list[str] = field(default_factory=list)
+    field_labels: list[str] = field(default_factory=list)
+
+
+def _parse_line(line: str, acc: _ParseAccumulator) -> None:
+    """Parse a single ARIA snapshot line into the accumulator."""
+    cb_match = _CHECKBOX_RE.search(line)
+    if cb_match:
+        label, flags = cb_match.group(1), cb_match.group(2)
+        if "[disabled]" not in flags:
+            acc.checkboxes[label] = "[checked]" in flags
+            acc.checkbox_labels.append(label)
+        return
+
+    if "menuitemradio" in line:
+        return
+    radio_match = _RADIO_RE.search(line)
+    if radio_match:
+        label, flags = radio_match.group(1), radio_match.group(2)
+        if "[disabled]" not in flags:
+            acc.radios[label] = "[checked]" in flags
+            acc.radio_labels.append(label)
+        return
+
+    tb_match = _TEXTBOX_RE.search(line)
+    if tb_match:
+        label, value = tb_match.group(1), tb_match.group(2).strip()
+        if "[disabled]" not in line and "[readonly]" not in line:
+            acc.fields[label] = value
+            acc.field_labels.append(label)
+
+
+def _remove_ambiguous(
+    labels: list[str],
+    state_dict: dict[str, Any],
+    ambiguous: list[str],
+) -> None:
+    """Detect duplicate labels, remove them from *state_dict*, and append to *ambiguous*."""
+    for label, count in Counter(labels).items():
+        if count > 1:
+            ambiguous.append(label)
+            state_dict.pop(label, None)
+
+
 def parse_selection_screen_state(
     snapshot: str,
-) -> SelectionScreenState:  # pylint: disable=too-many-locals,too-many-branches
+) -> SelectionScreenState:
     """Parse checkbox, radio, and text field state from an ARIA snapshot.
 
     Args:
@@ -53,71 +107,19 @@ def parse_selection_screen_state(
         Ambiguous labels (same label, same control type, multiple occurrences)
         are listed in ``ambiguous_labels``.
     """
-    checkboxes: dict[str, bool] = {}
-    radios: dict[str, bool] = {}
-    fields: dict[str, str] = {}
-
-    # Track label counts per type for ambiguity detection
-    checkbox_labels: list[str] = []
-    radio_labels: list[str] = []
-    field_labels: list[str] = []
+    acc = _ParseAccumulator()
 
     for line in snapshot.splitlines():
-        # --- Checkboxes ---
-        cb_match = _CHECKBOX_RE.search(line)
-        if cb_match:
-            label = cb_match.group(1)
-            flags = cb_match.group(2)
-            if "[disabled]" in flags:
-                continue
-            checkboxes[label] = "[checked]" in flags
-            checkbox_labels.append(label)
-            continue
+        _parse_line(line, acc)
 
-        # --- Radio buttons (skip menuitemradio) ---
-        if "menuitemradio" in line:
-            continue
-        radio_match = _RADIO_RE.search(line)
-        if radio_match:
-            label = radio_match.group(1)
-            flags = radio_match.group(2)
-            if "[disabled]" in flags:
-                continue
-            radios[label] = "[checked]" in flags
-            radio_labels.append(label)
-            continue
-
-        # --- Text fields ---
-        tb_match = _TEXTBOX_RE.search(line)
-        if tb_match:
-            label = tb_match.group(1)
-            value = tb_match.group(2).strip()
-            if "[disabled]" in line or "[readonly]" in line:
-                continue
-            fields[label] = value
-            field_labels.append(label)
-            continue
-
-    # Detect ambiguous labels (same label appears 2+ times for same type)
-    # and exclude them from the state dicts — the value would be unreliable
-    # (last-writer-wins) and ensure_screen_state refuses to act on them anyway.
     ambiguous: list[str] = []
-    for label, count in Counter(checkbox_labels).items():
-        if count > 1:
-            ambiguous.append(label)
-            checkboxes.pop(label, None)
-    for label, count in Counter(radio_labels).items():
-        if count > 1:
-            ambiguous.append(label)
-            radios.pop(label, None)
-    for label, count in Counter(field_labels).items():
-        if count > 1:
-            ambiguous.append(label)
-            fields.pop(label, None)
+    _remove_ambiguous(acc.checkbox_labels, acc.checkboxes, ambiguous)
+    _remove_ambiguous(acc.radio_labels, acc.radios, ambiguous)
+    _remove_ambiguous(acc.field_labels, acc.fields, ambiguous)
 
     return SelectionScreenState(
-        checkboxes=checkboxes,
-        radios=radios,
-        fields=fields,
+        checkboxes=acc.checkboxes,
+        radios=acc.radios,
+        fields=acc.fields,
         ambiguous_labels=ambiguous,
     )
