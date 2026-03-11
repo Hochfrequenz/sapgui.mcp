@@ -703,3 +703,41 @@ async def test_abapgit_pull_invalid_repo_name(sap_mcp_client: ClientSession) -> 
     assert not result.success, "Expected failure for invalid repo name"
     assert result.error is not None
     assert "invalid" in result.error.lower() or "alphanumeric" in result.error.lower()
+
+
+@pytest.mark.anyio
+async def test_abapgit_pull_transport_without_user_task(sap_mcp_client: ClientSession) -> None:
+    """
+    Test pulling with a transport where the logged-in user has no task (Aufgabe).
+
+    Bug report: when user KLEINK had no task in a transport, the pull silently
+    succeeded but nothing was actually written. The tool should detect this
+    condition and return a clear error.
+
+    Uses S4UK902263 — a workbench transport (not released) where KLEINK
+    has no task.
+    """
+    # Login first
+    login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login_result.success, f"Login failed: {login_result.error}"
+
+    # Pull with a workbench transport where KLEINK has no task
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_abapgit_pull",
+        {
+            "repo": "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
+            "trkorr": "S4UK902263",
+        },
+        AbapGitActionResult,
+    )
+
+    # The pull must fail — the user has no task in this transport,
+    # so nothing can actually be written. Previously this silently
+    # reported success because the ABAP log was not checked.
+    assert not result.success, (
+        f"Pull silently succeeded with a transport where user has no task. "
+        f"message={result.message}, error={result.error}"
+    )
+    assert result.error is not None
+    assert result.action == "pull"
