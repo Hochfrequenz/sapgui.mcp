@@ -299,9 +299,7 @@ class TestRegisterNewWindowSession:
 
         _PATCH_REGISTRY = "sapwebguimcp.backend.webgui.backend.WebGuiBackend._get_registry"
         with patch(_PATCH_REGISTRY, new=AsyncMock(return_value=registry)):
-            session_id, count, title = await backend._register_new_window_session(
-                pages_before=1, wait_timeout_ms=100
-            )
+            session_id, count, title = await backend._register_new_window_session(pages_before=1, wait_timeout_ms=100)
 
         assert session_id is None
         assert count == 1
@@ -321,9 +319,7 @@ class TestRegisterNewWindowSession:
         _PATCH_REGISTRY = "sapwebguimcp.backend.webgui.backend.WebGuiBackend._get_registry"
         with patch(_PATCH_REGISTRY, new=AsyncMock(return_value=registry)):
             with caplog.at_level(logging.WARNING):
-                await backend._register_new_window_session(
-                    pages_before=1, tcode="VA01", wait_timeout_ms=100
-                )
+                await backend._register_new_window_session(pages_before=1, tcode="VA01", wait_timeout_ms=100)
 
         assert "No new page detected" in caplog.text
         assert "/o prefix" in caplog.text
@@ -361,9 +357,7 @@ class TestRegisterNewWindowSession:
 
         _PATCH_REGISTRY = "sapwebguimcp.backend.webgui.backend.WebGuiBackend._get_registry"
         with patch(_PATCH_REGISTRY, new=AsyncMock(return_value=registry)):
-            session_id, count, title = await backend._register_new_window_session(
-                pages_before=1, wait_timeout_ms=100
-            )
+            session_id, count, title = await backend._register_new_window_session(pages_before=1, wait_timeout_ms=100)
 
         # Should register the LAST page (pages[-1])
         assert session_id == "s1"
