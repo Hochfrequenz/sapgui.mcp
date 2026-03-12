@@ -171,6 +171,12 @@ class SapNavigation(Protocol):
     async def wait(self, timeout_ms: int = 200) -> None:
         """Wait for a fixed duration (e.g. to let popups render)."""
 
+    async def is_page_closed(self) -> bool:
+        """Check whether the underlying page/window has been closed."""
+
+    async def close_page(self) -> None:
+        """Close the underlying page/window."""
+
 
 @runtime_checkable
 class SapEditor(Protocol):

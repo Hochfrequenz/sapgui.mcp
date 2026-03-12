@@ -425,6 +425,15 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         """Wait for a fixed duration."""
         await self._page.wait_for_timeout(timeout_ms)
 
+    async def is_page_closed(self) -> bool:
+        """Check whether the page has been closed."""
+        return self._page.is_closed()
+
+    async def close_page(self) -> None:
+        """Close the page."""
+        if not self._page.is_closed():
+            await self._page.close()
+
     # ===================================================================
     # SapUiPrimitives
     # ===================================================================
