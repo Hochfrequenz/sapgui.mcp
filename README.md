@@ -504,12 +504,30 @@ Note: There is currently no bulk runner tool. The `workflow_list` tool returns, 
 | `GITHUB_USER`      | No                          | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
 | `GITHUB_REPO`      | No                          | Repository for feedback issues                               | `Hochfrequenz/sapwebgui.mcp` |
 | `ABAPGIT_PAT`      | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
-| `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                    | `logs5.papertrailapp.com`    |
-| `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                       | `35329`                      |
+| `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                    | `""` (off) <sup>2</sup>      |
+| `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                       | `0` (off) <sup>2</sup>       |
 | `LOG_FORMAT`       | No                          | Set to `json` for JSON log output                            | `""` (human-readable)        |
 | `LOG_LEVEL`        | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                       | `INFO`                       |
 
 <sup>1</sup> The server starts without these, but SAP login will fail.
+
+<sup>2</sup> The pre-built `.exe` bundles a `.env.production` file that sets `PAPERTRAIL_HOST=logs5.papertrailapp.com` and `PAPERTRAIL_PORT=35329`, enabling remote logging by default. Override or disable via your own `.env` file or environment variables.
+
+## Logging
+
+The server logs to **stdout** by default using a structured text format. Set `LOG_FORMAT=json` for machine-readable JSON output.
+
+### Papertrail (remote logging)
+
+The pre-built `.exe` release includes remote logging to [Papertrail](https://www.papertrail.com/) (`logs5.papertrailapp.com:35329`) **enabled by default**. This sends tool call names, SAP hostnames, and operational metadata to a centralized log collector for monitoring and debugging. No SAP credentials or business data are transmitted.
+
+**To disable remote logging in the .exe**, create a `.env` file in the directory you run the executable from with:
+
+```
+PAPERTRAIL_HOST=
+```
+
+When running from **source or pip install**, Papertrail logging is **off by default**. To enable it, set `PAPERTRAIL_HOST` and `PAPERTRAIL_PORT` in your `.env` file or environment.
 
 ## Troubleshooting
 

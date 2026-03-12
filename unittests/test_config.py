@@ -1,6 +1,8 @@
 """Tests for the configuration module."""
 
 import os
+import sys
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -9,6 +11,7 @@ from sapwebguimcp.models.config import (
     BrowserMode,
     BrowserType,
     SapWebGuiSettings,
+    _env_files,
     get_settings,
 )
 
@@ -48,6 +51,22 @@ class TestSapWebGuiSettings:
         assert settings.browser_headless is True
         assert settings.cdp_url == "http://localhost:9333"
 
+    def test_papertrail_defaults_empty(self) -> None:
+        """Papertrail is OFF by default (no hardcoded host/port)."""
+        with patch.dict(os.environ, {}, clear=True):
+            settings = SapWebGuiSettings(_env_file=None)
+        assert settings.papertrail_host == ""
+        assert settings.papertrail_port == 0
+
+    def test_papertrail_loaded_from_production_env(self, tmp_path: Path) -> None:
+        """Settings load Papertrail values from .env.production."""
+        prod = tmp_path / ".env.production"
+        prod.write_text("PAPERTRAIL_HOST=logs.example.com\nPAPERTRAIL_PORT=12345\n")
+        with patch.dict(os.environ, {}, clear=True):
+            settings = SapWebGuiSettings(_env_file=str(prod))
+        assert settings.papertrail_host == "logs.example.com"
+        assert settings.papertrail_port == 12345
+
     def test_validate_for_browser_connect_mode_missing_cdp(self) -> None:
         """Test validation when in connect mode without CDP URL."""
         env_vars = {
@@ -69,6 +88,35 @@ class TestSapWebGuiSettings:
 
         errors = settings.validate_for_browser()
         assert len(errors) == 0
+
+
+class TestEnvFiles:
+    """Tests for _env_files() helper."""
+
+    def test_env_files_no_meipass(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Normal Python (not frozen) — _MEIPASS absent, returns only .env."""
+        if hasattr(sys, "_MEIPASS"):
+            pytest.skip("Running in a frozen environment")
+        # Run from a dir without .env.production so the fallback "." doesn't find one
+        monkeypatch.chdir(tmp_path)
+        result = _env_files()
+        assert result == (".env",)
+
+    def test_env_files_meipass_without_production(self, tmp_path: Path) -> None:
+        """Frozen exe but .env.production missing from bundle — returns only .env."""
+        with patch.object(sys, "_MEIPASS", str(tmp_path), create=True):
+            result = _env_files()
+        assert result == (".env",)
+
+    def test_env_files_meipass_with_production(self, tmp_path: Path) -> None:
+        """Frozen exe with .env.production bundled — returns both files."""
+        prod_env = tmp_path / ".env.production"
+        prod_env.write_text("PAPERTRAIL_HOST=logs5.papertrailapp.com\n")
+        with patch.object(sys, "_MEIPASS", str(tmp_path), create=True):
+            result = _env_files()
+        assert len(result) == 2
+        assert result[0] == str(prod_env)
+        assert result[1] == ".env"
 
 
 class TestGetSettings:

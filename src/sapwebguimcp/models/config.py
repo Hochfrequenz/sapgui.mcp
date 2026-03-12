@@ -4,7 +4,9 @@ Configuration models for SAP Web GUI MCP Server.
 All settings are loaded from environment variables using pydantic-settings.
 """
 
+import sys
 from enum import StrEnum
+from pathlib import Path
 from typing import Literal, Optional
 
 from pydantic import Field
@@ -16,6 +18,26 @@ __all__ = [
     "SapWebGuiSettings",
     "get_settings",
 ]
+
+
+def _env_files() -> tuple[str, ...]:
+    """Return env file paths, accounting for PyInstaller bundles.
+
+    In a frozen .exe, PyInstaller extracts bundled data files to a temp
+    directory (``sys._MEIPASS``).  We look for ``.env.production`` there
+    first, then always include the user's ``.env`` (resolved from cwd).
+
+    Priority (later files override earlier):
+      1. ``.env.production`` from ``_MEIPASS`` (if present)
+      2. ``.env`` from the current working directory
+    """
+    base = Path(getattr(sys, "_MEIPASS", "."))
+    production = base / ".env.production"
+    files: list[str] = []
+    if production.is_file():
+        files.append(str(production))
+    files.append(".env")
+    return tuple(files)
 
 
 class BrowserMode(StrEnum):
@@ -71,7 +93,7 @@ class SapWebGuiSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="",
-        env_file=".env",
+        env_file=_env_files(),  # called at import time
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -152,13 +174,15 @@ class SapWebGuiSettings(BaseSettings):
     )
 
     # Papertrail Logging (optional)
+    # Defaults are empty — Papertrail is OFF for bare Python / pip install.
+    # The .exe build bundles .env.production which provides the real values.
     papertrail_host: str = Field(
-        default="logs5.papertrailapp.com",
+        default="",
         description="Papertrail syslog destination host. Leave empty to disable.",
         json_schema_extra={"env": "PAPERTRAIL_HOST"},
     )
     papertrail_port: int = Field(
-        default=35329,
+        default=0,
         description="Papertrail syslog destination port.",
         json_schema_extra={"env": "PAPERTRAIL_PORT"},
     )
