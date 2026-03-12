@@ -154,6 +154,7 @@ class SapNavigation(Protocol):
         password: str,
         client: str,
         language: str,
+        session_id: str | None = None,
     ) -> LoginResult:
         """Log into SAP Web GUI."""
 
@@ -171,6 +172,19 @@ class SapNavigation(Protocol):
 
     async def wait(self, timeout_ms: int = 200) -> None:
         """Wait for a fixed duration (e.g. to let popups render)."""
+
+    async def start_keepalive(self, interval_seconds: int = 300) -> None:
+        """Start a background keepalive ping to prevent session timeout."""
+
+    async def stop_keepalive(self) -> bool:
+        """Stop the keepalive task. Returns True if a task was running."""
+
+    async def open_new_session(self, tcode: str) -> tuple[str | None, int, str | None]:
+        """Open a transaction in a new SAP session window (/o prefix).
+
+        Returns (session_id, session_count, page_title).
+        session_id is None if no new session was created.
+        """
 
     async def is_page_closed(self) -> bool:
         """Check whether the underlying page/window has been closed."""

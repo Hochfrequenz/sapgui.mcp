@@ -11,13 +11,17 @@ import asyncio
 import itertools
 import logging
 import re
+import time
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 from sapwebguimcp.backend.protocol import CheckActivateResult
 from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils
+from sapwebguimcp.middleware.logging import set_sap_identity
 from sapwebguimcp.models.alv_models import AlvCellInfo, AlvMetadata, TableCellClickResult
 from sapwebguimcp.models.base import PopupButton, PopupInfo
+from sapwebguimcp.models.middleware import SapIdentity
 from sapwebguimcp.models.sap_results import (
     ButtonInfo,
     ClosePopupResult,
@@ -127,6 +131,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     def __init__(self, page: Page) -> None:
         self._page = page
         self._session_token = f"webgui-{next(_token_counter)}"
+        self._keepalive_task: asyncio.Task[None] | None = None
 
     def get_session_token(self) -> str:
         """Return opaque token identifying the underlying session."""
@@ -197,6 +202,45 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     # SapNavigation
     # ===================================================================
 
+    async def _capture_sap_identity(
+        self,
+        effective_url: str,
+        mandant: str,
+        session_id: str | None,
+    ) -> None:
+        """Extract SAP username from DOM and store identity for log correlation."""
+        hostname = urlparse(effective_url).hostname or "unknown"
+
+        try:
+            js = load_js("extract_sap_user.js")
+            result = await self._page.evaluate(js)
+            sap_user = result.get("user") if result else None
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            logger.warning(
+                "DOM extraction failed for SAP username; identity not set",
+                extra={"error": str(exc)},
+            )
+            return
+
+        if sap_user:
+            identity = SapIdentity(sap_user=sap_user, sap_host=hostname, sap_mandant=mandant)
+            set_sap_identity(session_id, identity)
+            logger.info("SAP identity captured", extra=identity.model_dump(mode="json"))
+        else:
+            logger.warning("SAP username not found in page DOM; identity not set for log correlation")
+
+    async def _post_login_setup(
+        self,
+        effective_url: str,
+        mandant: str,
+        session_id: str | None,
+    ) -> None:
+        """Register session and capture identity after a successful login."""
+        registry = await self._get_registry()
+        if not registry.has_session("s1"):
+            registry.register(self._page)
+        await self._capture_sap_identity(effective_url, mandant, session_id)
+
     async def login(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         url: str,
@@ -204,27 +248,41 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         password: str,
         client: str,
         language: str,
+        session_id: str | None = None,
     ) -> LoginResult:
-        """Navigate to SAP WebGUI and log in."""
+        """Navigate to SAP WebGUI and log in.
+
+        After successful login (any path), registers the page in the session
+        registry and captures SAP identity for log correlation.
+        """
+        guidance_msg = (
+            "RECOMMENDED: Call sap_get_capabilities() to review all available "
+            "tools and their descriptions before proceeding."
+        )
         try:
-            logger.info("Navigating to SAP Web GUI")
+            logger.info(
+                "Navigating to SAP Web GUI",
+                extra={"sap_host": urlparse(url).hostname or "unknown"},
+            )
             await self._page.goto(url)
             await self._page.wait_for_load_state("networkidle", timeout=15000)
 
             # Already logged in?
             okcode_field = await self._find_okcode_field()
             if okcode_field:
-                return LoginResult(url=url, already_logged_in=True)
+                await self._post_login_setup(url, client, session_id)
+                return LoginResult(url=url, already_logged_in=True, guidance=guidance_msg)
 
             # Check for login form
             login_form = await self._page.query_selector('input[type="password"], input[id*="user" i]')
             if not login_form:
                 return LoginResult.failure(
-                    f"Navigated to {url}. No login form detected.",
+                    f"Navigated to {url}. No login form detected - please check browser window.",
                     url=url,
                 )
 
             # Fill credentials
+            logger.info("Performing automatic login", extra={"sap_user": username})
             await self._page.fill('#sap-client, input[name="sap-client"]', client)
             await self._page.fill('#sap-user, input[name="sap-user"]', username)
             await self._page.fill('#sap-password, input[name="sap-password"]', password)
@@ -234,14 +292,17 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                     load_js("set_language_field.js"),
                     {"language": language},
                 )
-            except Exception:  # pylint: disable=broad-exception-caught
-                logger.warning("Could not set language field")
+                logger.debug("Set language field", extra={"language": language})
+            except Exception as lang_err:  # pylint: disable=broad-exception-caught
+                logger.warning("Could not set language field", extra={"error": str(lang_err)})
 
             await self._page.click("#LOGON_BUTTON")
 
             try:
                 await self._page.wait_for_selector("#ToolbarOkCode", timeout=15000, state="visible")
-                return LoginResult(url=url, user=username)
+                logger.info("Login successful, OK-Code field visible")
+                await self._post_login_setup(url, client, session_id)
+                return LoginResult(url=url, user=username, guidance=guidance_msg)
             except Exception:  # pylint: disable=broad-exception-caught
                 page_content = await self._page.content()
                 if "already logged" in page_content.lower() or "bereits angemeldet" in page_content.lower():
@@ -253,11 +314,13 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                             timeout=5000,
                         )
                         await self._page.wait_for_selector("#ToolbarOkCode", timeout=10000, state="visible")
-                        return LoginResult(url=url, user=username, already_logged_in=True)
+                        await self._post_login_setup(url, client, session_id)
+                        return LoginResult(url=url, user=username, already_logged_in=True, guidance=guidance_msg)
                     except Exception:  # pylint: disable=broad-exception-caught
                         pass
                 return LoginResult.failure(
-                    "Login attempted but SAP Easy Access not detected.",
+                    "Login attempted but SAP Easy Access not detected. "
+                    "Please check browser window for errors or dialogs.",
                     url=url,
                 )
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -383,6 +446,163 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception:  # pylint: disable=broad-exception-caught
             # Element detached / page navigated → success.
             return True
+
+    # ---- keepalive ----
+
+    async def start_keepalive(self, interval_seconds: int = 300) -> None:
+        """Start a background keepalive ping to prevent session timeout."""
+        if self._keepalive_task is not None and not self._keepalive_task.done():
+            self._keepalive_task.cancel()
+            try:
+                await self._keepalive_task
+            except asyncio.CancelledError:
+                pass
+        self._keepalive_task = asyncio.create_task(self._keepalive_loop(interval_seconds))
+
+    async def stop_keepalive(self) -> bool:
+        """Stop the keepalive task. Returns True if a task was running."""
+        if self._keepalive_task is None or self._keepalive_task.done():
+            return False
+        self._keepalive_task.cancel()
+        try:
+            await self._keepalive_task
+        except asyncio.CancelledError:
+            pass
+        self._keepalive_task = None
+        return True
+
+    async def _keepalive_loop(self, interval: int) -> None:
+        """Background loop that pings the browser to keep the SAP session alive."""
+        logger.info("Keepalive started", extra={"interval_s": interval})
+        while True:
+            try:
+                await asyncio.sleep(interval)
+                if self._page.is_closed():
+                    logger.warning("Keepalive page closed, stopping")
+                    break
+                await self._page.evaluate("() => { /* keepalive ping */ }")
+                logger.info("Keepalive ping sent")
+            except asyncio.CancelledError:
+                logger.info("Keepalive cancelled")
+                break
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.warning("Keepalive error", extra={"error": str(e)})
+
+    # ---- new session (open_new_session) ----
+
+    async def _wait_for_new_page(self, pages_before: int, timeout_ms: int = 5000) -> bool:
+        """Wait for a new browser page/tab to appear in the context."""
+        poll_interval_s = 0.1
+        timeout_s = timeout_ms / 1000
+        start_time = time.monotonic()
+
+        while len(self._page.context.pages) <= pages_before:
+            elapsed = time.monotonic() - start_time
+            if elapsed >= timeout_s:
+                return False
+            await asyncio.sleep(poll_interval_s)
+
+        elapsed_ms = int((time.monotonic() - start_time) * 1000)
+        logger.debug("New browser tab detected", extra={"elapsed_ms": elapsed_ms})
+        return True
+
+    async def _register_new_window_session(
+        self,
+        pages_before: int,
+        tcode: str | None = None,
+        wait_timeout_ms: int = 5000,
+    ) -> tuple[str | None, int, str | None]:
+        """Wait for and register a new session created by /o prefix.
+
+        Returns (session_id, session_count, page_title).
+        """
+        context = self._page.context
+        await self._wait_for_new_page(pages_before, timeout_ms=wait_timeout_ms)
+
+        pages = context.pages
+        session_count = len(pages)
+        new_session_id: str | None = None
+        title: str | None = None
+
+        if session_count > pages_before:
+            new_page = pages[-1]
+            registry = await self._get_registry()
+            new_session_id = registry.register(new_page)
+            logger.info("Auto-registered new session from new_window=True", extra={"session": new_session_id})
+            title = await new_page.title()
+        else:
+            logger.warning(
+                "No new page detected after new_window=True (/o prefix)",
+                extra={
+                    "tcode": tcode or "unknown",
+                    "wait_timeout_ms": wait_timeout_ms,
+                    "pages_before": pages_before,
+                    "pages_after": session_count,
+                },
+            )
+
+        return new_session_id, session_count, title
+
+    async def open_new_session(self, tcode: str) -> tuple[str | None, int, str | None]:
+        """Open a transaction in a new SAP session window (/o prefix).
+
+        Returns (session_id, session_count, page_title).
+        session_id is None if no new session was created.
+        """
+        okcode_field = await self._find_okcode_field()
+
+        if not okcode_field:
+            logger.info("OK-Code field not found, attempting to enable")
+            success, message = await self._enable_okcode_field()
+            logger.info("Enable OK-Code result", extra={"success": success, "result_message": message})
+
+            if not success:
+                raise ValueError(
+                    f"Could not find or enable OK-Code field. {message} "
+                    "Possible causes: (1) A popup/dialog may be blocking the screen - "
+                    "close any open dialogs first. (2) The OK-Code field may need to be "
+                    "enabled manually: Menu -> Settings -> Enable 'OK-Code Field' or "
+                    "'Transaction Field'."
+                )
+
+            okcode_field = await self._find_okcode_field()
+            if not okcode_field:
+                raise ValueError(
+                    f"OK-Code field still not visible after enabling. {message} "
+                    "Possible causes: (1) A popup/dialog may be blocking the screen - "
+                    "close any open dialogs first. (2) Please try enabling it manually "
+                    "in SAP settings."
+                )
+
+        # Build transaction input with /o prefix
+        if tcode.startswith("/n") or tcode.startswith("/o"):
+            transaction_input = tcode
+        else:
+            transaction_input = f"/o{tcode}"
+
+        # Track page count before transaction
+        context = self._page.context
+        pages_before = len(context.pages)
+
+        await self._page.bring_to_front()
+        await self._page.wait_for_timeout(500)
+
+        logger.info("Entering transaction", extra={"tcode": transaction_input})
+
+        await okcode_field.click()
+        await self._page.wait_for_timeout(200)
+
+        await self._page.evaluate(
+            load_js("set_okcode_field.js"),
+            {"transactionInput": transaction_input},
+        )
+
+        await self._page.wait_for_timeout(300)
+        await self._page.keyboard.press("Enter")
+        await self._page.wait_for_load_state("networkidle", timeout=15000)
+        await self._page.wait_for_timeout(200)
+
+        return await self._register_new_window_session(pages_before, tcode=tcode)
 
     async def get_session_status(self) -> SessionStatus:
         """Check session health."""

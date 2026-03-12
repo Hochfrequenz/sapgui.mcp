@@ -17,21 +17,15 @@ This module contains tools for:
 - sap_discover_fields: Discover input fields on current screen
 """
 
-import asyncio
 import json
 import logging
 import re
-import time
 from importlib import resources
-from typing import Any, Optional
-from urllib.parse import urlparse
+from typing import Optional
 
 from fastmcp import Context, FastMCP
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.webgui.browser import BrowserManager, get_browser_manager
-from sapwebguimcp.backend.webgui.js_helpers import load_js as _load_js
-from sapwebguimcp.middleware.logging import set_sap_identity
 from sapwebguimcp.models import (
     CapabilitiesResult,
     ClosePopupResult,
@@ -60,7 +54,6 @@ from sapwebguimcp.models import (
     TransactionResult,
     get_settings,
 )
-from sapwebguimcp.models.middleware import SapIdentity
 from sapwebguimcp.tools.session_tools import (
     sap_session_bind_impl,
     sap_session_close_impl,
@@ -71,112 +64,6 @@ from sapwebguimcp.tools.session_tools import (
 __all__ = ["register_sap_tools", "SELECTORS", "parse_shortcut_from_title"]
 
 logger = logging.getLogger(__name__)
-
-
-async def _capture_sap_identity(
-    page: Any,
-    effective_url: str,
-    mandant: str,
-    session_id: str | None,
-) -> None:
-    """Extract SAP username from DOM and store identity for log correlation.
-
-    Tries DOM extraction first. If it fails, logs a warning and leaves
-    identity unset (no guessing from env vars).
-    """
-    hostname = urlparse(effective_url).hostname or "unknown"
-
-    try:
-        js = _load_js("extract_sap_user.js")
-        result = await page.evaluate(js)
-        sap_user = result.get("user") if result else None
-    except Exception as exc:  # pylint: disable=broad-exception-caught
-        logger.warning(
-            "DOM extraction failed for SAP username; identity not set",
-            extra={"error": str(exc)},
-        )
-        return
-
-    if sap_user:
-        identity = SapIdentity(sap_user=sap_user, sap_host=hostname, sap_mandant=mandant)
-        set_sap_identity(session_id, identity)
-        logger.info("SAP identity captured", extra=identity.model_dump(mode="json"))
-    else:
-        logger.warning("SAP username not found in page DOM; identity not set for log correlation")
-
-
-# =============================================================================
-# Keepalive Management
-# =============================================================================
-
-_keepalive_task: Optional[asyncio.Task[None]] = None
-_keepalive_interval: int = 300  # 5 minutes default
-
-
-async def _keepalive_loop(browser_manager: BrowserManager, interval: int) -> None:
-    """
-    Background task that periodically performs a harmless action to keep SAP session alive.
-
-    Args:
-        browser_manager: The browser manager instance
-        interval: Seconds between keepalive actions
-    """
-    logger.info("Keepalive task started", extra={"interval_s": interval})
-
-    while True:
-        try:
-            await asyncio.sleep(interval)
-
-            page = await browser_manager.get_current_page()
-
-            if page.is_closed():
-                logger.warning("Keepalive page closed, stopping")
-                break
-
-            # Perform a harmless action - evaluate JS to keep connection alive
-            await page.evaluate("() => { /* keepalive ping */ }")
-
-            logger.info("Keepalive ping sent successfully")
-
-        except asyncio.CancelledError:
-            logger.info("Keepalive task cancelled successfully")
-            break
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.warning("Keepalive error, will retry", extra={"error": str(e)})
-
-
-async def _start_keepalive(interval_seconds: int = 300) -> KeepaliveResult:
-    """
-    Start the keepalive background task.
-
-    This is the implementation used by both the sap_keepalive_start tool
-    and called internally from sap_login.
-
-    Args:
-        interval_seconds: Seconds between keepalive pings (default: 300 = 5 minutes)
-
-    Returns:
-        KeepaliveResult indicating the keepalive is running.
-    """
-    global _keepalive_task, _keepalive_interval  # pylint: disable=global-statement
-
-    browser_manager = await get_browser_manager()
-
-    # Stop existing task if running
-    if _keepalive_task is not None and not _keepalive_task.done():
-        _keepalive_task.cancel()
-        try:
-            await _keepalive_task
-        except asyncio.CancelledError:
-            pass
-
-    _keepalive_interval = interval_seconds
-    _keepalive_task = asyncio.create_task(_keepalive_loop(browser_manager, interval_seconds))
-
-    return KeepaliveResult(
-        running=True,
-        interval_seconds=interval_seconds,
-    )
 
 
 # =============================================================================
@@ -258,10 +145,9 @@ def parse_shortcut_from_title(title: str) -> ShortcutInfo | None:
 
 
 # =============================================================================
-# SAP Selectors and Helpers
+# SAP Selectors (kept for backward-compatible test imports)
 # =============================================================================
 
-# Common selectors for SAP Web GUI elements
 SELECTORS: dict[str, str] = {
     "okcode_field": (
         'input[id*="ToolbarOkCode"], ' 'input[name*="okcode" i], ' 'input[id*="okcd" i], ' 'input[id*="OkCodeField" i]'
@@ -273,234 +159,7 @@ SELECTORS: dict[str, str] = {
         'button[id*="gear" i], '
         '[aria-label*="Setting" i]'
     ),
-    "menu_expand": ('[id*="shellMnuExp"], ' '[title*="Menu" i], ' '[title*="Menü" i], ' '[aria-label*="Menu" i]'),
-    "okcode_checkbox": ('input[type="checkbox"][id*="okCode" i], ' 'input[type="checkbox"][name*="okCode" i]'),
-    "okcode_label": (
-        'label:has-text("OK-Code"), '
-        'label:has-text("OKCode"), '
-        'label:has-text("Transaction"), '
-        'span:has-text("OK-Code")'
-    ),
-    "save_settings": (
-        'button:has-text("Save"), '
-        'button:has-text("Speichern"), '
-        'button:has-text("OK"), '
-        'button:has-text("Apply"), '
-        'input[type="submit"]'
-    ),
-    "close_dialog": (
-        'button:has-text("Close"), '
-        'button:has-text("Schließen"), '
-        'button[aria-label*="Close" i], '
-        '[id*="closeButton"]'
-    ),
 }
-
-
-async def _find_okcode_field(page: Any) -> Optional[Any]:
-    """Try to find the OK-Code/transaction input field."""
-    return await page.query_selector(SELECTORS["okcode_field"])
-
-
-async def _try_find_checkbox_by_label(page: Any) -> Optional[Any]:
-    """Try to find OK-Code checkbox by its label."""
-    okcode_label = await page.query_selector(SELECTORS["okcode_label"])
-    if not okcode_label:
-        return None
-
-    for_id = await okcode_label.get_attribute("for")
-    if for_id:
-        return await page.query_selector(f"#{for_id}")
-
-    parent = await okcode_label.evaluate_handle("el => el.parentElement")
-    if parent:
-        return await parent.query_selector('input[type="checkbox"]')
-    return None
-
-
-async def _try_find_checkbox_in_tabs(page: Any, steps_taken: list[str]) -> Optional[Any]:
-    """Try to find OK-Code checkbox by searching through settings tabs."""
-    settings_tabs = await page.query_selector_all('[role="tab"], .sapMTabStrip button, [class*="tab" i] button')
-    for tab in settings_tabs:
-        tab_text = await tab.text_content()
-        if tab_text and any(
-            keyword in tab_text.lower()
-            for keyword in ["display", "anzeige", "layout", "toolbar", "general", "allgemein"]
-        ):
-            await tab.click()
-            await page.wait_for_timeout(500)
-            okcode_checkbox = await page.query_selector(SELECTORS["okcode_checkbox"])
-            if okcode_checkbox:
-                steps_taken.append(f"Found OK-Code setting in tab: {tab_text}")
-                return okcode_checkbox
-    return None
-
-
-async def _close_settings_dialog(page: Any) -> None:
-    """Close the settings dialog if open."""
-    close_btn = await page.query_selector(SELECTORS["close_dialog"])
-    if close_btn:
-        await close_btn.click()
-        await page.wait_for_timeout(500)
-
-
-async def _wait_for_new_page(context: Any, pages_before: int, timeout_ms: int = 5000) -> bool:
-    """
-    Wait for a new browser page/tab to appear in the context.
-
-    Args:
-        context: The browser context
-        pages_before: Number of pages before the action
-        timeout_ms: Maximum time to wait in milliseconds
-
-    Returns:
-        True if a new page appeared, False if timeout was reached
-    """
-    poll_interval_s = 0.1
-    timeout_s = timeout_ms / 1000
-    start_time = time.monotonic()
-
-    while len(context.pages) <= pages_before:
-        elapsed = time.monotonic() - start_time
-        if elapsed >= timeout_s:
-            return False
-        await asyncio.sleep(poll_interval_s)
-
-    elapsed_ms = int((time.monotonic() - start_time) * 1000)
-    logger.debug("New browser tab detected", extra={"elapsed_ms": elapsed_ms})
-    return True
-
-
-async def _register_new_window_session(
-    browser_manager: "BrowserManager",
-    context: Any,
-    pages_before: int,
-    tcode: str | None = None,
-    wait_timeout_ms: int = 5000,
-) -> tuple[str | None, int, str | None]:
-    """
-    Wait for and register a new session created by new_window=True.
-
-    Args:
-        browser_manager: The browser manager instance
-        context: The browser context
-        pages_before: Number of pages before the transaction
-        tcode: Transaction code (for logging context)
-        wait_timeout_ms: Max time to wait for new page (default 5000ms)
-
-    Returns:
-        Tuple of (session_id, session_count, page_title):
-        - session_id: The registered ID (e.g., "s2") or None if no new page was detected
-        - session_count: Total number of pages in context
-        - page_title: Title of the new page, or None if no new page
-    """
-    # Wait for the new browser tab to appear
-    await _wait_for_new_page(context, pages_before, timeout_ms=wait_timeout_ms)
-
-    pages = context.pages
-    session_count = len(pages)
-    new_session_id: str | None = None
-    title: str | None = None
-
-    if session_count > pages_before:
-        # Assumption: The last page in the list is the newly created one.
-        # SAP's synchronous UI behavior makes this reliable in practice.
-        new_page = pages[-1]
-        registry = browser_manager.registry
-        new_session_id = registry.register(new_page)
-        logger.info("Auto-registered new session from new_window=True", extra={"session": new_session_id})
-        title = await new_page.title()
-    else:
-        logger.warning(
-            "No new page detected after new_window=True (/o prefix)",
-            extra={
-                "tcode": tcode or "unknown",
-                "wait_timeout_ms": wait_timeout_ms,
-                "pages_before": pages_before,
-                "pages_after": session_count,
-            },
-        )
-
-    return new_session_id, session_count, title
-
-
-async def _enable_okcode_field(page: Any) -> tuple[bool, str]:
-    """
-    Enable the OK-Code field through SAP Web GUI settings.
-
-    Returns:
-        Tuple of (success: bool, message: str)
-    """
-    steps_taken: list[str] = []
-
-    try:
-        # Step 1: Try to expand menu if there's an expand button
-        menu_expand = await page.query_selector(SELECTORS["menu_expand"])
-        if menu_expand:
-            await menu_expand.click()
-            await page.wait_for_timeout(500)
-            steps_taken.append("Expanded menu")
-
-        # Step 2: Find and click settings/gear button
-        settings_btn = await page.query_selector(SELECTORS["settings_button"])
-        if not settings_btn:
-            settings_btn = await page.query_selector(
-                '[role="menu"] [title*="Setting" i], '
-                '[role="menu"] [title*="Einstellung" i], '
-                '[class*="menu"] [title*="Setting" i]'
-            )
-
-        if not settings_btn:
-            return False, "Could not find settings/gear button. Please enable OK-Code field manually."
-
-        await settings_btn.click()
-        await page.wait_for_timeout(1000)
-        steps_taken.append("Opened settings")
-
-        # Step 3: Look for OK-Code checkbox or setting
-        okcode_checkbox = await page.query_selector(SELECTORS["okcode_checkbox"])
-
-        if not okcode_checkbox:
-            okcode_checkbox = await _try_find_checkbox_by_label(page)
-
-        if not okcode_checkbox:
-            okcode_checkbox = await _try_find_checkbox_in_tabs(page, steps_taken)
-
-        if not okcode_checkbox:
-            await _close_settings_dialog(page)
-            return False, f"Could not find OK-Code checkbox in settings. Steps taken: {', '.join(steps_taken)}"
-
-        # Step 4: Check if already enabled
-        is_checked = await okcode_checkbox.is_checked()
-        if is_checked:
-            steps_taken.append("OK-Code field already enabled")
-            await _close_settings_dialog(page)
-            return True, f"OK-Code field was already enabled. Steps: {', '.join(steps_taken)}"
-
-        # Step 5: Enable the checkbox
-        await okcode_checkbox.click()
-        await page.wait_for_timeout(300)
-        steps_taken.append("Enabled OK-Code checkbox")
-
-        # Step 6: Save settings
-        save_btn = await page.query_selector(SELECTORS["save_settings"])
-        if save_btn:
-            await save_btn.click()
-            await page.wait_for_timeout(1000)
-            steps_taken.append("Saved settings")
-        else:
-            await page.keyboard.press("Enter")
-            await page.wait_for_timeout(500)
-            steps_taken.append("Pressed Enter to confirm")
-
-        # Close any remaining dialog
-        await _close_settings_dialog(page)
-
-        return True, f"OK-Code field enabled. Steps: {', '.join(steps_taken)}"
-
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Enabling OK-Code field")
-        return False, f"Error enabling OK-Code field: {e}. Steps taken: {', '.join(steps_taken)}"
 
 
 # =============================================================================
@@ -526,7 +185,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             KeepaliveResult indicating the keepalive is running.
         """
-        return await _start_keepalive(interval_seconds)
+        backend = await get_backend(tool_name="sap_keepalive_start")
+        await backend.start_keepalive(interval_seconds)
+        return KeepaliveResult(running=True, interval_seconds=interval_seconds)
 
     @mcp.tool(description="Stop the background keepalive task")
     async def sap_keepalive_stop() -> KeepaliveResult:
@@ -538,18 +199,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             KeepaliveResult indicating the keepalive is stopped.
         """
-        global _keepalive_task  # pylint: disable=global-statement
-
-        if _keepalive_task is None or _keepalive_task.done():
-            return KeepaliveResult(running=False)
-
-        _keepalive_task.cancel()
-        try:
-            await _keepalive_task
-        except asyncio.CancelledError:
-            pass
-
-        _keepalive_task = None
+        backend = await get_backend(tool_name="sap_keepalive_stop")
+        await backend.stop_keepalive()
         return KeepaliveResult(running=False)
 
     @mcp.tool(
@@ -559,7 +210,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "If connection fails, ask user to verify Chrome is running with debugging and VPN is connected."
         )
     )
-    async def sap_login(  # pylint: disable=too-many-return-statements,too-many-statements
+    async def sap_login(
         url: Optional[str] = None,
         ctx: Context | None = None,
     ) -> LoginResult:
@@ -582,12 +233,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             LoginResult indicating login success or what action is needed.
         """
-        browser_manager = await get_browser_manager()
-
         settings = get_settings()
         session_id = getattr(ctx, "session_id", None) if ctx else None
-
-        page = await browser_manager.get_current_page()
         effective_url = url or settings.sap_url
 
         if not effective_url:
@@ -595,131 +242,27 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 "No SAP URL provided. Either pass a URL parameter or set the SAP_URL environment variable."
             )
 
-        try:
-            logger.info("Navigating to SAP Web GUI", extra={"sap_host": urlparse(effective_url).hostname or "unknown"})
-            await page.goto(effective_url)
-            await page.wait_for_load_state("networkidle", timeout=15000)
+        if not all([settings.sap_user, settings.sap_password, settings.sap_mandant]):
+            return LoginResult.failure(
+                "Credentials not configured (SAP_USER, SAP_PASSWORD, SAP_MANDANT). "
+                "Please enter credentials manually in the browser window.",
+                url=effective_url,
+            )
 
-            # Check if we're already logged in
-            okcode_field = await _find_okcode_field(page)
-            if okcode_field:
-                # Start keepalive to prevent session timeout
-                await _start_keepalive()
-                # Register page as primary session (s1) if not already registered
-                if not browser_manager.registry.has_session("s1"):
-                    browser_manager.registry.register(page)
-                await _capture_sap_identity(page, effective_url, settings.sap_mandant, session_id)
-                return LoginResult(
-                    url=effective_url,
-                    already_logged_in=True,
-                    guidance=(
-                        "RECOMMENDED: Call sap_get_capabilities() to review all available "
-                        "tools and their descriptions before proceeding."
-                    ),
-                )
+        backend = await get_backend(tool_name="sap_login")
+        result = await backend.login(
+            url=effective_url,
+            username=settings.sap_user,
+            password=settings.sap_password,
+            client=settings.sap_mandant,
+            language=settings.sap_language,
+            session_id=session_id,
+        )
 
-            # Check for login form
-            login_form = await page.query_selector('input[type="password"], input[id*="user" i]')
-            if not login_form:
-                return LoginResult.failure(
-                    f"Navigated to {effective_url}. No login form detected - please check browser window.",
-                    url=effective_url,
-                )
+        if result.success:
+            await backend.start_keepalive()
 
-            # Check if we have credentials for auto-login
-            if not all([settings.sap_user, settings.sap_password, settings.sap_mandant]):
-                return LoginResult.failure(
-                    "Credentials not configured (SAP_USER, SAP_PASSWORD, SAP_MANDANT). "
-                    "Please enter credentials manually in the browser window.",
-                    url=effective_url,
-                )
-
-            # Perform automatic login
-            logger.info("Performing automatic login", extra={"sap_user": settings.sap_user})
-
-            # Fill mandant/client
-            await page.fill('#sap-client, input[name="sap-client"]', settings.sap_mandant)
-
-            # Fill username
-            await page.fill('#sap-user, input[name="sap-user"]', settings.sap_user)
-
-            # Fill password
-            await page.fill('#sap-password, input[name="sap-password"]', settings.sap_password)
-
-            # Set language - SAP login has a hidden #sap-language input and visible dropdown
-            # We need to set the hidden input value via JavaScript since fill() won't work
-            try:
-                await page.evaluate(
-                    _load_js("set_language_field.js"),
-                    {"language": settings.sap_language},
-                )
-                logger.debug("Set language field", extra={"language": settings.sap_language})
-            except Exception as lang_err:  # pylint: disable=broad-exception-caught
-                logger.warning("Could not set language field", extra={"error": str(lang_err)})
-
-            # Click login button (it's a div with role="button", not a button element)
-            await page.click("#LOGON_BUTTON")
-
-            # Wait for SAP Easy Access to load (OK-Code field appears after login)
-            try:
-                await page.wait_for_selector("#ToolbarOkCode", timeout=15000, state="visible")
-                logger.info("Login successful, OK-Code field visible")
-                # Start keepalive to prevent session timeout
-                await _start_keepalive()
-                # Register page as primary session (s1) if not already registered
-                if not browser_manager.registry.has_session("s1"):
-                    browser_manager.registry.register(page)
-                await _capture_sap_identity(page, effective_url, settings.sap_mandant, session_id)
-                return LoginResult(
-                    url=effective_url,
-                    user=settings.sap_user,
-                    guidance=(
-                        "RECOMMENDED: Call sap_get_capabilities() to review all available "
-                        "tools and their descriptions before proceeding."
-                    ),
-                )
-            except Exception:  # pylint: disable=broad-exception-caught
-                # Login might have failed or there's a dialog
-                page_content = await page.content()
-
-                # Check for "user already logged in" dialog
-                if "already logged" in page_content.lower() or "bereits angemeldet" in page_content.lower():
-                    # Try to click Continue/Weiter button
-                    try:
-                        continue_btn_selector = (
-                            'button:has-text("Continue"), '
-                            'button:has-text("Weiter"), '
-                            'button:has-text("Fortfahren")'
-                        )
-                        await page.click(continue_btn_selector, timeout=5000)
-                        await page.wait_for_selector("#ToolbarOkCode", timeout=10000, state="visible")
-                        # Start keepalive to prevent session timeout
-                        await _start_keepalive()
-                        # Register page as primary session (s1) if not already registered
-                        if not browser_manager.registry.has_session("s1"):
-                            browser_manager.registry.register(page)
-                        await _capture_sap_identity(page, effective_url, settings.sap_mandant, session_id)
-                        return LoginResult(
-                            url=effective_url,
-                            user=settings.sap_user,
-                            already_logged_in=True,
-                            guidance=(
-                                "RECOMMENDED: Call sap_get_capabilities() to review all available "
-                                "tools and their descriptions before proceeding."
-                            ),
-                        )
-                    except Exception:  # pylint: disable=broad-exception-caught
-                        pass
-
-                return LoginResult.failure(
-                    "Login attempted but SAP Easy Access not detected. "
-                    "Please check browser window for errors or dialogs.",
-                    url=effective_url,
-                )
-
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Logging in to SAP")
-            return LoginResult.failure(f"Error during SAP login: {e}", url=effective_url)
+        return result
 
     @mcp.tool(
         description=(
@@ -785,15 +328,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             TransactionResult indicating success or describing any issues.
             When new_window=True, includes session_id of the new session.
         """
-        # Need browser_manager for new_window session registry operations
-        browser_manager = await get_browser_manager()
-
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_transaction")
         except ValueError as e:
             return TransactionResult.failure(str(e), tcode=tcode)
-
-        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
         # Reset to SAP Easy Access first if requested (clears all residual state).
         if reset_first and not new_window:
@@ -816,7 +354,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 result = await backend.enter_transaction(tcode)
 
                 # Small wait to let popup render if it appeared
-                await page.wait_for_timeout(200)
+                await backend.wait(200)
 
                 # Check if a popup appeared after navigation
                 popup = await backend.check_popup()
@@ -829,61 +367,16 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
                 return result
 
-            # new_window=True: need manual OK-Code handling with /o prefix
-            okcode_field = await _find_okcode_field(page)
+            # new_window=True: delegate to backend
+            popup = await backend.check_popup()
+            if popup:
+                return TransactionResult.failure(
+                    f"Popup blocking: {popup.message or 'confirmation required'}",
+                    tcode=tcode,
+                    popup=popup,
+                )
 
-            if not okcode_field:
-                logger.info("OK-Code field not found, attempting to enable")
-                success, message = await _enable_okcode_field(page)
-                logger.info("Enable OK-Code result", extra={"success": success, "result_message": message})
-
-                if not success:
-                    return TransactionResult.failure(
-                        f"Could not find or enable OK-Code field. {message} "
-                        "Possible causes: (1) A popup/dialog may be blocking the screen - "
-                        "close any open dialogs first. (2) The OK-Code field may need to be "
-                        "enabled manually: Menu -> Settings -> Enable 'OK-Code Field' or "
-                        "'Transaction Field'.",
-                        tcode=tcode,
-                    )
-
-                okcode_field = await _find_okcode_field(page)
-                if not okcode_field:
-                    return TransactionResult.failure(
-                        f"OK-Code field still not visible after enabling. {message} "
-                        "Possible causes: (1) A popup/dialog may be blocking the screen - "
-                        "close any open dialogs first. (2) Please try enabling it manually "
-                        "in SAP settings.",
-                        tcode=tcode,
-                    )
-
-            # Build transaction input with /o prefix
-            if tcode.startswith("/n") or tcode.startswith("/o"):
-                transaction_input = tcode
-            else:
-                transaction_input = f"/o{tcode}"
-
-            # Track page count before transaction (for new_window detection)
-            context = page.context
-            pages_before = len(context.pages)
-
-            await page.bring_to_front()
-            await page.wait_for_timeout(500)
-
-            logger.info("Entering transaction", extra={"tcode": transaction_input})
-
-            await okcode_field.click()
-            await page.wait_for_timeout(200)
-
-            await page.evaluate(
-                _load_js("set_okcode_field.js"),
-                {"transactionInput": transaction_input},
-            )
-
-            await page.wait_for_timeout(300)
-            await page.keyboard.press("Enter")
-            await page.wait_for_load_state("networkidle", timeout=15000)
-            await page.wait_for_timeout(200)
+            new_session_id, session_count, new_title = await backend.open_new_session(tcode)
 
             # Check if a popup appeared after navigation
             popup = await backend.check_popup()
@@ -894,12 +387,6 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     popup=popup,
                 )
 
-            title = await page.title()
-
-            # Detect and register new session created by /o command
-            new_session_id, session_count, new_title = await _register_new_window_session(
-                browser_manager, context, pages_before, tcode=tcode
-            )
             if new_session_id is None:
                 return TransactionResult.failure(
                     f"new_window=True but no new session was created for {tcode}. "
@@ -910,12 +397,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 )
             return TransactionResult(
                 tcode=tcode,
-                page_title=new_title or title,
+                page_title=new_title,
                 new_window=True,
                 session_id=new_session_id,
                 session_count=session_count,
             )
 
+        except ValueError as e:
+            return TransactionResult.failure(str(e), tcode=tcode)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Executing transaction", extra={"tcode": tcode})
             return TransactionResult.failure(f"Error executing transaction {tcode}: {e}", tcode=tcode)
@@ -1042,8 +531,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             result = await backend.press_key(key)
 
             # Wait for popup to render (SAP popups may appear after networkidle)
-            page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-            await page.wait_for_timeout(300)
+            await backend.wait(300)
 
             # Check if a popup appeared after the keystroke
             popup_after = await backend.check_popup()
@@ -1535,8 +1023,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         try:
             # Get all title attributes via JavaScript - much more efficient than parsing HTML
-            page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-            titles: list[str] = await page.evaluate("""() => {
+            titles: list[str] = await backend.evaluate_javascript("""() => {
                     const elements = document.querySelectorAll('[title]');
                     return Array.from(elements).map(el => el.title).filter(Boolean);
                 }""")
