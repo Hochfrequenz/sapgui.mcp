@@ -1,119 +1,110 @@
 """Unit tests for session management tools."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from sapwebguimcp.models.session_registry import SessionRegistry
+from sapwebguimcp.models.sap_results import SessionInfo
 
 
-class TestSessionToolsUnit:
-    """Unit tests for session tools with mocked browser."""
+def _make_backend(**overrides: Any) -> AsyncMock:
+    """Create a mock backend with default protocol method stubs."""
+    backend = AsyncMock()
+    backend.list_sessions.return_value = overrides.get("list_sessions", [])
+    backend.has_session.return_value = overrides.get("has_session", False)
+    backend.close_session.return_value = overrides.get("close_session", True)
+    backend.bind_session.return_value = overrides.get("bind_session", None)
+    backend.release_session.return_value = overrides.get("release_session", None)
+    return backend
+
+
+_PATCH_GET_BACKEND = "sapwebguimcp.tools.session_tools.get_backend"
+
+
+class TestSessionList:
+    """Tests for sap_session_list_impl."""
 
     @pytest.mark.anyio
-    async def test_sap_session_list_empty(self) -> None:
-        """Test sap_session_list with no sessions."""
+    async def test_empty(self) -> None:
+        """No sessions returns success with count 0."""
         from sapwebguimcp.tools.session_tools import sap_session_list_impl
 
-        registry = SessionRegistry()
-
-        with patch("sapwebguimcp.tools.session_tools.get_browser_manager") as mock_get_bm:
-            mock_manager = MagicMock()
-            mock_manager.registry = registry
-            mock_get_bm.return_value = mock_manager
-
+        backend = _make_backend()
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
             result = await sap_session_list_impl()
 
         assert result.success is True
         assert result.session_count == 0
 
     @pytest.mark.anyio
-    async def test_sap_session_list_with_sessions(self) -> None:
-        """Test sap_session_list with active sessions."""
+    async def test_with_sessions(self) -> None:
+        """Returns all sessions from the backend."""
         from sapwebguimcp.tools.session_tools import sap_session_list_impl
 
-        registry = SessionRegistry()
-
-        # Mock pages
-        page1 = MagicMock()
-        page1.is_closed.return_value = False
-        page1.on = MagicMock()
-        page1.title = AsyncMock(return_value="SAP Easy Access")
-
-        page2 = MagicMock()
-        page2.is_closed.return_value = False
-        page2.on = MagicMock()
-        page2.title = AsyncMock(return_value="Create Sales Order")
-
-        registry.register(page1)
-        registry.register(page2)
-
-        with patch("sapwebguimcp.tools.session_tools.get_browser_manager") as mock_get_bm:
-            mock_manager = MagicMock()
-            mock_manager.registry = registry
-            mock_get_bm.return_value = mock_manager
-
+        sessions = [
+            SessionInfo(session_id="s1", title="SAP Easy Access", is_primary=True),
+            SessionInfo(session_id="s2", title="Create Sales Order"),
+        ]
+        backend = _make_backend(list_sessions=sessions)
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
             result = await sap_session_list_impl()
 
         assert result.success is True
         assert result.session_count == 2
+        assert result.sessions[0].session_id == "s1"
+        assert result.sessions[0].is_primary is True
+        assert result.sessions[1].session_id == "s2"
 
     @pytest.mark.anyio
-    async def test_sap_session_close_rejects_primary(self) -> None:
-        """Test that sap_session_close rejects closing s1."""
-        from sapwebguimcp.tools.session_tools import sap_session_close_impl
+    async def test_backend_error(self) -> None:
+        """Backend exception is caught and returned as failure."""
+        from sapwebguimcp.tools.session_tools import sap_session_list_impl
 
-        result = await sap_session_close_impl("s1")
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("no connection"))):
+            result = await sap_session_list_impl()
 
         assert result.success is False
-        assert "primary" in result.error.lower() or "s1" in result.error
+        assert "no connection" in result.error
+
+
+class TestSessionClose:
+    """Tests for sap_session_close_impl."""
 
     @pytest.mark.anyio
-    async def test_sap_session_close_unknown_session(self) -> None:
-        """Test sap_session_close with unknown session."""
+    async def test_rejects_primary(self) -> None:
+        """Closing s1 is rejected without calling the backend."""
         from sapwebguimcp.tools.session_tools import sap_session_close_impl
 
-        registry = SessionRegistry()
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=AssertionError("should not be called"))):
+            result = await sap_session_close_impl("s1")
 
-        with patch("sapwebguimcp.tools.session_tools.get_browser_manager") as mock_get_bm:
-            mock_manager = MagicMock()
-            mock_manager.registry = registry
-            mock_get_bm.return_value = mock_manager
+        assert result.success is False
+        assert "s1" in result.error
 
+    @pytest.mark.anyio
+    async def test_unknown_session(self) -> None:
+        """Closing a non-existent session returns not found."""
+        from sapwebguimcp.tools.session_tools import sap_session_close_impl
+
+        backend = _make_backend(has_session=False, list_sessions=[])
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
             result = await sap_session_close_impl("s99")
 
         assert result.success is False
         assert "not found" in result.error.lower()
 
     @pytest.mark.anyio
-    async def test_sap_session_close_success(self) -> None:
-        """Test successful session close."""
+    async def test_success(self) -> None:
+        """Successful close returns session_id and remaining count."""
         from sapwebguimcp.tools.session_tools import sap_session_close_impl
 
-        registry = SessionRegistry()
+        remaining = [SessionInfo(session_id="s1", is_primary=True)]
+        backend = _make_backend(has_session=True, close_session=True)
+        # After close, list_sessions returns just s1
+        backend.list_sessions.return_value = remaining
 
-        # Register primary session s1
-        page1 = MagicMock()
-        page1.is_closed.return_value = False
-        page1.on = MagicMock()
-        registry.register(page1)
-
-        # Register secondary session s2 to close
-        page2 = MagicMock()
-        page2.is_closed.return_value = False
-        page2.on = MagicMock()
-        page2.query_selector = AsyncMock(return_value=None)
-        page2.keyboard = MagicMock()
-        page2.keyboard.press = AsyncMock()
-        page2.wait_for_timeout = AsyncMock()
-        page2.close = AsyncMock()
-        registry.register(page2)
-
-        with patch("sapwebguimcp.tools.session_tools.get_browser_manager") as mock_get_bm:
-            mock_manager = MagicMock()
-            mock_manager.registry = registry
-            mock_get_bm.return_value = mock_manager
-
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
             result = await sap_session_close_impl("s2")
 
         assert result.success is True
@@ -121,33 +112,132 @@ class TestSessionToolsUnit:
         assert result.remaining_sessions == 1
 
     @pytest.mark.anyio
-    async def test_sap_session_list_session_info_fields(self) -> None:
-        """Test that session_list returns proper SessionInfo fields."""
-        from sapwebguimcp.tools.session_tools import sap_session_list_impl
+    async def test_close_fails(self) -> None:
+        """Backend returns False for close -> failure result."""
+        from sapwebguimcp.tools.session_tools import sap_session_close_impl
 
-        registry = SessionRegistry()
+        backend = _make_backend(has_session=True, close_session=False)
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_close_impl("s2")
 
-        # Mock primary session page
-        page1 = MagicMock()
-        page1.is_closed.return_value = False
-        page1.on = MagicMock()
-        page1.title = AsyncMock(return_value="SAP Easy Access - Main Menu")
+        assert result.success is False
+        assert "s2" in result.error
 
-        registry.register(page1)
+    @pytest.mark.anyio
+    async def test_close_backend_error(self) -> None:
+        """Backend exception is caught and returned as failure."""
+        from sapwebguimcp.tools.session_tools import sap_session_close_impl
 
-        with patch("sapwebguimcp.tools.session_tools.get_browser_manager") as mock_get_bm:
-            mock_manager = MagicMock()
-            mock_manager.registry = registry
-            mock_get_bm.return_value = mock_manager
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("connection lost"))):
+            result = await sap_session_close_impl("s2")
 
-            result = await sap_session_list_impl()
+        assert result.success is False
+        assert "connection lost" in result.error
+
+
+class TestSessionBind:
+    """Tests for sap_session_bind_impl."""
+
+    @pytest.mark.anyio
+    async def test_bind_success(self) -> None:
+        """Binding an agent to a session returns the binding."""
+        from sapwebguimcp.tools.session_tools import sap_session_bind_impl
+
+        backend = _make_backend(has_session=True, bind_session=None)
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_bind_impl("s2", "agent-1")
 
         assert result.success is True
-        assert len(result.sessions) == 1
-        session = result.sessions[0]
-        assert session.session_id == "s1"
-        assert session.is_primary is True
-        assert session.title == "SAP Easy Access - Main Menu"
+        assert result.session_id == "s2"
+        assert result.agent_id == "agent-1"
+        assert result.previous_agent is None
+
+    @pytest.mark.anyio
+    async def test_bind_replaces_previous(self) -> None:
+        """Rebinding returns the previous agent_id."""
+        from sapwebguimcp.tools.session_tools import sap_session_bind_impl
+
+        backend = _make_backend(has_session=True, bind_session="old-agent")
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_bind_impl("s2", "new-agent")
+
+        assert result.success is True
+        assert result.previous_agent == "old-agent"
+
+    @pytest.mark.anyio
+    async def test_bind_unknown_session(self) -> None:
+        """Binding to a non-existent session returns failure."""
+        from sapwebguimcp.tools.session_tools import sap_session_bind_impl
+
+        backend = _make_backend(has_session=False, list_sessions=[])
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_bind_impl("s99", "agent-1")
+
+        assert result.success is False
+        assert "not found" in result.error.lower()
+
+    @pytest.mark.anyio
+    async def test_bind_backend_error(self) -> None:
+        """Backend exception is caught and returned as failure."""
+        from sapwebguimcp.tools.session_tools import sap_session_bind_impl
+
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("connection lost"))):
+            result = await sap_session_bind_impl("s2", "agent-1")
+
+        assert result.success is False
+        assert "connection lost" in result.error
+
+
+class TestSessionRelease:
+    """Tests for sap_session_release_impl."""
+
+    @pytest.mark.anyio
+    async def test_release_success(self) -> None:
+        """Releasing an agent returns the released agent_id."""
+        from sapwebguimcp.tools.session_tools import sap_session_release_impl
+
+        backend = _make_backend(has_session=True, release_session="agent-1")
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_release_impl("s2")
+
+        assert result.success is True
+        assert result.session_id == "s2"
+        assert result.released_agent == "agent-1"
+
+    @pytest.mark.anyio
+    async def test_release_no_binding(self) -> None:
+        """Releasing when no agent was bound returns None."""
+        from sapwebguimcp.tools.session_tools import sap_session_release_impl
+
+        backend = _make_backend(has_session=True, release_session=None)
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_release_impl("s2")
+
+        assert result.success is True
+        assert result.released_agent is None
+
+    @pytest.mark.anyio
+    async def test_release_unknown_session(self) -> None:
+        """Releasing a non-existent session returns failure."""
+        from sapwebguimcp.tools.session_tools import sap_session_release_impl
+
+        backend = _make_backend(has_session=False, list_sessions=[])
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_release_impl("s99")
+
+        assert result.success is False
+        assert "not found" in result.error.lower()
+
+    @pytest.mark.anyio
+    async def test_release_backend_error(self) -> None:
+        """Backend exception is caught and returned as failure."""
+        from sapwebguimcp.tools.session_tools import sap_session_release_impl
+
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("connection lost"))):
+            result = await sap_session_release_impl("s2")
+
+        assert result.success is False
+        assert "connection lost" in result.error
 
 
 class TestRegisterNewWindowSession:
@@ -156,6 +246,8 @@ class TestRegisterNewWindowSession:
     @pytest.mark.anyio
     async def test_registers_new_page_when_count_increases(self) -> None:
         """Test that new page is registered when page count increases."""
+        from unittest.mock import MagicMock
+
         from sapwebguimcp.models.session_registry import SessionRegistry
         from sapwebguimcp.tools.sap_tools import _register_new_window_session
 
@@ -185,6 +277,8 @@ class TestRegisterNewWindowSession:
     @pytest.mark.anyio
     async def test_returns_none_when_no_new_page(self) -> None:
         """Test that None is returned when page count doesn't increase."""
+        from unittest.mock import MagicMock
+
         from sapwebguimcp.models.session_registry import SessionRegistry
         from sapwebguimcp.tools.sap_tools import _register_new_window_session
 
@@ -207,6 +301,7 @@ class TestRegisterNewWindowSession:
     async def test_logs_warning_with_context_when_no_new_page(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that warning is logged with tcode context when no new page is detected."""
         import logging
+        from unittest.mock import MagicMock
 
         from sapwebguimcp.models.session_registry import SessionRegistry
         from sapwebguimcp.tools.sap_tools import _register_new_window_session
@@ -234,6 +329,8 @@ class TestRegisterNewWindowSession:
     @pytest.mark.anyio
     async def test_registers_last_page_when_multiple_pages_created(self) -> None:
         """Test that the last page is registered when multiple pages are created simultaneously."""
+        from unittest.mock import MagicMock
+
         from sapwebguimcp.models.session_registry import SessionRegistry
         from sapwebguimcp.tools.sap_tools import _register_new_window_session
 

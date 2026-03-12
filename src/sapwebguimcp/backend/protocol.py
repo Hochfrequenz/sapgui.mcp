@@ -30,6 +30,7 @@ if TYPE_CHECKING:
         LoginResult,
         ScreenInfo,
         ScreenText,
+        SessionInfo,
         SessionStatus,
         StatusBarInfo,
         TableData,
@@ -179,6 +180,26 @@ class SapNavigation(Protocol):
 
     def get_session_token(self) -> str:
         """Return opaque token identifying the underlying session. Used for cache invalidation."""
+
+    # TODO: move session management to a dedicated protocol when adding second backend
+    async def list_sessions(self) -> list[SessionInfo]:
+        """List active sessions with their metadata."""
+
+    async def close_session(self, session_id: str) -> bool:
+        """Close a session by ID. Returns True if closed, False if not found.
+
+        Gracefully sends /nex to the session before closing the page.
+        NOTE: s1 protection is a tool-level policy -- not enforced here.
+        """
+
+    async def bind_session(self, session_id: str, agent_id: str) -> str | None:
+        """Bind an agent to a session. Returns previous agent_id or None."""
+
+    async def release_session(self, session_id: str) -> str | None:
+        """Release agent binding from a session. Returns released agent_id or None."""
+
+    async def has_session(self, session_id: str) -> bool:
+        """Check whether a session exists."""
 
 
 @runtime_checkable
