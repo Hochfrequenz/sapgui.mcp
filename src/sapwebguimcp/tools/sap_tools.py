@@ -368,14 +368,6 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 return result
 
             # new_window=True: delegate to backend
-            popup = await backend.check_popup()
-            if popup:
-                return TransactionResult.failure(
-                    f"Popup blocking: {popup.message or 'confirmation required'}",
-                    tcode=tcode,
-                    popup=popup,
-                )
-
             new_session_id, session_count, new_title = await backend.open_new_session(tcode)
 
             # Check if a popup appeared after navigation
