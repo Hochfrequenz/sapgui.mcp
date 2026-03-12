@@ -100,13 +100,18 @@ async def _fill_search_and_execute(backend: "SapUiBackend", query: str) -> str |
 
     Returns error string or None on success.
     """
-    # Focus the search textbox inside the dialog.
-    # Radio buttons and dialog-scoped inputs don't map cleanly to the
-    # backend protocol — use _page directly (same pattern as SE11 radios).
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    search_input = page.locator("[role='dialog'] input[role='textbox']")
+    # Focus the search textbox inside the dialog via JavaScript.
     try:
-        await search_input.click()
+        focused = await backend.evaluate_javascript(
+            "(() => {"
+            "  const input = document.querySelector(\"[role='dialog'] input[role='textbox']\");"
+            "  if (input) { input.focus(); input.click(); return true; }"
+            "  return false;"
+            "})()"
+        )
+        if not focused:
+            logger.warning("Could not find search input, attempting Tab focus")
+            await backend.press_key("Tab")
     except Exception:  # pylint: disable=broad-exception-caught
         logger.warning("Could not click search input, attempting Tab focus")
         await backend.press_key("Tab")
