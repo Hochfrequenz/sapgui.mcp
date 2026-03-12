@@ -44,6 +44,8 @@ from sapwebguimcp.utils import is_sap_shortcut
 if TYPE_CHECKING:
     from playwright.async_api import Page
 
+    from sapwebguimcp.models.session_registry import SessionRegistry
+
 logger = logging.getLogger(__name__)
 
 _token_counter = itertools.count(1)
@@ -1095,12 +1097,17 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     # TODO: move to a session manager protocol when adding second backend
     # ===================================================================
 
-    async def list_sessions(self) -> list[SessionInfo]:
-        """List active sessions with their metadata."""
+    @staticmethod
+    async def _get_registry() -> SessionRegistry:
+        """Get the shared session registry (lazy import to avoid circular deps)."""
         from sapwebguimcp.backend.webgui.browser import get_browser_manager  # pylint: disable=import-outside-toplevel
 
         manager = await get_browser_manager()
-        registry = manager.registry
+        return manager.registry
+
+    async def list_sessions(self) -> list[SessionInfo]:
+        """List active sessions with their metadata."""
+        registry = await self._get_registry()
         result: list[SessionInfo] = []
         for sid in registry.list_sessions():
             try:
@@ -1115,15 +1122,13 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                     )
                 )
             except Exception:  # pylint: disable=broad-exception-caught
+                logger.warning("Skipping session %s in listing (page error)", sid)
                 continue
         return result
 
     async def close_session(self, session_id: str) -> bool:
         """Close a session by ID. Returns True if closed, False if not found."""
-        from sapwebguimcp.backend.webgui.browser import get_browser_manager  # pylint: disable=import-outside-toplevel
-
-        manager = await get_browser_manager()
-        registry = manager.registry
+        registry = await self._get_registry()
         if not registry.has_session(session_id):
             return False
         page = registry.get_page(session_id)
@@ -1142,27 +1147,19 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     async def bind_session(self, session_id: str, agent_id: str) -> str | None:
         """Bind an agent to a session. Returns previous agent_id or None."""
-        from sapwebguimcp.backend.webgui.browser import get_browser_manager  # pylint: disable=import-outside-toplevel
-
-        manager = await get_browser_manager()
-        registry = manager.registry
+        registry = await self._get_registry()
         old = registry.get_bound_agent(session_id)
         registry.bind(session_id, agent_id)
         return old
 
     async def release_session(self, session_id: str) -> str | None:
         """Release agent binding from a session. Returns released agent_id or None."""
-        from sapwebguimcp.backend.webgui.browser import get_browser_manager  # pylint: disable=import-outside-toplevel
-
-        manager = await get_browser_manager()
-        registry = manager.registry
+        registry = await self._get_registry()
         old = registry.get_bound_agent(session_id)
         registry.release(session_id)
         return old
 
     async def has_session(self, session_id: str) -> bool:
         """Check whether a session exists."""
-        from sapwebguimcp.backend.webgui.browser import get_browser_manager  # pylint: disable=import-outside-toplevel
-
-        manager = await get_browser_manager()
-        return manager.registry.has_session(session_id)
+        registry = await self._get_registry()
+        return registry.has_session(session_id)

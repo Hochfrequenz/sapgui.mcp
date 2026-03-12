@@ -123,6 +123,17 @@ class TestSessionClose:
         assert result.success is False
         assert "s2" in result.error
 
+    @pytest.mark.anyio
+    async def test_close_backend_error(self) -> None:
+        """Backend exception is caught and returned as failure."""
+        from sapwebguimcp.tools.session_tools import sap_session_close_impl
+
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("connection lost"))):
+            result = await sap_session_close_impl("s2")
+
+        assert result.success is False
+        assert "connection lost" in result.error
+
 
 class TestSessionBind:
     """Tests for sap_session_bind_impl."""
