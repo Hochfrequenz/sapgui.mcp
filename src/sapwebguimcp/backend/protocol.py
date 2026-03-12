@@ -165,6 +165,9 @@ class SapNavigation(Protocol):
     async def bring_to_front(self) -> None:
         """Bring the SAP browser window to the foreground."""
 
+    async def wait(self, timeout_ms: int = 200) -> None:
+        """Wait for a fixed duration (e.g. to let popups render)."""
+
 
 @runtime_checkable
 class SapEditor(Protocol):

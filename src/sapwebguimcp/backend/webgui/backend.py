@@ -421,6 +421,10 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         """Bring the browser window to the foreground."""
         await self._page.bring_to_front()
 
+    async def wait(self, timeout_ms: int = 200) -> None:
+        """Wait for a fixed duration."""
+        await self._page.wait_for_timeout(timeout_ms)
+
     # ===================================================================
     # SapUiPrimitives
     # ===================================================================
