@@ -1114,7 +1114,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                         agent_id=registry.get_bound_agent(sid),
                     )
                 )
-            except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+            except Exception:  # pylint: disable=broad-exception-caught
                 continue
         return result
 

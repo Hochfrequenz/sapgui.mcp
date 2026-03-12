@@ -1,5 +1,6 @@
 """Unit tests for session management tools."""
 
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -7,7 +8,7 @@ import pytest
 from sapwebguimcp.models.sap_results import SessionInfo
 
 
-def _make_backend(**overrides: AsyncMock) -> AsyncMock:
+def _make_backend(**overrides: Any) -> AsyncMock:
     """Create a mock backend with default protocol method stubs."""
     backend = AsyncMock()
     backend.list_sessions.return_value = overrides.get("list_sessions", [])
@@ -75,7 +76,8 @@ class TestSessionClose:
         """Closing s1 is rejected without calling the backend."""
         from sapwebguimcp.tools.session_tools import sap_session_close_impl
 
-        result = await sap_session_close_impl("s1")
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=AssertionError("should not be called"))):
+            result = await sap_session_close_impl("s1")
 
         assert result.success is False
         assert "s1" in result.error
@@ -163,6 +165,17 @@ class TestSessionBind:
         assert result.success is False
         assert "not found" in result.error.lower()
 
+    @pytest.mark.anyio
+    async def test_bind_backend_error(self) -> None:
+        """Backend exception is caught and returned as failure."""
+        from sapwebguimcp.tools.session_tools import sap_session_bind_impl
+
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("connection lost"))):
+            result = await sap_session_bind_impl("s2", "agent-1")
+
+        assert result.success is False
+        assert "connection lost" in result.error
+
 
 class TestSessionRelease:
     """Tests for sap_session_release_impl."""
@@ -203,6 +216,17 @@ class TestSessionRelease:
 
         assert result.success is False
         assert "not found" in result.error.lower()
+
+    @pytest.mark.anyio
+    async def test_release_backend_error(self) -> None:
+        """Backend exception is caught and returned as failure."""
+        from sapwebguimcp.tools.session_tools import sap_session_release_impl
+
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("connection lost"))):
+            result = await sap_session_release_impl("s2")
+
+        assert result.success is False
+        assert "connection lost" in result.error
 
 
 class TestRegisterNewWindowSession:
