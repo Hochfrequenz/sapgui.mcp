@@ -521,7 +521,7 @@ The server logs to **stdout** by default using a structured text format. Set `LO
 
 The pre-built `.exe` release includes remote logging to [Papertrail](https://www.papertrail.com/) (`logs5.papertrailapp.com:35329`) **enabled by default**. This sends tool call names, SAP hostnames, and operational metadata to a centralized log collector for monitoring and debugging. No SAP credentials or business data are transmitted.
 
-**To disable remote logging in the .exe**, create a `.env` file next to the executable with:
+**To disable remote logging in the .exe**, create a `.env` file in the directory you run the executable from with:
 
 ```
 PAPERTRAIL_HOST=

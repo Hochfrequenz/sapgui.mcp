@@ -58,6 +58,15 @@ class TestSapWebGuiSettings:
         assert settings.papertrail_host == ""
         assert settings.papertrail_port == 0
 
+    def test_papertrail_loaded_from_production_env(self, tmp_path: Path) -> None:
+        """Settings load Papertrail values from .env.production."""
+        prod = tmp_path / ".env.production"
+        prod.write_text("PAPERTRAIL_HOST=logs.example.com\nPAPERTRAIL_PORT=12345\n")
+        with patch.dict(os.environ, {}, clear=True):
+            settings = SapWebGuiSettings(_env_file=str(prod))
+        assert settings.papertrail_host == "logs.example.com"
+        assert settings.papertrail_port == 12345
+
     def test_validate_for_browser_connect_mode_missing_cdp(self) -> None:
         """Test validation when in connect mode without CDP URL."""
         env_vars = {
