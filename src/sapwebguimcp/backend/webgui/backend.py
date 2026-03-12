@@ -8,6 +8,7 @@ Each ``WebGuiBackend`` instance wraps a single Playwright ``Page``
 from __future__ import annotations
 
 import asyncio
+import itertools
 import logging
 import re
 from typing import TYPE_CHECKING, Any
@@ -43,6 +44,8 @@ if TYPE_CHECKING:
     from playwright.async_api import Page
 
 logger = logging.getLogger(__name__)
+
+_token_counter = itertools.count(1)
 
 # ---------------------------------------------------------------------------
 # Helpers private to WebGuiBackend
@@ -120,6 +123,11 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     def __init__(self, page: Page) -> None:
         self._page = page
+        self._session_token = f"webgui-{next(_token_counter)}"
+
+    def get_session_token(self) -> str:
+        """Return opaque token identifying the underlying session."""
+        return self._session_token
 
     # ---- private helpers ----
 
@@ -420,6 +428,19 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     async def bring_to_front(self) -> None:
         """Bring the browser window to the foreground."""
         await self._page.bring_to_front()
+
+    async def wait(self, timeout_ms: int = 200) -> None:
+        """Wait for a fixed duration."""
+        await self._page.wait_for_timeout(timeout_ms)
+
+    async def is_page_closed(self) -> bool:
+        """Check whether the page has been closed."""
+        return self._page.is_closed()
+
+    async def close_page(self) -> None:
+        """Close the page."""
+        if not self._page.is_closed():
+            await self._page.close()
 
     # ===================================================================
     # SapUiPrimitives
@@ -763,6 +784,10 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         """Get the ARIA accessibility tree snapshot."""
         raw = await self._page.locator("body").aria_snapshot()
         return AriaSnapshot(raw)
+
+    async def get_page_title(self) -> str:
+        """Get the current page title."""
+        return await self._page.title()
 
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the current page."""

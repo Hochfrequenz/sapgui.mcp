@@ -138,6 +138,9 @@ class SapUiInspection(Protocol):
     async def get_dropdown_options(self, label: str) -> list[str]:
         """Get available options for a dropdown field."""
 
+    async def get_page_title(self) -> str:
+        """Get the current page/window title."""
+
 
 @runtime_checkable
 class SapNavigation(Protocol):
@@ -164,6 +167,18 @@ class SapNavigation(Protocol):
 
     async def bring_to_front(self) -> None:
         """Bring the SAP browser window to the foreground."""
+
+    async def wait(self, timeout_ms: int = 200) -> None:
+        """Wait for a fixed duration (e.g. to let popups render)."""
+
+    async def is_page_closed(self) -> bool:
+        """Check whether the underlying page/window has been closed."""
+
+    async def close_page(self) -> None:
+        """Close the underlying page/window."""
+
+    def get_session_token(self) -> str:
+        """Return opaque token identifying the underlying session. Used for cache invalidation."""
 
 
 @runtime_checkable
