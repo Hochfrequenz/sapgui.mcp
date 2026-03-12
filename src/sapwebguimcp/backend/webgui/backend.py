@@ -125,9 +125,8 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         self._page = page
         self._session_token = f"webgui-{next(_token_counter)}"
 
-    @property
-    def session_token(self) -> str:
-        """Opaque token identifying the underlying session."""
+    def get_session_token(self) -> str:
+        """Return opaque token identifying the underlying session."""
         return self._session_token
 
     # ---- private helpers ----
