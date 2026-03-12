@@ -177,6 +177,10 @@ class SapNavigation(Protocol):
     async def close_page(self) -> None:
         """Close the underlying page/window."""
 
+    @property
+    def session_token(self) -> str:
+        """Opaque token identifying the underlying session. Used for cache invalidation."""
+
 
 @runtime_checkable
 class SapEditor(Protocol):

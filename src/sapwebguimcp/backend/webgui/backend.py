@@ -8,6 +8,7 @@ Each ``WebGuiBackend`` instance wraps a single Playwright ``Page``
 from __future__ import annotations
 
 import asyncio
+import itertools
 import logging
 import re
 from typing import TYPE_CHECKING, Any
@@ -43,6 +44,8 @@ if TYPE_CHECKING:
     from playwright.async_api import Page
 
 logger = logging.getLogger(__name__)
+
+_token_counter = itertools.count(1)
 
 # ---------------------------------------------------------------------------
 # Helpers private to WebGuiBackend
@@ -120,6 +123,12 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     def __init__(self, page: Page) -> None:
         self._page = page
+        self._session_token = f"webgui-{next(_token_counter)}"
+
+    @property
+    def session_token(self) -> str:
+        """Opaque token identifying the underlying session."""
+        return self._session_token
 
     # ---- private helpers ----
 

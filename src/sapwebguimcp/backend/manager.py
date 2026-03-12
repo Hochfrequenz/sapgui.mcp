@@ -25,7 +25,8 @@ class BackendManager:  # pylint: disable=too-few-public-methods
         if backend_type not in _VALID_BACKEND_TYPES:
             raise ValueError(f"Unknown backend type '{backend_type}'. Valid types: {_VALID_BACKEND_TYPES}")
         self.backend_type = backend_type
-        self._backends: dict[str, WebGuiBackend] = {}  # Cache by session ID
+        self._backends: dict[str, SapUiBackend] = {}  # Cache by session ID
+        self._page_ids: dict[str, int] = {}  # Track page identity for cache invalidation
 
     async def get_or_create(
         self,
@@ -47,10 +48,11 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             page = await browser_manager.get_or_create_session_page_checked(session, agent_id, tool_name)
             session_key = session or "s1"
             cached = self._backends.get(session_key)
-            if cached is not None and cached._page is page:  # pylint: disable=protected-access
+            if cached is not None and self._page_ids.get(session_key) == id(page):
                 return cached
             backend = WebGuiBackend(page)
             self._backends[session_key] = backend
+            self._page_ids[session_key] = id(page)
             return backend
         raise ValueError(f"No implementation for backend '{self.backend_type}'")
 
