@@ -45,7 +45,7 @@ type_check = [
     "types-PyYAML==6.0.12.20250915",
 ]
 spell_check = [
-    "codespell==2.4.1",
+    "codespell==2.4.2",
 ]
 coverage = [
     "coverage==7.13.4",
