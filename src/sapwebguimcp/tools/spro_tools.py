@@ -100,7 +100,11 @@ async def _fill_search_and_execute(backend: "SapUiBackend", query: str) -> str |
 
     Returns error string or None on success.
     """
-    # Focus the search textbox inside the dialog via JavaScript.
+    # HACK: Raw JS querySelector + click() instead of Playwright's locator.click().
+    # We need this because the protocol has no CSS-selector-based click method,
+    # and the dialog textbox has no ARIA label usable with fill_field().
+    # Unlike Playwright's locator, JS click() skips actionability checks
+    # (visibility, stability), so this is less robust. The Tab fallback mitigates.
     try:
         focused = await backend.evaluate_javascript(
             "(() => {"
