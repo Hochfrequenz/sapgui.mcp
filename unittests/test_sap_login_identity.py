@@ -6,8 +6,17 @@ import pytest
 
 from sapwebguimcp.models.middleware import SapIdentity
 
-# Import the helper function - it's module-level in sap_tools
-# We need to test it directly since testing full sap_login requires browser setup
+# _capture_sap_identity moved from sap_tools to WebGuiBackend.
+# We test it via the backend instance method now.
+
+_PATCH_SET_IDENTITY = "sapwebguimcp.backend.webgui.backend.set_sap_identity"
+
+
+def _make_backend(page: AsyncMock) -> "WebGuiBackend":  # type: ignore[name-defined]
+    """Create a WebGuiBackend wrapping a mock page."""
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
+    return WebGuiBackend(page)
 
 
 @pytest.mark.anyio
@@ -16,10 +25,9 @@ async def test_capture_sap_identity_success():
     page = AsyncMock()
     page.evaluate.return_value = {"user": "KLEINK"}
 
-    with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
-        from sapwebguimcp.tools.sap_tools import _capture_sap_identity
-
-        await _capture_sap_identity(page, "https://sap-prod.acme.com/sap/bc/gui", "100", "session-1")
+    backend = _make_backend(page)
+    with patch(_PATCH_SET_IDENTITY) as mock_set:
+        await backend._capture_sap_identity("https://sap-prod.acme.com/sap/bc/gui", "100", "session-1")
 
     mock_set.assert_called_once()
     identity = mock_set.call_args[0][1]
@@ -34,10 +42,9 @@ async def test_capture_sap_identity_dom_fails():
     page = AsyncMock()
     page.evaluate.side_effect = Exception("Element not found")
 
-    with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
-        from sapwebguimcp.tools.sap_tools import _capture_sap_identity
-
-        await _capture_sap_identity(page, "https://sap.acme.com/path", "100", "session-1")
+    backend = _make_backend(page)
+    with patch(_PATCH_SET_IDENTITY) as mock_set:
+        await backend._capture_sap_identity("https://sap.acme.com/path", "100", "session-1")
 
     mock_set.assert_not_called()
 
@@ -48,10 +55,9 @@ async def test_capture_sap_identity_null_user():
     page = AsyncMock()
     page.evaluate.return_value = {"user": None}
 
-    with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
-        from sapwebguimcp.tools.sap_tools import _capture_sap_identity
-
-        await _capture_sap_identity(page, "https://sap.acme.com/path", "100", "session-1")
+    backend = _make_backend(page)
+    with patch(_PATCH_SET_IDENTITY) as mock_set:
+        await backend._capture_sap_identity("https://sap.acme.com/path", "100", "session-1")
 
     mock_set.assert_not_called()
 
@@ -62,10 +68,9 @@ async def test_capture_sap_identity_schemeless_url():
     page = AsyncMock()
     page.evaluate.return_value = {"user": "JSMITH"}
 
-    with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
-        from sapwebguimcp.tools.sap_tools import _capture_sap_identity
-
-        await _capture_sap_identity(page, "sap-server/path", "200", "s1")
+    backend = _make_backend(page)
+    with patch(_PATCH_SET_IDENTITY) as mock_set:
+        await backend._capture_sap_identity("sap-server/path", "200", "s1")
 
     identity = mock_set.call_args[0][1]
     assert identity.sap_host == "unknown"

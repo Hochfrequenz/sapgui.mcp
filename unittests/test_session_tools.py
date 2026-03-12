@@ -241,7 +241,25 @@ class TestSessionRelease:
 
 
 class TestRegisterNewWindowSession:
-    """Unit tests for _register_new_window_session helper function."""
+    """Unit tests for WebGuiBackend._register_new_window_session."""
+
+    @staticmethod
+    def _make_backend_with_context(registry: Any, pages: list[Any]) -> Any:
+        """Create a WebGuiBackend with a mock page whose context has the given pages."""
+        from unittest.mock import MagicMock
+
+        from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
+        mock_page = MagicMock()
+        mock_context = MagicMock()
+        mock_context.pages = pages
+        mock_page.context = mock_context
+
+        backend = WebGuiBackend.__new__(WebGuiBackend)
+        backend._page = mock_page  # pylint: disable=protected-access
+        backend._session_token = "test-token"  # pylint: disable=protected-access
+        backend._keepalive_task = None  # pylint: disable=protected-access
+        return backend
 
     @pytest.mark.anyio
     async def test_registers_new_page_when_count_increases(self) -> None:
@@ -249,13 +267,8 @@ class TestRegisterNewWindowSession:
         from unittest.mock import MagicMock
 
         from sapwebguimcp.models.session_registry import SessionRegistry
-        from sapwebguimcp.tools.sap_tools import _register_new_window_session
 
         registry = SessionRegistry()
-
-        # Mock browser manager
-        mock_manager = MagicMock()
-        mock_manager.registry = registry
 
         # Mock new page
         new_page = MagicMock()
@@ -263,11 +276,11 @@ class TestRegisterNewWindowSession:
         new_page.on = MagicMock()
         new_page.title = AsyncMock(return_value="New Transaction")
 
-        # Mock context with new page
-        mock_context = MagicMock()
-        mock_context.pages = [MagicMock(), new_page]  # 2 pages now
+        backend = self._make_backend_with_context(registry, [MagicMock(), new_page])
 
-        session_id, count, title = await _register_new_window_session(mock_manager, mock_context, pages_before=1)
+        _PATCH_REGISTRY = "sapwebguimcp.backend.webgui.backend.WebGuiBackend._get_registry"
+        with patch(_PATCH_REGISTRY, new=AsyncMock(return_value=registry)):
+            session_id, count, title = await backend._register_new_window_session(pages_before=1)
 
         assert session_id == "s1"  # First registration
         assert count == 2
@@ -280,18 +293,13 @@ class TestRegisterNewWindowSession:
         from unittest.mock import MagicMock
 
         from sapwebguimcp.models.session_registry import SessionRegistry
-        from sapwebguimcp.tools.sap_tools import _register_new_window_session
 
-        # Fully mock browser manager with registry (even if not used in this path)
-        mock_manager = MagicMock()
-        mock_manager.registry = SessionRegistry()
-        mock_context = MagicMock()
-        mock_context.pages = [MagicMock()]  # Still 1 page
+        registry = SessionRegistry()
+        backend = self._make_backend_with_context(registry, [MagicMock()])
 
-        # Use short timeout for faster test
-        session_id, count, title = await _register_new_window_session(
-            mock_manager, mock_context, pages_before=1, wait_timeout_ms=100
-        )
+        _PATCH_REGISTRY = "sapwebguimcp.backend.webgui.backend.WebGuiBackend._get_registry"
+        with patch(_PATCH_REGISTRY, new=AsyncMock(return_value=registry)):
+            session_id, count, title = await backend._register_new_window_session(pages_before=1, wait_timeout_ms=100)
 
         assert session_id is None
         assert count == 1
@@ -304,19 +312,14 @@ class TestRegisterNewWindowSession:
         from unittest.mock import MagicMock
 
         from sapwebguimcp.models.session_registry import SessionRegistry
-        from sapwebguimcp.tools.sap_tools import _register_new_window_session
 
-        # Fully mock browser manager with registry
-        mock_manager = MagicMock()
-        mock_manager.registry = SessionRegistry()
-        mock_context = MagicMock()
-        mock_context.pages = [MagicMock()]  # Still 1 page
+        registry = SessionRegistry()
+        backend = self._make_backend_with_context(registry, [MagicMock()])
 
-        with caplog.at_level(logging.WARNING):
-            # Use short timeout and provide tcode for context
-            await _register_new_window_session(
-                mock_manager, mock_context, pages_before=1, tcode="VA01", wait_timeout_ms=100
-            )
+        _PATCH_REGISTRY = "sapwebguimcp.backend.webgui.backend.WebGuiBackend._get_registry"
+        with patch(_PATCH_REGISTRY, new=AsyncMock(return_value=registry)):
+            with caplog.at_level(logging.WARNING):
+                await backend._register_new_window_session(pages_before=1, tcode="VA01", wait_timeout_ms=100)
 
         assert "No new page detected" in caplog.text
         assert "/o prefix" in caplog.text
@@ -332,11 +335,8 @@ class TestRegisterNewWindowSession:
         from unittest.mock import MagicMock
 
         from sapwebguimcp.models.session_registry import SessionRegistry
-        from sapwebguimcp.tools.sap_tools import _register_new_window_session
 
         registry = SessionRegistry()
-        mock_manager = MagicMock()
-        mock_manager.registry = registry
 
         # Mock multiple new pages (edge case: 2 pages created at once)
         page1 = MagicMock()
@@ -353,13 +353,11 @@ class TestRegisterNewWindowSession:
         page3.on = MagicMock()
         page3.title = AsyncMock(return_value="Last Page - Should Be Registered")
 
-        # Context now has 3 pages (was 1 before)
-        mock_context = MagicMock()
-        mock_context.pages = [page1, page2, page3]
+        backend = self._make_backend_with_context(registry, [page1, page2, page3])
 
-        session_id, count, title = await _register_new_window_session(
-            mock_manager, mock_context, pages_before=1, wait_timeout_ms=100
-        )
+        _PATCH_REGISTRY = "sapwebguimcp.backend.webgui.backend.WebGuiBackend._get_registry"
+        with patch(_PATCH_REGISTRY, new=AsyncMock(return_value=registry)):
+            session_id, count, title = await backend._register_new_window_session(pages_before=1, wait_timeout_ms=100)
 
         # Should register the LAST page (pages[-1])
         assert session_id == "s1"
