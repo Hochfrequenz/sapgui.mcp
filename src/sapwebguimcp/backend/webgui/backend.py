@@ -768,6 +768,10 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         raw = await self._page.locator("body").aria_snapshot()
         return AriaSnapshot(raw)
 
+    async def get_page_title(self) -> str:
+        """Get the current page title."""
+        return await self._page.title()
+
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the current page."""
         return await self._page.screenshot(full_page=True)

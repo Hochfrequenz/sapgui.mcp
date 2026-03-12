@@ -138,6 +138,9 @@ class SapUiInspection(Protocol):
     async def get_dropdown_options(self, label: str) -> list[str]:
         """Get available options for a dropdown field."""
 
+    async def get_page_title(self) -> str:
+        """Get the current page/window title."""
+
 
 @runtime_checkable
 class SapNavigation(Protocol):
