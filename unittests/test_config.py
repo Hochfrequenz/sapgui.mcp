@@ -84,10 +84,12 @@ class TestSapWebGuiSettings:
 class TestEnvFiles:
     """Tests for _env_files() helper."""
 
-    def test_env_files_no_meipass(self) -> None:
+    def test_env_files_no_meipass(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Normal Python (not frozen) — _MEIPASS absent, returns only .env."""
         if hasattr(sys, "_MEIPASS"):
             pytest.skip("Running in a frozen environment")
+        # Run from a dir without .env.production so the fallback "." doesn't find one
+        monkeypatch.chdir(tmp_path)
         result = _env_files()
         assert result == (".env",)
 
