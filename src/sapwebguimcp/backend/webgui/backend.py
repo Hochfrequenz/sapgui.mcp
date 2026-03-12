@@ -32,6 +32,7 @@ from sapwebguimcp.models.sap_results import (
     LoginResult,
     ScreenInfo,
     ScreenText,
+    SessionInfo,
     SessionStatus,
     StatusBarInfo,
     TableData,
@@ -1088,3 +1089,80 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Dismissing popup")
             return ClosePopupResult.failure(f"Error dismissing popup: {e}")
+
+    # ===================================================================
+    # Session management (SapNavigation)
+    # TODO: move to a session manager protocol when adding second backend
+    # ===================================================================
+
+    async def list_sessions(self) -> list[SessionInfo]:
+        """List active sessions with their metadata."""
+        from sapwebguimcp.backend.webgui.browser import get_browser_manager  # pylint: disable=import-outside-toplevel
+
+        manager = await get_browser_manager()
+        registry = manager.registry
+        result: list[SessionInfo] = []
+        for sid in registry.list_sessions():
+            try:
+                page = registry.get_page(sid)
+                title = await page.title()
+                result.append(
+                    SessionInfo(
+                        session_id=sid,
+                        title=title,
+                        is_primary=(sid == "s1"),
+                        agent_id=registry.get_bound_agent(sid),
+                    )
+                )
+            except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+                continue
+        return result
+
+    async def close_session(self, session_id: str) -> bool:
+        """Close a session by ID. Returns True if closed, False if not found."""
+        from sapwebguimcp.backend.webgui.browser import get_browser_manager  # pylint: disable=import-outside-toplevel
+
+        manager = await get_browser_manager()
+        registry = manager.registry
+        if not registry.has_session(session_id):
+            return False
+        page = registry.get_page(session_id)
+        try:
+            ok_field = await page.query_selector("#ToolbarOkCode")
+            if ok_field:
+                await ok_field.fill("/nex")
+                await page.keyboard.press("Enter")
+                await page.wait_for_timeout(500)
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+        if not page.is_closed():
+            await page.close()
+        registry.unregister(session_id)
+        return True
+
+    async def bind_session(self, session_id: str, agent_id: str) -> str | None:
+        """Bind an agent to a session. Returns previous agent_id or None."""
+        from sapwebguimcp.backend.webgui.browser import get_browser_manager  # pylint: disable=import-outside-toplevel
+
+        manager = await get_browser_manager()
+        registry = manager.registry
+        old = registry.get_bound_agent(session_id)
+        registry.bind(session_id, agent_id)
+        return old
+
+    async def release_session(self, session_id: str) -> str | None:
+        """Release agent binding from a session. Returns released agent_id or None."""
+        from sapwebguimcp.backend.webgui.browser import get_browser_manager  # pylint: disable=import-outside-toplevel
+
+        manager = await get_browser_manager()
+        registry = manager.registry
+        old = registry.get_bound_agent(session_id)
+        registry.release(session_id)
+        return old
+
+    async def has_session(self, session_id: str) -> bool:
+        """Check whether a session exists."""
+        from sapwebguimcp.backend.webgui.browser import get_browser_manager  # pylint: disable=import-outside-toplevel
+
+        manager = await get_browser_manager()
+        return manager.registry.has_session(session_id)
