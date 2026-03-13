@@ -1,9 +1,26 @@
 """Utility functions for SAP WebGUI MCP."""
 
+import re
 from datetime import datetime
 from typing import Literal
 
 SapLanguage = Literal["DE", "EN"]
+
+_UNESCAPED_CSS_SPECIAL = re.compile(r"(?<!\\)([:\[\]#,])")
+
+
+def escape_css_selector(selector: str) -> str:
+    """Escape special CSS characters in SAP element IDs.
+
+    Uses a negative-lookbehind so already-escaped characters (``\\:``)
+    are left alone while unescaped ones are escaped.  This correctly
+    handles partially-escaped selectors like ``#M0\\:48::btn[5]``.
+    """
+    if not selector or not selector.startswith("#"):
+        return selector
+    id_part = selector[1:]
+    escaped_id = _UNESCAPED_CSS_SPECIAL.sub(r"\\\1", id_part)
+    return f"#{escaped_id}"
 
 
 def is_sap_shortcut(key: str) -> bool:

@@ -43,7 +43,7 @@ from sapwebguimcp.models.sap_results import (
     TableRow,
     TransactionResult,
 )
-from sapwebguimcp.utils import is_sap_shortcut
+from sapwebguimcp.utils import escape_css_selector, is_sap_shortcut
 
 if TYPE_CHECKING:
     from playwright.async_api import Page
@@ -97,23 +97,6 @@ def _parse_toolbar_note(snapshot_text: str) -> tuple[bool, str]:
     return False, message
 
 
-_UNESCAPED_CSS_SPECIAL = re.compile(r"(?<!\\)([:\[\]#,])")
-
-
-def _escape_css_selector(selector: str) -> str:
-    """Escape special CSS characters in SAP element IDs.
-
-    Uses a negative-lookbehind so already-escaped characters (``\\:``)
-    are left alone while unescaped ones are escaped.  This correctly
-    handles partially-escaped selectors like ``#M0\\:48::btn[5]``.
-    """
-    if not selector or not selector.startswith("#"):
-        return selector
-    id_part = selector[1:]
-    escaped_id = _UNESCAPED_CSS_SPECIAL.sub(r"\\\1", id_part)
-    return f"#{escaped_id}"
-
-
 # ---------------------------------------------------------------------------
 # WebGuiBackend
 # ---------------------------------------------------------------------------
@@ -136,6 +119,10 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     def get_session_token(self) -> str:
         """Return opaque token identifying the underlying session."""
         return self._session_token
+
+    def load_js(self, filename: str) -> str:
+        """Load a bundled JavaScript helper file by name and return its source text."""
+        return load_js(filename)
 
     # ---- private helpers ----
 
@@ -1313,7 +1300,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             if use_close_button:
                 if not popup.has_close_button:
                     return ClosePopupResult.failure("No close button available")
-                await self._page.click(_escape_css_selector(f"#{popup.close_button_id}"))
+                await self._page.click(escape_css_selector(f"#{popup.close_button_id}"))
                 clicked_label = "[X]"
             elif not button_label:
                 return ClosePopupResult.failure("Specify button_label or use_close_button=True")
@@ -1334,7 +1321,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                     return ClosePopupResult.failure(f"Button '{button_label}' not found. Available: {available}")
 
                 if matched_button.id:
-                    await self._page.click(_escape_css_selector(f"#{matched_button.id}"))
+                    await self._page.click(escape_css_selector(f"#{matched_button.id}"))
                 elif matched_button.accesskey:
                     await self._page.keyboard.press(f"Alt+{matched_button.accesskey}")
                 else:

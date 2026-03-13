@@ -118,6 +118,12 @@ class SapUiPrimitives(Protocol):
         otherwise.
         """
 
+    def load_js(self, filename: str) -> str:
+        """Load a bundled JavaScript helper file by name and return its source text.
+
+        Raises ``FileNotFoundError`` if the file does not exist in the bundle.
+        """
+
     async def evaluate_javascript(self, script: str, arg: Any = None) -> Any:
         """Evaluate a JavaScript expression in the browser and return the result.
 

@@ -24,7 +24,6 @@ from fastmcp import FastMCP
 from fastmcp.utilities.types import File, Image
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.webgui.backend import _escape_css_selector
 from sapwebguimcp.models import (
     BrowserKeyboardResult,
     ClickResult,
@@ -37,6 +36,7 @@ from sapwebguimcp.models import (
     SnapshotResult,
     WaitResult,
 )
+from sapwebguimcp.utils import escape_css_selector
 
 __all__ = ["register_browser_tools"]
 
@@ -82,7 +82,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
         try:
             if selector:
-                escaped_selector = _escape_css_selector(selector)
+                escaped_selector = escape_css_selector(selector)
                 locator = page.locator(escaped_selector)
                 if await locator.count() > 0:
                     snapshot = await locator.first.aria_snapshot()
@@ -187,7 +187,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             return ClickResult.failure(str(e), selector=selector)
 
         page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-        escaped_selector = _escape_css_selector(selector)
+        escaped_selector = escape_css_selector(selector)
 
         try:
             await page.click(escaped_selector)
@@ -227,7 +227,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             return FillResult.failure(str(e), selector=selector, value=value)
 
         page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-        escaped_selector = _escape_css_selector(selector)
+        escaped_selector = escape_css_selector(selector)
 
         try:
             await page.fill(escaped_selector, value)
@@ -401,7 +401,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
         try:
             if selector:
-                escaped_selector = _escape_css_selector(selector)
+                escaped_selector = escape_css_selector(selector)
                 await page.wait_for_selector(escaped_selector, timeout=timeout, state=state)
                 return WaitResult(selector=selector, state=state, timeout=timeout_td)
             await page.wait_for_timeout(timeout)
@@ -445,7 +445,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
         try:
             if selector:
-                escaped_selector = _escape_css_selector(selector)
+                escaped_selector = escape_css_selector(selector)
                 element = await page.query_selector(escaped_selector)
                 if element:
                     if outer:
@@ -510,7 +510,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             return SelectOptionResult.failure(str(e), selector=selector)
 
         page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-        escaped_selector = _escape_css_selector(selector)
+        escaped_selector = escape_css_selector(selector)
 
         try:
             if value:

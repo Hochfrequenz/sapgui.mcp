@@ -332,11 +332,8 @@ async def _fill_se16n_filters(  # pylint: disable=too-many-locals
 
     errors: list[str] = []
 
-    # load_js reads static JS file content (pure I/O helper)
-    from sapwebguimcp.backend.webgui.js_helpers import load_js  # pylint: disable=import-outside-toplevel
-
-    find_js = load_js("find_se16_filter_input.js") if field_order else None
-    fill_js = load_js("fill_se16_filter.js") if not field_order else None
+    find_js = backend.load_js("find_se16_filter_input.js") if field_order else None
+    fill_js = backend.load_js("fill_se16_filter.js") if not field_order else None
 
     if not field_order:
         logger.warning("No field order available, falling back to name-based filter search")
