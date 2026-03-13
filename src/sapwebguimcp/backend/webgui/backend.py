@@ -140,18 +140,21 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     # ---- private helpers ----
 
     async def _find_okcode_field(self) -> Any | None:
-        """Find the OK-Code field on the page."""
-        element = await self._page.query_selector("#ToolbarOkCode")
-        if element and await element.is_visible():
-            return element
+        """Find the OK-Code field on the page.
+
+        Returns a Playwright Locator (lazy, re-evaluates on each action) instead
+        of an ElementHandle to avoid stale DOM references when tests run
+        back-to-back and the page is mid-rebuild.
+        """
         for selector in [
+            "#ToolbarOkCode",
             "input[id*='OkCode']",
             "input[lsdata*='OKCODE']",
             "#M0\\:46\\:11\\:1",
         ]:
-            element = await self._page.query_selector(selector)
-            if element and await element.is_visible():
-                return element
+            loc = self._page.locator(selector).first
+            if await loc.count() > 0 and await loc.is_visible():
+                return loc
         return None
 
     async def _enable_okcode_field(self) -> tuple[bool, str]:
