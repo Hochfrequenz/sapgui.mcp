@@ -100,8 +100,8 @@
                 const gridSpanId = `${gridCellId}#if`;
                 const bracketCellId = `${tableId}[${rowNum},${col}]`;
 
-                let cellElement = document.getElementById(gridCellId)
-                    || document.getElementById(bracketCellId);
+                let cellElement =
+                    document.getElementById(gridCellId) || document.getElementById(bracketCellId);
                 let innerSpan = document.getElementById(gridSpanId);
                 const cellId = cellElement ? cellElement.id : gridCellId;
 
