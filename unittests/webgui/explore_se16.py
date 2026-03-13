@@ -1,7 +1,7 @@
 """
 Exploratory script for SE16N data browser.
 
-Run with: python -m pytest unittests/explore_se16.py -v -s
+Run with: python -m pytest unittests/webgui/explore_se16.py -v -s
 """
 
 import asyncio
@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from unittests.conftest import sap_mcp_client  # noqa: F401
+from .conftest import sap_mcp_client  # noqa: F401
 
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se16_exploration"
 SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)

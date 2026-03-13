@@ -60,8 +60,8 @@ tox -e spell_check  # Run codespell
 
 You can run tests directly in PyCharm. Settings are loaded from your `.env` file automatically.
 
-1. **Unit tests**: Right-click `unittests/test_selectors.py` → Run
-2. **Integration tests**: Right-click any `unittests/test_*_integration.py` file → Run
+1. **Unit tests**: Right-click `unittests/webgui/test_selectors.py` → Run
+2. **Integration tests**: Right-click any `unittests/webgui/test_*_integration.py` file → Run
 
 To change language, edit `SAP_LANGUAGE` in your `.env` file.
 
@@ -82,7 +82,7 @@ tox -e integration_tests   # Captures snapshots in configured language
 tox -e unit_tests          # Run offline selector tests (no SAP needed)
 ```
 
-Snapshots are stored in `unittests/testdata/html_snapshots/`.
+Snapshots are stored in `unittests/webgui/testdata/html_snapshots/`.
 
 #### Why Not Syrupy?
 
@@ -114,7 +114,7 @@ async def test_my_feature(sap_mcp_client: ClientSession) -> None:
 
 ### Unit Tests
 
-Unit tests use HTML snapshots from `unittests/testdata/html_snapshots/`.
+Unit tests use HTML snapshots from `unittests/webgui/testdata/html_snapshots/`.
 
 ```python
 def test_my_parser():
