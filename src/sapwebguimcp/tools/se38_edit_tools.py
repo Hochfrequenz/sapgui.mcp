@@ -37,9 +37,7 @@ async def _fill_program_field_js(backend: SapUiBackend, program_name: str) -> bo
             return True
         except ValueError:
             continue
-    if await backend.fill_main_input(program_name, ["Programm", "Program"]):
-        return True
-    return False
+    return await backend.fill_main_input(program_name, ["Programm", "Program"])
 
 
 async def _fill_program_field_keyboard(backend: SapUiBackend, program_name: str) -> bool:
@@ -90,6 +88,7 @@ async def _navigate_and_open_editor(backend: SapUiBackend, program_name: str) ->
             logger.warning("Program name field not found (attempt %d)", attempt + 1)
             continue
 
+        # Brief wait for SAP to register the typed value before pressing F6.
         await asyncio.sleep(0.3)
         await backend.press_key("F6")
         await backend.wait_for_ready()

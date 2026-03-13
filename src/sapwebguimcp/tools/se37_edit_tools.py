@@ -13,13 +13,11 @@ from fastmcp import FastMCP
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models.se37_edit_models import SE37EditResult
-from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
+from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard, toggle_to_change_mode
 
 logger = logging.getLogger(__name__)
 
-_SE37_LABELS = ["Funktionsbaustein", "Function Module", "Function module"]
-
-_TOGGLE_LABELS = ("Anzeigen <-> Ändern", "Display <-> Change")
+_SE37_LABELS = ("Funktionsbaustein", "Function Module", "Function module")
 
 
 async def _fill_fm_field(backend: SapUiBackend, function_module: str, attempt: int) -> bool:
@@ -31,27 +29,8 @@ async def _fill_fm_field(backend: SapUiBackend, function_module: str, attempt: i
                 return True
             except ValueError:
                 continue
-        return await backend.fill_main_input(function_module, _SE37_LABELS)
+        return await backend.fill_main_input(function_module, list(_SE37_LABELS))
     return await fill_field_with_keyboard(backend, _SE37_LABELS, function_module)
-
-
-async def _toggle_to_change_mode(backend: SapUiBackend) -> str | None:
-    """Click Display<->Change toggle. Retries once after 1s wait.
-
-    Returns error message or None on success.
-    """
-    for toggle_attempt in range(2):
-        if toggle_attempt > 0:
-            await asyncio.sleep(1.0)
-        for toggle_label in _TOGGLE_LABELS:
-            try:
-                await backend.click_button(toggle_label)
-                await backend.wait_for_ready()
-                await backend.dismiss_language_dialog()
-                return None
-            except ValueError:
-                continue
-    return "Could not find 'Display <-> Change' toggle button"
 
 
 async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -> str | None:
@@ -73,6 +52,7 @@ async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -
             logger.warning("FM name field not found (attempt %d)", attempt + 1)
             continue
 
+        # Brief wait for SAP to register the typed value before pressing F7.
         await asyncio.sleep(0.3)
         await backend.press_key("F7")
         await backend.wait_for_ready()
@@ -85,7 +65,7 @@ async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -
 
     await backend.dismiss_language_dialog()
 
-    return await _toggle_to_change_mode(backend)
+    return await toggle_to_change_mode(backend)
 
 
 async def _click_source_tab(backend: SapUiBackend) -> str | None:

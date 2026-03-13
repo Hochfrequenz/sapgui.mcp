@@ -12,6 +12,7 @@ type the value — ensuring SAP registers the change.
 
 import asyncio
 import logging
+from collections.abc import Sequence
 
 from sapwebguimcp.backend.protocol import SapUiBackend
 
@@ -25,10 +26,35 @@ _NOT_FOUND_MSGS = frozenset(
     {"existiert nicht", "does not exist", "nicht gefunden", "not found", "nicht vorhanden", "ist noch nicht vorhanden"}
 )
 
+_TOGGLE_LABELS = ("Anzeigen <-> Ändern", "Display <-> Change")
+
+
+async def toggle_to_change_mode(backend: SapUiBackend) -> str | None:
+    """Click Display<->Change toggle button. Retries once after 1s wait.
+
+    The toggle button may not be rendered immediately after F7 navigation,
+    so a single retry with a short wait is needed for reliability.
+
+    Returns:
+        None on success, or an error message string on failure.
+    """
+    for toggle_attempt in range(2):
+        if toggle_attempt > 0:
+            await asyncio.sleep(1.0)
+        for toggle_label in _TOGGLE_LABELS:
+            try:
+                await backend.click_button(toggle_label)
+                await backend.wait_for_ready()
+                await backend.dismiss_language_dialog()
+                return None
+            except ValueError:
+                continue
+    return "Could not find 'Display <-> Change' toggle button"
+
 
 async def fill_field_with_keyboard(
     backend: SapUiBackend,
-    labels: list[str],
+    labels: Sequence[str],
     value: str,
 ) -> bool:
     """Find an input field by label, focus it, and type the value with real keyboard events.
@@ -95,7 +121,7 @@ async def fill_field_with_keyboard(
 
 async def fill_and_display(
     backend: SapUiBackend,
-    labels: list[str],
+    labels: Sequence[str],
     name: str,
     *,
     tcode_label: str = "object",

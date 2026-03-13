@@ -16,13 +16,11 @@ from fastmcp import FastMCP
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models.se24_edit_models import SE24EditResult
-from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
+from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard, toggle_to_change_mode
 
 logger = logging.getLogger(__name__)
 
-_SE24_LABELS = ["Objekttyp", "Object Type"]
-
-_TOGGLE_LABELS = ("Anzeigen <-> Ändern", "Display <-> Change")
+_SE24_LABELS = ("Objekttyp", "Object Type")
 
 
 async def _fill_class_field(backend: SapUiBackend, class_name: str, attempt: int) -> bool:
@@ -34,27 +32,8 @@ async def _fill_class_field(backend: SapUiBackend, class_name: str, attempt: int
                 return True
             except ValueError:
                 continue
-        return await backend.fill_main_input(class_name, _SE24_LABELS)
+        return await backend.fill_main_input(class_name, list(_SE24_LABELS))
     return await fill_field_with_keyboard(backend, _SE24_LABELS, class_name)
-
-
-async def _toggle_to_change_mode(backend: SapUiBackend) -> str | None:
-    """Click Display<->Change toggle. Retries once after 1s wait.
-
-    Returns error message or None on success.
-    """
-    for toggle_attempt in range(2):
-        if toggle_attempt > 0:
-            await asyncio.sleep(1.0)
-        for toggle_label in _TOGGLE_LABELS:
-            try:
-                await backend.click_button(toggle_label)
-                await backend.wait_for_ready()
-                await backend.dismiss_language_dialog()
-                return None
-            except ValueError:
-                continue
-    return "Could not find 'Display <-> Change' toggle button"
 
 
 async def _open_class_in_change_mode(backend: SapUiBackend, class_name: str) -> str | None:
@@ -79,6 +58,7 @@ async def _open_class_in_change_mode(backend: SapUiBackend, class_name: str) -> 
             logger.warning("Class name field not found (attempt %d)", attempt + 1)
             continue
 
+        # Brief wait for SAP to register the typed value before pressing F7.
         await asyncio.sleep(0.3)
         await backend.press_key("F7")
         await backend.wait_for_ready()
@@ -92,7 +72,7 @@ async def _open_class_in_change_mode(backend: SapUiBackend, class_name: str) -> 
 
     await backend.dismiss_language_dialog()
 
-    return await _toggle_to_change_mode(backend)
+    return await toggle_to_change_mode(backend)
 
 
 async def _select_method_and_open_source(backend: SapUiBackend, class_name: str, method_name: str) -> str | None:
