@@ -110,8 +110,12 @@ class SapUiPrimitives(Protocol):
         Returns True if element was found and filled, False otherwise.
         """
 
-    async def evaluate_javascript(self, script: str) -> Any:
-        """Evaluate a JavaScript expression in the browser and return the result."""
+    async def evaluate_javascript(self, script: str, arg: Any = None) -> Any:
+        """Evaluate a JavaScript expression in the browser and return the result.
+
+        If *arg* is given it is passed as the first parameter to the function
+        expression (mirrors Playwright's ``page.evaluate(expression, arg)``).
+        """
 
 
 @runtime_checkable

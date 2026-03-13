@@ -271,8 +271,7 @@ async def _fill_filter_by_index(
         Error message if failed, None if successful.
     """
     # Find the element using JS
-    args = json.dumps({"rowIndex": row_index, "fieldName": field_name})
-    result = await backend.evaluate_javascript(f"({find_js})({args})")
+    result = await backend.evaluate_javascript(find_js, {"rowIndex": row_index, "fieldName": field_name})
 
     if not result.get("success"):
         error_msg = str(result.get("error", f"Could not find element for {field_name}"))
@@ -360,8 +359,7 @@ async def _fill_se16n_filters(  # pylint: disable=too-many-locals
 
             elif fill_js:
                 # Fall back to name-based JavaScript approach
-                args = json.dumps({"fieldName": field_upper, "value": value})
-                result = await backend.evaluate_javascript(f"({fill_js})({args})")
+                result = await backend.evaluate_javascript(fill_js, {"fieldName": field_upper, "value": value})
 
                 if not result.get("success"):
                     error_msg = result.get("error", f"Unknown error for field {field_name}")
@@ -428,7 +426,7 @@ async def _focus_grid(backend: SapUiBackend) -> None:
     try:
         await backend.evaluate_javascript("""() => {
             const grid = document.querySelector("[role='grid']");
-            if (grid) grid.click();
+            if (grid) grid.focus();
         }""")
         await backend.wait(500)
     except Exception as e:  # pylint: disable=broad-exception-caught
@@ -595,15 +593,16 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     # Set max hits
     await _fill_se16n_max_hits(backend, max_hits)
 
-    # Click on the table name field to ensure focus is in the main screen area
-    # (not stuck in filter grid which can interfere with F8)
+    # Best-effort: click table name field to move focus out of filter grid
+    # (focus in filter grid can interfere with F8). Selector checks title and
+    # aria-label attributes — an approximation of Playwright's get_by_role.
     try:
         await backend.evaluate_javascript("""() => {
             for (const name of ['Table', 'Tabelle']) {
                 const el = document.querySelector(
                     'input[title*="' + name + '"], input[aria-label*="' + name + '"]'
                 );
-                if (el) { el.click(); return; }
+                if (el) { el.focus(); return; }
             }
         }""")
         await backend.wait(200)

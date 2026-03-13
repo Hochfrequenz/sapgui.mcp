@@ -756,7 +756,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             if await textbox.count() > 0:
                 await textbox.click()
                 await textbox.fill("")
-                await textbox.type(text, delay=delay_ms)
+                await textbox.press_sequentially(text, delay=delay_ms)
                 return True
         except Exception:  # pylint: disable=broad-exception-caught
             pass
@@ -778,8 +778,10 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception:  # pylint: disable=broad-exception-caught
             return False
 
-    async def evaluate_javascript(self, script: str) -> Any:
+    async def evaluate_javascript(self, script: str, arg: Any = None) -> Any:
         """Evaluate a JavaScript expression in the browser and return the result."""
+        if arg is not None:
+            return await self._page.evaluate(script, arg)
         return await self._page.evaluate(script)
 
     async def click_button(self, label: str) -> None:
