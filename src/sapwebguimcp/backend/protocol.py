@@ -93,8 +93,37 @@ class SapUiPrimitives(Protocol):
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select an option from a dropdown field."""
 
-    async def evaluate_javascript(self, script: str) -> Any:
-        """Evaluate a JavaScript expression in the browser and return the result."""
+    async def focus_and_type(self, accessible_name: str, text: str, delay_ms: int = 0) -> bool:
+        """Find a textbox by accessible name, clear it, and type text with optional delay.
+
+        Returns True if the element was found and typed into, False if not found.
+        """
+
+    async def fill_element_by_locator(self, locator: str, value: str, delay_ms: int = 30) -> bool:
+        """Fill an element found by CSS/attribute selector: click, clear, type slowly, Tab to blur.
+
+        Args:
+            locator: CSS selector or attribute selector (e.g., '[id="..."]', '#foo')
+            value: Text to type
+            delay_ms: Delay between keystrokes in ms
+
+        Returns True if element was found and filled, False otherwise.
+        """
+
+    async def click_element(self, selector: str) -> bool:
+        """Click the first element matching the CSS/attribute *selector*.
+
+        Performs a real click (scrolls into view, dispatches full mouse event
+        sequence).  Returns True if an element was found and clicked, False
+        otherwise.
+        """
+
+    async def evaluate_javascript(self, script: str, arg: Any = None) -> Any:
+        """Evaluate a JavaScript expression in the browser and return the result.
+
+        If *arg* is given it is passed as the first parameter to the function
+        expression (mirrors Playwright's ``page.evaluate(expression, arg)``).
+        """
 
 
 @runtime_checkable

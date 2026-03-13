@@ -154,19 +154,10 @@ async def _type_table_name_with_validation(backend: SapUiBackend, table: str) ->
     Returns:
         Error message if failed, None if successful.
     """
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-
-    # Find and click on the table textbox, then type the table name
     for textbox_name in ["Table", "Tabelle"]:
         try:
-            textbox = page.get_by_role("textbox", name=textbox_name).first
-            if await textbox.count() > 0:
-                await textbox.click()
-                await textbox.fill("")  # Clear first
-                await textbox.type(table.upper(), delay=50)  # Type slowly
+            if await backend.focus_and_type(textbox_name, table.upper(), delay_ms=50):
                 logger.info("Typed table name", extra={"table": table, "field": textbox_name})
-
-                # Press Enter to trigger table validation - waits for networkidle
                 logger.info("Pressing Enter to trigger table validation")
                 await backend.press_key("Enter")
                 return None
@@ -188,10 +179,8 @@ async def _wait_for_grid_rows(backend: SapUiBackend, timeout_seconds: int = 5) -
     Returns:
         True if grid has rows, False if timeout.
     """
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-
     for i in range(timeout_seconds * 2):  # Poll every 500ms
-        result = await page.evaluate("""
+        result = await backend.evaluate_javascript("""
             () => {
                 const grids = document.querySelectorAll('[role="grid"]');
                 for (const grid of grids) {
@@ -210,7 +199,7 @@ async def _wait_for_grid_rows(backend: SapUiBackend, timeout_seconds: int = 5) -
         if result:
             logger.info("Table structure loaded", extra={"poll_iteration": i})
             return True
-        await page.wait_for_timeout(500)
+        await backend.wait(500)
 
     logger.warning("Grid not populated after polling", extra={"timeout_seconds": timeout_seconds})
     return False
@@ -237,62 +226,35 @@ async def _fill_se16n_max_hits(backend: SapUiBackend, max_hits: int) -> None:
         pass
 
 
-async def _fill_filter_element(
-    page: Any,  # noqa: ANN401 — Playwright Page
-    element: Any,  # noqa: ANN401 — Playwright Locator
-    value: str,
-    field_name: str,
-    strategy: str,
-) -> bool:
-    """Fill a single filter element using element-targeted input.
-
-    Uses element.fill() + element.press_sequentially() to type into the
-    specific element rather than page.keyboard which types into whatever
-    has focus (bug: could type into the table name field instead).
-    """
-    await element.click()
-    await page.wait_for_timeout(100)
-    await element.fill("")  # Clear existing value
-    await element.press_sequentially(value, delay=30)
-    # Tab away to blur and commit the value to SAP
-    await page.keyboard.press("Tab")
-    await page.wait_for_timeout(300)
-    logger.info("Filled filter via Playwright (%s)", strategy, extra={"field": field_name, "value": value})
-    return True
-
-
-async def _fill_filter_with_playwright(
+async def _fill_filter_by_locator(
     backend: SapUiBackend, element_id: str | None, selector: str | None, value: str, field_name: str
 ) -> bool:
     """
-    Fill a filter field using Playwright's element-targeted input.
+    Fill a filter field using element-targeted input via protocol methods.
 
-    Tries element ID first, then selector. Uses element.fill() to clear
-    and element.press_sequentially() to type, ensuring input goes to the
-    correct element (not whatever happens to have focus).
+    Tries element ID first, then selector. Uses fill_element_by_locator()
+    which clicks, clears, types slowly, and Tabs to blur.
 
     Returns:
         True if fill succeeded, False otherwise.
     """
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-
     # Try by element ID first (use attribute selector for IDs with special chars)
     if element_id:
         try:
-            element = page.locator(f'[id="{element_id}"]')
-            if await element.count() > 0:
-                return await _fill_filter_element(page, element, value, field_name, "id")
+            if await backend.fill_element_by_locator(f'[id="{element_id}"]', value):
+                logger.info("Filled filter via locator (id)", extra={"field": field_name, "value": value})
+                return True
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.warning("Playwright fill by ID failed", extra={"error": str(e)})
+            logger.warning("Fill by ID failed", extra={"error": str(e)})
 
     # Try by CSS selector
     if selector:
         try:
-            element = page.locator(selector)
-            if await element.count() > 0:
-                return await _fill_filter_element(page, element, value, field_name, "selector")
+            if await backend.fill_element_by_locator(selector, value):
+                logger.info("Filled filter via locator (selector)", extra={"field": field_name, "value": value})
+                return True
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.warning("Playwright fill by selector failed", extra={"error": str(e)})
+            logger.warning("Fill by selector failed", extra={"error": str(e)})
 
     return False
 
@@ -303,15 +265,13 @@ async def _fill_filter_by_index(
     """
     Fill a single filter field using index-based approach.
 
-    Uses JS to find the element, then Playwright to fill it.
+    Uses JS to find the element, then fills it via protocol methods.
 
     Returns:
         Error message if failed, None if successful.
     """
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-
     # Find the element using JS
-    result = await page.evaluate(find_js, {"rowIndex": row_index, "fieldName": field_name})
+    result = await backend.evaluate_javascript(find_js, {"rowIndex": row_index, "fieldName": field_name})
 
     if not result.get("success"):
         error_msg = str(result.get("error", f"Could not find element for {field_name}"))
@@ -336,11 +296,11 @@ async def _fill_filter_by_index(
         },
     )
 
-    # Fill using Playwright
-    if await _fill_filter_with_playwright(backend, element_id, selector, value, field_name):
+    # Fill using locator-based approach
+    if await _fill_filter_by_locator(backend, element_id, selector, value, field_name):
         return None
 
-    return f"Found element for {field_name} but Playwright fill failed"
+    return f"Found element for {field_name} but fill by locator failed"
 
 
 async def _fill_se16n_filters(  # pylint: disable=too-many-locals
@@ -355,7 +315,7 @@ async def _fill_se16n_filters(  # pylint: disable=too-many-locals
 
     Uses a two-step approach:
     1. JavaScript finds the target element's ID/selector
-    2. Playwright's native click + type fills the value (triggers proper SAP events)
+    2. Protocol's fill_element_by_locator clicks + types the value (triggers proper SAP events)
 
     Args:
         backend: SapUiBackend instance
@@ -371,9 +331,8 @@ async def _fill_se16n_filters(  # pylint: disable=too-many-locals
         return []
 
     errors: list[str] = []
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
-    # Load appropriate JS based on whether we have field order
+    # load_js reads static JS file content (pure I/O helper)
     from sapwebguimcp.backend.webgui.js_helpers import load_js  # pylint: disable=import-outside-toplevel
 
     find_js = load_js("find_se16_filter_input.js") if field_order else None
@@ -400,7 +359,7 @@ async def _fill_se16n_filters(  # pylint: disable=too-many-locals
 
             elif fill_js:
                 # Fall back to name-based JavaScript approach
-                result = await page.evaluate(fill_js, {"fieldName": field_upper, "value": value})
+                result = await backend.evaluate_javascript(fill_js, {"fieldName": field_upper, "value": value})
 
                 if not result.get("success"):
                     error_msg = result.get("error", f"Unknown error for field {field_name}")
@@ -464,12 +423,9 @@ def _check_selection_screen_columns(columns: list[str]) -> bool:
 
 async def _focus_grid(backend: SapUiBackend) -> None:
     """Focus the ALV grid for pagination (required for PageDown to work)."""
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
     try:
-        grid = page.locator("[role='grid']").first
-        if await grid.count() > 0:
-            await grid.click()
-            await page.wait_for_timeout(500)
+        await backend.click_element("[role='grid']")
+        await backend.wait(500)
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.warning("Could not focus grid", extra={"error": str(e)})
 
@@ -503,8 +459,6 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
     # Deduplicate by first column only (typically the primary key). See issue #136.
     first_col = columns[0] if columns else None
 
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-
     while len(all_rows) < total_hits and page_num < MAX_PAGES:
         # Get snapshot and parse rows
         snapshot = await backend.get_snapshot()
@@ -516,7 +470,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
             if stuck_count >= 3:
                 logger.warning("No rows found for 3 consecutive pages, stopping")
                 break
-            await page.wait_for_timeout(int(PAGE_WAIT_TIME.total_seconds() * 2000))
+            await backend.wait(int(PAGE_WAIT_TIME.total_seconds() * 2000))
             continue
 
         stuck_count = 0
@@ -569,7 +523,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
 
         # PageDown to next page
         await backend.press_key("PageDown")
-        await page.wait_for_timeout(int(PAGE_WAIT_TIME.total_seconds() * 1000))
+        await backend.wait(int(PAGE_WAIT_TIME.total_seconds() * 1000))
         page_num += 1
 
     return all_rows
@@ -596,7 +550,6 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
         SE16Result with collected data
     """
     now = datetime.now(UTC)
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
     # If filters are provided, get field order from SE11 FIRST
     # (before navigating to SE16N, since SE11 lookup changes the screen)
@@ -612,7 +565,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     if not tx_result.success:
         return _empty_failure(f"Failed to navigate to SE16N: {tx_result.error}", table, now)
 
-    await page.wait_for_timeout(1000)  # Wait for SE16N screen to render
+    await backend.wait(1000)  # Wait for SE16N screen to render
 
     # Fill table name - with validation trigger if filters are provided
     fill_error: str | None = None
@@ -637,22 +590,20 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     # Set max hits
     await _fill_se16n_max_hits(backend, max_hits)
 
-    # Click on the table name field to ensure focus is in the main screen area
-    # (not stuck in filter grid which can interfere with F8)
+    # Best-effort: click table name field to move focus out of filter grid
+    # (focus in filter grid can interfere with F8).
     try:
-        for field_name in ["Table", "Tabelle"]:
-            textbox = page.get_by_role("textbox", name=field_name).first
-            if await textbox.count() > 0:
-                await textbox.click()
-                await page.wait_for_timeout(200)
-                break
+        clicked = await backend.click_element("input[title*='Table'], input[aria-label*='Table']")
+        if not clicked:
+            await backend.click_element("input[title*='Tabelle'], input[aria-label*='Tabelle']")
+        await backend.wait(200)
     except Exception:  # pylint: disable=broad-exception-caught
         pass  # Best effort - continue with F8
 
     # Execute query (F8) and wait for results
     logger.info("Executing query with F8")
     await backend.press_key("F8")
-    await page.wait_for_timeout(3000)
+    await backend.wait(3000)
 
     # Get snapshot to check for errors and parse results
     snapshot = await backend.get_snapshot()

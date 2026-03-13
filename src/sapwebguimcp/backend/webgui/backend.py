@@ -749,8 +749,50 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 f"Could not fill grid cell row={row} column={column}: " f"{result.get('error', 'Unknown error')}"
             )
 
-    async def evaluate_javascript(self, script: str) -> Any:
+    async def focus_and_type(self, accessible_name: str, text: str, delay_ms: int = 0) -> bool:
+        """Find a textbox by accessible name, clear it, and type text with optional delay."""
+        try:
+            textbox = self._page.get_by_role("textbox", name=accessible_name).first
+            if await textbox.count() > 0:
+                await textbox.click()
+                await textbox.fill("")
+                await textbox.press_sequentially(text, delay=delay_ms)
+                return True
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+        return False
+
+    async def fill_element_by_locator(self, locator: str, value: str, delay_ms: int = 30) -> bool:
+        """Fill an element by CSS/attribute selector: click, clear, type slowly, Tab to blur."""
+        try:
+            element = self._page.locator(locator)
+            if await element.count() == 0:
+                return False
+            await element.click()
+            await self._page.wait_for_timeout(100)
+            await element.fill("")
+            await element.press_sequentially(value, delay=delay_ms)
+            await self._page.keyboard.press("Tab")
+            await self._page.wait_for_timeout(300)
+            return True
+        except Exception:  # pylint: disable=broad-exception-caught
+            return False
+
+    async def click_element(self, selector: str) -> bool:
+        """Click the first element matching a CSS/attribute selector (real click)."""
+        try:
+            loc = self._page.locator(selector).first
+            if await loc.count() > 0:
+                await loc.click()
+                return True
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+        return False
+
+    async def evaluate_javascript(self, script: str, arg: Any = None) -> Any:
         """Evaluate a JavaScript expression in the browser and return the result."""
+        if arg is not None:
+            return await self._page.evaluate(script, arg)
         return await self._page.evaluate(script)
 
     async def click_button(self, label: str) -> None:
