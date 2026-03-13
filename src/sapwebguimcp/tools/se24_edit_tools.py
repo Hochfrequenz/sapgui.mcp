@@ -8,6 +8,7 @@ Unlike SE38/SE37 which edit entire program/FM source, SE24 edits
 individual method source code within a class.
 """
 
+import asyncio
 import logging
 
 from fastmcp import FastMCP
@@ -15,8 +16,45 @@ from fastmcp import FastMCP
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models.se24_edit_models import SE24EditResult
+from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
 
 logger = logging.getLogger(__name__)
+
+_SE24_LABELS = ["Objekttyp", "Object Type"]
+
+_TOGGLE_LABELS = ("Anzeigen <-> Ändern", "Display <-> Change")
+
+
+async def _fill_class_field(backend: SapUiBackend, class_name: str, attempt: int) -> bool:
+    """Fill the SE24 class name field. attempt==0 uses JS, retries use keyboard."""
+    if attempt == 0:
+        for label in _SE24_LABELS:
+            try:
+                await backend.fill_field(label, class_name)
+                return True
+            except ValueError:
+                continue
+        return await backend.fill_main_input(class_name, _SE24_LABELS)
+    return await fill_field_with_keyboard(backend, _SE24_LABELS, class_name)
+
+
+async def _toggle_to_change_mode(backend: SapUiBackend) -> str | None:
+    """Click Display<->Change toggle. Retries once after 1s wait.
+
+    Returns error message or None on success.
+    """
+    for toggle_attempt in range(2):
+        if toggle_attempt > 0:
+            await asyncio.sleep(1.0)
+        for toggle_label in _TOGGLE_LABELS:
+            try:
+                await backend.click_button(toggle_label)
+                await backend.wait_for_ready()
+                await backend.dismiss_language_dialog()
+                return None
+            except ValueError:
+                continue
+    return "Could not find 'Display <-> Change' toggle button"
 
 
 async def _open_class_in_change_mode(backend: SapUiBackend, class_name: str) -> str | None:
@@ -29,41 +67,32 @@ async def _open_class_in_change_mode(backend: SapUiBackend, class_name: str) -> 
 
     await backend.enter_transaction("SE24")
 
-    # Fill class name field (DE: "Objekttyp", EN: "Object Type")
-    for label in ("Objekttyp", "Object Type"):
-        try:
-            await backend.fill_field(label, class_name)
-            break
-        except ValueError:
+    # Fill class name and press F7. First attempt uses JS fill (fast),
+    # retries use real keyboard events (survives SAP state resets after /n).
+    for attempt in range(3):
+        if attempt > 0:
+            logger.info("Retrying fill+F7 for %s (attempt %d)", class_name, attempt + 1)
+            await asyncio.sleep(1.0)
+
+        filled = await _fill_class_field(backend, class_name, attempt)
+        if not filled:
+            logger.warning("Class name field not found (attempt %d)", attempt + 1)
             continue
+
+        await asyncio.sleep(0.3)
+        await backend.press_key("F7")
+        await backend.wait_for_ready()
+
+        # Check if we left the initial screen.
+        snapshot = str(await backend.get_snapshot())
+        if "Class Builder" in snapshot or "Klasse" in snapshot:
+            break
     else:
-        # Fallback: fill main form input, skipping toolbar/combobox inputs.
-        if not await backend.fill_main_input(class_name, ["Objekttyp", "Object Type"]):
-            return "Could not find class name field"
-
-    # F7 to display first (reliable in both DE/EN), then toggle to change mode
-    await backend.press_key("F7")
-    await backend.wait_for_ready()
-
-    snapshot = str(await backend.get_snapshot())
-    if "Class Builder" not in snapshot and "Klasse" not in snapshot:
-        return f"F7 failed to display class. Page: {snapshot[:400]}"
+        return "Could not find or fill class name field after retries"
 
     await backend.dismiss_language_dialog()
 
-    # Switch from display to change mode via "Display <-> Change" / "Anzeigen <-> Ändern"
-    for toggle_label in ("Anzeigen <-> Ändern", "Display <-> Change"):
-        try:
-            await backend.click_button(toggle_label)
-            break
-        except ValueError:
-            continue
-    else:
-        return "Could not find 'Display <-> Change' toggle button"
-    await backend.wait_for_ready()
-
-    await backend.dismiss_language_dialog()
-    return None
+    return await _toggle_to_change_mode(backend)
 
 
 async def _select_method_and_open_source(backend: SapUiBackend, class_name: str, method_name: str) -> str | None:

@@ -5,6 +5,7 @@ Provides sap_se37_edit for modifying existing function modules with
 syntax check, activation, and auto-revert on failure.
 """
 
+import asyncio
 import logging
 
 from fastmcp import FastMCP
@@ -12,8 +13,45 @@ from fastmcp import FastMCP
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models.se37_edit_models import SE37EditResult
+from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
 
 logger = logging.getLogger(__name__)
+
+_SE37_LABELS = ["Funktionsbaustein", "Function Module", "Function module"]
+
+_TOGGLE_LABELS = ("Anzeigen <-> Ändern", "Display <-> Change")
+
+
+async def _fill_fm_field(backend: SapUiBackend, function_module: str, attempt: int) -> bool:
+    """Fill the SE37 function module name field. attempt==0 uses JS, retries use keyboard."""
+    if attempt == 0:
+        for label in _SE37_LABELS:
+            try:
+                await backend.fill_field(label, function_module)
+                return True
+            except ValueError:
+                continue
+        return await backend.fill_main_input(function_module, _SE37_LABELS)
+    return await fill_field_with_keyboard(backend, _SE37_LABELS, function_module)
+
+
+async def _toggle_to_change_mode(backend: SapUiBackend) -> str | None:
+    """Click Display<->Change toggle. Retries once after 1s wait.
+
+    Returns error message or None on success.
+    """
+    for toggle_attempt in range(2):
+        if toggle_attempt > 0:
+            await asyncio.sleep(1.0)
+        for toggle_label in _TOGGLE_LABELS:
+            try:
+                await backend.click_button(toggle_label)
+                await backend.wait_for_ready()
+                await backend.dismiss_language_dialog()
+                return None
+            except ValueError:
+                continue
+    return "Could not find 'Display <-> Change' toggle button"
 
 
 async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -> str | None:
@@ -23,43 +61,31 @@ async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -
     """
     await backend.enter_transaction("SE37")
 
-    # Fill FM name field (DE: "Funktionsbaustein", EN: "Function Module")
-    for label in ("Funktionsbaustein", "Function Module", "Function module"):
-        try:
-            await backend.fill_field(label, function_module)
-            break
-        except ValueError:
+    # Fill FM name and press F7. First attempt uses JS fill (fast),
+    # retries use real keyboard events (survives SAP state resets after /n).
+    for attempt in range(3):
+        if attempt > 0:
+            logger.info("Retrying fill+F7 for %s (attempt %d)", function_module, attempt + 1)
+            await asyncio.sleep(1.0)
+
+        filled = await _fill_fm_field(backend, function_module, attempt)
+        if not filled:
+            logger.warning("FM name field not found (attempt %d)", attempt + 1)
             continue
+
+        await asyncio.sleep(0.3)
+        await backend.press_key("F7")
+        await backend.wait_for_ready()
+
+        snapshot = str(await backend.get_snapshot())
+        if "Function Builder" in snapshot or "Funktionsbaustein" in snapshot:
+            break
     else:
-        # Fallback: fill main form input, skipping toolbar/combobox inputs.
-        if not await backend.fill_main_input(
-            function_module, ["Funktionsbaustein", "Function Module", "Function module"]
-        ):
-            return "Could not find function module name field"
-
-    # F7 to display first (reliable in both DE/EN), then toggle to change mode
-    await backend.press_key("F7")
-    await backend.wait_for_ready()
-
-    snapshot = str(await backend.get_snapshot())
-    if "Function Builder" not in snapshot and "Funktionsbaustein" not in snapshot:
-        return f"F7 failed to display function module. Page: {snapshot[:400]}"
+        return "Could not find or fill function module name field after retries"
 
     await backend.dismiss_language_dialog()
 
-    # Switch from display to change mode via toggle button
-    for toggle_label in ("Anzeigen <-> Ändern", "Display <-> Change"):
-        try:
-            await backend.click_button(toggle_label)
-            break
-        except ValueError:
-            continue
-    else:
-        return "Could not find 'Display <-> Change' toggle button"
-    await backend.wait_for_ready()
-
-    await backend.dismiss_language_dialog()
-    return None
+    return await _toggle_to_change_mode(backend)
 
 
 async def _click_source_tab(backend: SapUiBackend) -> str | None:

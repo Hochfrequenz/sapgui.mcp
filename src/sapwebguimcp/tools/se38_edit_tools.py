@@ -5,6 +5,7 @@ Provides sap_se38_edit for modifying existing ABAP reports with
 syntax check, activation, and auto-revert on failure.
 """
 
+import asyncio
 import logging
 
 from fastmcp import FastMCP
@@ -12,27 +13,93 @@ from fastmcp import FastMCP
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models.se38_edit_models import SE38EditResult
+from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
 
 logger = logging.getLogger(__name__)
+
+# DE/EN title attributes for the SE38 program name field.
+# The field has title="ABAP-Programmname" (DE) / "ABAP Program Name" (EN),
+# NOT the label text "Programm"/"Program" shown next to it.
+_SE38_FIELD_TITLES = [
+    "ABAP-Programmname",
+    "ABAP Program Name",
+    "ABAP program name",
+    "Programm",
+    "Program",
+]
+
+
+async def _fill_program_field_js(backend: SapUiBackend, program_name: str) -> bool:
+    """Fill the program name using the standard JS-based fill_field (works on fresh screens)."""
+    for label in ("Programm", "Program"):
+        try:
+            await backend.fill_field(label, program_name)
+            return True
+        except ValueError:
+            continue
+    if await backend.fill_main_input(program_name, ["Programm", "Program"]):
+        return True
+    return False
+
+
+async def _fill_program_field_keyboard(backend: SapUiBackend, program_name: str) -> bool:
+    """Fill the program name using real keyboard events (works after state resets).
+
+    Uses JavaScript to locate and focus the CBS field, then types with
+    real keyboard events. This survives SAP's post-navigation state where
+    Playwright locator clicks time out due to SAP's overlay mechanism.
+    """
+    # Try the shared helper first (matches by title attribute).
+    if await fill_field_with_keyboard(backend, _SE38_FIELD_TITLES, program_name):
+        return True
+
+    # Direct JS: find the CBS program field by known attributes and focus it.
+    focused = await backend.evaluate_javascript("""(() => {
+        // Find CBS input with title containing 'rogramm' (works for DE/EN).
+        const input = document.querySelector("input[title*='rogramm'][ct='CBS']")
+            || document.querySelector("input[name='InputField'][ct='CBS']");
+        if (!input || input.offsetParent === null) return false;
+        input.focus();
+        input.click();
+        input.select();
+        return true;
+    })()""")
+    if not focused:
+        return False
+
+    await backend.type_text(program_name)
+    return True
 
 
 async def _navigate_and_open_editor(backend: SapUiBackend, program_name: str) -> str | None:
     """Navigate to SE38 on the given page, fill program name, enter change mode, return error or None."""
     await backend.enter_transaction("SE38")
 
-    try:
-        await backend.fill_field("Programm", program_name)
-    except ValueError:
-        try:
-            await backend.fill_field("Program", program_name)
-        except ValueError:
-            # Fallback: fill main form input, skipping toolbar/combobox inputs.
-            if not await backend.fill_main_input(program_name, ["Programm", "Program"]):
-                return "Could not find program name field"
+    for attempt in range(3):
+        if attempt > 0:
+            logger.info("Retrying fill+F6 for %s (attempt %d)", program_name, attempt + 1)
+            await asyncio.sleep(1.0)
 
-    await backend.press_key("F6")
-    await backend.wait_for_ready()
-    return None
+        # First attempt: fast JS fill. Retries: keyboard fill (survives state resets).
+        if attempt == 0:
+            filled = await _fill_program_field_js(backend, program_name)
+        else:
+            filled = await _fill_program_field_keyboard(backend, program_name)
+
+        if not filled:
+            logger.warning("Program name field not found (attempt %d)", attempt + 1)
+            continue
+
+        await asyncio.sleep(0.3)
+        await backend.press_key("F6")
+        await backend.wait_for_ready()
+
+        # Verify we left the initial screen.
+        snapshot = str(await backend.get_snapshot()).lower()
+        if "einstieg" not in snapshot and "initial screen" not in snapshot:
+            return None
+
+    return "Could not find or fill program name field after retries"
 
 
 async def _edit_check_activate(backend: SapUiBackend, program_name: str, new_source: str) -> SE38EditResult:
