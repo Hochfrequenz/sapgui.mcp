@@ -41,6 +41,10 @@ __all__ = ["register_spro_tools"]
 _SEARCH_TIMEOUT_MS = 60_000
 _SEARCH_POLL_INTERVAL_MS = 2_000
 
+# F5 IMG tree loading can be slow — poll for heading
+_F5_POLL_INTERVAL_S = 1.0
+_F5_MAX_POLLS = 10  # 10 * 1s = 10 seconds max wait
+
 
 # =============================================================================
 # SPRO Navigation Helpers
@@ -51,8 +55,13 @@ async def _click_sap_ref_img(backend: "SapUiBackend") -> str | None:
     """Click 'SAP Referenz-IMG' / 'SAP Reference IMG' button via F5.
 
     On the SPRO initial screen, F5 triggers the SAP Reference IMG view.
+    The IMG tree can take several seconds to render, so we poll for the
+    heading instead of checking only once.
+
     Returns error string or None on success.
     """
+    import asyncio  # pylint: disable=import-outside-toplevel
+
     # Verify we're on the SPRO initial screen before pressing F5
     snapshot = await backend.get_snapshot()
     snapshot_str = str(snapshot)
@@ -62,13 +71,16 @@ async def _click_sap_ref_img(backend: "SapUiBackend") -> str | None:
     await backend.press_key("F5")
     await backend.wait_for_ready()
 
-    # Verify we're in the IMG tree by checking for its unique heading
-    snapshot = await backend.get_snapshot()
-    snapshot_str = str(snapshot)
-    if SPRO_IMG_HEADING_DE not in snapshot_str and SPRO_IMG_HEADING_EN not in snapshot_str:
-        return "Failed to enter IMG tree (heading not found after F5)"
+    # Poll for the IMG heading — the tree can take a few seconds to render.
+    for poll in range(_F5_MAX_POLLS):
+        snapshot = await backend.get_snapshot()
+        snapshot_str = str(snapshot)
+        if SPRO_IMG_HEADING_DE in snapshot_str or SPRO_IMG_HEADING_EN in snapshot_str:
+            return None
+        logger.debug("IMG heading not found yet, poll %d/%d", poll + 1, _F5_MAX_POLLS)
+        await asyncio.sleep(_F5_POLL_INTERVAL_S)
 
-    return None
+    return "Failed to enter IMG tree (heading not found after F5)"
 
 
 async def _open_search_dialog(backend: "SapUiBackend") -> str | None:
