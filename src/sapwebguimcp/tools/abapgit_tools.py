@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
 from sapwebguimcp.models.config import get_settings
@@ -792,8 +793,9 @@ async def _find_source_code(backend: "SapUiBackend") -> str | None:
         logger.info("Searching for ABAP source code via JavaScript")
         result = await backend.evaluate_javascript(js_code)
         if result and _is_actual_abap_source(result):
-            logger.info("Found ABAP source code", extra={"chars": len(result)})
-            return result
+            source: str = result
+            logger.info("Found ABAP source code", extra={"chars": len(source)})
+            return source
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.debug("JavaScript source search failed", extra={"error": str(e)})
     return None

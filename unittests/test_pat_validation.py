@@ -144,8 +144,6 @@ class TestAnalyzePullResultFallback:
         mock_status = type("Status", (), {"message": "", "type": "none"})()
         mock_backend = AsyncMock()
         mock_backend.get_status_bar = AsyncMock(return_value=mock_status)
-        mock_backend._page = AsyncMock()
-        mock_backend._page.wait_for_timeout = AsyncMock()
 
         with patch(
             "sapwebguimcp.tools.abapgit_tools._check_screen_for_errors",
@@ -164,20 +162,10 @@ class TestRunPullAndCheckErrors:
 
     @staticmethod
     def _mock_backend_no_popup() -> AsyncMock:
-        """Create a mock backend whose _page returns no inactive objects popup."""
-        from unittest.mock import MagicMock
-
-        mock_page = AsyncMock()
-        mock_page.keyboard.press = AsyncMock()
-        mock_page.wait_for_load_state = AsyncMock()
-        mock_page.wait_for_timeout = AsyncMock()
-        mock_locator = MagicMock()
-        mock_locator.aria_snapshot = AsyncMock(return_value="- main: selection screen")
-        mock_page.locator = MagicMock(return_value=mock_locator)
-
+        """Create a mock backend that returns no inactive objects popup."""
         mock_backend = AsyncMock()
-        mock_backend._page = mock_page
         mock_backend.press_key = AsyncMock()
+        mock_backend.get_snapshot = AsyncMock(return_value="- main: selection screen")
         return mock_backend
 
     @pytest.mark.anyio
@@ -199,8 +187,8 @@ class TestRunPullAndCheckErrors:
         # Should press F8 via backend
         mock_backend.press_key.assert_any_call("F8")
 
-        # Should wait for networkidle on the underlying page
-        mock_backend._page.wait_for_load_state.assert_called_once_with("networkidle", timeout=120_000)
+        # Should wait for networkidle via the protocol method
+        mock_backend.wait_for_ready.assert_called_once_with(timeout_ms=120_000)
 
         # Without inactive objects popup, should NOT press Enter
         enter_calls = [c for c in mock_backend.press_key.call_args_list if c == call("Enter")]
@@ -211,12 +199,10 @@ class TestRunPullAndCheckErrors:
         """If networkidle times out, should log warning and continue (not crash)."""
         from unittest.mock import patch
 
-        from playwright.async_api import TimeoutError as PlaywrightTimeout
-
         from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
         mock_backend = self._mock_backend_no_popup()
-        mock_backend._page.wait_for_load_state = AsyncMock(side_effect=PlaywrightTimeout("networkidle timeout"))
+        mock_backend.wait_for_ready = AsyncMock(side_effect=TimeoutError("networkidle timeout"))
 
         with patch(
             "sapwebguimcp.tools.abapgit_tools._handle_popup_error",
@@ -235,13 +221,7 @@ class TestRunPullAndCheckErrors:
 
         from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
-        mock_page = AsyncMock()
-        mock_page.keyboard.press = AsyncMock()
-        mock_page.wait_for_load_state = AsyncMock()
-        mock_page.wait_for_timeout = AsyncMock()
-
         mock_backend = AsyncMock()
-        mock_backend._page = mock_page
         mock_backend.press_key = AsyncMock()
         mock_backend.get_snapshot = AsyncMock(return_value="- dialog: Inaktive Objekte")
 
