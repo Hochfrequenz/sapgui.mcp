@@ -226,7 +226,7 @@ async def _fill_se16n_max_hits(backend: SapUiBackend, max_hits: int) -> None:
         pass
 
 
-async def _fill_filter_with_playwright(
+async def _fill_filter_by_locator(
     backend: SapUiBackend, element_id: str | None, selector: str | None, value: str, field_name: str
 ) -> bool:
     """
@@ -265,7 +265,7 @@ async def _fill_filter_by_index(
     """
     Fill a single filter field using index-based approach.
 
-    Uses JS to find the element, then Playwright to fill it.
+    Uses JS to find the element, then fills it via protocol methods.
 
     Returns:
         Error message if failed, None if successful.
@@ -296,11 +296,11 @@ async def _fill_filter_by_index(
         },
     )
 
-    # Fill using Playwright
-    if await _fill_filter_with_playwright(backend, element_id, selector, value, field_name):
+    # Fill using locator-based approach
+    if await _fill_filter_by_locator(backend, element_id, selector, value, field_name):
         return None
 
-    return f"Found element for {field_name} but Playwright fill failed"
+    return f"Found element for {field_name} but fill by locator failed"
 
 
 async def _fill_se16n_filters(  # pylint: disable=too-many-locals
@@ -315,7 +315,7 @@ async def _fill_se16n_filters(  # pylint: disable=too-many-locals
 
     Uses a two-step approach:
     1. JavaScript finds the target element's ID/selector
-    2. Playwright's native click + type fills the value (triggers proper SAP events)
+    2. Protocol's fill_element_by_locator clicks + types the value (triggers proper SAP events)
 
     Args:
         backend: SapUiBackend instance
@@ -332,7 +332,7 @@ async def _fill_se16n_filters(  # pylint: disable=too-many-locals
 
     errors: list[str] = []
 
-    # load_js reads static JS file content (pure I/O, not a Playwright dependency)
+    # load_js reads static JS file content (pure I/O helper)
     from sapwebguimcp.backend.webgui.js_helpers import load_js  # pylint: disable=import-outside-toplevel
 
     find_js = load_js("find_se16_filter_input.js") if field_order else None
@@ -595,7 +595,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
 
     # Best-effort: click table name field to move focus out of filter grid
     # (focus in filter grid can interfere with F8). Selector checks title and
-    # aria-label attributes — an approximation of Playwright's get_by_role.
+    # aria-label attributes — an approximation of ARIA accessible name matching.
     try:
         await backend.evaluate_javascript("""() => {
             for (const name of ['Table', 'Tabelle']) {
