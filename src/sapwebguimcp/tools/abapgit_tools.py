@@ -26,15 +26,12 @@ from typing import TYPE_CHECKING, Any
 import httpx
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-from playwright.async_api import TimeoutError as PlaywrightTimeout
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
 from sapwebguimcp.models.config import get_settings
 
 if TYPE_CHECKING:
-    from playwright.async_api import Page
-
     from sapwebguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
@@ -164,46 +161,52 @@ def _enrich_transport_error(error_text: str) -> str:
     return error_text
 
 
-async def _check_for_error_popup(page: Page) -> str | None:
+async def _check_for_error_popup(backend: "SapUiBackend") -> str | None:
     """Check for SAP error popup dialog and extract message text."""
     try:
-        popup_selectors = [
-            ".urMessageBox",
-            ".urPopup",
-            "[id*='PopupWindow']",
-            "[id*='ModalWindow']",
-            ".lsPopup",
-            "[role='alertdialog']",
-            ".urMsgArea",
-            "#MESSAGE_POPUP",
-            "[id*='MESSAGE']",
+        js_code = """
+        () => {
+            const selectors = [
+                '.urMessageBox', '.urPopup', '[id*="PopupWindow"]',
+                '[id*="ModalWindow"]', '.lsPopup', '[role="alertdialog"]',
+                '.urMsgArea', '#MESSAGE_POPUP', '[id*="MESSAGE"]'
+            ];
+            for (const sel of selectors) {
+                const el = document.querySelector(sel);
+                if (!el) continue;
+                const style = window.getComputedStyle(el);
+                if (style.display === 'none' || style.visibility === 'hidden') continue;
+                const text = (el.innerText || '').trim();
+                if (!text) continue;
+                return text;
+            }
+            return null;
+        }
+        """
+        text = await backend.evaluate_javascript(js_code)
+        if not text:
+            return None
+        text_lower = text.lower()
+        if not any(keyword in text_lower for keyword in ERROR_KEYWORDS):
+            return None
+        lines = text.split("\n")
+        message_lines = [
+            line.strip()
+            for line in lines
+            if line.strip() and line.strip().lower() not in ("ok", "cancel", "abbrechen", "ja", "nein", "yes", "no")
         ]
-
-        for selector in popup_selectors:
-            popup = await page.query_selector(selector)
-            if popup and await popup.is_visible():
-                text = (await popup.inner_text()).strip()
-                text_lower = text.lower()
-                if any(keyword in text_lower for keyword in ERROR_KEYWORDS):
-                    lines = text.split("\n")
-                    message_lines = [
-                        line.strip()
-                        for line in lines
-                        if line.strip()
-                        and line.strip().lower() not in ("ok", "cancel", "abbrechen", "ja", "nein", "yes", "no")
-                    ]
-                    if message_lines:
-                        logger.info("Found error popup", extra={"popup_message": message_lines[0]})
-                        return " ".join(message_lines)
+        if message_lines:
+            logger.info("Found error popup", extra={"popup_message": message_lines[0]})
+            return " ".join(message_lines)
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.debug("Checking for popup", extra={"error": str(e)})
     return None
 
 
-async def _check_screen_for_errors(page: Page) -> str | None:
+async def _check_screen_for_errors(backend: "SapUiBackend") -> str | None:
     """Check the entire screen for error indicators as a fallback."""
     try:
-        body_text = await page.inner_text("body")
+        body_text = await backend.evaluate_javascript("() => document.body.innerText || ''")
         body_lower = body_text.lower()
 
         for pattern, message_prefix in ERROR_PATTERNS:
@@ -321,7 +324,6 @@ async def _enter_tcode_via_okcode(
 
 async def _analyze_pull_result(backend: "SapUiBackend", repo: str) -> AbapGitActionResult:
     """Analyze status bar and screen to determine pull result."""
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
     status = await backend.get_status_bar()
     msg = status.message or ""
     msg_type = status.type or ""
@@ -339,7 +341,7 @@ async def _analyze_pull_result(backend: "SapUiBackend", repo: str) -> AbapGitAct
         return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=_enrich_transport_error(msg))
 
     # Retry status bar read
-    await page.wait_for_timeout(2000)
+    await backend.wait(2000)
     status = await backend.get_status_bar()
     final_msg = status.message or msg
     final_type = status.type or msg_type
@@ -349,7 +351,7 @@ async def _analyze_pull_result(backend: "SapUiBackend", repo: str) -> AbapGitAct
     # Check final status
     is_final_success = "pull successful" in final_lower
     is_final_error = final_type in ("E", "A")
-    screen_error = None if final_msg and final_type != "none" else await _check_screen_for_errors(page)
+    screen_error = None if final_msg and final_type != "none" else await _check_screen_for_errors(backend)
 
     if is_final_success:
         return AbapGitActionResult.success_result(action="pull", repo_name=repo, message=final_msg)
@@ -378,11 +380,10 @@ async def _analyze_pull_result(backend: "SapUiBackend", repo: str) -> AbapGitAct
 
 async def _handle_popup_error(backend: "SapUiBackend", repo: str) -> AbapGitActionResult | None:
     """Check for error popup and return failure if found, None otherwise."""
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    popup_error = await _check_for_error_popup(page)
+    popup_error = await _check_for_error_popup(backend)
     if popup_error:
         await backend.press_key("Enter")
-        await page.wait_for_timeout(500)
+        await backend.wait(500)
         return AbapGitActionResult.failure_result(
             action="pull", repo_name=repo, error=_enrich_transport_error(popup_error)
         )
@@ -415,19 +416,18 @@ async def _execute_pull_transaction(
 
 async def _run_pull_and_check_errors(backend: "SapUiBackend", repo: str) -> AbapGitActionResult | None:
     """Execute F8 and wait for SAP to finish processing. Returns error if found."""
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
     await backend.press_key("F8")
 
     # Fast-fail: check for immediate error popups (bad transport, auth error)
-    await page.wait_for_timeout(2000)
+    await backend.wait(2000)
     popup_result = await _handle_popup_error(backend, repo)
     if popup_result:
         return popup_result
 
     # Wait for deserialization to finish (networkidle = 500ms with no requests).
     try:
-        await page.wait_for_load_state("networkidle", timeout=120_000)
-    except PlaywrightTimeout:
+        await backend.wait_for_ready(timeout_ms=120_000)
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.warning("networkidle timeout after F8 -- pull may still be running")
 
     # SAP may show an "Inaktive Objekte" / "Inactive Objects" popup after pull.
@@ -436,10 +436,10 @@ async def _run_pull_and_check_errors(backend: "SapUiBackend", repo: str) -> Abap
     if "Inaktive Objekte" in str(snapshot) or "Inactive Objects" in str(snapshot):
         logger.info("Detected inactive objects popup, confirming with Enter")
         await backend.press_key("Enter")
-        await page.wait_for_timeout(2000)
+        await backend.wait(2000)
         try:
-            await page.wait_for_load_state("networkidle", timeout=30_000)
-        except PlaywrightTimeout:
+            await backend.wait_for_ready(timeout_ms=30_000)
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
 
     return await _handle_popup_error(backend, repo)
@@ -488,7 +488,6 @@ def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
 async def _abapgit_list_repos(backend: "SapUiBackend") -> AbapGitListResult:
     """List all registered abapGit repositories via Z_ABAPGIT_PULL P_ACTION=LIST."""
     logger.info("Listing abapGit repositories")
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
     try:
         tcode_with_params = "/nZ_ABAPGIT_PULL P_ACTION=LIST;"
@@ -511,10 +510,10 @@ async def _abapgit_list_repos(backend: "SapUiBackend") -> AbapGitListResult:
 
         # Execute report with F8
         await backend.press_key("F8")
-        await page.wait_for_timeout(3000)
+        await backend.wait(3000)
 
         # Read the WRITE output from the screen via JavaScript
-        raw_output = await page.evaluate("""
+        raw_output = await backend.evaluate_javascript("""
             () => {
                 const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
                 return body.innerText || body.textContent || '';
@@ -577,7 +576,6 @@ async def _abapgit_pull_via_api(
 
 async def _fill_se38_program_field(backend: "SapUiBackend", program_name: str) -> bool:
     """Fill the program name field in SE38 using various strategies."""
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
     input_selectors = [
         "input[name*='PROGRAM']",
         "input[id*='PROGRAM']",
@@ -587,9 +585,8 @@ async def _fill_se38_program_field(backend: "SapUiBackend", program_name: str) -
 
     for selector in input_selectors:
         try:
-            locator = page.locator(selector).first
-            if await locator.is_visible(timeout=500):
-                await locator.fill(program_name)
+            filled = await backend.fill_element_by_locator(selector, program_name, delay_ms=30)
+            if filled:
                 logger.info("Filled program name", extra={"selector": selector})
                 return True
         except Exception:  # pylint: disable=broad-exception-caught
@@ -641,90 +638,131 @@ def _is_actual_abap_source(text: str) -> bool:
     return sum([has_report, has_data, has_write, has_if]) >= 1
 
 
-async def _read_source_from_iframes(page: Page) -> str | None:
-    """Try to read ABAP source code from iframes."""
-    try:
-        iframes = await page.query_selector_all("iframe")
-        for iframe in iframes:
-            frame = await iframe.content_frame()
-            if not frame:
-                continue
-            for selector in ["textarea", ".ace_editor", ".editor-content", "pre", ".urPTxt"]:
-                elements = await frame.query_selector_all(selector)
-                for el in elements:
-                    text = await el.inner_text()
-                    if _is_actual_abap_source(text):
-                        return text
-            body = await frame.query_selector("body")
-            if body:
-                text = await body.inner_text()
-                if _is_actual_abap_source(text):
-                    return text
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
-    return None
+async def _navigate_to_se38(backend: "SapUiBackend") -> str | None:
+    """Navigate to SE38 and return error message if failed, None if OK."""
+    await backend.bring_to_front()
+    await backend.press_key("Escape")
+    await backend.wait(500)
+    await backend.press_key("F3")
+    await backend.wait(3000)
+
+    # Check if OK-Code field is visible; if not, press F3 again
+    ok_code_visible = await backend.evaluate_javascript("""
+        () => {
+            const el = document.querySelector('#ToolbarOkCode');
+            if (!el) return false;
+            const style = window.getComputedStyle(el);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+        }
+    """)
+    if not ok_code_visible:
+        await backend.press_key("F3")
+        await backend.wait(3000)
+
+    tx_result = await backend.enter_transaction("SE38")
+    return None if tx_result.success else f"Failed to open SE38: {tx_result.error}"
 
 
-async def _read_source_from_main_document(page: Page) -> str | None:
-    """Try to read ABAP source code from main document elements."""
-    editor_selectors = [
-        "textarea",
-        ".ace_editor",
-        ".ace_content",
-        ".urPTxt",
-        "pre",
-        "code",
-        ".editor-content",
-        "[id*='editor']",
-        "[class*='editor']",
-        "[class*='source']",
-        "[class*='code']",
-        ".lsListbox__list",
-        "table.urST",
-        "#sapwd_main_window_root_contents table",
-    ]
-    try:
-        for selector in editor_selectors:
-            elements = await page.query_selector_all(selector)
-            for el in elements:
-                text = await el.inner_text()
-                if _is_actual_abap_source(text):
-                    logger.debug("Found source in selector", extra={"selector": selector})
-                    return text
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
-
-    # Try table cells
-    try:
-        cells = await page.query_selector_all("td")
-        code_lines = []
-        for cell in cells:
-            text = (await cell.inner_text()).strip()
-            if text and len(text) > 5:
-                upper = text.upper()
-                is_code_line = (
-                    ("WRITE '" in upper or 'WRITE "' in upper)
-                    or ("REPORT " in upper and "." in text)
-                    or "ENDLOOP" in upper
-                    or "ENDIF" in upper
-                    or "ENDFORM" in upper
-                    or "ENDMETHOD" in upper
-                )
-                if is_code_line:
-                    code_lines.append(text)
-        if code_lines:
-            logger.debug("Found code lines in table cells", extra={"count": len(code_lines)})
-            return "\n".join(code_lines)
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
-
-    return None
-
-
-async def _read_source_via_javascript(page: Page) -> str | None:
-    """Use JavaScript to find ABAP source code in the page."""
+async def _find_source_code(backend: "SapUiBackend") -> str | None:
+    """Try various methods to find ABAP source code on the page via JavaScript."""
+    # Single comprehensive JS that searches SE38 selectors, editor elements,
+    # iframes, table cells, and text nodes — mirrors the old multi-function approach.
     js_code = """
     () => {
+        const ABAP_PATTERNS = [
+            "WRITE '", 'WRITE "', 'WRITE:', 'DATA:', 'TYPES:',
+            'ENDMETHOD', 'ENDCLASS', 'ENDLOOP', 'ENDIF', 'ENDFORM',
+            'FORM ', 'METHOD ', 'CLASS '
+        ];
+        const CODE_PATTERNS = ['REPORT ', 'WRITE ', 'DATA ', 'IF ', 'LOOP ', 'ENDLOOP'];
+        function isAbapSource(text) {
+            if (!text || text.length < 20) return false;
+            const upper = text.toUpperCase();
+            return ABAP_PATTERNS.some(p => upper.includes(p)) ||
+                   /REPORT\\s+(\\/[A-Z0-9_]+\\/)?[A-Z][A-Z0-9_]*\\s*\\./.test(upper);
+        }
+
+        function getTextFromEl(el) {
+            try {
+                return (el.innerText || el.textContent || el.value || '').trim();
+            } catch(e) { return ''; }
+        }
+
+        // 1. Direct SE38 selectors
+        const se38Sels = [
+            '#textedit\\\\#TEC_cnt42',
+            "[id^='textedit'][id*='TEC_cnt']",
+            "textarea[id*='textedit']",
+            "[id*='TEC_cnt']"
+        ];
+        for (const sel of se38Sels) {
+            try {
+                const el = document.querySelector(sel);
+                if (!el) continue;
+                let text = getTextFromEl(el);
+                if (!text || text.length < 20) {
+                    text = el.value || el.textContent || el.innerText || '';
+                }
+                if (text && text.length > 20 && isAbapSource(text)) return text;
+            } catch(e) {}
+        }
+
+        // 2. Editor selectors in main document
+        const editorSels = [
+            'textarea', '.ace_editor', '.ace_content', '.urPTxt', 'pre', 'code',
+            '.editor-content', "[id*='editor']", "[class*='editor']",
+            "[class*='source']", "[class*='code']", '.lsListbox__list',
+            'table.urST', '#sapwd_main_window_root_contents table'
+        ];
+        for (const sel of editorSels) {
+            try {
+                const els = document.querySelectorAll(sel);
+                for (const el of els) {
+                    const text = getTextFromEl(el);
+                    if (isAbapSource(text)) return text;
+                }
+            } catch(e) {}
+        }
+
+        // 3. Table cells for code lines
+        try {
+            const cells = document.querySelectorAll('td');
+            const codeLines = [];
+            for (const cell of cells) {
+                const text = (cell.innerText || '').trim();
+                if (text && text.length > 5) {
+                    const upper = text.toUpperCase();
+                    if (upper.includes("WRITE '") || upper.includes('WRITE "') ||
+                        (upper.includes('REPORT ') && text.includes('.')) ||
+                        upper.includes('ENDLOOP') || upper.includes('ENDIF') ||
+                        upper.includes('ENDFORM') || upper.includes('ENDMETHOD')) {
+                        codeLines.push(text);
+                    }
+                }
+            }
+            if (codeLines.length > 0) return codeLines.join('\\n');
+        } catch(e) {}
+
+        // 4. Iframes
+        const iframes = document.querySelectorAll('iframe');
+        for (const iframe of iframes) {
+            try {
+                const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                if (!doc || !doc.body) continue;
+                const frameSels = ['textarea', '.ace_editor', '.editor-content', 'pre', '.urPTxt'];
+                for (const sel of frameSels) {
+                    const els = doc.querySelectorAll(sel);
+                    for (const el of els) {
+                        const text = getTextFromEl(el);
+                        if (isAbapSource(text)) return text;
+                    }
+                }
+                const bodyText = (doc.body.innerText || '').trim();
+                if (isAbapSource(bodyText)) return bodyText;
+            } catch(e) {}
+        }
+
+        // 5. Text node walk (fallback)
         function getTextNodes(element) {
             let texts = [];
             const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
@@ -735,134 +773,72 @@ async def _read_source_via_javascript(page: Page) -> str | None:
             }
             return texts;
         }
-        const codePatterns = ['REPORT ', 'WRITE ', 'DATA ', 'IF ', 'LOOP ', 'ENDLOOP'];
         let allTexts = getTextNodes(document.body);
-        const iframes = document.querySelectorAll('iframe');
         for (const iframe of iframes) {
             try {
                 const doc = iframe.contentDocument || iframe.contentWindow?.document;
                 if (doc && doc.body) allTexts = allTexts.concat(getTextNodes(doc.body));
-            } catch (e) {}
+            } catch(e) {}
         }
         const codeTexts = allTexts.filter(text => {
             const upper = text.toUpperCase();
-            return codePatterns.some(pattern => upper.includes(pattern));
+            return CODE_PATTERNS.some(p => upper.includes(p));
         });
-        return codeTexts.length > 0 ? codeTexts.sort((a, b) => b.length - a.length)[0] : null;
+        if (codeTexts.length > 0) return codeTexts.sort((a, b) => b.length - a.length)[0];
+
+        return null;
     }
     """
     try:
-        result: str | None = await page.evaluate(js_code)
-        if result:
-            logger.info("Found source via JavaScript search", extra={"chars": len(result)})
-            return result
+        logger.info("Searching for ABAP source code via JavaScript")
+        result = await backend.evaluate_javascript(js_code)
+        if result and _is_actual_abap_source(result):
+            source: str = result
+            logger.info("Found ABAP source code", extra={"chars": len(source)})
+            return source
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.debug("JavaScript source search failed", extra={"error": str(e)})
     return None
 
 
-async def _try_direct_se38_selectors(page: Page) -> str | None:
-    """Try direct SE38 source selectors."""
-    se38_selectors = [
-        r"#textedit\#TEC_cnt42",
-        "[id^='textedit'][id*='TEC_cnt']",
-        "textarea[id*='textedit']",
-        "[id*='TEC_cnt']",
-    ]
-    try:
-        for selector in se38_selectors:
-            el = await page.query_selector(selector)
-            if el:
-                text = await el.inner_text()
-                if not text or len(text) < 20:
-                    tag = await el.evaluate("el => el.tagName")
-                    text = await el.input_value() if tag in ["TEXTAREA", "INPUT"] else ""
-                if not text or len(text) < 20:
-                    text = await el.evaluate("el => el.value || el.textContent || el.innerText")
-                if text and len(text) > 20:
-                    logger.info("Found source via SE38 selector", extra={"selector": selector, "chars": len(text)})
-                    return text
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.debug("SE38 direct selector failed", extra={"error": str(e)})
-    return None
-
-
-async def _navigate_to_se38(backend: "SapUiBackend") -> str | None:
-    """Navigate to SE38 and return error message if failed, None if OK."""
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    await backend.bring_to_front()
-    await backend.press_key("Escape")
-    await page.wait_for_timeout(500)
-    await backend.press_key("F3")
-    await page.wait_for_timeout(3000)
-
-    try:
-        await page.wait_for_selector("#ToolbarOkCode", state="visible", timeout=5000)
-    except Exception:  # pylint: disable=broad-exception-caught
-        await backend.press_key("F3")
-        await page.wait_for_timeout(3000)
-
-    tx_result = await backend.enter_transaction("SE38")
-    return None if tx_result.success else f"Failed to open SE38: {tx_result.error}"
-
-
-async def _find_source_code(page: Page) -> str | None:
-    """Try various methods to find source code on the page."""
-    logger.info("Trying direct SE38 source selector")
-    source_code = await _try_direct_se38_selectors(page)
-
-    if not source_code:
-        logger.info("Looking for source code in iframes")
-        source_code = await _read_source_from_iframes(page)
-    if not source_code:
-        logger.info("No source in iframes, trying main document")
-        source_code = await _read_source_from_main_document(page)
-    if not source_code:
-        logger.info("No source in main document, trying JavaScript search")
-        source_code = await _read_source_via_javascript(page)
-
-    return source_code if source_code and _is_actual_abap_source(source_code) else None
-
-
 async def read_se38_source(backend: "SapUiBackend", program_name: str) -> dict[str, Any]:
     """Read ABAP report source code from SE38."""
-    page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
-
     try:
         nav_error = await _navigate_to_se38(backend)
         if nav_error:
             return {"success": False, "error": nav_error}
 
-        await page.wait_for_timeout(2000)
+        await backend.wait(2000)
         if not await _fill_se38_program_field(backend, program_name):
             return {"success": False, "error": "Could not find program input field"}
 
         # Press F7 (Display) and handle entry screen
         logger.info("Pressing F7 to display source code")
         await backend.press_key("F7")
-        await page.wait_for_timeout(3000)
+        await backend.wait(3000)
 
-        page_title = await page.title()
+        page_title = await backend.get_page_title()
         logger.info("Page title after F7", extra={"title": page_title})
         if "Einstieg" in page_title or "Entry" in page_title:
             await backend.press_key("Enter")
-            await page.wait_for_timeout(2000)
-            if "Einstieg" in (await page.title()) or "Entry" in (await page.title()):
+            await backend.wait(2000)
+            title_after_enter = await backend.get_page_title()
+            if "Einstieg" in title_after_enter or "Entry" in title_after_enter:
                 await backend.press_key("F8")
-                await page.wait_for_timeout(3000)
+                await backend.wait(3000)
 
-        await page.wait_for_timeout(1000)
-        source_code = await _find_source_code(page)
+        await backend.wait(1000)
+        source_code = await _find_source_code(backend)
 
         if source_code:
             logger.info("Found valid ABAP source code", extra={"chars": len(source_code)})
             return {"success": True, "source_code": source_code, "program_name": program_name}
 
         logger.warning("No ABAP source code found, returning body text")
-        body_text = await page.inner_text("body")
+        body_text = await backend.evaluate_javascript("() => document.body.innerText || ''")
         return {
             "success": True,
-            "source_code": body_text[:3000],
+            "source_code": (body_text or "")[:3000],
             "program_name": program_name,
             "debug_note": "No ABAP source patterns detected, returning raw body text",
         }
