@@ -15,6 +15,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.backend.webgui.parsers.sm30_parser import parse_sm30_snapshot
 from sapwebguimcp.lang import (
     SM30_DISPLAY_BUTTON_DE,
     SM30_DISPLAY_BUTTON_EN,
@@ -22,7 +23,6 @@ from sapwebguimcp.lang import (
     SM30_TABLE_VIEW_EN,
 )
 from sapwebguimcp.models.sm30_models import SM30FileSummary, SM30ViewResult
-from sapwebguimcp.parsers.sm30_parser import parse_sm30_snapshot
 
 if TYPE_CHECKING:
     from sapwebguimcp.backend.protocol import SapUiBackend

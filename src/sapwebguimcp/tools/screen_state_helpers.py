@@ -13,12 +13,12 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from sapwebguimcp.backend.webgui.parsers.screen_state_parser import parse_selection_screen_state
 from sapwebguimcp.models.screen_state import (
     ScreenStateDiff,
     SelectionScreenState,
     StateChange,
 )
-from sapwebguimcp.parsers.screen_state_parser import parse_selection_screen_state
 
 if TYPE_CHECKING:
     from sapwebguimcp.backend.protocol import SapUiBackend

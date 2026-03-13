@@ -6,8 +6,8 @@ from importlib import resources
 
 @lru_cache(maxsize=16)
 def load_js(filename: str) -> str:
-    """Load a JavaScript file from the sapwebguimcp.js package."""
-    return resources.files("sapwebguimcp.js").joinpath(filename).read_text(encoding="utf-8")
+    """Load a JavaScript file from the sapwebguimcp.backend.webgui.js package."""
+    return resources.files("sapwebguimcp.backend.webgui.js").joinpath(filename).read_text(encoding="utf-8")
 
 
 @lru_cache(maxsize=8)

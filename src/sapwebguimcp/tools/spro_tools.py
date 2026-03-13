@@ -17,6 +17,7 @@ from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.webgui.parsers.spro_parser import parse_spro_search_results
 from sapwebguimcp.lang import (
     SPRO_IMG_HEADING_DE,
     SPRO_IMG_HEADING_EN,
@@ -28,7 +29,6 @@ from sapwebguimcp.lang import (
     SPRO_SEARCH_BUTTON_EN,
 )
 from sapwebguimcp.models.spro_models import SPROFileSummary, SPROSearchResult
-from sapwebguimcp.parsers.spro_parser import parse_spro_search_results
 
 if TYPE_CHECKING:
     from sapwebguimcp.backend.protocol import SapUiBackend

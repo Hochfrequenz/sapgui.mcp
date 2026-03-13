@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
+from sapwebguimcp.backend.webgui.parsers.screen_state_parser import parse_selection_screen_state
 from sapwebguimcp.models.screen_state import (
     ScreenStateDiff,
     SelectionScreenState,
     StateChange,
 )
-from sapwebguimcp.parsers.screen_state_parser import parse_selection_screen_state
 
 TESTDATA_DIR = Path(__file__).parent / "testdata"
 

@@ -79,7 +79,9 @@ def test_extract_sap_user_js_exists():
     """The JS file should be loadable and contain expected selectors."""
     from importlib import resources
 
-    content = resources.files("sapwebguimcp.js").joinpath("extract_sap_user.js").read_text(encoding="utf-8")
+    content = (
+        resources.files("sapwebguimcp.backend.webgui.js").joinpath("extract_sap_user.js").read_text(encoding="utf-8")
+    )
     assert "sysInfoAreaMenuItemSAPITS_MBAR_USER" in content
     assert "lsdata" in content
     assert "aria-label" in content

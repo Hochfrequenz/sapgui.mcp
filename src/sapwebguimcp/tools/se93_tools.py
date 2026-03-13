@@ -15,13 +15,13 @@ from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
+from sapwebguimcp.backend.webgui.parsers.se93_parser import parse_se93_snapshot
 from sapwebguimcp.models import (
     SE93Entry,
     SE93Error,
     SE93FileSummary,
     SE93Result,
 )
-from sapwebguimcp.parsers.se93_parser import parse_se93_snapshot
 from sapwebguimcp.tools.field_helpers import fill_and_display
 
 logger = logging.getLogger(__name__)

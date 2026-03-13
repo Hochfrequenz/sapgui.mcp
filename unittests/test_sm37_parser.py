@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.parsers.sm37_parser import (
+from sapwebguimcp.backend.webgui.parsers.sm37_parser import (
     is_job_list_screen,
     is_no_jobs_found,
     parse_sm37_job_list,

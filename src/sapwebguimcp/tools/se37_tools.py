@@ -16,13 +16,13 @@ from mcp.types import ToolAnnotations
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.webgui.parsers.se37_parser import SE37TabSnapshots, parse_se37_snapshot
 from sapwebguimcp.models import (
     SE37Entry,
     SE37Error,
     SE37FileSummary,
     SE37Result,
 )
-from sapwebguimcp.parsers.se37_parser import SE37TabSnapshots, parse_se37_snapshot
 from sapwebguimcp.tools.field_helpers import fill_and_display
 
 logger = logging.getLogger(__name__)
