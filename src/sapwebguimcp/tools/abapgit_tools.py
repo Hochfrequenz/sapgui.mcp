@@ -170,9 +170,6 @@ async def _check_for_error_popup(backend: "SapUiBackend") -> str | None:
                 '[id*="ModalWindow"]', '.lsPopup', '[role="alertdialog"]',
                 '.urMsgArea', '#MESSAGE_POPUP', '[id*="MESSAGE"]'
             ];
-            const buttonLabels = new Set([
-                'ok', 'cancel', 'abbrechen', 'ja', 'nein', 'yes', 'no'
-            ]);
             for (const sel of selectors) {
                 const el = document.querySelector(sel);
                 if (!el) continue;
@@ -677,11 +674,6 @@ async def _find_source_code(backend: "SapUiBackend") -> str | None:
             'FORM ', 'METHOD ', 'CLASS '
         ];
         const CODE_PATTERNS = ['REPORT ', 'WRITE ', 'DATA ', 'IF ', 'LOOP ', 'ENDLOOP'];
-        const BUTTON_LABELS = new Set([
-            'ok', 'cancel', 'abbrechen', 'ja', 'nein', 'yes', 'no',
-            'anzeigen', 'display', 'source code', 'quelltext'
-        ]);
-
         function isAbapSource(text) {
             if (!text || text.length < 20) return false;
             const upper = text.toUpperCase();
