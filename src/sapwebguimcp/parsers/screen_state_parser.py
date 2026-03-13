@@ -76,6 +76,10 @@ def _parse_line(line: str, acc: _ParseAccumulator) -> None:
     tb_match = _TEXTBOX_RE.search(line)
     if tb_match:
         label, value = tb_match.group(1), tb_match.group(2).strip()
+        # Strip YAML-artifact quotes: Playwright's ARIA snapshot serializer
+        # quotes values containing YAML special characters (e.g. * → "*").
+        if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
+            value = value[1:-1]
         if "[disabled]" not in line and "[readonly]" not in line:
             acc.fields[label] = value
             acc.field_labels.append(label)

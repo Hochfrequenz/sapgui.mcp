@@ -25,7 +25,7 @@
    This is architecturally awkward since `list_sessions()` is a cross-session operation
    called on a single backend instance. Accepted as a pragmatic compromise — the spec
    defers protocol reorganisation. Add a `# TODO: move to a session manager protocol
-   when adding second backend` comment in the code.
+when adding second backend` comment in the code.
 
 3. **Keepalive moves from module-level globals to per-instance state on WebGuiBackend.**
    This is a semantic improvement: each session gets its own keepalive instead of one
@@ -46,6 +46,7 @@
 The most common violation across all files is `page.wait_for_timeout(ms)`. Adding a single `wait()` method eliminates ~15 violations.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/backend/protocol.py` (SapNavigation)
 - Modify: `src/sapwebguimcp/backend/webgui/backend.py` (WebGuiBackend)
 - Test: `unittests/test_protocol_methods.py` (create)
@@ -88,6 +89,7 @@ git commit -m "feat(protocol): add wait() method to SapNavigation"
 Used by `session_tools.py`, `sap_tools.py`, and `se16_tools.py` to get the browser tab title.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/backend/protocol.py` (SapUiInspection)
 - Modify: `src/sapwebguimcp/backend/webgui/backend.py`
 
@@ -126,6 +128,7 @@ git commit -m "feat(protocol): add get_page_title() to SapUiInspection"
 Needed by `session_tools.py` for session close logic.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/backend/protocol.py` (SapNavigation)
 - Modify: `src/sapwebguimcp/backend/webgui/backend.py`
 
@@ -172,6 +175,7 @@ git commit -m "feat(protocol): add is_page_closed() and close_page() to SapNavig
 Replace `cached._page is page` identity check with a session token comparison.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/backend/protocol.py` (SapUiBackend — add property)
 - Modify: `src/sapwebguimcp/backend/webgui/backend.py` (assign token in `__init__`)
 - Modify: `src/sapwebguimcp/backend/manager.py` (use token instead of `_page`)
@@ -270,6 +274,7 @@ Only 1 violation: `backend._page` at line 106 to locate a dialog textbox.
 The dialog textbox click can be replaced by `evaluate_javascript` (already in protocol) to click the first textbox inside the dialog.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/spro_tools.py:93-122`
 
 - [ ] **Step 1: Replace `_page` access with protocol methods**
@@ -331,6 +336,7 @@ git commit -m "refactor(spro): remove backend._page access, use evaluate_javascr
 `session_tools.py` bypasses the protocol entirely via `get_browser_manager()` + `registry`. We need protocol methods for session listing, closing, binding, and releasing.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/backend/protocol.py` (add new sub-protocol or extend SapNavigation)
 - Modify: `src/sapwebguimcp/backend/webgui/backend.py`
 
@@ -447,11 +453,13 @@ git commit -m "feat(protocol): add session management methods to SapNavigation"
 Replace all `get_browser_manager()` + `registry` access with backend protocol calls.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/session_tools.py`
 
 - [ ] **Step 1: Rewrite session_tools.py**
 
 Replace the entire file. Key changes:
+
 - Import `get_backend` instead of `get_browser_manager`
 - `sap_session_list_impl()`: call `backend.list_sessions()`, build `SessionInfo` list
 - `sap_session_close_impl(session_id)`: call `backend.close_session(session_id)`
@@ -502,6 +510,7 @@ The `sap_login` tool (lines 562-722) is ~160 lines of direct Playwright calls. T
 **Important:** `_find_okcode_field` and `_enable_okcode_field` are moved to the backend in THIS task. Task 10 reuses them (they're already on the backend by then) — do NOT re-move them.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/backend/webgui/backend.py` — ensure `login()` implementation handles all cases (already logged in, auto-login, "already logged in" dialog, session registration, identity capture)
 - Modify: `src/sapwebguimcp/tools/sap_tools.py` — replace `sap_login` body with `backend.login()` call
 
@@ -512,6 +521,7 @@ Read `src/sapwebguimcp/backend/webgui/backend.py` and find the existing `login()
 - [ ] **Step 2: Enhance `WebGuiBackend.login()` to match tool behavior**
 
 Move the login flow from `sap_tools.py` lines 598-718 into `WebGuiBackend.login()`. This includes:
+
 - `page.goto(url)` + `wait_for_load_state`
 - Check if already logged in (find OkCode field)
 - Fill login form (client, user, password, language)
@@ -549,6 +559,7 @@ Note: The `_start_keepalive()` call currently in the tool should also move into 
 - [ ] **Step 4: Move helper functions to backend**
 
 Move these from `sap_tools.py` to `src/sapwebguimcp/backend/webgui/backend.py` (as private methods or standalone helpers in the webgui package):
+
 - `_find_okcode_field(page)` → `WebGuiBackend._find_okcode_field()`
 - `_enable_okcode_field(page)` → `WebGuiBackend._enable_okcode_field()`
 - `_try_find_checkbox_by_label(page)` → same
@@ -584,6 +595,7 @@ git commit -m "refactor(login): move login flow from sap_tools into WebGuiBacken
 Keepalive (`_keepalive_loop`, `_start_keepalive`, `sap_keepalive_stop`) uses `get_browser_manager()` + `browser_manager.get_current_page()`. Move the keepalive loop into the backend.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/backend/protocol.py` — add `start_keepalive()` / `stop_keepalive()`
 - Modify: `src/sapwebguimcp/backend/webgui/backend.py` — implement keepalive
 - Modify: `src/sapwebguimcp/tools/sap_tools.py` — simplify tools to call protocol
@@ -629,6 +641,7 @@ git commit -m "refactor(keepalive): move keepalive loop from sap_tools into WebG
 The `new_window=True` path in `sap_transaction` (lines 832-917) uses `page.context`, `_register_new_window_session`, `_find_okcode_field`, `page.evaluate`, `page.keyboard`, etc. Add a protocol method for opening a new session.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/backend/protocol.py`
 - Modify: `src/sapwebguimcp/backend/webgui/backend.py`
 - Modify: `src/sapwebguimcp/tools/sap_tools.py`
@@ -649,6 +662,7 @@ async def open_new_session(self, tcode: str) -> tuple[str | None, int, str | Non
 - [ ] **Step 2: Implement on WebGuiBackend**
 
 Move the `new_window=True` logic from `sap_transaction` into `WebGuiBackend.open_new_session()`. This includes:
+
 - Find/enable OkCode field
 - Build `/o` prefixed tcode
 - Track page count, enter tcode, wait
@@ -657,6 +671,7 @@ Move the `new_window=True` logic from `sap_transaction` into `WebGuiBackend.open
 - [ ] **Step 3: Clean up remaining `sap_tools.py` violations**
 
 After login, keepalive, and new_window are moved:
+
 - `sap_keyboard` line 1045: `page.wait_for_timeout(300)` → `await backend.wait(300)`
 - `sap_transaction` line 796+819: replace `backend._page` with `backend.wait(200)`
 - `sap_get_shortcuts` line 1538: `page.evaluate(...)` → `backend.evaluate_javascript(...)`
@@ -696,6 +711,7 @@ git commit -m "refactor(sap_tools): eliminate all _page access, use protocol met
 8 `backend._page` accesses for complex grid interactions: typing into fields, evaluating JS for grid cells, waiting for grids, slow-typing with delay.
 
 Most violations can be replaced with:
+
 - `backend.evaluate_javascript()` — already in protocol (handles grid JS)
 - `backend.wait()` — added in Task 1
 - `backend.type_text()` — already in protocol
@@ -708,6 +724,7 @@ a) Use `evaluate_javascript` to set the value + dispatch events, or
 b) Add a `type_into_focused(text, delay_ms)` protocol method if needed.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/se16_tools.py`
 - Possibly modify: `src/sapwebguimcp/backend/protocol.py` (if new methods needed)
 - Possibly modify: `src/sapwebguimcp/backend/webgui/backend.py`
@@ -719,6 +736,7 @@ Read each `backend._page` usage in se16_tools.py. For each one, determine which 
 - [ ] **Step 2: Add any new protocol methods needed**
 
 Likely candidates:
+
 - `focus_and_type(selector: str, text: str, delay_ms: int = 0) -> None` for slow typing into specific elements (used in `_try_type_with_delay` and `_fill_filter_element`)
 
 - [ ] **Step 3: Replace all 8 `_page` accesses**
@@ -748,6 +766,7 @@ git commit -m "refactor(se16_tools): eliminate all _page access, use protocol me
 ### Task 12: Clean up `abapgit_tools.py`
 
 7 `_page` accesses + 2 Playwright imports. Violations cluster in:
+
 - Progress monitoring (`_pull_and_monitor_progress`, `_monitor_pull_progress`)
 - Source extraction (`_extract_source_from_se38`, `_find_git_source_code`)
 - Result parsing (`_parse_repo_pull`)
@@ -757,6 +776,7 @@ git commit -m "refactor(se16_tools): eliminate all _page access, use protocol me
 Strategy: Most source extraction helpers are redundant with `backend.read_editor_source()`. Progress monitoring and DOM scraping should move into the backend as abapGit-specific internal methods.
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/tools/abapgit_tools.py`
 - Modify: `src/sapwebguimcp/backend/webgui/backend.py` (add abapGit-specific internals)
 - Possibly modify: `src/sapwebguimcp/backend/protocol.py`
@@ -810,6 +830,7 @@ git commit -m "refactor(abapgit_tools): eliminate all _page access and Playwrigh
 ```bash
 grep -rn 'backend\._page' src/sapwebguimcp/tools/ | grep -v browser_tools.py
 ```
+
 Expected: No matches.
 
 - [ ] **Step 2: Check no Playwright imports in tools (except browser_tools)**
@@ -817,6 +838,7 @@ Expected: No matches.
 ```bash
 grep -rn 'from playwright' src/sapwebguimcp/tools/ | grep -v browser_tools.py
 ```
+
 Expected: No matches.
 
 - [ ] **Step 3: Check no direct registry/browser_manager access in tools (except browser_tools)**
@@ -824,6 +846,7 @@ Expected: No matches.
 ```bash
 grep -rn 'get_browser_manager\|\.registry\.' src/sapwebguimcp/tools/ | grep -v browser_tools.py
 ```
+
 Expected: No matches.
 
 - [ ] **Step 4: Check BackendManager is clean**
@@ -831,6 +854,7 @@ Expected: No matches.
 ```bash
 grep -rn '_page' src/sapwebguimcp/backend/manager.py
 ```
+
 Expected: No matches.
 
 - [ ] **Step 5: Check no type:ignore[attr-defined] in tools (except browser_tools)**
@@ -838,6 +862,7 @@ Expected: No matches.
 ```bash
 grep -rn 'type: ignore\[attr-defined\]' src/sapwebguimcp/tools/ | grep -v browser_tools.py
 ```
+
 Expected: No matches.
 
 - [ ] **Step 6: Run full tox**

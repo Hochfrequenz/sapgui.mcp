@@ -28,15 +28,15 @@ One tool = one PR (or one logical commit group).
 
 ## Cleanup Order
 
-| # | File | Violations | Difficulty | Notes |
-|---|------|------------|------------|-------|
-| 1 | `spro_tools.py` | 1 `_page` | Trivial | Dialog textbox locator |
-| 2 | `session_tools.py` | 6 `page.*` via registry bypass | Easy | Gets page from `registry.get_page()`, not backend |
-| 3 | `sap_tools.py` | 3 `_page` + ~48 `page.*` + `get_browser_manager()` | Medium-Hard | Login, keepalive, new_window, OkCode |
-| 4 | `se16_tools.py` | 8 `_page` + complex grid JS | Hard | Grid interaction, slow typing |
-| 5 | `abapgit_tools.py` | 7 `_page` + 2 Playwright imports + iframe traversal | Hard | DOM scraping, progress monitoring |
-| 6 | `browser_tools.py` | 10 `_page` | N/A | **WebGUI-only escape hatch** |
-| 7 | `BackendManager` | 1 (`cached._page is page`) | Trivial | Cache identity check |
+| #   | File               | Violations                                          | Difficulty  | Notes                                             |
+| --- | ------------------ | --------------------------------------------------- | ----------- | ------------------------------------------------- |
+| 1   | `spro_tools.py`    | 1 `_page`                                           | Trivial     | Dialog textbox locator                            |
+| 2   | `session_tools.py` | 6 `page.*` via registry bypass                      | Easy        | Gets page from `registry.get_page()`, not backend |
+| 3   | `sap_tools.py`     | 3 `_page` + ~48 `page.*` + `get_browser_manager()`  | Medium-Hard | Login, keepalive, new_window, OkCode              |
+| 4   | `se16_tools.py`    | 8 `_page` + complex grid JS                         | Hard        | Grid interaction, slow typing                     |
+| 5   | `abapgit_tools.py` | 7 `_page` + 2 Playwright imports + iframe traversal | Hard        | DOM scraping, progress monitoring                 |
+| 6   | `browser_tools.py` | 10 `_page`                                          | N/A         | **WebGUI-only escape hatch**                      |
+| 7   | `BackendManager`   | 1 (`cached._page is page`)                          | Trivial     | Cache identity check                              |
 
 ## Decisions
 
@@ -57,14 +57,17 @@ Reorganisation happens when the second backend forces clarity.
 The exact set will be determined per-tool during implementation. Expected additions:
 
 **Timing / waiting:**
+
 - `wait(timeout_ms: int) -> None` — replaces ~15 `page.wait_for_timeout()` calls
 
 **Page metadata:**
+
 - `get_page_title() -> str` — replaces `page.title()`
 - `is_page_closed() -> bool` — for session close logic
 - `close_page() -> None` — for session teardown
 
 **DOM queries (for tools that need raw selectors):**
+
 - `query_selector(selector: str) -> bool` — returns whether element exists
 - `query_selector_text(selector: str) -> str | None` — get element text
 - `click_selector(selector: str) -> None` — click by CSS selector
@@ -72,9 +75,11 @@ The exact set will be determined per-tool during implementation. Expected additi
 - `type_into_selector(selector: str, text: str, delay_ms: int = 0) -> None` — slow type for SE16 grids
 
 **Navigation:**
+
 - `goto(url: str) -> None` — for `browser_navigate` (WebGUI-only, but useful)
 
 **Session management:**
+
 - Protocol-level session list/close instead of direct registry access
 
 These will be refined during implementation — we add only what each tool actually

@@ -160,6 +160,23 @@ class TestParseSelectionScreenState:
         assert "Date" in state.ambiguous_labels
         assert "Date" not in state.fields  # excluded — value would be unreliable
 
+    def test_yaml_quoted_wildcard_value_stripped(self) -> None:
+        """YAML-quoted values like "*" should be unquoted to * (fixes #349).
+
+        Playwright's ARIA snapshot serializer quotes values containing YAML
+        special characters.  The parser must strip these artifact quotes so
+        that ensure_screen_state verification compares bare values.
+        """
+        fake_snapshot = '- textbox "Benutzer": "*"\n'
+        state = parse_selection_screen_state(fake_snapshot)
+        assert state.fields["Benutzer"] == "*"
+
+    def test_unquoted_value_unchanged(self) -> None:
+        """Regular unquoted values should pass through unchanged."""
+        fake_snapshot = '- textbox "Benutzer": KLEINK\n'
+        state = parse_selection_screen_state(fake_snapshot)
+        assert state.fields["Benutzer"] == "KLEINK"
+
     def test_ambiguous_radio_labels_excluded(self) -> None:
         """Ambiguous radio labels should be flagged and excluded from dict."""
         fake_snapshot = '- radio "Option" [checked]\n' '- radio "Option"\n'
