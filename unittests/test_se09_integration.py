@@ -7,10 +7,11 @@ These tests run against a real SAP system to verify the sap_se09_lookup tool.
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import LoginResult
+from sapwebguimcp.models import LoginResult, ShortcutsResult
 from sapwebguimcp.models.se09_models import TransportListResult
 
 from .conftest import call_tool_typed
+from .integration_helpers import capture_html_snapshot
 
 
 @pytest.mark.anyio
@@ -513,3 +514,51 @@ async def test_se09_user_filter(sap_mcp_client: ClientSession) -> None:
     assert result_all.request_count >= result_kleink.request_count, (
         f"wildcard ({result_all.request_count}) should have >= " f"KLEINK ({result_kleink.request_count}) results"
     )
+
+
+# --- Merged from test_sap_integration.py ---
+
+
+@pytest.mark.anyio
+async def test_se09_wildcard_username(sap_mcp_client: ClientSession) -> None:
+    """SE09 with username='*' must not fail due to YAML-quoted wildcard.
+
+    Playwright's ARIA snapshot serializer quotes the '*' character because it
+    is special in YAML.  The screen state parser must strip these artifact
+    quotes so that the ensure_screen_state verification pass succeeds.
+
+    Fixes #349.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se09_lookup",
+        {"username": "*", "request_type": "customizing", "status": "modifiable"},
+        TransportListResult,
+    )
+
+    assert result.success, f"SE09 wildcard username failed: {result.error}"
+    # Wildcard search on an active SAP system should return at least one transport
+    assert result.request_count > 0, "Expected at least one transport with wildcard username"
+
+
+@pytest.mark.anyio
+async def test_sap_get_shortcuts_on_se09(sap_mcp_client: ClientSession) -> None:
+    """Regression: sap_get_shortcuts crashed on SE09 with 'NoneType' has no attribute 'strip'.
+
+    SE09 (Transport Organizer) has elements with title attributes that resolve to
+    null/undefined in JS. This caused parse_shortcut_from_title to crash.
+
+    This test captures an HTML snapshot of the SE09 screen for offline unit testing,
+    then verifies sap_get_shortcuts completes without error.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE09"})
+
+    # Capture HTML snapshot for offline unit test
+    await capture_html_snapshot(sap_mcp_client, "se09_shortcuts", overwrite=True)
+
+    # This used to crash: 'NoneType' object has no attribute 'strip'
+    data = await call_tool_typed(sap_mcp_client, "sap_get_shortcuts", {}, ShortcutsResult)
+    assert data.success, f"sap_get_shortcuts failed on SE09: {data.error}"

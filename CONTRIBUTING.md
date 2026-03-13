@@ -61,7 +61,7 @@ tox -e spell_check  # Run codespell
 You can run tests directly in PyCharm. Settings are loaded from your `.env` file automatically.
 
 1. **Unit tests**: Right-click `unittests/test_selectors.py` → Run
-2. **Integration tests**: Right-click `unittests/test_sap_integration.py` → Run
+2. **Integration tests**: Right-click any `unittests/test_*_integration.py` file → Run
 
 To change language, edit `SAP_LANGUAGE` in your `.env` file.
 
