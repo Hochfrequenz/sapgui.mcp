@@ -424,10 +424,7 @@ def _check_selection_screen_columns(columns: list[str]) -> bool:
 async def _focus_grid(backend: SapUiBackend) -> None:
     """Focus the ALV grid for pagination (required for PageDown to work)."""
     try:
-        await backend.evaluate_javascript("""() => {
-            const grid = document.querySelector("[role='grid']");
-            if (grid) grid.focus();
-        }""")
+        await backend.click_element("[role='grid']")
         await backend.wait(500)
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.warning("Could not focus grid", extra={"error": str(e)})
@@ -594,17 +591,11 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     await _fill_se16n_max_hits(backend, max_hits)
 
     # Best-effort: click table name field to move focus out of filter grid
-    # (focus in filter grid can interfere with F8). Selector checks title and
-    # aria-label attributes — an approximation of ARIA accessible name matching.
+    # (focus in filter grid can interfere with F8).
     try:
-        await backend.evaluate_javascript("""() => {
-            for (const name of ['Table', 'Tabelle']) {
-                const el = document.querySelector(
-                    'input[title*="' + name + '"], input[aria-label*="' + name + '"]'
-                );
-                if (el) { el.focus(); return; }
-            }
-        }""")
+        clicked = await backend.click_element("input[title*='Table'], input[aria-label*='Table']")
+        if not clicked:
+            await backend.click_element("input[title*='Tabelle'], input[aria-label*='Tabelle']")
         await backend.wait(200)
     except Exception:  # pylint: disable=broad-exception-caught
         pass  # Best effort - continue with F8

@@ -110,6 +110,14 @@ class SapUiPrimitives(Protocol):
         Returns True if element was found and filled, False otherwise.
         """
 
+    async def click_element(self, selector: str) -> bool:
+        """Click the first element matching the CSS/attribute *selector*.
+
+        Performs a real click (scrolls into view, dispatches full mouse event
+        sequence).  Returns True if an element was found and clicked, False
+        otherwise.
+        """
+
     async def evaluate_javascript(self, script: str, arg: Any = None) -> Any:
         """Evaluate a JavaScript expression in the browser and return the result.
 

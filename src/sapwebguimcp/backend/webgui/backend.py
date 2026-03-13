@@ -778,6 +778,17 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception:  # pylint: disable=broad-exception-caught
             return False
 
+    async def click_element(self, selector: str) -> bool:
+        """Click the first element matching a CSS/attribute selector (real click)."""
+        try:
+            loc = self._page.locator(selector).first
+            if await loc.count() > 0:
+                await loc.click()
+                return True
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+        return False
+
     async def evaluate_javascript(self, script: str, arg: Any = None) -> Any:
         """Evaluate a JavaScript expression in the browser and return the result."""
         if arg is not None:
