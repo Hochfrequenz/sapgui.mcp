@@ -144,6 +144,7 @@ from sapwebguimcp.models import (
     ShortcutsResult,
     SM37JobListResult,
     SnapshotResult,
+    TransportListResult,
     StatusBarInfo,
     TableCellClickResult,
     TableData,
@@ -2372,6 +2373,30 @@ async def test_sap_get_shortcuts_no_duplicates(sap_mcp_client: ClientSession) ->
         key = (s.action.lower(), s.shortcut.lower())
         assert key not in seen, f"Duplicate shortcut found: {s}"
         seen.add(key)
+
+
+@pytest.mark.anyio
+async def test_se09_wildcard_username(sap_mcp_client: ClientSession) -> None:
+    """SE09 with username='*' must not fail due to YAML-quoted wildcard.
+
+    Playwright's ARIA snapshot serializer quotes the '*' character because it
+    is special in YAML.  The screen state parser must strip these artifact
+    quotes so that the ensure_screen_state verification pass succeeds.
+
+    Fixes #349.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se09_lookup",
+        {"username": "*", "request_type": "customizing", "status": "modifiable"},
+        TransportListResult,
+    )
+
+    assert result.success, f"SE09 wildcard username failed: {result.error}"
+    # Wildcard search on an active SAP system should return at least one transport
+    assert result.request_count > 0, "Expected at least one transport with wildcard username"
 
 
 @pytest.mark.anyio
