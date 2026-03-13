@@ -94,19 +94,28 @@
             for (let col = 0; col < headers.length; col++) {
                 const headerName = headers[col] || `col_${col + 1}`;
 
-                // Try grid# pattern first (SAP ALV standard)
-                const cellId = `grid#${tableId}#${rowNum},${col}`;
-                const innerSpanId = `${cellId}#if`;
+                // Try grid# pattern first (SAP ALV standard), then bracket
+                // notation tableId[row,col] (used by SE24 editable grids).
+                const gridCellId = `grid#${tableId}#${rowNum},${col}`;
+                const gridSpanId = `${gridCellId}#if`;
+                const bracketCellId = `${tableId}[${rowNum},${col}]`;
 
-                let cellElement = document.getElementById(cellId);
-                let innerSpan = document.getElementById(innerSpanId);
+                let cellElement = document.getElementById(gridCellId)
+                    || document.getElementById(bracketCellId);
+                let innerSpan = document.getElementById(gridSpanId);
+                const cellId = cellElement ? cellElement.id : gridCellId;
 
-                // Get cell text
+                // Get cell text — for editable grids (e.g., SE24 methods),
+                // cells contain <input> elements whose values are not in textContent.
                 let cellText = '';
                 if (innerSpan) {
                     cellText = innerSpan.textContent.trim().substring(0, 200);
                 } else if (cellElement) {
                     cellText = cellElement.textContent.trim().substring(0, 200);
+                }
+                if (!cellText && cellElement) {
+                    const input = cellElement.querySelector('input, textarea');
+                    if (input) cellText = (input.value || '').trim().substring(0, 200);
                 }
 
                 if (cellText) {
@@ -193,7 +202,13 @@
             const rowData = {};
 
             cells.forEach((cell, idx) => {
-                const cellText = cell.textContent.trim().substring(0, 200);
+                let cellText = cell.textContent.trim().substring(0, 200);
+                // For editable grids (e.g., SE24 methods), cells contain input elements
+                // whose values are not captured by textContent.
+                if (!cellText) {
+                    const input = cell.querySelector('input, textarea');
+                    if (input) cellText = (input.value || '').trim().substring(0, 200);
+                }
                 if (cellText) {
                     const headerName = headers[idx] || `col_${idx + 1}`;
                     rowData[headerName] = cellText;
