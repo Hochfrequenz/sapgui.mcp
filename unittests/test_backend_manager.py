@@ -1,10 +1,16 @@
 """Tests for BackendManager."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+import asyncio
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from sapwebguimcp.backend.manager import BackendManager, get_backend_manager, reset_backend_manager
+from sapwebguimcp.backend.manager import (
+    BackendManager,
+    close_backend,
+    get_backend_manager,
+    reset_backend_manager,
+)
 
 
 def test_backend_manager_default_type() -> None:
@@ -25,3 +31,28 @@ def test_get_backend_manager_reads_settings() -> None:
     manager = get_backend_manager()
     assert manager.backend_type == "webgui"
     reset_backend_manager()
+
+
+def test_close_backend_no_manager() -> None:
+    """close_backend should be a no-op when no manager exists."""
+    reset_backend_manager()
+    asyncio.run(close_backend())  # Should not raise
+    reset_backend_manager()
+
+
+def test_backend_manager_close_clears_caches() -> None:
+    """BackendManager.close() should clear internal caches and call close_browser_manager."""
+    manager = BackendManager()
+    # Simulate cached state
+    manager._backends["s1"] = "fake_backend"  # type: ignore[assignment]
+    manager._page_ids["s1"] = 12345
+
+    with patch(
+        "sapwebguimcp.backend.webgui.browser.close_browser_manager",
+        new_callable=AsyncMock,
+    ) as mock_close:
+        asyncio.run(manager.close())
+        mock_close.assert_called_once()
+
+    assert manager._backends == {}
+    assert manager._page_ids == {}

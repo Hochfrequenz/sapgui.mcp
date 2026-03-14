@@ -96,8 +96,8 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     """
     Manage application lifecycle.
 
-    This context manager handles cleanup of browser resources on shutdown.
-    The browser manager is initialized lazily on first use via get_browser_manager().
+    This context manager handles cleanup of backend resources on shutdown.
+    The backend is initialized lazily on first tool call via get_backend().
     """
     logger.info("[STARTING] SAP MCP Server initializing (backend=%s)...", _settings.backend_type)
     if _settings.backend_type == "webgui":
