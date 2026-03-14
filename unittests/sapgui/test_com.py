@@ -78,7 +78,7 @@ class TestConnectToRunningSapGui:
     @patch("sapwebguimcp.sapgui._com.pythoncom", None)
     @patch("sapwebguimcp.sapgui._com.win32com")
     def test_skips_coinitialize_when_pythoncom_is_none(self, mock_win32com):
-        engine = MagicMock()
+        engine = _make_realistic_engine(disabled_by_server=False)
         rot_entry = MagicMock()
         rot_entry.GetScriptingEngine = engine
         mock_win32com.client.GetObject.return_value = rot_entry
@@ -174,6 +174,17 @@ class TestCheckScriptingNotDisabled:
 
         result = _connect_to_running_sap_gui()
         assert result._com is engine
+
+    def test_com_failure_in_check_is_silently_ignored(self):
+        """If COM access fails during the diagnostic check, connection proceeds normally."""
+        from unittest.mock import PropertyMock
+
+        from sapwebguimcp.sapgui._com import _check_scripting_not_disabled
+
+        engine = MagicMock()
+        type(engine).Children = PropertyMock(side_effect=Exception("COM dead"))
+        # Should not raise — COM failures are swallowed so they don't block connection
+        _check_scripting_not_disabled(engine)
 
 
 class TestWaitForSapGui:
