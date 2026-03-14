@@ -1,5 +1,7 @@
 """Window components — GuiFrameWindow, GuiMainWindow, GuiModalWindow, GuiMessageWindow."""
 
+# pylint: disable=import-outside-toplevel
+
 from __future__ import annotations
 
 from sapwebguimcp.sapgui.components.base import GuiVComponent, GuiVContainer

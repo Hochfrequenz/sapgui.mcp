@@ -1,5 +1,7 @@
 """Low-level COM helpers for connecting to SAP GUI."""
 
+# pylint: disable=import-outside-toplevel,invalid-name
+
 from __future__ import annotations
 
 import time
@@ -29,7 +31,7 @@ def _connect_to_running_sap_gui() -> GuiApplication:
         ScriptingDisabledError: If the scripting engine is not available.
     """
     if pythoncom is not None:
-        pythoncom.CoInitialize()
+        pythoncom.CoInitialize()  # pylint: disable=no-member
     try:
         rot_entry = win32com.client.GetObject("SAPGUI")
     except Exception as e:

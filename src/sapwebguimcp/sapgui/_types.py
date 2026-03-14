@@ -1,5 +1,7 @@
 """SAP GUI component type enum and prefix mappings."""
 
+# pylint: disable=invalid-name
+
 from enum import IntEnum
 
 

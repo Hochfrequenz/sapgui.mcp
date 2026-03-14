@@ -1,5 +1,7 @@
 """GuiGridView — ALV grid control wrapper."""
 
+# pylint: disable=too-many-public-methods
+
 from __future__ import annotations
 
 from typing import Any

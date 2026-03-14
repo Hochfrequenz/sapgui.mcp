@@ -1,5 +1,7 @@
 """GuiApplication — top-level SAP GUI Scripting engine wrapper."""
 
+# pylint: disable=import-outside-toplevel
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any

@@ -1,5 +1,7 @@
 """pysapgui — Pythonic SAP GUI Scripting Library."""
 
+# pylint: disable=import-outside-toplevel
+
 from __future__ import annotations
 
 import subprocess
@@ -44,5 +46,5 @@ class SapGui:
         cmd = [exe_path]
         if connection_string:
             cmd.extend(["-command", connection_string])
-        subprocess.Popen(cmd)
+        subprocess.Popen(cmd)  # pylint: disable=consider-using-with
         return _wait_for_sap_gui(timeout=timeout)

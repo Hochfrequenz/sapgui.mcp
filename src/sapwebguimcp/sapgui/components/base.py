@@ -1,5 +1,7 @@
 """Base classes for the SAP GUI component hierarchy."""
 
+# pylint: disable=import-outside-toplevel,broad-exception-caught
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -166,7 +168,7 @@ class GuiContainer(GuiComponent):
 
         return GuiComponentCollection(self._com.Children)
 
-    def find_by_id(self, id: str, raise_error: bool = True) -> GuiComponent | None:
+    def find_by_id(self, id: str, raise_error: bool = True) -> GuiComponent | None:  # pylint: disable=redefined-builtin
         """Find a child element by its ID path, wrapped in the correct Python class.
 
         Args:

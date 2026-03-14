@@ -1,5 +1,7 @@
 """GuiSession and GuiSessionInfo — session-level wrappers."""
 
+# pylint: disable=import-outside-toplevel
+
 from __future__ import annotations
 
 from typing import Any

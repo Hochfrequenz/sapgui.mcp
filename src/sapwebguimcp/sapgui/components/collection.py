@@ -1,5 +1,7 @@
 """Collection wrappers for SAP GUI COM collections."""
 
+# pylint: disable=import-outside-toplevel
+
 from __future__ import annotations
 
 from typing import Any, Iterator
