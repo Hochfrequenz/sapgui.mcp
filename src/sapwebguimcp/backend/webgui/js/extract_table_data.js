@@ -125,7 +125,7 @@
                     // Determine click target and build selector
                     // Use Boolean() to ensure we return true/false, not null/undefined
                     const isHotspot = Boolean(innerSpan && isHotspotCell(innerSpan));
-                    const clickTarget = isHotspot ? innerSpanId : cellId;
+                    const clickTarget = isHotspot ? gridSpanId : cellId;
                     const selector = escapeCssSelector(clickTarget);
 
                     cellsInfo[headerName] = {
