@@ -168,12 +168,13 @@ class TestGuiContainer:
 
     def test_find_by_id_delegates(self):
         com = make_mock_com(container_type=True, children=[])
-        found = MagicMock()
+        found = make_mock_com(type_as_number=31, type_name="GuiTextField")
         com.FindById.return_value = found
         gc = GuiContainer(com)
         result = gc.find_by_id("usr/txtFIELD")
         com.FindById.assert_called_once_with("usr/txtFIELD", False)
-        assert result is found
+        # find_by_id now wraps via factory; verify it wraps the correct COM object
+        assert result.com is found
 
     def test_find_by_id_not_found_raises(self):
         com = make_mock_com(container_type=True, children=[])

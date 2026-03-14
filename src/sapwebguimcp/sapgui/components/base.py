@@ -136,18 +136,24 @@ class GuiContainer(GuiComponent):
         """Return the COM Children collection."""
         return self._com.Children
 
-    def find_by_id(self, id: str, raise_error: bool = True):
-        """Find a child element by its ID path. Returns raw COM object.
+    def find_by_id(self, id: str, raise_error: bool = True) -> GuiComponent | None:
+        """Find a child element by its ID path, wrapped in the correct Python class.
 
-        This is a temporary implementation that returns raw COM objects.
-        It will be updated in Task 6 to wrap results via the factory.
+        Args:
+            id: The SAP GUI element ID path (e.g. 'usr/txtFIELD').
+            raise_error: If True (default), raise ElementNotFoundError when not found.
+
+        Returns:
+            The wrapped component, or None if not found and raise_error is False.
         """
+        from sapwebguimcp.sapgui._factory import wrap_com_object
+
         result = self._com.FindById(id, False)
         if result is None:
             if raise_error:
                 raise ElementNotFoundError(f"Element not found: {id}")
             return None
-        return result
+        return wrap_com_object(result)
 
 
 class GuiVContainer(GuiContainer, GuiVComponent):

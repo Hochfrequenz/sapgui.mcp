@@ -1,0 +1,17 @@
+"""Tab components — GuiTabStrip and GuiTab."""
+
+from __future__ import annotations
+
+from sapwebguimcp.sapgui.components.base import GuiVContainer
+
+
+class GuiTabStrip(GuiVContainer):
+    """Wraps the COM GuiTabStrip interface (TypeAsNumber 90)."""
+
+
+class GuiTab(GuiVContainer):
+    """Wraps the COM GuiTab interface (TypeAsNumber 91)."""
+
+    def select(self) -> None:
+        """Activate this tab page."""
+        self._com.Select()
