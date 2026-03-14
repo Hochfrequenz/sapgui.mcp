@@ -1,0 +1,88 @@
+"""Tests for GuiApplication component."""
+
+from unittest.mock import MagicMock
+
+from sapwebguimcp.sapgui.components.application import GuiApplication
+from sapwebguimcp.sapgui.components.base import GuiContainer
+from unittests.sapgui.conftest import make_mock_com
+
+
+class TestGuiApplicationInheritance:
+    def test_extends_gui_container(self):
+        assert issubclass(GuiApplication, GuiContainer)
+
+    def test_instance_is_gui_container(self):
+        com = make_mock_com()
+        app = GuiApplication(com)
+        assert isinstance(app, GuiContainer)
+
+
+class TestGuiApplicationProperties:
+    def test_connections(self):
+        com = make_mock_com(Connections=MagicMock(name="conn_collection"))
+        app = GuiApplication(com)
+        assert app.connections is com.Connections
+
+    def test_active_session(self):
+        session = MagicMock()
+        com = make_mock_com(ActiveSession=session)
+        app = GuiApplication(com)
+        assert app.active_session is session
+
+    def test_connection_error_text(self):
+        com = make_mock_com(ConnectionErrorText="some error")
+        app = GuiApplication(com)
+        assert app.connection_error_text == "some error"
+
+    def test_history_enabled_getter(self):
+        com = make_mock_com(HistoryEnabled=True)
+        app = GuiApplication(com)
+        assert app.history_enabled is True
+
+    def test_history_enabled_setter(self):
+        com = make_mock_com()
+        app = GuiApplication(com)
+        app.history_enabled = False
+        assert com.HistoryEnabled is False
+
+    def test_buttonbar_visible_getter(self):
+        com = make_mock_com(ButtonbarVisible=True)
+        app = GuiApplication(com)
+        assert app.buttonbar_visible is True
+
+    def test_buttonbar_visible_setter(self):
+        com = make_mock_com()
+        app = GuiApplication(com)
+        app.buttonbar_visible = False
+        assert com.ButtonbarVisible is False
+
+    def test_allow_system_messages_getter(self):
+        com = make_mock_com(AllowSystemMessages=False)
+        app = GuiApplication(com)
+        assert app.allow_system_messages is False
+
+    def test_allow_system_messages_setter(self):
+        com = make_mock_com()
+        app = GuiApplication(com)
+        app.allow_system_messages = True
+        assert com.AllowSystemMessages is True
+
+
+class TestGuiApplicationMethods:
+    def test_open_connection(self):
+        com = make_mock_com()
+        app = GuiApplication(com)
+        app.open_connection("DEV", sync=True, raise_error=True)
+        com.OpenConnection.assert_called_once_with("DEV", True, True)
+
+    def test_open_connection_by_connection_string(self):
+        com = make_mock_com()
+        app = GuiApplication(com)
+        app.open_connection_by_connection_string("/H/server/S/3200")
+        com.OpenConnectionByConnectionString.assert_called_once_with("/H/server/S/3200", True, True)
+
+    def test_create_gui_collection(self):
+        com = make_mock_com()
+        app = GuiApplication(com)
+        app.create_gui_collection()
+        com.CreateGuiCollection.assert_called_once()
