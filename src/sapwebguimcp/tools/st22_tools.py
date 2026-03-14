@@ -202,7 +202,7 @@ async def _capture_full_detail(backend: "SapUiBackend") -> str:
 # =============================================================================
 
 
-async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-locals
+async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-locals,too-many-branches
     backend: "SapUiBackend",
     target_date: str | None,
     dump_index: int | None,
@@ -239,7 +239,12 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
 
     # Check for "no dumps" message
     if is_no_dumps_message(list_snapshot):
-        # Still a success - just no dumps found
+        if dump_index is not None:
+            return ST22DumpDetailResult.failure(
+                error=f"No dumps found for {date_str} — cannot select dump_index {dump_index}",
+                detail=None,
+                retrieved_at=now,
+            )
         return ST22DumpListResult(
             dumps=[],
             dump_count=0,
