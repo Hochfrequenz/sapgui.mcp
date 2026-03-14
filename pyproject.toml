@@ -83,7 +83,15 @@ profile = "black"
 
 [tool.pylint."MESSAGES CONTROL"]
 max-line-length = 120
-disable = "fixme,duplicate-code"
+# fixme/duplicate-code: noise in active development
+# import-outside-toplevel: lazy imports required to break circular deps (factory ↔ components)
+# no-member: pywin32 stubs incomplete (pythoncom.CoInitialize)
+# too-many-public-methods: SAP GUI API classes expose 30+ COM methods by design
+# redefined-builtin: find_by_id(id=...) matches SAP scripting API naming convention
+# broad-exception-caught: COM objects throw pywintypes.com_error, not standard exceptions
+# invalid-name: IntEnum members use PascalCase (SAP API names), not UPPER_CASE
+# consider-using-with: subprocess.Popen for SAP GUI launch is fire-and-forget, no context manager needed
+disable = "fixme,duplicate-code,import-outside-toplevel,no-member,too-many-public-methods,redefined-builtin,broad-exception-caught,invalid-name,consider-using-with"
 
 [tool.pylint.BASIC]
 # Allow module-level mutable variables (singletons, caches, state)
