@@ -202,7 +202,7 @@ async def _capture_full_detail(backend: "SapUiBackend") -> str:
 # =============================================================================
 
 
-async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-locals
+async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-locals,too-many-branches
     backend: "SapUiBackend",
     target_date: str | None,
     dump_index: int | None,
