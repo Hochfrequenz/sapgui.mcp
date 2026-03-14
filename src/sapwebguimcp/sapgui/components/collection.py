@@ -2,17 +2,23 @@
 
 from __future__ import annotations
 
+from typing import Any, Iterator
+
+from sapwebguimcp.sapgui.components.base import GuiComponent
+
 
 class GuiComponentCollection:
     """Wraps a COM GuiComponentCollection (children of a container)."""
 
-    def __init__(self, com_collection) -> None:
+    def __init__(self, com_collection: Any) -> None:
         self._com = com_collection
 
     def __len__(self) -> int:
-        return self._com.Count
+        """Number of items in the collection."""
+        return int(self._com.Count)
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> GuiComponent:
+        """Return the wrapped component at the given index."""
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
         length = self._com.Count
@@ -22,7 +28,8 @@ class GuiComponentCollection:
             raise IndexError(f"Index {index} out of range for collection of length {length}")
         return wrap_com_object(self._com.Item(index))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[GuiComponent]:
+        """Iterate over all wrapped components."""
         for i in range(self._com.Count):
             yield self[i]
 
@@ -33,13 +40,15 @@ class GuiComponentCollection:
 class GuiCollection:
     """Wraps a COM GuiCollection (e.g. DumpState results)."""
 
-    def __init__(self, com_collection) -> None:
+    def __init__(self, com_collection: Any) -> None:
         self._com = com_collection
 
     def __len__(self) -> int:
-        return self._com.Count
+        """Number of items in the collection."""
+        return int(self._com.Count)
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> Any:
+        """Return the item at the given index."""
         length = self._com.Count
         if index < 0:
             index += length
@@ -47,7 +56,8 @@ class GuiCollection:
             raise IndexError(f"Index {index} out of range for collection of length {length}")
         return self._com.Item(index)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
+        """Iterate over all items."""
         for i in range(self._com.Count):
             yield self._com.Item(i)
 

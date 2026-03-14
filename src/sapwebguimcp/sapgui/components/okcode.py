@@ -15,4 +15,5 @@ class GuiOkCodeField(GuiVComponent):
 
     @property
     def is_list_element(self) -> bool:
+        """Whether this field belongs to a list."""
         return bool(self._com.IsListElement)

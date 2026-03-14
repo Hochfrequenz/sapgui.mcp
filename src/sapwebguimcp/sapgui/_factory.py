@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from sapwebguimcp.sapgui.components.application import GuiApplication
 from sapwebguimcp.sapgui.components.base import GuiComponent, GuiVComponent
 from sapwebguimcp.sapgui.components.button import GuiButton
@@ -111,7 +113,7 @@ _SHELL_SUBTYPE_MAP: dict[str, type[GuiShell]] = {
 }
 
 
-def wrap_com_object(com_obj) -> GuiComponent:
+def wrap_com_object(com_obj: Any) -> GuiComponent:
     """Wrap a raw COM dispatch object in the appropriate Python class.
 
     Uses two-level dispatch:

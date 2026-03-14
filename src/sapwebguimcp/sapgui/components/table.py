@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from sapwebguimcp.sapgui.components.base import GuiComponent, GuiVContainer
 
 
@@ -13,15 +15,18 @@ class GuiTableControl(GuiVContainer):
 
     @property
     def row_count(self) -> int:
-        return self._com.RowCount
+        """Total number of rows in the table."""
+        return int(self._com.RowCount)
 
     @property
     def visible_row_count(self) -> int:
-        return self._com.VisibleRowCount
+        """Number of currently visible rows."""
+        return int(self._com.VisibleRowCount)
 
     @property
     def current_row(self) -> int:
-        return self._com.CurrentRow
+        """Index of the current row."""
+        return int(self._com.CurrentRow)
 
     @current_row.setter
     def current_row(self, value: int) -> None:
@@ -29,23 +34,24 @@ class GuiTableControl(GuiVContainer):
 
     @property
     def current_col(self) -> int:
-        return self._com.CurrentCol
+        """Index of the current column."""
+        return int(self._com.CurrentCol)
 
     @current_col.setter
     def current_col(self, value: int) -> None:
         self._com.CurrentCol = value
 
     @property
-    def columns(self):
+    def columns(self) -> Any:
         """Return the COM columns collection."""
         return self._com.Columns
 
     @property
-    def rows(self):
+    def rows(self) -> Any:
         """Return the COM rows collection."""
         return self._com.Rows
 
-    def get_cell(self, row: int, col: int):
+    def get_cell(self, row: int, col: int) -> Any:
         """Return the COM object for the cell at (row, col)."""
         return self._com.GetCell(row, col)
 
@@ -55,6 +61,7 @@ class GuiTableRow(GuiComponent):
 
     @property
     def selected(self) -> bool:
+        """Whether the row is selected."""
         return bool(self._com.Selected)
 
     @selected.setter
@@ -63,6 +70,7 @@ class GuiTableRow(GuiComponent):
 
     @property
     def selectable(self) -> bool:
+        """Whether the row can be selected."""
         return bool(self._com.Selectable)
 
 
@@ -71,10 +79,12 @@ class GuiTableColumn(GuiComponent):
 
     @property
     def title(self) -> str:
-        return self._com.Title
+        """Column header title text."""
+        return str(self._com.Title)
 
     @property
     def selected(self) -> bool:
+        """Whether the column is selected."""
         return bool(self._com.Selected)
 
     @selected.setter

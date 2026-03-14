@@ -14,7 +14,8 @@ class GuiStatusbar(GuiVComponent):
 
     @property
     def message_type(self) -> str:
-        return self._com.MessageType
+        """Message type character (S, W, E, A, I, or empty)."""
+        return str(self._com.MessageType)
 
 
 class GuiStatusPane(GuiVComponent):

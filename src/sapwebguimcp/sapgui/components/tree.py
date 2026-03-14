@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from sapwebguimcp.sapgui.components.shell import GuiShell
 
 
@@ -14,11 +16,12 @@ class GuiTree(GuiShell):
     @property
     def tree_type(self) -> int:
         """Return the tree type (calls GetTreeType)."""
-        return self._com.GetTreeType()
+        return int(self._com.GetTreeType())
 
     @property
     def selected_node(self) -> str:
-        return self._com.SelectedNode
+        """Key of the currently selected node."""
+        return str(self._com.SelectedNode)
 
     @selected_node.setter
     def selected_node(self, value: str) -> None:
@@ -26,7 +29,8 @@ class GuiTree(GuiShell):
 
     @property
     def top_node(self) -> str:
-        return self._com.TopNode
+        """Key of the topmost visible node."""
+        return str(self._com.TopNode)
 
     @top_node.setter
     def top_node(self, value: str) -> None:
@@ -34,29 +38,29 @@ class GuiTree(GuiShell):
 
     def get_node_text_by_key(self, key: str) -> str:
         """Return the text of a tree node identified by its key."""
-        return self._com.GetNodeTextByKey(key)
+        return str(self._com.GetNodeTextByKey(key))
 
     def get_node_text_by_path(self, path: str) -> str:
         """Return the text of a tree node identified by its path."""
-        return self._com.GetNodeTextByPath(path)
+        return str(self._com.GetNodeTextByPath(path))
 
     def get_item_text(self, key: str, column: str) -> str:
         """Return the text of an item in a column tree."""
-        return self._com.GetItemText(key, column)
+        return str(self._com.GetItemText(key, column))
 
     def get_node_children_count(self, key: str) -> int:
         """Return the number of children for a given node."""
-        return self._com.GetNodeChildrenCount(key)
+        return int(self._com.GetNodeChildrenCount(key))
 
-    def get_all_node_keys(self):
+    def get_all_node_keys(self) -> Any:
         """Return all node keys in the tree."""
         return self._com.GetAllNodeKeys()
 
-    def get_column_names(self):
+    def get_column_names(self) -> Any:
         """Return the column names collection."""
         return self._com.GetColumnNames()
 
-    def get_column_headers(self):
+    def get_column_headers(self) -> Any:
         """Return the column headers collection."""
         return self._com.GetColumnHeaders()
 
@@ -90,4 +94,4 @@ class GuiTree(GuiShell):
 
     def get_node_key_by_path(self, path: str) -> str:
         """Return the node key for a given path."""
-        return self._com.GetNodeKeyByPath(path)
+        return str(self._com.GetNodeKeyByPath(path))

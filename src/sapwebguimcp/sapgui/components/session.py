@@ -2,93 +2,115 @@
 
 from __future__ import annotations
 
-from sapwebguimcp.sapgui.components.base import GuiContainer
+from typing import Any
+
+from sapwebguimcp.sapgui.components.base import GuiComponent, GuiContainer
 
 
 class GuiSessionInfo:
     """Wraps the COM GuiSessionInfo object (read-only session metadata)."""
 
-    def __init__(self, com_object) -> None:
+    def __init__(self, com_object: Any) -> None:
         self._com = com_object
 
     @property
     def system_name(self) -> str:
-        return self._com.SystemName
+        """SAP system name (SID)."""
+        return str(self._com.SystemName)
 
     @property
     def client(self) -> str:
-        return self._com.Client
+        """SAP client number."""
+        return str(self._com.Client)
 
     @property
     def user(self) -> str:
-        return self._com.User
+        """Logged-in user name."""
+        return str(self._com.User)
 
     @property
     def language(self) -> str:
-        return self._com.Language
+        """Session logon language."""
+        return str(self._com.Language)
 
     @property
     def transaction(self) -> str:
-        return self._com.Transaction
+        """Currently running transaction code."""
+        return str(self._com.Transaction)
 
     @property
     def program(self) -> str:
-        return self._com.Program
+        """Currently running ABAP program name."""
+        return str(self._com.Program)
 
     @property
     def screen_number(self) -> int:
-        return self._com.ScreenNumber
+        """Current dynpro screen number."""
+        return int(self._com.ScreenNumber)
 
     @property
     def application_server(self) -> str:
-        return self._com.ApplicationServer
+        """Application server host name."""
+        return str(self._com.ApplicationServer)
 
     @property
     def response_time(self) -> int:
-        return self._com.ResponseTime
+        """Last server response time in milliseconds."""
+        return int(self._com.ResponseTime)
 
     @property
     def round_trips(self) -> int:
-        return self._com.RoundTrips
+        """Number of server round trips."""
+        return int(self._com.RoundTrips)
 
     @property
     def session_number(self) -> int:
-        return self._com.SessionNumber
+        """Session number within the connection."""
+        return int(self._com.SessionNumber)
 
     @property
     def system_number(self) -> int:
-        return self._com.SystemNumber
+        """SAP system number."""
+        return int(self._com.SystemNumber)
 
     @property
     def codepage(self) -> int:
-        return self._com.Codepage
+        """Character codepage number."""
+        return int(self._com.Codepage)
 
     @property
     def flushes(self) -> int:
-        return self._com.Flushes
+        """Number of automation queue flushes."""
+        return int(self._com.Flushes)
 
     @property
     def group(self) -> str:
-        return self._com.Group
+        """Logon group name."""
+        return str(self._com.Group)
 
     @property
     def message_server(self) -> str:
-        return self._com.MessageServer
+        """Message server host name."""
+        return str(self._com.MessageServer)
 
     @property
     def system_session_id(self) -> str:
-        return self._com.SystemSessionId
+        """Unique system session identifier."""
+        return str(self._com.SystemSessionId)
 
     @property
     def is_low_speed_connection(self) -> bool:
+        """Whether this is a low-speed connection."""
         return bool(self._com.IsLowSpeedConnection)
 
     @property
     def scripting_mode_read_only(self) -> bool:
+        """Whether scripting is restricted to read-only mode."""
         return bool(self._com.ScriptingModeReadOnly)
 
     @property
     def scripting_mode_recording_disabled(self) -> bool:
+        """Whether script recording is disabled."""
         return bool(self._com.ScriptingModeRecordingDisabled)
 
     def __repr__(self) -> str:
@@ -113,10 +135,11 @@ class GuiSession(GuiContainer):
 
     @property
     def busy(self) -> bool:
+        """Whether the session is currently processing a server request."""
         return bool(self._com.Busy)
 
     @property
-    def active_window(self):
+    def active_window(self) -> GuiComponent:
         """Return the active window wrapped in the correct Python class."""
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
@@ -148,8 +171,8 @@ class GuiSession(GuiContainer):
 
     def get_v_key_description(self, v_key: int) -> str:
         """Return a human-readable description for a virtual key number."""
-        return self._com.GetVKeyDescription(v_key)
+        return str(self._com.GetVKeyDescription(v_key))
 
-    def get_object_tree(self, element_id: str):
+    def get_object_tree(self, element_id: str) -> Any:
         """Return the object tree starting from the given element ID."""
         return self._com.GetObjectTree(element_id)

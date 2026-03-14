@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sapwebguimcp.sapgui.components.base import GuiContainer
+
+if TYPE_CHECKING:
+    from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
 
 
 class GuiConnection(GuiContainer):
@@ -13,7 +18,7 @@ class GuiConnection(GuiContainer):
     """
 
     @property
-    def sessions(self):
+    def sessions(self) -> GuiComponentCollection:
         """Return the GuiComponentCollection of sessions."""
         from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
 
@@ -21,14 +26,17 @@ class GuiConnection(GuiContainer):
 
     @property
     def connection_string(self) -> str:
-        return self._com.ConnectionString
+        """Raw connection string."""
+        return str(self._com.ConnectionString)
 
     @property
     def description(self) -> str:
-        return self._com.Description
+        """Human-readable connection description."""
+        return str(self._com.Description)
 
     @property
     def disabled_by_server(self) -> bool:
+        """Whether scripting is disabled by the server."""
         return bool(self._com.DisabledByServer)
 
     def close_connection(self) -> None:

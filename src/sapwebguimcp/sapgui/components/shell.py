@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from sapwebguimcp.sapgui.components.base import GuiVContainer
 
 
@@ -14,22 +16,26 @@ class GuiShell(GuiVContainer):
 
     @property
     def sub_type(self) -> str:
-        return self._com.SubType
+        """Shell sub-type name (e.g. 'GridView', 'Tree')."""
+        return str(self._com.SubType)
 
     @property
     def handle(self) -> int:
-        return self._com.Handle
+        """Native window handle."""
+        return int(self._com.Handle)
 
     @property
     def acc_description(self) -> str:
-        return self._com.AccDescription
+        """Accessibility description."""
+        return str(self._com.AccDescription)
 
     @property
     def drag_drop_supported(self) -> bool:
+        """Whether drag-and-drop is supported."""
         return bool(self._com.DragDropSupported)
 
     @property
-    def ocx_events(self):
+    def ocx_events(self) -> Any:
         """Return the COM OcxEvents collection."""
         return self._com.OcxEvents
 
@@ -51,10 +57,12 @@ class GuiHTMLViewer(GuiShell):
 
     @property
     def browser_handle(self) -> int:
-        return self._com.BrowserHandle
+        """Native browser window handle."""
+        return int(self._com.BrowserHandle)
 
     @property
     def document_complete(self) -> bool:
+        """Whether the document has finished loading."""
         return bool(self._com.DocumentComplete)
 
     def sap_event(self, frame: str, post_data: str, url: str) -> None:
@@ -63,7 +71,7 @@ class GuiHTMLViewer(GuiShell):
 
     def get_browser_control_type(self) -> int:
         """Return the browser control type."""
-        return self._com.BrowserControlType
+        return int(self._com.BrowserControlType)
 
 
 class GuiToolbarControl(GuiShell):
@@ -71,32 +79,41 @@ class GuiToolbarControl(GuiShell):
 
     @property
     def button_count(self) -> int:
-        return self._com.ButtonCount
+        """Number of buttons in the toolbar."""
+        return int(self._com.ButtonCount)
 
     @property
     def focused_button(self) -> int:
-        return self._com.FocusedButton
+        """Index of the currently focused button."""
+        return int(self._com.FocusedButton)
 
     def get_button_id(self, pos: int) -> str:
-        return self._com.GetButtonId(pos)
+        """Return the button ID at the given position."""
+        return str(self._com.GetButtonId(pos))
 
     def get_button_text(self, pos: int) -> str:
-        return self._com.GetButtonText(pos)
+        """Return the button text at the given position."""
+        return str(self._com.GetButtonText(pos))
 
     def get_button_tooltip(self, pos: int) -> str:
-        return self._com.GetButtonTooltip(pos)
+        """Return the button tooltip at the given position."""
+        return str(self._com.GetButtonTooltip(pos))
 
     def get_button_type(self, pos: int) -> int:
-        return self._com.GetButtonType(pos)
+        """Return the button type at the given position."""
+        return int(self._com.GetButtonType(pos))
 
     def get_button_enabled(self, pos: int) -> bool:
+        """Whether the button at the given position is enabled."""
         return bool(self._com.GetButtonEnabled(pos))
 
     def get_button_checked(self, pos: int) -> bool:
+        """Whether the button at the given position is checked."""
         return bool(self._com.GetButtonChecked(pos))
 
     def get_button_icon(self, pos: int) -> str:
-        return self._com.GetButtonIcon(pos)
+        """Return the button icon name at the given position."""
+        return str(self._com.GetButtonIcon(pos))
 
     def press_button(self, button_id: str) -> None:
         """Press a toolbar button by its ID."""

@@ -13,32 +13,41 @@ class GuiFrameWindow(GuiVContainer):
 
     @property
     def handle(self) -> int:
-        return self._com.Handle
+        """Native window handle."""
+        return int(self._com.Handle)
 
     @property
     def iconic(self) -> bool:
+        """Whether the window is minimized."""
         return bool(self._com.Iconic)
 
     @property
-    def gui_focus(self):
-        """Return the COM object that currently has GUI focus."""
-        return self._com.GuiFocus
+    def gui_focus(self) -> GuiVComponent:
+        """Return the element that currently has GUI focus."""
+        from sapwebguimcp.sapgui._factory import wrap_com_object
+
+        return wrap_com_object(self._com.GuiFocus)  # type: ignore[return-value]
 
     @property
-    def system_focus(self):
-        """Return the COM object that currently has system focus."""
-        return self._com.SystemFocus
+    def system_focus(self) -> GuiVComponent:
+        """Return the element that currently has system focus."""
+        from sapwebguimcp.sapgui._factory import wrap_com_object
+
+        return wrap_com_object(self._com.SystemFocus)  # type: ignore[return-value]
 
     @property
     def working_pane_height(self) -> int:
-        return self._com.WorkingPaneHeight
+        """Height of the working pane area in pixels."""
+        return int(self._com.WorkingPaneHeight)
 
     @property
     def working_pane_width(self) -> int:
-        return self._com.WorkingPaneWidth
+        """Width of the working pane area in pixels."""
+        return int(self._com.WorkingPaneWidth)
 
     @property
     def element_visualization_mode(self) -> bool:
+        """Whether element visualization mode is active."""
         return bool(self._com.ElementVisualizationMode)
 
     def close(self) -> None:
@@ -94,6 +103,7 @@ class GuiMainWindow(GuiFrameWindow):
 
     @property
     def buttonbar_visible(self) -> bool:
+        """Whether the button bar is visible."""
         return bool(self._com.ButtonbarVisible)
 
     @buttonbar_visible.setter
@@ -102,6 +112,7 @@ class GuiMainWindow(GuiFrameWindow):
 
     @property
     def toolbar_visible(self) -> bool:
+        """Whether the toolbar is visible."""
         return bool(self._com.ToolbarVisible)
 
     @toolbar_visible.setter
@@ -110,6 +121,7 @@ class GuiMainWindow(GuiFrameWindow):
 
     @property
     def statusbar_visible(self) -> bool:
+        """Whether the status bar is visible."""
         return bool(self._com.StatusbarVisible)
 
     @statusbar_visible.setter
@@ -118,6 +130,7 @@ class GuiMainWindow(GuiFrameWindow):
 
     @property
     def titlebar_visible(self) -> bool:
+        """Whether the title bar is visible."""
         return bool(self._com.TitlebarVisible)
 
     @titlebar_visible.setter
@@ -148,24 +161,30 @@ class GuiMessageWindow(GuiVComponent):
 
     @property
     def message_text(self) -> str:
-        return self._com.MessageText
+        """Message text content."""
+        return str(self._com.MessageText)
 
     @property
     def message_type(self) -> str:
-        return self._com.MessageType
+        """Message type character."""
+        return str(self._com.MessageType)
 
     @property
     def ok_button_text(self) -> str:
-        return self._com.OKButtonText
+        """Text on the OK button."""
+        return str(self._com.OKButtonText)
 
     @property
     def help_button_text(self) -> str:
-        return self._com.HelpButtonText
+        """Text on the Help button."""
+        return str(self._com.HelpButtonText)
 
     @property
     def focused_button(self) -> str:
-        return self._com.FocusedButton
+        """Name of the currently focused button."""
+        return str(self._com.FocusedButton)
 
     @property
     def visible(self) -> bool:
+        """Whether the message window is visible."""
         return bool(self._com.Visible)

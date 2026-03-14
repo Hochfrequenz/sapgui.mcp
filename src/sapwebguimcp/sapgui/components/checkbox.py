@@ -10,6 +10,7 @@ class GuiCheckBox(GuiVComponent):
 
     @property
     def selected(self) -> bool:
+        """Whether the checkbox is checked."""
         return bool(self._com.Selected)
 
     @selected.setter
@@ -18,22 +19,27 @@ class GuiCheckBox(GuiVComponent):
 
     @property
     def highlighted(self) -> bool:
+        """Whether the checkbox is visually highlighted."""
         return bool(self._com.Highlighted)
 
     @property
     def is_list_element(self) -> bool:
+        """Whether the checkbox belongs to a list."""
         return bool(self._com.IsListElement)
 
     @property
     def color_index(self) -> int:
-        return self._com.ColorIndex
+        """Color index of the checkbox."""
+        return int(self._com.ColorIndex)
 
     @property
     def color_intensified(self) -> bool:
+        """Whether the color is intensified."""
         return bool(self._com.ColorIntensified)
 
     @property
     def color_inverse(self) -> bool:
+        """Whether the color is inverted."""
         return bool(self._com.ColorInverse)
 
 
@@ -42,6 +48,7 @@ class GuiRadioButton(GuiVComponent):
 
     @property
     def selected(self) -> bool:
+        """Whether the radio button is selected."""
         return bool(self._com.Selected)
 
     @selected.setter
@@ -50,16 +57,20 @@ class GuiRadioButton(GuiVComponent):
 
     @property
     def highlighted(self) -> bool:
+        """Whether the radio button is visually highlighted."""
         return bool(self._com.Highlighted)
 
     @property
     def is_list_element(self) -> bool:
+        """Whether the radio button belongs to a list."""
         return bool(self._com.IsListElement)
 
     @property
     def group_count(self) -> int:
-        return self._com.GroupCount
+        """Number of radio buttons in the group."""
+        return int(self._com.GroupCount)
 
     @property
     def group_pos(self) -> int:
-        return self._com.GroupPos
+        """Position of this radio button within its group."""
+        return int(self._com.GroupPos)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from sapwebguimcp.sapgui.components.shell import GuiShell
 
 
@@ -13,15 +15,18 @@ class GuiGridView(GuiShell):
 
     @property
     def row_count(self) -> int:
-        return self._com.RowCount
+        """Total number of rows."""
+        return int(self._com.RowCount)
 
     @property
     def column_count(self) -> int:
-        return self._com.ColumnCount
+        """Total number of columns."""
+        return int(self._com.ColumnCount)
 
     @property
     def current_cell_row(self) -> int:
-        return self._com.CurrentCellRow
+        """Row index of the current cell."""
+        return int(self._com.CurrentCellRow)
 
     @current_cell_row.setter
     def current_cell_row(self, value: int) -> None:
@@ -29,7 +34,8 @@ class GuiGridView(GuiShell):
 
     @property
     def current_cell_column(self) -> str:
-        return self._com.CurrentCellColumn
+        """Column name of the current cell."""
+        return str(self._com.CurrentCellColumn)
 
     @current_cell_column.setter
     def current_cell_column(self, value: str) -> None:
@@ -37,7 +43,8 @@ class GuiGridView(GuiShell):
 
     @property
     def selected_rows(self) -> str:
-        return self._com.SelectedRows
+        """Comma-separated string of selected row indexes."""
+        return str(self._com.SelectedRows)
 
     @selected_rows.setter
     def selected_rows(self, value: str) -> None:
@@ -45,26 +52,28 @@ class GuiGridView(GuiShell):
 
     @property
     def first_visible_row(self) -> int:
-        return self._com.FirstVisibleRow
+        """Index of the first visible row."""
+        return int(self._com.FirstVisibleRow)
 
     @first_visible_row.setter
     def first_visible_row(self, value: int) -> None:
         self._com.FirstVisibleRow = value
 
     @property
-    def column_order(self):
+    def column_order(self) -> Any:
         """Return the column order collection."""
         return self._com.ColumnOrder
 
     @property
     def toolbar_button_count(self) -> int:
-        return self._com.ToolbarButtonCount
+        """Number of toolbar buttons."""
+        return int(self._com.ToolbarButtonCount)
 
     # --- Cell access ---
 
     def get_cell_value(self, row: int, column: str) -> str:
         """Read the value of a cell."""
-        return self._com.GetCellValue(row, column)
+        return str(self._com.GetCellValue(row, column))
 
     def set_cell_value(self, row: int, column: str, value: str) -> None:
         """Write a value to a cell (calls ModifyCell on COM)."""
@@ -76,7 +85,7 @@ class GuiGridView(GuiShell):
 
     def get_cell_type(self, row: int, column: str) -> str:
         """Return the type of a cell."""
-        return self._com.GetCellType(row, column)
+        return str(self._com.GetCellType(row, column))
 
     # --- Click actions ---
 
@@ -157,16 +166,21 @@ class GuiGridView(GuiShell):
     # --- Toolbar button info ---
 
     def get_toolbar_button_id(self, pos: int) -> str:
-        return self._com.GetToolbarButtonId(pos)
+        """Return the toolbar button ID at the given position."""
+        return str(self._com.GetToolbarButtonId(pos))
 
     def get_toolbar_button_text(self, pos: int) -> str:
-        return self._com.GetToolbarButtonText(pos)
+        """Return the toolbar button text at the given position."""
+        return str(self._com.GetToolbarButtonText(pos))
 
     def get_toolbar_button_type(self, pos: int) -> int:
-        return self._com.GetToolbarButtonType(pos)
+        """Return the toolbar button type at the given position."""
+        return int(self._com.GetToolbarButtonType(pos))
 
     def get_toolbar_button_enabled(self, pos: int) -> bool:
+        """Whether the toolbar button at the given position is enabled."""
         return bool(self._com.GetToolbarButtonEnabled(pos))
 
     def get_toolbar_button_tooltip(self, pos: int) -> str:
-        return self._com.GetToolbarButtonTooltip(pos)
+        """Return the toolbar button tooltip at the given position."""
+        return str(self._com.GetToolbarButtonTooltip(pos))

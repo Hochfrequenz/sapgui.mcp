@@ -13,27 +13,32 @@ class GuiTextedit(GuiShell):
 
     @property
     def number_of_lines(self) -> int:
-        return self._com.NumberOfLines
+        """Total number of lines in the editor."""
+        return int(self._com.NumberOfLines)
 
     @property
     def current_line(self) -> int:
-        return self._com.CurrentLine
+        """Current cursor line number."""
+        return int(self._com.CurrentLine)
 
     @property
     def current_column(self) -> int:
-        return self._com.CurrentColumn
+        """Current cursor column number."""
+        return int(self._com.CurrentColumn)
 
     @property
     def selection_text(self) -> str:
-        return self._com.SelectionText
+        """Currently selected text."""
+        return str(self._com.SelectionText)
 
     @property
     def is_read_only(self) -> bool:
+        """Whether the editor is in read-only mode."""
         return bool(self._com.IsReadOnly)
 
     def get_line_text(self, line: int) -> str:
         """Return the text of a specific line (0-based)."""
-        return self._com.GetLineText(line)
+        return str(self._com.GetLineText(line))
 
     def set_selection_indexes(self, start: int, end: int) -> None:
         """Set the text selection by character indexes."""
@@ -56,23 +61,27 @@ class GuiAbapEditor(GuiShell):
 
     @property
     def number_of_lines(self) -> int:
-        return self._com.NumberOfLines
+        """Total number of lines in the editor."""
+        return int(self._com.NumberOfLines)
 
     @property
     def current_line(self) -> int:
-        return self._com.CurrentLine
+        """Current cursor line number."""
+        return int(self._com.CurrentLine)
 
     @property
     def current_column(self) -> int:
-        return self._com.CurrentColumn
+        """Current cursor column number."""
+        return int(self._com.CurrentColumn)
 
     @property
     def selection_text(self) -> str:
-        return self._com.SelectionText
+        """Currently selected text."""
+        return str(self._com.SelectionText)
 
     def get_line_text(self, line: int) -> str:
         """Return the text of a specific line (0-based)."""
-        return self._com.GetLineText(line)
+        return str(self._com.GetLineText(line))
 
     def set_selection_indexes(self, start: int, end: int) -> None:
         """Set the text selection by character indexes."""

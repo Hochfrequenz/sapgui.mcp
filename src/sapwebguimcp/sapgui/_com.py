@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING
 from sapwebguimcp.sapgui._errors import SapConnectionError, SapGuiTimeoutError, ScriptingDisabledError
 
 try:
-    import pythoncom
-    import win32com.client
+    import pythoncom  # type: ignore[import-untyped]
+    import win32com.client  # type: ignore[import-untyped]
 except ImportError:
-    pythoncom = None  # type: ignore[assignment]
-    win32com = None  # type: ignore[assignment]
+    pythoncom = None
+    win32com = None
 
 if TYPE_CHECKING:
     from sapwebguimcp.sapgui.components.application import GuiApplication

@@ -2,26 +2,31 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from sapwebguimcp.sapgui.components.base import GuiVComponent
 
 
 class GuiComboBoxEntry:
     """A single entry in a GuiComboBox dropdown list."""
 
-    def __init__(self, com_entry) -> None:
+    def __init__(self, com_entry: Any) -> None:
         self._com = com_entry
 
     @property
     def key(self) -> str:
-        return self._com.Key
+        """Key value of the entry."""
+        return str(self._com.Key)
 
     @property
     def value(self) -> str:
-        return self._com.Value
+        """Display value of the entry."""
+        return str(self._com.Value)
 
     @property
     def pos(self) -> int:
-        return self._com.Pos
+        """Position index of the entry."""
+        return int(self._com.Pos)
 
     def __repr__(self) -> str:
         return f"GuiComboBoxEntry(key={self._com.Key!r}, value={self._com.Value!r})"
@@ -35,7 +40,8 @@ class GuiComboBox(GuiVComponent):
 
     @property
     def value(self) -> str:
-        return self._com.Value
+        """Currently selected key value."""
+        return str(self._com.Value)
 
     @value.setter
     def value(self, key: str) -> None:
@@ -51,16 +57,20 @@ class GuiComboBox(GuiVComponent):
 
     @property
     def item_count(self) -> int:
-        return self._com.Entries.Count
+        """Number of entries in the dropdown."""
+        return int(self._com.Entries.Count)
 
     @property
     def is_required(self) -> bool:
+        """Whether a value must be selected."""
         return bool(self._com.Required)
 
     @property
     def highlighted(self) -> bool:
+        """Whether the combobox is visually highlighted."""
         return bool(self._com.Highlighted)
 
     @property
     def is_list_element(self) -> bool:
+        """Whether the combobox belongs to a list."""
         return bool(self._com.IsListElement)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from sapwebguimcp.sapgui.components.base import GuiVContainer
 
 
@@ -12,12 +14,12 @@ class GuiUserArea(GuiVContainer):
     """
 
     @property
-    def vertical_scrollbar(self):
+    def vertical_scrollbar(self) -> Any:
         """Return the vertical scrollbar COM object."""
         return self._com.VerticalScrollbar
 
     @property
-    def horizontal_scrollbar(self):
+    def horizontal_scrollbar(self) -> Any:
         """Return the horizontal scrollbar COM object."""
         return self._com.HorizontalScrollbar
 

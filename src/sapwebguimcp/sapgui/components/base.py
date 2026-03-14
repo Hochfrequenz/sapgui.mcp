@@ -2,42 +2,54 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 from sapwebguimcp.sapgui._errors import ElementNotFoundError
+
+if TYPE_CHECKING:
+    from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+    from sapwebguimcp.sapgui.models import ElementInfo
 
 
 class GuiComponent:
     """Wraps the COM GuiComponent interface — the root of the SAP GUI type tree."""
 
-    def __init__(self, com_object) -> None:
+    def __init__(self, com_object: Any) -> None:
         self._com = com_object
 
     @property
-    def com(self):
+    def com(self) -> Any:
         """Return the underlying COM dispatch object."""
         return self._com
 
     @property
     def id(self) -> str:
-        return self._com.Id
+        """Unique technical identifier of this element."""
+        return str(self._com.Id)
 
     @property
     def name(self) -> str:
-        return self._com.Name
+        """Short name of this element."""
+        return str(self._com.Name)
 
     @property
     def type(self) -> str:
-        return self._com.Type
+        """SAP GUI type name string."""
+        return str(self._com.Type)
 
     @property
     def type_as_number(self) -> int:
-        return self._com.TypeAsNumber
+        """Numeric type identifier."""
+        return int(self._com.TypeAsNumber)
 
     @property
     def container_type(self) -> bool:
-        return self._com.ContainerType
+        """Whether this element can contain children."""
+        return bool(self._com.ContainerType)
 
     @property
-    def parent(self):
+    def parent(self) -> Any:
+        """Parent COM object in the element hierarchy."""
         return self._com.Parent
 
     def __repr__(self) -> str:
@@ -49,7 +61,8 @@ class GuiVComponent(GuiComponent):
 
     @property
     def text(self) -> str:
-        return self._com.Text
+        """Display text of this element."""
+        return str(self._com.Text)
 
     @text.setter
     def text(self, value: str) -> None:
@@ -57,63 +70,78 @@ class GuiVComponent(GuiComponent):
 
     @property
     def tooltip(self) -> str:
-        return self._com.Tooltip
+        """Tooltip text."""
+        return str(self._com.Tooltip)
 
     @property
     def default_tooltip(self) -> str:
-        return self._com.DefaultTooltip
+        """Default tooltip text."""
+        return str(self._com.DefaultTooltip)
 
     @property
     def changeable(self) -> bool:
-        return self._com.Changeable
+        """Whether the element is currently editable."""
+        return bool(self._com.Changeable)
 
     @property
     def modified(self) -> bool:
-        return self._com.Modified
+        """Whether the element value has been modified."""
+        return bool(self._com.Modified)
 
     @property
     def height(self) -> int:
-        return self._com.Height
+        """Height in pixels."""
+        return int(self._com.Height)
 
     @property
     def width(self) -> int:
-        return self._com.Width
+        """Width in pixels."""
+        return int(self._com.Width)
 
     @property
     def left(self) -> int:
-        return self._com.Left
+        """Left position in pixels."""
+        return int(self._com.Left)
 
     @property
     def top(self) -> int:
-        return self._com.Top
+        """Top position in pixels."""
+        return int(self._com.Top)
 
     @property
     def screen_left(self) -> int:
-        return self._com.ScreenLeft
+        """Absolute screen left position in pixels."""
+        return int(self._com.ScreenLeft)
 
     @property
     def screen_top(self) -> int:
-        return self._com.ScreenTop
+        """Absolute screen top position in pixels."""
+        return int(self._com.ScreenTop)
 
     @property
     def icon_name(self) -> str:
-        return self._com.IconName
+        """Name of the associated icon."""
+        return str(self._com.IconName)
 
     @property
     def is_symbol_font(self) -> bool:
-        return self._com.IsSymbolFont
+        """Whether the element uses symbol font."""
+        return bool(self._com.IsSymbolFont)
 
     @property
     def acc_text(self) -> str:
-        return self._com.AccText
+        """Accessibility text."""
+        return str(self._com.AccText)
 
     @property
     def acc_tooltip(self) -> str:
-        return self._com.AccTooltip
+        """Accessibility tooltip."""
+        return str(self._com.AccTooltip)
 
     @property
     def acc_text_on_request(self) -> str:
-        return self._com.AccTextOnRequest
+        """Accessibility text available on request."""
+        return str(self._com.AccTextOnRequest)
 
     def set_focus(self) -> None:
         """Set keyboard focus to this element."""
@@ -123,7 +151,7 @@ class GuiVComponent(GuiComponent):
         """Highlight or unhighlight this element."""
         self._com.Visualize(on)
 
-    def dump_state(self, inner_object: str):
+    def dump_state(self, inner_object: str) -> Any:
         """Return a collection of element state properties."""
         return self._com.DumpState(inner_object)
 
@@ -132,7 +160,7 @@ class GuiContainer(GuiComponent):
     """Wraps the COM GuiContainer interface — non-visual container with children."""
 
     @property
-    def children(self):
+    def children(self) -> GuiComponentCollection:
         """Return the children wrapped in a GuiComponentCollection."""
         from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
 
@@ -158,7 +186,7 @@ class GuiContainer(GuiComponent):
         return wrap_com_object(result)
 
 
-def _safe_com_attr(com_obj, attr: str, default=None):
+def _safe_com_attr(com_obj: Any, attr: str, default: Any = None) -> Any:
     """Safely get a COM attribute, returning default on any error.
 
     Unlike getattr(), this catches COM errors (pywintypes.com_error)
@@ -170,11 +198,11 @@ def _safe_com_attr(com_obj, attr: str, default=None):
         return default
 
 
-def _dump_tree_recursive(com_obj, depth: int, max_depth: int):
+def _dump_tree_recursive(com_obj: Any, depth: int, max_depth: int) -> list[ElementInfo]:
     """Recursively walk COM children and build a list of ElementInfo."""
     from sapwebguimcp.sapgui.models import ElementInfo
 
-    result = []
+    result: list[ElementInfo] = []
     try:
         children_com = com_obj.Children
         count = children_com.Count
@@ -205,7 +233,7 @@ def _dump_tree_recursive(com_obj, depth: int, max_depth: int):
 class GuiVContainer(GuiContainer, GuiVComponent):
     """Wraps the COM GuiVContainer interface — visual container with children and layout."""
 
-    def dump_tree(self, max_depth: int = 10):
+    def dump_tree(self, max_depth: int = 10) -> list[ElementInfo]:
         """Return a recursive tree of ElementInfo for all children.
 
         Args:
@@ -216,27 +244,27 @@ class GuiVContainer(GuiContainer, GuiVComponent):
         """
         return _dump_tree_recursive(self._com, 0, max_depth)
 
-    def find_by_name(self, name: str, type_name: str):
+    def find_by_name(self, name: str, type_name: str) -> GuiComponent | None:
         """Find a child element by name and type name string."""
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
         result = self._com.FindByName(name, type_name)
         return wrap_com_object(result) if result is not None else None
 
-    def find_by_name_ex(self, name: str, type_number: int):
+    def find_by_name_ex(self, name: str, type_number: int) -> GuiComponent | None:
         """Find a child element by name and type number."""
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
         result = self._com.FindByNameEx(name, type_number)
         return wrap_com_object(result) if result is not None else None
 
-    def find_all_by_name(self, name: str, type_name: str):
+    def find_all_by_name(self, name: str, type_name: str) -> GuiComponentCollection:
         """Find all child elements matching name and type name string."""
         from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
 
         return GuiComponentCollection(self._com.FindAllByName(name, type_name))
 
-    def find_all_by_name_ex(self, name: str, type_number: int):
+    def find_all_by_name_ex(self, name: str, type_number: int) -> GuiComponentCollection:
         """Find all child elements matching name and type number."""
         from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
 

@@ -13,10 +13,12 @@ class GuiButton(GuiVComponent):
 
     @property
     def highlighted(self) -> bool:
+        """Whether the button is visually highlighted."""
         return bool(self._com.Highlighted)
 
     @property
     def is_list_element(self) -> bool:
+        """Whether the button belongs to a list."""
         return bool(self._com.IsListElement)
 
     def press(self) -> None:
