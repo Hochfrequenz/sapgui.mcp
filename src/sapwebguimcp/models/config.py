@@ -13,11 +13,16 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = [
+    "BackendType",
     "BrowserMode",
     "BrowserType",
     "SapWebGuiSettings",
     "get_settings",
 ]
+
+# Backend type — only "webgui" for now; "desktop" will be added when
+# SAP GUI Scripting (COM) support is implemented.
+BackendType = Literal["webgui"]
 
 
 def _env_files() -> tuple[str, ...]:
@@ -96,6 +101,13 @@ class SapWebGuiSettings(BaseSettings):
         env_file=_env_files(),  # called at import time
         env_file_encoding="utf-8",
         extra="ignore",
+    )
+
+    # Backend Selection
+    backend_type: BackendType = Field(
+        default="webgui",
+        description="Backend type: 'webgui' (Playwright browser automation)",
+        json_schema_extra={"env": "BACKEND_TYPE"},
     )
 
     # SAP Connection Settings

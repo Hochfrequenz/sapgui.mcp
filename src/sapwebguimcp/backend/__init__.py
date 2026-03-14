@@ -1,6 +1,6 @@
 """Backend abstraction layer for SAP UI interaction."""
 
-from sapwebguimcp.backend.manager import get_backend, get_backend_manager, reset_backend_manager
+from sapwebguimcp.backend.manager import close_backend, get_backend, get_backend_manager, reset_backend_manager
 from sapwebguimcp.backend.protocol import (
     CheckActivateResult,
     SapEditor,
@@ -21,6 +21,7 @@ __all__ = [
     "SapUiBackend",
     "SapUiInspection",
     "SapUiPrimitives",
+    "close_backend",
     "get_backend",
     "get_backend_manager",
     "reset_backend_manager",
