@@ -167,11 +167,15 @@ class TestGuiVComponent:
 
 class TestGuiContainer:
     def test_children_property(self):
-        child1 = make_mock_com(name="child1")
-        child2 = make_mock_com(name="child2")
+        child1 = make_mock_com(type_as_number=31, type_name="GuiTextField", name="child1")
+        child2 = make_mock_com(type_as_number=40, type_name="GuiButton", name="child2")
         com = make_mock_com(container_type=True, children=[child1, child2])
         gc = GuiContainer(com)
-        assert gc.children is com.Children
+        children = gc.children
+        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+
+        assert isinstance(children, GuiComponentCollection)
+        assert len(children) == 2
 
     def test_find_by_id_delegates(self):
         com = make_mock_com(container_type=True, children=[])
@@ -210,39 +214,59 @@ class TestGuiVContainer:
 
     def test_find_by_name(self):
         com = make_mock_com(container_type=True, children=[])
-        sentinel = MagicMock()
-        com.FindByName.return_value = sentinel
+        found = make_mock_com(type_as_number=31, type_name="GuiTextField")
+        com.FindByName.return_value = found
         vc = GuiVContainer(com)
         result = vc.find_by_name("FIELD", "GuiTextField")
         com.FindByName.assert_called_once_with("FIELD", "GuiTextField")
-        assert result is sentinel
+        assert result.com is found
+
+    def test_find_by_name_returns_none(self):
+        com = make_mock_com(container_type=True, children=[])
+        com.FindByName.return_value = None
+        vc = GuiVContainer(com)
+        result = vc.find_by_name("FIELD", "GuiTextField")
+        assert result is None
 
     def test_find_by_name_ex(self):
         com = make_mock_com(container_type=True, children=[])
-        sentinel = MagicMock()
-        com.FindByNameEx.return_value = sentinel
+        found = make_mock_com(type_as_number=31, type_name="GuiTextField")
+        com.FindByNameEx.return_value = found
         vc = GuiVContainer(com)
         result = vc.find_by_name_ex("FIELD", 31)
         com.FindByNameEx.assert_called_once_with("FIELD", 31)
-        assert result is sentinel
+        assert result.com is found
+
+    def test_find_by_name_ex_returns_none(self):
+        com = make_mock_com(container_type=True, children=[])
+        com.FindByNameEx.return_value = None
+        vc = GuiVContainer(com)
+        result = vc.find_by_name_ex("FIELD", 31)
+        assert result is None
 
     def test_find_all_by_name(self):
         com = make_mock_com(container_type=True, children=[])
-        sentinel = MagicMock()
-        com.FindAllByName.return_value = sentinel
+        col_com = MagicMock()
+        col_com.Count = 0
+        com.FindAllByName.return_value = col_com
         vc = GuiVContainer(com)
         result = vc.find_all_by_name("FIELD", "GuiTextField")
         com.FindAllByName.assert_called_once_with("FIELD", "GuiTextField")
-        assert result is sentinel
+        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+
+        assert isinstance(result, GuiComponentCollection)
 
     def test_find_all_by_name_ex(self):
         com = make_mock_com(container_type=True, children=[])
-        sentinel = MagicMock()
-        com.FindAllByNameEx.return_value = sentinel
+        col_com = MagicMock()
+        col_com.Count = 0
+        com.FindAllByNameEx.return_value = col_com
         vc = GuiVContainer(com)
         result = vc.find_all_by_name_ex("FIELD", 31)
         com.FindAllByNameEx.assert_called_once_with("FIELD", 31)
-        assert result is sentinel
+        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+
+        assert isinstance(result, GuiComponentCollection)
 
 
 # ---------------------------------------------------------------------------

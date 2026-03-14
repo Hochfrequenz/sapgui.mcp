@@ -19,9 +19,12 @@ class TestGuiApplicationInheritance:
 
 class TestGuiApplicationProperties:
     def test_connections(self):
-        com = make_mock_com(Connections=MagicMock(name="conn_collection"))
+        com = make_mock_com(container_type=True, children=[make_mock_com(type_as_number=11, type_name="GuiConnection")])
         app = GuiApplication(com)
-        assert app.connections is com.Connections
+        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+
+        assert isinstance(app.connections, GuiComponentCollection)
+        assert len(app.connections) == 1
 
     def test_active_session(self):
         session = MagicMock()
@@ -71,15 +74,21 @@ class TestGuiApplicationProperties:
 class TestGuiApplicationMethods:
     def test_open_connection(self):
         com = make_mock_com()
+        conn_com = make_mock_com(type_as_number=11, type_name="GuiConnection")
+        com.OpenConnection.return_value = conn_com
         app = GuiApplication(com)
-        app.open_connection("DEV", sync=True, raise_error=True)
+        result = app.open_connection("DEV", sync=True, raise_error=True)
         com.OpenConnection.assert_called_once_with("DEV", True, True)
+        assert result.com is conn_com
 
     def test_open_connection_by_connection_string(self):
         com = make_mock_com()
+        conn_com = make_mock_com(type_as_number=11, type_name="GuiConnection")
+        com.OpenConnectionByConnectionString.return_value = conn_com
         app = GuiApplication(com)
-        app.open_connection_by_connection_string("/H/server/S/3200")
+        result = app.open_connection_by_connection_string("/H/server/S/3200")
         com.OpenConnectionByConnectionString.assert_called_once_with("/H/server/S/3200", True, True)
+        assert result.com is conn_com
 
     def test_create_gui_collection(self):
         com = make_mock_com()

@@ -19,10 +19,12 @@ class TestGuiConnectionInheritance:
 
 class TestGuiConnectionProperties:
     def test_sessions(self):
-        sessions = MagicMock()
-        com = make_mock_com(Sessions=sessions)
+        com = make_mock_com(container_type=True, children=[make_mock_com(type_as_number=12, type_name="GuiSession")])
         conn = GuiConnection(com)
-        assert conn.sessions is sessions
+        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+
+        assert isinstance(conn.sessions, GuiComponentCollection)
+        assert len(conn.sessions) == 1
 
     def test_connection_string(self):
         com = make_mock_com(ConnectionString="/H/server/S/3200")

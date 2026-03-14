@@ -117,8 +117,10 @@ class GuiSession(GuiContainer):
 
     @property
     def active_window(self):
-        """Return the COM object for the currently active window."""
-        return self._com.ActiveWindow
+        """Return the active window wrapped in the correct Python class."""
+        from sapwebguimcp.sapgui._factory import wrap_com_object
+
+        return wrap_com_object(self._com.ActiveWindow)
 
     def create_session(self) -> None:
         """Open an additional session (like /o in the OK-code field)."""

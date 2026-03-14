@@ -13,16 +13,18 @@ class GuiComponentCollection:
         return self._com.Count
 
     def __getitem__(self, index: int):
+        from sapwebguimcp.sapgui._factory import wrap_com_object
+
         length = self._com.Count
         if index < 0:
             index += length
         if index < 0 or index >= length:
             raise IndexError(f"Index {index} out of range for collection of length {length}")
-        return self._com.Item(index)
+        return wrap_com_object(self._com.Item(index))
 
     def __iter__(self):
         for i in range(self._com.Count):
-            yield self._com.Item(i)
+            yield self[i]
 
     def __repr__(self) -> str:
         return f"GuiComponentCollection(count={self._com.Count})"

@@ -14,8 +14,10 @@ class GuiApplication(GuiContainer):
 
     @property
     def connections(self):
-        """Return the COM GuiComponentCollection of open connections."""
-        return self._com.Connections
+        """Return the GuiComponentCollection of open connections."""
+        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+
+        return GuiComponentCollection(self._com.Children)
 
     @property
     def active_session(self):
@@ -53,11 +55,15 @@ class GuiApplication(GuiContainer):
 
     def open_connection(self, description: str, sync: bool = True, raise_error: bool = True):
         """Open a connection by system description (as shown in SAP Logon)."""
-        return self._com.OpenConnection(description, sync, raise_error)
+        from sapwebguimcp.sapgui._factory import wrap_com_object
+
+        return wrap_com_object(self._com.OpenConnection(description, sync, raise_error))
 
     def open_connection_by_connection_string(self, conn_string: str, sync: bool = True, raise_error: bool = True):
         """Open a connection using a raw connection string."""
-        return self._com.OpenConnectionByConnectionString(conn_string, sync, raise_error)
+        from sapwebguimcp.sapgui._factory import wrap_com_object
+
+        return wrap_com_object(self._com.OpenConnectionByConnectionString(conn_string, sync, raise_error))
 
     def create_gui_collection(self):
         """Create a new empty GuiCollection COM object."""

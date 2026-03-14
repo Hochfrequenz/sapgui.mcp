@@ -133,8 +133,10 @@ class GuiContainer(GuiComponent):
 
     @property
     def children(self):
-        """Return the COM Children collection."""
-        return self._com.Children
+        """Return the children wrapped in a GuiComponentCollection."""
+        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+
+        return GuiComponentCollection(self._com.Children)
 
     def find_by_id(self, id: str, raise_error: bool = True) -> GuiComponent | None:
         """Find a child element by its ID path, wrapped in the correct Python class.
@@ -216,16 +218,26 @@ class GuiVContainer(GuiContainer, GuiVComponent):
 
     def find_by_name(self, name: str, type_name: str):
         """Find a child element by name and type name string."""
-        return self._com.FindByName(name, type_name)
+        from sapwebguimcp.sapgui._factory import wrap_com_object
+
+        result = self._com.FindByName(name, type_name)
+        return wrap_com_object(result) if result is not None else None
 
     def find_by_name_ex(self, name: str, type_number: int):
         """Find a child element by name and type number."""
-        return self._com.FindByNameEx(name, type_number)
+        from sapwebguimcp.sapgui._factory import wrap_com_object
+
+        result = self._com.FindByNameEx(name, type_number)
+        return wrap_com_object(result) if result is not None else None
 
     def find_all_by_name(self, name: str, type_name: str):
         """Find all child elements matching name and type name string."""
-        return self._com.FindAllByName(name, type_name)
+        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+
+        return GuiComponentCollection(self._com.FindAllByName(name, type_name))
 
     def find_all_by_name_ex(self, name: str, type_number: int):
         """Find all child elements matching name and type number."""
-        return self._com.FindAllByNameEx(name, type_number)
+        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+
+        return GuiComponentCollection(self._com.FindAllByNameEx(name, type_number))

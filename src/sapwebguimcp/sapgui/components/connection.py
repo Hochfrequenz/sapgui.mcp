@@ -14,8 +14,10 @@ class GuiConnection(GuiContainer):
 
     @property
     def sessions(self):
-        """Return the COM GuiComponentCollection of sessions."""
-        return self._com.Sessions
+        """Return the GuiComponentCollection of sessions."""
+        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+
+        return GuiComponentCollection(self._com.Children)
 
     @property
     def connection_string(self) -> str:

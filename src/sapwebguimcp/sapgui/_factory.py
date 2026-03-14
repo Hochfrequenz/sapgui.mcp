@@ -41,7 +41,7 @@ from sapwebguimcp.sapgui.components.shell import (
     GuiSplit,
     GuiToolbarControl,
 )
-from sapwebguimcp.sapgui.components.statusbar import GuiStatusbar, GuiStatusPane
+from sapwebguimcp.sapgui.components.statusbar import GuiStatusbar, GuiStatusPane, GuiVHViewSwitch
 from sapwebguimcp.sapgui.components.tab import GuiTab, GuiTabStrip
 from sapwebguimcp.sapgui.components.table import GuiTableControl
 from sapwebguimcp.sapgui.components.toolbar import GuiMenu, GuiMenubar, GuiTitlebar, GuiToolbar
@@ -91,7 +91,7 @@ _TYPE_MAP: dict[int, type[GuiComponent]] = {
     123: GuiGOSShell,
     125: GuiDialogShell,
     126: GuiDockShell,
-    129: GuiVComponent,  # GuiVHViewSwitch extends GuiVComponent
+    129: GuiVHViewSwitch,
 }
 
 # Level 2: GuiShell SubType -> Python class

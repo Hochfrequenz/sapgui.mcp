@@ -39,10 +39,11 @@ class TestGuiSessionProperties:
         assert session.busy is False
 
     def test_active_window(self):
-        window = MagicMock()
+        window = make_mock_com(type_as_number=21, type_name="GuiMainWindow")
         com = make_mock_com(ActiveWindow=window)
         session = GuiSession(com)
-        assert session.active_window is window
+        result = session.active_window
+        assert result.com is window
 
 
 class TestGuiSessionMethods:

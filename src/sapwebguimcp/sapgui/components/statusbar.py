@@ -22,3 +22,10 @@ class GuiStatusPane(GuiVComponent):
 
     An individual pane within the status bar area.
     """
+
+
+class GuiVHViewSwitch(GuiVComponent):
+    """Wraps the COM GuiVHViewSwitch interface (TypeAsNumber 129).
+
+    Vertical/Horizontal view switcher control.
+    """
