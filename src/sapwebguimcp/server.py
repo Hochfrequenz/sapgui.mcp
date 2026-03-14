@@ -14,7 +14,7 @@ import httpx
 from fastmcp import FastMCP
 from fastmcp.server.middleware.logging import LoggingMiddleware
 
-from sapwebguimcp.backend.webgui.browser import close_browser_manager
+from sapwebguimcp.backend.manager import close_backend
 from sapwebguimcp.logging_config import configure_logging
 from sapwebguimcp.middleware import ToolCallLoggingMiddleware
 from sapwebguimcp.models.config import get_settings
@@ -99,12 +99,15 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     This context manager handles cleanup of browser resources on shutdown.
     The browser manager is initialized lazily on first use via get_browser_manager().
     """
-    logger.info("[STARTING] SAP Web GUI MCP Server initializing...")
-    cdp_ok = await _check_cdp_available(_settings.cdp_url)
-    if cdp_ok:
-        logger.info("[READY] Server started successfully. Waiting for MCP client connection on stdio.")
+    logger.info("[STARTING] SAP MCP Server initializing (backend=%s)...", _settings.backend_type)
+    if _settings.backend_type == "webgui":
+        cdp_ok = await _check_cdp_available(_settings.cdp_url)
+        if cdp_ok:
+            logger.info("[READY] Server started successfully. Waiting for MCP client connection on stdio.")
+        else:
+            logger.info("[WAITING] Server started but Chrome is not available. Start Chrome, then restart this server.")
     else:
-        logger.info("[WAITING] Server started but Chrome is not available. Start Chrome, then restart this server.")
+        logger.info("[READY] Server started (backend=%s). Waiting for MCP client connection.", _settings.backend_type)
 
     # Validate GitHub PAT if configured (non-blocking, warns only)
     _current_settings = get_settings()
@@ -123,8 +126,8 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     try:
         yield
     finally:
-        logger.info("[STOPPING] Cleaning up browser resources...")
-        await close_browser_manager()
+        logger.info("[STOPPING] Cleaning up backend resources...")
+        await close_backend()
         logger.info("[STOPPED] Server shutdown complete.")
 
 
