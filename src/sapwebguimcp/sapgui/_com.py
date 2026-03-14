@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sapwebguimcp.sapgui._errors import SapConnectionError, SapGuiTimeoutError, ScriptingDisabledError
 
@@ -48,7 +48,7 @@ def _connect_to_running_sap_gui() -> GuiApplication:
     return GuiApplication(engine)
 
 
-def _check_scripting_not_disabled(engine: object) -> None:
+def _check_scripting_not_disabled(engine: Any) -> None:
     """Raise ScriptingDisabledError if every connection has scripting disabled.
 
     When sapgui/user_scripting=FALSE on the SAP server, the COM connection
@@ -56,7 +56,7 @@ def _check_scripting_not_disabled(engine: object) -> None:
     collection appears empty and all FindById calls fail silently.
     """
     try:
-        connections = engine.Children  # type: ignore[union-attr]
+        connections = engine.Children
         count = connections.Count
         if count == 0:
             return  # No connections yet — nothing to check
