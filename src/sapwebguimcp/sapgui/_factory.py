@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from sapwebguimcp.sapgui.components.application import GuiApplication
-from sapwebguimcp.sapgui.components.base import GuiComponent, GuiVComponent
+from sapwebguimcp.sapgui.components.base import GuiComponent
 from sapwebguimcp.sapgui.components.button import GuiButton
 from sapwebguimcp.sapgui.components.checkbox import GuiCheckBox, GuiRadioButton
 from sapwebguimcp.sapgui.components.combobox import GuiComboBox
