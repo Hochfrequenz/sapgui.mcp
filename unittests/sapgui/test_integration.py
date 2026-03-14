@@ -129,3 +129,67 @@ def test_read_statusbar_text():
     session = _get_session()
     sbar = session.find_by_id("wnd[0]/sbar")
     assert isinstance(sbar.text, str)
+
+
+# ---------------------------------------------------------------------------
+# Login / Logoff integration tests
+# ---------------------------------------------------------------------------
+
+
+def _skip_no_connection_name():
+    """Check whether SAP_CONNECTION_NAME is configured."""
+    try:
+        from sapwebguimcp.models.config import get_settings
+
+        return not get_settings().sap_connection_name
+    except Exception:
+        return True
+
+
+skip_no_login = pytest.mark.skipif(_skip_no_connection_name(), reason="SAP_CONNECTION_NAME not set")
+
+
+@skip_no_sap
+@skip_no_login
+def test_login_and_logoff():
+    """Login with real credentials, verify session info, then logoff."""
+    from sapwebguimcp.models.config import get_settings
+    from sapwebguimcp.sapgui._login import login, logoff
+
+    settings = get_settings()
+    session = login(
+        connection_name=settings.sap_connection_name,
+        client=settings.sap_mandant,
+        user=settings.sap_user,
+        password=settings.sap_password,
+        language=settings.sap_language,
+    )
+    try:
+        assert session.info.system_name != ""
+        assert session.info.user.upper() == settings.sap_user.upper()
+    finally:
+        logoff(session)
+
+
+@skip_no_sap
+@skip_no_login
+def test_login_handles_easy_access():
+    """After login, session should be at Easy Access (not the login screen)."""
+    from sapwebguimcp.models.config import get_settings
+    from sapwebguimcp.sapgui._login import login, logoff
+
+    settings = get_settings()
+    session = login(
+        connection_name=settings.sap_connection_name,
+        client=settings.sap_mandant,
+        user=settings.sap_user,
+        password=settings.sap_password,
+        language=settings.sap_language,
+    )
+    try:
+        # After successful login we should NOT be on the login dynpro
+        assert session.info.program != "SAPMSYST"
+        # Typically SESSION_MANAGER or SAPLSMTR_NAVIGATION
+        assert session.info.transaction in ("SESSION_MANAGER", "S000", "")
+    finally:
+        logoff(session)

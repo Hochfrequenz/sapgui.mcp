@@ -1,8 +1,13 @@
 """Shared fixtures for sapgui unit tests."""
 
+from __future__ import annotations
+
+from collections.abc import Generator
 from unittest.mock import MagicMock, PropertyMock
 
 import pytest
+
+from unittests.conftest import is_sap_integration_test_machine
 
 
 def make_mock_com(
@@ -105,3 +110,36 @@ def make_mock_com(
 def mock_com():
     """Return a default mock COM object."""
     return make_mock_com()
+
+
+@pytest.fixture
+def sap_desktop_session() -> Generator:
+    """Provide a logged-in SAP GUI desktop session for integration tests.
+
+    Skips if not on the authorized SAP test machine or if required env vars are missing.
+    """
+    if not is_sap_integration_test_machine():
+        pytest.skip("Not on SAP integration test machine")
+
+    from sapwebguimcp.models.config import get_settings
+    from sapwebguimcp.sapgui._login import login, logoff
+
+    settings = get_settings()
+    if not settings.sap_connection_name:
+        pytest.skip("SAP_CONNECTION_NAME not set")
+    if not settings.sap_user:
+        pytest.skip("SAP_USER not set")
+    if not settings.sap_password:
+        pytest.skip("SAP_PASSWORD not set")
+    if not settings.sap_mandant:
+        pytest.skip("SAP_MANDANT not set")
+
+    session = login(
+        connection_name=settings.sap_connection_name,
+        client=settings.sap_mandant,
+        user=settings.sap_user,
+        password=settings.sap_password,
+        language=settings.sap_language,
+    )
+    yield session
+    logoff(session)
