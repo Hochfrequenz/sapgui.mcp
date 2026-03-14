@@ -156,8 +156,51 @@ class GuiContainer(GuiComponent):
         return wrap_com_object(result)
 
 
+def _dump_tree_recursive(com_obj, depth: int, max_depth: int):
+    """Recursively walk COM children and build a list of ElementInfo."""
+    from sapwebguimcp.sapgui.models import ElementInfo
+
+    result = []
+    try:
+        children_com = com_obj.Children
+        count = children_com.Count
+    except Exception:
+        return result
+    for i in range(count):
+        try:
+            child = children_com.Item(i)
+        except Exception:
+            continue
+        child_info = ElementInfo(
+            id=str(getattr(child, "Id", "")),
+            type=str(getattr(child, "Type", "")),
+            type_as_number=int(getattr(child, "TypeAsNumber", 0)),
+            name=str(getattr(child, "Name", "")),
+            text=str(getattr(child, "Text", "")),
+            changeable=bool(getattr(child, "Changeable", False)),
+            children=(
+                _dump_tree_recursive(child, depth + 1, max_depth)
+                if depth + 1 < max_depth and getattr(child, "ContainerType", False)
+                else []
+            ),
+        )
+        result.append(child_info)
+    return result
+
+
 class GuiVContainer(GuiContainer, GuiVComponent):
     """Wraps the COM GuiVContainer interface — visual container with children and layout."""
+
+    def dump_tree(self, max_depth: int = 10):
+        """Return a recursive tree of ElementInfo for all children.
+
+        Args:
+            max_depth: Maximum recursion depth (default 10).
+
+        Returns:
+            A list of ElementInfo representing the child tree.
+        """
+        return _dump_tree_recursive(self._com, 0, max_depth)
 
     def find_by_name(self, name: str, type_name: str):
         """Find a child element by name and type name string."""

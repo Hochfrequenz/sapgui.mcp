@@ -5,7 +5,14 @@ from unittest.mock import MagicMock
 import pytest
 
 from sapwebguimcp.sapgui._errors import ElementNotFoundError
-from sapwebguimcp.sapgui.components.base import GuiComponent, GuiContainer, GuiVComponent, GuiVContainer
+from sapwebguimcp.sapgui.components.base import (
+    GuiComponent,
+    GuiContainer,
+    GuiVComponent,
+    GuiVContainer,
+    _dump_tree_recursive,
+)
+from sapwebguimcp.sapgui.models import ElementInfo
 from unittests.sapgui.conftest import make_mock_com
 
 # ---------------------------------------------------------------------------
@@ -236,3 +243,106 @@ class TestGuiVContainer:
         result = vc.find_all_by_name_ex("FIELD", 31)
         com.FindAllByNameEx.assert_called_once_with("FIELD", 31)
         assert result is sentinel
+
+
+# ---------------------------------------------------------------------------
+# dump_tree / _dump_tree_recursive
+# ---------------------------------------------------------------------------
+
+
+class TestDumpTree:
+    def test_single_level(self):
+        child1 = make_mock_com(
+            id="c1",
+            type_name="GuiTextField",
+            type_as_number=31,
+            name="txtA",
+            text="hello",
+            changeable=True,
+            container_type=False,
+        )
+        child2 = make_mock_com(
+            id="c2",
+            type_name="GuiButton",
+            type_as_number=40,
+            name="btnOK",
+            text="OK",
+            changeable=True,
+            container_type=False,
+        )
+        parent_com = make_mock_com(container_type=True, children=[child1, child2])
+        vc = GuiVContainer(parent_com)
+        result = vc.dump_tree()
+        assert len(result) == 2
+        assert isinstance(result[0], ElementInfo)
+        assert result[0].id == "c1"
+        assert result[0].name == "txtA"
+        assert result[0].text == "hello"
+        assert result[1].id == "c2"
+        assert result[1].name == "btnOK"
+        assert result[0].children == []
+        assert result[1].children == []
+
+    def test_respects_max_depth(self):
+        grandchild = make_mock_com(
+            id="gc1",
+            type_name="GuiTextField",
+            type_as_number=31,
+            name="txtGC",
+            text="deep",
+            changeable=False,
+            container_type=False,
+        )
+        child = make_mock_com(
+            id="c1",
+            type_name="GuiUserArea",
+            type_as_number=74,
+            name="usr",
+            text="",
+            changeable=False,
+            container_type=True,
+            children=[grandchild],
+        )
+        parent_com = make_mock_com(container_type=True, children=[child])
+        vc = GuiVContainer(parent_com)
+        # max_depth=1 means only depth 0 children, no recursion into containers
+        result = vc.dump_tree(max_depth=1)
+        assert len(result) == 1
+        assert result[0].id == "c1"
+        assert result[0].children == []
+
+    def test_recurses_into_nested_containers(self):
+        grandchild = make_mock_com(
+            id="gc1",
+            type_name="GuiTextField",
+            type_as_number=31,
+            name="txtGC",
+            text="deep",
+            changeable=False,
+            container_type=False,
+        )
+        child = make_mock_com(
+            id="c1",
+            type_name="GuiUserArea",
+            type_as_number=74,
+            name="usr",
+            text="",
+            changeable=False,
+            container_type=True,
+            children=[grandchild],
+        )
+        parent_com = make_mock_com(container_type=True, children=[child])
+        vc = GuiVContainer(parent_com)
+        result = vc.dump_tree(max_depth=10)
+        assert len(result) == 1
+        assert len(result[0].children) == 1
+        assert result[0].children[0].id == "gc1"
+        assert result[0].children[0].text == "deep"
+
+    def test_handles_exception_in_children(self):
+        """If Children raises, return empty list."""
+        parent_com = make_mock_com(container_type=True)
+        # Force Children to raise
+        type(parent_com).Children = property(lambda self: (_ for _ in ()).throw(RuntimeError("no children")))
+        result = _dump_tree_recursive(parent_com, 0, 10)
+        assert result == []
