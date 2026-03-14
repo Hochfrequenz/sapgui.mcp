@@ -100,3 +100,5 @@ src/_sapwebguimcp_version.py
 node_modules/
 
 nul
+docs/sap_gui_scripting_api_reference.pdf
+docs/sap_gui_scripting_api_800/
