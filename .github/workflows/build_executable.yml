@@ -69,7 +69,7 @@ jobs:
         shell: pwsh
 
       - name: Smoke Test
-        run: python unittests/smoke_test_exe.py dist/sapwebgui_mcp_windows.exe
+        run: python unittests/webgui/smoke_test_exe.py dist/sapwebgui_mcp_windows.exe
 
   release:
     needs: [build, smoke_test]

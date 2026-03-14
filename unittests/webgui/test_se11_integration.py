@@ -14,6 +14,7 @@ import pytest
 from mcp import ClientSession
 
 from sapwebguimcp.models import (
+    ClickResult,
     FillFormResult,
     KeyboardResult,
     LoginResult,
@@ -25,6 +26,10 @@ from sapwebguimcp.models import (
 )
 
 from .conftest import call_tool_typed, get_html_content
+from .integration_helpers import (
+    _wait_for_transaction_screen,
+    capture_html_snapshot,
+)
 
 HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
 YAML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "yaml_snapshots"
@@ -385,3 +390,51 @@ async def test_se11_lookup_large_batch_to_file(sap_mcp_client: ClientSession, tm
     found_names = {e["name"] for e in full_result["entries"]}
     error_names = {e["name"] for e in full_result["errors"]}
     assert found_names | error_names == set(tables)
+
+
+# --- Merged from test_sap_integration.py ---
+
+
+@pytest.mark.anyio
+async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None:
+    """Test viewing table definition in SE11 using T000 (Clients table).
+
+    SE11 (ABAP Dictionary) shows table structure/definition, not content.
+    T000 is a simple table with well-known fields like MANDT, CCCATEGORY, etc.
+
+    This test verifies:
+    - SE11 can display table definition
+    - The table fields are shown
+    - We can capture the HTML for unit tests
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE11"}, TransactionResult)
+    # Wait for SE11 to load (has "Database table" radio button)
+    await _wait_for_transaction_screen(sap_mcp_client, "SE11")
+
+    # Capture SE11 initial screen
+    await capture_html_snapshot(sap_mcp_client, "se11_initial")
+
+    # "Datenbanktabelle" is a radio button, click it then Tab to the text field
+    await call_tool_typed(sap_mcp_client, "browser_click", {"selector": "text=Datenbanktabelle"}, ClickResult)
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 300})
+    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Tab"}, KeyboardResult)
+    await sap_mcp_client.call_tool("browser_keyboard", {"text": "T000"})
+
+    # Press F7 (Anzeigen/Display) to view table definition
+    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture table structure HTML
+    await capture_html_snapshot(sap_mcp_client, "se11_t000_content")
+
+    # Verify we're on the table definition screen
+    page_html = (await get_html_content(sap_mcp_client)).upper()
+
+    # T000 definition should show field names like MANDT, CCCATEGORY
+    has_mandt = "MANDT" in page_html
+    has_fields = "FIELD" in page_html or "COMPONENT" in page_html or "CCCATEGORY" in page_html
+
+    assert has_mandt or has_fields, (
+        "SE11 T000 definition should show table fields. " "Expected MANDT or other field indicators in the page."
+    )

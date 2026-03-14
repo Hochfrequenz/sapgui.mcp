@@ -15,13 +15,13 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.models.config import get_settings
-from sapwebguimcp.models.sm37_models import SM37JobListResult, SM37JobLog
-from sapwebguimcp.parsers.sm37_parser import (
+from sapwebguimcp.backend.webgui.parsers.sm37_parser import (
     is_no_jobs_found,
     parse_sm37_job_list,
     parse_sm37_job_log,
 )
+from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.models.sm37_models import SM37JobListResult, SM37JobLog
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 

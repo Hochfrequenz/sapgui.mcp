@@ -1,12 +1,12 @@
 """Parsers for extracting structured data from SAP screen snapshots."""
 
-from sapwebguimcp.parsers.se16_parser import (
+from sapwebguimcp.backend.webgui.parsers.se16_parser import (
     SE16ParseResult,
     parse_se16_hit_count,
     parse_se16_rows,
     parse_se16_snapshot,
 )
-from sapwebguimcp.parsers.st22_parser import (
+from sapwebguimcp.backend.webgui.parsers.st22_parser import (
     parse_st22_dump_detail,
     parse_st22_dump_list,
     parse_st22_initial_screen,

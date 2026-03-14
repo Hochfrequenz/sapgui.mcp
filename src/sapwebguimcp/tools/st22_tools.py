@@ -23,16 +23,16 @@ from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.types import AriaSnapshot
-from sapwebguimcp.models.config import get_settings
-from sapwebguimcp.models.st22_models import (
-    ST22DumpDetailResult,
-    ST22DumpListResult,
-)
-from sapwebguimcp.parsers.st22_parser import (
+from sapwebguimcp.backend.webgui.parsers.st22_parser import (
     is_no_dumps_message,
     parse_st22_dump_detail,
     parse_st22_dump_list,
     parse_st22_initial_screen,
+)
+from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.models.st22_models import (
+    ST22DumpDetailResult,
+    ST22DumpListResult,
 )
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 

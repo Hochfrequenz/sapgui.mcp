@@ -16,9 +16,9 @@ from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
+from sapwebguimcp.backend.webgui.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
 from sapwebguimcp.lang import SE16_NO_ENTRIES_DE, SE16_NO_ENTRIES_EN
 from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row
-from sapwebguimcp.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
 from sapwebguimcp.tools.se11_tools import _lookup_object_on_initial_screen
 
 logger = logging.getLogger(__name__)
@@ -332,11 +332,8 @@ async def _fill_se16n_filters(  # pylint: disable=too-many-locals
 
     errors: list[str] = []
 
-    # load_js reads static JS file content (pure I/O helper)
-    from sapwebguimcp.backend.webgui.js_helpers import load_js  # pylint: disable=import-outside-toplevel
-
-    find_js = load_js("find_se16_filter_input.js") if field_order else None
-    fill_js = load_js("fill_se16_filter.js") if not field_order else None
+    find_js = backend.load_js("find_se16_filter_input.js") if field_order else None
+    fill_js = backend.load_js("fill_se16_filter.js") if not field_order else None
 
     if not field_order:
         logger.warning("No field order available, falling back to name-based filter search")

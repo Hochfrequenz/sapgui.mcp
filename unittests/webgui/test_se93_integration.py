@@ -14,14 +14,20 @@ from mcp import ClientSession
 
 from sapwebguimcp.models import (
     FillFormResult,
+    FillResult,
     KeyboardResult,
     LoginResult,
     SnapshotResult,
     StatusBarInfo,
+    TableData,
     TransactionResult,
 )
 
 from .conftest import call_tool_typed
+from .integration_helpers import (
+    _wait_for_transaction_screen,
+    capture_html_snapshot,
+)
 
 YAML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se93_exploration"
 
@@ -595,3 +601,42 @@ async def test_se93_lookup_gui_capabilities(sap_mcp_client: ClientSession) -> No
     assert entry.gui_windows is True
     assert entry.gui_java is True
     # gui_html may vary by system configuration
+
+
+# --- Merged from test_sap_integration.py ---
+
+
+@pytest.mark.anyio
+async def test_sap_read_table_from_se93(sap_mcp_client: ClientSession) -> None:
+    """Test reading transaction codes from SE93.
+
+    SE93 with wildcard 'SE*' will always return results (SE11, SE16, etc.).
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE93"}, TransactionResult)
+    # Wait for SE93 to load (has transaction code input field with TSTC-TCODE in lsdata)
+    await _wait_for_transaction_screen(sap_mcp_client, "SE93")
+
+    # Capture HTML snapshot for offline selector testing
+    await capture_html_snapshot(sap_mcp_client, "se93_initial")
+
+    # Search for transactions starting with SE - use lsdata selector
+    fill_result = await call_tool_typed(
+        sap_mcp_client, "browser_fill", {"selector": "input[lsdata*='TSTC-TCODE']", "value": "SE*"}, FillResult
+    )
+    assert fill_result.success, f"Failed to fill SE93 transaction code field: {fill_result.error}"
+
+    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    table_result = await call_tool_typed(sap_mcp_client, "sap_read_table", {}, TableData)
+
+    # Should find standard SE* transactions
+    # Check for either transaction codes in data or valid table structure
+    rows_str = str(table_result.rows).lower() if table_result.rows else ""
+    has_se_transactions = "se11" in rows_str or "se16" in rows_str or "se80" in rows_str
+    has_table_structure = table_result.rows is not None or table_result.headers is not None
+
+    assert (
+        has_se_transactions or has_table_structure
+    ), f"Expected to find standard SE* transactions or table structure: {table_result}"

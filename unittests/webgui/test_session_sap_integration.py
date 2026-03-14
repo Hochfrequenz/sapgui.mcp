@@ -2,7 +2,9 @@
 
 import pytest
 
-from unittests.conftest import call_tool_typed, is_sap_integration_test_machine
+from unittests.conftest import is_sap_integration_test_machine
+
+from .conftest import call_tool_typed
 
 pytestmark = pytest.mark.skipif(
     not is_sap_integration_test_machine(), reason="SAP integration tests only run on authorized machines"

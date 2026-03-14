@@ -34,9 +34,10 @@ import pytest
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
-# Import the selectors we want to test
-from sapwebguimcp.tools.browser_tools import _escape_css_selector
 from sapwebguimcp.tools.sap_tools import SELECTORS, parse_shortcut_from_title
+
+# Import the selectors we want to test
+from sapwebguimcp.utils import escape_css_selector
 
 
 @pytest.fixture
@@ -1027,7 +1028,7 @@ class TestCssSelectorEscaping:
     )
     def test_escape_css_selector(self, selector: str, expected: str) -> None:
         """Test CSS selector escaping for various inputs."""
-        result = _escape_css_selector(selector)
+        result = escape_css_selector(selector)
         assert result == expected, f"Input: {selector!r}, Expected: {expected!r}, Got: {result!r}"
 
 

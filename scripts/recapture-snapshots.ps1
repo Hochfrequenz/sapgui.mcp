@@ -40,7 +40,7 @@ function Invoke-IntegrationTests {
     Set-SapLanguage $lang
 
     # Run all integration tests to capture snapshots
-    python -m pytest unittests/test_sap_integration.py -v --tb=short
+    python -m pytest unittests/ -k integration -v --tb=short
 
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Warning: Some tests failed for $lang" -ForegroundColor Yellow

@@ -120,7 +120,7 @@ only-include = ["src"]
 sources = ["src"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/sapwebguimcp/js" = "sapwebguimcp/js"
+"src/sapwebguimcp/backend/webgui/js" = "sapwebguimcp/backend/webgui/js"
 "src/sapwebguimcp/prompts" = "sapwebguimcp/prompts"
 
 [tool.pytest.ini_options]

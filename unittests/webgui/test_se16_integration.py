@@ -15,15 +15,23 @@ from mcp import ClientSession
 
 from sapwebguimcp.models import (
     FillFormResult,
+    FillResult,
     KeyboardResult,
     LoginResult,
+    ScreenInfo,
+    ScreenText,
     SE16FileSummary,
     SE16Result,
     SnapshotResult,
+    TableData,
     TransactionResult,
 )
 
-from .conftest import call_tool_typed
+from .conftest import call_tool_typed, get_html_content
+from .integration_helpers import (
+    _wait_for_transaction_screen,
+    capture_html_snapshot,
+)
 
 SE16_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se16_exploration"
 
@@ -543,3 +551,241 @@ async def test_se16_query_bug_report_filters(sap_mcp_client: ClientSession) -> N
     assert result.success, f"Bug report filters failed: {result.error}"
     assert "existiert nicht" not in (result.error or ""), "Filter value entered in wrong field"
     assert "does not exist" not in (result.error or ""), "Filter value entered in wrong field"
+
+
+# --- Merged from test_sap_integration.py ---
+
+
+@pytest.mark.anyio
+async def test_se16_table_content_t000(sap_mcp_client: ClientSession) -> None:
+    """Test reading actual table content from SE16 using T000 (Clients table).
+
+    T000 is the SAP clients/mandants table. It exists on every SAP system
+    and contains at least one row (the current client). It's small enough
+    to not overwhelm the LLM context.
+
+    This test verifies:
+    - SE16 can display table content
+    - The table has at least one row
+    - We can capture the HTML for unit tests
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
+    # Wait for SE16 to load (has table name input field)
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+
+    # Enter table name T000 (Clients table - always exists, always small)
+    # Use lsdata selector which is reliable for SAP Web GUI elements
+    fill_result = await call_tool_typed(
+        sap_mcp_client, "browser_fill", {"selector": "input[lsdata*='TABLENAME']", "value": "T000"}, FillResult
+    )
+    assert fill_result.success, f"Failed to fill table name field: {fill_result.error}"
+
+    # Execute to show table content
+    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
+
+    # Capture table content HTML for unit tests
+    await capture_html_snapshot(sap_mcp_client, "se16_t000_content")
+
+    # Read the table data
+    table_result = await call_tool_typed(sap_mcp_client, "sap_read_table", {"start_row": 1, "end_row": 10}, TableData)
+
+    # T000 must have at least one row (the current client)
+    # Check for table data indicators
+    rows_str = str(table_result.rows).lower() if table_result.rows else ""
+    has_rows = table_result.rows is not None or "mandt" in rows_str
+    has_content = table_result.total_rows is not None and table_result.total_rows > 0
+
+    assert has_rows and has_content, (
+        f"SE16 T000 should return table content with at least one client. " f"Response: {table_result}"
+    )
+
+
+@pytest.mark.anyio
+async def test_se16_query_basic(sap_mcp_client: ClientSession) -> None:
+    """
+    Test basic sap_se16_query functionality without filters.
+
+    Queries the T000 (Clients) table which exists on every SAP system
+    and contains at least one row (the current client).
+
+    Works in both EN and DE - the tool handles language internally.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    # Query T000 table (small table with at least 1 row)
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "T000", "max_hits": 10},
+        SE16Result,
+    )
+
+    assert result.success, f"sap_se16_query failed: {result.error}"
+    assert result.table == "T000", f"Expected table='T000', got {result.table}"
+    assert result.total_hits >= 1, f"T000 should have at least 1 client, got {result.total_hits}"
+    assert result.returned_rows >= 1, f"Should return at least 1 row, got {result.returned_rows}"
+    assert len(result.columns) > 0, "Should have column headers"
+    # SE16N shows description labels, not technical names
+    # T000's MANDT field is shown as "Mdt" (DE) or "Clnt" (EN)
+    first_col = result.columns[0].lower()
+    assert first_col in ("mdt", "clnt", "mandt", "client"), (
+        f"T000 should have client/mandt as first column, got '{result.columns[0]}'. " f"All columns: {result.columns}"
+    )
+
+
+@pytest.mark.anyio
+async def test_se16_query_with_filter(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_se16_query with filter parameter applied.
+
+    Queries the TSTC (Transaction Codes) table with a filter on TCODE field.
+    This verifies that the filter functionality works correctly.
+
+    Works in both EN and DE - the filter uses technical field names.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    # Query TSTC table WITH filter on TCODE = 'SE16'
+    # This should return exactly 1 row (the SE16 transaction)
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "TSTC", "filters": {"TCODE": "SE16"}, "max_hits": 100},
+        SE16Result,
+    )
+
+    assert result.success, f"sap_se16_query with filter failed: {result.error}"
+    assert result.table == "TSTC", f"Expected table='TSTC', got {result.table}"
+
+    # With exact filter TCODE='SE16', we should get exactly 1 row
+    assert result.total_hits == 1, (
+        f"Filter TCODE='SE16' should return exactly 1 hit, got {result.total_hits}. "
+        "Filter may not have been applied."
+    )
+    assert result.returned_rows == 1, f"Should return exactly 1 row, got {result.returned_rows}"
+
+    # Verify the returned row contains SE16
+    # First column should be transaction code (displayed as "TCode" or "Transaktion" etc.)
+    assert len(result.rows) == 1, f"Expected 1 row in results, got {len(result.rows)}"
+    row_data = result.rows[0].data
+    # Get the first column's value - should be "SE16"
+    first_col_name = result.columns[0]
+    first_col_value = row_data.get(first_col_name, "")
+    assert first_col_value == "SE16", (
+        f"Expected first column to contain 'SE16', got '{first_col_value}'. " f"Row data: {row_data}"
+    )
+
+
+@pytest.mark.anyio
+async def test_se16_query_filter_multiple_results(sap_mcp_client: ClientSession) -> None:
+    """
+    Test sap_se16_query filter with wildcard pattern returning multiple results.
+
+    Queries TSTC with a filter pattern that matches multiple transactions.
+    This verifies filters work for partial matches.
+
+    Works in both EN and DE - uses technical field names.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    # Query TSTC with pattern filter - SE1* should match SE10, SE11, SE12, etc.
+    # SAP uses * as wildcard in SE16N filters
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "TSTC", "filters": {"TCODE": "SE1*"}, "max_hits": 100},
+        SE16Result,
+    )
+
+    assert result.success, f"sap_se16_query with pattern filter failed: {result.error}"
+    assert result.table == "TSTC", f"Expected table='TSTC', got {result.table}"
+
+    # SE1* should match multiple transactions (SE10, SE11, SE12, SE13, etc.)
+    assert result.total_hits >= 5, (
+        f"Filter TCODE='SE1*' should return at least 5 SE1x transactions, got {result.total_hits}. "
+        "Filter may not have been applied correctly."
+    )
+
+    # Verify all returned rows have transaction code starting with SE1
+    # First column contains the transaction code
+    first_col_name = result.columns[0]
+    for row in result.rows:
+        tcode = str(row.data.get(first_col_name, ""))
+        assert tcode.startswith("SE1"), (
+            f"Expected transaction code starting with 'SE1', got '{tcode}'. " f"Row data: {row.data}"
+        )
+
+
+@pytest.mark.anyio
+async def test_se16_query_after_se09(sap_mcp_client: ClientSession) -> None:
+    """Regression: sap_se16_query puts filter value into table name field when called from SE09.
+
+    The filter filling code used page.keyboard.type() which types into whatever has
+    focus, not the target element. If the filter element click didn't properly transfer
+    focus, the keyboard input went to the table name field instead.
+
+    Fixes #289, #290.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+
+    # Navigate to SE09 first (the starting point from the bug report)
+    await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE09"})
+
+    # Now query E070 with a filter — this is what triggered the bug
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "E070", "filters": {"AS4USER": "*"}, "max_hits": 10},
+        SE16Result,
+    )
+
+    assert result.success, f"sap_se16_query failed after SE09: {result.error}"
+    assert result.table == "E070", f"Expected table='E070', got '{result.table}'"
+    assert result.total_hits > 0, "Expected at least one transport in E070"
+
+
+@pytest.mark.anyio
+async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> None:
+    """Test reading screen text from SE16 initial screen."""
+    sap_language = os.environ.get("SAP_LANGUAGE", "EN")
+
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
+    # Wait for SE16 to load (has table name input field)
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+
+    result = await call_tool_typed(sap_mcp_client, "sap_get_screen_text", {}, ScreenText)
+
+    # SE16 should show table name prompt - check title or labels
+    response_text = (result.title or "").lower()
+    labels_text = " ".join(result.labels or []).lower()
+    combined_text = response_text + " " + labels_text
+
+    if sap_language == "DE":
+        expected_phrases = ["tabellenname", "tabelle", "data browser"]
+    else:
+        expected_phrases = ["table name", "table", "data browser"]
+
+    assert any(
+        phrase in combined_text for phrase in expected_phrases
+    ), f"SE16 screen text should contain table-related labels. Language: {sap_language}. Got: {combined_text[:500]}"
+
+    # Capture HTML snapshot for offline selector testing
+    await capture_html_snapshot(sap_mcp_client, "se16_initial")
+
+
+@pytest.mark.anyio
+async def test_sap_get_screen_info_from_se16(sap_mcp_client: ClientSession) -> None:
+    """Test getting screen info from SE16."""
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
+    # Wait for SE16 to load (has table name input field)
+    await _wait_for_transaction_screen(sap_mcp_client, "SE16")
+
+    result = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
+
+    # Should contain basic screen info
+    assert result.title, "Screen info should contain title"
+    assert result.url, "Screen info should contain url"
