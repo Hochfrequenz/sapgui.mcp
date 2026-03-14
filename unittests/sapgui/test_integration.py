@@ -18,10 +18,10 @@ def _sap_gui_available():
         app = SapGui.connect()
         if app is None:
             return False
-        if app.connections.Count == 0:
+        if len(app.connections) == 0:
             return False
-        conn = app.connections.Item(0)
-        if conn.Children.Count == 0:
+        conn = app.connections[0]
+        if len(conn.children) == 0:
             return False
         return True
     except Exception:
@@ -34,12 +34,10 @@ skip_no_sap = pytest.mark.skipif(not _sap_gui_available(), reason="SAP GUI not r
 def _get_session():
     """Helper: connect and return a wrapped GuiSession for the first session."""
     from sapwebguimcp.sapgui import SapGui
-    from sapwebguimcp.sapgui._factory import wrap_com_object
 
     app = SapGui.connect()
-    conn_com = app.connections.Item(0)
-    ses_com = conn_com.Children.Item(0)
-    return wrap_com_object(ses_com)
+    conn = app.connections[0]
+    return conn.children[0]
 
 
 @skip_no_sap
@@ -56,17 +54,16 @@ def test_application_has_connections():
     from sapwebguimcp.sapgui import SapGui
 
     app = SapGui.connect()
-    assert app.connections.Count > 0
+    assert len(app.connections) > 0
 
 
 @skip_no_sap
 def test_connection_has_sessions():
     from sapwebguimcp.sapgui import SapGui
-    from sapwebguimcp.sapgui._factory import wrap_com_object
 
     app = SapGui.connect()
-    conn = wrap_com_object(app.connections.Item(0))
-    assert conn.children.Count > 0
+    conn = app.connections[0]
+    assert len(conn.children) > 0
 
 
 @skip_no_sap
