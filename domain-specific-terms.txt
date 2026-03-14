@@ -72,6 +72,10 @@ payed
 maxium
 managment
 
+# SAP GUI Scripting COM method names (PascalCase, flagged by codespell)
+DoubleClick
+PressEnter
+
 # Technical terms
 stdin
 stdout
