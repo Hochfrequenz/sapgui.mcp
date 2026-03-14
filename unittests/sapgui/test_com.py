@@ -64,6 +64,77 @@ class TestConnectToRunningSapGui:
         assert result._com is engine
 
 
+class TestCheckScriptingNotDisabled:
+    """Tests for _check_scripting_not_disabled (DisabledByServer detection)."""
+
+    @patch("sapwebguimcp.sapgui._com.pythoncom")
+    @patch("sapwebguimcp.sapgui._com.win32com")
+    def test_raises_when_all_connections_disabled(self, mock_win32com, mock_pythoncom):
+        conn = MagicMock()
+        conn.DisabledByServer = True
+        engine = MagicMock()
+        engine.Children.Count = 1
+        engine.Children.side_effect = lambda i: conn
+        rot_entry = MagicMock()
+        rot_entry.GetScriptingEngine = engine
+        mock_win32com.client.GetObject.return_value = rot_entry
+
+        from sapwebguimcp.sapgui._com import _connect_to_running_sap_gui
+
+        with pytest.raises(ScriptingDisabledError, match="RZ11"):
+            _connect_to_running_sap_gui()
+
+    @patch("sapwebguimcp.sapgui._com.pythoncom")
+    @patch("sapwebguimcp.sapgui._com.win32com")
+    def test_passes_when_connection_not_disabled(self, mock_win32com, mock_pythoncom):
+        conn = MagicMock()
+        conn.DisabledByServer = False
+        engine = MagicMock()
+        engine.Children.Count = 1
+        engine.Children.side_effect = lambda i: conn
+        rot_entry = MagicMock()
+        rot_entry.GetScriptingEngine = engine
+        mock_win32com.client.GetObject.return_value = rot_entry
+
+        from sapwebguimcp.sapgui._com import _connect_to_running_sap_gui
+
+        result = _connect_to_running_sap_gui()
+        assert result._com is engine
+
+    @patch("sapwebguimcp.sapgui._com.pythoncom")
+    @patch("sapwebguimcp.sapgui._com.win32com")
+    def test_passes_when_no_connections(self, mock_win32com, mock_pythoncom):
+        engine = MagicMock()
+        engine.Children.Count = 0
+        rot_entry = MagicMock()
+        rot_entry.GetScriptingEngine = engine
+        mock_win32com.client.GetObject.return_value = rot_entry
+
+        from sapwebguimcp.sapgui._com import _connect_to_running_sap_gui
+
+        result = _connect_to_running_sap_gui()
+        assert result._com is engine
+
+    @patch("sapwebguimcp.sapgui._com.pythoncom")
+    @patch("sapwebguimcp.sapgui._com.win32com")
+    def test_mixed_connections_passes_if_any_enabled(self, mock_win32com, mock_pythoncom):
+        conn_disabled = MagicMock()
+        conn_disabled.DisabledByServer = True
+        conn_enabled = MagicMock()
+        conn_enabled.DisabledByServer = False
+        engine = MagicMock()
+        engine.Children.Count = 2
+        engine.Children.side_effect = lambda i: [conn_disabled, conn_enabled][i]
+        rot_entry = MagicMock()
+        rot_entry.GetScriptingEngine = engine
+        mock_win32com.client.GetObject.return_value = rot_entry
+
+        from sapwebguimcp.sapgui._com import _connect_to_running_sap_gui
+
+        result = _connect_to_running_sap_gui()
+        assert result._com is engine
+
+
 class TestWaitForSapGui:
     """Tests for _wait_for_sap_gui."""
 

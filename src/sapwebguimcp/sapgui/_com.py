@@ -39,9 +39,38 @@ def _connect_to_running_sap_gui() -> GuiApplication:
     engine = rot_entry.GetScriptingEngine
     if engine is None:
         raise ScriptingDisabledError("Scripting engine not available — check server parameter sapgui/user_scripting")
+
+    # Check if all connections have scripting disabled by the server
+    _check_scripting_not_disabled(engine)
+
     from sapwebguimcp.sapgui.components.application import GuiApplication
 
     return GuiApplication(engine)
+
+
+def _check_scripting_not_disabled(engine: object) -> None:
+    """Raise ScriptingDisabledError if every connection has scripting disabled.
+
+    When sapgui/user_scripting=FALSE on the SAP server, the COM connection
+    exists but DisabledByServer=True on each GuiConnection. The Children
+    collection appears empty and all FindById calls fail silently.
+    """
+    try:
+        connections = engine.Children  # type: ignore[union-attr]
+        count = connections.Count
+        if count == 0:
+            return  # No connections yet — nothing to check
+        disabled_count = sum(1 for i in range(count) if connections(i).DisabledByServer)
+        if disabled_count == count:
+            raise ScriptingDisabledError(
+                f"SAP GUI Scripting is disabled on the server (all {count} connection(s) have "
+                f"DisabledByServer=True). Fix: run transaction RZ11, change parameter "
+                f"'sapgui/user_scripting' to TRUE, then re-login."
+            )
+    except ScriptingDisabledError:
+        raise
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass  # COM access failed — don't block connection for a diagnostic check
 
 
 def _wait_for_sap_gui(timeout: int = 30) -> GuiApplication:
