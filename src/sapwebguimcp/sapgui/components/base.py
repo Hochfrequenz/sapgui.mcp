@@ -156,6 +156,18 @@ class GuiContainer(GuiComponent):
         return wrap_com_object(result)
 
 
+def _safe_com_attr(com_obj, attr: str, default=None):
+    """Safely get a COM attribute, returning default on any error.
+
+    Unlike getattr(), this catches COM errors (pywintypes.com_error)
+    which are not AttributeError and thus bypass getattr's default.
+    """
+    try:
+        return getattr(com_obj, attr)
+    except Exception:
+        return default
+
+
 def _dump_tree_recursive(com_obj, depth: int, max_depth: int):
     """Recursively walk COM children and build a list of ElementInfo."""
     from sapwebguimcp.sapgui.models import ElementInfo
@@ -172,15 +184,15 @@ def _dump_tree_recursive(com_obj, depth: int, max_depth: int):
         except Exception:
             continue
         child_info = ElementInfo(
-            id=str(getattr(child, "Id", "")),
-            type=str(getattr(child, "Type", "")),
-            type_as_number=int(getattr(child, "TypeAsNumber", 0)),
-            name=str(getattr(child, "Name", "")),
-            text=str(getattr(child, "Text", "")),
-            changeable=bool(getattr(child, "Changeable", False)),
+            id=str(_safe_com_attr(child, "Id", "")),
+            type=str(_safe_com_attr(child, "Type", "")),
+            type_as_number=int(_safe_com_attr(child, "TypeAsNumber", 0)),
+            name=str(_safe_com_attr(child, "Name", "")),
+            text=str(_safe_com_attr(child, "Text", "")),
+            changeable=bool(_safe_com_attr(child, "Changeable", False)),
             children=(
                 _dump_tree_recursive(child, depth + 1, max_depth)
-                if depth + 1 < max_depth and getattr(child, "ContainerType", False)
+                if depth + 1 < max_depth and _safe_com_attr(child, "ContainerType", False)
                 else []
             ),
         )
