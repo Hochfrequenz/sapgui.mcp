@@ -122,7 +122,9 @@ class DesktopBackend:
 
     async def get_session_status(self) -> SessionStatus:
         """Check whether the SAP session is logged in and responsive."""
-        session = self._require_session()
+        if self._session is None:
+            return SessionStatus(success=True, status="logged_off", message="Not logged in")
+        session = self._session
         try:
             user = await self._com.run(lambda: str(session.info.user))
             return SessionStatus(success=True, status="active", message=f"Logged in as {user}")
@@ -134,8 +136,8 @@ class DesktopBackend:
         import asyncio
 
         session = self._require_session()
-        deadline = asyncio.get_event_loop().time() + timeout_ms / 1000
-        while asyncio.get_event_loop().time() < deadline:
+        deadline = asyncio.get_running_loop().time() + timeout_ms / 1000
+        while asyncio.get_running_loop().time() < deadline:
             busy = await self._com.run(lambda: bool(session.busy))
             if not busy:
                 return
@@ -166,27 +168,28 @@ class DesktopBackend:
 
     async def open_new_session(self, tcode: str) -> tuple[str | None, int, str | None]:
         """Open a transaction in a new session/mode (/o)."""
+        import asyncio
+
         session = self._require_session()
 
-        def _open() -> tuple[str | None, int, str | None]:
-            session.create_session()
-            import time
-
-            time.sleep(1)
-            conn_com = session.com.Parent
-            count = conn_com.Children.Count
-            if count < 2:
-                return None, count, None
-            new_ses_com = conn_com.Children(count - 1)
-            new_id = str(new_ses_com.Id)
-            # Enter transaction in new session
-            new_ses_com.FindById("wnd[0]/tbar[0]/okcd").Text = f"/n{tcode}"
-            new_ses_com.FindById("wnd[0]").SendVKey(0)
-            title = str(new_ses_com.FindById("wnd[0]").Text)
-            return new_id, count, title
-
         try:
-            sid, count, title = await self._com.run(_open)
+            await self._com.run(session.create_session)
+            await asyncio.sleep(1)
+
+            def _navigate() -> tuple[str | None, int, str | None]:
+                conn_com = session.com.Parent
+                count = conn_com.Children.Count
+                if count < 2:
+                    return None, count, None
+                new_ses_com = conn_com.Children(count - 1)
+                new_id = str(new_ses_com.Id)
+                # Enter transaction in new session
+                new_ses_com.FindById("wnd[0]/tbar[0]/okcd").Text = f"/n{tcode}"
+                new_ses_com.FindById("wnd[0]").SendVKey(0)
+                title = str(new_ses_com.FindById("wnd[0]").Text)
+                return new_id, count, title
+
+            sid, count, title = await self._com.run(_navigate)
             return sid, count, title
         except Exception as e:
             logger.error("Failed to open new session: %s", e)
@@ -209,13 +212,15 @@ class DesktopBackend:
                         "tcode": str(ses.Info.Transaction),
                         "title": str(ses.FindById("wnd[0]").Text),
                         "is_primary": i == 0,
-                        "agent_id": self._agent_bindings.get(str(ses.Id)),
                     }
                 )
             return result
 
-        items = await self._com.run(_list)
-        return [SInfo(**item) for item in items]
+        raw_items = await self._com.run(_list)
+        # Add agent bindings on the main thread (not on the COM thread)
+        for item in raw_items:
+            item["agent_id"] = self._agent_bindings.get(item["session_id"])
+        return [SInfo(**item) for item in raw_items]
 
     async def close_session(self, session_id: str) -> bool:
         """Close a session by ID."""
@@ -258,8 +263,9 @@ class DesktopBackend:
         """Check whether the session has been closed."""
         if self._session is None:
             return True
+        session = self._session  # capture to local for closure safety
         try:
-            await self._com.run(lambda: self._session.info.user)  # type: ignore[union-attr]
+            await self._com.run(lambda: session.info.user)
             return False
         except Exception:
             return True
@@ -385,11 +391,7 @@ class DesktopBackend:
         self, *, include_dropdown_options: bool = False
     ) -> FormFieldsResult:
         """Detect form fields with their current values."""
-        from sapwebguimcp.models.sap_results import FormFieldsResult
-
-        # FormFieldsResult expects FormField objects, but we have FieldInfo.
-        # Return an empty FormFieldsResult — desktop form fields need Phase 2 work.
-        return FormFieldsResult(success=True)
+        raise NotImplementedError("get_form_fields not yet implemented — Phase 2")
 
     async def discover_buttons(self) -> list[ButtonInfo]:
         """Discover clickable buttons on the current screen."""
@@ -544,7 +546,10 @@ class DesktopBackend:
     async def press_key(self, key: str) -> KeyboardResult:
         """Send a keyboard shortcut via SAP VKey."""
         session = self._require_session()
-        vkey = key_to_vkey(key)
+        try:
+            vkey = key_to_vkey(key)
+        except KeyError:
+            return KeyboardResult(success=False, key=key, error=f"Unknown key: {key}")
 
         def _press() -> tuple[str, str, str]:
             wnd = session.find_by_id("wnd[0]")
@@ -566,8 +571,6 @@ class DesktopBackend:
                 status_bar_type=resolved_type,
                 status_bar_message=sbar_text,
             )
-        except KeyError:
-            return KeyboardResult(success=False, key=key, error=f"Unknown key: {key}")
         except Exception as e:
             return KeyboardResult(success=False, key=key, error=str(e))
 

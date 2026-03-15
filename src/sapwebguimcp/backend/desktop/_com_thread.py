@@ -58,6 +58,8 @@ class ComThread:
 
     async def run(self, fn: Callable[[], T]) -> T:
         """Submit a callable to the COM thread and await its result."""
+        if not self._thread.is_alive():
+            raise RuntimeError("COM worker thread is dead")
         cf_future: concurrent.futures.Future[T] = concurrent.futures.Future()
         self._queue.put((fn, cf_future))
         return await asyncio.wrap_future(cf_future)

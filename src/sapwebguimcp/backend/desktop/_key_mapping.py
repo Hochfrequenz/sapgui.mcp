@@ -19,7 +19,7 @@ _VKEY_MAP: dict[str, int] = {
     # SAP-conventional aliases (not literal OS keys — see module docstring)
     "escape": 12,  # F12 = Cancel in SAP
     "backspace": 3,  # F3 = Back in SAP
-    "ctrl+s": 11,  # Ctrl+S = Save (VKey 11)
+    "ctrl+s": 11,  # SAP Save = Ctrl+S → maps to VKey 11 (same as F11)
     "ctrl+shift+f3": 24,  # Ctrl+Shift+F3 mapped as Shift+F12
 }
 
