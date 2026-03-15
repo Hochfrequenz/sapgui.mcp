@@ -25,6 +25,7 @@ from sapwebguimcp.lang import (
     SE09_DISPLAY_BUTTON_EN,
 )
 from sapwebguimcp.models.se09_models import TransportListResult, TransportRequest, TransportTask
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 
 if TYPE_CHECKING:
@@ -172,6 +173,76 @@ async def _extract_tree_text_lines(backend: "SapUiBackend") -> list[str]:
     return [item["text"] for item in all_items if item["text"]]
 
 
+async def _lookup_transports_desktop(  # pylint: disable=too-many-locals,unused-argument
+    backend: "SapUiBackend",
+    username: str | None,
+    request_type: str,
+    status: str,
+) -> TransportListResult:
+    """Desktop-specific SE09 lookup using get_screen_text instead of ARIA parsing."""
+    now = datetime.now(UTC)
+    logger.info("SE09 desktop backend path")
+
+    tx_result = await backend.enter_transaction("SE09")
+    if not tx_result.success:
+        return TransportListResult.failure(
+            error=f"Failed to navigate to SE09: {tx_result.error}",
+            requests=[],
+            request_count=0,
+            retrieved_at=now,
+        )
+    await backend.wait_for_ready()
+
+    # Fill selection screen using fill_field (desktop backend supports it)
+    if username:
+        for label in ["Benutzer", "User"]:
+            try:
+                await backend.fill_field(label, username.upper())
+                break
+            except ValueError:
+                continue
+
+    # Click Display button (via click_button)
+    for label in [SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN]:
+        try:
+            await backend.click_button(label)
+            await backend.wait_for_ready()
+            break
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+
+    await backend.wait(2000)
+
+    # Use get_screen_text to read the tree content
+    screen_text = await backend.get_screen_text()
+    text_content = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
+
+    # Parse transport numbers from screen text
+    transport_re = re.compile(r"([A-Z0-9]{3}K\d{6})")
+    requests: list[TransportRequest] = []
+    seen: set[str] = set()
+    for match in transport_re.finditer(text_content):
+        req_num = match.group(1)
+        if req_num not in seen:
+            seen.add(req_num)
+            requests.append(
+                TransportRequest(
+                    request_number=req_num,
+                    description="",
+                    owner=username or "",
+                    status="",
+                    request_type="",
+                    target_system="",
+                )
+            )
+
+    return TransportListResult(
+        requests=requests,
+        request_count=len(requests),
+        retrieved_at=now,
+    )
+
+
 async def _lookup_transports(  # pylint: disable=too-many-locals
     backend: "SapUiBackend",
     username: str | None,
@@ -181,6 +252,10 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
 ) -> TransportListResult:
     """Look up transports in SE09."""
     now = datetime.now(UTC)
+
+    # Desktop backend: use get_screen_text instead of ARIA snapshot parsing
+    if _is_desktop_backend(backend):
+        return await _lookup_transports_desktop(backend, username, request_type, status)
 
     # Navigate to SE09 using session-aware helper
     tx_result = await backend.enter_transaction("SE09")

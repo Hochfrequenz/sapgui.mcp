@@ -22,7 +22,8 @@ from sapwebguimcp.backend.webgui.parsers.sm37_parser import (
     parse_sm37_job_log,
 )
 from sapwebguimcp.models.config import get_settings
-from sapwebguimcp.models.sm37_models import SM37JobListResult, SM37JobLog
+from sapwebguimcp.models.sm37_models import SM37Job, SM37JobListResult, SM37JobLog
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 
@@ -164,6 +165,154 @@ async def _fetch_job_log(backend: "SapUiBackend", language: SapLanguage) -> SM37
         return None
 
 
+async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches,too-many-statements
+    backend: "SapUiBackend",
+    job_name: str,
+    username: str | None,
+    statuses: list[str] | None,
+    from_date: str | None,
+    to_date: str | None,
+) -> SM37JobListResult:
+    """Desktop-specific SM37 lookup using read_table instead of ARIA parsing."""
+    from sapwebguimcp.models import TableData  # pylint: disable=import-outside-toplevel
+
+    now = datetime.now(UTC)
+    settings = get_settings()
+    language: SapLanguage = settings.sap_language
+
+    logger.info("SM37 desktop backend path", extra={"job_name": job_name})
+
+    tx_result = await backend.enter_transaction("SM37")
+    if not tx_result.success:
+        return SM37JobListResult.failure(
+            error=f"Failed to navigate to SM37: {tx_result.error}",
+            jobs=[],
+            job_count=0,
+            filters_applied={},
+            retrieved_at=now,
+        )
+    await backend.wait_for_ready()
+
+    # Fill selection screen fields via focus_and_type
+    for label in ["Jobname", "Job name", "Job Name"]:
+        try:
+            if await backend.focus_and_type(label, job_name, delay_ms=50):
+                break
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+
+    if username is not None:
+        for label in ["Benutzername", "User name", "User Name"]:
+            try:
+                if await backend.focus_and_type(label, username, delay_ms=50):
+                    break
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass
+
+    # Date fields
+    if from_date:
+        sap_from = format_sap_date(from_date, language)
+        for label in ["von Datum", "From Date"]:
+            try:
+                await backend.fill_field(label, sap_from)
+                break
+            except ValueError:
+                continue
+
+    if to_date:
+        sap_to = format_sap_date(to_date, language)
+        for label in ["bis Datum", "To Date"]:
+            try:
+                await backend.fill_field(label, sap_to)
+                break
+            except ValueError:
+                continue
+
+    # Execute (F8)
+    await backend.press_key("F8")
+    await backend.wait_for_ready()
+
+    # Check status bar for errors / no results
+    sbar = await backend.get_status_bar()
+    filters_applied: dict[str, str] = {"job_name": job_name}
+    if username:
+        filters_applied["username"] = username
+    if statuses:
+        filters_applied["status"] = ",".join(statuses)
+    if from_date:
+        filters_applied["from_date"] = from_date
+    if to_date:
+        filters_applied["to_date"] = to_date
+
+    if sbar.type == "E":
+        return SM37JobListResult.failure(
+            error=f"SM37 error: {sbar.message}",
+            jobs=[],
+            job_count=0,
+            filters_applied=filters_applied,
+            retrieved_at=now,
+        )
+
+    if sbar.message and any(
+        msg in sbar.message.lower() for msg in ["no jobs found", "keine jobs", "keine hintergrundjobs"]
+    ):
+        return SM37JobListResult(
+            jobs=[],
+            job_count=0,
+            filters_applied=filters_applied,
+            retrieved_at=now,
+        )
+
+    # Read table data
+    table_data: TableData = await backend.read_table(start_row=1, max_rows=_MAX_JOBS)
+
+    if not table_data.headers:
+        return SM37JobListResult.failure(
+            error="Could not read SM37 job list table",
+            jobs=[],
+            job_count=0,
+            filters_applied=filters_applied,
+            retrieved_at=now,
+        )
+
+    # Convert table rows to SM37Job models
+    # SM37 ALV grid columns vary by language but typically include:
+    # Jobname/Job Name, Status, Startdatum/Start Date, Startzeit/Start Time, Dauer/Duration, Ersteller/Created By
+    jobs: list[SM37Job] = []
+    for tr in table_data.rows:
+        d = tr.data
+        # Try common column name variants
+        jn = d.get("Jobname", d.get("Job Name", d.get("Job name", "")))
+        st = d.get("Status", "")
+        sd = d.get("Startdatum", d.get("Start Date", d.get("Start date", "")))
+        sz = d.get("Startzeit", d.get("Start Time", d.get("Start time", "")))
+        start_time = f"{sd} {sz}".strip() if sd or sz else None
+        dur = d.get("Dauer", d.get("Duration", d.get("Dauer(s)", None)))
+        user = d.get("Ersteller", d.get("Created By", d.get("Created by", "")))
+        mandant = d.get("Mandant", d.get("Client", ""))
+
+        jobs.append(
+            SM37Job(
+                job_name=jn,
+                status=st,
+                start_time=start_time,
+                duration=dur,
+                user=user,
+                mandant=mandant,
+            )
+        )
+
+    if len(jobs) > _MAX_JOBS:
+        jobs = jobs[:_MAX_JOBS]
+
+    return SM37JobListResult(
+        jobs=jobs,
+        job_count=len(jobs),
+        filters_applied=filters_applied,
+        retrieved_at=now,
+    )
+
+
 async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
     backend: "SapUiBackend",
     job_name: str,
@@ -177,6 +326,10 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
     now = datetime.now(UTC)
     settings = get_settings()
     language: SapLanguage = settings.sap_language
+
+    # Desktop backend: use read_table instead of ARIA snapshot parsing
+    if _is_desktop_backend(backend):
+        return await _execute_sm37_lookup_desktop(backend, job_name, username, statuses, from_date, to_date)
 
     tx_result = await backend.enter_transaction("SM37")
     if not tx_result.success:

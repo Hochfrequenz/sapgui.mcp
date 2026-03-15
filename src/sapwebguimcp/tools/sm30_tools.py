@@ -23,7 +23,8 @@ from sapwebguimcp.lang import (
     SM30_TABLE_VIEW_DE,
     SM30_TABLE_VIEW_EN,
 )
-from sapwebguimcp.models.sm30_models import SM30FileSummary, SM30ViewResult
+from sapwebguimcp.models.sm30_models import SM30FileSummary, SM30Row, SM30ViewResult
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 
 if TYPE_CHECKING:
     from sapwebguimcp.backend.protocol import SapUiBackend
@@ -71,9 +72,89 @@ async def _click_display_button(backend: "SapUiBackend") -> str | None:
     return "Could not find Anzeigen/Display button in SM30"
 
 
+async def _lookup_view_desktop(backend: "SapUiBackend", view_name: str) -> SM30ViewResult:
+    """Desktop-specific SM30 lookup using read_table instead of ARIA parsing."""
+    from sapwebguimcp.models import TableData  # pylint: disable=import-outside-toplevel
+
+    now = datetime.now(UTC)
+    logger.info("SM30 desktop backend path", extra={"view_name": view_name})
+
+    tx_result = await backend.enter_transaction("SM30")
+    if not tx_result.success:
+        return SM30ViewResult.failure(
+            error=f"Failed to navigate to SM30: {tx_result.error}",
+            view_name=view_name,
+            description="",
+            view_type="unsupported",
+            columns=[],
+            rows=[],
+            row_count=0,
+            retrieved_at=now,
+        )
+    await backend.wait_for_ready()
+
+    # Fill view name
+    fill_error = await _fill_view_field(backend, view_name)
+    if fill_error:
+        return SM30ViewResult.failure(
+            error=fill_error,
+            view_name=view_name,
+            description="",
+            view_type="unsupported",
+            columns=[],
+            rows=[],
+            row_count=0,
+            retrieved_at=now,
+        )
+
+    # Click Display button
+    click_error = await _click_display_button(backend)
+    if click_error:
+        return SM30ViewResult.failure(
+            error=click_error,
+            view_name=view_name,
+            description="",
+            view_type="unsupported",
+            columns=[],
+            rows=[],
+            row_count=0,
+            retrieved_at=now,
+        )
+
+    # Read table data
+    table_data: TableData = await backend.read_table(start_row=1, max_rows=500)
+
+    if not table_data.headers:
+        return SM30ViewResult.failure(
+            error="Could not read SM30 view table",
+            view_name=view_name,
+            description="",
+            view_type="unsupported",
+            columns=[],
+            rows=[],
+            row_count=0,
+            retrieved_at=now,
+        )
+
+    rows = [SM30Row(values=row.data) for row in table_data.rows]
+    return SM30ViewResult(
+        view_name=view_name,
+        description="",
+        view_type="flat",
+        columns=table_data.headers,
+        rows=rows,
+        row_count=table_data.total_rows or len(rows),
+        retrieved_at=now,
+    )
+
+
 async def _lookup_view(backend: "SapUiBackend", view_name: str) -> SM30ViewResult:
     """Look up a single SM30 view."""
     now = datetime.now(UTC)
+
+    # Desktop backend: use read_table instead of ARIA snapshot parsing
+    if _is_desktop_backend(backend):
+        return await _lookup_view_desktop(backend, view_name)
 
     # Navigate to SM30
     tx_result = await backend.enter_transaction("SM30")
