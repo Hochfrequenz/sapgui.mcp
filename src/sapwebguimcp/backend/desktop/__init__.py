@@ -537,9 +537,10 @@ class DesktopBackend:
         def _read() -> dict[str, Any]:  # pylint: disable=too-many-locals
             from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
-            # Find grid or table in the user area
-            usr = session.find_by_id("wnd[0]/usr")
-            tree = cast(Any, usr).dump_tree(max_depth=3)
+            # Find grid or table in the full window tree (not just usr).
+            # SE16N places ALV grids in wnd[0]/shellcont, not wnd[0]/usr.
+            wnd = session.find_by_id("wnd[0]")
+            tree = cast(Any, wnd).dump_tree(max_depth=5)
             grid_id = None
             for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
@@ -595,8 +596,8 @@ class DesktopBackend:
         def _click() -> None:
             from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
-            usr = session.find_by_id("wnd[0]/usr")
-            tree = cast(Any, usr).dump_tree(max_depth=3)
+            wnd = session.find_by_id("wnd[0]")
+            tree = cast(Any, wnd).dump_tree(max_depth=5)
             for elem in _flatten(tree):
                 if elem.type_as_number == 122:
                     grid = session.find_by_id(elem.id)
