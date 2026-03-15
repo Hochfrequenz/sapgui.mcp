@@ -183,6 +183,20 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals,unused-
     now = datetime.now(UTC)
     logger.info("SE09 desktop backend path")
 
+    ignored_params: list[str] = []
+    if request_type != "all":
+        logger.warning(
+            "SE09 desktop: request_type filter not supported, ignoring request_type=%s",
+            request_type,
+        )
+        ignored_params.append(f"request_type={request_type}")
+    if status != "modifiable":
+        logger.warning(
+            "SE09 desktop: status filter not supported, ignoring status=%s",
+            status,
+        )
+        ignored_params.append(f"status={status}")
+
     tx_result = await backend.enter_transaction("SE09")
     if not tx_result.success:
         return TransportListResult.failure(
@@ -236,11 +250,15 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals,unused-
                 )
             )
 
-    return TransportListResult(
+    result = TransportListResult(
         requests=requests,
         request_count=len(requests),
         retrieved_at=now,
     )
+    if ignored_params:
+        note = "Desktop backend ignored parameters: " + ", ".join(ignored_params)
+        result.error = note
+    return result
 
 
 async def _lookup_transports(  # pylint: disable=too-many-locals

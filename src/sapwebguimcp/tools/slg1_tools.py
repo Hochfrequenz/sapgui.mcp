@@ -38,6 +38,14 @@ logger = logging.getLogger(__name__)
 __all__ = ["register_slg1_tools"]
 
 
+def _safe_int(value: str | None) -> int:
+    """Convert a value to int, returning 0 on failure."""
+    try:
+        return int(value or "0")
+    except (ValueError, TypeError):
+        return 0
+
+
 async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
     backend: "SapUiBackend",
     object_name: str,
@@ -145,7 +153,7 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
                 date=d.get("Datum", d.get("Date", "")),
                 time=d.get("Uhrzeit", d.get("Time", "")),
                 user=d.get("Benutzer", d.get("User", "")),
-                message_count=int(d.get("Anzahl Nachr.", d.get("No. Messages", "0")) or "0"),
+                message_count=_safe_int(d.get("Anzahl Nachr.", d.get("No. Messages", "0"))),
             )
         )
 

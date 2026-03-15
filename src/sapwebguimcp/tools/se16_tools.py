@@ -535,7 +535,7 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     filters: dict[str, str] | None,
     max_hits: int,
     now: datetime,
-    ctx: Context | None = None,
+    ctx: Context | None = None,  # TODO: progress reporting via ctx not yet implemented on desktop
 ) -> SE16Result:
     """Desktop-specific SE16N query using read_table instead of ARIA parsing."""
     from sapwebguimcp.models import TableData  # pylint: disable=import-outside-toplevel

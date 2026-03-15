@@ -209,6 +209,32 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
             except Exception:  # pylint: disable=broad-exception-caught
                 pass
 
+    # Status checkboxes (language-dependent labels)
+    status_filter_applied = True
+    if statuses:
+        effective = set(statuses)
+        _CHECKBOX_LABELS: dict[str, list[str]] = {
+            "scheduled": ["Geplant", "Scheduled"],
+            "released": ["Freigegeben", "Released"],
+            "ready": ["Bereit", "Ready"],
+            "active": ["Aktiv", "Active"],
+            "finished": ["Fertig", "Finished"],
+            "canceled": ["Abgebrochen", "Canceled"],
+        }
+        any_toggled = False
+        for status_key, labels in _CHECKBOX_LABELS.items():
+            desired = status_key in effective
+            for lbl in labels:
+                try:
+                    await backend.set_checkbox(lbl, desired)
+                    any_toggled = True
+                    break
+                except Exception:  # pylint: disable=broad-exception-caught
+                    continue
+        if not any_toggled:
+            logger.warning("Could not toggle any SM37 status checkbox on desktop backend")
+            status_filter_applied = False
+
     # Date fields
     if from_date:
         sap_from = format_sap_date(from_date, language)
@@ -238,7 +264,10 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
     if username:
         filters_applied["username"] = username
     if statuses:
-        filters_applied["status"] = ",".join(statuses)
+        if status_filter_applied:
+            filters_applied["status"] = ",".join(statuses)
+        else:
+            filters_applied["status"] = ",".join(statuses) + " (status filter not applied)"
     if from_date:
         filters_applied["from_date"] = from_date
     if to_date:
