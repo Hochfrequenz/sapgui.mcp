@@ -545,13 +545,21 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     if not tx.success:
         return _empty_failure(f"Failed to navigate to SE16N: {tx.error}", table, now)
 
-    await backend.wait(1000)
+    await backend.wait_for_ready()
+    await backend.wait(2000)
 
     # Fill table name using focus_and_type (field name is GD-TAB in SE16N)
+    screen = await backend.get_screen_info()
+    logger.debug(
+        "se16_desktop_fill", extra={"screen": screen.title, "tcode": screen.transaction, "program": screen.program}
+    )
+
     filled = False
     for field_label in ["GD-TAB", "Table", "Tabelle"]:
         try:
-            if await backend.focus_and_type(field_label, table.upper(), delay_ms=50):
+            result_fill = await backend.focus_and_type(field_label, table.upper(), delay_ms=50)
+            logger.debug("se16_desktop_focus_result", extra={"field": field_label, "result": result_fill})
+            if result_fill:
                 filled = True
                 break
         except Exception:  # pylint: disable=broad-exception-caught

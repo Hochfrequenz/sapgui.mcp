@@ -67,8 +67,12 @@ async def backend():
 async def test_se16_query_returns_valid_result(backend):
     from sapwebguimcp.tools.se16_tools import _execute_se16_query
 
+    # Verify backend is in a clean state
+    info = await backend.get_screen_info()
+    assert info.success, f"Backend not ready: {info.error}"
+
     result = await _execute_se16_query(backend, "TSTC", None, 5)
-    assert result.success, f"SE16 failed: {result.error}"
+    assert result.success, f"SE16 failed: {result.error} (was on screen: {info.title}/{info.transaction})"
     assert result.total_hits > 0
     assert result.returned_rows > 0
     assert len(result.columns) > 0

@@ -858,10 +858,32 @@ class DesktopBackend:
     async def focus_and_type(  # pylint: disable=unused-argument
         self, accessible_name: str, text: str, delay_ms: int = 0
     ) -> bool:
-        """Focus and type into an element by name."""
+        """Focus and type into an element by accessible name or field name.
+
+        Tries multiple strategies:
+        1. Direct find_by_id with common prefixes (fast, works for field names like GD-TAB)
+        2. find_field_by_label (label text matching, slower)
+        """
         session = self._require_session()
 
         def _type() -> bool:
+            # Strategy 1: try direct find_by_id with common prefixes (fast)
+            for prefix in ("txt", "ctxt", "pwd", "cmb"):
+                try:
+                    field = session.find_by_id(f"wnd[0]/usr/{prefix}{accessible_name}", raise_error=False)
+                    if field is not None:
+                        cast(Any, field).text = text
+                        logger.debug(
+                            "focus_and_type_found",
+                            extra={"field_name": accessible_name, "strategy": "direct", "prefix": prefix},
+                        )
+                        return True
+                except Exception as exc:
+                    logger.debug(
+                        "focus_and_type_error",
+                        extra={"field_name": accessible_name, "prefix": prefix, "error": str(exc)},
+                    )
+            # Strategy 2: label-based search (slower)
             field = find_field_by_label(session, accessible_name)
             if field is None:
                 return False
@@ -869,7 +891,7 @@ class DesktopBackend:
             return True
 
         result = await self._com.run(_type)
-        logger.info("focus_and_type", extra={"name": accessible_name, "found": result})
+        logger.info("focus_and_type", extra={"field_name": accessible_name, "found": result})
         return result
 
     async def fill_element_by_locator(self, locator: str, value: str, delay_ms: int = 30) -> bool:
