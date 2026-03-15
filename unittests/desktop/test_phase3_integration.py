@@ -55,23 +55,23 @@ async def backend():
     )
     assert r.success, f"Login failed: {r.error}"
     yield b
-    # Teardown: close connection VIA the COM thread (same apartment) to avoid
-    # Windows fatal exception 0x800401f0 from cross-apartment COM calls.
+    # Teardown: close ALL connections -- tools may have opened additional ones
     import faulthandler
 
     try:
-        if b._session is not None:
-            session = b._session
-            await com.run(lambda: session.com.Parent.CloseConnection())
-            b._session = None
-    except Exception:  # pywintypes.com_error or AttributeError from dead COM objects
-        pass
-    from sapwebguimcp.sapgui._login import cleanup_ghost_connections
+        from sapwebguimcp.sapgui import SapGui
 
-    try:
-        await com.run(cleanup_ghost_connections)
-    except Exception:  # best-effort cleanup
+        app = await com.run(lambda: SapGui.connect())
+        raw_conns = await com.run(lambda: app.com.Children)
+        count = await com.run(lambda: raw_conns.Count)
+        for i in range(count - 1, -1, -1):
+            try:
+                await com.run(lambda i=i: raw_conns(i).CloseConnection())
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass
+    except Exception:  # pylint: disable=broad-exception-caught
         pass
+    b._session = None
     faulthandler.disable()
     com.shutdown()
     faulthandler.enable()
