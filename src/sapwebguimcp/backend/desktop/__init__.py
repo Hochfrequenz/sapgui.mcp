@@ -17,13 +17,24 @@ from typing import TYPE_CHECKING, Any, cast
 
 import sapwebguimcp.sapgui._login as _login_mod
 from sapwebguimcp.backend.desktop._com_thread import ComThread
+from sapwebguimcp.backend.desktop._element_finder import (
+    _flatten,
+    find_button_by_label,
+    find_checkbox_by_label,
+    find_combobox_by_label,
+    find_field_by_label,
+    find_radio_by_label,
+    find_tab_by_label,
+)
 from sapwebguimcp.backend.desktop._key_mapping import key_to_vkey
 from sapwebguimcp.backend.types import ComTreeSnapshot
 from sapwebguimcp.models.alv_models import TableCellClickResult
 from sapwebguimcp.models.base import PopupInfo, ToolResult
 from sapwebguimcp.models.sap_results import (
     ButtonInfo,
+    FieldFillError,
     FieldInfo,
+    FormField,
     KeyboardResult,
     LoginResult,
     ScreenInfo,
@@ -346,7 +357,7 @@ class DesktopBackend:
             tree = cast(Any, wnd).dump_tree(max_depth=3)
 
             labels, buttons, tabs, content = [], [], [], []
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 t = elem.type_as_number
                 txt = elem.text.strip()
                 if not txt:
@@ -382,7 +393,7 @@ class DesktopBackend:
             tree = cast(Any, usr).dump_tree(max_depth=3)
             fields = []
             input_types = {31, 32, 33, 34}  # txt, ctxt, pwd, cmb
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 if elem.type_as_number in input_types:
                     fields.append(
                         {
@@ -403,8 +414,57 @@ class DesktopBackend:
     async def get_form_fields(  # pylint: disable=unused-argument
         self, *, include_dropdown_options: bool = False
     ) -> FormFieldsResult:
-        """Detect form fields with their current values."""
-        raise NotImplementedError("get_form_fields not yet implemented — Phase 2")
+        """Detect form fields with their current values and associated labels."""
+        from sapwebguimcp.models.sap_results import (
+            FormFieldsResult as _FormFieldsResult,  # pylint: disable=import-outside-toplevel
+        )
+
+        session = self._require_session()
+
+        def _discover() -> list[dict[str, Any]]:
+            usr = session.find_by_id("wnd[0]/usr")
+            tree = cast(Any, usr).dump_tree(max_depth=5)
+            flat = _flatten(tree)
+
+            # Build label map: name -> label text
+            label_map: dict[str, str] = {}
+            for elem in flat:
+                if elem.type_as_number == 30 and elem.text.strip():  # GuiLabel
+                    label_map[elem.name] = elem.text.strip()
+
+            # Type number to SapFieldType mapping
+            type_map = {
+                31: "text",  # GuiTextField
+                32: "text",  # GuiCTextField
+                33: "text",  # GuiPasswordField
+                34: "dropdown",  # GuiComboBox
+                42: "checkbox",  # GuiCheckBox
+                41: "radio",  # GuiRadioButton
+            }
+
+            fields: list[dict[str, Any]] = []
+            for elem in flat:
+                if elem.type_as_number not in type_map:
+                    continue
+                field_type = type_map[elem.type_as_number]
+                label_text = label_map.get(elem.name, elem.name)
+                field_dict: dict[str, Any] = {
+                    "id": elem.id,
+                    "label": label_text,
+                    "field_type": field_type,
+                    "current_value": elem.text if elem.text else None,
+                }
+                if field_type in ("checkbox", "radio"):
+                    field_dict["checked"] = bool(elem.text)
+                fields.append(field_dict)
+            return fields
+
+        items = await self._com.run(_discover)
+        logger.debug("get_form_fields", extra={"count": len(items)})
+        return _FormFieldsResult(
+            success=True,
+            fields=[FormField(**item) for item in items],
+        )
 
     async def discover_buttons(self) -> list[ButtonInfo]:
         """Discover clickable buttons on the current screen."""
@@ -414,7 +474,7 @@ class DesktopBackend:
             wnd = session.find_by_id("wnd[0]")
             tree = cast(Any, wnd).dump_tree(max_depth=3)
             buttons: list[dict[str, Any]] = []
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 if elem.type_as_number == 40 and elem.text.strip():  # GuiButton
                     buttons.append({"label": elem.text.strip(), "id": elem.id, "selector": elem.id})
             return buttons
@@ -436,7 +496,7 @@ class DesktopBackend:
             wnd = session.find_by_id("wnd[0]")
             tree = cast(Any, wnd).dump_tree(max_depth=5)
             lines = []
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 indent = "  " * elem.id.count("/")
                 lines.append(f"{indent}{elem.type}[{elem.name}]: {elem.text!r}")
             return "\n".join(lines)
@@ -481,7 +541,7 @@ class DesktopBackend:
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree(max_depth=3)
             grid_id = None
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
                     grid_id = elem.id
                     break
@@ -537,7 +597,7 @@ class DesktopBackend:
 
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree(max_depth=3)
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 if elem.type_as_number == 122:
                     grid = session.find_by_id(elem.id)
                     if isinstance(grid, GuiGridView):
@@ -604,48 +664,212 @@ class DesktopBackend:
     # ---- Stub methods (Phase 2 + 3) ----
 
     async def fill_field(self, label: str, value: str) -> None:
-        """Fill a labelled input field (not yet implemented)."""
-        raise NotImplementedError("fill_field not yet implemented — Phase 2")
+        """Fill a labelled input field."""
+        session = self._require_session()
+
+        def _fill() -> None:
+            field = find_field_by_label(session, label)
+            if field is None:
+                raise ValueError(f"Field not found: {label}")
+            cast(Any, field).text = value
+
+        await self._com.run(_fill)
+        logger.info("fill_field", extra={"label": label, "value": value})
 
     async def fill_main_input(self, value: str, labels: list[str]) -> bool:
-        """Fill the main form input (not yet implemented)."""
-        raise NotImplementedError("fill_main_input not yet implemented — Phase 2")
+        """Fill the main form input — try each label, fill first match."""
+        session = self._require_session()
+
+        def _fill() -> bool:
+            for lbl in labels:
+                field = find_field_by_label(session, lbl)
+                if field is not None:
+                    cast(Any, field).text = value
+                    return True
+            return False
+
+        result = await self._com.run(_fill)
+        logger.info("fill_main_input", extra={"value": value, "found": result})
+        return result
 
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
-        """Fill multiple form fields (not yet implemented)."""
-        raise NotImplementedError("fill_form not yet implemented — Phase 2")
+        """Fill multiple form fields."""
+        from sapwebguimcp.models.sap_results import (
+            FillFormResult as _FillFormResult,  # pylint: disable=import-outside-toplevel
+        )
+
+        session = self._require_session()
+
+        def _fill() -> dict[str, Any]:
+            filled: list[str] = []
+            not_found: list[str] = []
+            errors: list[dict[str, str]] = []
+            for label, value in fields.items():
+                try:
+                    field = find_field_by_label(session, label)
+                    if field is None:
+                        not_found.append(label)
+                        continue
+                    cast(Any, field).text = value
+                    filled.append(label)
+                except Exception as exc:  # pylint: disable=broad-exception-caught
+                    errors.append({"field": label, "error": str(exc)})
+            return {"filled": filled, "not_found": not_found, "errors": errors}
+
+        data = await self._com.run(_fill)
+        logger.info(
+            "fill_form",
+            extra={"filled": len(data["filled"]), "not_found": len(data["not_found"]), "errors": len(data["errors"])},
+        )
+        has_failures = len(data["not_found"]) > 0 or len(data["errors"]) > 0
+        error_msg = None
+        if has_failures:
+            parts = []
+            if data["not_found"]:
+                parts.append(f"Fields not found: {', '.join(data['not_found'])}")
+            if data["errors"]:
+                parts.append(f"Errors: {', '.join(e['field'] for e in data['errors'])}")
+            error_msg = "; ".join(parts)
+        return _FillFormResult(
+            success=not has_failures,
+            error=error_msg,
+            filled=data["filled"],
+            not_found=data["not_found"],
+            errors=[FieldFillError(**e) for e in data["errors"]],
+        )
 
     async def fill_grid_cell(self, row: int, column: int | str, value: str) -> None:
-        """Fill a grid/table cell (not yet implemented)."""
-        raise NotImplementedError("fill_grid_cell not yet implemented — Phase 2")
+        """Fill a grid/table cell."""
+        session = self._require_session()
+
+        def _fill() -> None:
+            from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
+
+            usr = session.find_by_id("wnd[0]/usr")
+            tree = cast(Any, usr).dump_tree(max_depth=3)
+            for elem in _flatten(tree):
+                if elem.type_as_number in (122, 80):
+                    grid = session.find_by_id(elem.id)
+                    if isinstance(grid, GuiGridView):
+                        col_name = str(column)
+                        if isinstance(column, int):
+                            col_order = cast(Any, grid).column_order
+                            col_name = str(col_order(column))
+                        cast(Any, grid).set_cell_value(row - 1, col_name, value)
+                        return
+            raise ValueError("No ALV grid found on screen")
+
+        await self._com.run(_fill)
+        logger.info("fill_grid_cell", extra={"row": row, "column": column, "value": value})
 
     async def click_button(self, label: str) -> None:
-        """Click a button by label (not yet implemented)."""
-        raise NotImplementedError("click_button not yet implemented — Phase 2")
+        """Click a button by label."""
+        session = self._require_session()
+
+        def _click() -> None:
+            btn = find_button_by_label(session, label)
+            if btn is None:
+                raise ValueError(f"Button not found: {label}")
+            cast(Any, btn).press()
+
+        await self._com.run(_click)
+        logger.info("click_button", extra={"label": label})
 
     async def click_tab(self, label: str) -> None:
-        """Click a tab by label (not yet implemented)."""
-        raise NotImplementedError("click_tab not yet implemented — Phase 2")
+        """Click a tab by label."""
+        session = self._require_session()
+
+        def _click() -> None:
+            tab = find_tab_by_label(session, label)
+            if tab is None:
+                raise ValueError(f"Tab not found: {label}")
+            cast(Any, tab).select()
+
+        await self._com.run(_click)
+        logger.info("click_tab", extra={"label": label})
 
     async def type_text(self, text: str) -> None:
-        """Type text into the focused element (not yet implemented)."""
-        raise NotImplementedError("type_text not yet implemented — Phase 2")
+        """Type text into the focused element."""
+        session = self._require_session()
+
+        def _type() -> None:
+            wnd = session.find_by_id("wnd[0]")
+            focus_elem = cast(Any, wnd).focused_element
+            if focus_elem is not None:
+                focus_elem.text = text
+            else:
+                raise ValueError("No focused element found")
+
+        await self._com.run(_type)
+        logger.info("type_text", extra={"length": len(text)})
 
     async def set_checkbox(self, label: str, checked: bool) -> None:
-        """Set a checkbox by label (not yet implemented)."""
-        raise NotImplementedError("set_checkbox not yet implemented — Phase 2")
+        """Set a checkbox by label."""
+        session = self._require_session()
+
+        def _set() -> None:
+            chk = find_checkbox_by_label(session, label)
+            if chk is None:
+                raise ValueError(f"Checkbox not found: {label}")
+            cast(Any, chk).selected = checked
+
+        await self._com.run(_set)
+        logger.info("set_checkbox", extra={"label": label, "checked": checked})
 
     async def set_radio_button(self, label: str) -> None:
-        """Select a radio button by label (not yet implemented)."""
-        raise NotImplementedError("set_radio_button not yet implemented — Phase 2")
+        """Select a radio button by label."""
+        session = self._require_session()
+
+        def _set() -> None:
+            rad = find_radio_by_label(session, label)
+            if rad is None:
+                raise ValueError(f"Radio button not found: {label}")
+            cast(Any, rad).selected = True
+
+        await self._com.run(_set)
+        logger.info("set_radio_button", extra={"label": label})
 
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
-        """Select a dropdown option (not yet implemented)."""
-        raise NotImplementedError("select_dropdown not yet implemented — Phase 2")
+        """Select a dropdown option."""
+        from sapwebguimcp.models.sap_results import (
+            DropdownFillResult as _DropdownFillResult,  # pylint: disable=import-outside-toplevel
+        )
 
-    async def focus_and_type(self, accessible_name: str, text: str, delay_ms: int = 0) -> bool:
-        """Focus and type into an element (not yet implemented)."""
-        raise NotImplementedError("focus_and_type not yet implemented — Phase 2")
+        session = self._require_session()
+
+        def _select() -> dict[str, Any]:
+            cmb = find_combobox_by_label(session, label)
+            if cmb is None:
+                # Also try find_field_by_label as fallback
+                cmb = find_field_by_label(session, label)
+            if cmb is None:
+                return {"success": False, "error_message": f"Dropdown not found: {label}"}
+            try:
+                cast(Any, cmb).value = option
+                return {"success": True}
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                return {"success": False, "error_message": str(exc)}
+
+        data = await self._com.run(_select)
+        logger.info("select_dropdown", extra={"label": label, "option": option, "success": data["success"]})
+        return _DropdownFillResult(**data)
+
+    async def focus_and_type(  # pylint: disable=unused-argument
+        self, accessible_name: str, text: str, delay_ms: int = 0
+    ) -> bool:
+        """Focus and type into an element by name."""
+        session = self._require_session()
+
+        def _type() -> bool:
+            field = find_field_by_label(session, accessible_name)
+            if field is None:
+                return False
+            cast(Any, field).text = text
+            return True
+
+        result = await self._com.run(_type)
+        logger.info("focus_and_type", extra={"name": accessible_name, "found": result})
+        return result
 
     async def fill_element_by_locator(self, locator: str, value: str, delay_ms: int = 30) -> bool:
         """Fill element by CSS selector — not supported on desktop."""
@@ -690,13 +914,3 @@ class DesktopBackend:
     async def dismiss_popup(self, button_label: str | None = None, use_close_button: bool = False) -> ClosePopupResult:
         """Dismiss a popup (not yet implemented)."""
         raise NotImplementedError("dismiss_popup not yet implemented — Phase 3")
-
-
-def _flatten_tree(elements: list[Any]) -> list[Any]:
-    """Flatten a nested ElementInfo tree into a flat list."""
-    result = []
-    for elem in elements:
-        result.append(elem)
-        if elem.children:
-            result.extend(_flatten_tree(elem.children))
-    return result
