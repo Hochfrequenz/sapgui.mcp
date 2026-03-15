@@ -6,7 +6,8 @@ items from a queue. Async callers submit callables and await the
 result via concurrent.futures.Future + asyncio.wrap_future.
 """
 
-# pylint: disable=broad-exception-caught,import-error
+# pylint: disable=broad-exception-caught
+# pylint: disable=import-error  # pythoncom is from pywin32 (Windows-only, not available in CI linting env)
 
 from __future__ import annotations
 
