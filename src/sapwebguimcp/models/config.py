@@ -139,6 +139,11 @@ class SapWebGuiSettings(BaseSettings):
         description="SAP login language ('DE' or 'EN')",
         json_schema_extra={"env": "SAP_LANGUAGE"},
     )
+    sap_connection_name: str = Field(
+        default="",
+        description="SAP Logon connection entry name (e.g. 'HF S/4') for desktop GUI login",
+        json_schema_extra={"env": "SAP_CONNECTION_NAME"},
+    )
 
     # Browser Configuration
     browser_mode: BrowserMode = Field(
