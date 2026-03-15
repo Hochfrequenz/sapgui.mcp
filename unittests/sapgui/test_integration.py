@@ -1,47 +1,68 @@
-"""Integration tests that require a running SAP GUI instance.
+"""Integration tests for the pysapgui library.
 
-These tests are skipped on non-Windows platforms and when SAP GUI is not available.
+Tests are skipped unless:
+- Running on Windows (COM is Windows-only)
+- Running on the authorized SAP test machine (same check as WebGUI tests)
+- SAP credentials are configured in .env
+
+The login tests auto-launch SAP Logon if it's not running — no manual
+startup needed. The read-only tests (test_connect_*, test_find_*) require
+an existing logged-in session.
 """
 
 import sys
 import time
 
 import pytest
+from dotenv import load_dotenv
 
+from unittests.conftest import is_sap_integration_test_machine
+
+# Skip everything on non-Windows
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
 
+# Skip on non-authorized machines (same guard as WebGUI integration tests)
+skip_not_sap_machine = pytest.mark.skipif(
+    not is_sap_integration_test_machine(),
+    reason="SAP integration tests only run on authorized machines",
+)
 
-def _sap_gui_available():
-    """Check that SAP GUI is running with at least one active connection and session."""
+
+def _has_active_session() -> bool:
+    """Check if SAP GUI has at least one logged-in session (for read-only tests)."""
     try:
         from sapwebguimcp.sapgui import SapGui
 
         app = SapGui.connect()
-        if app is None:
-            return False
         if len(app.connections) == 0:
             return False
         conn = app.connections[0]
-        if len(conn.children) == 0:
-            return False
-        return True
+        return len(conn.children) > 0
     except Exception:
         return False
 
 
-def _sap_gui_running():
-    """Check SAP GUI is running (SAP Logon open), regardless of active connections."""
+def _login_creds_configured() -> bool:
+    """Check whether all SAP login credentials are configured in .env."""
     try:
-        from sapwebguimcp.sapgui import SapGui
+        load_dotenv()
 
-        app = SapGui.connect()
-        return app is not None
+        from sapwebguimcp.models.config import get_settings
+
+        s = get_settings()
+        return bool(s.sap_connection_name and s.sap_user and s.sap_password and s.sap_mandant)
     except Exception:
         return False
 
 
-skip_no_sap = pytest.mark.skipif(not _sap_gui_available(), reason="SAP GUI not running")
-skip_no_sap_logon = pytest.mark.skipif(not _sap_gui_running(), reason="SAP GUI not running")
+# Guards for different test categories
+skip_no_active_session = pytest.mark.skipif(not _has_active_session(), reason="No active SAP GUI session")
+skip_no_login_creds = pytest.mark.skipif(not _login_creds_configured(), reason="SAP login credentials not configured")
+
+
+# ---------------------------------------------------------------------------
+# Read-only tests (require an existing logged-in session)
+# ---------------------------------------------------------------------------
 
 
 def _get_session():
@@ -53,7 +74,8 @@ def _get_session():
     return conn.children[0]
 
 
-@skip_no_sap
+@skip_not_sap_machine
+@skip_no_active_session
 def test_connect_returns_gui_application():
     from sapwebguimcp.sapgui import SapGui
     from sapwebguimcp.sapgui.components.application import GuiApplication
@@ -62,7 +84,8 @@ def test_connect_returns_gui_application():
     assert isinstance(app, GuiApplication)
 
 
-@skip_no_sap
+@skip_not_sap_machine
+@skip_no_active_session
 def test_application_has_connections():
     from sapwebguimcp.sapgui import SapGui
 
@@ -70,7 +93,8 @@ def test_application_has_connections():
     assert len(app.connections) > 0
 
 
-@skip_no_sap
+@skip_not_sap_machine
+@skip_no_active_session
 def test_connection_has_sessions():
     from sapwebguimcp.sapgui import SapGui
 
@@ -79,7 +103,8 @@ def test_connection_has_sessions():
     assert len(conn.children) > 0
 
 
-@skip_no_sap
+@skip_not_sap_machine
+@skip_no_active_session
 def test_session_info():
     session = _get_session()
     info = session.info
@@ -88,7 +113,8 @@ def test_session_info():
     assert info.language != ""
 
 
-@skip_no_sap
+@skip_not_sap_machine
+@skip_no_active_session
 def test_find_main_window():
     from sapwebguimcp.sapgui.components.window import GuiMainWindow
 
@@ -97,7 +123,8 @@ def test_find_main_window():
     assert isinstance(wnd, GuiMainWindow)
 
 
-@skip_no_sap
+@skip_not_sap_machine
+@skip_no_active_session
 def test_find_statusbar():
     from sapwebguimcp.sapgui.components.statusbar import GuiStatusbar
 
@@ -106,7 +133,8 @@ def test_find_statusbar():
     assert isinstance(sbar, GuiStatusbar)
 
 
-@skip_no_sap
+@skip_not_sap_machine
+@skip_no_active_session
 def test_find_okcode_field():
     from sapwebguimcp.sapgui.components.okcode import GuiOkCodeField
 
@@ -115,7 +143,8 @@ def test_find_okcode_field():
     assert isinstance(okcode, GuiOkCodeField)
 
 
-@skip_no_sap
+@skip_not_sap_machine
+@skip_no_active_session
 def test_find_by_id_returns_typed_wrappers():
     from sapwebguimcp.sapgui.components.base import GuiComponent
 
@@ -125,7 +154,8 @@ def test_find_by_id_returns_typed_wrappers():
     assert hasattr(elem, "com")
 
 
-@skip_no_sap
+@skip_not_sap_machine
+@skip_no_active_session
 def test_dump_tree_on_main_window():
     from sapwebguimcp.sapgui.models import ElementInfo
 
@@ -137,7 +167,8 @@ def test_dump_tree_on_main_window():
     assert isinstance(tree[0], ElementInfo)
 
 
-@skip_no_sap
+@skip_not_sap_machine
+@skip_no_active_session
 def test_read_statusbar_text():
     session = _get_session()
     sbar = session.find_by_id("wnd[0]/sbar")
@@ -146,36 +177,19 @@ def test_read_statusbar_text():
 
 # ---------------------------------------------------------------------------
 # Login / Logoff integration tests
+#
+# These auto-launch SAP Logon if not running. They only need credentials
+# configured — no pre-existing session required.
 # ---------------------------------------------------------------------------
 
 
-def _login_creds_configured():
-    """Check whether all SAP login credentials are configured."""
-    try:
-        from dotenv import load_dotenv
-
-        from sapwebguimcp.models.config import get_settings
-
-        load_dotenv()
-        s = get_settings()
-        return bool(s.sap_connection_name and s.sap_user and s.sap_password and s.sap_mandant)
-    except Exception:
-        return False
-
-
-skip_no_login_creds = pytest.mark.skipif(not _login_creds_configured(), reason="SAP login credentials not configured")
-
-
-@skip_no_sap_logon
+@skip_not_sap_machine
 @skip_no_login_creds
 def test_login_and_logoff():
     """Login with real credentials, verify session info, then logoff."""
-    from dotenv import load_dotenv
-
     from sapwebguimcp.models.config import get_settings
     from sapwebguimcp.sapgui._login import login, logoff
 
-    load_dotenv()
     settings = get_settings()
     session = login(
         connection_name=settings.sap_connection_name,
@@ -191,16 +205,13 @@ def test_login_and_logoff():
         logoff(session)
 
 
-@skip_no_sap_logon
+@skip_not_sap_machine
 @skip_no_login_creds
 def test_login_handles_easy_access():
     """After login, session should be at Easy Access (not the login screen)."""
-    from dotenv import load_dotenv
-
     from sapwebguimcp.models.config import get_settings
     from sapwebguimcp.sapgui._login import login, logoff
 
-    load_dotenv()
     settings = get_settings()
     session = login(
         connection_name=settings.sap_connection_name,
@@ -210,9 +221,7 @@ def test_login_handles_easy_access():
         language=settings.sap_language,
     )
     try:
-        # After successful login we should NOT be on the login dynpro
         assert session.info.program != "SAPMSYST"
-        # Typically SESSION_MANAGER or SAPLSMTR_NAVIGATION
         assert session.info.transaction in ("SESSION_MANAGER", "S000", "")
     finally:
         logoff(session)
@@ -220,21 +229,20 @@ def test_login_handles_easy_access():
 
 # ---------------------------------------------------------------------------
 # Multi-mode / multi-connection integration tests
+#
+# Tests the key distinction:
+# - Connection = separate TCP link, separate login (open_connection)
+# - Session/Mode = window within a connection, shared login (create_session / /o)
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap_logon
+@skip_not_sap_machine
 @skip_no_login_creds
 def test_create_additional_mode():
     """Opening a new mode (/o) creates a session within the SAME connection."""
-    from dotenv import load_dotenv
-
+    from sapwebguimcp.models.config import get_settings
     from sapwebguimcp.sapgui import SapGui
     from sapwebguimcp.sapgui._login import cleanup_ghost_connections, login
-
-    load_dotenv()
-
-    from sapwebguimcp.models.config import get_settings
 
     settings = get_settings()
 
@@ -255,17 +263,14 @@ def test_create_additional_mode():
 
         # The new session should be on the same connection
         app = SapGui.connect()
-        # Find our connection
         for i in range(len(app.connections)):
             conn = app.connections[i]
             if conn.id == conn_id:
-                # Should now have 2 sessions
                 assert len(conn.children) == 2, f"Expected 2 sessions, got {len(conn.children)}"
                 break
         else:
             pytest.fail(f"Connection {conn_id} not found")
     finally:
-        # Close the entire connection (all modes)
         try:
             session1.com.Parent.CloseConnection()
         except Exception:
@@ -273,16 +278,13 @@ def test_create_additional_mode():
         cleanup_ghost_connections()
 
 
-@skip_no_sap_logon
+@skip_not_sap_machine
 @skip_no_login_creds
-def test_two_connections_with_modes():
-    """Two separate connections, each with multiple modes -- full matrix."""
-    from dotenv import load_dotenv
-
+def test_two_connections_independent():
+    """Two separate logins create independent connections (not modes)."""
     from sapwebguimcp.models.config import get_settings
     from sapwebguimcp.sapgui._login import cleanup_ghost_connections, login
 
-    load_dotenv()
     settings = get_settings()
 
     creds = dict(
@@ -303,8 +305,6 @@ def test_two_connections_with_modes():
 
     try:
         assert conn1_id != conn2_id, "Should be different connections"
-
-        # Both should be logged in
         assert s1.info.user != ""
         assert s2.info.user != ""
     finally:
