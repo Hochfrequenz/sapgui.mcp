@@ -424,7 +424,13 @@ class DesktopBackend:
         return [ButtonInfo(**item) for item in items]
 
     async def get_snapshot(self) -> AriaSnapshot:
-        """Get a tree dump as an AriaSnapshot-like string."""
+        """Get a text dump of the SAP GUI element tree.
+
+        Returns AriaSnapshot (a str NewType) for protocol compatibility, but
+        the content is NOT an ARIA tree — desktop COM has no ARIA. The format
+        is a human/LLM-readable indented tree of element types, names, and
+        text values from dump_tree(). Do not attempt to parse this as ARIA.
+        """
         session = self._require_session()
 
         def _dump() -> str:
