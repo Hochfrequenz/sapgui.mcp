@@ -1,6 +1,28 @@
-"""SAP GUI desktop login/logoff helpers."""
+"""SAP GUI desktop login/logoff helpers.
 
-# pylint: disable=import-outside-toplevel,broad-exception-caught
+Lessons learned from live testing against HF S/4 (S4U, client 100):
+
+- Each login() opens a NEW connection (con[N]) via app.open_connection().
+  This is NOT the same as opening a new session/mode (/o) within an
+  existing connection. Connections are independent; sessions share a login.
+
+- The "multiple logon" popup (Lizenzinformation bei Mehrfachanmeldung)
+  appears when the same user is already logged in on another connection.
+  Its default radio button selection is NOT stable — it can be OPT1, OPT2,
+  or OPT3 depending on server state. Always explicitly select OPT2.
+
+- send_command("/nEX") can BLOCK indefinitely on COM when closing a session.
+  Use connection.CloseConnection() instead — it returns immediately.
+
+- SAP GUI leaves "ghost connections" (0 sessions) in the COM tree after
+  closing sessions. These must be cleaned up via CloseConnection().
+
+- The login screen is program SAPMSYST, screen 20 (standard on all systems).
+  Field IDs: txtRSYST-MANDT (client), txtRSYST-BNAME (user),
+  pwdRSYST-BCODE (password), txtRSYST-LANGU (language).
+"""
+
+# pylint: disable=import-outside-toplevel,broad-exception-caught,too-many-arguments,too-many-positional-arguments
 
 from __future__ import annotations
 
@@ -87,19 +109,52 @@ def login(
 
 
 def logoff(session: GuiSession) -> None:
-    """Cleanly log off from SAP GUI using /nEX."""
-    try:
-        session.send_command("/nEX")
-    except Exception:
-        pass  # Session may already be closed
+    """Close the session's connection, then clean up ghost connections.
 
-    # Handle "unsaved data" popup if it appears
+    Uses CloseConnection() on the parent connection rather than /nEX,
+    because send_command("/nEX") can block indefinitely on COM.
+    """
     try:
-        popup = session.find_by_id("wnd[1]", raise_error=False)
-        if popup is not None:
-            cast(Any, popup).send_v_key(0)  # Confirm
+        # Get the parent connection and close it (closes all sessions in it)
+        parent_conn = session.com.Parent
+        parent_conn.CloseConnection()
     except Exception:
-        pass  # Session closed after /nEX
+        # Fallback: try /nEX if CloseConnection fails
+        try:
+            session.send_command("/nEX")
+        except Exception:
+            pass  # Session may already be closed
+
+    # Clean up ghost connections (0 sessions) left behind
+    cleanup_ghost_connections()
+
+
+def cleanup_ghost_connections() -> None:
+    """Close all connections that have 0 sessions (ghost connections).
+
+    SAP GUI sometimes leaves dead connections in the COM tree after
+    /nEX or failed connection attempts. These are harmless but clutter
+    the connection list.
+    """
+    from sapwebguimcp.sapgui import SapGui
+
+    try:
+        app = SapGui.connect()
+    except Exception:
+        return  # SAP GUI not running, nothing to clean
+
+    try:
+        # Use raw COM to iterate connections — avoids type issues with wrapped collections
+        raw_conns = app.com.Children
+        for i in range(raw_conns.Count - 1, -1, -1):
+            raw_conn = raw_conns(i)
+            if raw_conn.Children.Count == 0:
+                try:
+                    raw_conn.CloseConnection()
+                except Exception:
+                    pass  # Best effort
+    except Exception:
+        pass  # Don't fail on cleanup
 
 
 def _wait_for_session(conn: Any, timeout: int = 30) -> GuiSession:

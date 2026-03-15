@@ -165,17 +165,24 @@ class TestLogin:
 class TestLogoff:
     """Tests for logoff()."""
 
-    def test_calls_send_command(self):
-        """logoff() sends /nEX command."""
+    def test_closes_parent_connection(self):
+        """logoff() closes the parent connection via CloseConnection()."""
         session = MagicMock()
+        logoff(session)
+        session.com.Parent.CloseConnection.assert_called_once()
+
+    def test_falls_back_to_send_command_if_close_fails(self):
+        """logoff() falls back to /nEX if CloseConnection fails."""
+        session = MagicMock()
+        session.com.Parent.CloseConnection.side_effect = Exception("COM error")
         logoff(session)
         session.send_command.assert_called_once_with("/nEX")
 
     def test_handles_already_closed_session(self):
         """logoff() does not raise when session is already closed."""
         session = MagicMock()
-        session.send_command.side_effect = Exception("Session closed")
-        session.find_by_id.side_effect = Exception("Session closed")
+        session.com.Parent.CloseConnection.side_effect = Exception("Closed")
+        session.send_command.side_effect = Exception("Closed")
         logoff(session)  # Should not raise
 
 
