@@ -20,9 +20,9 @@ __all__ = [
     "get_settings",
 ]
 
-# Backend type — only "webgui" for now; "desktop" will be added when
-# SAP GUI Scripting (COM) support is implemented.
-BackendType = Literal["webgui"]
+# Backend type: "webgui" for Playwright browser automation,
+# "desktop" for SAP GUI Scripting (COM) via pysapgui.
+BackendType = Literal["webgui", "desktop"]
 
 
 def _env_files() -> tuple[str, ...]:
@@ -106,7 +106,7 @@ class SapWebGuiSettings(BaseSettings):
     # Backend Selection
     backend_type: BackendType = Field(
         default="webgui",
-        description="Backend type: 'webgui' (Playwright browser automation)",
+        description="Backend type: 'webgui' (browser) or 'desktop' (SAP GUI COM)",
         json_schema_extra={"env": "BACKEND_TYPE"},
     )
 

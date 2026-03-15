@@ -26,10 +26,13 @@ Lessons learned from live testing against HF S/4 (S4U, client 100):
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import TYPE_CHECKING, Any, cast
 
 from sapwebguimcp.sapgui._errors import SapConnectionError, SapGuiTimeoutError
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sapwebguimcp.sapgui.components.session import GuiSession
@@ -68,7 +71,7 @@ def login(
         ScriptingDisabledError: If scripting is disabled on the server.
         SapConnectionError: If login fails (wrong credentials, SAP error).
     """
-    from sapwebguimcp.sapgui import SapGui
+    from sapwebguimcp.sapgui import SapGui  # pylint: disable=import-outside-toplevel
 
     # Step 1: Ensure SAP GUI is running
     try:
@@ -105,6 +108,10 @@ def login(
     if sbar is not None and cast(Any, sbar).message_type == "E":
         raise SapConnectionError(f"Login failed: {cast(Any, sbar).text}")
 
+    logger.info(
+        "desktop_login",
+        extra={"connection": connection_name, "user": user, "system": connection_name},
+    )
     return session
 
 
@@ -119,6 +126,8 @@ def logoff(session: GuiSession) -> None:
         parent_conn.CloseConnection()
     except Exception:
         pass  # Connection is likely already dead
+
+    logger.info("desktop_logoff")
 
     # Clean up ghost connections (0 sessions) left behind
     cleanup_ghost_connections()
@@ -141,13 +150,17 @@ def cleanup_ghost_connections() -> None:
     try:
         # Use raw COM to iterate connections — avoids type issues with wrapped collections
         raw_conns = app.com.Children
+        closed = 0
         for i in range(raw_conns.Count - 1, -1, -1):
             raw_conn = raw_conns(i)
             if raw_conn.Children.Count == 0:
                 try:
                     raw_conn.CloseConnection()
+                    closed += 1
                 except Exception:
                     pass  # Best effort
+        if closed:
+            logger.debug("ghost_cleanup", extra={"closed": closed})
     except Exception:
         pass  # Don't fail on cleanup
 
@@ -178,6 +191,7 @@ def _handle_multiple_logon_popup(session: GuiSession) -> None:
     popup = session.find_by_id("wnd[1]", raise_error=False)
     if popup is None:
         return
+    logger.info("multiple_logon_popup", extra={"action": "continue_without_ending"})
     opt2 = session.find_by_id("wnd[1]/usr/radMULTI_LOGON_OPT2", raise_error=False)
     if opt2 is not None:
         cast(Any, opt2).selected = True
