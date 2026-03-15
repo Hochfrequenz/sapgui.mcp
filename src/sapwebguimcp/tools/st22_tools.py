@@ -234,7 +234,7 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
         )
 
     # Capture dump list snapshot
-    list_snapshot = await backend.get_snapshot()
+    list_snapshot = AriaSnapshot(await backend.get_snapshot())
     logger.debug("ST22 list snapshot captured, length=%r", len(str(list_snapshot)))
 
     # Check for "no dumps" message

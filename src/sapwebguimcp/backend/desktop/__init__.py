@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, cast
 import sapwebguimcp.sapgui._login as _login_mod
 from sapwebguimcp.backend.desktop._com_thread import ComThread
 from sapwebguimcp.backend.desktop._key_mapping import key_to_vkey
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.types import ComTreeSnapshot
 from sapwebguimcp.models.alv_models import TableCellClickResult
 from sapwebguimcp.models.base import PopupInfo, ToolResult
 from sapwebguimcp.models.sap_results import (
@@ -423,13 +423,12 @@ class DesktopBackend:
         logger.debug("discover_buttons", extra={"count": len(items)})
         return [ButtonInfo(**item) for item in items]
 
-    async def get_snapshot(self) -> AriaSnapshot:
+    async def get_snapshot(self) -> ComTreeSnapshot:
         """Get a text dump of the SAP GUI element tree.
 
-        Returns AriaSnapshot (a str NewType) for protocol compatibility, but
-        the content is NOT an ARIA tree — desktop COM has no ARIA. The format
-        is a human/LLM-readable indented tree of element types, names, and
-        text values from dump_tree(). Do not attempt to parse this as ARIA.
+        Returns ComTreeSnapshot — an indented tree of element types, names,
+        and text values from dump_tree(). This is NOT an ARIA snapshot.
+        Used for LLM context, not structured parsing.
         """
         session = self._require_session()
 
@@ -443,7 +442,7 @@ class DesktopBackend:
             return "\n".join(lines)
 
         text = await self._com.run(_dump)
-        return AriaSnapshot(text)
+        return ComTreeSnapshot(text)
 
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the SAP GUI window."""

@@ -15,6 +15,7 @@ from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.se93_parser import parse_se93_snapshot
 from sapwebguimcp.models import (
     SE93Entry,
@@ -64,7 +65,7 @@ async def _lookup_tcode_on_initial_screen(backend: SapUiBackend, tcode: str) -> 
         )
 
     # Get and parse snapshot
-    snapshot = await backend.get_snapshot()
+    snapshot = AriaSnapshot(await backend.get_snapshot())
     logger.debug("Got snapshot", extra={"object": tcode, "length": len(snapshot)})
 
     return parse_se93_snapshot(snapshot, tcode)

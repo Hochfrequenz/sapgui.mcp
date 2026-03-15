@@ -101,7 +101,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
     await backend.wait_for_ready()
 
     # Capture result snapshot
-    snapshot: AriaSnapshot = await backend.get_snapshot()
+    snapshot = AriaSnapshot(await backend.get_snapshot())
 
     # Check for no results (explicit status bar message)
     if is_slg1_no_results(snapshot):
