@@ -5,17 +5,21 @@ ComThread. Methods that don't apply to desktop (JS, CSS selectors) raise
 NotImplementedError.
 """
 
-# pylint: disable=import-outside-toplevel,broad-exception-caught,too-many-public-methods
+# pylint: disable=broad-exception-caught,too-many-public-methods
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import os
+import tempfile
 from typing import TYPE_CHECKING, Any, cast
 
 import sapwebguimcp.sapgui._login as _login_mod
 from sapwebguimcp.backend.desktop._com_thread import ComThread
 from sapwebguimcp.backend.desktop._key_mapping import key_to_vkey
 from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.models.alv_models import TableCellClickResult
 from sapwebguimcp.models.base import PopupInfo, ToolResult
 from sapwebguimcp.models.sap_results import (
     ButtonInfo,
@@ -24,22 +28,22 @@ from sapwebguimcp.models.sap_results import (
     LoginResult,
     ScreenInfo,
     ScreenText,
+    SessionInfo,
     SessionStatus,
     StatusBarInfo,
     StatusBarType,
     TableData,
+    TableRow,
     TransactionResult,
 )
 
 if TYPE_CHECKING:
     from sapwebguimcp.backend.protocol import CheckActivateResult
-    from sapwebguimcp.models.alv_models import TableCellClickResult
     from sapwebguimcp.models.sap_results import (
         ClosePopupResult,
         DropdownFillResult,
         FillFormResult,
         FormFieldsResult,
-        SessionInfo,
     )
     from sapwebguimcp.sapgui.components.session import GuiSession
 
@@ -76,13 +80,14 @@ class DesktopBackend:
         session_id: str | None = None,
     ) -> LoginResult:
         """Log into SAP GUI desktop (url is ignored — uses SAP_CONNECTION_NAME)."""
-        from sapwebguimcp.models.config import get_settings
+        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
 
         settings = get_settings()
         connection_name = settings.sap_connection_name
         if not connection_name:
             return LoginResult(success=False, error="SAP_CONNECTION_NAME not configured")
 
+        logger.info("Desktop login to %s as %s", connection_name, username)
         try:
             session = await self._com.run(
                 lambda: _login_mod.login(
@@ -95,12 +100,15 @@ class DesktopBackend:
             )
             self._session = session
             user_name = await self._com.run(lambda: str(session.info.user))
+            logger.info("Desktop login successful", extra={"user": user_name, "system": connection_name})
             return LoginResult(success=True, user=user_name)
         except Exception as e:
+            logger.warning("Desktop login failed: %s", e)
             return LoginResult(success=False, error=str(e))
 
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Navigate to a transaction code."""
+        logger.info("Entering transaction %s", tcode)
         session = self._require_session()
 
         def _enter() -> str:
@@ -118,6 +126,7 @@ class DesktopBackend:
                 page_title=title,
             )
         except Exception as e:
+            logger.warning("Transaction %s failed: %s", tcode, e)
             return TransactionResult(success=False, tcode=tcode, error=str(e))
 
     async def get_session_status(self) -> SessionStatus:
@@ -133,8 +142,7 @@ class DesktopBackend:
 
     async def wait_for_ready(self, timeout_ms: int = 15000) -> None:
         """Wait until the session is no longer busy."""
-        import asyncio
-
+        logger.debug("Waiting for session ready (timeout=%dms)", timeout_ms)
         session = self._require_session()
         deadline = asyncio.get_running_loop().time() + timeout_ms / 1000
         while asyncio.get_running_loop().time() < deadline:
@@ -155,8 +163,6 @@ class DesktopBackend:
 
     async def wait(self, timeout_ms: int = 200) -> None:
         """Wait for a fixed duration."""
-        import asyncio
-
         await asyncio.sleep(timeout_ms / 1000)
 
     async def start_keepalive(self, interval_seconds: int = 300) -> None:
@@ -168,8 +174,7 @@ class DesktopBackend:
 
     async def open_new_session(self, tcode: str) -> tuple[str | None, int, str | None]:
         """Open a transaction in a new session/mode (/o)."""
-        import asyncio
-
+        logger.info("Opening new session with tcode %s", tcode)
         session = self._require_session()
 
         try:
@@ -191,14 +196,12 @@ class DesktopBackend:
 
             sid, count, title = await self._com.run(_navigate)
             return sid, count, title
-        except Exception as e:
-            logger.error("Failed to open new session: %s", e)
+        except Exception:
+            logger.exception("Failed to open new session with tcode %s", tcode)
             return None, 1, None
 
     async def list_sessions(self) -> list[SessionInfo]:
         """List all sessions in the current connection."""
-        from sapwebguimcp.models.sap_results import SessionInfo as SInfo
-
         session = self._require_session()
 
         def _list() -> list[dict[str, Any]]:
@@ -220,10 +223,11 @@ class DesktopBackend:
         # Add agent bindings on the main thread (not on the COM thread)
         for item in raw_items:
             item["agent_id"] = self._agent_bindings.get(item["session_id"])
-        return [SInfo(**item) for item in raw_items]
+        return [SessionInfo(**item) for item in raw_items]
 
     async def close_session(self, session_id: str) -> bool:
         """Close a session by ID."""
+        logger.info("Closing session %s", session_id)
         session = self._require_session()
 
         def _close() -> bool:
@@ -268,10 +272,12 @@ class DesktopBackend:
             await self._com.run(lambda: session.info.user)
             return False
         except Exception:
+            logger.warning("Session appears closed (COM error)")
             return True
 
     async def close_page(self) -> None:
         """Close the connection."""
+        logger.info("Closing desktop connection")
         if self._session is None:
             return
         try:
@@ -301,6 +307,7 @@ class DesktopBackend:
 
         text, msg_type = await self._com.run(_read)
         bar_type: StatusBarType = cast(StatusBarType, msg_type) if msg_type in ("S", "E", "W", "I", "A") else "none"
+        logger.debug("Status bar: type=%s message=%r", bar_type, text)
         return StatusBarInfo(success=True, type=bar_type, message=text)
 
     async def get_screen_info(self) -> ScreenInfo:
@@ -385,6 +392,7 @@ class DesktopBackend:
             return fields
 
         items = await self._com.run(_discover)
+        logger.debug("Discovered %d fields", len(items))
         return [FieldInfo(**item) for item in items]
 
     async def get_form_fields(  # pylint: disable=unused-argument
@@ -407,6 +415,7 @@ class DesktopBackend:
             return buttons
 
         items = await self._com.run(_discover)
+        logger.debug("Discovered %d buttons", len(items))
         return [ButtonInfo(**item) for item in items]
 
     async def get_snapshot(self) -> AriaSnapshot:
@@ -427,12 +436,10 @@ class DesktopBackend:
 
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the SAP GUI window."""
+        logger.info("Taking screenshot")
         session = self._require_session()
 
         def _screenshot() -> bytes:
-            import os
-            import tempfile
-
             wnd = session.find_by_id("wnd[0]")
             tmp = os.path.join(tempfile.gettempdir(), "sapgui_screenshot.png")
             cast(Any, wnd).hard_copy(tmp, 2)  # 2 = PNG
@@ -441,7 +448,11 @@ class DesktopBackend:
             os.unlink(tmp)
             return data
 
-        return await self._com.run(_screenshot)
+        try:
+            return await self._com.run(_screenshot)
+        except Exception:
+            logger.exception("Failed to take screenshot")
+            raise
 
     async def read_table(
         self,
@@ -450,10 +461,11 @@ class DesktopBackend:
         max_rows: int = 100,
     ) -> TableData:
         """Read data from an ALV grid or table control."""
+        logger.debug("Reading table rows %d-%s", start_row, end_row or "end")
         session = self._require_session()
 
         def _read() -> dict[str, Any]:  # pylint: disable=too-many-locals
-            from sapwebguimcp.sapgui.components.grid import GuiGridView
+            from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             # Find grid or table in the user area
             usr = session.find_by_id("wnd[0]/usr")
@@ -494,20 +506,20 @@ class DesktopBackend:
 
             return {"headers": [], "rows": [], "total_rows": 0, "start_row": 1}
 
-        data = await self._com.run(_read)
-        from sapwebguimcp.models.sap_results import TableRow
-
+        try:
+            data = await self._com.run(_read)
+        except Exception:
+            logger.exception("Failed to read table")
+            raise
         rows = [TableRow(**r) for r in data.pop("rows", [])]
         return TableData(success=True, rows=rows, **data)
 
     async def click_table_cell(self, row: int, column: int | str, action: str = "click") -> TableCellClickResult:
         """Click a cell in an ALV grid table."""
-        from sapwebguimcp.models.alv_models import TableCellClickResult
-
         session = self._require_session()
 
         def _click() -> None:
-            from sapwebguimcp.sapgui.components.grid import GuiGridView
+            from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree(max_depth=3)
@@ -548,6 +560,7 @@ class DesktopBackend:
         session = self._require_session()
         try:
             vkey = key_to_vkey(key)
+            logger.debug("Pressing key %s (VKey %d)", key, vkey)
         except KeyError:
             return KeyboardResult(success=False, key=key, error=f"Unknown key: {key}")
 

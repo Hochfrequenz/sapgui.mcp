@@ -30,6 +30,7 @@ class ComThread:
         self._queue: queue.Queue[tuple[Callable[[], Any], concurrent.futures.Future[Any]] | None] = queue.Queue()
         self._thread = threading.Thread(target=self._run, daemon=True, name="sapgui-com-worker")
         self._thread.start()
+        logger.debug("COM worker thread started")
 
     def _run(self) -> None:
         """Worker loop: CoInitialize, process queue, CoUninitialize on exit."""
@@ -66,5 +67,6 @@ class ComThread:
 
     def shutdown(self) -> None:
         """Signal the worker thread to exit and wait for cleanup."""
+        logger.debug("COM worker thread shutdown")
         self._queue.put(None)
         self._thread.join(timeout=5)
