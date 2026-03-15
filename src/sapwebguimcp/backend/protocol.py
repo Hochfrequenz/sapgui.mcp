@@ -14,7 +14,7 @@ from pydantic import Field
 # Import from specific submodules to avoid circular import through models/__init__.py.
 # Only ToolResult needed at runtime (CheckActivateResult subclass).
 # All other model types are used only in annotations (resolved as strings via PEP 563).
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.types import ScreenSnapshot
 from sapwebguimcp.models.base import PopupInfo, ToolResult
 
 if TYPE_CHECKING:
@@ -154,7 +154,7 @@ class SapUiInspection(Protocol):
     async def discover_buttons(self) -> list[ButtonInfo]:
         """Discover clickable buttons on the current screen."""
 
-    async def get_snapshot(self) -> AriaSnapshot:
+    async def get_snapshot(self) -> ScreenSnapshot:
         """Get an ARIA accessibility snapshot of the page."""
 
     async def take_screenshot(self) -> bytes:

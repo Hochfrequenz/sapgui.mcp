@@ -244,7 +244,7 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
     snapshot = AriaSnapshot("")
     for attempt in range(5):
         snapshot = AriaSnapshot(await backend.get_snapshot())
-        if "Transport Organizer:" in snapshot:
+        if "Transport Organizer:" in str(snapshot):
             break
         logger.info("SE09 results not yet loaded (attempt %d), waiting 2s", attempt + 1)
         await asyncio.sleep(2)
