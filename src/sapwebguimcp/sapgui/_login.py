@@ -101,9 +101,9 @@ def login(
         sbar = cast(Any, session.find_by_id("wnd[0]/sbar"))
         raise SapConnectionError(f"Login failed: {sbar.text}")
 
-    sbar = cast(Any, session.find_by_id("wnd[0]/sbar"))
-    if sbar.message_type == "E":
-        raise SapConnectionError(f"Login failed: {sbar.text}")
+    sbar = session.find_by_id("wnd[0]/sbar", raise_error=False)
+    if sbar is not None and cast(Any, sbar).message_type == "E":
+        raise SapConnectionError(f"Login failed: {cast(Any, sbar).text}")
 
     return session
 
@@ -115,15 +115,10 @@ def logoff(session: GuiSession) -> None:
     because send_command("/nEX") can block indefinitely on COM.
     """
     try:
-        # Get the parent connection and close it (closes all sessions in it)
         parent_conn = session.com.Parent
         parent_conn.CloseConnection()
     except Exception:
-        # Fallback: try /nEX if CloseConnection fails
-        try:
-            session.send_command("/nEX")
-        except Exception:
-            pass  # Session may already be closed
+        pass  # Connection is likely already dead
 
     # Clean up ghost connections (0 sessions) left behind
     cleanup_ghost_connections()

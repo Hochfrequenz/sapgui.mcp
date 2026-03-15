@@ -10,6 +10,7 @@ from sapwebguimcp.sapgui._errors import SapConnectionError, SapGuiTimeoutError
 from sapwebguimcp.sapgui._login import (
     _handle_multiple_logon_popup,
     _wait_for_session,
+    cleanup_ghost_connections,
     login,
     logoff,
 )
@@ -165,25 +166,66 @@ class TestLogin:
 class TestLogoff:
     """Tests for logoff()."""
 
-    def test_closes_parent_connection(self):
+    @patch("sapwebguimcp.sapgui._login.cleanup_ghost_connections")
+    def test_closes_parent_connection(self, mock_cleanup):
         """logoff() closes the parent connection via CloseConnection()."""
         session = MagicMock()
         logoff(session)
         session.com.Parent.CloseConnection.assert_called_once()
+        mock_cleanup.assert_called_once()
 
-    def test_falls_back_to_send_command_if_close_fails(self):
-        """logoff() falls back to /nEX if CloseConnection fails."""
+    @patch("sapwebguimcp.sapgui._login.cleanup_ghost_connections")
+    def test_no_fallback_to_nex(self, mock_cleanup):
+        """logoff() does NOT fall back to /nEX — it just swallows the error."""
         session = MagicMock()
         session.com.Parent.CloseConnection.side_effect = Exception("COM error")
         logoff(session)
-        session.send_command.assert_called_once_with("/nEX")
+        session.send_command.assert_not_called()
+        mock_cleanup.assert_called_once()
 
-    def test_handles_already_closed_session(self):
+    @patch("sapwebguimcp.sapgui._login.cleanup_ghost_connections")
+    def test_handles_already_closed_session(self, mock_cleanup):
         """logoff() does not raise when session is already closed."""
         session = MagicMock()
         session.com.Parent.CloseConnection.side_effect = Exception("Closed")
-        session.send_command.side_effect = Exception("Closed")
         logoff(session)  # Should not raise
+        mock_cleanup.assert_called_once()
+
+
+class TestCleanupGhostConnections:
+    """Tests for cleanup_ghost_connections()."""
+
+    @patch("sapwebguimcp.sapgui.SapGui")
+    def test_closes_ghost_connections(self, mock_sap_gui_cls):
+        """Ghost connections (0 sessions) are closed."""
+        ghost_conn = MagicMock()
+        ghost_conn.Children.Count = 0
+
+        app = mock_sap_gui_cls.connect.return_value
+        app.com.Children.Count = 1
+        app.com.Children.side_effect = lambda i: ghost_conn
+
+        cleanup_ghost_connections()
+        ghost_conn.CloseConnection.assert_called_once()
+
+    @patch("sapwebguimcp.sapgui.SapGui")
+    def test_keeps_healthy_connections(self, mock_sap_gui_cls):
+        """Connections with sessions are NOT closed."""
+        healthy_conn = MagicMock()
+        healthy_conn.Children.Count = 1
+
+        app = mock_sap_gui_cls.connect.return_value
+        app.com.Children.Count = 1
+        app.com.Children.side_effect = lambda i: healthy_conn
+
+        cleanup_ghost_connections()
+        healthy_conn.CloseConnection.assert_not_called()
+
+    @patch("sapwebguimcp.sapgui.SapGui")
+    def test_sap_gui_not_running_returns_silently(self, mock_sap_gui_cls):
+        """When SAP GUI is not running, cleanup returns without error."""
+        mock_sap_gui_cls.connect.side_effect = Exception("Not running")
+        cleanup_ghost_connections()  # Should not raise
 
 
 class TestHandleMultipleLogonPopup:

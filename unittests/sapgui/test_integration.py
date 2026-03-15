@@ -4,6 +4,7 @@ These tests are skipped on non-Windows platforms and when SAP GUI is not availab
 """
 
 import sys
+import time
 
 import pytest
 
@@ -28,7 +29,19 @@ def _sap_gui_available():
         return False
 
 
+def _sap_gui_running():
+    """Check SAP GUI is running (SAP Logon open), regardless of active connections."""
+    try:
+        from sapwebguimcp.sapgui import SapGui
+
+        app = SapGui.connect()
+        return app is not None
+    except Exception:
+        return False
+
+
 skip_no_sap = pytest.mark.skipif(not _sap_gui_available(), reason="SAP GUI not running")
+skip_no_sap_logon = pytest.mark.skipif(not _sap_gui_running(), reason="SAP GUI not running")
 
 
 def _get_session():
@@ -136,26 +149,33 @@ def test_read_statusbar_text():
 # ---------------------------------------------------------------------------
 
 
-def _skip_no_connection_name():
-    """Check whether SAP_CONNECTION_NAME is configured."""
+def _login_creds_configured():
+    """Check whether all SAP login credentials are configured."""
     try:
+        from dotenv import load_dotenv
+
         from sapwebguimcp.models.config import get_settings
 
-        return not get_settings().sap_connection_name
+        load_dotenv()
+        s = get_settings()
+        return bool(s.sap_connection_name and s.sap_user and s.sap_password and s.sap_mandant)
     except Exception:
-        return True
+        return False
 
 
-skip_no_login = pytest.mark.skipif(_skip_no_connection_name(), reason="SAP_CONNECTION_NAME not set")
+skip_no_login_creds = pytest.mark.skipif(not _login_creds_configured(), reason="SAP login credentials not configured")
 
 
-@skip_no_sap
-@skip_no_login
+@skip_no_sap_logon
+@skip_no_login_creds
 def test_login_and_logoff():
     """Login with real credentials, verify session info, then logoff."""
+    from dotenv import load_dotenv
+
     from sapwebguimcp.models.config import get_settings
     from sapwebguimcp.sapgui._login import login, logoff
 
+    load_dotenv()
     settings = get_settings()
     session = login(
         connection_name=settings.sap_connection_name,
@@ -171,13 +191,16 @@ def test_login_and_logoff():
         logoff(session)
 
 
-@skip_no_sap
-@skip_no_login
+@skip_no_sap_logon
+@skip_no_login_creds
 def test_login_handles_easy_access():
     """After login, session should be at Easy Access (not the login screen)."""
+    from dotenv import load_dotenv
+
     from sapwebguimcp.models.config import get_settings
     from sapwebguimcp.sapgui._login import login, logoff
 
+    load_dotenv()
     settings = get_settings()
     session = login(
         connection_name=settings.sap_connection_name,
@@ -193,3 +216,104 @@ def test_login_handles_easy_access():
         assert session.info.transaction in ("SESSION_MANAGER", "S000", "")
     finally:
         logoff(session)
+
+
+# ---------------------------------------------------------------------------
+# Multi-mode / multi-connection integration tests
+# ---------------------------------------------------------------------------
+
+
+@skip_no_sap_logon
+@skip_no_login_creds
+def test_create_additional_mode():
+    """Opening a new mode (/o) creates a session within the SAME connection."""
+    from dotenv import load_dotenv
+
+    from sapwebguimcp.sapgui import SapGui
+    from sapwebguimcp.sapgui._login import cleanup_ghost_connections, login
+
+    load_dotenv()
+
+    from sapwebguimcp.models.config import get_settings
+
+    settings = get_settings()
+
+    session1 = login(
+        connection_name=settings.sap_connection_name,
+        client=settings.sap_mandant,
+        user=settings.sap_user,
+        password=settings.sap_password,
+        language=settings.sap_language,
+    )
+    try:
+        # session1 is on con[N]/ses[0]
+        conn_id = session1.id.rsplit("/ses[", 1)[0]  # e.g. "/app/con[0]"
+
+        # Create a new mode within the SAME connection
+        session1.create_session()
+        time.sleep(2)
+
+        # The new session should be on the same connection
+        app = SapGui.connect()
+        # Find our connection
+        for i in range(len(app.connections)):
+            conn = app.connections[i]
+            if conn.id == conn_id:
+                # Should now have 2 sessions
+                assert len(conn.children) == 2, f"Expected 2 sessions, got {len(conn.children)}"
+                break
+        else:
+            pytest.fail(f"Connection {conn_id} not found")
+    finally:
+        # Close the entire connection (all modes)
+        try:
+            session1.com.Parent.CloseConnection()
+        except Exception:
+            pass
+        cleanup_ghost_connections()
+
+
+@skip_no_sap_logon
+@skip_no_login_creds
+def test_two_connections_with_modes():
+    """Two separate connections, each with multiple modes -- full matrix."""
+    from dotenv import load_dotenv
+
+    from sapwebguimcp.models.config import get_settings
+    from sapwebguimcp.sapgui._login import cleanup_ghost_connections, login
+
+    load_dotenv()
+    settings = get_settings()
+
+    creds = dict(
+        connection_name=settings.sap_connection_name,
+        client=settings.sap_mandant,
+        user=settings.sap_user,
+        password=settings.sap_password,
+        language=settings.sap_language,
+    )
+
+    # Login 1 (new connection)
+    s1 = login(**creds)
+    conn1_id = s1.id.rsplit("/ses[", 1)[0]
+
+    # Login 2 (new connection, triggers multiple logon popup)
+    s2 = login(**creds)
+    conn2_id = s2.id.rsplit("/ses[", 1)[0]
+
+    try:
+        assert conn1_id != conn2_id, "Should be different connections"
+
+        # Both should be logged in
+        assert s1.info.user != ""
+        assert s2.info.user != ""
+    finally:
+        try:
+            s2.com.Parent.CloseConnection()
+        except Exception:
+            pass
+        try:
+            s1.com.Parent.CloseConnection()
+        except Exception:
+            pass
+        cleanup_ghost_connections()

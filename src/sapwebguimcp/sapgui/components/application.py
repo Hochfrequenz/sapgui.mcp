@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from sapwebguimcp.sapgui.components.base import GuiComponent, GuiContainer
+from sapwebguimcp.sapgui.components.base import GuiContainer
 
 if TYPE_CHECKING:
     from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
@@ -63,16 +63,24 @@ class GuiApplication(GuiContainer):
     def allow_system_messages(self, value: bool) -> None:
         self._com.AllowSystemMessages = value
 
-    def open_connection(self, description: str, sync: bool = True, raise_error: bool = True) -> GuiComponent:
-        """Open a connection by system description (as shown in SAP Logon)."""
+    def open_connection(self, description: str, sync: bool = True, raise_error: bool = True) -> Any:
+        """Open a connection by system description (as shown in SAP Logon).
+
+        Returns Any because wrap_com_object returns GuiComponent but the
+        runtime object is always a GuiConnection.
+        """
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
         return wrap_com_object(self._com.OpenConnection(description, sync, raise_error))
 
     def open_connection_by_connection_string(
         self, conn_string: str, sync: bool = True, raise_error: bool = True
-    ) -> GuiComponent:
-        """Open a connection using a raw connection string."""
+    ) -> Any:
+        """Open a connection using a raw connection string.
+
+        Returns Any because wrap_com_object returns GuiComponent but the
+        runtime object is always a GuiConnection.
+        """
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
         return wrap_com_object(self._com.OpenConnectionByConnectionString(conn_string, sync, raise_error))
