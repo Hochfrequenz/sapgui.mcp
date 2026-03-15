@@ -155,7 +155,7 @@ class SapUiInspection(Protocol):
         """Discover clickable buttons on the current screen."""
 
     async def get_snapshot(self) -> ScreenSnapshot:
-        """Get an ARIA accessibility snapshot of the page."""
+        """Get a screen snapshot (format depends on backend: ARIA or COM tree)."""
 
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the current page as PNG bytes."""
