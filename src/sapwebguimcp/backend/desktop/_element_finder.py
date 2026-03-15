@@ -41,25 +41,56 @@ def _flatten(tree: list[Any]) -> list[Any]:
     return result
 
 
-def _find_by_name_prefix(session: Any, label_name: str) -> Any | None:
+def _extract_container_path(label_id: str) -> str:
+    """Extract container path from a label's full ID.
+
+    '/app/con[0]/ses[0]/wnd[0]/usr/sub/lblFOO' -> 'wnd[0]/usr/sub/'
+    '/app/con[0]/ses[0]/wnd[1]/usr/lblBAR' -> 'wnd[1]/usr/'
+    """
+    parts = label_id.split("/")
+    for i, p in enumerate(parts):
+        if p.startswith("wnd["):
+            rel_path = "/".join(parts[i:])
+            last_slash = rel_path.rfind("/")
+            return rel_path[: last_slash + 1]
+    return "wnd[0]/usr/"
+
+
+def _find_by_name_prefix(session: Any, label_name: str, path_prefix: str = "wnd[0]/usr/") -> Any | None:
     """Strategy 1: Label lblFOO -> try txtFOO, ctxtFOO, pwdFOO, cmbFOO, chkFOO, radFOO."""
     for prefix in _INPUT_PREFIXES:
-        field = session.find_by_id("wnd[0]/usr/" + prefix + label_name, raise_error=False)
+        field = session.find_by_id(path_prefix + prefix + label_name, raise_error=False)
         if field is not None:
             return field
     return None
 
 
 def _find_by_label_text(session: Any, label: str) -> Any | None:
-    """Strategy 2: Walk usr subtree, find label matching text, then find field via name prefix."""
+    """Strategy 2: Walk usr subtree, find label matching text, then find field via name prefix.
+
+    Prefers exact match (after stripping) over substring match.
+    """
     usr = session.find_by_id("wnd[0]/usr")
     tree = usr.dump_tree(max_depth=5)
-    for elem in _flatten(tree):
-        if elem.type_as_number == _TYPE_LABEL and label.lower() in elem.text.lower():
-            field_name = elem.name
-            field = _find_by_name_prefix(session, field_name)
+    flat = _flatten(tree)
+    needle = label.strip().lower()
+
+    # First pass: exact match
+    for elem in flat:
+        if elem.type_as_number == _TYPE_LABEL and elem.text.strip().lower() == needle:
+            path_prefix = _extract_container_path(elem.id)
+            field = _find_by_name_prefix(session, elem.name, path_prefix)
             if field is not None:
                 return field
+
+    # Second pass: substring match
+    for elem in flat:
+        if elem.type_as_number == _TYPE_LABEL and needle in elem.text.strip().lower():
+            path_prefix = _extract_container_path(elem.id)
+            field = _find_by_name_prefix(session, elem.name, path_prefix)
+            if field is not None:
+                return field
+
     return None
 
 
@@ -106,30 +137,61 @@ def find_field_by_label(session: Any, label: str) -> Any | None:
 
 
 def find_button_by_label(session: Any, label: str) -> Any | None:
-    """Find a button (GuiButton type 40) by its text label."""
+    """Find a button (GuiButton type 40) by its text label.
+
+    Prefers exact match (after stripping) over substring match.
+    """
     wnd = session.find_by_id("wnd[0]")
     tree = wnd.dump_tree(max_depth=5)
-    for elem in _flatten(tree):
-        if elem.type_as_number == _TYPE_BUTTON and label.lower() in elem.text.lower():
+    flat = _flatten(tree)
+    needle = label.strip().lower()
+
+    # First pass: exact match
+    for elem in flat:
+        if elem.type_as_number == _TYPE_BUTTON and elem.text.strip().lower() == needle:
             return session.find_by_id(elem.id)
+
+    # Second pass: substring match
+    for elem in flat:
+        if elem.type_as_number == _TYPE_BUTTON and needle in elem.text.strip().lower():
+            return session.find_by_id(elem.id)
+
     return None
 
 
 def find_checkbox_by_label(session: Any, label: str) -> Any | None:
-    """Find a checkbox (type 42) by adjacent label text or its own text."""
+    """Find a checkbox (type 42) by adjacent label text or its own text.
+
+    Prefers exact match (after stripping) over substring match.
+    """
     usr = session.find_by_id("wnd[0]/usr")
     tree = usr.dump_tree(max_depth=5)
     flat = _flatten(tree)
+    needle = label.strip().lower()
 
-    # First try: checkbox with matching text
+    # Exact match on checkbox text
     for elem in flat:
-        if elem.type_as_number == _TYPE_CHECKBOX and label.lower() in elem.text.lower():
+        if elem.type_as_number == _TYPE_CHECKBOX and elem.text.strip().lower() == needle:
             return session.find_by_id(elem.id)
 
-    # Second try: find label, then look for checkbox with same name
+    # Exact match on label, then look for checkbox with same name
     for elem in flat:
-        if elem.type_as_number == _TYPE_LABEL and label.lower() in elem.text.lower():
-            chk = session.find_by_id("wnd[0]/usr/chk" + elem.name, raise_error=False)
+        if elem.type_as_number == _TYPE_LABEL and elem.text.strip().lower() == needle:
+            path_prefix = _extract_container_path(elem.id)
+            chk = session.find_by_id(path_prefix + "chk" + elem.name, raise_error=False)
+            if chk is not None:
+                return chk
+
+    # Substring match on checkbox text
+    for elem in flat:
+        if elem.type_as_number == _TYPE_CHECKBOX and needle in elem.text.strip().lower():
+            return session.find_by_id(elem.id)
+
+    # Substring match on label, then look for checkbox with same name
+    for elem in flat:
+        if elem.type_as_number == _TYPE_LABEL and needle in elem.text.strip().lower():
+            path_prefix = _extract_container_path(elem.id)
+            chk = session.find_by_id(path_prefix + "chk" + elem.name, raise_error=False)
             if chk is not None:
                 return chk
 
@@ -137,20 +199,38 @@ def find_checkbox_by_label(session: Any, label: str) -> Any | None:
 
 
 def find_radio_by_label(session: Any, label: str) -> Any | None:
-    """Find a radio button (type 41) by adjacent label text or its own text."""
+    """Find a radio button (type 41) by adjacent label text or its own text.
+
+    Prefers exact match (after stripping) over substring match.
+    """
     usr = session.find_by_id("wnd[0]/usr")
     tree = usr.dump_tree(max_depth=5)
     flat = _flatten(tree)
+    needle = label.strip().lower()
 
-    # First try: radio with matching text
+    # Exact match on radio text
     for elem in flat:
-        if elem.type_as_number == _TYPE_RADIO and label.lower() in elem.text.lower():
+        if elem.type_as_number == _TYPE_RADIO and elem.text.strip().lower() == needle:
             return session.find_by_id(elem.id)
 
-    # Second try: find label, then look for radio with same name
+    # Exact match on label, then look for radio with same name
     for elem in flat:
-        if elem.type_as_number == _TYPE_LABEL and label.lower() in elem.text.lower():
-            rad = session.find_by_id("wnd[0]/usr/rad" + elem.name, raise_error=False)
+        if elem.type_as_number == _TYPE_LABEL and elem.text.strip().lower() == needle:
+            path_prefix = _extract_container_path(elem.id)
+            rad = session.find_by_id(path_prefix + "rad" + elem.name, raise_error=False)
+            if rad is not None:
+                return rad
+
+    # Substring match on radio text
+    for elem in flat:
+        if elem.type_as_number == _TYPE_RADIO and needle in elem.text.strip().lower():
+            return session.find_by_id(elem.id)
+
+    # Substring match on label, then look for radio with same name
+    for elem in flat:
+        if elem.type_as_number == _TYPE_LABEL and needle in elem.text.strip().lower():
+            path_prefix = _extract_container_path(elem.id)
+            rad = session.find_by_id(path_prefix + "rad" + elem.name, raise_error=False)
             if rad is not None:
                 return rad
 
@@ -158,30 +238,61 @@ def find_radio_by_label(session: Any, label: str) -> Any | None:
 
 
 def find_tab_by_label(session: Any, label: str) -> Any | None:
-    """Find a tab (GuiTab type 91) by its text."""
+    """Find a tab (GuiTab type 91) by its text.
+
+    Prefers exact match (after stripping) over substring match.
+    """
     wnd = session.find_by_id("wnd[0]")
     tree = wnd.dump_tree(max_depth=5)
-    for elem in _flatten(tree):
-        if elem.type_as_number == _TYPE_TAB and label.lower() in elem.text.lower():
+    flat = _flatten(tree)
+    needle = label.strip().lower()
+
+    # First pass: exact match
+    for elem in flat:
+        if elem.type_as_number == _TYPE_TAB and elem.text.strip().lower() == needle:
             return session.find_by_id(elem.id)
+
+    # Second pass: substring match
+    for elem in flat:
+        if elem.type_as_number == _TYPE_TAB and needle in elem.text.strip().lower():
+            return session.find_by_id(elem.id)
+
     return None
 
 
 def find_combobox_by_label(session: Any, label: str) -> Any | None:
-    """Find a combobox (type 34) by adjacent label."""
+    """Find a combobox (type 34) by adjacent label.
+
+    Prefers exact match (after stripping) over substring match.
+    """
     usr = session.find_by_id("wnd[0]/usr")
     tree = usr.dump_tree(max_depth=5)
     flat = _flatten(tree)
+    needle = label.strip().lower()
 
-    # First try: combobox with matching text
+    # Exact match on combobox text
     for elem in flat:
-        if elem.type_as_number == _TYPE_COMBOBOX and label.lower() in elem.text.lower():
+        if elem.type_as_number == _TYPE_COMBOBOX and elem.text.strip().lower() == needle:
             return session.find_by_id(elem.id)
 
-    # Second try: find label, then look for combobox with same name
+    # Exact match on label, then look for combobox with same name
     for elem in flat:
-        if elem.type_as_number == _TYPE_LABEL and label.lower() in elem.text.lower():
-            cmb = session.find_by_id("wnd[0]/usr/cmb" + elem.name, raise_error=False)
+        if elem.type_as_number == _TYPE_LABEL and elem.text.strip().lower() == needle:
+            path_prefix = _extract_container_path(elem.id)
+            cmb = session.find_by_id(path_prefix + "cmb" + elem.name, raise_error=False)
+            if cmb is not None:
+                return cmb
+
+    # Substring match on combobox text
+    for elem in flat:
+        if elem.type_as_number == _TYPE_COMBOBOX and needle in elem.text.strip().lower():
+            return session.find_by_id(elem.id)
+
+    # Substring match on label, then look for combobox with same name
+    for elem in flat:
+        if elem.type_as_number == _TYPE_LABEL and needle in elem.text.strip().lower():
+            path_prefix = _extract_container_path(elem.id)
+            cmb = session.find_by_id(path_prefix + "cmb" + elem.name, raise_error=False)
             if cmb is not None:
                 return cmb
 

@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, cast
 import sapwebguimcp.sapgui._login as _login_mod
 from sapwebguimcp.backend.desktop._com_thread import ComThread
 from sapwebguimcp.backend.desktop._element_finder import (
+    _flatten,
     find_button_by_label,
     find_checkbox_by_label,
     find_combobox_by_label,
@@ -36,7 +37,6 @@ from sapwebguimcp.models.sap_results import (
     FormField,
     KeyboardResult,
     LoginResult,
-    SapFieldType,
     ScreenInfo,
     ScreenText,
     SessionInfo,
@@ -357,7 +357,7 @@ class DesktopBackend:
             tree = cast(Any, wnd).dump_tree(max_depth=3)
 
             labels, buttons, tabs, content = [], [], [], []
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 t = elem.type_as_number
                 txt = elem.text.strip()
                 if not txt:
@@ -393,7 +393,7 @@ class DesktopBackend:
             tree = cast(Any, usr).dump_tree(max_depth=3)
             fields = []
             input_types = {31, 32, 33, 34}  # txt, ctxt, pwd, cmb
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 if elem.type_as_number in input_types:
                     fields.append(
                         {
@@ -424,7 +424,7 @@ class DesktopBackend:
         def _discover() -> list[dict[str, Any]]:
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree(max_depth=5)
-            flat = _flatten_tree(tree)
+            flat = _flatten(tree)
 
             # Build label map: name -> label text
             label_map: dict[str, str] = {}
@@ -474,7 +474,7 @@ class DesktopBackend:
             wnd = session.find_by_id("wnd[0]")
             tree = cast(Any, wnd).dump_tree(max_depth=3)
             buttons: list[dict[str, Any]] = []
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 if elem.type_as_number == 40 and elem.text.strip():  # GuiButton
                     buttons.append({"label": elem.text.strip(), "id": elem.id, "selector": elem.id})
             return buttons
@@ -496,7 +496,7 @@ class DesktopBackend:
             wnd = session.find_by_id("wnd[0]")
             tree = cast(Any, wnd).dump_tree(max_depth=5)
             lines = []
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 indent = "  " * elem.id.count("/")
                 lines.append(f"{indent}{elem.type}[{elem.name}]: {elem.text!r}")
             return "\n".join(lines)
@@ -541,7 +541,7 @@ class DesktopBackend:
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree(max_depth=3)
             grid_id = None
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
                     grid_id = elem.id
                     break
@@ -597,7 +597,7 @@ class DesktopBackend:
 
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree(max_depth=3)
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 if elem.type_as_number == 122:
                     grid = session.find_by_id(elem.id)
                     if isinstance(grid, GuiGridView):
@@ -747,7 +747,7 @@ class DesktopBackend:
 
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree(max_depth=3)
-            for elem in _flatten_tree(tree):
+            for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
                     grid = session.find_by_id(elem.id)
                     if isinstance(grid, GuiGridView):
@@ -914,13 +914,3 @@ class DesktopBackend:
     async def dismiss_popup(self, button_label: str | None = None, use_close_button: bool = False) -> ClosePopupResult:
         """Dismiss a popup (not yet implemented)."""
         raise NotImplementedError("dismiss_popup not yet implemented — Phase 3")
-
-
-def _flatten_tree(elements: list[Any]) -> list[Any]:
-    """Flatten a nested ElementInfo tree into a flat list."""
-    result = []
-    for elem in elements:
-        result.append(elem)
-        if elem.children:
-            result.extend(_flatten_tree(elem.children))
-    return result
