@@ -889,6 +889,19 @@ class DesktopBackend:
 
     # ---- SapEditor ----
 
+    @staticmethod
+    def _find_editor_shell(session: Any) -> Any | None:
+        """Find an AbapEditor or TextEdit shell in the current screen."""
+        usr = session.find_by_id("wnd[0]/usr")
+        tree = cast(Any, usr).dump_tree(max_depth=5)
+        for elem in _flatten(tree):
+            if elem.type_as_number == 122:  # GuiShell
+                shell = session.find_by_id(elem.id)
+                sub_type = getattr(cast(Any, shell), "sub_type", "")
+                if sub_type in ("AbapEditor", "TextEdit"):
+                    return shell
+        return None
+
     async def read_editor_source(self) -> str | None:
         """Read the current source code from an open ABAP editor.
 
@@ -898,40 +911,32 @@ class DesktopBackend:
         session = self._require_session()
 
         def _read() -> str | None:
-            # Find an AbapEditor or TextEdit shell in the screen tree.
-            # Note: SAP's AbapEditor COM control has known issues with
-            # NumberOfLines/GetLineText via FindById dispatch — the COM object
-            # type info is lost. We try direct access first, then fall back
-            # to the raw COM object's properties.
-            usr = session.find_by_id("wnd[0]/usr")
-            tree = cast(Any, usr).dump_tree(max_depth=5)
-            for elem in _flatten(tree):
-                if elem.type_as_number == 122:  # GuiShell
-                    shell = session.find_by_id(elem.id)
-                    sub_type = getattr(cast(Any, shell), "sub_type", "")
-                    if sub_type in ("AbapEditor", "TextEdit"):
-                        # Strategy 1: pysapgui wrapper properties
-                        try:
-                            num_lines = cast(Any, shell).number_of_lines
-                            lines = []
-                            for i in range(num_lines):
-                                lines.append(str(cast(Any, shell).get_line_text(i)))
-                            return "\n".join(lines)
-                        except Exception:
-                            pass
-                        # Strategy 2: raw COM properties (bypass wrapper)
-                        try:
-                            raw = cast(Any, shell).com
-                            num_lines = raw.NumberOfLines
-                            lines = []
-                            for i in range(num_lines):
-                                lines.append(str(raw.GetLineText(i)))
-                            return "\n".join(lines)
-                        except Exception:
-                            logger.warning(
-                                "read_editor_source",
-                                extra={"sub_type": sub_type, "error": "COM properties unavailable on this editor"},
-                            )
+            shell = DesktopBackend._find_editor_shell(session)
+            if shell is None:
+                return None
+            sub_type = getattr(cast(Any, shell), "sub_type", "")
+            # Strategy 1: pysapgui wrapper properties
+            try:
+                num_lines = cast(Any, shell).number_of_lines
+                lines = []
+                for i in range(num_lines):
+                    lines.append(str(cast(Any, shell).get_line_text(i)))
+                return "\n".join(lines)
+            except Exception:
+                pass
+            # Strategy 2: raw COM properties (bypass wrapper)
+            try:
+                raw = cast(Any, shell).com
+                num_lines = raw.NumberOfLines
+                lines = []
+                for i in range(num_lines):
+                    lines.append(str(raw.GetLineText(i)))
+                return "\n".join(lines)
+            except Exception:
+                logger.warning(
+                    "read_editor_source",
+                    extra={"sub_type": sub_type, "error": "COM properties unavailable on this editor"},
+                )
             return None
 
         result = await self._com.run(_read)
@@ -946,27 +951,24 @@ class DesktopBackend:
         session = self._require_session()
 
         def _replace() -> bool:
-            usr = session.find_by_id("wnd[0]/usr")
-            tree = cast(Any, usr).dump_tree(max_depth=5)
-            for elem in _flatten(tree):
-                if elem.type_as_number == 122:  # GuiShell
-                    shell = session.find_by_id(elem.id)
-                    sub_type = getattr(cast(Any, shell), "sub_type", "")
-                    if sub_type in ("AbapEditor", "TextEdit"):
-                        try:
-                            cast(Any, shell).text = code
-                            return True
-                        except Exception:
-                            pass
-                        # Fallback: raw COM
-                        try:
-                            cast(Any, shell).com.Text = code
-                            return True
-                        except Exception:
-                            logger.warning(
-                                "replace_editor_source",
-                                extra={"sub_type": sub_type, "error": "COM Text property unavailable"},
-                            )
+            shell = DesktopBackend._find_editor_shell(session)
+            if shell is None:
+                return False
+            sub_type = getattr(cast(Any, shell), "sub_type", "")
+            try:
+                cast(Any, shell).text = code
+                return True
+            except Exception:
+                pass
+            # Fallback: raw COM
+            try:
+                cast(Any, shell).com.Text = code
+                return True
+            except Exception:
+                logger.warning(
+                    "replace_editor_source",
+                    extra={"sub_type": sub_type, "error": "COM Text property unavailable"},
+                )
             return False
 
         result = await self._com.run(_replace)
@@ -991,8 +993,13 @@ class DesktopBackend:
             cast(Any, wnd).send_v_key(26)
             sbar = session.find_by_id("wnd[0]/sbar")
             msg = str(cast(Any, sbar).text)
+            check_type = str(cast(Any, sbar).message_type)
             if msg:
                 messages.append(f"Check: {msg}")
+
+            # If check failed, return early without activating
+            if check_type == "E":
+                return messages, False
 
             # Handle "Inactive Objects" popup if it appears
             popup = session.find_by_id("wnd[1]", raise_error=False)
@@ -1039,7 +1046,7 @@ class DesktopBackend:
             if popup is None:
                 return False
             text = str(cast(Any, popup).text).lower()
-            if "originalsprache" in text or "original" in text or "language" in text:
+            if "originalsprache" in text or ("original" in text and "language" in text):
                 cast(Any, popup).send_v_key(0)  # Enter to confirm
                 return True
             return False
@@ -1153,7 +1160,9 @@ class DesktopBackend:
                         return str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
 
                     sbar_text, raw_type = await self._com.run(_read_sbar)
-                    if raw_type in ("S", "E", "W", "I", "A"):
+                    if raw_type == "A":
+                        raw_type = "E"  # map Abort to Error
+                    if raw_type in ("S", "E", "W", "I"):
                         sbar_type = cast(StatusBarType, raw_type)
                 except Exception:
                     pass

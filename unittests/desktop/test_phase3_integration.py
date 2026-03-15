@@ -105,7 +105,7 @@ async def test_check_popup_detects_modal(backend):
 
     # Either a popup appeared or the status bar has an error — both are valid
     if popup is not None:
-        assert popup.title or popup.message
+        assert popup.message or popup.buttons
         await backend.dismiss_popup()
     else:
         # SAP showed an error in the status bar instead of a popup
