@@ -5,7 +5,7 @@ ComThread. Methods that don't apply to desktop (JS, CSS selectors) raise
 NotImplementedError.
 """
 
-# pylint: disable=broad-exception-caught,too-many-public-methods
+# pylint: disable=broad-exception-caught,too-many-public-methods,too-many-lines
 
 from __future__ import annotations
 
@@ -887,30 +887,306 @@ class DesktopBackend:
         """Evaluate JavaScript — not supported on desktop."""
         raise NotImplementedError("JavaScript not supported on desktop SAP GUI")
 
-    # ---- SapEditor stubs (Phase 3) ----
+    # ---- SapEditor ----
+
+    @staticmethod
+    def _find_editor_shell(session: Any) -> Any | None:
+        """Find an AbapEditor or TextEdit shell in the current screen."""
+        usr = session.find_by_id("wnd[0]/usr")
+        tree = cast(Any, usr).dump_tree(max_depth=5)
+        for elem in _flatten(tree):
+            if elem.type_as_number == 122:  # GuiShell
+                shell = session.find_by_id(elem.id)
+                sub_type = getattr(cast(Any, shell), "sub_type", "")
+                if sub_type in ("AbapEditor", "TextEdit"):
+                    return shell
+        return None
 
     async def read_editor_source(self) -> str | None:
-        """Read ABAP editor source (not yet implemented)."""
-        raise NotImplementedError("read_editor_source not yet implemented — Phase 3")
+        """Read the current source code from an open ABAP editor.
+
+        Walks the element tree to find a GuiAbapEditor (SubType "AbapEditor")
+        or GuiTextedit (SubType "TextEdit") and reads all lines.
+        """
+        session = self._require_session()
+
+        def _read() -> str | None:
+            shell = DesktopBackend._find_editor_shell(session)
+            if shell is None:
+                return None
+            sub_type = getattr(cast(Any, shell), "sub_type", "")
+            # Strategy 1: pysapgui wrapper properties
+            try:
+                num_lines = cast(Any, shell).number_of_lines
+                lines = []
+                for i in range(num_lines):
+                    lines.append(str(cast(Any, shell).get_line_text(i)))
+                return "\n".join(lines)
+            except Exception:
+                pass
+            # Strategy 2: raw COM properties (bypass wrapper)
+            try:
+                raw = cast(Any, shell).com
+                num_lines = raw.NumberOfLines
+                lines = []
+                for i in range(num_lines):
+                    lines.append(str(raw.GetLineText(i)))
+                return "\n".join(lines)
+            except Exception:
+                logger.warning(
+                    "read_editor_source",
+                    extra={"sub_type": sub_type, "error": "COM properties unavailable on this editor"},
+                )
+            return None
+
+        result = await self._com.run(_read)
+        logger.info("read_editor_source", extra={"found": result is not None})
+        return result
 
     async def replace_editor_source(self, code: str) -> bool:
-        """Replace ABAP editor source (not yet implemented)."""
-        raise NotImplementedError("replace_editor_source not yet implemented — Phase 3")
+        """Replace the entire source code in an open ABAP editor.
+
+        Finds the editor shell and sets its text property.
+        """
+        session = self._require_session()
+
+        def _replace() -> bool:
+            shell = DesktopBackend._find_editor_shell(session)
+            if shell is None:
+                return False
+            sub_type = getattr(cast(Any, shell), "sub_type", "")
+            try:
+                cast(Any, shell).text = code
+                return True
+            except Exception:
+                pass
+            # Fallback: raw COM
+            try:
+                cast(Any, shell).com.Text = code
+                return True
+            except Exception:
+                logger.warning(
+                    "replace_editor_source",
+                    extra={"sub_type": sub_type, "error": "COM Text property unavailable"},
+                )
+            return False
+
+        result = await self._com.run(_replace)
+        logger.info("replace_editor_source", extra={"success": result, "length": len(code)})
+        return result
 
     async def check_and_activate(self) -> CheckActivateResult:
-        """Run syntax check and activate (not yet implemented)."""
-        raise NotImplementedError("check_and_activate not yet implemented — Phase 3")
+        """Run syntax check (Ctrl+F2) and activate (Ctrl+F3).
+
+        Sends VKey 26 (check), reads status bar, handles "Inactive Objects"
+        popup, then sends VKey 27 (activate) and reads status bar again.
+        """
+        from sapwebguimcp.backend.protocol import CheckActivateResult as _CheckActivateResult
+
+        session = self._require_session()
+
+        def _check_activate() -> tuple[list[str], bool]:
+            wnd = session.find_by_id("wnd[0]")
+            messages: list[str] = []
+
+            # Check (Ctrl+F2 = VKey 26)
+            cast(Any, wnd).send_v_key(26)
+            sbar = session.find_by_id("wnd[0]/sbar")
+            msg = str(cast(Any, sbar).text)
+            check_type = str(cast(Any, sbar).message_type)
+            if msg:
+                messages.append(f"Check: {msg}")
+
+            # If check failed, return early without activating
+            if check_type == "E":
+                return messages, False
+
+            # Handle "Inactive Objects" popup if it appears
+            popup = session.find_by_id("wnd[1]", raise_error=False)
+            if popup is not None:
+                cast(Any, popup).send_v_key(0)  # Confirm with Enter
+
+            # Activate (Ctrl+F3 = VKey 27)
+            cast(Any, wnd).send_v_key(27)
+            sbar = session.find_by_id("wnd[0]/sbar")
+            msg = str(cast(Any, sbar).text)
+            msg_type = str(cast(Any, sbar).message_type)
+            if msg:
+                messages.append(f"Activate: {msg}")
+
+            # Handle "Inactive Objects" popup again
+            popup = session.find_by_id("wnd[1]", raise_error=False)
+            if popup is not None:
+                cast(Any, popup).send_v_key(0)
+
+            activated = msg_type != "E"
+            return messages, activated
+
+        try:
+            messages, activated = await self._com.run(_check_activate)
+            logger.info(
+                "check_and_activate",
+                extra={"activated": activated, "message_count": len(messages)},
+            )
+            return _CheckActivateResult(success=True, messages=messages, activated=activated)
+        except Exception as e:
+            logger.warning("check_and_activate", extra={"error": str(e)})
+            return _CheckActivateResult(success=False, error=str(e), messages=[], activated=False)
 
     async def dismiss_language_dialog(self) -> None:
-        """Dismiss language mismatch dialog (not yet implemented)."""
-        raise NotImplementedError("dismiss_language_dialog not yet implemented — Phase 3")
+        """Dismiss the 'Different original and logon languages' dialog if present.
 
-    # ---- SapPopup stubs (Phase 3) ----
+        Checks for modal wnd[1] containing "originalsprache" or "original"/"language"
+        text, and presses Enter to confirm.
+        """
+        session = self._require_session()
+
+        def _dismiss() -> bool:
+            popup = session.find_by_id("wnd[1]", raise_error=False)
+            if popup is None:
+                return False
+            text = str(cast(Any, popup).text).lower()
+            if "originalsprache" in text or ("original" in text and "language" in text):
+                cast(Any, popup).send_v_key(0)  # Enter to confirm
+                return True
+            return False
+
+        dismissed = await self._com.run(_dismiss)
+        logger.info("dismiss_language_dialog", extra={"dismissed": dismissed})
+
+    # ---- SapPopup ----
 
     async def check_popup(self) -> PopupInfo | None:
-        """Detect popup/dialog (not yet implemented)."""
-        raise NotImplementedError("check_popup not yet implemented — Phase 3")
+        """Detect whether a popup/dialog is currently visible.
+
+        Checks if wnd[1] exists, then reads its title, text content,
+        and button labels to build a PopupInfo.
+        """
+        from sapwebguimcp.models.base import PopupButton, PopupType
+
+        session = self._require_session()
+
+        def _check() -> dict[str, Any] | None:
+            popup = session.find_by_id("wnd[1]", raise_error=False)
+            if popup is None:
+                return None
+            title = str(cast(Any, popup).text)
+            # Collect elements from the popup
+            tree = cast(Any, popup).dump_tree(max_depth=2)
+            flat = _flatten(tree)
+            buttons: list[dict[str, str | None]] = []
+            for elem in flat:
+                if elem.type_as_number == 40 and elem.text.strip():  # GuiButton
+                    buttons.append({"label": elem.text.strip(), "id": elem.id})
+            # Collect text content (labels and text fields)
+            texts: list[str] = []
+            for elem in flat:
+                if elem.type_as_number in (30, 31) and elem.text.strip():
+                    texts.append(elem.text.strip())
+            message = " ".join(texts) if texts else title
+            return {"title": title, "message": message, "buttons": buttons}
+
+        data = await self._com.run(_check)
+        if data is None:
+            logger.debug("check_popup", extra={"found": False})
+            return None
+
+        # Determine popup type from title/message heuristics
+        popup_type = PopupType.UNKNOWN
+        msg_lower = (data["message"] or "").lower()
+        title_lower = (data["title"] or "").lower()
+        combined = msg_lower + " " + title_lower
+        if any(kw in combined for kw in ("error", "fehler")):
+            popup_type = PopupType.ERROR
+        elif any(kw in combined for kw in ("information", "hinweis")):
+            popup_type = PopupType.INFO
+        elif any(kw in combined for kw in ("confirm", "bestätigung", "ja", "nein", "yes", "no")):
+            popup_type = PopupType.CONFIRM
+
+        popup_buttons = [PopupButton(label=b["label"], id=b.get("id")) for b in data["buttons"]]
+        logger.info(
+            "check_popup",
+            extra={"found": True, "type": popup_type, "button_count": len(popup_buttons)},
+        )
+        return PopupInfo(
+            popup_type=popup_type,
+            message=data["message"],
+            buttons=popup_buttons,
+        )
 
     async def dismiss_popup(self, button_label: str | None = None, use_close_button: bool = False) -> ClosePopupResult:
-        """Dismiss a popup (not yet implemented)."""
-        raise NotImplementedError("dismiss_popup not yet implemented — Phase 3")
+        """Dismiss a popup by clicking a button or the close control.
+
+        If use_close_button is True, closes the popup window directly.
+        If button_label is given, finds and clicks the matching button.
+        Otherwise, presses Enter (VKey 0) as default.
+        """
+        from sapwebguimcp.models.sap_results import ClosePopupResult as _ClosePopupResult
+
+        session = self._require_session()
+
+        def _dismiss() -> dict[str, Any]:
+            popup = session.find_by_id("wnd[1]", raise_error=False)
+            if popup is None:
+                return {"dismissed": False, "button_clicked": None}
+
+            if use_close_button:
+                cast(Any, popup).close()
+                return {"dismissed": True, "button_clicked": None}
+
+            if button_label:
+                # Find button by label in popup
+                tree = cast(Any, popup).dump_tree(max_depth=2)
+                for elem in _flatten(tree):
+                    if elem.type_as_number == 40 and button_label.lower() in elem.text.lower():
+                        btn = session.find_by_id(elem.id)
+                        cast(Any, btn).press()
+                        return {"dismissed": True, "button_clicked": elem.text.strip()}
+
+            # Default: press Enter
+            cast(Any, popup).send_v_key(0)
+            return {"dismissed": True, "button_clicked": None}
+
+        try:
+            data = await self._com.run(_dismiss)
+            # Read status bar after dismissal
+            sbar_text = ""
+            sbar_type: StatusBarType = "none"
+            if data["dismissed"]:
+                try:
+
+                    def _read_sbar() -> tuple[str, str]:
+                        sbar = session.find_by_id("wnd[0]/sbar")
+                        return str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
+
+                    sbar_text, raw_type = await self._com.run(_read_sbar)
+                    if raw_type == "A":
+                        raw_type = "E"  # map Abort to Error
+                    if raw_type in ("S", "E", "W", "I"):
+                        sbar_type = cast(StatusBarType, raw_type)
+                except Exception:
+                    pass
+
+            logger.info(
+                "dismiss_popup",
+                extra={
+                    "dismissed": data["dismissed"],
+                    "button": data["button_clicked"],
+                    "use_close": use_close_button,
+                },
+            )
+            return _ClosePopupResult(
+                success=data["dismissed"],
+                error=None if data["dismissed"] else "No popup found",
+                button_clicked=data["button_clicked"],
+                popup_closed=data["dismissed"],
+                status_bar_type=sbar_type,
+                status_bar_message=sbar_text,
+            )
+        except Exception as e:
+            logger.warning("dismiss_popup", extra={"error": str(e)})
+            return _ClosePopupResult(
+                success=False,
+                error=str(e),
+                popup_closed=False,
+            )
