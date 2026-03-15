@@ -10,10 +10,12 @@ from sapwebguimcp.backend.protocol import (
     SapUiInspection,
     SapUiPrimitives,
 )
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.types import AriaSnapshot, ComTreeSnapshot, ScreenSnapshot
 
 __all__ = [
     "AriaSnapshot",
+    "ComTreeSnapshot",
+    "ScreenSnapshot",
     "CheckActivateResult",
     "SapEditor",
     "SapNavigation",

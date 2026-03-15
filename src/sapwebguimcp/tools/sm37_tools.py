@@ -15,6 +15,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.sm37_parser import (
     is_no_jobs_found,
     parse_sm37_job_list,
@@ -142,7 +143,7 @@ async def _fetch_job_log(backend: "SapUiBackend", language: SapLanguage) -> SM37
 
         await backend.wait_for_ready()
 
-        snapshot = await backend.get_snapshot()
+        snapshot = AriaSnapshot(await backend.get_snapshot())
 
         if not _is_job_log_screen(str(snapshot)):
             logger.warning("Expected job log screen but got something else, skipping log parse")
@@ -207,7 +208,7 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
     await backend.press_key("F8")
     await backend.wait_for_ready()
 
-    snapshot = await backend.get_snapshot()
+    snapshot = AriaSnapshot(await backend.get_snapshot())
 
     if is_no_jobs_found(snapshot):
         return SM37JobListResult(
