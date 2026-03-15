@@ -6,7 +6,7 @@ items from a queue. Async callers submit callables and await the
 result via concurrent.futures.Future + asyncio.wrap_future.
 """
 
-# pylint: disable=broad-exception-caught
+# pylint: disable=broad-exception-caught,import-error
 
 from __future__ import annotations
 
