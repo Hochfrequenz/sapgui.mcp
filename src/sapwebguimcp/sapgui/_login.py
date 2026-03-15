@@ -73,11 +73,6 @@ def login(
     """
     from sapwebguimcp.sapgui import SapGui  # pylint: disable=import-outside-toplevel
 
-    logger.info(
-        "Logging in to SAP via desktop GUI",
-        extra={"connection_name": connection_name, "user": user},
-    )
-
     # Step 1: Ensure SAP GUI is running
     try:
         app = SapGui.connect()
@@ -114,8 +109,8 @@ def login(
         raise SapConnectionError(f"Login failed: {cast(Any, sbar).text}")
 
     logger.info(
-        "Desktop login successful",
-        extra={"system": connection_name, "user": user},
+        "desktop_login",
+        extra={"connection": connection_name, "user": user, "system": connection_name},
     )
     return session
 
@@ -126,12 +121,13 @@ def logoff(session: GuiSession) -> None:
     Uses CloseConnection() on the parent connection rather than /nEX,
     because send_command("/nEX") can block indefinitely on COM.
     """
-    logger.info("Logging off desktop session")
     try:
         parent_conn = session.com.Parent
         parent_conn.CloseConnection()
     except Exception:
         pass  # Connection is likely already dead
+
+    logger.info("desktop_logoff")
 
     # Clean up ghost connections (0 sessions) left behind
     cleanup_ghost_connections()
@@ -164,7 +160,7 @@ def cleanup_ghost_connections() -> None:
                 except Exception:
                     pass  # Best effort
         if closed:
-            logger.debug("Cleaned up %d ghost connections", closed)
+            logger.debug("ghost_cleanup", extra={"closed": closed})
     except Exception:
         pass  # Don't fail on cleanup
 
@@ -195,7 +191,7 @@ def _handle_multiple_logon_popup(session: GuiSession) -> None:
     popup = session.find_by_id("wnd[1]", raise_error=False)
     if popup is None:
         return
-    logger.info("Handling multiple logon popup (selecting OPT2)")
+    logger.info("multiple_logon_popup", extra={"action": "continue_without_ending"})
     opt2 = session.find_by_id("wnd[1]/usr/radMULTI_LOGON_OPT2", raise_error=False)
     if opt2 is not None:
         cast(Any, opt2).selected = True

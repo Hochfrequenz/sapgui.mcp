@@ -30,7 +30,7 @@ class ComThread:
         self._queue: queue.Queue[tuple[Callable[[], Any], concurrent.futures.Future[Any]] | None] = queue.Queue()
         self._thread = threading.Thread(target=self._run, daemon=True, name="sapgui-com-worker")
         self._thread.start()
-        logger.debug("COM worker thread started")
+        logger.debug("com_thread_started")
 
     def _run(self) -> None:
         """Worker loop: CoInitialize, process queue, CoUninitialize on exit."""
@@ -50,7 +50,7 @@ class ComThread:
                 except Exception as exc:
                     cf_future.set_exception(exc)
         except Exception:
-            logger.exception("COM worker thread crashed")
+            logger.exception("com_thread_crashed")
         finally:
             if self._init_com:
                 import pythoncom  # pylint: disable=import-outside-toplevel
@@ -67,6 +67,6 @@ class ComThread:
 
     def shutdown(self) -> None:
         """Signal the worker thread to exit and wait for cleanup."""
-        logger.debug("COM worker thread shutdown")
+        logger.debug("com_thread_stopped")
         self._queue.put(None)
         self._thread.join(timeout=5)
