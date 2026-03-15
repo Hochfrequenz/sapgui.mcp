@@ -898,6 +898,11 @@ class DesktopBackend:
         session = self._require_session()
 
         def _read() -> str | None:
+            # Find an AbapEditor or TextEdit shell in the screen tree.
+            # Note: SAP's AbapEditor COM control has known issues with
+            # NumberOfLines/GetLineText via FindById dispatch — the COM object
+            # type info is lost. We try direct access first, then fall back
+            # to the raw COM object's properties.
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree(max_depth=5)
             for elem in _flatten(tree):
@@ -905,11 +910,28 @@ class DesktopBackend:
                     shell = session.find_by_id(elem.id)
                     sub_type = getattr(cast(Any, shell), "sub_type", "")
                     if sub_type in ("AbapEditor", "TextEdit"):
-                        lines = []
-                        num_lines = cast(Any, shell).number_of_lines
-                        for i in range(num_lines):
-                            lines.append(str(cast(Any, shell).get_line_text(i)))
-                        return "\n".join(lines)
+                        # Strategy 1: pysapgui wrapper properties
+                        try:
+                            num_lines = cast(Any, shell).number_of_lines
+                            lines = []
+                            for i in range(num_lines):
+                                lines.append(str(cast(Any, shell).get_line_text(i)))
+                            return "\n".join(lines)
+                        except Exception:
+                            pass
+                        # Strategy 2: raw COM properties (bypass wrapper)
+                        try:
+                            raw = cast(Any, shell).com
+                            num_lines = raw.NumberOfLines
+                            lines = []
+                            for i in range(num_lines):
+                                lines.append(str(raw.GetLineText(i)))
+                            return "\n".join(lines)
+                        except Exception:
+                            logger.warning(
+                                "read_editor_source",
+                                extra={"sub_type": sub_type, "error": "COM properties unavailable on this editor"},
+                            )
             return None
 
         result = await self._com.run(_read)
@@ -931,8 +953,20 @@ class DesktopBackend:
                     shell = session.find_by_id(elem.id)
                     sub_type = getattr(cast(Any, shell), "sub_type", "")
                     if sub_type in ("AbapEditor", "TextEdit"):
-                        cast(Any, shell).text = code
-                        return True
+                        try:
+                            cast(Any, shell).text = code
+                            return True
+                        except Exception:
+                            pass
+                        # Fallback: raw COM
+                        try:
+                            cast(Any, shell).com.Text = code
+                            return True
+                        except Exception:
+                            logger.warning(
+                                "replace_editor_source",
+                                extra={"sub_type": sub_type, "error": "COM Text property unavailable"},
+                            )
             return False
 
         result = await self._com.run(_replace)
