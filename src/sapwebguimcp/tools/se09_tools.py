@@ -197,7 +197,7 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
     # Verify SE09 selection screen loaded (not results screen).
     # The selection screen has the "Anzeigen"/"Display" button; the results
     # screen title contains a colon ("Transport Organizer: Aufträge").
-    verify_snap: AriaSnapshot = await backend.get_snapshot()
+    verify_snap = await backend.get_snapshot()
     on_selection_screen = "Transport Organizer" in verify_snap and (
         "Anzeigen" in verify_snap or "Display" in verify_snap
     )
@@ -243,7 +243,7 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
     # Poll for up to 10 seconds for the results screen to appear.
     snapshot = AriaSnapshot("")
     for attempt in range(5):
-        snapshot = await backend.get_snapshot()
+        snapshot = AriaSnapshot(await backend.get_snapshot())
         if "Transport Organizer:" in snapshot:
             break
         logger.info("SE09 results not yet loaded (attempt %d), waiting 2s", attempt + 1)

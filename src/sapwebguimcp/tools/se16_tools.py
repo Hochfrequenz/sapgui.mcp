@@ -16,6 +16,7 @@ from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
 from sapwebguimcp.lang import SE16_NO_ENTRIES_DE, SE16_NO_ENTRIES_EN
 from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row
@@ -458,7 +459,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
 
     while len(all_rows) < total_hits and page_num < MAX_PAGES:
         # Get snapshot and parse rows
-        snapshot = await backend.get_snapshot()
+        snapshot = AriaSnapshot(await backend.get_snapshot())
         rows = parse_se16_rows(snapshot, columns)
 
         if not rows:
@@ -603,7 +604,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     await backend.wait(3000)
 
     # Get snapshot to check for errors and parse results
-    snapshot = await backend.get_snapshot()
+    snapshot = AriaSnapshot(await backend.get_snapshot())
     snapshot_str = str(snapshot)
 
     # Check for table not found errors

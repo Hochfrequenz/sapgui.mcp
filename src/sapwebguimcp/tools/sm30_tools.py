@@ -15,6 +15,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.sm30_parser import parse_sm30_snapshot
 from sapwebguimcp.lang import (
     SM30_DISPLAY_BUTTON_DE,
@@ -120,7 +121,7 @@ async def _lookup_view(backend: "SapUiBackend", view_name: str) -> SM30ViewResul
         )
 
     # Get snapshot and parse
-    snapshot = await backend.get_snapshot()
+    snapshot = AriaSnapshot(await backend.get_snapshot())
     logger.debug(
         "Got SM30 snapshot view=%r length=%d",
         view_name,

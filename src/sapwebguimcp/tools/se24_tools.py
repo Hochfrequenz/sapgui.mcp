@@ -118,7 +118,7 @@ async def _lookup_class_on_initial_screen(backend: SapUiBackend, class_name: str
         return error
 
     # Get main snapshot first
-    main_snapshot = await backend.get_snapshot()
+    main_snapshot = AriaSnapshot(await backend.get_snapshot())
     logger.debug("Got main snapshot", extra={"object": class_name, "length": len(str(main_snapshot))})
 
     # Capture each tab
