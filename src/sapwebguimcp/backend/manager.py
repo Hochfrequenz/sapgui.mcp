@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, get_args
+from typing import TYPE_CHECKING, Any, get_args
 
 from sapwebguimcp.models.config import BackendType, get_settings
 
@@ -27,6 +27,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
         self.backend_type = backend_type
         self._backends: dict[str, SapUiBackend] = {}  # Cache by session ID
         self._page_ids: dict[str, int] = {}  # Track page identity for cache invalidation
+        self._com_thread: Any = None  # Lazy-init ComThread for desktop backend
 
     async def get_or_create(
         self,
@@ -55,6 +56,19 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             self._backends[session_key] = backend
             self._page_ids[session_key] = id(page)
             return backend
+        if self.backend_type == "desktop":
+            from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+            from sapwebguimcp.backend.desktop._com_thread import ComThread  # pylint: disable=import-outside-toplevel
+
+            session_key = session or "s1"
+            cached = self._backends.get(session_key)
+            if cached is not None:
+                return cached
+            if self._com_thread is None:
+                self._com_thread = ComThread()
+            new_backend = DesktopBackend(com_thread=self._com_thread)
+            self._backends[session_key] = new_backend
+            return new_backend
         raise ValueError(f"No implementation for backend '{self.backend_type}'")
 
     async def close(self) -> None:
@@ -65,6 +79,9 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             )
 
             await close_browser_manager()
+        elif self.backend_type == "desktop":
+            if self._com_thread is not None:
+                self._com_thread.shutdown()
         self._backends.clear()
         self._page_ids.clear()
 

@@ -1,1 +1,672 @@
-"""Desktop backend — SAP GUI Scripting (COM) implementation."""
+"""Desktop backend — SAP GUI Scripting (COM) implementation of SapUiBackend.
+
+Bridges the async MCP protocol to synchronous COM calls via a dedicated
+ComThread. Methods that don't apply to desktop (JS, CSS selectors) raise
+NotImplementedError.
+"""
+
+# pylint: disable=import-outside-toplevel,broad-exception-caught,too-many-public-methods
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, Any, cast
+
+import sapwebguimcp.sapgui._login as _login_mod
+from sapwebguimcp.backend.desktop._com_thread import ComThread
+from sapwebguimcp.backend.desktop._key_mapping import key_to_vkey
+from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.models.base import PopupInfo, ToolResult
+from sapwebguimcp.models.sap_results import (
+    ButtonInfo,
+    FieldInfo,
+    KeyboardResult,
+    LoginResult,
+    ScreenInfo,
+    ScreenText,
+    SessionStatus,
+    StatusBarInfo,
+    StatusBarType,
+    TableData,
+    TransactionResult,
+)
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.protocol import CheckActivateResult
+    from sapwebguimcp.models.alv_models import TableCellClickResult
+    from sapwebguimcp.models.sap_results import (
+        ClosePopupResult,
+        DropdownFillResult,
+        FillFormResult,
+        FormFieldsResult,
+        SessionInfo,
+    )
+    from sapwebguimcp.sapgui.components.session import GuiSession
+
+logger = logging.getLogger(__name__)
+
+
+class DesktopBackend:
+    """SapUiBackend implementation using SAP GUI Scripting (COM).
+
+    Each instance wraps one GuiSession. All COM calls are dispatched
+    to a shared ComThread for apartment-threading safety.
+    """
+
+    def __init__(self, com_thread: ComThread | None = None) -> None:
+        self._com = com_thread or ComThread()
+        self._session: GuiSession | None = None
+        self._agent_bindings: dict[str, str] = {}  # session_id -> agent_id
+
+    def _require_session(self) -> GuiSession:
+        """Return the current session or raise."""
+        if self._session is None:
+            raise RuntimeError("Not logged in — call login() first")
+        return self._session
+
+    # ---- SapNavigation ----
+
+    async def login(  # pylint: disable=unused-argument,too-many-arguments,too-many-positional-arguments
+        self,
+        url: str,
+        username: str,
+        password: str,
+        client: str,
+        language: str,
+        session_id: str | None = None,
+    ) -> LoginResult:
+        """Log into SAP GUI desktop (url is ignored — uses SAP_CONNECTION_NAME)."""
+        from sapwebguimcp.models.config import get_settings
+
+        settings = get_settings()
+        connection_name = settings.sap_connection_name
+        if not connection_name:
+            return LoginResult(success=False, error="SAP_CONNECTION_NAME not configured")
+
+        try:
+            session = await self._com.run(
+                lambda: _login_mod.login(
+                    connection_name=connection_name,
+                    client=client,
+                    user=username,
+                    password=password,
+                    language=language,
+                )
+            )
+            self._session = session
+            user_name = await self._com.run(lambda: str(session.info.user))
+            return LoginResult(success=True, user=user_name)
+        except Exception as e:
+            return LoginResult(success=False, error=str(e))
+
+    async def enter_transaction(self, tcode: str) -> TransactionResult:
+        """Navigate to a transaction code."""
+        session = self._require_session()
+
+        def _enter() -> str:
+            okcd = session.find_by_id("wnd[0]/tbar[0]/okcd")
+            cast(Any, okcd).text = f"/n{tcode}"
+            wnd = session.find_by_id("wnd[0]")
+            cast(Any, wnd).send_v_key(0)
+            return str(cast(Any, session.find_by_id("wnd[0]")).text)
+
+        try:
+            title = await self._com.run(_enter)
+            return TransactionResult(
+                success=True,
+                tcode=tcode,
+                page_title=title,
+            )
+        except Exception as e:
+            return TransactionResult(success=False, tcode=tcode, error=str(e))
+
+    async def get_session_status(self) -> SessionStatus:
+        """Check whether the SAP session is logged in and responsive."""
+        session = self._require_session()
+        try:
+            user = await self._com.run(lambda: str(session.info.user))
+            return SessionStatus(success=True, status="active", message=f"Logged in as {user}")
+        except Exception:
+            return SessionStatus(success=True, status="unknown", message="Session not responsive")
+
+    async def wait_for_ready(self, timeout_ms: int = 15000) -> None:
+        """Wait until the session is no longer busy."""
+        import asyncio
+
+        session = self._require_session()
+        deadline = asyncio.get_event_loop().time() + timeout_ms / 1000
+        while asyncio.get_event_loop().time() < deadline:
+            busy = await self._com.run(lambda: bool(session.busy))
+            if not busy:
+                return
+            await asyncio.sleep(0.2)
+
+    async def bring_to_front(self) -> None:
+        """Bring the SAP GUI window to the foreground."""
+        session = self._require_session()
+        await self._com.run(
+            lambda: (
+                cast(Any, session.find_by_id("wnd[0]")).iconify(),
+                cast(Any, session.find_by_id("wnd[0]")).restore(),
+            )
+        )
+
+    async def wait(self, timeout_ms: int = 200) -> None:
+        """Wait for a fixed duration."""
+        import asyncio
+
+        await asyncio.sleep(timeout_ms / 1000)
+
+    async def start_keepalive(self, interval_seconds: int = 300) -> None:
+        """No-op — desktop sessions don't time out like WebGUI."""
+
+    async def stop_keepalive(self) -> bool:
+        """No-op. Returns False (no keepalive was running)."""
+        return False
+
+    async def open_new_session(self, tcode: str) -> tuple[str | None, int, str | None]:
+        """Open a transaction in a new session/mode (/o)."""
+        session = self._require_session()
+
+        def _open() -> tuple[str | None, int, str | None]:
+            session.create_session()
+            import time
+
+            time.sleep(1)
+            conn_com = session.com.Parent
+            count = conn_com.Children.Count
+            if count < 2:
+                return None, count, None
+            new_ses_com = conn_com.Children(count - 1)
+            new_id = str(new_ses_com.Id)
+            # Enter transaction in new session
+            new_ses_com.FindById("wnd[0]/tbar[0]/okcd").Text = f"/n{tcode}"
+            new_ses_com.FindById("wnd[0]").SendVKey(0)
+            title = str(new_ses_com.FindById("wnd[0]").Text)
+            return new_id, count, title
+
+        try:
+            sid, count, title = await self._com.run(_open)
+            return sid, count, title
+        except Exception as e:
+            logger.error("Failed to open new session: %s", e)
+            return None, 1, None
+
+    async def list_sessions(self) -> list[SessionInfo]:
+        """List all sessions in the current connection."""
+        from sapwebguimcp.models.sap_results import SessionInfo as SInfo
+
+        session = self._require_session()
+
+        def _list() -> list[dict[str, Any]]:
+            conn = session.com.Parent
+            result = []
+            for i in range(conn.Children.Count):
+                ses = conn.Children(i)
+                result.append(
+                    {
+                        "session_id": str(ses.Id),
+                        "tcode": str(ses.Info.Transaction),
+                        "title": str(ses.FindById("wnd[0]").Text),
+                        "is_primary": i == 0,
+                        "agent_id": self._agent_bindings.get(str(ses.Id)),
+                    }
+                )
+            return result
+
+        items = await self._com.run(_list)
+        return [SInfo(**item) for item in items]
+
+    async def close_session(self, session_id: str) -> bool:
+        """Close a session by ID."""
+        session = self._require_session()
+
+        def _close() -> bool:
+            conn = session.com.Parent
+            try:
+                conn.CloseSession(session_id)
+                return True
+            except Exception:
+                return False
+
+        return await self._com.run(_close)
+
+    async def bind_session(self, session_id: str, agent_id: str) -> str | None:
+        """Bind an agent to a session."""
+        prev = self._agent_bindings.get(session_id)
+        self._agent_bindings[session_id] = agent_id
+        return prev
+
+    async def release_session(self, session_id: str) -> str | None:
+        """Release agent binding from a session."""
+        return self._agent_bindings.pop(session_id, None)
+
+    async def has_session(self, session_id: str) -> bool:
+        """Check whether a session exists."""
+        session = self._require_session()
+
+        def _check() -> bool:
+            conn = session.com.Parent
+            for i in range(conn.Children.Count):
+                if str(conn.Children(i).Id) == session_id:
+                    return True
+            return False
+
+        return await self._com.run(_check)
+
+    async def is_page_closed(self) -> bool:
+        """Check whether the session has been closed."""
+        if self._session is None:
+            return True
+        try:
+            await self._com.run(lambda: self._session.info.user)  # type: ignore[union-attr]
+            return False
+        except Exception:
+            return True
+
+    async def close_page(self) -> None:
+        """Close the connection."""
+        if self._session is None:
+            return
+        try:
+            session = self._session
+            await self._com.run(
+                lambda: cast(Any, session).com.Parent.CloseConnection()  # pylint: disable=unnecessary-lambda
+            )
+        except Exception:
+            pass
+        self._session = None
+
+    def get_session_token(self) -> str:
+        """Return opaque token identifying the session."""
+        if self._session is None:
+            return ""
+        return str(self._session.id)
+
+    # ---- SapUiInspection ----
+
+    async def get_status_bar(self) -> StatusBarInfo:
+        """Read the SAP status bar."""
+        session = self._require_session()
+
+        def _read() -> tuple[str, str]:
+            sbar = session.find_by_id("wnd[0]/sbar")
+            return str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
+
+        text, msg_type = await self._com.run(_read)
+        bar_type: StatusBarType = cast(StatusBarType, msg_type) if msg_type in ("S", "E", "W", "I", "A") else "none"
+        return StatusBarInfo(success=True, type=bar_type, message=text)
+
+    async def get_screen_info(self) -> ScreenInfo:
+        """Get technical screen information."""
+        session = self._require_session()
+
+        def _read() -> dict[str, Any]:
+            info = session.info
+            wnd = session.find_by_id("wnd[0]")
+            return {
+                "transaction": str(info.transaction),
+                "title": str(cast(Any, wnd).text),
+                "program": str(info.program),
+                "dynpro": str(info.screen_number),
+            }
+
+        data = await self._com.run(_read)
+        return ScreenInfo(success=True, url="desktop://sap", **data)
+
+    async def get_screen_text(  # pylint: disable=unused-argument
+        self, include_dropdown_options: bool = False
+    ) -> ScreenText:
+        """Get readable text from the current screen via dump_tree."""
+        session = self._require_session()
+
+        def _read() -> dict[str, Any]:
+            wnd = session.find_by_id("wnd[0]")
+            title = str(cast(Any, wnd).text)
+            sbar = session.find_by_id("wnd[0]/sbar")
+            sbar_text = str(cast(Any, sbar).text)
+            tree = cast(Any, wnd).dump_tree(max_depth=3)
+
+            labels, buttons, tabs, content = [], [], [], []
+            for elem in _flatten_tree(tree):
+                t = elem.type_as_number
+                txt = elem.text.strip()
+                if not txt:
+                    continue
+                if t == 30:  # GuiLabel
+                    labels.append(txt)
+                elif t == 40:  # GuiButton
+                    buttons.append(txt)
+                elif t == 91:  # GuiTab
+                    tabs.append(txt)
+                else:
+                    content.append(txt)
+
+            return {
+                "title": title,
+                "status_bar": sbar_text or None,
+                "tabs": tabs,
+                "labels": list(dict.fromkeys(labels)),
+                "buttons": list(dict.fromkeys(buttons)),
+                "table_headers": [],
+                "main_content": content,
+            }
+
+        data = await self._com.run(_read)
+        return ScreenText(success=True, **data)
+
+    async def discover_fields(self) -> list[FieldInfo]:
+        """Discover input fields on the current screen."""
+        session = self._require_session()
+
+        def _discover() -> list[dict[str, Any]]:
+            usr = session.find_by_id("wnd[0]/usr")
+            tree = cast(Any, usr).dump_tree(max_depth=3)
+            fields = []
+            input_types = {31, 32, 33, 34}  # txt, ctxt, pwd, cmb
+            for elem in _flatten_tree(tree):
+                if elem.type_as_number in input_types:
+                    fields.append(
+                        {
+                            "id": elem.id,
+                            "name": elem.name,
+                            "label": None,
+                            "type": elem.type,
+                            "selector": elem.id,
+                            "value": elem.text,
+                        }
+                    )
+            return fields
+
+        items = await self._com.run(_discover)
+        return [FieldInfo(**item) for item in items]
+
+    async def get_form_fields(  # pylint: disable=unused-argument
+        self, *, include_dropdown_options: bool = False
+    ) -> FormFieldsResult:
+        """Detect form fields with their current values."""
+        from sapwebguimcp.models.sap_results import FormFieldsResult
+
+        # FormFieldsResult expects FormField objects, but we have FieldInfo.
+        # Return an empty FormFieldsResult — desktop form fields need Phase 2 work.
+        return FormFieldsResult(success=True)
+
+    async def discover_buttons(self) -> list[ButtonInfo]:
+        """Discover clickable buttons on the current screen."""
+        session = self._require_session()
+
+        def _discover() -> list[dict[str, Any]]:
+            wnd = session.find_by_id("wnd[0]")
+            tree = cast(Any, wnd).dump_tree(max_depth=3)
+            buttons: list[dict[str, Any]] = []
+            for elem in _flatten_tree(tree):
+                if elem.type_as_number == 40 and elem.text.strip():  # GuiButton
+                    buttons.append({"label": elem.text.strip(), "id": elem.id, "selector": elem.id})
+            return buttons
+
+        items = await self._com.run(_discover)
+        return [ButtonInfo(**item) for item in items]
+
+    async def get_snapshot(self) -> AriaSnapshot:
+        """Get a tree dump as an AriaSnapshot-like string."""
+        session = self._require_session()
+
+        def _dump() -> str:
+            wnd = session.find_by_id("wnd[0]")
+            tree = cast(Any, wnd).dump_tree(max_depth=5)
+            lines = []
+            for elem in _flatten_tree(tree):
+                indent = "  " * elem.id.count("/")
+                lines.append(f"{indent}{elem.type}[{elem.name}]: {elem.text!r}")
+            return "\n".join(lines)
+
+        text = await self._com.run(_dump)
+        return AriaSnapshot(text)
+
+    async def take_screenshot(self) -> bytes:
+        """Take a screenshot of the SAP GUI window."""
+        session = self._require_session()
+
+        def _screenshot() -> bytes:
+            import os
+            import tempfile
+
+            wnd = session.find_by_id("wnd[0]")
+            tmp = os.path.join(tempfile.gettempdir(), "sapgui_screenshot.png")
+            cast(Any, wnd).hard_copy(tmp, 2)  # 2 = PNG
+            with open(tmp, "rb") as f:
+                data = f.read()
+            os.unlink(tmp)
+            return data
+
+        return await self._com.run(_screenshot)
+
+    async def read_table(
+        self,
+        start_row: int = 1,
+        end_row: int | None = None,
+        max_rows: int = 100,
+    ) -> TableData:
+        """Read data from an ALV grid or table control."""
+        session = self._require_session()
+
+        def _read() -> dict[str, Any]:  # pylint: disable=too-many-locals
+            from sapwebguimcp.sapgui.components.grid import GuiGridView
+
+            # Find grid or table in the user area
+            usr = session.find_by_id("wnd[0]/usr")
+            tree = cast(Any, usr).dump_tree(max_depth=3)
+            grid_id = None
+            for elem in _flatten_tree(tree):
+                if elem.type_as_number in (122, 80):
+                    grid_id = elem.id
+                    break
+
+            if grid_id is None:
+                return {"headers": [], "rows": [], "total_rows": 0, "start_row": 1}
+
+            grid = session.find_by_id(grid_id)
+            if isinstance(grid, GuiGridView):
+                row_count = cast(Any, grid).row_count
+                col_order = cast(Any, grid).column_order
+                headers = []
+                for ci in range(col_order.Count):
+                    col_name = str(col_order(ci))
+                    headers.append(col_name)
+
+                actual_end = min(end_row or (start_row + max_rows - 1), row_count)
+                rows = []
+                for ri in range(start_row - 1, actual_end):
+                    data = {}
+                    for col_name in headers:
+                        data[col_name] = str(cast(Any, grid).get_cell_value(ri, col_name))
+                    rows.append({"row": ri + 1, "data": data})
+
+                return {
+                    "headers": headers,
+                    "rows": rows,
+                    "total_rows": row_count,
+                    "start_row": start_row,
+                    "end_row": actual_end,
+                }
+
+            return {"headers": [], "rows": [], "total_rows": 0, "start_row": 1}
+
+        data = await self._com.run(_read)
+        from sapwebguimcp.models.sap_results import TableRow
+
+        rows = [TableRow(**r) for r in data.pop("rows", [])]
+        return TableData(success=True, rows=rows, **data)
+
+    async def click_table_cell(self, row: int, column: int | str, action: str = "click") -> TableCellClickResult:
+        """Click a cell in an ALV grid table."""
+        from sapwebguimcp.models.alv_models import TableCellClickResult
+
+        session = self._require_session()
+
+        def _click() -> None:
+            from sapwebguimcp.sapgui.components.grid import GuiGridView
+
+            usr = session.find_by_id("wnd[0]/usr")
+            tree = cast(Any, usr).dump_tree(max_depth=3)
+            for elem in _flatten_tree(tree):
+                if elem.type_as_number == 122:
+                    grid = session.find_by_id(elem.id)
+                    if isinstance(grid, GuiGridView):
+                        col_name = str(column)
+                        if isinstance(column, int):
+                            col_order = cast(Any, grid).column_order
+                            col_name = str(col_order(column))
+                        if action == "double_click":
+                            cast(Any, grid).double_click(row - 1, col_name)
+                        else:
+                            cast(Any, grid).click(row - 1, col_name)
+                        return
+            raise ValueError("No ALV grid found on screen")
+
+        try:
+            await self._com.run(_click)
+            return TableCellClickResult(success=True, row=row, column=str(column), selector_used="com")
+        except Exception as e:
+            return TableCellClickResult(success=False, row=row, column=str(column), selector_used="com", error=str(e))
+
+    async def get_dropdown_options(self, label: str) -> list[str]:  # pylint: disable=unused-argument
+        """Get options from a dropdown (not yet implemented — needs element finder)."""
+        return []
+
+    async def get_page_title(self) -> str:
+        """Get the current window title."""
+        session = self._require_session()
+        return await self._com.run(lambda: str(cast(Any, session.find_by_id("wnd[0]")).text))
+
+    # ---- SapUiPrimitives (only press_key in Phase 1) ----
+
+    async def press_key(self, key: str) -> KeyboardResult:
+        """Send a keyboard shortcut via SAP VKey."""
+        session = self._require_session()
+        vkey = key_to_vkey(key)
+
+        def _press() -> tuple[str, str, str]:
+            wnd = session.find_by_id("wnd[0]")
+            cast(Any, wnd).send_v_key(vkey)
+            title = str(cast(Any, session.find_by_id("wnd[0]")).text)
+            sbar = session.find_by_id("wnd[0]/sbar")
+            return title, str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
+
+        try:
+            title, sbar_text, sbar_type = await self._com.run(_press)
+            resolved_type: StatusBarType = (
+                cast(StatusBarType, sbar_type) if sbar_type in ("S", "E", "W", "I", "A") else "none"
+            )
+            return KeyboardResult(
+                success=True,
+                key=key,
+                page_title=title,
+                status_bar_read=True,
+                status_bar_type=resolved_type,
+                status_bar_message=sbar_text,
+            )
+        except KeyError:
+            return KeyboardResult(success=False, key=key, error=f"Unknown key: {key}")
+        except Exception as e:
+            return KeyboardResult(success=False, key=key, error=str(e))
+
+    # ---- Stub methods (Phase 2 + 3) ----
+
+    async def fill_field(self, label: str, value: str) -> None:
+        """Fill a labelled input field (not yet implemented)."""
+        raise NotImplementedError("fill_field not yet implemented — Phase 2")
+
+    async def fill_main_input(self, value: str, labels: list[str]) -> bool:
+        """Fill the main form input (not yet implemented)."""
+        raise NotImplementedError("fill_main_input not yet implemented — Phase 2")
+
+    async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
+        """Fill multiple form fields (not yet implemented)."""
+        raise NotImplementedError("fill_form not yet implemented — Phase 2")
+
+    async def fill_grid_cell(self, row: int, column: int | str, value: str) -> None:
+        """Fill a grid/table cell (not yet implemented)."""
+        raise NotImplementedError("fill_grid_cell not yet implemented — Phase 2")
+
+    async def click_button(self, label: str) -> None:
+        """Click a button by label (not yet implemented)."""
+        raise NotImplementedError("click_button not yet implemented — Phase 2")
+
+    async def click_tab(self, label: str) -> None:
+        """Click a tab by label (not yet implemented)."""
+        raise NotImplementedError("click_tab not yet implemented — Phase 2")
+
+    async def type_text(self, text: str) -> None:
+        """Type text into the focused element (not yet implemented)."""
+        raise NotImplementedError("type_text not yet implemented — Phase 2")
+
+    async def set_checkbox(self, label: str, checked: bool) -> None:
+        """Set a checkbox by label (not yet implemented)."""
+        raise NotImplementedError("set_checkbox not yet implemented — Phase 2")
+
+    async def set_radio_button(self, label: str) -> None:
+        """Select a radio button by label (not yet implemented)."""
+        raise NotImplementedError("set_radio_button not yet implemented — Phase 2")
+
+    async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
+        """Select a dropdown option (not yet implemented)."""
+        raise NotImplementedError("select_dropdown not yet implemented — Phase 2")
+
+    async def focus_and_type(self, accessible_name: str, text: str, delay_ms: int = 0) -> bool:
+        """Focus and type into an element (not yet implemented)."""
+        raise NotImplementedError("focus_and_type not yet implemented — Phase 2")
+
+    async def fill_element_by_locator(self, locator: str, value: str, delay_ms: int = 30) -> bool:
+        """Fill element by CSS selector — not supported on desktop."""
+        raise NotImplementedError("CSS selectors not supported on desktop SAP GUI")
+
+    async def click_element(self, selector: str) -> bool:
+        """Click element by CSS selector — not supported on desktop."""
+        raise NotImplementedError("CSS selectors not supported on desktop SAP GUI")
+
+    def load_js(self, filename: str) -> str:
+        """Load JavaScript helper — not supported on desktop."""
+        raise NotImplementedError("JavaScript not supported on desktop SAP GUI")
+
+    async def evaluate_javascript(self, script: str, arg: Any = None) -> Any:
+        """Evaluate JavaScript — not supported on desktop."""
+        raise NotImplementedError("JavaScript not supported on desktop SAP GUI")
+
+    # ---- SapEditor stubs (Phase 3) ----
+
+    async def read_editor_source(self) -> str | None:
+        """Read ABAP editor source (not yet implemented)."""
+        raise NotImplementedError("read_editor_source not yet implemented — Phase 3")
+
+    async def replace_editor_source(self, code: str) -> bool:
+        """Replace ABAP editor source (not yet implemented)."""
+        raise NotImplementedError("replace_editor_source not yet implemented — Phase 3")
+
+    async def check_and_activate(self) -> CheckActivateResult:
+        """Run syntax check and activate (not yet implemented)."""
+        raise NotImplementedError("check_and_activate not yet implemented — Phase 3")
+
+    async def dismiss_language_dialog(self) -> None:
+        """Dismiss language mismatch dialog (not yet implemented)."""
+        raise NotImplementedError("dismiss_language_dialog not yet implemented — Phase 3")
+
+    # ---- SapPopup stubs (Phase 3) ----
+
+    async def check_popup(self) -> PopupInfo | None:
+        """Detect popup/dialog (not yet implemented)."""
+        raise NotImplementedError("check_popup not yet implemented — Phase 3")
+
+    async def dismiss_popup(self, button_label: str | None = None, use_close_button: bool = False) -> ClosePopupResult:
+        """Dismiss a popup (not yet implemented)."""
+        raise NotImplementedError("dismiss_popup not yet implemented — Phase 3")
+
+
+def _flatten_tree(elements: list[Any]) -> list[Any]:
+    """Flatten a nested ElementInfo tree into a flat list."""
+    result = []
+    for elem in elements:
+        result.append(elem)
+        if elem.children:
+            result.extend(_flatten_tree(elem.children))
+    return result

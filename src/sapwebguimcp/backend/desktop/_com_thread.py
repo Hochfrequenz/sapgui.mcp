@@ -52,7 +52,7 @@ class ComThread:
             logger.exception("COM worker thread crashed")
         finally:
             if self._init_com:
-                import pythoncom  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel
+                import pythoncom  # pylint: disable=import-outside-toplevel
 
                 pythoncom.CoUninitialize()
 
