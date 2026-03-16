@@ -99,7 +99,9 @@ def _find_by_sap_name(session: Any, label: str) -> Any | None:
     usr = session.find_by_id("wnd[0]/usr")
     for type_name in ("GuiTextField", "GuiCTextField", "GuiPasswordField", "GuiComboBox"):
         try:
-            return usr.find_by_name(label, type_name)
+            result = usr.find_by_name(label, type_name)
+            if result is not None:
+                return result
         except Exception:  # pylint: disable=broad-exception-caught
             continue
     return None
