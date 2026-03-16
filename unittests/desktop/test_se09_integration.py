@@ -62,11 +62,10 @@ async def test_se09_screen_elements(backend):
 
 
 # ---------------------------------------------------------------------------
-# Priority 2: SE09 filter variations (desktop ignores these params)
+# SE09 filter variations
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skip(reason="SE09 desktop filter params not yet implemented")
 @skip_not_sap
 @skip_no_creds
 @pytest.mark.anyio
@@ -78,7 +77,17 @@ async def test_se09_workbench_only(backend):
     await go_home(backend)
 
 
-@pytest.mark.skip(reason="SE09 desktop filter params not yet implemented")
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se09_customizing_only(backend):
+    """SE09: request_type='customizing' filters to customizing requests only."""
+    result = await _lookup_transports_desktop(backend, username=None, request_type="customizing", status="modifiable")
+    assert result.success, f"SE09 failed: {result.error}"
+    assert isinstance(result.requests, list)
+    await go_home(backend)
+
+
 @skip_not_sap
 @skip_no_creds
 @pytest.mark.anyio
@@ -90,7 +99,17 @@ async def test_se09_released_only(backend):
     await go_home(backend)
 
 
-@pytest.mark.skip(reason="SE09 desktop filter params not yet implemented")
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se09_all_status(backend):
+    """SE09: status='all' returns both modifiable and released requests."""
+    result = await _lookup_transports_desktop(backend, username=None, request_type="all", status="all")
+    assert result.success, f"SE09 failed: {result.error}"
+    assert isinstance(result.requests, list)
+    await go_home(backend)
+
+
 @skip_not_sap
 @skip_no_creds
 @pytest.mark.anyio

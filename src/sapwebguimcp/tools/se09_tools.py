@@ -173,7 +173,60 @@ async def _extract_tree_text_lines(backend: "SapUiBackend") -> list[str]:
     return [item["text"] for item in all_items if item["text"]]
 
 
-async def _lookup_transports_desktop(  # pylint: disable=too-many-locals,unused-argument
+async def _set_checkbox_bilingual(backend: "SapUiBackend", de_label: str, en_label: str, checked: bool) -> None:
+    """Set a checkbox trying DE then EN label, warn if neither found."""
+    for label in [de_label, en_label]:
+        try:
+            await backend.set_checkbox(label, checked)
+            return
+        except ValueError:
+            continue
+    logger.warning("SE09 desktop: checkbox not found for %s / %s", de_label, en_label)
+
+
+async def _set_se09_selection_screen(
+    backend: "SapUiBackend",
+    username: str | None,
+    request_type: str,
+    status: str,
+) -> None:
+    """Set SE09 selection screen fields: username, request type, and status.
+
+    SE09 uses checkboxes (not radio buttons) for both request type and status.
+    The username field is in a subscreen whose label/field names don't follow
+    the standard convention, so we fill it by trying both label and technical name.
+    """
+    # Username field — SE09's user field is in a subscreen where label/field names
+    # don't match (lblSEL_USER vs ctxtUSERNAME), so fill_field by label fails.
+    # Fallback: focus_and_type with SAP technical name (uses FindByName strategy).
+    if username:
+        filled = False
+        for label in ["Benutzer", "User"]:
+            try:
+                await backend.fill_field(label, username.upper())
+                filled = True
+                break
+            except ValueError:
+                continue
+        if not filled:
+            filled = await backend.focus_and_type("TRDYSE01CM-USERNAME", username.upper())
+        if not filled:
+            logger.warning("SE09 desktop: could not fill username field, results may be unfiltered")
+
+    # Request type checkboxes
+    wb_checked = request_type in ("all", "workbench")
+    cust_checked = request_type in ("all", "customizing")
+    await _set_checkbox_bilingual(backend, "Workbench-Auftr\u00e4ge", "Workbench Requests", wb_checked)
+    await _set_checkbox_bilingual(backend, "Customizing-Auftr\u00e4ge", "Customizing Requests", cust_checked)
+
+    # Status checkboxes
+    mod_checked = status in ("all", "modifiable")
+    rel_checked = status in ("all", "released")
+    await _set_checkbox_bilingual(backend, "\u00c4nderbar", "Modifiable", mod_checked)
+    await _set_checkbox_bilingual(backend, "Freigegeben", "Released", rel_checked)
+
+
+async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
     backend: "SapUiBackend",
     username: str | None,
     request_type: str,
@@ -182,20 +235,6 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals,unused-
     """Desktop-specific SE09 lookup using get_screen_text instead of ARIA parsing."""
     now = datetime.now(UTC)
     logger.info("SE09 desktop backend path")
-
-    ignored_params: list[str] = []
-    if request_type != "all":
-        logger.warning(
-            "SE09 desktop: request_type filter not supported, ignoring request_type=%s",
-            request_type,
-        )
-        ignored_params.append(f"request_type={request_type}")
-    if status != "modifiable":
-        logger.warning(
-            "SE09 desktop: status filter not supported, ignoring status=%s",
-            status,
-        )
-        ignored_params.append(f"status={status}")
 
     tx_result = await backend.enter_transaction("SE09")
     if not tx_result.success:
@@ -207,14 +246,8 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals,unused-
         )
     await backend.wait_for_ready()
 
-    # Fill selection screen using fill_field (desktop backend supports it)
-    if username:
-        for label in ["Benutzer", "User"]:
-            try:
-                await backend.fill_field(label, username.upper())
-                break
-            except ValueError:
-                continue
+    # Set selection screen: username, request type, status checkboxes
+    await _set_se09_selection_screen(backend, username, request_type, status)
 
     # Click Display button (via click_button)
     for label in [SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN]:
@@ -250,15 +283,11 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals,unused-
                 )
             )
 
-    result = TransportListResult(
+    return TransportListResult(
         requests=requests,
         request_count=len(requests),
         retrieved_at=now,
     )
-    if ignored_params:
-        note = "Desktop backend ignored parameters: " + ", ".join(ignored_params)
-        result.error = note
-    return result
 
 
 async def _lookup_transports(  # pylint: disable=too-many-locals
