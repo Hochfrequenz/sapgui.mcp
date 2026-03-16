@@ -2,6 +2,7 @@
 
 import json
 import sys
+from datetime import date
 
 import pytest
 
@@ -86,4 +87,32 @@ async def test_slg1_model_serializes(backend):
     # Roundtrip -- works regardless of success/failure
     restored = SLG1LogListResult.model_validate_json(json_str)
     assert restored.log_count == result.log_count
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_slg1_with_date_filter(backend):
+    """SLG1: from_date=today, to_date=today returns well-formed result.
+
+    The desktop backend may or may not successfully fill the date fields
+    (label mismatches are logged as warnings). We verify the tool returns
+    a well-formed model regardless.
+    """
+    today = date.today().isoformat()
+    result = await _slg1_lookup_desktop(
+        backend,
+        object_name="*",
+        subobject=None,
+        external_id=None,
+        from_date=today,
+        to_date=today,
+    )
+    assert result is not None
+    assert isinstance(result.logs, list)
+    assert isinstance(result.log_count, int)
+    assert result.log_count >= 0
+    assert result.log_count == len(result.logs)
+    assert isinstance(result.model_dump_json(), str)
     await go_home(backend)

@@ -57,6 +57,17 @@ async def test_se16_table_not_found(backend):
 @skip_not_sap
 @skip_no_creds
 @pytest.mark.anyio
+async def test_se16_table_not_found_returns_failure(backend):
+    """SE16: nonexistent table ZZZNOTEXIST99 must report success=False."""
+    result = await _execute_se16_query(backend, "ZZZNOTEXIST99", None, 5)
+    assert result.success is False, "Non-existent table should return success=False"
+    assert result.returned_rows == 0
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
 async def test_se16_columns_match_data(backend):
     """SE16: verify row data keys match column headers."""
     result = await _execute_se16_query(backend, "TSTC", None, 5)
@@ -115,6 +126,24 @@ async def test_se16_max_hits_respected(backend):
 @skip_not_sap
 @skip_no_creds
 @pytest.mark.anyio
+async def test_se16_max_hits_limits_rows(backend):
+    """SE16: max_hits=3 on a large table returns exactly 3 rows.
+
+    Note: the desktop backend sets truncated = (len(rows) < total_hits).
+    When SAP reports total_hits == max_hits, truncated will be False even
+    though more data exists.  We assert structural consistency instead.
+    """
+    result = await _execute_se16_query(backend, "TSTC", None, 3)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert result.returned_rows == 3
+    assert len(result.rows) == 3
+    assert result.truncated == (result.returned_rows < result.total_hits)
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
 async def test_se16_truncated_flag(backend):
     """SE16: total_hits vs returned_rows are consistent; truncation is reflected.
 
@@ -130,4 +159,36 @@ async def test_se16_truncated_flag(backend):
     assert result.returned_rows == 3
     # Structural consistency: truncated iff fewer rows returned than total_hits
     assert result.truncated == (result.returned_rows < result.total_hits)
+    await go_home(backend)
+
+
+# ---------------------------------------------------------------------------
+# Priority 2: SE16 filter tests (not yet implemented on desktop)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skip(reason="SE16 desktop filters not yet implemented")
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se16_single_filter(backend):
+    """SE16: query TSTC with single filter TCODE='SE16'."""
+    result = await _execute_se16_query(backend, "TSTC", {"TCODE": "SE16"}, 10)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert result.returned_rows >= 1
+    for row in result.rows:
+        assert row.data["TCODE"] == "SE16"
+    await go_home(backend)
+
+
+@pytest.mark.skip(reason="SE16 desktop filters not yet implemented")
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se16_multiple_filters(backend):
+    """SE16: query TSTC with multiple filters."""
+    result = await _execute_se16_query(backend, "TSTC", {"TCODE": "SE16", "PGMNA": "SAPLSETB"}, 10)
+    assert result.success, f"SE16 failed: {result.error}"
+    for row in result.rows:
+        assert row.data["TCODE"] == "SE16"
     await go_home(backend)

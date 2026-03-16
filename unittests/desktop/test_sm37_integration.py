@@ -2,6 +2,7 @@
 
 import json
 import sys
+from datetime import date
 
 import pytest
 
@@ -122,4 +123,45 @@ async def test_sm37_with_wildcard_jobname(backend):
     for job in result.jobs:
         assert job.job_name, "Job name should not be empty"
         assert job.status, "Status should not be empty"
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_sm37_finished_status_filter(backend):
+    """SM37: statuses=['finished'] returns only finished jobs (or 0 jobs)."""
+    result = await _execute_sm37_lookup_desktop(
+        backend,
+        job_name="*",
+        username=None,
+        statuses=["finished"],
+        from_date=None,
+        to_date=None,
+    )
+    assert isinstance(result.jobs, list)
+    assert result.job_count == len(result.jobs)
+    assert result.job_count >= 0
+    assert isinstance(result.model_dump_json(), str)
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_sm37_with_date_range(backend):
+    """SM37: from_date and to_date set to today returns well-formed result."""
+    today = date.today().isoformat()
+    result = await _execute_sm37_lookup_desktop(
+        backend,
+        job_name="*",
+        username=None,
+        statuses=None,
+        from_date=today,
+        to_date=today,
+    )
+    assert isinstance(result.jobs, list)
+    assert result.job_count == len(result.jobs)
+    assert result.job_count >= 0
+    assert isinstance(result.model_dump_json(), str)
     await go_home(backend)

@@ -13,73 +13,17 @@ Tests are designed to NOT depend on specific default values or button labels
 Skipped unless running on the authorized SAP test machine with credentials.
 """
 
-import faulthandler
-import os
 import sys
 from typing import Any, cast
 
 import pytest
-from dotenv import load_dotenv
 
-from sapwebguimcp.backend.desktop import DesktopBackend
-from sapwebguimcp.backend.desktop._com_thread import ComThread
 from sapwebguimcp.backend.desktop._element_finder import _flatten
-from sapwebguimcp.models.config import get_settings
-from sapwebguimcp.sapgui import SapGui
-from unittests.conftest import is_sap_integration_test_machine
+from unittests.desktop.conftest import skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
 
-skip_not_sap_machine = pytest.mark.skipif(
-    not is_sap_integration_test_machine(),
-    reason="SAP integration tests only run on authorized machines",
-)
-
-
-def _creds_configured() -> bool:
-    """Check SAP credentials are available."""
-    try:
-        load_dotenv()
-        s = get_settings()
-        return bool(s.sap_connection_name and s.sap_user and s.sap_password and s.sap_mandant)
-    except Exception:
-        return False
-
-
-skip_no_creds = pytest.mark.skipif(not _creds_configured(), reason="SAP credentials not configured")
-
-
-@pytest.fixture
-async def backend():
-    """Provide a logged-in DesktopBackend, close on teardown."""
-    load_dotenv()
-    com = ComThread()
-    b = DesktopBackend(com_thread=com)
-    r = await b.login(
-        "ignored",
-        os.environ["SAP_USER"],
-        os.environ["SAP_PASSWORD"],
-        os.environ["SAP_MANDANT"],
-        os.environ.get("SAP_LANGUAGE", "DE"),
-    )
-    assert r.success, f"Login failed: {r.error}"
-    yield b
-    # Teardown: close ALL connections -- tools may have opened additional ones
-    try:
-        app = await com.run(lambda: SapGui.connect())
-        raw_conns = await com.run(lambda: app.com.Children)
-        count = await com.run(lambda: raw_conns.Count)
-        for i in range(count - 1, -1, -1):
-            try:
-                await com.run(lambda i=i: raw_conns(i).CloseConnection())
-            except Exception:  # pylint: disable=broad-exception-caught
-                pass
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
-    b._session = None
-    faulthandler.disable()
-    com.shutdown()
-    faulthandler.enable()
+skip_not_sap_machine = skip_not_sap
 
 
 # ---------------------------------------------------------------------------

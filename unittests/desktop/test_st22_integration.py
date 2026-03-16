@@ -57,3 +57,34 @@ async def test_st22_specific_date(backend):
     assert result.dump_count >= 0
     assert isinstance(result.model_dump_json(), str)
     await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_st22_future_date_empty(backend):
+    """ST22: far-future date should return 0 dumps.
+
+    The backend may return success=True with 0 dumps or success=False
+    with an error (e.g., "no dumps found"). Either is acceptable as long
+    as dump_count is 0.
+    """
+    result = await _st22_lookup_desktop(backend, target_date="2030-01-01", dump_index=None)
+    assert result is not None
+    assert result.dump_count == 0, f"Expected 0 dumps in 2030, got {result.dump_count}"
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_st22_dump_detail(backend):
+    """ST22: if today has dumps, fetch detail for dump_index=0."""
+    list_result = await _st22_lookup_desktop(backend, target_date=date.today().isoformat(), dump_index=None)
+    await go_home(backend)
+    if list_result.dump_count == 0:
+        pytest.skip("No dumps today to fetch detail for")
+    detail = await _st22_lookup_desktop(backend, target_date=date.today().isoformat(), dump_index=0)
+    assert detail is not None
+    assert detail.success, f"ST22 detail failed: {detail.error}"
+    await go_home(backend)
