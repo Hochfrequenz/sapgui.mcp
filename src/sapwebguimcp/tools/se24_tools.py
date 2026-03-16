@@ -173,7 +173,7 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,protected-ac
                 try:
                     row_data[title] = raw.GetCell(r, c).Text
                 except Exception:  # pylint: disable=broad-exception-caught
-                    pass
+                    pass  # COM RPC errors possible on tab-hosted tables, see #387
             rows.append(row_data)
         return rows
 

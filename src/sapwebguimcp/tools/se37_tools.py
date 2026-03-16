@@ -87,7 +87,7 @@ def _read_se37_table_control(session: Any, _flatten_fn: Any) -> list[dict[str, s
                 try:
                     row_data[title] = raw.GetCell(r, c).Text
                 except Exception:  # pylint: disable=broad-exception-caught
-                    pass
+                    pass  # COM RPC errors possible on tab-hosted tables, see #387
             rows.append(row_data)
         return rows
     return []
