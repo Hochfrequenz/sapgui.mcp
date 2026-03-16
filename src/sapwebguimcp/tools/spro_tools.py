@@ -10,7 +10,7 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -28,7 +28,7 @@ from sapwebguimcp.lang import (
     SPRO_SEARCH_BUTTON_DE,
     SPRO_SEARCH_BUTTON_EN,
 )
-from sapwebguimcp.models.spro_models import SPROFileSummary, SPROSearchResult
+from sapwebguimcp.models.spro_models import SPROActivity, SPROFileSummary, SPROSearchResult
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 
 if TYPE_CHECKING:
@@ -45,6 +45,9 @@ _SEARCH_POLL_INTERVAL_MS = 2_000
 # F5 IMG tree loading can be slow — poll for heading
 _F5_POLL_INTERVAL_S = 1.0
 _F5_MAX_POLLS = 10  # 10 * 1s = 10 seconds max wait
+
+# SPRO IMG tree control element ID (stable across languages)
+_SPRO_TREE_ID = "wnd[0]/usr/cntlTREE_CONTROL_CONTAINER/shellcont/shell"
 
 
 # =============================================================================
@@ -186,6 +189,106 @@ async def _wait_for_results(backend: "SapUiBackend") -> ScreenSnapshot:
     return await backend.get_snapshot()
 
 
+async def _search_img_desktop(  # pylint: disable=too-many-locals
+    backend: "SapUiBackend", query: str
+) -> SPROSearchResult:
+    """Desktop-specific SPRO IMG search using tree control node reading.
+
+    The desktop SAP GUI doesn't expose the SPRO search dialog available in WebGUI.
+    Instead, we expand the IMG tree nodes (2 levels deep) and filter by query text.
+    """
+    from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    now = datetime.now(UTC)
+
+    # Navigate to SPRO and open IMG tree
+    tx = await backend.enter_transaction("SPRO")
+    if not tx.success:
+        return SPROSearchResult.failure(
+            error=f"Failed to navigate to SPRO: {tx.error}",
+            query=query,
+            activities=[],
+            activity_count=0,
+            retrieved_at=now,
+        )
+    await backend.wait_for_ready()
+
+    # Press F5 for SAP Reference IMG
+    await backend.press_key("F5")
+    await backend.wait(3000)
+
+    if not isinstance(backend, DesktopBackend):
+        return SPROSearchResult.failure(
+            error="SPRO desktop search requires DesktopBackend",
+            query=query,
+            activities=[],
+            activity_count=0,
+            retrieved_at=now,
+        )
+
+    session = backend._require_session()  # pylint: disable=protected-access
+    com = backend._com  # pylint: disable=protected-access
+
+    def _read_and_search() -> list[dict[str, str]]:
+        """Expand top-level nodes, read children, filter by query."""
+        tree = session.find_by_id(_SPRO_TREE_ID)
+        raw: Any = getattr(tree, "com", getattr(tree, "_com", tree))
+
+        keys = raw.GetAllNodeKeys()
+        query_lower = query.lower()
+        matches: list[dict[str, str]] = []
+
+        # Expand all level-02 nodes to reveal level-03 children (activities)
+        # Key format: 'LL  P      N' where LL is a 2-digit zero-padded level
+        level2_keys: list[str] = []
+        for i in range(keys.Count):
+            k: str = keys(i)
+            if k[:2] == "02":
+                level2_keys.append(k)
+
+        for k in level2_keys:
+            try:
+                raw.ExpandNode(k)
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass
+
+        # Re-read all nodes after expansion
+        keys = raw.GetAllNodeKeys()
+        # Build parent context map
+        current_l2 = ""
+        for i in range(keys.Count):
+            k = keys(i)
+            text: str = raw.GetItemText(k, "TEXT")
+            level = k[:2]
+
+            if level == "02":
+                current_l2 = text
+            if query_lower in text.lower() and level in ("02", "03"):
+                matches.append(
+                    {
+                        "activity_name": text,
+                        "parent_node": current_l2 if level == "03" else "SAP Customizing",
+                        "area": current_l2,
+                    }
+                )
+
+        return matches
+
+    raw_matches = await com.run(_read_and_search)
+
+    # Navigate back: F3 exits IMG tree, F3 exits SPRO
+    await backend.press_key("F3")
+    await backend.press_key("F3")
+
+    activities = [SPROActivity(**m) for m in raw_matches]
+    return SPROSearchResult(
+        query=query,
+        activities=activities,
+        activity_count=len(activities),
+        retrieved_at=now,
+    )
+
+
 async def _search_img(backend: "SapUiBackend", query: str) -> SPROSearchResult:
     """Execute a full SPRO IMG search."""
     now = datetime.now(UTC)
@@ -298,27 +401,31 @@ def register_spro_tools(mcp: FastMCP) -> None:
                 retrieved_at=now,
             )
 
-        # Desktop backend: not yet supported
+        # Desktop backend: use tree control reading instead of ARIA parsing
         if _is_desktop_backend(backend):
-            return SPROSearchResult.failure(
-                error="SPRO search is not yet supported on the desktop backend",
-                query=query,
-                activities=[],
-                activity_count=0,
-                retrieved_at=now,
-            )
-
-        try:
-            result = await _search_img(backend, query)
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("SPRO search query=%r", query)
-            result = SPROSearchResult.failure(
-                error=f"Error searching IMG for '{query}': {e}",
-                query=query,
-                activities=[],
-                activity_count=0,
-                retrieved_at=now,
-            )
+            try:
+                result = await _search_img_desktop(backend, query)
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.exception("SPRO desktop search query=%r", query)
+                result = SPROSearchResult.failure(
+                    error=f"Error searching IMG for '{query}': {e}",
+                    query=query,
+                    activities=[],
+                    activity_count=0,
+                    retrieved_at=now,
+                )
+        else:
+            try:
+                result = await _search_img(backend, query)
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.exception("SPRO search query=%r", query)
+                result = SPROSearchResult.failure(
+                    error=f"Error searching IMG for '{query}': {e}",
+                    query=query,
+                    activities=[],
+                    activity_count=0,
+                    retrieved_at=now,
+                )
 
         # Write to file if requested
         if output_file and result.success:
