@@ -23,6 +23,7 @@ from sapwebguimcp.lang import (
     SM30_TABLE_VIEW_DE,
     SM30_TABLE_VIEW_EN,
 )
+from sapwebguimcp.models import TableData
 from sapwebguimcp.models.sm30_models import SM30FileSummary, SM30Row, SM30ViewResult
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 
@@ -74,8 +75,6 @@ async def _click_display_button(backend: "SapUiBackend") -> str | None:
 
 async def _lookup_view_desktop(backend: "SapUiBackend", view_name: str) -> SM30ViewResult:
     """Desktop-specific SM30 lookup using read_table instead of ARIA parsing."""
-    from sapwebguimcp.models import TableData  # pylint: disable=import-outside-toplevel
-
     now = datetime.now(UTC)
     logger.info("SM30 desktop backend path", extra={"view_name": view_name})
 

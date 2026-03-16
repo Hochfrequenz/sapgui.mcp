@@ -19,7 +19,7 @@ from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
 from sapwebguimcp.lang import SE16_NO_ENTRIES_DE, SE16_NO_ENTRIES_EN
-from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row
+from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row, TableData
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.se11_tools import _lookup_object_on_initial_screen
 
@@ -538,8 +538,6 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     ctx: Context | None = None,  # TODO: progress reporting via ctx not yet implemented on desktop
 ) -> SE16Result:
     """Desktop-specific SE16N query using read_table instead of ARIA parsing."""
-    from sapwebguimcp.models import TableData  # pylint: disable=import-outside-toplevel
-
     # Navigate to SE16N
     tx = await backend.enter_transaction("SE16N")
     if not tx.success:

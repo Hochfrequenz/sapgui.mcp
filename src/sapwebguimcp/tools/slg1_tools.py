@@ -21,6 +21,7 @@ from sapwebguimcp.backend.webgui.parsers.slg1_parser import (
     is_slg1_no_results,
     parse_slg1_log_list,
 )
+from sapwebguimcp.models import TableData
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.slg1_models import (
     SLG1FileSummary,
@@ -55,8 +56,6 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
     to_date: str | None = None,
 ) -> SLG1LogListResult:
     """Desktop-specific SLG1 lookup using read_table instead of ARIA parsing."""
-    from sapwebguimcp.models import TableData  # pylint: disable=import-outside-toplevel
-
     now = datetime.now(UTC)
     settings = get_settings()
     language: SapLanguage = settings.sap_language

@@ -114,18 +114,6 @@ async def test_se16_model_serializes(backend):
 @skip_not_sap
 @skip_no_creds
 @pytest.mark.anyio
-async def test_se16_max_hits_respected(backend):
-    """SE16: max_hits=3 returns exactly 3 rows."""
-    result = await _execute_se16_query(backend, "TSTC", None, 3)
-    assert result.success, f"SE16 failed: {result.error}"
-    assert result.returned_rows == 3
-    assert len(result.rows) == 3
-    await go_home(backend)
-
-
-@skip_not_sap
-@skip_no_creds
-@pytest.mark.anyio
 async def test_se16_max_hits_limits_rows(backend):
     """SE16: max_hits=3 on a large table returns exactly 3 rows.
 

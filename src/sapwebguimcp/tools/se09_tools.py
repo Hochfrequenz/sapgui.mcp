@@ -273,6 +273,8 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
 
     # Desktop backend: use get_screen_text instead of ARIA snapshot parsing
     if _is_desktop_backend(backend):
+        if include_objects:
+            logger.warning("SE09 desktop: include_objects is not supported, ignoring include_objects=True")
         return await _lookup_transports_desktop(backend, username, request_type, status)
 
     # Navigate to SE09 using session-aware helper

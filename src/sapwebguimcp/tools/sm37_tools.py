@@ -21,6 +21,7 @@ from sapwebguimcp.backend.webgui.parsers.sm37_parser import (
     parse_sm37_job_list,
     parse_sm37_job_log,
 )
+from sapwebguimcp.models import TableData
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.sm37_models import SM37Job, SM37JobListResult, SM37JobLog
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
@@ -174,8 +175,6 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
     to_date: str | None,
 ) -> SM37JobListResult:
     """Desktop-specific SM37 lookup using read_table instead of ARIA parsing."""
-    from sapwebguimcp.models import TableData  # pylint: disable=import-outside-toplevel
-
     now = datetime.now(UTC)
     settings = get_settings()
     language: SapLanguage = settings.sap_language
@@ -358,6 +357,8 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
     if _is_desktop_backend(backend):
+        if include_log:
+            logger.warning("SM37 desktop: include_log is not supported, ignoring include_log=True")
         return await _execute_sm37_lookup_desktop(backend, job_name, username, statuses, from_date, to_date)
 
     tx_result = await backend.enter_transaction("SM37")

@@ -29,6 +29,7 @@ from sapwebguimcp.backend.webgui.parsers.st22_parser import (
     parse_st22_dump_list,
     parse_st22_initial_screen,
 )
+from sapwebguimcp.models import TableData
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.st22_models import (
     ST22Dump,
@@ -210,8 +211,6 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
     dump_index: int | None,
 ) -> ST22DumpListResult | ST22DumpDetailResult:
     """Desktop-specific ST22 lookup using read_table instead of ARIA parsing."""
-    from sapwebguimcp.models import TableData  # pylint: disable=import-outside-toplevel
-
     now = datetime.now(UTC)
     date_str = target_date or date.today().isoformat()
     logger.info("ST22 desktop backend path", extra={"date": date_str})

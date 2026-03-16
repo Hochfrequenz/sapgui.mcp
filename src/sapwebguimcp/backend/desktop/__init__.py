@@ -606,7 +606,7 @@ class DesktopBackend:
                         if isinstance(column, int):
                             col_order = cast(Any, grid).column_order
                             col_name = str(col_order(column))
-                        if action == "double_click":
+                        if action in ("dblclick", "double_click"):
                             cast(Any, grid).double_click(row - 1, col_name)
                         else:
                             cast(Any, grid).click(row - 1, col_name)
