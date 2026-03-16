@@ -173,6 +173,17 @@ async def _extract_tree_text_lines(backend: "SapUiBackend") -> list[str]:
     return [item["text"] for item in all_items if item["text"]]
 
 
+async def _set_checkbox_bilingual(backend: "SapUiBackend", de_label: str, en_label: str, checked: bool) -> None:
+    """Set a checkbox trying DE then EN label, warn if neither found."""
+    for label in [de_label, en_label]:
+        try:
+            await backend.set_checkbox(label, checked)
+            return
+        except ValueError:
+            continue
+    logger.warning("SE09 desktop: checkbox not found for %s / %s", de_label, en_label)
+
+
 async def _set_se09_selection_screen(
     backend: "SapUiBackend",
     username: str | None,
@@ -202,41 +213,17 @@ async def _set_se09_selection_screen(
         if not filled:
             logger.warning("SE09 desktop: could not fill username field, results may be unfiltered")
 
-    # Request type checkboxes (DE label, EN label, desired state)
+    # Request type checkboxes
     wb_checked = request_type in ("all", "workbench")
     cust_checked = request_type in ("all", "customizing")
-    for de_label, en_label, checked in [
-        ("Workbench-Auftr\u00e4ge", "Workbench Requests", wb_checked),
-        ("Customizing-Auftr\u00e4ge", "Customizing Requests", cust_checked),
-    ]:
-        set_ok = False
-        for label in [de_label, en_label]:
-            try:
-                await backend.set_checkbox(label, checked)
-                set_ok = True
-                break
-            except ValueError:
-                continue
-        if not set_ok:
-            logger.warning("SE09 desktop: checkbox not found for %s / %s", de_label, en_label)
+    await _set_checkbox_bilingual(backend, "Workbench-Auftr\u00e4ge", "Workbench Requests", wb_checked)
+    await _set_checkbox_bilingual(backend, "Customizing-Auftr\u00e4ge", "Customizing Requests", cust_checked)
 
     # Status checkboxes
     mod_checked = status in ("all", "modifiable")
     rel_checked = status in ("all", "released")
-    for de_label, en_label, checked in [
-        ("\u00c4nderbar", "Modifiable", mod_checked),
-        ("Freigegeben", "Released", rel_checked),
-    ]:
-        set_ok = False
-        for label in [de_label, en_label]:
-            try:
-                await backend.set_checkbox(label, checked)
-                set_ok = True
-                break
-            except ValueError:
-                continue
-        if not set_ok:
-            logger.warning("SE09 desktop: checkbox not found for %s / %s", de_label, en_label)
+    await _set_checkbox_bilingual(backend, "\u00c4nderbar", "Modifiable", mod_checked)
+    await _set_checkbox_bilingual(backend, "Freigegeben", "Released", rel_checked)
 
 
 async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
