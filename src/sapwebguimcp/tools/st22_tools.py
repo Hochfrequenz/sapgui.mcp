@@ -14,6 +14,7 @@ ST22 flow:
 
 import json
 import logging
+import re
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -244,8 +245,6 @@ def _parse_desktop_detail_text(full_text: str, source_dump: "ST22Dump") -> "ST22
     Extracts structured fields from the free-text dump detail.
     Falls back to metadata from the list entry if parsing fails.
     """
-    import re  # pylint: disable=import-outside-toplevel
-
     what_happened = ""
     how_to_correct = ""
     call_stack: list[str] = []
@@ -374,10 +373,16 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
             )
         )
 
-    # Sort by time descending
-    dumps.sort(key=lambda d: d.time, reverse=True)
-    for idx, dump in enumerate(dumps):
-        dump.index = idx
+    # Sort by time descending, keeping a mapping from sorted index to original
+    # table row position (needed for double-clicking the correct row).
+    indexed_dumps = [(d.index, d) for d in dumps]  # (original_table_row, dump)
+    indexed_dumps.sort(key=lambda pair: pair[1].time, reverse=True)
+    sorted_to_ui: dict[int, int] = {}
+    dumps = []
+    for new_idx, (orig_idx, dump) in enumerate(indexed_dumps):
+        sorted_to_ui[new_idx] = orig_idx
+        dump.index = new_idx
+        dumps.append(dump)
 
     if dump_index is None:
         return ST22DumpListResult(
@@ -397,13 +402,9 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
 
     target_dump = dumps[dump_index]
 
-    # Double-click the dump row to open detail (use original table row, 1-based)
-    # After sorting, dump_index maps to target_dump; we need the original table row.
-    # read_table returns rows in table order; we sorted by time descending.
-    # The original row index is stored in dumps before sorting happened at index `idx`.
-    # We re-read the table below, so just use dump_index's original position.
-    original_row = dump_index  # dumps were re-indexed after sorting
-    error = await _select_dump_by_index(backend, original_row, len(dumps))
+    # Use the original table row position for clicking, not the sorted index
+    ui_row_idx = sorted_to_ui[dump_index]
+    error = await _select_dump_by_index(backend, ui_row_idx, len(dumps))
     if error:
         return ST22DumpDetailResult.failure(error=error, detail=None, retrieved_at=now)
 
