@@ -62,7 +62,7 @@ async def test_se09_screen_elements(backend):
 
 
 # ---------------------------------------------------------------------------
-# Priority 2: SE09 filter variations (desktop ignores these params)
+# SE09 filter variations
 # ---------------------------------------------------------------------------
 
 

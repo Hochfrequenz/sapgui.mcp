@@ -186,8 +186,8 @@ async def _set_se09_selection_screen(
     the standard convention, so we fill it by trying both label and technical name.
     """
     # Username field — SE09's user field is in a subscreen where label/field names
-    # don't match (lblSEL_USER vs ctxtUSERNAME), so standard fill_field fails.
-    # Use discover_fields to find the field dynamically by its current value (*).
+    # don't match (lblSEL_USER vs ctxtUSERNAME), so fill_field by label fails.
+    # Fallback: focus_and_type with SAP technical name (uses FindByName strategy).
     if username:
         filled = False
         for label in ["Benutzer", "User"]:
@@ -209,12 +209,16 @@ async def _set_se09_selection_screen(
         ("Workbench-Auftr\u00e4ge", "Workbench Requests", wb_checked),
         ("Customizing-Auftr\u00e4ge", "Customizing Requests", cust_checked),
     ]:
+        set_ok = False
         for label in [de_label, en_label]:
             try:
                 await backend.set_checkbox(label, checked)
+                set_ok = True
                 break
             except ValueError:
                 continue
+        if not set_ok:
+            logger.warning("SE09 desktop: checkbox not found for %s / %s", de_label, en_label)
 
     # Status checkboxes
     mod_checked = status in ("all", "modifiable")
@@ -223,12 +227,16 @@ async def _set_se09_selection_screen(
         ("\u00c4nderbar", "Modifiable", mod_checked),
         ("Freigegeben", "Released", rel_checked),
     ]:
+        set_ok = False
         for label in [de_label, en_label]:
             try:
                 await backend.set_checkbox(label, checked)
+                set_ok = True
                 break
             except ValueError:
                 continue
+        if not set_ok:
+            logger.warning("SE09 desktop: checkbox not found for %s / %s", de_label, en_label)
 
 
 async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
