@@ -23,6 +23,7 @@ from sapwebguimcp.models import (
     SE37FileSummary,
     SE37Result,
 )
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_and_display
 
 logger = logging.getLogger(__name__)
@@ -165,6 +166,10 @@ def register_se37_tools(mcp: FastMCP) -> None:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_se37_lookup")
         except ValueError as e:
             return SE37Result.failure(f"Session error: {e}")
+
+        # Desktop backend: not yet supported
+        if _is_desktop_backend(backend):
+            return SE37Result.failure("SE37 lookup is not yet supported on the desktop backend")
 
         entries: list[SE37Entry] = []
         errors: list[SE37Error] = []

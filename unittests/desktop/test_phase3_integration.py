@@ -6,75 +6,16 @@ read_editor_source, and check_and_activate against a real SAP system.
 Skipped unless running on the authorized SAP test machine with credentials.
 """
 
+import asyncio
 import sys
 
 import pytest
-from dotenv import load_dotenv
 
-from unittests.conftest import is_sap_integration_test_machine
+from unittests.desktop.conftest import skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
 
-skip_not_sap_machine = pytest.mark.skipif(
-    not is_sap_integration_test_machine(),
-    reason="SAP integration tests only run on authorized machines",
-)
-
-
-def _creds_configured() -> bool:
-    try:
-        load_dotenv()
-        from sapwebguimcp.models.config import get_settings
-
-        s = get_settings()
-        return bool(s.sap_connection_name and s.sap_user and s.sap_password and s.sap_mandant)
-    except Exception:
-        return False
-
-
-skip_no_creds = pytest.mark.skipif(not _creds_configured(), reason="SAP credentials not configured")
-
-
-@pytest.fixture
-async def backend():
-    """Provide a logged-in DesktopBackend, close ALL connections on teardown."""
-    import os
-
-    load_dotenv()
-    from sapwebguimcp.backend.desktop import DesktopBackend
-    from sapwebguimcp.backend.desktop._com_thread import ComThread
-
-    com = ComThread()
-    b = DesktopBackend(com_thread=com)
-    r = await b.login(
-        "ignored",
-        os.environ["SAP_USER"],
-        os.environ["SAP_PASSWORD"],
-        os.environ["SAP_MANDANT"],
-        os.environ.get("SAP_LANGUAGE", "DE"),
-    )
-    assert r.success, f"Login failed: {r.error}"
-    yield b
-    # Teardown: close connection VIA the COM thread (same apartment) to avoid
-    # Windows fatal exception 0x800401f0 from cross-apartment COM calls.
-    import faulthandler
-
-    try:
-        if b._session is not None:
-            session = b._session
-            await com.run(lambda: session.com.Parent.CloseConnection())
-            b._session = None
-    except Exception:  # pywintypes.com_error or AttributeError from dead COM objects
-        pass
-    from sapwebguimcp.sapgui._login import cleanup_ghost_connections
-
-    try:
-        await com.run(cleanup_ghost_connections)
-    except Exception:  # best-effort cleanup
-        pass
-    faulthandler.disable()
-    com.shutdown()
-    faulthandler.enable()
+skip_not_sap_machine = skip_not_sap
 
 
 # ---------------------------------------------------------------------------
@@ -129,8 +70,6 @@ async def test_dismiss_popup_on_exit_with_changes(backend):
         if btn.label in display_labels:
             await backend.click_button(btn.label)
             break
-
-    import asyncio
 
     await asyncio.sleep(1)
 
@@ -189,8 +128,6 @@ async def test_read_editor_source_on_se38(backend):
         if btn.label in display_labels:
             await backend.click_button(btn.label)
             break
-
-    import asyncio
 
     await asyncio.sleep(1)
 

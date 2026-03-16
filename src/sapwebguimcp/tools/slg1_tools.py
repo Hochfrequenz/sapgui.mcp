@@ -21,11 +21,14 @@ from sapwebguimcp.backend.webgui.parsers.slg1_parser import (
     is_slg1_no_results,
     parse_slg1_log_list,
 )
+from sapwebguimcp.models import TableData
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.slg1_models import (
     SLG1FileSummary,
+    SLG1LogEntry,
     SLG1LogListResult,
 )
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 if TYPE_CHECKING:
@@ -34,6 +37,132 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 __all__ = ["register_slg1_tools"]
+
+
+def _safe_int(value: str | None) -> int:
+    """Convert a value to int, returning 0 on failure."""
+    try:
+        return int(value or "0")
+    except (ValueError, TypeError):
+        return 0
+
+
+async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
+    backend: "SapUiBackend",
+    object_name: str,
+    subobject: str | None = None,
+    external_id: str | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
+) -> SLG1LogListResult:
+    """Desktop-specific SLG1 lookup using read_table instead of ARIA parsing."""
+    now = datetime.now(UTC)
+    settings = get_settings()
+    language: SapLanguage = settings.sap_language
+    logger.info("SLG1 desktop backend path", extra={"object": object_name})
+
+    tx_result = await backend.enter_transaction("SLG1")
+    if not tx_result.success:
+        return SLG1LogListResult.failure(
+            f"Failed to navigate to SLG1: {tx_result.error}",
+            logs=[],
+            log_count=0,
+            logs_truncated=False,
+            retrieved_at=now,
+        )
+    await backend.wait_for_ready()
+
+    # Fill selection screen
+    fields: dict[str, str] = {}
+    if language == "DE":
+        fields["Objekt"] = object_name
+        if subobject:
+            fields["Unterobjekt"] = subobject
+        if external_id:
+            fields["Ext. Identif."] = external_id
+        if from_date:
+            fields["von (Datum/Uhrzeit)"] = format_sap_date(from_date, language)
+        if to_date:
+            fields["bis (Datum/Uhrzeit)"] = format_sap_date(to_date, language)
+    else:
+        fields["Object"] = object_name
+        if subobject:
+            fields["Subobject"] = subobject
+        if external_id:
+            fields["External ID"] = external_id
+        if from_date:
+            fields["From (Date/Time)"] = format_sap_date(from_date, language)
+        if to_date:
+            fields["To (Date/Time)"] = format_sap_date(to_date, language)
+
+    fill_result = await backend.fill_form(fields)
+    if fill_result.not_found:
+        logger.warning("SLG1 desktop fields not found: %r", fill_result.not_found)
+
+    # Execute search (F8)
+    await backend.press_key("F8")
+    await backend.wait_for_ready()
+
+    # Check status bar
+    sbar = await backend.get_status_bar()
+    filters = _build_filters(object_name, subobject, external_id, from_date, to_date)
+
+    if sbar.type == "E":
+        return SLG1LogListResult.failure(
+            f"SLG1 error: {sbar.message}",
+            logs=[],
+            log_count=0,
+            logs_truncated=False,
+            retrieved_at=now,
+        )
+
+    if sbar.message and any(
+        msg in sbar.message.lower() for msg in ["keine protokolle", "no logs", "no application log"]
+    ):
+        return SLG1LogListResult(
+            logs=[],
+            log_count=0,
+            logs_truncated=False,
+            filters_applied=filters,
+            retrieved_at=now,
+        )
+
+    # Read table data
+    table_data: TableData = await backend.read_table(start_row=1, max_rows=50)
+
+    if not table_data.headers:
+        return SLG1LogListResult.failure(
+            "Could not read SLG1 log list table",
+            logs=[],
+            log_count=0,
+            logs_truncated=False,
+            retrieved_at=now,
+        )
+
+    # Convert to SLG1LogEntry models
+    logs: list[SLG1LogEntry] = []
+    for tr in table_data.rows:
+        d = tr.data
+        logs.append(
+            SLG1LogEntry(
+                log_number=d.get("Protokollnr.", d.get("Log Number", d.get("Log number", ""))),
+                object=d.get("Objekt", d.get("Object", "")),
+                subobject=d.get("Unterobjekt", d.get("Subobject", "")),
+                external_id=d.get("Ext. Identif.", d.get("External ID", "")),
+                date=d.get("Datum", d.get("Date", "")),
+                time=d.get("Uhrzeit", d.get("Time", "")),
+                user=d.get("Benutzer", d.get("User", "")),
+                message_count=_safe_int(d.get("Anzahl Nachr.", d.get("No. Messages", "0"))),
+            )
+        )
+
+    return SLG1LogListResult(
+        logs=logs,
+        log_count=len(logs),
+        logs_truncated=len(logs) >= 50,
+        filters_applied=filters,
+        retrieved_at=now,
+    )
 
 
 async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
@@ -46,6 +175,10 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
 ) -> SLG1LogListResult:
     """Execute SLG1 lookup and return parsed results."""
     now = datetime.now(UTC)
+
+    # Desktop backend: use read_table instead of ARIA snapshot parsing
+    if _is_desktop_backend(backend):
+        return await _slg1_lookup_desktop(backend, object_name, subobject, external_id, from_date, to_date)
 
     settings = get_settings()
     language: SapLanguage = settings.sap_language

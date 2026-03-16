@@ -29,11 +29,14 @@ from sapwebguimcp.backend.webgui.parsers.st22_parser import (
     parse_st22_dump_list,
     parse_st22_initial_screen,
 )
+from sapwebguimcp.models import TableData
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.st22_models import (
+    ST22Dump,
     ST22DumpDetailResult,
     ST22DumpListResult,
 )
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 if TYPE_CHECKING:
@@ -202,6 +205,104 @@ async def _capture_full_detail(backend: "SapUiBackend") -> str:
 # =============================================================================
 
 
+async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
+    backend: "SapUiBackend",
+    target_date: str | None,
+    dump_index: int | None,
+) -> ST22DumpListResult | ST22DumpDetailResult:
+    """Desktop-specific ST22 lookup using read_table instead of ARIA parsing."""
+    now = datetime.now(UTC)
+    date_str = target_date or date.today().isoformat()
+    logger.info("ST22 desktop backend path", extra={"date": date_str})
+
+    # Navigate to ST22
+    error = await _navigate_to_st22(backend)
+    if error:
+        return ST22DumpListResult.failure(
+            error=error,
+            dumps=[],
+            dump_count=0,
+            date_searched=date_str,
+            retrieved_at=now,
+        )
+
+    # Execute search
+    error = await _execute_search(backend, target_date)
+    if error:
+        return ST22DumpListResult.failure(
+            error=error,
+            dumps=[],
+            dump_count=0,
+            date_searched=date_str,
+            retrieved_at=now,
+        )
+
+    # Check status bar for "no dumps"
+    sbar = await backend.get_status_bar()
+    if sbar.message and any(
+        msg in sbar.message.lower() for msg in ["keine dumps", "no dumps", "keine kurzabzüge", "no short dumps"]
+    ):
+        if dump_index is not None:
+            return ST22DumpDetailResult.failure(
+                error=f"No dumps found for {date_str} -- cannot select dump_index {dump_index}",
+                detail=None,
+                retrieved_at=now,
+            )
+        return ST22DumpListResult(
+            dumps=[],
+            dump_count=0,
+            date_searched=date_str,
+            retrieved_at=now,
+        )
+
+    # Read table data
+    table_data: TableData = await backend.read_table(start_row=1, max_rows=200)
+
+    if not table_data.headers:
+        return ST22DumpListResult(
+            dumps=[],
+            dump_count=0,
+            date_searched=date_str,
+            retrieved_at=now,
+        )
+
+    # Convert to ST22Dump models
+    dumps: list[ST22Dump] = []
+    for idx, tr in enumerate(table_data.rows):
+        d = tr.data
+        dumps.append(
+            ST22Dump(
+                index=idx,
+                time=d.get("Uhrzeit", d.get("Time", "")),
+                program=d.get("Programm", d.get("Program", "")),
+                include=d.get("Include", None),
+                error_type=d.get("Laufzeitfehler", d.get("Runtime Error", d.get("Runtime Errors", ""))),
+                short_text=d.get("Kurztext", d.get("Short Text", d.get("Short text", ""))),
+                user=d.get("Benutzer", d.get("User", "")),
+            )
+        )
+
+    # Sort by time descending
+    dumps.sort(key=lambda d: d.time, reverse=True)
+    for idx, dump in enumerate(dumps):
+        dump.index = idx
+
+    if dump_index is None:
+        return ST22DumpListResult(
+            dumps=dumps,
+            dump_count=len(dumps),
+            date_searched=date_str,
+            retrieved_at=now,
+        )
+
+    # Detail view not supported on desktop yet
+    return ST22DumpDetailResult.failure(
+        error="ST22 dump detail view not yet supported on desktop backend. Use dump list only.",
+        detail=None,
+        retrieved_at=now,
+    )
+
+
 async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-locals,too-many-branches
     backend: "SapUiBackend",
     target_date: str | None,
@@ -210,6 +311,10 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
     """Core ST22 lookup logic."""
     now = datetime.now(UTC)
     date_str = target_date or date.today().isoformat()
+
+    # Desktop backend: use read_table instead of ARIA snapshot parsing
+    if _is_desktop_backend(backend):
+        return await _st22_lookup_desktop(backend, target_date, dump_index)
 
     # Navigate to ST22
     error = await _navigate_to_st22(backend)
