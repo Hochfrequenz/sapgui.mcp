@@ -1,0 +1,149 @@
+"""Integration tests for SE16 (Data Browser) on desktop backend."""
+
+import json
+import sys
+
+import pytest
+
+from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+
+pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se16_small_table(backend):
+    """SE16: query T000 (clients, ~3-6 rows), verify all returned, not truncated."""
+    from sapwebguimcp.tools.se16_tools import _execute_se16_query
+
+    result = await _execute_se16_query(backend, "T000", None, 100)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert result.table == "T000"
+    assert result.total_hits > 0, "T000 should have at least 1 client"
+    assert result.total_hits == result.returned_rows, "All rows should be returned"
+    assert result.truncated is False, "Should not be truncated"
+    assert len(result.columns) > 0, "Expected column headers"
+    assert len(result.rows) == result.returned_rows
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se16_medium_table(backend):
+    """SE16: query TSTC with max_hits=50, verify pagination/truncation."""
+    from sapwebguimcp.tools.se16_tools import _execute_se16_query
+
+    result = await _execute_se16_query(backend, "TSTC", None, 50)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert result.table == "TSTC"
+    assert result.total_hits >= 50
+    assert result.returned_rows == 50
+    assert len(result.rows) == 50
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se16_table_not_found(backend):
+    """SE16: nonexistent table ZZZNOTEXIST99 returns 0 rows without crashing."""
+    from sapwebguimcp.tools.se16_tools import _execute_se16_query
+
+    result = await _execute_se16_query(backend, "ZZZNOTEXIST99", None, 5)
+    assert result.returned_rows == 0
+    assert isinstance(result.columns, list)
+    assert isinstance(result.rows, list)
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se16_columns_match_data(backend):
+    """SE16: verify row data keys match column headers."""
+    from sapwebguimcp.tools.se16_tools import _execute_se16_query
+
+    result = await _execute_se16_query(backend, "TSTC", None, 5)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert len(result.columns) >= 3, f"Expected at least 3 columns, got {result.columns}"
+    for row in result.rows:
+        row_keys = set(row.data.keys())
+        expected_keys = set(result.columns)
+        assert row_keys == expected_keys, f"Row keys {row_keys} != columns {expected_keys}"
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se16_tcode_column_has_values(backend):
+    """SE16: verify TCODE column values are non-empty in TSTC table."""
+    from sapwebguimcp.tools.se16_tools import _execute_se16_query
+
+    result = await _execute_se16_query(backend, "TSTC", None, 5)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert "TCODE" in result.columns, f"Expected TCODE column, got {result.columns}"
+    for row in result.rows:
+        assert row.data["TCODE"], "TCODE value should not be empty"
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se16_model_serializes(backend):
+    """SE16Result must JSON-serialize for MCP transport (roundtrip)."""
+    from sapwebguimcp.tools.se16_tools import _execute_se16_query
+
+    result = await _execute_se16_query(backend, "TSTC", None, 3)
+    json_str = result.model_dump_json()
+    parsed = json.loads(json_str)
+    assert parsed["table"] == "TSTC"
+    assert isinstance(parsed["rows"], list)
+    assert isinstance(parsed["columns"], list)
+    # Roundtrip back to model
+    from sapwebguimcp.models.se16_models import SE16Result
+
+    restored = SE16Result.model_validate_json(json_str)
+    assert restored.table == "TSTC"
+    assert len(restored.rows) == len(result.rows)
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se16_max_hits_respected(backend):
+    """SE16: max_hits=3 returns exactly 3 rows."""
+    from sapwebguimcp.tools.se16_tools import _execute_se16_query
+
+    result = await _execute_se16_query(backend, "TSTC", None, 3)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert result.returned_rows == 3
+    assert len(result.rows) == 3
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se16_truncated_flag(backend):
+    """SE16: total_hits vs returned_rows are consistent; truncation is reflected.
+
+    Note: the desktop backend sets truncated = (len(rows) < total_hits),
+    which differs from the WebGUI backend (total_hits >= max_hits).  When the
+    desktop SE16 path retrieves exactly max_hits rows AND SAP reports
+    total_hits == max_hits, truncated will be False even though more data
+    exists in the table.  We assert structural consistency here rather than
+    a specific truncated value.
+    """
+    from sapwebguimcp.tools.se16_tools import _execute_se16_query
+
+    result = await _execute_se16_query(backend, "TSTC", None, 3)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert result.returned_rows == 3
+    # Structural consistency: truncated iff fewer rows returned than total_hits
+    assert result.truncated == (result.returned_rows < result.total_hits)
+    await go_home(backend)

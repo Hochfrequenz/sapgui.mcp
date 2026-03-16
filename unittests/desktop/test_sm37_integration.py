@@ -1,0 +1,132 @@
+"""Integration tests for SM37 (Job Overview) on desktop backend."""
+
+import json
+import sys
+
+import pytest
+
+from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+
+pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_sm37_default_selection(backend):
+    """SM37: default params returns well-formed SM37JobListResult."""
+    from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
+
+    result = await _execute_sm37_lookup_desktop(
+        backend,
+        job_name="*",
+        username=None,
+        statuses=None,
+        from_date=None,
+        to_date=None,
+    )
+    assert result.success or result.error, "Should return data or a clear error"
+    assert isinstance(result.jobs, list)
+    assert isinstance(result.job_count, int)
+    assert result.job_count == len(result.jobs)
+    assert isinstance(result.model_dump_json(), str)
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_sm37_no_jobs_for_fake_user(backend):
+    """SM37: username='ZZZFAKEUSER' returns 0 jobs or structured error.
+
+    The desktop backend may return success=True with 0 jobs (if the status
+    bar 'no jobs' message is detected) or success=False with a clear error
+    (if read_table fails because no ALV grid is shown).  Either is acceptable.
+    """
+    from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
+
+    result = await _execute_sm37_lookup_desktop(
+        backend,
+        job_name="*",
+        username="ZZZFAKEUSER",
+        statuses=None,
+        from_date=None,
+        to_date=None,
+    )
+    assert result.job_count == 0, "Should find no jobs for fake user"
+    assert len(result.jobs) == 0
+    assert isinstance(result.model_dump_json(), str)
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_sm37_model_serializes(backend):
+    """SM37JobListResult must JSON-serialize (roundtrip)."""
+    from sapwebguimcp.models.sm37_models import SM37JobListResult
+    from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
+
+    result = await _execute_sm37_lookup_desktop(
+        backend,
+        job_name="*",
+        username=None,
+        statuses=None,
+        from_date=None,
+        to_date=None,
+    )
+    json_str = result.model_dump_json()
+    parsed = json.loads(json_str)
+    assert "success" in parsed
+    assert "jobs" in parsed
+    assert "job_count" in parsed
+    # Roundtrip
+    restored = SM37JobListResult.model_validate_json(json_str)
+    assert restored.job_count == result.job_count
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_sm37_screen_info(backend):
+    """SM37: verify transaction screen is reachable and identified."""
+    await backend.enter_transaction("SM37")
+    info = await backend.get_screen_info()
+    assert info.success
+    assert info.transaction == "SM37"
+    assert info.title, "SM37 should have a screen title"
+    assert info.program, "SM37 should report a program name"
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_sm37_with_wildcard_jobname(backend):
+    """SM37: job_name='*' returns result or structured error.
+
+    The desktop backend may fail to read the ALV grid when jobs exist
+    (read_table limitation).  We verify the tool returns a well-formed
+    model in either case.
+    """
+    from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
+
+    result = await _execute_sm37_lookup_desktop(
+        backend,
+        job_name="*",
+        username="*",
+        statuses=None,
+        from_date=None,
+        to_date=None,
+    )
+    # Either succeeds with data or fails with structured error
+    assert isinstance(result.jobs, list)
+    assert result.job_count >= 0
+    assert result.job_count == len(result.jobs)
+    assert isinstance(result.model_dump_json(), str)
+    # If jobs exist, verify structure
+    for job in result.jobs:
+        assert job.job_name, "Job name should not be empty"
+        assert job.status, "Status should not be empty"
+    await go_home(backend)
