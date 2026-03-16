@@ -151,11 +151,10 @@ async def test_se16_truncated_flag(backend):
 
 
 # ---------------------------------------------------------------------------
-# Priority 2: SE16 filter tests (not yet implemented on desktop)
+# SE16 filter tests
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skip(reason="SE16 desktop filters not yet implemented")
 @skip_not_sap
 @skip_no_creds
 @pytest.mark.anyio
@@ -169,7 +168,6 @@ async def test_se16_single_filter(backend):
     await go_home(backend)
 
 
-@pytest.mark.skip(reason="SE16 desktop filters not yet implemented")
 @skip_not_sap
 @skip_no_creds
 @pytest.mark.anyio
@@ -179,4 +177,17 @@ async def test_se16_multiple_filters(backend):
     assert result.success, f"SE16 failed: {result.error}"
     for row in result.rows:
         assert row.data["TCODE"] == "SE16"
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se16_wildcard_filter(backend):
+    """SE16: query TSTC with wildcard filter TCODE='SE1*'."""
+    result = await _execute_se16_query(backend, "TSTC", {"TCODE": "SE1*"}, 20)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert result.returned_rows >= 1
+    for row in result.rows:
+        assert row.data["TCODE"].startswith("SE1"), f"Expected SE1*, got {row.data['TCODE']}"
     await go_home(backend)

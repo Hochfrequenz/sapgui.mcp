@@ -529,6 +529,108 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
     return all_rows
 
 
+# SE16N selection criteria table control ID (stable across languages)
+_SE16N_TC_ID = "wnd[0]/usr/subTAB_SUB:SAPLSE16N:0121/tblSAPLSE16NSELFIELDS_TC"
+# Column indices in the SE16N selection criteria table control
+_SE16N_COL_FIELDNAME = 6  # GS_SELFIELDS-FIELDNAME (technical name)
+_SE16N_COL_LOW = 2  # GS_SELFIELDS-LOW (Von-Wert / From-Value)
+
+
+def _find_and_set_filter_cell(raw_tc: Any, field_upper: str, value: str, visible: int) -> bool:
+    """Scan visible rows of an SE16N table control for a field and set its filter value.
+
+    Returns True if the field was found and set, False otherwise.
+    """
+    for r in range(visible):
+        try:
+            fname_cell = raw_tc.GetCell(r, _SE16N_COL_FIELDNAME)
+            if fname_cell.Text.upper() == field_upper:
+                raw_tc.GetCell(r, _SE16N_COL_LOW).Text = value
+                return True
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+    return False
+
+
+async def _fill_se16n_filters_desktop(  # pylint: disable=protected-access
+    backend: SapUiBackend,
+    filters: dict[str, str],
+) -> list[str]:
+    """Fill SE16N filter values via the selection criteria table control (COM).
+
+    SE16N uses a GuiTableControl for its selection criteria grid.  Each row
+    represents a table field; column 6 holds the technical field name and
+    column 2 holds the "From-Value" (Von-Wert) filter input.
+
+    The table control only exposes currently visible rows via ``GetCell``.
+    If a field is beyond the visible range, the vertical scrollbar is
+    repositioned to bring it into view.
+    """
+    from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(backend, DesktopBackend):
+        return [f"Filter filling requires DesktopBackend (got {type(backend).__name__})"]
+
+    session = backend._session
+    com = backend._com
+
+    def _apply_filters() -> list[str]:
+        errors: list[str] = []
+        try:
+            tc = session.find_by_id(_SE16N_TC_ID)
+        except Exception:  # pylint: disable=broad-exception-caught
+            return ["SE16N selection criteria table control not found"]
+        raw = getattr(tc, "com", getattr(tc, "_com", tc))
+
+        row_count = raw.RowCount
+        visible = raw.VisibleRowCount
+
+        for field_name, value in filters.items():
+            field_upper = field_name.upper()
+
+            # Try visible rows first
+            if _find_and_set_filter_cell(raw, field_upper, value, visible):
+                logger.info("SE16N desktop filter set", extra={"field_name": field_upper, "value": value})
+                continue
+
+            # Field not in visible range — scroll through the table
+            if row_count <= visible:
+                errors.append(f"Field '{field_name}' not found in SE16N selection criteria")
+                continue
+
+            found = _set_filter_with_scrolling(raw, field_upper, value, visible)
+            if not found:
+                errors.append(f"Field '{field_name}' not found in SE16N selection criteria")
+
+        return errors
+
+    return await com.run(_apply_filters)
+
+
+def _set_filter_with_scrolling(raw_tc: Any, field_upper: str, value: str, visible: int) -> bool:
+    """Scroll through an SE16N table control to find and set a filter value."""
+    scroll_max = raw_tc.VerticalScrollbar.Maximum
+    found = False
+    for scroll_pos in range(1, scroll_max + 1):
+        try:
+            raw_tc.VerticalScrollbar.Position = scroll_pos
+        except Exception:  # pylint: disable=broad-exception-caught
+            break
+        if _find_and_set_filter_cell(raw_tc, field_upper, value, visible):
+            logger.info(
+                "SE16N desktop filter set (scrolled)",
+                extra={"field_name": field_upper, "value": value, "scroll": scroll_pos},
+            )
+            found = True
+            break
+    # Scroll back to top
+    try:
+        raw_tc.VerticalScrollbar.Position = 0
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
+    return found
+
+
 async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements,too-many-branches,too-many-statements,unused-argument
     backend: SapUiBackend,
     table: str,
@@ -580,31 +682,14 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     if not filled:
         return _empty_failure(f"Could not fill table name field for '{table}'", table, now)
 
-    # Filters: if provided, press Enter to validate table and load selection grid,
-    # then try to fill filter fields via focus_and_type on technical field names.
+    # Filters: press Enter to validate table and load selection criteria grid,
+    # then fill filter values via the table control's cell manipulation.
     if filters:
         await backend.press_key("Enter")
         await backend.wait(2000)
-        filter_errors: list[str] = []
-        for field_name, value in filters.items():
-            field_upper = field_name.upper()
-            try:
-                if not await backend.focus_and_type(field_upper, value, delay_ms=50):
-                    filter_errors.append(f"Could not find field '{field_name}' on selection screen")
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                filter_errors.append(f"Failed to fill filter {field_name}={value}: {e}")
+        filter_errors = await _fill_se16n_filters_desktop(backend, filters)
         if filter_errors:
-            logger.warning(
-                "Some desktop filters could not be applied",
-                extra={"errors": filter_errors},
-            )
-        # Re-fill table name in case filter input corrupted it
-        for field_label in ["GD-TAB", "Table", "Tabelle"]:
-            try:
-                if await backend.focus_and_type(field_label, table.upper(), delay_ms=50):
-                    break
-            except Exception:  # pylint: disable=broad-exception-caught
-                pass
+            logger.warning("Some desktop filters could not be applied", extra={"errors": filter_errors})
 
     # Set max hits (best effort)
     for max_label in ["GD-MAX_LINES", "Max. Number of Hits", "Maximale Trefferzahl"]:
