@@ -19,12 +19,14 @@ from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
 from sapwebguimcp.lang import SE16_NO_ENTRIES_DE, SE16_NO_ENTRIES_EN
-from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row
+from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row, TableData
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.se11_tools import _lookup_object_on_initial_screen
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["register_se16_tools"]
+
 
 # =============================================================================
 # Constants
@@ -527,6 +529,146 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
     return all_rows
 
 
+async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements,too-many-branches,too-many-statements,unused-argument
+    backend: SapUiBackend,
+    table: str,
+    filters: dict[str, str] | None,
+    max_hits: int,
+    now: datetime,
+    ctx: Context | None = None,  # TODO: progress reporting via ctx not yet implemented on desktop
+) -> SE16Result:
+    """Desktop-specific SE16N query using read_table instead of ARIA parsing."""
+    # Navigate to SE16N
+    tx = await backend.enter_transaction("SE16N")
+    if not tx.success:
+        return _empty_failure(f"Failed to navigate to SE16N: {tx.error}", table, now)
+
+    await backend.wait_for_ready()
+    await backend.wait(2000)
+
+    # Fill table name using focus_and_type (field name is GD-TAB in SE16N)
+    screen = await backend.get_screen_info()
+    logger.debug(
+        "se16_desktop_fill", extra={"screen": screen.title, "tcode": screen.transaction, "program": screen.program}
+    )
+
+    filled = False
+    for field_label in ["GD-TAB", "Table", "Tabelle"]:
+        try:
+            result_fill = await backend.focus_and_type(field_label, table.upper(), delay_ms=50)
+            logger.debug("se16_desktop_focus_result", extra={"field": field_label, "result": result_fill})
+            if result_fill:
+                filled = True
+                break
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+
+    if not filled:
+        # Last resort: try fill_field
+        try:
+            await backend.fill_field("Table", table.upper())
+            filled = True
+        except ValueError:
+            pass
+        if not filled:
+            try:
+                await backend.fill_field("Tabelle", table.upper())
+                filled = True
+            except ValueError:
+                pass
+
+    if not filled:
+        return _empty_failure(f"Could not fill table name field for '{table}'", table, now)
+
+    # Filters: if provided, press Enter to validate table and load selection grid,
+    # then try to fill filter fields via focus_and_type on technical field names.
+    if filters:
+        await backend.press_key("Enter")
+        await backend.wait(2000)
+        filter_errors: list[str] = []
+        for field_name, value in filters.items():
+            field_upper = field_name.upper()
+            try:
+                if not await backend.focus_and_type(field_upper, value, delay_ms=50):
+                    filter_errors.append(f"Could not find field '{field_name}' on selection screen")
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                filter_errors.append(f"Failed to fill filter {field_name}={value}: {e}")
+        if filter_errors:
+            logger.warning(
+                "Some desktop filters could not be applied",
+                extra={"errors": filter_errors},
+            )
+        # Re-fill table name in case filter input corrupted it
+        for field_label in ["GD-TAB", "Table", "Tabelle"]:
+            try:
+                if await backend.focus_and_type(field_label, table.upper(), delay_ms=50):
+                    break
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass
+
+    # Set max hits (best effort)
+    for max_label in ["GD-MAX_LINES", "Max. Number of Hits", "Maximale Trefferzahl"]:
+        try:
+            if await backend.focus_and_type(max_label, str(max_hits), delay_ms=50):
+                break
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+
+    # Execute (F8)
+    await backend.press_key("F8")
+    await backend.wait(2000)
+
+    # Check for errors in status bar
+    sbar = await backend.get_status_bar()
+    if sbar.type == "E":
+        return _empty_failure(f"SE16N error: {sbar.message}", table, now)
+
+    # Check for "no entries found"
+    if sbar.message and any(
+        msg in sbar.message.lower() for msg in ["keine werte", "no values", "keine einträge", "no entries"]
+    ):
+        return SE16Result(
+            table=table,
+            total_hits=0,
+            returned_rows=0,
+            truncated=False,
+            columns=[],
+            rows=[],
+            retrieved_at=now,
+        )
+
+    # Read table data using read_table (searches full window including dock shells)
+    table_data: TableData = await backend.read_table(start_row=1, max_rows=max_hits)
+
+    if not table_data.headers:
+        # Check title for hit count hint
+        title = await backend.get_page_title()
+        if any(kw in title.lower() for kw in ["treffer", "hits", "entries"]):
+            return _empty_failure(
+                "SE16N results displayed but could not read table (list report format?)",
+                table,
+                now,
+            )
+        return _empty_failure("Could not read SE16N results", table, now)
+
+    # Convert to SE16Row format
+    rows: list[SE16Row] = []
+    for tr in table_data.rows:
+        rows.append(SE16Row(data=tr.data))
+
+    total_hits = table_data.total_rows or len(rows)
+
+    return SE16Result(
+        table=table,
+        total_hits=total_hits,
+        returned_rows=len(rows),
+        truncated=len(rows) < total_hits,
+        columns=table_data.headers,
+        rows=rows,
+        retrieved_at=now,
+    )
+
+
 async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements,too-many-statements
     backend: SapUiBackend,
     table: str,
@@ -548,6 +690,10 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
         SE16Result with collected data
     """
     now = datetime.now(UTC)
+
+    # Desktop backend: use read_table instead of ARIA snapshot parsing
+    if _is_desktop_backend(backend):
+        return await _execute_se16_query_desktop(backend, table, filters, max_hits, now, ctx)
 
     # If filters are provided, get field order from SE11 FIRST
     # (before navigating to SE16N, since SE11 lookup changes the screen)

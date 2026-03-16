@@ -29,6 +29,7 @@ from sapwebguimcp.lang import (
     SPRO_SEARCH_BUTTON_EN,
 )
 from sapwebguimcp.models.spro_models import SPROFileSummary, SPROSearchResult
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 
 if TYPE_CHECKING:
     from sapwebguimcp.backend.protocol import SapUiBackend
@@ -291,6 +292,16 @@ def register_spro_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return SPROSearchResult.failure(
                 error=f"Session error: {e}",
+                query=query,
+                activities=[],
+                activity_count=0,
+                retrieved_at=now,
+            )
+
+        # Desktop backend: not yet supported
+        if _is_desktop_backend(backend):
+            return SPROSearchResult.failure(
+                error="SPRO search is not yet supported on the desktop backend",
                 query=query,
                 activities=[],
                 activity_count=0,
