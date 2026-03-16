@@ -9,6 +9,7 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -23,6 +24,7 @@ from sapwebguimcp.models import (
     SE37FileSummary,
     SE37Result,
 )
+from sapwebguimcp.models.se37_models import SE37Exception, SE37Parameter, SE37ParameterCategory, SE37TypingMethod
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_and_display
 
@@ -45,6 +47,167 @@ _FM_FIELD_LABELS = [
     "Function module",
     "Function Module",
 ]
+
+
+async def _click_tab_bilingual(backend: SapUiBackend, de_label: str, en_label: str) -> None:
+    """Click a tab trying DE then EN label."""
+    for label in [de_label, en_label]:
+        try:
+            await backend.click_tab(label)
+            await backend.wait(500)
+            return
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+    logger.warning("Tab not found: %s / %s", de_label, en_label)
+
+
+def _read_se37_table_control(session: Any, _flatten_fn: Any) -> list[dict[str, str]]:
+    """Find and read the first GuiTableControl (type 80) on screen.
+
+    Reads visible rows only — SE37 parameter tables are typically small enough
+    to fit within the visible range. Scrolling causes COM RPC_E_SERVERCALL_RETRYLATER
+    errors on SE37's tab-hosted tables.
+    """
+    from typing import cast  # pylint: disable=import-outside-toplevel
+
+    wnd = session.find_by_id("wnd[0]")
+    tree = cast(Any, wnd).dump_tree(max_depth=8)
+    flat = _flatten_fn(tree)
+    for elem in flat:
+        if elem.type_as_number != 80:
+            continue
+        tc = session.find_by_id(elem.id)
+        raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
+        col_titles = [raw.Columns(c).Title or raw.Columns(c).Name for c in range(raw.Columns.Count)]
+        readable = min(raw.RowCount, raw.VisibleRowCount)
+        rows: list[dict[str, str]] = []
+        for r in range(readable):
+            row_data: dict[str, str] = {}
+            for c, title in enumerate(col_titles):
+                try:
+                    row_data[title] = raw.GetCell(r, c).Text
+                except Exception:  # pylint: disable=broad-exception-caught
+                    pass
+            rows.append(row_data)
+        return rows
+    return []
+
+
+def _parse_se37_params(rows: list[dict[str, str]], category: SE37ParameterCategory) -> list[SE37Parameter]:
+    """Parse parameter rows from an SE37 tab into SE37Parameter models."""
+    params: list[SE37Parameter] = []
+    for row in rows:
+        name = row.get("Parametername", row.get("Parameter Name", ""))
+        if not name:
+            continue
+        typing_raw = row.get("Typisierung", row.get("Typing", "")).upper()
+        typing: SE37TypingMethod = "TYPE" if "TYPE" in typing_raw else "LIKE"
+        params.append(
+            SE37Parameter(
+                name=name,
+                category=category,
+                typing=typing,
+                reference_type=row.get("Bezugstyp", row.get("Associated Type", "")),
+                default_value=row.get("Standardwert", row.get("Default Value", None)) or None,
+                optional="X" in row.get("Optional", "").upper(),
+                pass_by_value="X" in row.get("Wertübergabe", row.get("Pass Value", "")).upper(),
+                description=row.get("Kurztext", row.get("Short Text", "")),
+            )
+        )
+    return params
+
+
+async def _lookup_fm_desktop(  # pylint: disable=protected-access,too-many-locals
+    backend: SapUiBackend, fm_name: str
+) -> SE37Entry | SE37Error:
+    """Desktop-specific SE37 lookup using tab navigation and table control reading."""
+    from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+    from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
+
+    now = datetime.now(UTC)
+    await backend.wait_for_ready()
+
+    # Fill FM name field
+    filled = False
+    for label in _FM_FIELD_LABELS:
+        try:
+            await backend.fill_field(label, fm_name.upper())
+            filled = True
+            break
+        except ValueError:
+            continue
+    if not filled:
+        filled = await backend.focus_and_type("RS38L-NAME", fm_name.upper())
+    if not filled:
+        return SE37Error(function_module=fm_name, error="Could not fill function module field", retrieved_at=now)
+
+    # Press F7 (Display)
+    await backend.press_key("F7")
+    await backend.wait(2000)
+
+    # Check status bar for errors
+    sbar = await backend.get_status_bar()
+    if sbar.type == "E":
+        return SE37Error(function_module=fm_name, error=sbar.message or "Function module not found", retrieved_at=now)
+
+    # Verify we navigated to the FM display screen
+    screen = await backend.get_screen_info()
+    if fm_name.upper() not in (screen.title or "").upper():
+        return SE37Error(
+            function_module=fm_name, error=sbar.message or f"Function module '{fm_name}' not found", retrieved_at=now
+        )
+
+    if not isinstance(backend, DesktopBackend):
+        return SE37Error(function_module=fm_name, error="Requires DesktopBackend", retrieved_at=now)
+
+    session = backend._require_session()
+    com = backend._com
+
+    # Read Import tab (click explicitly to ensure it's active)
+    await _click_tab_bilingual(backend, "Import", "Import")
+    import_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+
+    # Read Export tab
+    await _click_tab_bilingual(backend, "Export", "Export")
+    export_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+
+    # Read Changing tab
+    await _click_tab_bilingual(backend, "Changing", "Changing")
+    changing_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+
+    # Read Tables tab
+    await _click_tab_bilingual(backend, "Tabellen", "Tables")
+    tables_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+
+    # Read Exceptions tab
+    await _click_tab_bilingual(backend, "Ausnahmen", "Exceptions")
+    exc_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+
+    # Parse exceptions
+    exceptions: list[SE37Exception] = []
+    for row in exc_rows:
+        name = row.get("Ausnahme", row.get("Exception", ""))
+        if name:
+            exceptions.append(SE37Exception(name=name, description=row.get("Kurztext", row.get("Short Text", ""))))
+
+    # Read description from fields
+    fields = await backend.discover_fields()
+    description = ""
+    for f in fields:
+        if f.name and "STEXT" in f.name.upper():
+            description = f.value or ""
+            break
+
+    return SE37Entry(
+        function_module=fm_name.upper(),
+        description=description,
+        import_parameters=_parse_se37_params(import_rows, "import"),
+        export_parameters=_parse_se37_params(export_rows, "export"),
+        changing_parameters=_parse_se37_params(changing_rows, "changing"),
+        tables_parameters=_parse_se37_params(tables_rows, "tables"),
+        exceptions=exceptions,
+        retrieved_at=now,
+    )
 
 
 async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | None:
@@ -114,6 +277,70 @@ async def _lookup_fm_on_initial_screen(backend: SapUiBackend, fm_name: str) -> S
     )
 
 
+async def _lookup_batch_se37_webgui(backend: SapUiBackend, fm_list: list[str]) -> SE37Result:
+    """Run SE37 lookups for a batch of function modules on the WebGUI backend."""
+    entries: list[SE37Entry] = []
+    errors: list[SE37Error] = []
+    for fm_name in fm_list:
+        await backend.enter_transaction("/n")
+        await backend.wait_for_ready()
+        tx_result = await backend.enter_transaction("SE37")
+        if not tx_result.success:
+            errors.append(
+                SE37Error(
+                    function_module=fm_name,
+                    error=f"Failed to navigate: {tx_result.error}",
+                    retrieved_at=datetime.now(UTC),
+                )
+            )
+            continue
+        await backend.wait_for_ready()
+        try:
+            result = await _lookup_fm_on_initial_screen(backend, fm_name)
+            if isinstance(result, SE37Entry):
+                entries.append(result)
+            else:
+                errors.append(result)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Looking up in SE37", extra={"object": fm_name})
+            errors.append(SE37Error(function_module=fm_name, error=f"Error: {e}", retrieved_at=datetime.now(UTC)))
+    if entries:
+        return SE37Result(entries=entries, errors=errors)
+    return SE37Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
+
+
+async def _lookup_batch_se37_desktop(backend: SapUiBackend, fm_list: list[str]) -> SE37Result:
+    """Run SE37 lookups for a batch of function modules on the desktop backend."""
+    entries: list[SE37Entry] = []
+    errors: list[SE37Error] = []
+    for fm_name in fm_list:
+        await backend.enter_transaction("/n")
+        await backend.wait_for_ready()
+        tx_result = await backend.enter_transaction("SE37")
+        if not tx_result.success:
+            errors.append(
+                SE37Error(
+                    function_module=fm_name,
+                    error=f"Failed to navigate: {tx_result.error}",
+                    retrieved_at=datetime.now(UTC),
+                )
+            )
+            continue
+        await backend.wait_for_ready()
+        try:
+            result = await _lookup_fm_desktop(backend, fm_name)
+            if isinstance(result, SE37Entry):
+                entries.append(result)
+            else:
+                errors.append(result)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("SE37 desktop lookup failed", extra={"fm_name": fm_name})
+            errors.append(SE37Error(function_module=fm_name, error=f"Error: {e}", retrieved_at=datetime.now(UTC)))
+    if entries:
+        return SE37Result(entries=entries, errors=errors)
+    return SE37Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
+
+
 # =============================================================================
 # MCP Tool Registration
 # =============================================================================
@@ -167,56 +394,11 @@ def register_se37_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return SE37Result.failure(f"Session error: {e}")
 
-        # Desktop backend: not yet supported
+        # Route to desktop or WebGUI batch lookup
         if _is_desktop_backend(backend):
-            return SE37Result.failure("SE37 lookup is not yet supported on the desktop backend")
-
-        entries: list[SE37Entry] = []
-        errors: list[SE37Error] = []
-
-        for fm_name in fm_list:
-            # Navigate to Easy Access first to ensure a clean starting state,
-            # then open SE37.  This prevents state bleeding between lookups.
-            await backend.enter_transaction("/n")
-            await backend.wait_for_ready()
-
-            tx_result = await backend.enter_transaction("SE37")
-            if not tx_result.success:
-                errors.append(
-                    SE37Error(
-                        function_module=fm_name,
-                        error=f"Failed to navigate to SE37: {tx_result.error}",
-                        retrieved_at=datetime.now(UTC),
-                    )
-                )
-                continue
-            await backend.wait_for_ready()
-
-            try:
-                result = await _lookup_fm_on_initial_screen(backend, fm_name)
-                if isinstance(result, SE37Entry):
-                    entries.append(result)
-                else:
-                    errors.append(result)
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.exception("Looking up in SE37", extra={"object": fm_name})
-                errors.append(
-                    SE37Error(
-                        function_module=fm_name,
-                        error=f"Error looking up '{fm_name}': {e}",
-                        retrieved_at=datetime.now(UTC),
-                    )
-                )
-
-        # Build final result
-        if entries:
-            final_result = SE37Result(entries=entries, errors=errors)
+            final_result = await _lookup_batch_se37_desktop(backend, fm_list)
         else:
-            final_result = SE37Result.failure(
-                error=f"All {len(errors)} lookups failed",
-                entries=[],
-                errors=errors,
-            )
+            final_result = await _lookup_batch_se37_webgui(backend, fm_list)
 
         # Write to file if requested
         if output_file:
@@ -231,10 +413,10 @@ def register_se37_tools(mcp: FastMCP) -> None:
                 error=final_result.error,
                 output_file=str(output_path.absolute()),
                 total_requested=len(fm_list),
-                successful=len(entries),
-                failed=len(errors),
-                sample_entries=[e.function_module for e in entries[:5]],
-                sample_errors=[e.function_module for e in errors[:5]],
+                successful=len(final_result.entries),
+                failed=len(final_result.errors),
+                sample_entries=[e.function_module for e in final_result.entries[:5]],
+                sample_errors=[e.function_module for e in final_result.errors[:5]],
             )
 
         if len(fm_list) > MAX_INLINE_OBJECTS:
