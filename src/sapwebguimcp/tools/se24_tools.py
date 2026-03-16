@@ -23,6 +23,7 @@ from sapwebguimcp.models import (
     SE24FileSummary,
     SE24Result,
 )
+from sapwebguimcp.models.se24_models import SE24Attribute, SE24Method, SE24ObjectType, SE24Visibility
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_and_display
 
@@ -47,6 +48,201 @@ _CLASS_FIELD_LABELS = [
     "Klasse/Interface",
     "Class/Interface",
 ]
+
+
+def _parse_visibility(raw: str) -> SE24Visibility:
+    """Parse visibility string to typed literal."""
+    lower = raw.lower()
+    if "protected" in lower:
+        return "protected"
+    if "private" in lower:
+        return "private"
+    return "public"
+
+
+def _parse_methods(rows: list[dict[str, str]]) -> list[SE24Method]:
+    """Parse methods table rows into SE24Method models."""
+    methods: list[SE24Method] = []
+    for row in rows:
+        name = row.get("Methode", row.get("Method", ""))
+        if not name:
+            continue
+        kind = row.get("Art", row.get("Level", "")).lower()
+        methods.append(
+            SE24Method(
+                name=name,
+                visibility=_parse_visibility(row.get("Sichtbarkeit", row.get("Visibility", ""))),
+                is_static="static" in kind,
+                description=row.get("Beschreibung", row.get("Description", "")),
+            )
+        )
+    return methods
+
+
+def _parse_attributes(rows: list[dict[str, str]]) -> list[SE24Attribute]:
+    """Parse attributes table rows into SE24Attribute models."""
+    attributes: list[SE24Attribute] = []
+    for row in rows:
+        name = row.get("Attribut", row.get("Attribute", ""))
+        if not name:
+            continue
+        kind = row.get("Art", row.get("Level", "")).lower()
+        attributes.append(
+            SE24Attribute(
+                name=name,
+                visibility=_parse_visibility(row.get("Sichtbarkeit", row.get("Visibility", ""))),
+                is_static="static" in kind,
+                is_constant="constant" in kind or "konstante" in kind,
+                type_ref=row.get("Bezugstyp", row.get("Assoc.Type", "")),
+                default_value=row.get("Initialer Wert", row.get("Initial Value", None)) or None,
+                description=row.get("Beschreibung", row.get("Description", "")),
+            )
+        )
+    return attributes
+
+
+async def _click_tab_bilingual(backend: SapUiBackend, de_label: str, en_label: str) -> None:
+    """Click a tab trying DE then EN label."""
+    for label in [de_label, en_label]:
+        try:
+            await backend.click_tab(label)
+            await backend.wait(500)
+            return
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+
+
+async def _lookup_class_desktop(  # pylint: disable=too-many-locals,protected-access,too-many-statements
+    backend: SapUiBackend, class_name: str
+) -> SE24Entry | SE24Error:
+    """Desktop-specific SE24 lookup using tab navigation and table control reading."""
+    from typing import Any, cast  # pylint: disable=import-outside-toplevel
+
+    from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+    from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
+
+    now = datetime.now(UTC)
+    await backend.wait_for_ready()
+
+    # Fill class name field
+    filled = False
+    for label in _CLASS_FIELD_LABELS:
+        try:
+            await backend.fill_field(label, class_name.upper())
+            filled = True
+            break
+        except ValueError:
+            continue
+    if not filled:
+        filled = await backend.focus_and_type("SEOCLASS-CLSNAME", class_name.upper())
+    if not filled:
+        return SE24Error(class_name=class_name, error="Could not fill class name field", retrieved_at=now)
+
+    # Press F7 (Display), then Enter to dismiss any language popup
+    await backend.press_key("F7")
+    await backend.wait(2000)
+    try:
+        await backend.press_key("Enter")
+        await backend.wait(1000)
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
+
+    # Check status bar for errors
+    sbar = await backend.get_status_bar()
+    if sbar.type == "E":
+        return SE24Error(class_name=class_name, error=sbar.message or "Class not found", retrieved_at=now)
+
+    # Verify we left the initial screen (title should contain the class name)
+    screen = await backend.get_screen_info()
+    if class_name.upper() not in (screen.title or "").upper():
+        error_msg = sbar.message or f"Class/interface '{class_name}' not found"
+        return SE24Error(class_name=class_name, error=error_msg, retrieved_at=now)
+
+    if not isinstance(backend, DesktopBackend):
+        return SE24Error(class_name=class_name, error="Requires DesktopBackend", retrieved_at=now)
+
+    session = backend._require_session()
+    com = backend._com
+
+    def _read_visible_page(raw: Any, col_titles: list[str], count: int) -> list[dict[str, str]]:
+        """Read `count` visible rows from a table control."""
+        rows: list[dict[str, str]] = []
+        for r in range(count):
+            row_data: dict[str, str] = {}
+            for c, title in enumerate(col_titles):
+                try:
+                    row_data[title] = raw.GetCell(r, c).Text
+                except Exception:  # pylint: disable=broad-exception-caught
+                    pass
+            rows.append(row_data)
+        return rows
+
+    def _read_table_control() -> list[dict[str, str]]:
+        """Find and read the first GuiTableControl (type 80) on screen.
+
+        Scrolls through the table to read all rows, not just the visible page.
+        """
+        wnd = session.find_by_id("wnd[0]")
+        tree = cast(Any, wnd).dump_tree(max_depth=8)
+        flat = _flatten(tree)
+        for elem in flat:
+            if elem.type_as_number != 80:
+                continue
+            tc = session.find_by_id(elem.id)
+            raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
+            col_titles = [raw.Columns(c).Title or raw.Columns(c).Name for c in range(raw.Columns.Count)]
+            total = raw.RowCount
+            visible = raw.VisibleRowCount
+            rows: list[dict[str, str]] = []
+            scroll_pos = 0
+            while len(rows) < total:
+                readable = min(visible, total - len(rows))
+                rows.extend(_read_visible_page(raw, col_titles, readable))
+                scroll_pos += visible
+                if scroll_pos >= total:
+                    break
+                try:
+                    raw.VerticalScrollbar.Position = scroll_pos
+                except Exception:  # pylint: disable=broad-exception-caught
+                    break
+            # Scroll back to top
+            try:
+                raw.VerticalScrollbar.Position = 0
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass
+            return rows
+        return []
+
+    # Read methods tab (default tab), then attributes and interfaces
+    methods_raw = await com.run(_read_table_control)
+    await _click_tab_bilingual(backend, "Attribute", "Attributes")
+    attrs_raw = await com.run(_read_table_control)
+    await _click_tab_bilingual(backend, "Schnittstellen", "Interfaces")
+    intfs_raw = await com.run(_read_table_control)
+
+    # Read description from screen fields and detect object type from title
+    fields = await backend.discover_fields()
+    description = ""
+    for f in fields:
+        if f.name and "DESCRIPT" in f.name.upper():
+            description = f.value or ""
+            break
+
+    # Detect interface vs class from screen title
+    # DE: "Class Builder: Interface IF_XXX anzeigen" / "Klasse CL_XXX anzeigen"
+    # EN: "Class Builder: Display Interface IF_XXX" / "Display Class CL_XXX"
+    title_lower = (screen.title or "").lower()
+    object_type: SE24ObjectType = "interface" if "interface" in title_lower else "class"
+
+    return SE24Entry(
+        class_name=class_name.upper(),
+        object_type=object_type,
+        description=description,
+        methods=_parse_methods(methods_raw),
+        attributes=_parse_attributes(attrs_raw),
+        interfaces=[row.get("Interface", "") for row in intfs_raw if row.get("Interface")],
+        retrieved_at=now,
+    )
 
 
 async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | None:
@@ -140,6 +336,78 @@ async def _lookup_class_on_initial_screen(backend: SapUiBackend, class_name: str
     )
 
 
+async def _lookup_batch_se24_webgui(backend: SapUiBackend, class_list: list[str]) -> SE24Result:
+    """Run SE24 lookups for a batch of classes on the WebGUI backend."""
+    entries: list[SE24Entry] = []
+    errors: list[SE24Error] = []
+
+    for class_name in class_list:
+        await backend.enter_transaction("/n")
+        await backend.wait_for_ready()
+        tx_result = await backend.enter_transaction("SE24")
+        if not tx_result.success:
+            errors.append(
+                SE24Error(
+                    class_name=class_name,
+                    error=f"Failed to navigate to SE24: {tx_result.error}",
+                    retrieved_at=datetime.now(UTC),
+                )
+            )
+            continue
+        await backend.wait_for_ready()
+        try:
+            result = await _lookup_class_on_initial_screen(backend, class_name)
+            if isinstance(result, SE24Entry):
+                entries.append(result)
+            else:
+                errors.append(result)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Looking up in SE24", extra={"object": class_name})
+            errors.append(
+                SE24Error(
+                    class_name=class_name, error=f"Error looking up '{class_name}': {e}", retrieved_at=datetime.now(UTC)
+                )
+            )
+
+    if entries:
+        return SE24Result(entries=entries, errors=errors)
+    return SE24Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
+
+
+async def _lookup_batch_se24_desktop(backend: SapUiBackend, class_list: list[str]) -> SE24Result:
+    """Run SE24 lookups for a batch of classes on the desktop backend."""
+    entries: list[SE24Entry] = []
+    errors: list[SE24Error] = []
+
+    for class_name in class_list:
+        await backend.enter_transaction("/n")
+        await backend.wait_for_ready()
+        tx_result = await backend.enter_transaction("SE24")
+        if not tx_result.success:
+            errors.append(
+                SE24Error(
+                    class_name=class_name,
+                    error=f"Failed to navigate to SE24: {tx_result.error}",
+                    retrieved_at=datetime.now(UTC),
+                )
+            )
+            continue
+        await backend.wait_for_ready()
+        try:
+            result = await _lookup_class_desktop(backend, class_name)
+            if isinstance(result, SE24Entry):
+                entries.append(result)
+            else:
+                errors.append(result)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("SE24 desktop lookup failed", extra={"class_name": class_name})
+            errors.append(SE24Error(class_name=class_name, error=f"Error: {e}", retrieved_at=datetime.now(UTC)))
+
+    if entries:
+        return SE24Result(entries=entries, errors=errors)
+    return SE24Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
+
+
 # =============================================================================
 # MCP Tool Registration
 # =============================================================================
@@ -192,57 +460,11 @@ def register_se24_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return SE24Result.failure(f"Session error: {e}")
 
-        # Desktop backend: not yet supported
+        # Route to desktop or WebGUI batch lookup
         if _is_desktop_backend(backend):
-            return SE24Result.failure("SE24 lookup is not yet supported on the desktop backend")
-
-        entries: list[SE24Entry] = []
-        errors: list[SE24Error] = []
-
-        for class_name in class_list:
-            # Navigate to Easy Access first to ensure a clean starting state,
-            # then open SE24.  This is simple and robust — no state from a
-            # previous lookup can leak into the next one.
-            await backend.enter_transaction("/n")
-            await backend.wait_for_ready()
-
-            tx_result = await backend.enter_transaction("SE24")
-            if not tx_result.success:
-                errors.append(
-                    SE24Error(
-                        class_name=class_name,
-                        error=f"Failed to navigate to SE24: {tx_result.error}",
-                        retrieved_at=datetime.now(UTC),
-                    )
-                )
-                continue
-            await backend.wait_for_ready()
-
-            try:
-                result = await _lookup_class_on_initial_screen(backend, class_name)
-                if isinstance(result, SE24Entry):
-                    entries.append(result)
-                else:
-                    errors.append(result)
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.exception("Looking up in SE24", extra={"object": class_name})
-                errors.append(
-                    SE24Error(
-                        class_name=class_name,
-                        error=f"Error looking up '{class_name}': {e}",
-                        retrieved_at=datetime.now(UTC),
-                    )
-                )
-
-        # Build final result
-        if entries:
-            final_result = SE24Result(entries=entries, errors=errors)
+            final_result = await _lookup_batch_se24_desktop(backend, class_list)
         else:
-            final_result = SE24Result.failure(
-                error=f"All {len(errors)} lookups failed",
-                entries=[],
-                errors=errors,
-            )
+            final_result = await _lookup_batch_se24_webgui(backend, class_list)
 
         # Write to file if requested
         if output_file:
@@ -257,10 +479,10 @@ def register_se24_tools(mcp: FastMCP) -> None:
                 error=final_result.error,
                 output_file=str(output_path.absolute()),
                 total_requested=len(class_list),
-                successful=len(entries),
-                failed=len(errors),
-                sample_entries=[e.class_name for e in entries[:5]],
-                sample_errors=[e.class_name for e in errors[:5]],
+                successful=len(final_result.entries),
+                failed=len(final_result.errors),
+                sample_entries=[e.class_name for e in final_result.entries[:5]],
+                sample_errors=[e.class_name for e in final_result.errors[:5]],
             )
 
         if len(class_list) > MAX_INLINE_OBJECTS:
