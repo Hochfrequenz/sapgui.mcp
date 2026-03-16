@@ -213,8 +213,13 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,protected-ac
             return rows
         return []
 
-    # Read methods tab (default tab), then attributes and interfaces
+    # Read methods tab: try reading first (default tab), click only if table is empty.
+    # SAP lazily instantiates tab subscreen controls — the table control may not
+    # exist in the widget tree until the tab is explicitly activated by a click.
     methods_raw = await com.run(_read_table_control)
+    if not methods_raw:
+        await _click_tab_bilingual(backend, "Methoden", "Methods")
+        methods_raw = await com.run(_read_table_control)
     await _click_tab_bilingual(backend, "Attribute", "Attributes")
     attrs_raw = await com.run(_read_table_control)
     await _click_tab_bilingual(backend, "Schnittstellen", "Interfaces")
