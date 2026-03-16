@@ -571,7 +571,7 @@ async def _fill_se16n_filters_desktop(  # pylint: disable=protected-access
     if not isinstance(backend, DesktopBackend):
         return [f"Filter filling requires DesktopBackend (got {type(backend).__name__})"]
 
-    session = backend._session
+    session = backend._require_session()
     com = backend._com
 
     def _apply_filters() -> list[str]:
@@ -581,10 +581,10 @@ async def _fill_se16n_filters_desktop(  # pylint: disable=protected-access
         except Exception:  # pylint: disable=broad-exception-caught
             return ["SE16N selection criteria table control not found"]
         # Unwrap Python wrapper to get the raw COM dispatch object
-        raw = getattr(tc, "com", getattr(tc, "_com", tc))
+        raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
 
-        row_count = raw.RowCount
-        visible = raw.VisibleRowCount
+        row_count: int = raw.RowCount
+        visible: int = raw.VisibleRowCount
         logger.debug("SE16N selection grid", extra={"row_count": row_count, "visible": visible})
 
         for field_name, value in filters.items():
