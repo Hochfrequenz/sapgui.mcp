@@ -580,10 +580,12 @@ async def _fill_se16n_filters_desktop(  # pylint: disable=protected-access
             tc = session.find_by_id(_SE16N_TC_ID)
         except Exception:  # pylint: disable=broad-exception-caught
             return ["SE16N selection criteria table control not found"]
+        # Unwrap Python wrapper to get the raw COM dispatch object
         raw = getattr(tc, "com", getattr(tc, "_com", tc))
 
         row_count = raw.RowCount
         visible = raw.VisibleRowCount
+        logger.debug("SE16N selection grid", extra={"row_count": row_count, "visible": visible})
 
         for field_name, value in filters.items():
             field_upper = field_name.upper()
