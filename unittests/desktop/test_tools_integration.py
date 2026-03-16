@@ -16,7 +16,6 @@ import pytest
 
 from sapwebguimcp.models.se24_models import SE24Result
 from sapwebguimcp.models.se37_models import SE37Result
-from sapwebguimcp.models.se93_models import SE93Result
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
 
@@ -26,14 +25,6 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 # ---------------------------------------------------------------------------
 # Stub tools -- verify they return clear errors
 # ---------------------------------------------------------------------------
-
-
-def test_se93_stub_returns_error():
-    """SE93 desktop stub returns 'not supported' error model."""
-    result = SE93Result.failure("SE93 lookup is not yet supported on the desktop backend")
-    assert not result.success
-    assert "not" in result.error.lower() and "support" in result.error.lower()
-    assert result.model_dump_json()
 
 
 def test_se24_stub_returns_error():

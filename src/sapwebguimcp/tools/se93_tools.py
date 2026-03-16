@@ -23,6 +23,7 @@ from sapwebguimcp.models import (
     SE93FileSummary,
     SE93Result,
 )
+from sapwebguimcp.models.se93_models import SE93TransactionType
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_and_display
 
@@ -45,6 +46,95 @@ _TCODE_FIELD_LABELS = [
     "Transaction code",
     "Transaction Code",
 ]
+
+
+async def _read_checkbox(backend: SapUiBackend, sap_name: str) -> bool:
+    """Read a checkbox's selected state by SAP element name. Returns False on error."""
+    from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(backend, DesktopBackend):
+        return False
+    session = backend._require_session()  # pylint: disable=protected-access
+    com = backend._com  # pylint: disable=protected-access
+
+    def _read() -> bool:
+        from sapwebguimcp.sapgui.components.base import GuiVContainer  # pylint: disable=import-outside-toplevel
+
+        usr = session.find_by_id("wnd[0]/usr")
+        if not isinstance(usr, GuiVContainer):
+            return False
+        try:
+            chk = usr.find_by_name(sap_name, "GuiCheckBox")
+            return bool(getattr(chk, "selected", False)) if chk is not None else False
+        except Exception:  # pylint: disable=broad-exception-caught
+            return False
+
+    return await com.run(_read)
+
+
+async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
+    backend: SapUiBackend, tcode: str
+) -> SE93Entry | SE93Error:
+    """Desktop-specific SE93 lookup using field reading instead of ARIA parsing."""
+    now = datetime.now(UTC)
+
+    # Fill transaction code field
+    filled = False
+    for label in _TCODE_FIELD_LABELS:
+        try:
+            await backend.fill_field(label, tcode.upper())
+            filled = True
+            break
+        except ValueError:
+            continue
+    if not filled:
+        filled = await backend.focus_and_type("TSTC-TCODE", tcode.upper())
+    if not filled:
+        return SE93Error(tcode=tcode, error="Could not fill transaction code field", retrieved_at=now)
+
+    # Press F7 (Display)
+    await backend.press_key("F7")
+    await backend.wait(1500)
+
+    # Check status bar for errors (e.g., "Transaction code does not exist")
+    sbar = await backend.get_status_bar()
+    if sbar.type == "E":
+        return SE93Error(tcode=tcode, error=sbar.message or "Transaction not found", retrieved_at=now)
+
+    # Read input fields (types 31-34: text, context, password, combo)
+    field_list = await backend.discover_fields()
+    field_map: dict[str, str] = {}
+    for f in field_list:
+        if f.name:
+            field_map[f.name] = f.value or ""
+
+    description = field_map.get("TSTCT-TTEXT", "")
+    program = field_map.get("TSTC-PGMNA", "")
+    package = field_map.get("RSSTCD-DEVCLASS", "")
+    screen_number = field_map.get("TSTC-DYPNO", "")
+    auth_object = field_map.get("TSTCA-OBJCT", "") or None
+
+    # Determine transaction type: dialog if screen number present, else report
+    tx_type: SE93TransactionType = "dialog" if screen_number else "report"
+
+    # Read GUI capability checkboxes (type 42, not returned by discover_fields)
+    gui_html = await _read_checkbox(backend, "TSTCC-S_WEBGUI")
+    gui_java = await _read_checkbox(backend, "TSTCC-S_PLATIN")
+    gui_windows = await _read_checkbox(backend, "TSTCC-S_WIN32")
+
+    return SE93Entry(
+        tcode=tcode.upper(),
+        description=description,
+        transaction_type=tx_type,
+        package=package,
+        program=program,
+        screen_number=screen_number or None,
+        authorization_object=auth_object,
+        gui_html=gui_html,
+        gui_java=gui_java,
+        gui_windows=gui_windows,
+        retrieved_at=now,
+    )
 
 
 async def _lookup_tcode_on_initial_screen(backend: SapUiBackend, tcode: str) -> SE93Entry | SE93Error:
@@ -70,6 +160,72 @@ async def _lookup_tcode_on_initial_screen(backend: SapUiBackend, tcode: str) -> 
     logger.debug("Got snapshot", extra={"object": tcode, "length": len(snapshot)})
 
     return parse_se93_snapshot(snapshot, tcode)
+
+
+async def _lookup_batch_webgui(backend: SapUiBackend, tcode_list: list[str]) -> SE93Result:
+    """Run SE93 lookups for a batch of tcodes on the WebGUI backend."""
+    entries: list[SE93Entry] = []
+    errors: list[SE93Error] = []
+
+    for tcode in tcode_list:
+        await backend.enter_transaction("/n")
+        await backend.wait_for_ready()
+        tx_result = await backend.enter_transaction("SE93")
+        if not tx_result.success:
+            errors.append(
+                SE93Error(
+                    tcode=tcode, error=f"Failed to navigate to SE93: {tx_result.error}", retrieved_at=datetime.now(UTC)
+                )
+            )
+            continue
+        await backend.wait_for_ready()
+        try:
+            result = await _lookup_tcode_on_initial_screen(backend, tcode)
+            if isinstance(result, SE93Entry):
+                entries.append(result)
+            else:
+                errors.append(result)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Looking up in SE93", extra={"object": tcode})
+            errors.append(
+                SE93Error(tcode=tcode, error=f"Error looking up '{tcode}': {e}", retrieved_at=datetime.now(UTC))
+            )
+
+    if entries:
+        return SE93Result(entries=entries, errors=errors)
+    return SE93Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
+
+
+async def _lookup_batch_desktop(backend: SapUiBackend, tcode_list: list[str]) -> SE93Result:
+    """Run SE93 lookups for a batch of tcodes on the desktop backend."""
+    entries: list[SE93Entry] = []
+    errors: list[SE93Error] = []
+
+    for tcode in tcode_list:
+        await backend.enter_transaction("/n")
+        await backend.wait_for_ready()
+        tx_result = await backend.enter_transaction("SE93")
+        if not tx_result.success:
+            errors.append(
+                SE93Error(
+                    tcode=tcode, error=f"Failed to navigate to SE93: {tx_result.error}", retrieved_at=datetime.now(UTC)
+                )
+            )
+            continue
+        await backend.wait_for_ready()
+        try:
+            result = await _lookup_tcode_desktop(backend, tcode)
+            if isinstance(result, SE93Entry):
+                entries.append(result)
+            else:
+                errors.append(result)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("SE93 desktop lookup failed", extra={"tcode": tcode})
+            errors.append(SE93Error(tcode=tcode, error=f"Error: {e}", retrieved_at=datetime.now(UTC)))
+
+    if entries:
+        return SE93Result(entries=entries, errors=errors)
+    return SE93Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
 
 
 # =============================================================================
@@ -123,56 +279,11 @@ def register_se93_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return SE93Result.failure(f"Session error: {e}")
 
-        # Desktop backend: not yet supported
+        # Desktop backend: use field reading instead of ARIA parsing
         if _is_desktop_backend(backend):
-            return SE93Result.failure("SE93 lookup is not yet supported on the desktop backend")
-
-        entries: list[SE93Entry] = []
-        errors: list[SE93Error] = []
-
-        for tcode in tcode_list:
-            # Navigate to Easy Access first to ensure a clean starting state,
-            # then open SE93.  This prevents state bleeding between lookups.
-            await backend.enter_transaction("/n")
-            await backend.wait_for_ready()
-
-            tx_result = await backend.enter_transaction("SE93")
-            if not tx_result.success:
-                errors.append(
-                    SE93Error(
-                        tcode=tcode,
-                        error=f"Failed to navigate to SE93: {tx_result.error}",
-                        retrieved_at=datetime.now(UTC),
-                    )
-                )
-                continue
-            await backend.wait_for_ready()
-
-            try:
-                result = await _lookup_tcode_on_initial_screen(backend, tcode)
-                if isinstance(result, SE93Entry):
-                    entries.append(result)
-                else:
-                    errors.append(result)
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.exception("Looking up in SE93", extra={"object": tcode})
-                errors.append(
-                    SE93Error(
-                        tcode=tcode,
-                        error=f"Error looking up '{tcode}': {e}",
-                        retrieved_at=datetime.now(UTC),
-                    )
-                )
-
-        # Build final result
-        if entries:
-            final_result = SE93Result(entries=entries, errors=errors)
+            final_result = await _lookup_batch_desktop(backend, tcode_list)
         else:
-            final_result = SE93Result.failure(
-                error=f"All {len(errors)} lookups failed",
-                entries=[],
-                errors=errors,
-            )
+            final_result = await _lookup_batch_webgui(backend, tcode_list)
 
         # Write to file if requested
         if output_file:
@@ -187,10 +298,10 @@ def register_se93_tools(mcp: FastMCP) -> None:
                 error=final_result.error,
                 output_file=str(output_path.absolute()),
                 total_requested=len(tcode_list),
-                successful=len(entries),
-                failed=len(errors),
-                sample_entries=[e.tcode for e in entries[:5]],
-                sample_errors=[e.tcode for e in errors[:5]],
+                successful=len(final_result.entries),
+                failed=len(final_result.errors),
+                sample_entries=[e.tcode for e in final_result.entries[:5]],
+                sample_errors=[e.tcode for e in final_result.errors[:5]],
             )
 
         if len(tcode_list) > MAX_INLINE_OBJECTS:
