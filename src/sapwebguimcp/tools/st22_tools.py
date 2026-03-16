@@ -14,6 +14,7 @@ ST22 flow:
 
 import json
 import logging
+import re
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -33,6 +34,7 @@ from sapwebguimcp.models import TableData
 from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.st22_models import (
     ST22Dump,
+    ST22DumpDetail,
     ST22DumpDetailResult,
     ST22DumpListResult,
 )
@@ -74,6 +76,12 @@ async def _clear_user_field(backend: "SapUiBackend") -> None:
             return
         except Exception:  # pylint: disable=broad-exception-caught
             logger.debug("Could not clear user field with label=%r", label)
+    # Fallback: try SAP technical field name (desktop backend)
+    try:
+        if await backend.focus_and_type("S_UNAME-LOW", ""):
+            return
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
     logger.debug("User field not found for clearing")
 
 
@@ -91,6 +99,13 @@ async def _fill_date_field(backend: "SapUiBackend", target_date: str, language: 
             return None
         except Exception:  # pylint: disable=broad-exception-caught
             logger.debug("Could not fill date field with label=%r", label)
+
+    # Fallback: try SAP technical field name (desktop backend)
+    try:
+        if await backend.focus_and_type("S_DATUM-LOW", formatted):
+            return None
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
 
     return "Could not find date field"
 
@@ -200,6 +215,82 @@ async def _capture_full_detail(backend: "SapUiBackend") -> str:
     return "\n".join(snapshots)
 
 
+async def _capture_desktop_detail(backend: "SapUiBackend") -> str:
+    """Capture full ST22 dump detail text by scrolling through the detail screen.
+
+    The detail screen is a long scrollable text. Read screen text, scroll down,
+    and concatenate until no new content appears.
+    """
+    pages: list[str] = []
+
+    screen_text = await backend.get_screen_text()
+    text = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
+    pages.append(text)
+
+    for _ in range(20):  # max 20 pages
+        await backend.press_key("PageDown")
+        await backend.wait(500)
+        screen_text = await backend.get_screen_text()
+        new_text = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
+        if new_text == pages[-1]:
+            break  # reached bottom
+        pages.append(new_text)
+
+    return "\n".join(pages)
+
+
+def _parse_desktop_detail_text(full_text: str, source_dump: "ST22Dump") -> "ST22DumpDetail":
+    """Parse raw dump detail text into an ST22DumpDetail model.
+
+    Extracts structured fields from the free-text dump detail.
+    Falls back to metadata from the list entry if parsing fails.
+    """
+    what_happened = ""
+    how_to_correct = ""
+    call_stack: list[str] = []
+    program = source_dump.program
+    error_type = source_dump.error_type
+    line: int | None = None
+
+    # Extract "What happened" section
+    wh_match = re.search(r"(?:Was ist geschehen|What happened)\??\s*\n(.*?)(?:\n\s*\n|\Z)", full_text, re.DOTALL)
+    if wh_match:
+        what_happened = wh_match.group(1).strip()
+
+    # Extract "How to correct" section
+    hc_match = re.search(
+        r"(?:Was können Sie tun|How to correct|Fehlerbehandlung)\??\s*\n(.*?)(?:\n\s*\n|\Z)", full_text, re.DOTALL
+    )
+    if hc_match:
+        how_to_correct = hc_match.group(1).strip()
+
+    # Extract source line
+    line_match = re.search(r"(?:Zeile|Line|Quelltext)[:\s]+(\d+)", full_text)
+    if line_match:
+        line = int(line_match.group(1))
+
+    # Extract call stack lines (lines starting with typical call stack patterns)
+    for stack_line in re.findall(r"^\s*\d+\s+\S+.*$", full_text, re.MULTILINE):
+        stripped = stack_line.strip()
+        if stripped and len(stripped) > 10:
+            call_stack.append(stripped)
+
+    # Truncate raw text to ~10KB
+    raw_text = full_text[:10240]
+
+    return ST22DumpDetail(
+        error_type=error_type,
+        short_text=source_dump.short_text,
+        what_happened=what_happened,
+        how_to_correct=how_to_correct,
+        program=program,
+        include=source_dump.include,
+        line=line,
+        call_stack=call_stack[:20],  # limit to 20 entries
+        raw_text=raw_text,
+    )
+
+
 # =============================================================================
 # Main Lookup Logic
 # =============================================================================
@@ -282,10 +373,16 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
             )
         )
 
-    # Sort by time descending
-    dumps.sort(key=lambda d: d.time, reverse=True)
-    for idx, dump in enumerate(dumps):
-        dump.index = idx
+    # Sort by time descending, keeping a mapping from sorted index to original
+    # table row position (needed for double-clicking the correct row).
+    indexed_dumps = [(d.index, d) for d in dumps]  # (original_table_row, dump)
+    indexed_dumps.sort(key=lambda pair: pair[1].time, reverse=True)
+    sorted_to_ui: dict[int, int] = {}
+    dumps = []
+    for new_idx, (orig_idx, dump) in enumerate(indexed_dumps):
+        sorted_to_ui[new_idx] = orig_idx
+        dump.index = new_idx
+        dumps.append(dump)
 
     if dump_index is None:
         return ST22DumpListResult(
@@ -295,12 +392,30 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
             retrieved_at=now,
         )
 
-    # Detail view not supported on desktop yet
-    return ST22DumpDetailResult.failure(
-        error="ST22 dump detail view not yet supported on desktop backend. Use dump list only.",
-        detail=None,
-        retrieved_at=now,
-    )
+    # Bounds check
+    if dump_index < 0 or dump_index >= len(dumps):
+        return ST22DumpDetailResult.failure(
+            error=f"dump_index {dump_index} out of range (0..{len(dumps) - 1})",
+            detail=None,
+            retrieved_at=now,
+        )
+
+    target_dump = dumps[dump_index]
+
+    # Use the original table row position for clicking, not the sorted index
+    ui_row_idx = sorted_to_ui[dump_index]
+    error = await _select_dump_by_index(backend, ui_row_idx, len(dumps))
+    if error:
+        return ST22DumpDetailResult.failure(error=error, detail=None, retrieved_at=now)
+
+    # Read detail screen text by scrolling through pages
+    await backend.wait(1000)
+    detail_text = await _capture_desktop_detail(backend)
+
+    # Parse the detail text into structured fields
+    detail = _parse_desktop_detail_text(detail_text, target_dump)
+
+    return ST22DumpDetailResult(detail=detail, retrieved_at=now)
 
 
 async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-locals,too-many-branches

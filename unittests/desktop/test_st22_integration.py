@@ -87,4 +87,23 @@ async def test_st22_dump_detail(backend):
     detail = await _st22_lookup_desktop(backend, target_date=date.today().isoformat(), dump_index=0)
     assert detail is not None
     assert detail.success, f"ST22 detail failed: {detail.error}"
+    # Verify detail model fields
+    assert hasattr(detail, "detail")
+    assert detail.detail is not None
+    assert detail.detail.raw_text, "raw_text should be non-empty"
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_st22_dump_index_out_of_range(backend):
+    """ST22: dump_index=9999 returns failure with out-of-range error."""
+    list_result = await _st22_lookup_desktop(backend, target_date=date.today().isoformat(), dump_index=None)
+    await go_home(backend)
+    if list_result.dump_count == 0:
+        pytest.skip("No dumps today to test out-of-range")
+    result = await _st22_lookup_desktop(backend, target_date=date.today().isoformat(), dump_index=9999)
+    assert result.success is False
+    assert "out of range" in (result.error or "")
     await go_home(backend)
