@@ -14,6 +14,10 @@ import sys
 
 import pytest
 
+from sapwebguimcp.models.se24_models import SE24Result
+from sapwebguimcp.models.se37_models import SE37Result
+from sapwebguimcp.models.se93_models import SE93Result
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
@@ -26,8 +30,6 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 def test_se93_stub_returns_error():
     """SE93 desktop stub returns 'not supported' error model."""
-    from sapwebguimcp.models.se93_models import SE93Result
-
     result = SE93Result.failure("SE93 lookup is not yet supported on the desktop backend")
     assert not result.success
     assert "not" in result.error.lower() and "support" in result.error.lower()
@@ -36,8 +38,6 @@ def test_se93_stub_returns_error():
 
 def test_se24_stub_returns_error():
     """SE24 desktop stub returns 'not supported' error model."""
-    from sapwebguimcp.models.se24_models import SE24Result
-
     result = SE24Result.failure("SE24 lookup is not yet supported on the desktop backend")
     assert not result.success
     assert "not" in result.error.lower() and "support" in result.error.lower()
@@ -46,8 +46,6 @@ def test_se24_stub_returns_error():
 
 def test_se37_stub_returns_error():
     """SE37 desktop stub returns 'not supported' error model."""
-    from sapwebguimcp.models.se37_models import SE37Result
-
     result = SE37Result.failure("SE37 lookup is not yet supported on the desktop backend")
     assert not result.success
     assert "not" in result.error.lower() and "support" in result.error.lower()
@@ -81,6 +79,4 @@ async def test_screen_info_round_trip(backend):
 @pytest.mark.anyio
 async def test_backend_detected_as_desktop(backend):
     """_is_desktop_backend returns True for DesktopBackend."""
-    from sapwebguimcp.tools._backend_utils import _is_desktop_backend
-
     assert _is_desktop_backend(backend) is True

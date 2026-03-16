@@ -13,11 +13,19 @@ Tests are designed to NOT depend on specific default values or button labels
 Skipped unless running on the authorized SAP test machine with credentials.
 """
 
+import faulthandler
+import os
 import sys
+from typing import Any, cast
 
 import pytest
 from dotenv import load_dotenv
 
+from sapwebguimcp.backend.desktop import DesktopBackend
+from sapwebguimcp.backend.desktop._com_thread import ComThread
+from sapwebguimcp.backend.desktop._element_finder import _flatten
+from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.sapgui import SapGui
 from unittests.conftest import is_sap_integration_test_machine
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
@@ -32,8 +40,6 @@ def _creds_configured() -> bool:
     """Check SAP credentials are available."""
     try:
         load_dotenv()
-        from sapwebguimcp.models.config import get_settings
-
         s = get_settings()
         return bool(s.sap_connection_name and s.sap_user and s.sap_password and s.sap_mandant)
     except Exception:
@@ -46,12 +52,7 @@ skip_no_creds = pytest.mark.skipif(not _creds_configured(), reason="SAP credenti
 @pytest.fixture
 async def backend():
     """Provide a logged-in DesktopBackend, close on teardown."""
-    import os
-
     load_dotenv()
-    from sapwebguimcp.backend.desktop import DesktopBackend
-    from sapwebguimcp.backend.desktop._com_thread import ComThread
-
     com = ComThread()
     b = DesktopBackend(com_thread=com)
     r = await b.login(
@@ -64,11 +65,7 @@ async def backend():
     assert r.success, f"Login failed: {r.error}"
     yield b
     # Teardown: close ALL connections -- tools may have opened additional ones
-    import faulthandler
-
     try:
-        from sapwebguimcp.sapgui import SapGui
-
         app = await com.run(lambda: SapGui.connect())
         raw_conns = await com.run(lambda: app.com.Children)
         count = await com.run(lambda: raw_conns.Count)
@@ -178,16 +175,12 @@ async def test_set_checkbox_on_sm37(backend):
     await backend.enter_transaction("SM37")
 
     # SM37 has job status checkboxes — find them
-    from sapwebguimcp.backend.desktop._element_finder import _flatten
-
     session = backend._session
 
     async def get_checkbox_states():
         """Read all checkbox states from current screen."""
 
         def _read():
-            from typing import Any, cast
-
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree(max_depth=3)
             checkboxes = {}

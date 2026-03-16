@@ -5,6 +5,8 @@ import sys
 
 import pytest
 
+from sapwebguimcp.models.sm37_models import SM37JobListResult
+from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
 from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
@@ -15,8 +17,6 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 @pytest.mark.anyio
 async def test_sm37_default_selection(backend):
     """SM37: default params returns well-formed SM37JobListResult."""
-    from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
-
     result = await _execute_sm37_lookup_desktop(
         backend,
         job_name="*",
@@ -43,8 +43,6 @@ async def test_sm37_no_jobs_for_fake_user(backend):
     bar 'no jobs' message is detected) or success=False with a clear error
     (if read_table fails because no ALV grid is shown).  Either is acceptable.
     """
-    from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
-
     result = await _execute_sm37_lookup_desktop(
         backend,
         job_name="*",
@@ -64,9 +62,6 @@ async def test_sm37_no_jobs_for_fake_user(backend):
 @pytest.mark.anyio
 async def test_sm37_model_serializes(backend):
     """SM37JobListResult must JSON-serialize (roundtrip)."""
-    from sapwebguimcp.models.sm37_models import SM37JobListResult
-    from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
-
     result = await _execute_sm37_lookup_desktop(
         backend,
         job_name="*",
@@ -110,8 +105,6 @@ async def test_sm37_with_wildcard_jobname(backend):
     (read_table limitation).  We verify the tool returns a well-formed
     model in either case.
     """
-    from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
-
     result = await _execute_sm37_lookup_desktop(
         backend,
         job_name="*",

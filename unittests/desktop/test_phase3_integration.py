@@ -6,11 +6,18 @@ read_editor_source, and check_and_activate against a real SAP system.
 Skipped unless running on the authorized SAP test machine with credentials.
 """
 
+import asyncio
+import faulthandler
+import os
 import sys
 
 import pytest
 from dotenv import load_dotenv
 
+from sapwebguimcp.backend.desktop import DesktopBackend
+from sapwebguimcp.backend.desktop._com_thread import ComThread
+from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.sapgui import SapGui
 from unittests.conftest import is_sap_integration_test_machine
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
@@ -24,8 +31,6 @@ skip_not_sap_machine = pytest.mark.skipif(
 def _creds_configured() -> bool:
     try:
         load_dotenv()
-        from sapwebguimcp.models.config import get_settings
-
         s = get_settings()
         return bool(s.sap_connection_name and s.sap_user and s.sap_password and s.sap_mandant)
     except Exception:
@@ -38,12 +43,7 @@ skip_no_creds = pytest.mark.skipif(not _creds_configured(), reason="SAP credenti
 @pytest.fixture
 async def backend():
     """Provide a logged-in DesktopBackend, close ALL connections on teardown."""
-    import os
-
     load_dotenv()
-    from sapwebguimcp.backend.desktop import DesktopBackend
-    from sapwebguimcp.backend.desktop._com_thread import ComThread
-
     com = ComThread()
     b = DesktopBackend(com_thread=com)
     r = await b.login(
@@ -56,11 +56,7 @@ async def backend():
     assert r.success, f"Login failed: {r.error}"
     yield b
     # Teardown: close ALL connections -- tools may have opened additional ones
-    import faulthandler
-
     try:
-        from sapwebguimcp.sapgui import SapGui
-
         app = await com.run(lambda: SapGui.connect())
         raw_conns = await com.run(lambda: app.com.Children)
         count = await com.run(lambda: raw_conns.Count)
@@ -130,8 +126,6 @@ async def test_dismiss_popup_on_exit_with_changes(backend):
             await backend.click_button(btn.label)
             break
 
-    import asyncio
-
     await asyncio.sleep(1)
 
     # Now we're in the editor. Press F3 (back) — should return to SE38
@@ -189,8 +183,6 @@ async def test_read_editor_source_on_se38(backend):
         if btn.label in display_labels:
             await backend.click_button(btn.label)
             break
-
-    import asyncio
 
     await asyncio.sleep(1)
 

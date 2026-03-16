@@ -5,6 +5,8 @@ import sys
 
 import pytest
 
+from sapwebguimcp.models.se16_models import SE16Result
+from sapwebguimcp.tools.se16_tools import _execute_se16_query
 from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
@@ -15,8 +17,6 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 @pytest.mark.anyio
 async def test_se16_small_table(backend):
     """SE16: query T000 (clients, ~3-6 rows), verify all returned, not truncated."""
-    from sapwebguimcp.tools.se16_tools import _execute_se16_query
-
     result = await _execute_se16_query(backend, "T000", None, 100)
     assert result.success, f"SE16 failed: {result.error}"
     assert result.table == "T000"
@@ -33,8 +33,6 @@ async def test_se16_small_table(backend):
 @pytest.mark.anyio
 async def test_se16_medium_table(backend):
     """SE16: query TSTC with max_hits=50, verify pagination/truncation."""
-    from sapwebguimcp.tools.se16_tools import _execute_se16_query
-
     result = await _execute_se16_query(backend, "TSTC", None, 50)
     assert result.success, f"SE16 failed: {result.error}"
     assert result.table == "TSTC"
@@ -49,8 +47,6 @@ async def test_se16_medium_table(backend):
 @pytest.mark.anyio
 async def test_se16_table_not_found(backend):
     """SE16: nonexistent table ZZZNOTEXIST99 returns 0 rows without crashing."""
-    from sapwebguimcp.tools.se16_tools import _execute_se16_query
-
     result = await _execute_se16_query(backend, "ZZZNOTEXIST99", None, 5)
     assert result.returned_rows == 0
     assert isinstance(result.columns, list)
@@ -63,8 +59,6 @@ async def test_se16_table_not_found(backend):
 @pytest.mark.anyio
 async def test_se16_columns_match_data(backend):
     """SE16: verify row data keys match column headers."""
-    from sapwebguimcp.tools.se16_tools import _execute_se16_query
-
     result = await _execute_se16_query(backend, "TSTC", None, 5)
     assert result.success, f"SE16 failed: {result.error}"
     assert len(result.columns) >= 3, f"Expected at least 3 columns, got {result.columns}"
@@ -80,8 +74,6 @@ async def test_se16_columns_match_data(backend):
 @pytest.mark.anyio
 async def test_se16_tcode_column_has_values(backend):
     """SE16: verify TCODE column values are non-empty in TSTC table."""
-    from sapwebguimcp.tools.se16_tools import _execute_se16_query
-
     result = await _execute_se16_query(backend, "TSTC", None, 5)
     assert result.success, f"SE16 failed: {result.error}"
     assert "TCODE" in result.columns, f"Expected TCODE column, got {result.columns}"
@@ -95,8 +87,6 @@ async def test_se16_tcode_column_has_values(backend):
 @pytest.mark.anyio
 async def test_se16_model_serializes(backend):
     """SE16Result must JSON-serialize for MCP transport (roundtrip)."""
-    from sapwebguimcp.tools.se16_tools import _execute_se16_query
-
     result = await _execute_se16_query(backend, "TSTC", None, 3)
     json_str = result.model_dump_json()
     parsed = json.loads(json_str)
@@ -104,8 +94,6 @@ async def test_se16_model_serializes(backend):
     assert isinstance(parsed["rows"], list)
     assert isinstance(parsed["columns"], list)
     # Roundtrip back to model
-    from sapwebguimcp.models.se16_models import SE16Result
-
     restored = SE16Result.model_validate_json(json_str)
     assert restored.table == "TSTC"
     assert len(restored.rows) == len(result.rows)
@@ -117,8 +105,6 @@ async def test_se16_model_serializes(backend):
 @pytest.mark.anyio
 async def test_se16_max_hits_respected(backend):
     """SE16: max_hits=3 returns exactly 3 rows."""
-    from sapwebguimcp.tools.se16_tools import _execute_se16_query
-
     result = await _execute_se16_query(backend, "TSTC", None, 3)
     assert result.success, f"SE16 failed: {result.error}"
     assert result.returned_rows == 3
@@ -139,8 +125,6 @@ async def test_se16_truncated_flag(backend):
     exists in the table.  We assert structural consistency here rather than
     a specific truncated value.
     """
-    from sapwebguimcp.tools.se16_tools import _execute_se16_query
-
     result = await _execute_se16_query(backend, "TSTC", None, 3)
     assert result.success, f"SE16 failed: {result.error}"
     assert result.returned_rows == 3

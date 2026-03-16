@@ -5,6 +5,8 @@ import sys
 
 import pytest
 
+from sapwebguimcp.models.slg1_models import SLG1LogListResult
+from sapwebguimcp.tools.slg1_tools import _slg1_lookup_desktop
 from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
@@ -19,8 +21,6 @@ async def test_slg1_with_wildcard(backend):
     The desktop backend may fail to read the ALV tree/grid (read_table
     limitation).  We verify the tool returns a well-formed model.
     """
-    from sapwebguimcp.tools.slg1_tools import _slg1_lookup_desktop
-
     result = await _slg1_lookup_desktop(
         backend,
         object_name="*",
@@ -51,8 +51,6 @@ async def test_slg1_no_results(backend):
     The desktop backend may return success=True with 0 logs (if status bar
     'no logs' is detected) or success=False with a clear error.
     """
-    from sapwebguimcp.tools.slg1_tools import _slg1_lookup_desktop
-
     result = await _slg1_lookup_desktop(
         backend,
         object_name="ZZZNOTEXIST",
@@ -72,9 +70,6 @@ async def test_slg1_no_results(backend):
 @pytest.mark.anyio
 async def test_slg1_model_serializes(backend):
     """SLG1LogListResult must JSON-serialize (roundtrip)."""
-    from sapwebguimcp.models.slg1_models import SLG1LogListResult
-    from sapwebguimcp.tools.slg1_tools import _slg1_lookup_desktop
-
     result = await _slg1_lookup_desktop(
         backend,
         object_name="*",

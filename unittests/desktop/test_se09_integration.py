@@ -5,6 +5,8 @@ import sys
 
 import pytest
 
+from sapwebguimcp.models.se09_models import TransportListResult
+from sapwebguimcp.tools.se09_tools import _lookup_transports_desktop
 from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
@@ -15,8 +17,6 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 @pytest.mark.anyio
 async def test_se09_default_lookup(backend):
     """SE09: default params returns TransportListResult (may be empty)."""
-    from sapwebguimcp.tools.se09_tools import _lookup_transports_desktop
-
     result = await _lookup_transports_desktop(backend, username=None, request_type="all", status="modifiable")
     assert result is not None
     assert result.success, f"SE09 failed: {result.error}"
@@ -36,9 +36,6 @@ async def test_se09_default_lookup(backend):
 @pytest.mark.anyio
 async def test_se09_model_serializes(backend):
     """TransportListResult must JSON-serialize (roundtrip)."""
-    from sapwebguimcp.models.se09_models import TransportListResult
-    from sapwebguimcp.tools.se09_tools import _lookup_transports_desktop
-
     result = await _lookup_transports_desktop(backend, username=None, request_type="all", status="modifiable")
     json_str = result.model_dump_json()
     parsed = json.loads(json_str)

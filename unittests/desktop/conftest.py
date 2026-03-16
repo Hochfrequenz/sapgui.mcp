@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import faulthandler
+import os
 from typing import AsyncIterator
 from unittest.mock import MagicMock
 
 import pytest
 from dotenv import load_dotenv
 
+from sapwebguimcp.backend.desktop import DesktopBackend
+from sapwebguimcp.backend.desktop._com_thread import ComThread
+from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.sapgui import SapGui
 from unittests.conftest import is_sap_integration_test_machine
 
 # ---------------------------------------------------------------------------
@@ -21,8 +27,6 @@ skip_no_creds: pytest.MarkDecorator
 def _creds_ok() -> bool:
     try:
         load_dotenv()
-        from sapwebguimcp.models.config import get_settings
-
         s = get_settings()
         return bool(s.sap_connection_name and s.sap_user and s.sap_password and s.sap_mandant)
     except Exception:
@@ -51,12 +55,7 @@ async def go_home(backend) -> None:  # type: ignore[no-untyped-def]
 @pytest.fixture
 async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     """Provide a logged-in DesktopBackend. Closes ALL connections on teardown."""
-    import os
-
     load_dotenv()
-    from sapwebguimcp.backend.desktop import DesktopBackend
-    from sapwebguimcp.backend.desktop._com_thread import ComThread
-
     com = ComThread()
     b = DesktopBackend(com_thread=com)
     r = await b.login(
@@ -69,11 +68,7 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     assert r.success, f"Login failed: {r.error}"
     yield b
     # Teardown: close ALL connections -- tools may have opened additional ones
-    import faulthandler
-
     try:
-        from sapwebguimcp.sapgui import SapGui
-
         app = await com.run(lambda: SapGui.connect())
         raw_conns = await com.run(lambda: app.com.Children)
         count = await com.run(lambda: raw_conns.Count)

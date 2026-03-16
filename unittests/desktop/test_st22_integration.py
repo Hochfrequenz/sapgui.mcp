@@ -6,6 +6,8 @@ from datetime import date, timedelta
 
 import pytest
 
+from sapwebguimcp.models.st22_models import ST22DumpListResult
+from sapwebguimcp.tools.st22_tools import _st22_lookup_desktop
 from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
@@ -16,8 +18,6 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 @pytest.mark.anyio
 async def test_st22_today(backend):
     """ST22: dump list for today returns ST22DumpListResult."""
-    from sapwebguimcp.tools.st22_tools import _st22_lookup_desktop
-
     result = await _st22_lookup_desktop(backend, target_date=date.today().isoformat(), dump_index=None)
     assert result is not None
     assert result.success, f"ST22 failed: {result.error}"
@@ -33,9 +33,6 @@ async def test_st22_today(backend):
 @pytest.mark.anyio
 async def test_st22_model_serializes(backend):
     """ST22DumpListResult must JSON-serialize (roundtrip)."""
-    from sapwebguimcp.models.st22_models import ST22DumpListResult
-    from sapwebguimcp.tools.st22_tools import _st22_lookup_desktop
-
     result = await _st22_lookup_desktop(backend, target_date=date.today().isoformat(), dump_index=None)
     json_str = result.model_dump_json()
     parsed = json.loads(json_str)
@@ -53,8 +50,6 @@ async def test_st22_model_serializes(backend):
 @pytest.mark.anyio
 async def test_st22_specific_date(backend):
     """ST22: past date returns whatever dumps exist."""
-    from sapwebguimcp.tools.st22_tools import _st22_lookup_desktop
-
     yesterday = (date.today() - timedelta(days=1)).isoformat()
     result = await _st22_lookup_desktop(backend, target_date=yesterday, dump_index=None)
     assert result is not None
