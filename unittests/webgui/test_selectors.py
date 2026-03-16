@@ -547,10 +547,10 @@ class TestFKeyExtraction:
 class TestLoginPageSelectors:
     """Tests for login page element selectors."""
 
-    @pytest.mark.skipif(
-        sys.version_info >= (3, 13),
+    @pytest.mark.skip(
         reason=(
-            "Python 3.13+ html.parser cannot handle SAP's invalid HTML (<table> inside <span>). "
+            "html.parser cannot reliably handle SAP's invalid HTML (<table> inside <span>). "
+            "Python 3.13+ fails outright; 3.11/3.12 silently drop element attributes. "
             "See test_login_page_fields_findable_by_playwright for proof that real browsers work."
         ),
     )
