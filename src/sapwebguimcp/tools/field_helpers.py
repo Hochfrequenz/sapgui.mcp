@@ -170,11 +170,14 @@ async def fill_and_display(
             return f"{tcode_label.capitalize()} '{name}' not found"
 
         # Poll: wait for the page to leave the initial screen.
+        # Use screen title (via get_screen_info) rather than ARIA snapshot substring
+        # matching, which is fragile across SAP language variants.
+        # DE initial screen titles contain "Einstieg", EN contain "Initial".
         navigated = False
         for poll in range(_F7_MAX_POLLS):
-            snapshot = await backend.get_snapshot()
-            snapshot_lower = str(snapshot).lower()
-            if "einstieg" not in snapshot_lower and "initial screen" not in snapshot_lower:
+            screen = await backend.get_screen_info()
+            title_lower = (screen.title or "").lower()
+            if "einstieg" not in title_lower and "initial" not in title_lower:
                 navigated = True
                 break
             logger.debug("Still on initial screen, poll %d/%d", poll + 1, _F7_MAX_POLLS)
