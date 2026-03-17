@@ -54,6 +54,7 @@ src/sapwebguimcp/
 ```
 
 Tests:
+
 ```
 unittests/
   sapgui/                    # mirrors the library structure
@@ -188,6 +189,7 @@ class GuiTextField(GuiVComponent):
 ### 2. Docstrings: non-obvious info + AI agent guidance
 
 Skip docstrings that just restate the class name. Add them when they help a human or an **AI agent** understand:
+
 - **When to use this class** vs a similar one (agents need to pick the right element)
 - COM quirks (e.g., "Pressing a button invalidates all references below window level")
 - Spec-specific behavior
@@ -195,6 +197,7 @@ Skip docstrings that just restate the class name. Add them when they help a huma
 
 Bad: `"""SAP GUI text field."""`
 Good:
+
 ```python
 class GuiCTextField(GuiTextField):
     """Text field with F4 search help button (type prefix: ctxt).
@@ -204,7 +207,9 @@ class GuiCTextField(GuiTextField):
     Setting .text triggers server communication only after pressing Enter or Tab.
     """
 ```
+
 Good:
+
 ```python
 class GuiOkCodeField(GuiVComponent):
     """The transaction code / command field in the system toolbar (type prefix: okcd).
@@ -214,7 +219,9 @@ class GuiOkCodeField(GuiVComponent):
     Setting text alone does NOT trigger navigation — you must send Enter (VKey 0).
     """
 ```
+
 Good:
+
 ```python
 class GuiGridView(GuiShell):
     """ALV grid control — the standard SAP table for displaying/editing data.
@@ -230,6 +237,7 @@ class GuiGridView(GuiShell):
 ### 3. Pythonic naming (snake_case) but spec-traceable
 
 Every property/method maps 1:1 to the spec. The mapping is:
+
 - `PascalCase` COM property → `snake_case` Python property
 - `Byte` (0/1) → `bool` (via `@property` returning `bool(self._com.X)`)
 - `Long` → `int`
@@ -432,6 +440,7 @@ class GuiComponent:
 SAP GUI elements have URL-like IDs: `/app/con[0]/ses[0]/wnd[0]/usr/txtRS38L-NAME`
 
 The library supports both absolute and relative IDs (per spec):
+
 - Absolute: starts with `/app/...`
 - Relative: starts with type prefix, e.g. `wnd[0]/usr/txtRS38L-NAME` (relative to session)
 
@@ -447,6 +456,7 @@ status = session.find_by_id("wnd[0]/sbar").text
 `pywin32` and `pydantic` are already main dependencies in `pyproject.toml`. No additional dependency group needed for the sapgui subpackage within this repo.
 
 When this library is eventually extracted to its own PyPI package, it will declare its own dependencies:
+
 - `pywin32>=306; sys_platform == 'win32'`
 - `pydantic>=2.0` (for models.py — SessionInfo, ElementInfo)
 

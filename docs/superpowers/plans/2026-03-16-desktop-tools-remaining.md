@@ -18,18 +18,21 @@ These were discovered during implementation and live testing against HF S/4 (S4U
 Future implementers MUST read these before writing code.
 
 ### COM Threading
+
 - All COM calls MUST run on a dedicated background thread (`ComThread`) with its own `CoInitialize()`. Cross-apartment calls cause `Windows fatal exception 0x800401f0`.
 - Use `concurrent.futures.Future` + `asyncio.wrap_future` for cross-thread dispatch.
 - Test teardown must close connections VIA the COM thread (`await com.run(lambda: conn.CloseConnection())`), not from the main thread.
 - `faulthandler.disable()` around `com.shutdown()` suppresses COM finalization noise.
 
 ### SAP GUI COM Quirks
+
 - `send_command("/nEX")` blocks indefinitely on COM. Use `connection.CloseConnection()` instead.
 - `FindById` returns COM objects with broken dispatch typing for shell controls. `NumberOfLines`, `GetLineText` etc. may fail with `AttributeError`. Try both wrapper and raw COM (`shell.com.NumberOfLines`) as fallback.
 - SAP GUI leaves "ghost connections" (0 sessions) after closing. Must clean up via `CloseConnection()`.
 - `AriaSnapshot` doesn't exist for desktop. We use `ComTreeSnapshot` (a `str` subclass) — parsers must NOT assume ARIA format.
 
 ### Element Finding
+
 - SAP labels and fields share name suffixes: `lblMATNR` → `txtMATNR` / `ctxtMATNR`. This is the fastest lookup strategy.
 - Fields may be nested in `GuiSimpleContainer`, `GuiScrollContainer`, or other subcontainers — don't assume flat `wnd[0]/usr/` children.
 - Extract the container path from the label's ID to handle nested fields correctly.
@@ -37,15 +40,18 @@ Future implementers MUST read these before writing code.
 - `LogRecord` reserves `"name"` as a key — never use `extra={"name": ...}` in logging. Use `"field_name"` instead.
 
 ### ALV Grid Location
+
 - SE16N places its ALV grid in `wnd[0]/shellcont/shell` (a dock shell), NOT under `wnd[0]/usr`. `read_table` and `click_table_cell` must search the full `wnd[0]` tree with `max_depth=5`.
 
 ### Login & Session Management
+
 - Connection = separate TCP link with its own login (`open_connection`). Session/Mode = window within a connection (`create_session` / `/o`). Never confuse these.
 - The "multiple logon" popup (`radMULTI_LOGON_OPT2`) default radio selection is NOT stable. Always explicitly select OPT2.
 - Login screen is program `SAPMSYST`, screen 20. Field IDs: `txtRSYST-MANDT`, `txtRSYST-BNAME`, `pwdRSYST-BCODE`, `txtRSYST-LANGU` — standard on ALL systems.
 - `DisabledByServer=True` means scripting is disabled on the server. Fix via RZ11: `sapgui/user_scripting=TRUE`.
 
 ### Tool Implementation Pattern
+
 - Check `_is_desktop_backend(backend)` at the top of the main tool function.
 - Route to `_*_desktop()` function with same return model.
 - Never modify WebGUI code paths.
@@ -55,6 +61,7 @@ Future implementers MUST read these before writing code.
 - Always navigate back after tool execution (`press_key("F3")` × N).
 
 ### Testing
+
 - Integration tests must exercise the actual desktop tool function, not just backend methods.
 - Each test must verify: result model type, non-empty data, `model_dump_json()` roundtrip.
 - SAP is stateful — don't assert on specific default values or button labels.
@@ -66,19 +73,22 @@ Future implementers MUST read these before writing code.
 ## Current State (after PR #379)
 
 ### Working desktop tools
-| Tool | Status | Gaps |
-|------|--------|------|
-| SE16 | Works | Filters not implemented |
-| SM37 | Works | Status/date filters work, `include_log` not supported |
-| SM30 | Works | Basic view display |
+
+| Tool | Status        | Gaps                                                        |
+| ---- | ------------- | ----------------------------------------------------------- |
+| SE16 | Works         | Filters not implemented                                     |
+| SM37 | Works         | Status/date filters work, `include_log` not supported       |
+| SM30 | Works         | Basic view display                                          |
 | SE09 | Works (basic) | `request_type`, `status`, `include_objects` filters ignored |
-| SLG1 | Works | Date filters work, `subobject`/`external_id` not tested |
-| ST22 | Partial | Dump list works, dump detail stubbed |
+| SLG1 | Works         | Date filters work, `subobject`/`external_id` not tested     |
+| ST22 | Partial       | Dump list works, dump detail stubbed                        |
 
 ### Stub tools (return error)
+
 SE93, SE24, SE37, SPRO
 
 ### Skipped integration tests (5 total)
+
 - `test_se16_single_filter` — SE16 desktop filters not implemented
 - `test_se16_multiple_filters` — SE16 desktop filters not implemented
 - `test_se09_workbench_only` — SE09 request_type filter not implemented
@@ -93,21 +103,23 @@ SE93, SE24, SE37, SPRO
 **Effort:** Small
 
 ### What to implement
+
 In `_lookup_transports_desktop()` in `se09_tools.py`:
 
 1. **request_type filter**: SE09 has checkboxes for "Workbench" and "Customizing" on the selection screen. Toggle them based on `request_type` parameter:
-   - `"workbench"` → check Workbench, uncheck Customizing
-   - `"customizing"` → uncheck Workbench, check Customizing
-   - `"all"` → check both (default)
+    - `"workbench"` → check Workbench, uncheck Customizing
+    - `"customizing"` → uncheck Workbench, check Customizing
+    - `"all"` → check both (default)
 
 2. **status filter**: SE09 has radio buttons for "Modifiable" and "Released":
-   - `"modifiable"` → select Modifiable radio
-   - `"released"` → select Released radio
-   - `"all"` → need to check how to show all (might need a different approach)
+    - `"modifiable"` → select Modifiable radio
+    - `"released"` → select Released radio
+    - `"all"` → need to check how to show all (might need a different approach)
 
 3. **include_objects**: After getting transport list, expand each transport node to get object list. Use `session.find_by_id` to navigate tree control.
 
 ### Steps
+
 - [ ] Explore SE09 screen via COM to find checkbox/radio IDs
 - [ ] Implement checkbox toggling in `_lookup_transports_desktop`
 - [ ] Implement radio button selection for status
@@ -124,15 +136,18 @@ In `_lookup_transports_desktop()` in `se09_tools.py`:
 **Effort:** Medium
 
 ### What to implement
+
 In `_execute_se16_query_desktop()` in `se16_tools.py`:
 
 SE16N has a selection criteria grid (ALV) where each row represents a field filter. To set a filter:
+
 1. Find the row for the field name in the grid
 2. Set the "From-Value" cell to the filter value
 
 The grid has columns: Feldname/Field Name, Option, Von-Wert/From-Value, Bis-Wert/To-Value, Mehr/More, Ausgabe/Output, Technischer Name/Technical Name.
 
 ### Steps
+
 - [ ] Explore SE16N selection grid via COM — find how to identify rows by field name
 - [ ] Implement: after filling table name and pressing Enter (to load field list), iterate grid rows to find matching field, set From-Value
 - [ ] Handle single filter (`{"TCODE": "SE16"}`)
@@ -151,15 +166,18 @@ The grid has columns: Feldname/Field Name, Option, Von-Wert/From-Value, Bis-Wert
 **Effort:** Small
 
 ### What to implement
+
 In `_st22_lookup_desktop()` in `st22_tools.py`:
 
 When `dump_index` is provided:
+
 1. Read the dump list via `read_table`
 2. Double-click the specified row (using `click_table_cell` with action `"dblclick"`)
 3. Read the detail screen fields via `discover_fields` + `get_screen_text`
 4. Return `ST22DumpDetailResult`
 
 ### Steps
+
 - [ ] Explore ST22 dump detail screen via COM
 - [ ] Implement double-click on dump row
 - [ ] Read detail screen fields
@@ -174,6 +192,7 @@ When `dump_index` is provided:
 **Effort:** Small
 
 ### What to implement
+
 New `_lookup_transaction_desktop()` in `se93_tools.py`:
 
 1. `enter_transaction("SE93")`
@@ -183,6 +202,7 @@ New `_lookup_transaction_desktop()` in `se93_tools.py`:
 5. Return `SE93Result`
 
 ### Steps
+
 - [ ] Explore SE93 display screen via COM
 - [ ] Implement `_lookup_transaction_desktop`
 - [ ] Remove stub, add desktop path
@@ -197,6 +217,7 @@ New `_lookup_transaction_desktop()` in `se93_tools.py`:
 **Effort:** Medium
 
 ### What to implement
+
 New desktop path in `spro_tools.py`:
 
 1. `enter_transaction("SPRO")`
@@ -208,6 +229,7 @@ New desktop path in `spro_tools.py`:
 Requires reading GuiTree control — `get_all_node_keys`, `get_node_text_by_key`, etc.
 
 ### Steps
+
 - [ ] Explore SPRO tree control via COM
 - [ ] Implement tree reading
 - [ ] Remove stub
@@ -222,6 +244,7 @@ Requires reading GuiTree control — `get_all_node_keys`, `get_node_text_by_key`
 **Effort:** Large
 
 ### What to implement
+
 New desktop path in `se24_tools.py`:
 
 1. `enter_transaction("SE24")`
@@ -234,6 +257,7 @@ New desktop path in `se24_tools.py`:
 Complex: requires tab navigation, table reading per tab, handling the language dialog.
 
 ### Steps
+
 - [ ] Explore SE24 screen structure via COM (tabs, fields, tables)
 - [ ] Implement tab-by-tab reading
 - [ ] Remove stub
@@ -248,6 +272,7 @@ Complex: requires tab navigation, table reading per tab, handling the language d
 **Effort:** Large
 
 ### What to implement
+
 New desktop path in `se37_tools.py`:
 
 1. `enter_transaction("SE37")`
@@ -260,6 +285,7 @@ New desktop path in `se37_tools.py`:
 Similar complexity to SE24 — multi-tab navigation.
 
 ### Steps
+
 - [ ] Explore SE37 screen structure via COM
 - [ ] Implement tab-by-tab reading
 - [ ] Remove stub
