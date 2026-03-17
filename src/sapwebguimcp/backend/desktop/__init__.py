@@ -88,6 +88,21 @@ class DesktopBackend:
         except ValueError:
             return None
 
+    @_session.setter
+    def _session(self, value: GuiSession | None) -> None:
+        """Backward compat setter: register as s1 or clear registry.
+
+        Handles the case where ``__init__`` was skipped (e.g. tests
+        using ``DesktopBackend.__new__``).
+        """
+        if not hasattr(self, "_registry"):
+            self._registry = DesktopSessionRegistry()
+        if value is None:
+            for sid in list(self._registry.list_sessions()):
+                self._registry.unregister(sid)
+        elif not self._registry.has_session("s1"):
+            self._registry.register(value)
+
     def _require_session(self) -> GuiSession:
         """Return the session for the current async context.
 
