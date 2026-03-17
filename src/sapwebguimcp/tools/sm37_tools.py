@@ -415,10 +415,10 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
     if _is_desktop_backend(backend):
         result = await _execute_sm37_lookup_desktop(backend, job_name, username, statuses, from_date, to_date)
         if include_log and result.success and len(result.jobs) == 1:
-            job_log = await _fetch_job_log_desktop(backend, language)
-            if job_log:
-                job_log.job_name = result.jobs[0].job_name
-                result.job_log = job_log
+            desktop_log = await _fetch_job_log_desktop(backend, language)
+            if desktop_log:
+                desktop_log.job_name = result.jobs[0].job_name
+                result.job_log = desktop_log
         return result
 
     tx_result = await backend.enter_transaction("SM37")
