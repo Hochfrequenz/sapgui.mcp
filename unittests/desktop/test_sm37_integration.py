@@ -202,4 +202,7 @@ async def test_sm37_include_log_desktop(backend):
         assert result.job_log.job_name == target_job
         assert isinstance(result.job_log.log_lines, list)
         assert len(result.job_log.log_lines) > 0, "Job log should have at least one line"
+    else:
+        # Multiple jobs with same name — log not fetched (only works for exactly 1)
+        assert result.job_log is None, "job_log should be None when multiple jobs match"
     await go_home(backend)
