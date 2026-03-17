@@ -498,7 +498,9 @@ def _parse_se11_table_rows(rows: list[dict[str, str]]) -> list[SE11Field]:
     return fields
 
 
-async def _lookup_se11_desktop(backend: SapUiBackend, name: str, object_type: SE11ObjectType) -> SE11Entry | SE11Error:
+async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-return-statements,too-many-statements
+    backend: SapUiBackend, name: str, object_type: SE11ObjectType
+) -> SE11Entry | SE11Error:
     """Desktop-specific SE11 lookup using COM table control reading."""
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
     from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
@@ -520,7 +522,7 @@ async def _lookup_se11_desktop(backend: SapUiBackend, name: str, object_type: SE
     if not isinstance(backend, DesktopBackend):
         return SE11Error(name=name, object_type=object_type, error="Requires DesktopBackend", retrieved_at=now)
 
-    session = backend._require_session()
+    session = backend._require_session()  # pylint: disable=protected-access
 
     def _select_and_fill() -> str | None:
         """Select radio + fill field via raw COM.
@@ -555,7 +557,7 @@ async def _lookup_se11_desktop(backend: SapUiBackend, name: str, object_type: SE
             return f"Could not fill field: {exc}"
         return None
 
-    com = backend._com
+    com = backend._com  # pylint: disable=protected-access
     fill_error = await com.run(_select_and_fill)
     if fill_error:
         return SE11Error(name=name, object_type=object_type, error=fill_error, retrieved_at=now)
@@ -699,7 +701,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
             "instead of returning inline (avoids context overflow)."
         ),
     )
-    async def sap_se11_lookup(
+    async def sap_se11_lookup(  # pylint: disable=too-many-branches
         names: str | list[str],
         object_type: SE11ObjectType,
         output_file: str | None = None,
