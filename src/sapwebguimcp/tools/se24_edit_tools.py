@@ -16,6 +16,7 @@ from fastmcp import FastMCP
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models.se24_edit_models import SE24EditResult
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard, toggle_to_change_mode
 
 logger = logging.getLogger(__name__)
@@ -124,6 +125,130 @@ async def _select_method_and_open_source(backend: SapUiBackend, class_name: str,
     return None
 
 
+async def _open_class_in_change_mode_desktop(backend: SapUiBackend, class_name: str) -> str | None:
+    """Desktop-specific: navigate to SE24, display class, toggle to change mode."""
+    await backend.enter_transaction("SE24")
+    await backend.wait_for_ready()
+
+    filled = await backend.focus_and_type("SEOCLASS-CLSNAME", class_name.upper())
+    if not filled:
+        filled = await fill_field_with_keyboard(backend, _SE24_LABELS, class_name.upper())
+    if not filled:
+        return "Could not fill class name field on desktop"
+
+    await asyncio.sleep(0.3)
+    await backend.press_key("F7")  # Display
+    await backend.wait(2000)
+
+    # Dismiss language dialog ("Different original and logon languages")
+    try:
+        await backend.press_key("Enter")
+        await backend.wait(1000)
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
+
+    # Verify we left the initial screen
+    screen = await backend.get_screen_info()
+    title = (screen.title or "").lower()
+    if "einstieg" in title or "initial" in title:
+        sbar = await backend.get_status_bar()
+        return sbar.message or f"Could not display class '{class_name}'"
+
+    # Toggle to change mode: Ctrl+F1 (the toolbar button has no text on desktop,
+    # so toggle_to_change_mode's label-based click_button won't find it).
+    await backend.press_key("Ctrl+F1")
+    await backend.wait(1000)
+    return None
+
+
+async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-return-statements
+    backend: SapUiBackend, class_name: str, method_name: str
+) -> str | None:
+    """Desktop-specific: find method in table control and open its source editor."""
+    from typing import Any  # pylint: disable=import-outside-toplevel
+
+    from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+    from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(backend, DesktopBackend):
+        return "Requires DesktopBackend"
+
+    # Ensure we're on the Methods tab
+    for tab_label in ("Methoden", "Methods"):
+        try:
+            await backend.click_tab(tab_label)
+            await backend.wait(500)
+            break
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+
+    session = backend._require_session()  # pylint: disable=protected-access
+    com = backend._com  # pylint: disable=protected-access
+
+    def _select_method_row() -> str | None:
+        """Find the method row in the table control and select it."""
+        from typing import cast  # pylint: disable=import-outside-toplevel
+
+        wnd = session.find_by_id("wnd[0]")
+        tree = cast(Any, wnd).dump_tree(max_depth=8)
+        flat = _flatten(tree)
+
+        for elem in flat:
+            if elem.type_as_number != 80:  # GuiTableControl
+                continue
+            tc = session.find_by_id(elem.id)
+            raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
+            col_count = raw.Columns.Count
+            visible = min(raw.RowCount, raw.VisibleRowCount)
+
+            # Find the method name column
+            method_col = -1
+            for c in range(col_count):
+                title = raw.Columns(c).Title or raw.Columns(c).Name
+                if title in ("Methode", "Method"):
+                    method_col = c
+                    break
+            if method_col < 0:
+                continue
+
+            # Find and select the method row
+            for r in range(visible):
+                try:
+                    cell_text = raw.GetCell(r, method_col).Text
+                    if cell_text.upper().strip() == method_name.upper():
+                        raw.GetCell(r, method_col).SetFocus()
+                        return None
+                except Exception:  # pylint: disable=broad-exception-caught
+                    continue
+            return f"Method '{method_name}' not found in class '{class_name}' methods table"
+        return "No table control found on SE24 screen"
+
+    select_error = await com.run(_select_method_row)
+    if select_error:
+        return select_error
+
+    await backend.wait(500)
+
+    # Click "Quelltext" / "Sourcecode" button to open method source editor
+    for btn_name in ("Quelltext", "Sourcecode", "Source Code", "Source code", "Weiter zu Quelltext"):
+        try:
+            await backend.click_button(btn_name)
+            await backend.wait(2000)
+            return None
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+
+    return "Could not find 'Quelltext'/'Sourcecode' button"
+
+
+async def _navigate_to_method_editor_desktop(backend: SapUiBackend, class_name: str, method_name: str) -> str | None:
+    """Desktop: navigate to SE24, open class in change mode, select method, open source."""
+    error = await _open_class_in_change_mode_desktop(backend, class_name)
+    if error:
+        return error
+    return await _select_method_and_open_source_desktop(backend, class_name, method_name)
+
+
 async def _navigate_to_method_editor(backend: SapUiBackend, class_name: str, method_name: str) -> str | None:
     """Navigate to SE24, open class in change mode, select method, open source editor.
 
@@ -139,7 +264,10 @@ async def _edit_check_activate_method(
     backend: SapUiBackend, class_name: str, method_name: str, new_source: str
 ) -> SE24EditResult:
     """Core edit logic: navigate, read backup, replace, check, activate, revert on failure."""
-    nav_error = await _navigate_to_method_editor(backend, class_name, method_name)
+    if _is_desktop_backend(backend):
+        nav_error = await _navigate_to_method_editor_desktop(backend, class_name, method_name)
+    else:
+        nav_error = await _navigate_to_method_editor(backend, class_name, method_name)
     if nav_error:
         return SE24EditResult.failure(
             error=nav_error, class_name=class_name, method_name=method_name, backup_source="", activated=False
