@@ -12,6 +12,7 @@ from sapwebguimcp.tools.abapgit_tools import register_abapgit_tools
 from sapwebguimcp.tools.browser_tools import register_browser_tools
 from sapwebguimcp.tools.catalog_tools import register_catalog_tools
 from sapwebguimcp.tools.class_tools import register_class_tools
+from sapwebguimcp.tools.com_tools import register_com_tools
 from sapwebguimcp.tools.feedback_tools import (
     clear_session_feedback,
     get_session_feedback,
@@ -45,6 +46,7 @@ __all__ = [
     "register_abapgit_tools",
     "register_browser_tools",
     "register_catalog_tools",
+    "register_com_tools",
     "register_class_tools",
     "register_feedback_tools",
     "register_fm_tools",

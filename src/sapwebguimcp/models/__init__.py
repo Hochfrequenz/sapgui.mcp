@@ -24,6 +24,7 @@ from sapwebguimcp.models.browser_results import (
     SnapshotResult,
     WaitResult,
 )
+from sapwebguimcp.models.com_results import ComEvaluateResult, ComOperation
 from sapwebguimcp.models.config import (
     BrowserMode,
     BrowserType,

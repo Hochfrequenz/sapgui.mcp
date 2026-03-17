@@ -25,6 +25,7 @@ from sapwebguimcp.tools import (
     register_browser_tools,
     register_catalog_tools,
     register_class_tools,
+    register_com_tools,
     register_feedback_tools,
     register_fm_tools,
     register_intent_tools,
@@ -192,6 +193,7 @@ register_table_tools(mcp)
 register_fm_tools(mcp)
 register_class_tools(mcp)
 register_browser_tools(mcp)
+register_com_tools(mcp)
 register_intent_tools(mcp)
 register_feedback_tools(mcp)
 register_workflow_tools(mcp)
