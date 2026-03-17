@@ -69,59 +69,16 @@ class TestGetSession:
         with pytest.raises(ValueError, match="not found"):
             reg.get_session(None)
 
-    def test_stale_session_auto_unregisters(self) -> None:
+    def test_no_com_probe_on_get(self) -> None:
+        """get_session does NOT probe COM — avoids CoInitialize errors on async thread."""
         reg = DesktopSessionRegistry()
         mock = _make_mock_session()
         reg.register(mock)
-        # Force probe past TTL cache
-        reg._last_probe["s1"] = 0
-        # Make COM probe fail
+        # Make COM probe fail — but get_session should NOT access it
         type(mock.com.Info).Transaction = PropertyMock(side_effect=OSError("COM dead"))
-        with pytest.raises(ValueError, match="expired"):
-            reg.get_session("s1")
-        assert not reg.has_session("s1")
-
-
-# ---------------------------------------------------------------------------
-# TTL cache
-# ---------------------------------------------------------------------------
-
-
-class TestTTLCache:
-    def test_probe_skipped_within_ttl(self) -> None:
-        """Session returned without probe if accessed within TTL window."""
-        reg = DesktopSessionRegistry()
-        mock = _make_mock_session()
-        reg.register(mock)  # sets probe timestamp to now
-        # Make COM probe fail — but it should NOT be called (within TTL)
-        type(mock.com.Info).Transaction = PropertyMock(side_effect=OSError("COM dead"))
-        # Should succeed because TTL hasn't expired
+        # Should still succeed because no probe
         result = reg.get_session("s1")
         assert result is mock
-
-    def test_probe_runs_after_ttl_expires(self) -> None:
-        """Session probed after TTL expires."""
-        reg = DesktopSessionRegistry()
-        mock = _make_mock_session()
-        reg.register(mock)
-        # Force TTL expiry
-        reg._last_probe["s1"] = 0
-        # COM probe succeeds — session returned
-        result = reg.get_session("s1")
-        assert result is mock
-
-    def test_stale_detected_after_ttl(self) -> None:
-        """Stale session detected only after TTL expires."""
-        reg = DesktopSessionRegistry()
-        mock = _make_mock_session()
-        reg.register(mock)
-        # Within TTL — works even though COM would fail
-        type(mock.com.Info).Transaction = PropertyMock(side_effect=OSError("dead"))
-        assert reg.get_session("s1") is mock
-        # After TTL — now raises
-        reg._last_probe["s1"] = 0
-        with pytest.raises(ValueError, match="expired"):
-            reg.get_session("s1")
 
 
 # ---------------------------------------------------------------------------
