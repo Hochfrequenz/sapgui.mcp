@@ -274,21 +274,31 @@ async def _expand_request_node_desktop(backend: "SapUiBackend", request_number: 
     def _focus_expand() -> bool:
         import time  # pylint: disable=import-outside-toplevel
 
-        raw: Any = getattr(session, "com", getattr(session, "_com", session))
-        usr = raw.FindById("wnd[0]/usr")
-        for i in range(usr.Children.Count):
-            child = usr.Children(i)
-            if child.Type == "GuiLabel" and request_number in child.Text:
-                child.SetFocus()
-                time.sleep(0.3)
-                mbar = raw.FindById("wnd[0]/mbar")
-                edit_menu = mbar.Children(1)
-                edit_menu.Select()
-                time.sleep(0.3)
-                edit_menu.Children(5).Select()  # Expandieren
-                time.sleep(0.5)
-                return True
-        return False
+        try:
+            raw: Any = getattr(session, "com", getattr(session, "_com", session))
+            usr = raw.FindById("wnd[0]/usr")
+            for i in range(usr.Children.Count):
+                child = usr.Children(i)
+                if child.Type == "GuiLabel" and child.Text.strip() == request_number:
+                    child.SetFocus()
+                    time.sleep(0.3)
+                    # Find Edit menu and Expand item by text (not hard-coded index)
+                    mbar = raw.FindById("wnd[0]/mbar")
+                    edit_menu = mbar.Children(1)
+                    edit_menu.Select()
+                    time.sleep(0.3)
+                    for j in range(edit_menu.Children.Count):
+                        item_text = edit_menu.Children(j).Text
+                        if item_text in ("Expandieren", "Expand"):
+                            edit_menu.Children(j).Select()
+                            time.sleep(0.5)
+                            return True
+                    logger.warning("Expand menu item not found for %s", request_number)
+                    return False
+            return False
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            logger.warning("SE09 expand failed for %s: %s", request_number, exc)
+            return False
 
     result = await com.run(_focus_expand)
     if result:
@@ -311,20 +321,26 @@ async def _collapse_request_node_desktop(backend: "SapUiBackend", request_number
     def _focus_collapse() -> None:
         import time  # pylint: disable=import-outside-toplevel
 
-        raw: Any = getattr(session, "com", getattr(session, "_com", session))
-        usr = raw.FindById("wnd[0]/usr")
-        for i in range(usr.Children.Count):
-            child = usr.Children(i)
-            if child.Type == "GuiLabel" and request_number in child.Text:
-                child.SetFocus()
-                time.sleep(0.3)
-                mbar = raw.FindById("wnd[0]/mbar")
-                edit_menu = mbar.Children(1)
-                edit_menu.Select()
-                time.sleep(0.3)
-                edit_menu.Children(6).Select()  # Komprimieren
-                time.sleep(0.5)
-                return
+        try:
+            raw: Any = getattr(session, "com", getattr(session, "_com", session))
+            usr = raw.FindById("wnd[0]/usr")
+            for i in range(usr.Children.Count):
+                child = usr.Children(i)
+                if child.Type == "GuiLabel" and child.Text.strip() == request_number:
+                    child.SetFocus()
+                    time.sleep(0.3)
+                    mbar = raw.FindById("wnd[0]/mbar")
+                    edit_menu = mbar.Children(1)
+                    edit_menu.Select()
+                    time.sleep(0.3)
+                    for j in range(edit_menu.Children.Count):
+                        item_text = edit_menu.Children(j).Text
+                        if item_text in ("Komprimieren", "Compress"):
+                            edit_menu.Children(j).Select()
+                            time.sleep(0.5)
+                            return
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            logger.warning("SE09 collapse failed for %s: %s", request_number, exc)
 
     await com.run(_focus_collapse)
     await backend.wait(500)
