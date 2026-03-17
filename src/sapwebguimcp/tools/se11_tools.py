@@ -11,6 +11,7 @@ import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -52,8 +53,10 @@ from sapwebguimcp.models import (
     SE11ObjectType,
     SE11Result,
 )
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
+from sapwebguimcp.tools.table_helpers import read_table_control_all_rows
 
 logger = logging.getLogger(__name__)
 
@@ -433,6 +436,224 @@ async def _lookup_object_on_initial_screen(  # pylint: disable=too-many-return-s
     return parse_result
 
 
+# =============================================================================
+# Desktop Backend (COM) Path
+# =============================================================================
+
+# DE/EN label variants for the SE11 input fields.
+_SE11_TABLE_FIELD_LABELS = [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]
+_SE11_STRUCTURE_FIELD_LABELS = [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]
+
+# DE/EN column headers in the SE11 fields table control.
+_COL_FIELD_NAME = ("Feld", "Feldname", "Field", "Field Name", "Field name")
+_COL_DATA_TYPE = ("Datentyp", "Data Type", "Data type")
+_COL_LENGTH = ("Länge", "Length")
+_COL_DECIMALS = ("DezStellen", "Dez.St.", "Decimal Places", "Decimals", "Dec.Pl.")
+_COL_SHORT_DESC = ("Kurzbeschreibung", "Short Description", "Short text")
+# Note: Key column uses checkboxes which GetCell().Text can't read on desktop.
+# Key field detection is not supported via table control; use WebGUI for that.
+
+
+def _get_col(row: dict[str, str], candidates: tuple[str, ...]) -> str:
+    """Get a column value trying multiple DE/EN header names."""
+    for c in candidates:
+        if c in row:
+            return row[c]
+    return ""
+
+
+def _parse_se11_table_rows(rows: list[dict[str, str]]) -> list[SE11Field]:
+    """Parse table control rows into SE11Field models."""
+    fields: list[SE11Field] = []
+    for row in rows:
+        name = _get_col(row, _COL_FIELD_NAME)
+        if not name:
+            continue
+        datatype = _get_col(row, _COL_DATA_TYPE)
+        if not datatype:
+            continue
+        try:
+            length = int(_get_col(row, _COL_LENGTH) or "0")
+        except ValueError:
+            length = 0
+        try:
+            dec_raw = int(_get_col(row, _COL_DECIMALS) or "0")
+            decimals = dec_raw if dec_raw > 0 else None
+        except ValueError:
+            decimals = None
+        # Key column uses checkboxes — GetCell().Text returns empty.
+        # We cannot detect key fields via the desktop table control.
+        is_key = False
+        description = _get_col(row, _COL_SHORT_DESC)
+        fields.append(
+            SE11Field(
+                name=name,
+                datatype=datatype,
+                length=length,
+                decimals=decimals,
+                description=description,
+                is_key=is_key,
+            )
+        )
+    return fields
+
+
+async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-return-statements,too-many-statements
+    backend: SapUiBackend, name: str, object_type: SE11ObjectType
+) -> SE11Entry | SE11Error:
+    """Desktop-specific SE11 lookup using COM table control reading."""
+    from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+    from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
+
+    now = datetime.now(UTC)
+    await backend.wait_for_ready()
+
+    # SE11 initial screen: select the radio button for the object type,
+    # then fill the corresponding text field.
+    # Radio buttons: RSRD1-TBMA (table), RSRD1-VIMA (view), RSRD1-DDTYPE (structure/type)
+    # Text fields:   RSRD1-TBMA_VAL,     RSRD1-VIMA_VAL,  RSRD1-DDTYPE_VAL
+    if object_type == "table":
+        radio_id = "wnd[0]/usr/radRSRD1-TBMA"
+        field_id = "wnd[0]/usr/ctxtRSRD1-TBMA_VAL"
+    else:
+        radio_id = "wnd[0]/usr/radRSRD1-DDTYPE"
+        field_id = "wnd[0]/usr/ctxtRSRD1-DDTYPE_VAL"
+
+    if not isinstance(backend, DesktopBackend):
+        return SE11Error(name=name, object_type=object_type, error="Requires DesktopBackend", retrieved_at=now)
+
+    session = backend._require_session()  # pylint: disable=protected-access
+
+    def _select_and_fill() -> str | None:
+        """Select radio + fill field via raw COM.
+
+        Polls for the radio button since SE11 may take a moment to render
+        after transaction navigation.  Returns None on success, error on failure.
+        """
+        import time  # pylint: disable=import-outside-toplevel
+
+        raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
+        # Poll for the radio button (SE11 screen may not be rendered yet)
+        radio = None
+        for _attempt in range(20):
+            radio = raw_session.FindById(radio_id, False)
+            if radio is not None:
+                break
+            time.sleep(0.5)
+        if radio is None:
+            wnd = raw_session.FindById("wnd[0]", False)
+            screen_title = wnd.Text if wnd else "unknown"
+            return f"SE11 screen not ready after 10s (screen: {screen_title})"
+        try:
+            radio.Select()
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            return f"Could not select radio: {exc}"
+        field = raw_session.FindById(field_id, False)
+        if field is None:
+            return f"Field not found: {field_id}"
+        try:
+            field.Text = name.upper()
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            return f"Could not fill field: {exc}"
+        return None
+
+    com = backend._com  # pylint: disable=protected-access
+    fill_error = await com.run(_select_and_fill)
+    if fill_error:
+        return SE11Error(name=name, object_type=object_type, error=fill_error, retrieved_at=now)
+
+    # Press F7 (Display)
+    await backend.press_key("F7")
+    await backend.wait(2000)
+
+    # Check status bar for errors
+    sbar = await backend.get_status_bar()
+    if sbar.type == "E":
+        return SE11Error(
+            name=name, object_type=object_type, error=sbar.message or f"'{name}' not found", retrieved_at=now
+        )
+
+    # Verify we left the initial screen — SE11 display title is
+    # "Dictionary: Tabelle anzeigen" (DE) / "Dictionary: Display Table" (EN),
+    # NOT containing the object name. Check we're no longer on "Einstieg"/"Initial".
+    screen = await backend.get_screen_info()
+    title = (screen.title or "").lower()
+    if "einstieg" in title or "initial" in title:
+        return SE11Error(
+            name=name,
+            object_type=object_type,
+            error=sbar.message or f"Object '{name}' not found in ABAP Dictionary",
+            retrieved_at=now,
+        )
+
+    # Read the fields table control (SE11 shows fields on the main screen, no tabs)
+    rows = await com.run(lambda: read_table_control_all_rows(session, _flatten))
+
+    # Extract description from screen fields (DD02D-DDTEXT on the display screen)
+    screen_fields = await backend.discover_fields()
+    description = ""
+    for f in screen_fields:
+        if f.name and f.name.upper() == "DD02D-DDTEXT":
+            description = f.value or ""
+            break
+    if not description:
+        for f in screen_fields:
+            if f.name and "DDTEXT" in f.name.upper():
+                description = f.value or ""
+                break
+
+    fields = _parse_se11_table_rows(rows)
+    if not fields:
+        return SE11Error(
+            name=name, object_type=object_type, error="Could not read fields from SE11 table control", retrieved_at=now
+        )
+
+    return SE11Entry(
+        name=name.upper(),
+        description=description,
+        object_type=object_type,
+        fields=fields,
+        retrieved_at=now,
+    )
+
+
+async def _lookup_batch_se11_desktop(
+    backend: SapUiBackend, name_list: list[str], object_type: SE11ObjectType
+) -> SE11Result:
+    """Run SE11 lookups for a batch of names on the desktop backend."""
+    entries: list[SE11Entry] = []
+    errors: list[SE11Error] = []
+    for name in name_list:
+        await backend.enter_transaction("/n")
+        await backend.wait_for_ready()
+        tx_result = await backend.enter_transaction("SE11")
+        if not tx_result.success:
+            errors.append(
+                SE11Error(
+                    name=name,
+                    object_type=object_type,
+                    error=f"Failed to navigate to SE11: {tx_result.error}",
+                    retrieved_at=datetime.now(UTC),
+                )
+            )
+            continue
+        await backend.wait_for_ready()
+        try:
+            result = await _lookup_se11_desktop(backend, name, object_type)
+            if isinstance(result, SE11Entry):
+                entries.append(result)
+            else:
+                errors.append(result)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("SE11 desktop lookup failed", extra={"name": name})
+            errors.append(
+                SE11Error(name=name, object_type=object_type, error=f"Error: {e}", retrieved_at=datetime.now(UTC))
+            )
+    if entries:
+        return SE11Result(entries=entries, errors=errors)
+    return SE11Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
+
+
 def _write_result_to_file(
     result: SE11Result,
     output_file: str,
@@ -480,7 +701,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
             "instead of returning inline (avoids context overflow)."
         ),
     )
-    async def sap_se11_lookup(
+    async def sap_se11_lookup(  # pylint: disable=too-many-branches
         names: str | list[str],
         object_type: SE11ObjectType,
         output_file: str | None = None,
@@ -512,54 +733,58 @@ def register_se11_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return SE11Result.failure(f"Session error: {e}")
 
-        entries: list[SE11Entry] = []
-        errors: list[SE11Error] = []
-
-        for name in name_list:
-            # Navigate to Easy Access first to ensure a clean starting state,
-            # then open SE11.  This prevents state bleeding between lookups.
-            await backend.enter_transaction("/n")
-            await backend.wait_for_ready()
-
-            tx_result = await backend.enter_transaction("SE11")
-            if not tx_result.success:
-                errors.append(
-                    SE11Error(
-                        name=name,
-                        object_type=object_type,
-                        error=f"Failed to navigate to SE11: {tx_result.error}",
-                        retrieved_at=datetime.now(UTC),
-                    )
-                )
-                continue
-            await backend.wait_for_ready()
-
-            try:
-                result = await _lookup_object_on_initial_screen(backend, name, object_type)
-                if isinstance(result, SE11Entry):
-                    entries.append(result)
-                else:
-                    errors.append(result)
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.exception("Looking up in SE11", extra={"object": name})
-                errors.append(
-                    SE11Error(
-                        name=name,
-                        object_type=object_type,
-                        error=f"Error looking up '{name}': {e}",
-                        retrieved_at=datetime.now(UTC),
-                    )
-                )
-
-        # Build final result
-        if entries:
-            final_result = SE11Result(entries=entries, errors=errors)
+        # Route to desktop or WebGUI batch lookup
+        if _is_desktop_backend(backend):
+            final_result = await _lookup_batch_se11_desktop(backend, name_list, object_type)
         else:
-            final_result = SE11Result.failure(
-                error=f"All {len(errors)} lookups failed",
-                entries=[],
-                errors=errors,
-            )
+            entries: list[SE11Entry] = []
+            errors: list[SE11Error] = []
+
+            for name in name_list:
+                # Navigate to Easy Access first to ensure a clean starting state,
+                # then open SE11.  This prevents state bleeding between lookups.
+                await backend.enter_transaction("/n")
+                await backend.wait_for_ready()
+
+                tx_result = await backend.enter_transaction("SE11")
+                if not tx_result.success:
+                    errors.append(
+                        SE11Error(
+                            name=name,
+                            object_type=object_type,
+                            error=f"Failed to navigate to SE11: {tx_result.error}",
+                            retrieved_at=datetime.now(UTC),
+                        )
+                    )
+                    continue
+                await backend.wait_for_ready()
+
+                try:
+                    result = await _lookup_object_on_initial_screen(backend, name, object_type)
+                    if isinstance(result, SE11Entry):
+                        entries.append(result)
+                    else:
+                        errors.append(result)
+                except Exception as e:  # pylint: disable=broad-exception-caught
+                    logger.exception("Looking up in SE11", extra={"object": name})
+                    errors.append(
+                        SE11Error(
+                            name=name,
+                            object_type=object_type,
+                            error=f"Error looking up '{name}': {e}",
+                            retrieved_at=datetime.now(UTC),
+                        )
+                    )
+
+            # Build final result
+            if entries:
+                final_result = SE11Result(entries=entries, errors=errors)
+            else:
+                final_result = SE11Result.failure(
+                    error=f"All {len(errors)} lookups failed",
+                    entries=[],
+                    errors=errors,
+                )
 
         # Write to file if requested
         if output_file:
