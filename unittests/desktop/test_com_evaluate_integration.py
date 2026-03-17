@@ -188,12 +188,12 @@ async def test_com_snapshot_returns_element_tree(backend):
     """sap_com_snapshot returns an element tree with IDs the LLM can use."""
     snapshot = await backend.get_snapshot()
     text = str(snapshot)
-    # Should contain the main window
-    assert "wnd[0]" in text
-    # Should contain element types
-    assert "GuiMainWindow" in text or "GuiWindow" in text or "Gui" in text
+    # Should contain SAP GUI element types
+    assert "Gui" in text, "Snapshot should contain GuiXxx element types"
+    # Should contain common elements like status bar, toolbar, okcode field
+    assert "sbar" in text or "okcd" in text, "Snapshot should contain sbar or okcd"
     # Should have multiple lines (it's a tree)
-    assert text.count("\n") > 5
+    assert text.count("\n") > 5, "Snapshot should be a multi-line tree"
 
 
 @skip_not_sap
