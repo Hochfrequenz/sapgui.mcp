@@ -13,6 +13,7 @@ from fastmcp import FastMCP
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models.se38_edit_models import SE38EditResult
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,33 @@ async def _fill_program_field_keyboard(backend: SapUiBackend, program_name: str)
     return True
 
 
+async def _navigate_and_open_editor_desktop(backend: SapUiBackend, program_name: str) -> str | None:
+    """Desktop-specific: navigate to SE38, fill program name, enter change mode."""
+    await backend.enter_transaction("SE38")
+    await backend.wait_for_ready()
+
+    filled = await backend.focus_and_type("RS38M-PROGRAMM", program_name.upper())
+    if not filled:
+        # Fallback: keyboard fill
+        filled = await fill_field_with_keyboard(backend, _SE38_FIELD_TITLES, program_name.upper())
+    if not filled:
+        return "Could not fill program name field on desktop"
+
+    await asyncio.sleep(0.3)
+    # F6 (Change) works for SE38 on desktop in both DE and EN
+    await backend.press_key("F6")
+    await backend.wait(2000)
+
+    # Verify we left the initial screen
+    screen = await backend.get_screen_info()
+    title = (screen.title or "").lower()
+    if "einstieg" in title or "initial" in title:
+        # Check status bar for error
+        sbar = await backend.get_status_bar()
+        return sbar.message or f"Could not open '{program_name}' in change mode"
+    return None
+
+
 async def _navigate_and_open_editor(backend: SapUiBackend, program_name: str) -> str | None:
     """Navigate to SE38 on the given page, fill program name, enter change mode, return error or None."""
     await backend.enter_transaction("SE38")
@@ -103,8 +131,11 @@ async def _navigate_and_open_editor(backend: SapUiBackend, program_name: str) ->
 
 async def _edit_check_activate(backend: SapUiBackend, program_name: str, new_source: str) -> SE38EditResult:
     """Core edit logic: read backup, replace, check, activate, revert on failure."""
-    # Navigate and open editor
-    nav_error = await _navigate_and_open_editor(backend, program_name)
+    # Navigate and open editor — use desktop or WebGUI path
+    if _is_desktop_backend(backend):
+        nav_error = await _navigate_and_open_editor_desktop(backend, program_name)
+    else:
+        nav_error = await _navigate_and_open_editor(backend, program_name)
     if nav_error:
         return SE38EditResult.failure(error=nav_error, program_name=program_name, backup_source="", activated=False)
 

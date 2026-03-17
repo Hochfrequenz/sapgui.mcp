@@ -913,8 +913,14 @@ class DesktopBackend:
     # ---- SapEditor ----
 
     @staticmethod
-    def _find_editor_shell(session: Any) -> Any | None:
-        """Find an AbapEditor or TextEdit shell in the current screen."""
+    def _find_editor_shell_raw(session: Any) -> tuple[Any, str] | None:
+        """Find an AbapEditor or TextEdit shell via raw COM.
+
+        Returns ``(raw_com_shell, sub_type)`` or ``None``.
+        Uses raw COM ``FindById`` to avoid pysapgui wrapper issues
+        with ``GuiAbapEditor`` property access.
+        """
+        raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
         usr = session.find_by_id("wnd[0]/usr")
         tree = cast(Any, usr).dump_tree(max_depth=5)
         for elem in _flatten(tree):
@@ -922,81 +928,107 @@ class DesktopBackend:
                 shell = session.find_by_id(elem.id)
                 sub_type = getattr(cast(Any, shell), "sub_type", "")
                 if sub_type in ("AbapEditor", "TextEdit"):
-                    return shell
+                    # Extract relative ID (wnd[0]/...) from full path (/app/con[N]/ses[N]/wnd[0]/...)
+                    full_id = elem.id
+                    wnd_idx = full_id.find("wnd[")
+                    relative_id = full_id[wnd_idx:] if wnd_idx >= 0 else full_id
+                    raw_shell = raw_session.FindById(relative_id, False)
+                    if raw_shell is None:
+                        raw_shell = getattr(shell, "com", getattr(shell, "_com", shell))
+                    return raw_shell, sub_type
         return None
 
     async def read_editor_source(self) -> str | None:
         """Read the current source code from an open ABAP editor.
 
-        Walks the element tree to find a GuiAbapEditor (SubType "AbapEditor")
-        or GuiTextedit (SubType "TextEdit") and reads all lines.
+        Walks the element tree to find a ``GuiAbapEditor`` or ``GuiTextedit``
+        and reads all lines via the raw COM ``GetLineCount`` / ``GetLineText``
+        interface.
         """
         session = self._require_session()
 
         def _read() -> str | None:
-            shell = DesktopBackend._find_editor_shell(session)
-            if shell is None:
+            result = DesktopBackend._find_editor_shell_raw(session)
+            if result is None:
                 return None
-            sub_type = getattr(cast(Any, shell), "sub_type", "")
-            # Strategy 1: pysapgui wrapper properties
+            raw_shell, sub_type = result
+            # GuiAbapEditor: GetLineCount() + GetLineText(i) on raw COM
             try:
-                num_lines = cast(Any, shell).number_of_lines
-                lines = []
-                for i in range(num_lines):
-                    lines.append(str(cast(Any, shell).get_line_text(i)))
+                num_lines = raw_shell.GetLineCount()
+                lines = [raw_shell.GetLineText(i) for i in range(num_lines)]
                 return "\n".join(lines)
-            except Exception:
-                pass
-            # Strategy 2: raw COM properties (bypass wrapper)
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug("read_editor_source: GetLineCount/GetLineText failed", extra={"sub_type": sub_type})
+            # GuiTextedit fallback: NumberOfLines + GetLineText
             try:
-                raw = cast(Any, shell).com
-                num_lines = raw.NumberOfLines
-                lines = []
-                for i in range(num_lines):
-                    lines.append(str(raw.GetLineText(i)))
+                num_lines = raw_shell.NumberOfLines
+                lines = [str(raw_shell.GetLineText(i)) for i in range(num_lines)]
                 return "\n".join(lines)
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning(
                     "read_editor_source",
-                    extra={"sub_type": sub_type, "error": "COM properties unavailable on this editor"},
+                    extra={"sub_type": sub_type, "error": "Could not read lines from editor"},
                 )
             return None
 
-        result = await self._com.run(_read)
-        logger.info("read_editor_source", extra={"found": result is not None})
-        return result
+        source = await self._com.run(_read)
+        logger.info("read_editor_source", extra={"found": source is not None})
+        return source
 
     async def replace_editor_source(self, code: str) -> bool:
         """Replace the entire source code in an open ABAP editor.
 
-        Finds the editor shell and sets its text property.
+        For ``GuiAbapEditor``: SelectRange + Delete + InsertText.
+        For ``GuiTextedit``: sets the ``Text`` property directly.
         """
         session = self._require_session()
 
         def _replace() -> bool:
-            shell = DesktopBackend._find_editor_shell(session)
-            if shell is None:
+            import time  # pylint: disable=import-outside-toplevel
+
+            result = DesktopBackend._find_editor_shell_raw(session)
+            if result is None:
                 return False
-            sub_type = getattr(cast(Any, shell), "sub_type", "")
+            raw_shell, sub_type = result
+            # GuiAbapEditor: SelectRange + Delete + InsertText(text, line, col).
+            # SelectRange(startLine, startCol, endLine, endCol) creates a proper
+            # selection that Delete() respects (unlike SelectAll which doesn't).
+            # InsertText signature: (text: str, line: int, col: int) — undocumented.
+            # InsertText drops the last segment after \n, so append \n to the code.
+            max_col = 9999  # SAP clamps to actual line length
+            if sub_type == "AbapEditor":
+                try:
+                    # Clear: SelectRange all + Delete, repeated because the first
+                    # pass may leave a residual empty line that still has content
+                    # in the editor buffer.
+                    for _ in range(2):
+                        cnt = raw_shell.GetLineCount()
+                        raw_shell.SelectRange(0, 0, cnt - 1, max_col)
+                        time.sleep(0.1)
+                        raw_shell.Delete()
+                        time.sleep(0.1)
+                    # Insert new code (trailing \n ensures last line is included)
+                    insert_code = code if code.endswith("\n") else code + "\n"
+                    raw_shell.InsertText(insert_code, 0, 0)
+                    time.sleep(0.2)
+                    return True
+                except Exception as exc:  # pylint: disable=broad-exception-caught
+                    logger.warning("replace_editor_source AbapEditor failed: %s", exc)
+                    return False
+            # GuiTextedit: set Text property
             try:
-                cast(Any, shell).text = code
+                raw_shell.Text = code
                 return True
-            except Exception:
-                pass
-            # Fallback: raw COM
-            try:
-                cast(Any, shell).com.Text = code
-                return True
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning(
                     "replace_editor_source",
-                    extra={"sub_type": sub_type, "error": "COM Text property unavailable"},
+                    extra={"sub_type": sub_type, "error": "Text property unavailable"},
                 )
             return False
 
-        result = await self._com.run(_replace)
-        logger.info("replace_editor_source", extra={"success": result, "length": len(code)})
-        return result
+        replaced = await self._com.run(_replace)
+        logger.info("replace_editor_source", extra={"success": replaced, "length": len(code)})
+        return replaced
 
     async def check_and_activate(self) -> CheckActivateResult:
         """Run syntax check (Ctrl+F2) and activate (Ctrl+F3).
