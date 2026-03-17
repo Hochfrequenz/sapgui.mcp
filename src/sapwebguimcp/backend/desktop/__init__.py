@@ -274,12 +274,13 @@ class DesktopBackend:
             return False
         try:
             target = self._registry.get_session(session_id)
-            com_id = target.id  # e.g. "/app/con[0]/ses[1]"
             primary = self._registry.get_session("s1")
 
-            def _close(cid: str = com_id, p: Any = primary) -> bool:
+            def _close(t: Any = target, p: Any = primary) -> bool:
+                # Get COM ID on the COM thread (Id property requires COM context)
+                com_id = str(t.com.Id)
                 conn = p.com.Parent
-                conn.CloseSession(cid)
+                conn.CloseSession(com_id)
                 return True
 
             result = await self._com.run(_close)

@@ -17,7 +17,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 #: Seconds to cache the "session is alive" probe result.
-_PROBE_TTL_SECONDS = 5.0
+#: Set high enough that normal tool call sequences don't trigger repeated probes.
+_PROBE_TTL_SECONDS = 30.0
 
 
 class DesktopSessionRegistry:
