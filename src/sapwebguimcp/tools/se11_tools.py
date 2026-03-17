@@ -11,6 +11,7 @@ import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -446,7 +447,7 @@ _SE11_STRUCTURE_FIELD_LABELS = [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN
 # DE/EN column headers in the SE11 fields table control.
 _COL_FIELD_NAME = ("Feld", "Feldname", "Field", "Field Name", "Field name")
 _COL_DATA_TYPE = ("Datentyp", "Data Type", "Data type")
-_COL_LENGTH = ("Länge", "L\xe4nge", "Length")
+_COL_LENGTH = ("Länge", "Length")
 _COL_DECIMALS = ("DezStellen", "Dez.St.", "Decimal Places", "Decimals", "Dec.Pl.")
 _COL_SHORT_DESC = ("Kurzbeschreibung", "Short Description", "Short text")
 # Note: Key column uses checkboxes which GetCell().Text can't read on desktop.
@@ -461,7 +462,7 @@ def _get_col(row: dict[str, str], candidates: tuple[str, ...]) -> str:
     return ""
 
 
-def _parse_se11_table_rows(rows: list[dict[str, str]], object_type: SE11ObjectType) -> list[SE11Field]:
+def _parse_se11_table_rows(rows: list[dict[str, str]]) -> list[SE11Field]:
     """Parse table control rows into SE11Field models."""
     fields: list[SE11Field] = []
     for row in rows:
@@ -505,29 +506,59 @@ async def _lookup_se11_desktop(backend: SapUiBackend, name: str, object_type: SE
     now = datetime.now(UTC)
     await backend.wait_for_ready()
 
-    # Fill name field — SE11 uses RSRD1-TBMA_VAL for tables, RSRD1-DDTYPE_VAL for structures.
-    # The field names on the SE11 initial screen are NOT the dictionary names.
+    # SE11 initial screen: select the radio button for the object type,
+    # then fill the corresponding text field.
+    # Radio buttons: RSRD1-TBMA (table), RSRD1-VIMA (view), RSRD1-DDTYPE (structure/type)
+    # Text fields:   RSRD1-TBMA_VAL,     RSRD1-VIMA_VAL,  RSRD1-DDTYPE_VAL
     if object_type == "table":
-        field_names = ["RSRD1-TBMA_VAL", "RSRD1-VIMA_VAL"]
+        radio_id = "wnd[0]/usr/radRSRD1-TBMA"
+        field_id = "wnd[0]/usr/ctxtRSRD1-TBMA_VAL"
     else:
-        field_names = ["RSRD1-DDTYPE_VAL"]
-    filled = False
-    for field_name in field_names:
-        if await backend.focus_and_type(field_name, name.upper()):
-            filled = True
-            break
-    if not filled:
-        # Fallback: try label-based fill
-        labels = _SE11_TABLE_FIELD_LABELS if object_type == "table" else _SE11_STRUCTURE_FIELD_LABELS
-        for label in labels:
-            try:
-                await backend.fill_field(label, name.upper())
-                filled = True
+        radio_id = "wnd[0]/usr/radRSRD1-DDTYPE"
+        field_id = "wnd[0]/usr/ctxtRSRD1-DDTYPE_VAL"
+
+    if not isinstance(backend, DesktopBackend):
+        return SE11Error(name=name, object_type=object_type, error="Requires DesktopBackend", retrieved_at=now)
+
+    session = backend._require_session()
+
+    def _select_and_fill() -> str | None:
+        """Select radio + fill field via raw COM.
+
+        Polls for the radio button since SE11 may take a moment to render
+        after transaction navigation.  Returns None on success, error on failure.
+        """
+        import time  # pylint: disable=import-outside-toplevel
+
+        raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
+        # Poll for the radio button (SE11 screen may not be rendered yet)
+        radio = None
+        for _attempt in range(20):
+            radio = raw_session.FindById(radio_id, False)
+            if radio is not None:
                 break
-            except ValueError:
-                continue
-    if not filled:
-        return SE11Error(name=name, object_type=object_type, error="Could not fill name field", retrieved_at=now)
+            time.sleep(0.5)
+        if radio is None:
+            wnd = raw_session.FindById("wnd[0]", False)
+            screen_title = wnd.Text if wnd else "unknown"
+            return f"SE11 screen not ready after 10s (screen: {screen_title})"
+        try:
+            radio.Select()
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            return f"Could not select radio: {exc}"
+        field = raw_session.FindById(field_id, False)
+        if field is None:
+            return f"Field not found: {field_id}"
+        try:
+            field.Text = name.upper()
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            return f"Could not fill field: {exc}"
+        return None
+
+    com = backend._com
+    fill_error = await com.run(_select_and_fill)
+    if fill_error:
+        return SE11Error(name=name, object_type=object_type, error=fill_error, retrieved_at=now)
 
     # Press F7 (Display)
     await backend.press_key("F7")
@@ -553,12 +584,6 @@ async def _lookup_se11_desktop(backend: SapUiBackend, name: str, object_type: SE
             retrieved_at=now,
         )
 
-    if not isinstance(backend, DesktopBackend):
-        return SE11Error(name=name, object_type=object_type, error="Requires DesktopBackend", retrieved_at=now)
-
-    session = backend._require_session()
-    com = backend._com
-
     # Read the fields table control (SE11 shows fields on the main screen, no tabs)
     rows = await com.run(lambda: read_table_control_all_rows(session, _flatten))
 
@@ -566,11 +591,16 @@ async def _lookup_se11_desktop(backend: SapUiBackend, name: str, object_type: SE
     screen_fields = await backend.discover_fields()
     description = ""
     for f in screen_fields:
-        if f.name and ("DDTEXT" in f.name.upper() or "DD02D" in f.name.upper()):
+        if f.name and f.name.upper() == "DD02D-DDTEXT":
             description = f.value or ""
             break
+    if not description:
+        for f in screen_fields:
+            if f.name and "DDTEXT" in f.name.upper():
+                description = f.value or ""
+                break
 
-    fields = _parse_se11_table_rows(rows, object_type)
+    fields = _parse_se11_table_rows(rows)
     if not fields:
         return SE11Error(
             name=name, object_type=object_type, error="Could not read fields from SE11 table control", retrieved_at=now

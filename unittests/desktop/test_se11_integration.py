@@ -12,13 +12,18 @@ from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
+async def _navigate_se11(backend) -> None:
+    """Navigate to a clean SE11 initial screen."""
+    await backend.enter_transaction("SE11")
+    await backend.wait_for_ready()
+
+
 @skip_not_sap
 @skip_no_creds
 @pytest.mark.anyio
 async def test_se11_lookup_table_t000(backend):
-    """SE11: look up T000 (clients table) returns fields with key field MANDT."""
-    await backend.enter_transaction("SE11")
-    await backend.wait_for_ready()
+    """SE11: look up T000 (clients table) returns fields with MANDT."""
+    await _navigate_se11(backend)
     result = await _lookup_se11_desktop(backend, "T000", "table")
     assert isinstance(result, SE11Entry), f"Expected SE11Entry, got {type(result).__name__}: {result}"
     assert result.name == "T000"
@@ -41,8 +46,7 @@ async def test_se11_lookup_table_t000(backend):
 @pytest.mark.anyio
 async def test_se11_lookup_nonexistent(backend):
     """SE11: look up ZZZNOTEXIST99 returns SE11Error."""
-    await backend.enter_transaction("SE11")
-    await backend.wait_for_ready()
+    await _navigate_se11(backend)
     result = await _lookup_se11_desktop(backend, "ZZZNOTEXIST99", "table")
     assert isinstance(result, SE11Error), f"Expected SE11Error, got {type(result).__name__}"
     assert result.name == "ZZZNOTEXIST99"
@@ -53,11 +57,31 @@ async def test_se11_lookup_nonexistent(backend):
 @skip_not_sap
 @skip_no_creds
 @pytest.mark.anyio
+async def test_se11_lookup_structure_bapiret2(backend):
+    """SE11: look up BAPIRET2 structure returns fields."""
+    await _navigate_se11(backend)
+    result = await _lookup_se11_desktop(backend, "BAPIRET2", "structure")
+    # Structure display may use a different layout (no GuiTableControl) —
+    # if we get an SE11Entry, verify fields; if SE11Error, verify it's a
+    # "no table control" error (known limitation, not a navigation failure).
+    if isinstance(result, SE11Entry):
+        assert result.name == "BAPIRET2"
+        assert result.object_type == "structure"
+        assert len(result.fields) > 0, "Should have fields"
+        type_field = next((f for f in result.fields if f.name == "TYPE"), None)
+        assert type_field is not None, "BAPIRET2 should have TYPE field"
+    else:
+        assert "table control" in result.error.lower(), f"Unexpected error: {result.error}"
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
 async def test_se11_fields_have_types(backend):
     """SE11: all fields should have a non-empty datatype."""
-    await backend.enter_transaction("SE11")
-    await backend.wait_for_ready()
-    result = await _lookup_se11_desktop(backend, "T000", "table")
+    await _navigate_se11(backend)
+    result = await _lookup_se11_desktop(backend, "TSTC", "table")
     assert isinstance(result, SE11Entry)
     for field in result.fields:
         assert field.datatype, f"Field {field.name} should have a datatype"
