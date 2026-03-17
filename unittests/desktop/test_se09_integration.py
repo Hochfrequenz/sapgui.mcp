@@ -119,3 +119,38 @@ async def test_se09_no_results_fake_user(backend):
     assert result.request_count == 0
     assert len(result.requests) == 0
     await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_se09_include_objects_desktop(backend):
+    """SE09: include_objects=True expands request nodes to reveal tasks.
+
+    After expanding, each request should have a tasks list (possibly empty
+    if the request has no tasks). At least one request should have tasks
+    if the system has typical workbench activity.
+    """
+    result = await _lookup_transports_desktop(
+        backend, username=None, request_type="all", status="modifiable", include_objects=True
+    )
+    assert result.success, f"SE09 failed: {result.error}"
+    assert isinstance(result.requests, list)
+    assert result.request_count > 0, "Expected at least one transport request"
+
+    # Check that tasks were populated on at least some requests
+    requests_with_tasks = [r for r in result.requests if r.tasks]
+    # Note: it's valid for all requests to have 0 tasks (e.g. if all are single-task requests)
+    # but we log it for visibility
+    if requests_with_tasks:
+        # Verify task structure
+        for req in requests_with_tasks:
+            for task in req.tasks:
+                assert len(task.task_number) == 10, f"Task number should be 10 chars: {task.task_number}"
+                assert task.task_number != req.request_number, "Task should differ from parent request"
+
+    # Verify JSON roundtrip
+    json_str = result.model_dump_json()
+    restored = TransportListResult.model_validate_json(json_str)
+    assert restored.request_count == result.request_count
+    await go_home(backend)

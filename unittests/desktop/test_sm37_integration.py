@@ -7,7 +7,7 @@ from datetime import date
 import pytest
 
 from sapwebguimcp.models.sm37_models import SM37JobListResult
-from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
+from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup, _execute_sm37_lookup_desktop
 from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
@@ -164,4 +164,45 @@ async def test_sm37_with_date_range(backend):
     assert result.job_count == len(result.jobs)
     assert result.job_count >= 0
     assert isinstance(result.model_dump_json(), str)
+    await go_home(backend)
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_sm37_include_log_desktop(backend):
+    """SM37: include_log=True fetches job log when exactly 1 job matches."""
+    # First find a finished job to use
+    probe = await _execute_sm37_lookup_desktop(
+        backend,
+        job_name="*",
+        username=None,
+        statuses=["finished"],
+        from_date=None,
+        to_date=None,
+    )
+    await go_home(backend)
+    if not probe.success or not probe.jobs:
+        pytest.skip("No finished jobs available for include_log test")
+
+    # Use the first job's name for an exact match
+    target_job = probe.jobs[0].job_name
+    result = await _execute_sm37_lookup(
+        backend,
+        job_name=target_job,
+        username=None,
+        statuses=["finished"],
+        from_date=None,
+        to_date=None,
+        include_log=True,
+    )
+    assert result.success, f"Lookup failed: {result.error}"
+    if result.job_count == 1:
+        assert result.job_log is not None, "job_log should be populated when exactly 1 job matches"
+        assert result.job_log.job_name == target_job
+        assert isinstance(result.job_log.log_lines, list)
+        assert len(result.job_log.log_lines) > 0, "Job log should have at least one line"
+    else:
+        # Multiple jobs with same name — log not fetched (only works for exactly 1)
+        assert result.job_log is None, "job_log should be None when multiple jobs match"
     await go_home(backend)
