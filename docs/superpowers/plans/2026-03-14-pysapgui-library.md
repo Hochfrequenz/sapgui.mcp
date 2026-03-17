@@ -89,6 +89,7 @@ unittests/sapgui/
 ### Task 1: Error Classes
 
 **Files:**
+
 - Create: `src/sapwebguimcp/sapgui/_errors.py`
 - Test: `unittests/sapgui/test_errors.py`
 
@@ -171,6 +172,7 @@ git commit -m "feat(sapgui): add error class hierarchy"
 ### Task 2: GuiComponentType Enum
 
 **Files:**
+
 - Create: `src/sapwebguimcp/sapgui/_types.py`
 - Test: `unittests/sapgui/test_types.py`
 
@@ -230,7 +232,7 @@ def test_enum_has_all_non_abstract_types():
 Run: `python -m pytest unittests/sapgui/test_types.py -v`
 Expected: FAIL — `ModuleNotFoundError`
 
-- [ ] **Step 3: Implement _types.py**
+- [ ] **Step 3: Implement \_types.py**
 
 ```python
 # src/sapwebguimcp/sapgui/_types.py
@@ -389,6 +391,7 @@ git commit -m "feat(sapgui): add GuiComponentType enum and prefix mappings"
 ### Task 3: Test Fixtures (Mock COM Objects)
 
 **Files:**
+
 - Create: `unittests/sapgui/conftest.py`
 
 - [ ] **Step 1: Create shared mock COM fixture**
@@ -493,6 +496,7 @@ git commit -m "test(sapgui): add shared mock COM fixtures"
 ### Task 4: Base Classes — GuiComponent, GuiVComponent, GuiContainer, GuiVContainer
 
 **Files:**
+
 - Create: `src/sapwebguimcp/sapgui/components/__init__.py`
 - Create: `src/sapwebguimcp/sapgui/components/base.py`
 - Test: `unittests/sapgui/test_base.py`
@@ -923,6 +927,7 @@ git commit -m "feat(sapgui): add base component classes (GuiComponent, GuiVCompo
 ### Task 5: Collection Wrappers
 
 **Files:**
+
 - Create: `src/sapwebguimcp/sapgui/components/collection.py`
 - Test: `unittests/sapgui/test_collection.py`
 
@@ -1076,6 +1081,7 @@ git commit -m "feat(sapgui): add GuiCollection and GuiComponentCollection wrappe
 ### Task 6: Two-Level Type Dispatch Factory
 
 **Files:**
+
 - Create: `src/sapwebguimcp/sapgui/_factory.py`
 - Test: `unittests/sapgui/test_factory.py`
 
@@ -1182,7 +1188,7 @@ Create all component stubs (these will be fleshed out in later tasks).
 
 **Important:** application.py, connection.py, and session.py are also created as
 stubs here so the factory can import them. They get their full implementations
-in Tasks 8-10, but the stubs must exist now for the factory's _TYPE_MAP.
+in Tasks 8-10, but the stubs must exist now for the factory's \_TYPE_MAP.
 
 ```python
 # src/sapwebguimcp/sapgui/components/application.py
@@ -2576,6 +2582,7 @@ git commit -m "feat(sapgui): add two-level type dispatch factory and all compone
 ### Task 7: COM Helpers and Entry Points
 
 **Files:**
+
 - Create: `src/sapwebguimcp/sapgui/_com.py`
 - Modify: `src/sapwebguimcp/sapgui/__init__.py`
 - Test: `unittests/sapgui/test_com.py`
@@ -2733,7 +2740,7 @@ def test_sap_gui_launch_delegates():
         assert result is mock_wait.return_value
 ```
 
-- [ ] **Step 6: Implement __init__.py entry points**
+- [ ] **Step 6: Implement **init**.py entry points**
 
 ```python
 # src/sapwebguimcp/sapgui/__init__.py
@@ -2805,6 +2812,7 @@ git commit -m "feat(sapgui): add COM helpers and SapGui.connect()/launch() entry
 ### Task 8: GuiApplication
 
 **Files:**
+
 - Create: `src/sapwebguimcp/sapgui/components/application.py`
 - Test: `unittests/sapgui/test_application.py`
 
@@ -2945,6 +2953,7 @@ git commit -m "feat(sapgui): add GuiApplication wrapper"
 ### Task 9: GuiConnection
 
 **Files:**
+
 - Create: `src/sapwebguimcp/sapgui/components/connection.py`
 - Test: `unittests/sapgui/test_connection.py`
 
@@ -3055,6 +3064,7 @@ git commit -m "feat(sapgui): add GuiConnection wrapper"
 ### Task 10: GuiSession and GuiSessionInfo
 
 **Files:**
+
 - Create: `src/sapwebguimcp/sapgui/components/session.py`
 - Test: `unittests/sapgui/test_session.py`
 
@@ -3326,6 +3336,7 @@ git commit -m "feat(sapgui): add GuiSession, GuiConnection, GuiApplication with 
 ### Task 11: Pydantic Models
 
 **Files:**
+
 - Create: `src/sapwebguimcp/sapgui/models.py`
 - Test: `unittests/sapgui/test_models.py`
 
@@ -3453,6 +3464,7 @@ git commit -m "feat(sapgui): add SessionInfo and ElementInfo Pydantic models"
 ### Task 12: dump_tree on GuiVContainer
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/sapgui/components/base.py`
 - Test: `unittests/sapgui/test_base.py` (add dump_tree tests)
 
@@ -3594,6 +3606,7 @@ git commit -m "feat(sapgui): add dump_tree() for recursive screen inspection"
 ### Task 13: Public API Re-exports
 
 **Files:**
+
 - Modify: `src/sapwebguimcp/sapgui/components/__init__.py`
 
 - [ ] **Step 1: Add re-exports for all component classes**
@@ -3678,6 +3691,7 @@ git commit -m "feat(sapgui): add public API re-exports in components/__init__"
 ### Task 14: Integration Tests (Live SAP GUI)
 
 **Files:**
+
 - Create: `unittests/sapgui/test_integration.py`
 
 - [ ] **Step 1: Write integration tests**

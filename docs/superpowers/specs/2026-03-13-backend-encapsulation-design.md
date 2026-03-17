@@ -9,6 +9,7 @@ Encapsulate WebGUI-specific code (JS files, ARIA parsers) inside `backend/webgui
 One MCP session uses exactly one backend. The backend type is a startup config choice. Tools depend on the `SapUiBackend` protocol for interaction and import backend-specific parsers for structured output. Models are shared — both backends return the same result types.
 
 The LLM client either:
+
 - Calls a raw snapshot tool (`sap_get_snapshot`) and interprets the result itself
 - Calls a structured tool (`sap_se09_lookup`) which internally navigates, snapshots, parses, and returns structured data
 
@@ -85,20 +86,24 @@ Both `webgui/parsers/` and `desktop/parsers/` return the same shared model types
 ## Import Boundary Rules
 
 **Internal** (never imported from outside `backend/webgui/`):
+
 - `backend/webgui/browser.py` — Playwright/CDP session management
 - `backend/webgui/js/` — JavaScript files
 - `backend/webgui/js_helpers.py` — JS loading utilities
 
 **Backend-specific but importable by tools**:
+
 - `backend/webgui/parsers/` — ARIA-format parsers. Tools import these to parse snapshots into structured data. This is an accepted boundary crossing: parsers are backend-specific but tools need them to return structured results.
 
 **Shared** (imported by everyone):
+
 - `backend/protocol` — `SapUiBackend` type
 - `backend/manager` — `get_backend()` entry point
 - `models/` — result types
 - `lang.py` — DE/EN string constants
 
 **Existing violations to fix:**
+
 - `tools/se16_tools.py` imports `load_js` from `backend.webgui.js_helpers` — must be refactored so the JS loading stays internal to the backend
 - `tools/browser_tools.py` imports `_escape_css_selector` from `backend.webgui.backend` — must be moved to a shared utility or into the protocol
 
@@ -219,12 +224,14 @@ unittests/
 ### Split criterion
 
 **Does it need ARIA snapshots, WebGUI infrastructure, or a live SAP WebGUI connection?**
+
 - Yes → `unittests/webgui/`
 - No (shared models, config, utilities, catalogs) → `unittests/` top level
 
 ### Splitting `test_sap_integration.py`
 
 The monolith `test_sap_integration.py` (~3500 lines) is split by tcode/scope:
+
 - Login/session tests → `test_login_integration.py`
 - Popup handling → `test_popup_integration.py`
 - Keyboard shortcuts → `test_shortcuts_integration.py`

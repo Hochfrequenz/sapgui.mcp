@@ -179,3 +179,39 @@ async def test_com_model_roundtrip(backend):
     restored = ComEvaluateResult.model_validate_json(json_str)
     assert len(restored.operations) == 1
     assert restored.operations[0].element_id == "wnd[0]"
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_com_snapshot_returns_element_tree(backend):
+    """sap_com_snapshot returns an element tree with IDs the LLM can use."""
+    snapshot = await backend.get_snapshot()
+    text = str(snapshot)
+    # Should contain the main window
+    assert "wnd[0]" in text
+    # Should contain element types
+    assert "GuiMainWindow" in text or "GuiWindow" in text or "Gui" in text
+    # Should have multiple lines (it's a tree)
+    assert text.count("\n") > 5
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_com_snapshot_element_ids_usable(backend):
+    """Element IDs from snapshot can be used in sap_com_evaluate."""
+    # Get snapshot
+    snapshot = str(await backend.get_snapshot())
+    # The snapshot should contain wnd[0]/sbar (status bar)
+    assert "sbar" in snapshot
+
+    # Use the ID to read the status bar text
+    session = backend._require_session()
+
+    def _run():
+        op = ComOperationInput(element_id="wnd[0]/sbar", action="get", property_or_method="Text")
+        return _execute_single_op(session, op)
+
+    result = await backend._com.run(_run)
+    assert result.success, f"Failed to read status bar: {result.error}"

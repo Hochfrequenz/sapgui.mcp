@@ -18,3 +18,11 @@ class ComEvaluateResult(ToolResult):
     """Result from sap_com_evaluate tool. Supports batch operations."""
 
     operations: list[ComOperation] = Field(default_factory=list, description="Results of each operation")
+
+
+class ComSnapshotResult(ToolResult):
+    """Result from sap_com_snapshot tool — element tree with IDs."""
+
+    snapshot: str | None = Field(
+        default=None, description="Indented element tree. Each line: Type[path]: 'text'. Use path as element_id."
+    )

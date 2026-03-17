@@ -23,11 +23,12 @@ async def sap_com_evaluate(
 ```
 
 **Parameters:**
+
 - `element_id`: SAP GUI element path (e.g., `"wnd[0]/usr/txtFIELD"`, `"wnd[0]/usr/cntl/shell"`)
 - `action`: One of:
-  - `"get"` — read a property (e.g., `Text`, `Selected`, `RowCount`)
-  - `"set"` — write a property (e.g., `Text`, `Selected`)
-  - `"call"` — call a method (e.g., `SendVKey`, `SelectRows`, `GetCellValue`)
+    - `"get"` — read a property (e.g., `Text`, `Selected`, `RowCount`)
+    - `"set"` — write a property (e.g., `Text`, `Selected`)
+    - `"call"` — call a method (e.g., `SendVKey`, `SelectRows`, `GetCellValue`)
 - `property_or_method`: The COM property or method name (e.g., `"Text"`, `"GetCellValue"`)
 - `args`: Arguments for `"set"` (value) or `"call"` (method args). Not used for `"get"`.
 
@@ -102,6 +103,7 @@ def _evaluate() -> Any:
 ### Result Serialization
 
 COM can return complex objects. Serialization strategy:
+
 - Primitives (str, int, bool, None) → direct JSON
 - COM collections → convert to list of strings
 - COM objects → return their `.Id` and `.Type` as a dict

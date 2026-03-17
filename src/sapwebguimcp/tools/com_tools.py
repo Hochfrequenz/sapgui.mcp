@@ -4,7 +4,7 @@ General-purpose COM evaluate tool for SAP GUI desktop backend.
 Mirrors browser_evaluate for WebGUI — gives the LLM an escape hatch
 to perform arbitrary COM operations on SAP GUI elements by their ID.
 
-Workflow: LLM calls sap_get_snapshot -> reads element IDs -> calls
+Workflow: LLM calls sap_com_snapshot -> reads element IDs -> calls
 sap_com_evaluate with operations on those elements.
 """
 
@@ -17,7 +17,7 @@ from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.models.com_results import ComEvaluateResult, ComOperation
+from sapwebguimcp.models.com_results import ComEvaluateResult, ComOperation, ComSnapshotResult
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,11 @@ class ComOperationInput(BaseModel):
         description="COM property or method name (e.g., 'Text', 'SendVKey', 'GetCellValue')"
     )
     args: list[str | int | bool | float] | None = Field(
-        default=None, description="Arguments for 'set' (value) or 'call' (method args)"
+        default=None,
+        description=(
+            "For 'set': single-element list with the value, e.g. ['hello']. "
+            "For 'call': positional args, e.g. [0, 'MATNR']. Not used for 'get'."
+        ),
     )
 
 
@@ -121,28 +125,91 @@ def register_com_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
+            readOnlyHint=True,
+            openWorldHint=False,
+        ),
+        description=(
+            "Get the SAP GUI element tree with element IDs (desktop backend only). "
+            "Returns an indented tree of all elements on the current screen. "
+            "Each line shows: type, name, and text value. "
+            "Use the element paths as element_id in sap_com_evaluate.\n\n"
+            "Example output:\n"
+            "```\n"
+            "GuiMainWindow[wnd[0]]: 'SAP Easy Access'\n"
+            "  GuiOkCodeField[tbar[0]/okcd]: ''\n"
+            "  GuiTextField[usr/txtFIELD]: 'value'\n"
+            "```\n"
+            "The path in brackets (e.g., `wnd[0]/usr/txtFIELD`) is the element_id."
+        ),
+    )
+    async def sap_com_snapshot(
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> ComSnapshotResult:
+        """
+        Get the SAP GUI element tree with element IDs.
+
+        Args:
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
+
+        Returns:
+            ComSnapshotResult with the element tree as text.
+        """
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_com_snapshot")
+        except ValueError as e:
+            return ComSnapshotResult.failure(str(e))
+
+        if not _is_desktop_backend(backend):
+            return ComSnapshotResult.failure(
+                "sap_com_snapshot is only available on the desktop backend. " + "Use browser_snapshot for WebGUI."
+            )
+
+        snapshot = await backend.get_snapshot()
+        return ComSnapshotResult(snapshot=str(snapshot))
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
             readOnlyHint=False,
             destructiveHint=True,
             openWorldHint=False,
         ),
         description=(
             "Execute COM operations on SAP GUI elements (desktop backend only). "
-            "Use sap_get_snapshot first to see element IDs, then call this tool. "
-            "Supports batch: multiple operations in a single call (e.g., fill 3 fields + click a button). "
-            "Use with caution — this has full access to the SAP GUI scripting interface. "
-            "Prefer SAP-specific tools (sap_se16_query, sap_se37_lookup, etc.) when available.\n\n"
+            "This is the general-purpose escape hatch — use it when no specific tool exists.\n\n"
+            "**Workflow:** Call `sap_com_snapshot` to see element IDs, then use this tool.\n\n"
             "**Actions:**\n"
-            "- `get`: Read a property (e.g., Text, Selected, RowCount)\n"
-            "- `set`: Write a property (e.g., Text='value', Selected=True)\n"
-            "- `call`: Invoke a method (e.g., SendVKey(0), GetCellValue(0, 'COL'))\n\n"
-            "**Examples:**\n"
+            "- `get`: Read a property (args not needed)\n"
+            '- `set`: Write a property (args = single-element list with value, e.g. `["hello"]`)\n'
+            '- `call`: Call a method (args = positional arguments, e.g. `[0, "COL"]`)\n\n'
+            "**Element IDs** come from `sap_com_snapshot`. Common patterns:\n"
+            "- `wnd[0]` — main window (for SendVKey)\n"
+            "- `wnd[0]/tbar[0]/okcd` — OkCode/transaction field\n"
+            "- `wnd[0]/usr/txtNAME` — text field (txt prefix)\n"
+            "- `wnd[0]/usr/ctxtNAME` — context/search field (ctxt prefix)\n"
+            "- `wnd[0]/usr/chkNAME` — checkbox (chk prefix)\n"
+            "- `wnd[0]/usr/cntl.../shell` — ALV grid or tree control\n"
+            "- `wnd[0]/sbar` — status bar\n\n"
+            "**VKey codes** for SendVKey: 0=Enter, 2=F2, 3=F3/Back, 5=F5, 7=F7/Display, "
+            "8=F8/Execute, 11=F11/Save, 12=F12/Cancel.\n\n"
+            "**Batch:** Operations run sequentially. If op N fails, ops 1..N-1 already took effect. "
+            "Check each operation's `success` field.\n\n"
+            "**Example** (fill field + press Enter):\n"
             "```json\n"
             '{"operations": [\n'
-            '  {"element_id": "wnd[0]/usr/txtFIELD", "action": "set",\n'
-            '   "property_or_method": "Text", "args": ["value"]},\n'
-            '  {"element_id": "wnd[0]", "action": "call", "property_or_method": "SendVKey", "args": [0]}\n'
+            '  {"element_id": "wnd[0]/usr/txtRS38M-PROGRAMM",\n'
+            '   "action": "set", "property_or_method": "Text",\n'
+            '   "args": ["ZTEST"]},\n'
+            '  {"element_id": "wnd[0]",\n'
+            '   "action": "call", "property_or_method": "SendVKey",\n'
+            '   "args": [0]}\n'
             "]}\n"
-            "```"
+            "```\n\n"
+            "**Results:** Each operation returns a JSON-encoded `result` field. "
+            'Strings appear as `"hello"`, numbers as `42`, null as `null`. '
+            "`set` reads back the value after writing.\n\n"
+            "Prefer SAP-specific tools (sap_se16_query, sap_se37_lookup, etc.) when available."
         ),
     )
     async def sap_com_evaluate(
@@ -153,6 +220,10 @@ def register_com_tools(mcp: FastMCP) -> None:
         """
         Execute one or more COM operations on SAP GUI elements.
 
+        Operations execute sequentially on the COM thread. If operation N fails,
+        operations 1..N-1 have already been applied (side effects persist).
+        Each operation in the response has its own ``success`` flag.
+
         Args:
             operations: List of operations to execute sequentially.
                 Each operation has: element_id, action (get/set/call),
@@ -161,7 +232,8 @@ def register_com_tools(mcp: FastMCP) -> None:
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
-            ComEvaluateResult with results for each operation.
+            ComEvaluateResult with per-operation results. Top-level success=True
+            even if individual operations failed — check each operation's success.
         """
         if not operations:
             return ComEvaluateResult.failure("No operations provided")
@@ -173,8 +245,7 @@ def register_com_tools(mcp: FastMCP) -> None:
 
         if not _is_desktop_backend(backend):
             return ComEvaluateResult.failure(
-                "sap_com_evaluate is only available on the desktop backend. "
-                + "Use browser_evaluate for WebGUI."
+                "sap_com_evaluate is only available on the desktop backend. " + "Use browser_evaluate for WebGUI."
             )
 
         from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
