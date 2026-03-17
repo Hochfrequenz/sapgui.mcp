@@ -87,7 +87,7 @@ def _read_se37_table_control(session: Any, _flatten_fn: Any) -> list[dict[str, s
                 try:
                     row_data[title] = raw.GetCell(r, c).Text
                 except Exception:  # pylint: disable=broad-exception-caught
-                    pass
+                    pass  # COM RPC errors possible on tab-hosted tables, see #387
             rows.append(row_data)
         return rows
     return []
@@ -163,9 +163,13 @@ async def _lookup_fm_desktop(  # pylint: disable=protected-access,too-many-local
     session = backend._require_session()
     com = backend._com
 
-    # Read Import tab (click explicitly to ensure it's active)
-    await _click_tab_bilingual(backend, "Import", "Import")
+    # Read Import tab: try reading first (default tab), click only if table is empty.
+    # SAP lazily instantiates tab subscreen controls — the table control may not
+    # exist in the widget tree until the tab is explicitly activated by a click.
     import_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+    if not import_rows:
+        await _click_tab_bilingual(backend, "Import", "Import")
+        import_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
 
     # Read Export tab
     await _click_tab_bilingual(backend, "Export", "Export")

@@ -1,0 +1,82 @@
+"""Unit tests for field_helpers — initial screen detection logic."""
+
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from sapwebguimcp.tools.field_helpers import fill_and_display
+
+
+def _make_backend(
+    *,
+    fill_returns: bool = True,
+    status_message: str = "",
+    status_type: str = "",
+    screen_titles: list[str] | None = None,
+) -> AsyncMock:
+    """Create a mock backend for fill_and_display tests."""
+    backend = AsyncMock()
+
+    # fill_field_with_keyboard result (via evaluate_javascript + type_text)
+    backend.evaluate_javascript = AsyncMock(return_value=fill_returns)
+    backend.type_text = AsyncMock()
+
+    # Status bar
+    sbar = MagicMock()
+    sbar.message = status_message
+    sbar.type = status_type
+    backend.get_status_bar = AsyncMock(return_value=sbar)
+
+    # Screen info — cycles through provided titles
+    titles = screen_titles or ["Display Screen"]
+    call_count = 0
+
+    async def get_screen_info() -> MagicMock:
+        nonlocal call_count
+        info = MagicMock()
+        info.title = titles[min(call_count, len(titles) - 1)]
+        call_count += 1
+        return info
+
+    backend.get_screen_info = get_screen_info
+    backend.wait_for_ready = AsyncMock()
+
+    return backend
+
+
+@pytest.mark.anyio
+async def test_fill_and_display_navigates_away_from_initial_screen():
+    """fill_and_display returns None (success) when screen title changes."""
+    backend = _make_backend(screen_titles=["Function Builder: Display FM"])
+    result = await fill_and_display(backend, ["Function Module"], "RFC_READ_TABLE")
+    assert result is None
+
+
+@pytest.mark.anyio
+async def test_fill_and_display_detects_de_initial_screen():
+    """fill_and_display detects DE initial screen via 'Einstieg' in title."""
+    backend = _make_backend(screen_titles=["Function Builder: Einstiegsbild"] * 20)
+    result = await fill_and_display(backend, ["Funktionsbaustein"], "ZZZFAKE")
+    assert result is not None
+    assert "not found" in result.lower()
+
+
+@pytest.mark.anyio
+async def test_fill_and_display_detects_en_initial_screen():
+    """fill_and_display detects EN initial screen via 'Initial' in title."""
+    backend = _make_backend(screen_titles=["Function Builder: Initial Screen"] * 20)
+    result = await fill_and_display(backend, ["Function Module"], "ZZZFAKE")
+    assert result is not None
+    assert "not found" in result.lower()
+
+
+@pytest.mark.anyio
+async def test_fill_and_display_detects_not_found_status():
+    """fill_and_display returns error when status bar says 'does not exist'."""
+    backend = _make_backend(
+        status_message="Function module ZZZFAKE does not exist",
+        screen_titles=["Function Builder: Initial Screen"],
+    )
+    result = await fill_and_display(backend, ["Function Module"], "ZZZFAKE")
+    assert result is not None
+    assert "not found" in result.lower()
