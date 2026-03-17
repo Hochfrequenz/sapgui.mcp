@@ -13,10 +13,16 @@ import asyncio
 import logging
 import os
 import tempfile
+from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
 
 import sapwebguimcp.sapgui._login as _login_mod
 from sapwebguimcp.backend.desktop._com_thread import ComThread
+from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
+
+#: Per-async-task session ID — set by BackendManager before each tool call.
+#: MUST be read on the async side (in _require_session), NEVER inside a ComThread lambda.
+_current_session_id: ContextVar[str | None] = ContextVar("_current_session_id", default=None)
 from sapwebguimcp.backend.desktop._element_finder import (
     _flatten,
     find_button_by_label,
@@ -64,20 +70,32 @@ logger = logging.getLogger(__name__)
 class DesktopBackend:
     """SapUiBackend implementation using SAP GUI Scripting (COM).
 
-    Each instance wraps one GuiSession. All COM calls are dispatched
-    to a shared ComThread for apartment-threading safety.
+    Manages multiple GuiSession objects via ``DesktopSessionRegistry``.
+    A ``ContextVar`` (set by ``BackendManager``) determines which session
+    is used for each async task.  All COM calls are dispatched to a shared
+    ``ComThread`` for apartment-threading safety.
     """
 
     def __init__(self, com_thread: ComThread | None = None) -> None:
         self._com = com_thread or ComThread()
-        self._session: GuiSession | None = None
-        self._agent_bindings: dict[str, str] = {}  # session_id -> agent_id
+        self._registry = DesktopSessionRegistry()
+
+    @property
+    def _session(self) -> GuiSession | None:
+        """Backward compat: return primary session (s1)."""
+        try:
+            return self._registry.get_session("s1")
+        except ValueError:
+            return None
 
     def _require_session(self) -> GuiSession:
-        """Return the current session or raise."""
-        if self._session is None:
-            raise RuntimeError("Not logged in — call login() first")
-        return self._session
+        """Return the session for the current async context.
+
+        Reads ``_current_session_id`` ContextVar to determine which session.
+        Defaults to ``'s1'`` if no ContextVar is set (backward compat).
+        """
+        session_id = _current_session_id.get()
+        return self._registry.get_session(session_id)  # None → "s1"
 
     # ---- SapNavigation ----
 
@@ -108,7 +126,7 @@ class DesktopBackend:
                     language=language,
                 )
             )
-            self._session = session
+            self._registry.register(session)  # → "s1"
             user_name = await self._com.run(lambda: str(session.info.user))
             logger.info(
                 "login",
@@ -188,96 +206,104 @@ class DesktopBackend:
         return False
 
     async def open_new_session(self, tcode: str) -> tuple[str | None, int, str | None]:
-        """Open a transaction in a new session/mode (/o)."""
+        """Open a transaction in a new session/mode (/o).
+
+        Returns ``(registry_session_id, session_count, page_title)``.
+        The session ID is a registry ID like ``'s2'``, not a COM path.
+        """
         session = self._require_session()
 
         try:
             await self._com.run(session.create_session)
             await asyncio.sleep(1)
 
-            def _navigate() -> tuple[str | None, int, str | None]:
+            def _navigate() -> tuple[Any, int, str | None]:
+                from sapwebguimcp.sapgui._factory import wrap_com_object  # pylint: disable=import-outside-toplevel
+
                 conn_com = session.com.Parent
                 count = conn_com.Children.Count
                 if count < 2:
                     return None, count, None
                 new_ses_com = conn_com.Children(count - 1)
-                new_id = str(new_ses_com.Id)
+                new_gui_session = wrap_com_object(new_ses_com)
                 # Enter transaction in new session
                 new_ses_com.FindById("wnd[0]/tbar[0]/okcd").Text = f"/n{tcode}"
                 new_ses_com.FindById("wnd[0]").SendVKey(0)
                 title = str(new_ses_com.FindById("wnd[0]").Text)
-                return new_id, count, title
+                return new_gui_session, count, title
 
-            sid, count, title = await self._com.run(_navigate)
-            logger.info("open_session", extra={"tcode": tcode, "session_id": sid, "count": count})
-            return sid, count, title
+            result_session, count, title = await self._com.run(_navigate)
+            if result_session is None:
+                return None, count, None
+            session_id = self._registry.register(result_session)
+            logger.info("open_session", extra={"tcode": tcode, "session_id": session_id, "count": count})
+            return session_id, count, title
         except Exception:
             logger.exception("open_session")
             return None, 1, None
 
     async def list_sessions(self) -> list[SessionInfo]:
-        """List all sessions in the current connection."""
-        session = self._require_session()
+        """List all sessions from the registry with their COM properties."""
+        result: list[SessionInfo] = []
+        for sid in self._registry.list_sessions():
+            try:
+                ses = self._registry.get_session(sid)
 
-        def _list() -> list[dict[str, Any]]:
-            conn = session.com.Parent
-            result = []
-            for i in range(conn.Children.Count):
-                ses = conn.Children(i)
-                result.append(
-                    {
-                        "session_id": str(ses.Id),
-                        "tcode": str(ses.Info.Transaction),
-                        "title": str(ses.FindById("wnd[0]").Text),
-                        "is_primary": i == 0,
+                def _info(s: Any = ses) -> dict[str, str]:
+                    return {
+                        "tcode": str(s.com.Info.Transaction),
+                        "title": str(s.com.FindById("wnd[0]").Text),
                     }
-                )
-            return result
 
-        raw_items = await self._com.run(_list)
-        # Add agent bindings on the main thread (not on the COM thread)
-        for item in raw_items:
-            item["agent_id"] = self._agent_bindings.get(item["session_id"])
-        return [SessionInfo(**item) for item in raw_items]
+                info = await self._com.run(_info)
+                result.append(
+                    SessionInfo(
+                        session_id=sid,
+                        is_primary=(sid == "s1"),
+                        agent_id=self._registry.get_bound_agent(sid),
+                        **info,
+                    )
+                )
+            except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+                logger.warning("Skipping session %s in listing (COM error)", sid)
+        return result
 
     async def close_session(self, session_id: str) -> bool:
-        """Close a session by ID."""
-        session = self._require_session()
+        """Close a session by registry ID (e.g. 's2')."""
+        if not self._registry.has_session(session_id):
+            return False
+        try:
+            target = self._registry.get_session(session_id)
+            com_id = target.id  # e.g. "/app/con[0]/ses[1]"
+            primary = self._registry.get_session("s1")
 
-        def _close() -> bool:
-            conn = session.com.Parent
-            try:
-                conn.CloseSession(session_id)
+            def _close(cid: str = com_id, p: Any = primary) -> bool:
+                conn = p.com.Parent
+                conn.CloseSession(cid)
                 return True
-            except Exception:
-                return False
 
-        result = await self._com.run(_close)
+            result = await self._com.run(_close)
+        except Exception:  # pylint: disable=broad-exception-caught
+            result = False
+        self._registry.unregister(session_id)
         logger.info("close_session", extra={"session_id": session_id, "success": result})
         return result
 
     async def bind_session(self, session_id: str, agent_id: str) -> str | None:
         """Bind an agent to a session."""
-        prev = self._agent_bindings.get(session_id)
-        self._agent_bindings[session_id] = agent_id
+        prev = self._registry.get_bound_agent(session_id)
+        self._registry.bind(session_id, agent_id)
         return prev
 
     async def release_session(self, session_id: str) -> str | None:
         """Release agent binding from a session."""
-        return self._agent_bindings.pop(session_id, None)
+        prev = self._registry.get_bound_agent(session_id)
+        self._registry.release(session_id)
+        return prev
 
     async def has_session(self, session_id: str) -> bool:
-        """Check whether a session exists."""
-        session = self._require_session()
-
-        def _check() -> bool:
-            conn = session.com.Parent
-            for i in range(conn.Children.Count):
-                if str(conn.Children(i).Id) == session_id:
-                    return True
-            return False
-
-        return await self._com.run(_check)
+        """Check whether a session exists in the registry."""
+        return self._registry.has_session(session_id)
 
     async def is_page_closed(self) -> bool:
         """Check whether the session has been closed."""
@@ -302,7 +328,8 @@ class DesktopBackend:
             )
         except Exception:
             pass
-        self._session = None
+        for sid in list(self._registry.list_sessions()):
+            self._registry.unregister(sid)
         logger.info("close_connection")
 
     def get_session_token(self) -> str:

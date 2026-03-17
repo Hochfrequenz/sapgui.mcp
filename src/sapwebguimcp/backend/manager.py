@@ -57,17 +57,26 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             self._page_ids[session_key] = id(page)
             return backend
         if self.backend_type == "desktop":
-            from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+            from sapwebguimcp.backend.desktop import (  # pylint: disable=import-outside-toplevel
+                DesktopBackend,
+                _current_session_id,
+            )
             from sapwebguimcp.backend.desktop._com_thread import ComThread  # pylint: disable=import-outside-toplevel
 
-            session_key = session or "s1"
-            cached = self._backends.get(session_key)
+            # Single shared DesktopBackend — session routing via ContextVar
+            cached = self._backends.get("desktop")
             if cached is not None:
+                _current_session_id.set(session or "s1")
+                if isinstance(cached, DesktopBackend):
+                    cached._registry.check_binding(  # pylint: disable=protected-access
+                        session or "s1", agent_id, tool_name
+                    )
                 return cached
             if self._com_thread is None:
                 self._com_thread = ComThread()
             new_backend = DesktopBackend(com_thread=self._com_thread)
-            self._backends[session_key] = new_backend
+            self._backends["desktop"] = new_backend
+            _current_session_id.set(session or "s1")
             return new_backend
         raise ValueError(f"No implementation for backend '{self.backend_type}'")
 
