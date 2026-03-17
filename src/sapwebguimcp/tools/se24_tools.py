@@ -26,6 +26,7 @@ from sapwebguimcp.models import (
 from sapwebguimcp.models.se24_models import SE24Attribute, SE24Method, SE24ObjectType, SE24Visibility
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_and_display
+from sapwebguimcp.tools.table_helpers import read_table_control_all_rows
 
 logger = logging.getLogger(__name__)
 
@@ -116,8 +117,6 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,protected-ac
     backend: SapUiBackend, class_name: str
 ) -> SE24Entry | SE24Error:
     """Desktop-specific SE24 lookup using tab navigation and table control reading."""
-    from typing import Any, cast  # pylint: disable=import-outside-toplevel
-
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
     from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
 
@@ -164,66 +163,20 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,protected-ac
     session = backend._require_session()
     com = backend._com
 
-    def _read_visible_page(raw: Any, col_titles: list[str], count: int) -> list[dict[str, str]]:
-        """Read `count` visible rows from a table control."""
-        rows: list[dict[str, str]] = []
-        for r in range(count):
-            row_data: dict[str, str] = {}
-            for c, title in enumerate(col_titles):
-                try:
-                    row_data[title] = raw.GetCell(r, c).Text
-                except Exception:  # pylint: disable=broad-exception-caught
-                    pass  # COM RPC errors possible on tab-hosted tables, see #387
-            rows.append(row_data)
-        return rows
-
-    def _read_table_control() -> list[dict[str, str]]:
-        """Find and read the first GuiTableControl (type 80) on screen.
-
-        Scrolls through the table to read all rows, not just the visible page.
-        """
-        wnd = session.find_by_id("wnd[0]")
-        tree = cast(Any, wnd).dump_tree(max_depth=8)
-        flat = _flatten(tree)
-        for elem in flat:
-            if elem.type_as_number != 80:
-                continue
-            tc = session.find_by_id(elem.id)
-            raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
-            col_titles = [raw.Columns(c).Title or raw.Columns(c).Name for c in range(raw.Columns.Count)]
-            total = raw.RowCount
-            visible = raw.VisibleRowCount
-            rows: list[dict[str, str]] = []
-            scroll_pos = 0
-            while len(rows) < total:
-                readable = min(visible, total - len(rows))
-                rows.extend(_read_visible_page(raw, col_titles, readable))
-                scroll_pos += visible
-                if scroll_pos >= total:
-                    break
-                try:
-                    raw.VerticalScrollbar.Position = scroll_pos
-                except Exception:  # pylint: disable=broad-exception-caught
-                    break
-            # Scroll back to top
-            try:
-                raw.VerticalScrollbar.Position = 0
-            except Exception:  # pylint: disable=broad-exception-caught
-                pass
-            return rows
-        return []
+    def _read_tc() -> list[dict[str, str]]:
+        return read_table_control_all_rows(session, _flatten)
 
     # Read methods tab: try reading first (default tab), click only if table is empty.
     # SAP lazily instantiates tab subscreen controls — the table control may not
     # exist in the widget tree until the tab is explicitly activated by a click.
-    methods_raw = await com.run(_read_table_control)
+    methods_raw = await com.run(_read_tc)
     if not methods_raw:
         await _click_tab_bilingual(backend, "Methoden", "Methods")
-        methods_raw = await com.run(_read_table_control)
+        methods_raw = await com.run(_read_tc)
     await _click_tab_bilingual(backend, "Attribute", "Attributes")
-    attrs_raw = await com.run(_read_table_control)
+    attrs_raw = await com.run(_read_tc)
     await _click_tab_bilingual(backend, "Schnittstellen", "Interfaces")
-    intfs_raw = await com.run(_read_table_control)
+    intfs_raw = await com.run(_read_tc)
 
     # Read description from screen fields and detect object type from title
     fields = await backend.discover_fields()

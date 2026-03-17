@@ -27,6 +27,7 @@ from sapwebguimcp.models import (
 from sapwebguimcp.models.se37_models import SE37Exception, SE37Parameter, SE37ParameterCategory, SE37TypingMethod
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_and_display
+from sapwebguimcp.tools.table_helpers import read_table_control
 
 logger = logging.getLogger(__name__)
 
@@ -64,33 +65,10 @@ async def _click_tab_bilingual(backend: SapUiBackend, de_label: str, en_label: s
 def _read_se37_table_control(session: Any, _flatten_fn: Any) -> list[dict[str, str]]:
     """Find and read the first GuiTableControl (type 80) on screen.
 
-    Reads visible rows only — SE37 parameter tables are typically small enough
-    to fit within the visible range. Scrolling causes COM RPC_E_SERVERCALL_RETRYLATER
-    errors on SE37's tab-hosted tables.
+    Scrolls through all rows with a settle delay after each scrollbar change
+    to avoid COM ``RPC_E_SERVERCALL_RETRYLATER`` errors (#387).
     """
-    from typing import cast  # pylint: disable=import-outside-toplevel
-
-    wnd = session.find_by_id("wnd[0]")
-    tree = cast(Any, wnd).dump_tree(max_depth=8)
-    flat = _flatten_fn(tree)
-    for elem in flat:
-        if elem.type_as_number != 80:
-            continue
-        tc = session.find_by_id(elem.id)
-        raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
-        col_titles = [raw.Columns(c).Title or raw.Columns(c).Name for c in range(raw.Columns.Count)]
-        readable = min(raw.RowCount, raw.VisibleRowCount)
-        rows: list[dict[str, str]] = []
-        for r in range(readable):
-            row_data: dict[str, str] = {}
-            for c, title in enumerate(col_titles):
-                try:
-                    row_data[title] = raw.GetCell(r, c).Text
-                except Exception:  # pylint: disable=broad-exception-caught
-                    pass  # COM RPC errors possible on tab-hosted tables, see #387
-            rows.append(row_data)
-        return rows
-    return []
+    return read_table_control(session, _flatten_fn)
 
 
 def _parse_se37_params(rows: list[dict[str, str]], category: SE37ParameterCategory) -> list[SE37Parameter]:
