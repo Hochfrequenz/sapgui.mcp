@@ -52,9 +52,15 @@ async def go_home(backend) -> None:  # type: ignore[no-untyped-def]
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 async def backend() -> AsyncIterator:  # type: ignore[type-arg]
-    """Provide a logged-in DesktopBackend. Closes ALL connections on teardown."""
+    """Provide a logged-in DesktopBackend, shared across all tests in a module.
+
+    Module scope avoids repeated COM ``OpenConnection`` / ``CloseConnection``
+    cycles that corrupt the process-wide COM subsystem after table scrolling
+    operations (see #399).  Each test is expected to call ``go_home()`` at the
+    end to return to the Easy Access screen.
+    """
     load_dotenv()
     com = ComThread()
     b = DesktopBackend(com_thread=com)
