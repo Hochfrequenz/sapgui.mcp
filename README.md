@@ -6,7 +6,7 @@
 [![Formatting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 
 An MCP (Model Context Protocol) server for SAP automation.
-Control SAP through Claude Desktop or Claude Code — via **SAP GUI desktop** (COM) or **SAP Web GUI** (browser).
+Control SAP through Claude Desktop or Claude Code — via **SAP GUI desktop** or **SAP Web GUI** (browser).
 
 ## Setup
 
@@ -38,12 +38,12 @@ Choose a backend:
 |---|---|---|
 | **Platform** | Windows only | Windows, macOS, Linux |
 | **Requires** | SAP GUI for Windows | Chrome browser |
-| **Speed** | Faster (direct COM) | Slower (browser automation) |
-| **Setup** | Simpler (no Chrome/CDP) | More steps |
+| **Speed** | Faster (works directly with SAP GUI) | Slower (works through a web browser) |
+| **Setup** | Simpler (just SAP GUI + this tool) | More steps (also needs Chrome browser setup) |
 
-### Option A: Desktop Backend (SAP GUI)
+### Option A: Desktop Backend (SAP GUI) — recommended for Windows users
 
-**Windows-only.** Automates SAP GUI directly via COM — no browser needed.
+Automates SAP GUI directly — no browser needed. Windows only.
 
 **Prerequisites:**
 - SAP GUI for Windows installed (standard path — the server finds it automatically via Windows registry)
@@ -57,11 +57,12 @@ Choose a backend:
 - Dynamic parameter — no server restart needed, but users must re-login (close and reopen SAP GUI)
 
 **Client side** (your PC):
-1. Open SAP GUI → go to Options (menu bar or tray icon)
-2. Navigate to **Accessibility & Scripting → Scripting**
-3. Check **"Enable Scripting"**
-4. Uncheck **"Notify when a script attaches to SAP GUI"**
-5. Uncheck **"Notify when a script opens a connection"**
+1. Open SAP Logon or any SAP GUI session
+2. Go to **Options** (via menu bar, tray icon, or press **Alt+F12** in a session)
+3. Navigate to **Accessibility & Scripting → Scripting** (DE: **Barrierefreiheit & Skripting → Skripting**)
+4. Check **"Enable Scripting"** (DE: **"Skripting aktivieren"**)
+5. Uncheck **"Notify when a script attaches to SAP GUI"**
+6. Uncheck **"Notify when a script opens a connection"**
 
 > [!IMPORTANT]
 > The two notification checkboxes **must** be unchecked. If left checked, every COM connection triggers a modal popup that blocks automation.
@@ -70,7 +71,10 @@ Choose a backend:
 
 #### Claude Desktop
 
-Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_config.json`):
+Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%APPDATA%\Claude`, press Enter. If `claude_desktop_config.json` does not exist, create a new text file with that exact name (make sure it ends in `.json`, not `.json.txt`).
+
+> [!TIP]
+> After downloading the `.exe`, note the full path. For example, if you saved `sapwebgui_mcp_windows_1.5.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapwebgui_mcp_windows_1.5.0.exe`. Always use forward slashes (`/`) in the JSON, not backslashes (`\`).
 
 ```json
 {
@@ -113,10 +117,12 @@ Add to `.mcp.json` in your project root:
 ```
 
 Replace:
-- `Your SAP Logon Entry` with the connection name from SAP Logon pad (e.g. `"HF S/4"`)
+- `Your SAP Logon Entry` with the **description** shown in SAP Logon — this is the bold text in the list when you open SAP Logon (e.g. `"HF S/4"` or `"DEV - ERP Development"`). It is _not_ the system ID or server address.
 - `your_username` / `your_password` with your SAP credentials
 
-No Chrome, no CDP proxy required.
+No Chrome, no browser setup required.
+
+> **Getting started:** Save the config file, then restart Claude Desktop. Try asking: _"Log me into SAP"_ or _"Run transaction SE16"_. SAP GUI will open automatically if it is not already running.
 
 ### Option B: WebGUI Backend (Browser)
 
