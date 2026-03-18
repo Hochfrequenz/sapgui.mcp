@@ -767,6 +767,10 @@ docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 
 ## Architecture
 
+The server supports two backends. Choose one via `BACKEND_TYPE`.
+
+**WebGUI Backend** (`BACKEND_TYPE=webgui`, default):
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Chrome (with --remote-debugging-port=9222)             │
@@ -787,6 +791,30 @@ docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 ┌─────────────────────────────────────────────────────────┐
 │  MCP Server (sapwebguimcp)                              │
 │  - Playwright for browser automation                    │
+│  - SAP-specific tools                                   │
+└─────────────────────────────────────────────────────────┘
+            ↑
+            │ MCP (stdio)
+            ↓
+┌─────────────────────────────────────────────────────────┐
+│  Claude Desktop / Claude Code                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Desktop Backend** (`BACKEND_TYPE=desktop`, Windows only):
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  SAP GUI for Windows                                    │
+│  - COM Scripting API                                    │
+│  - Persistent session(s)                                │
+└─────────────────────────────────────────────────────────┘
+            ↑
+            │ COM (pywin32)
+            ↓
+┌─────────────────────────────────────────────────────────┐
+│  MCP Server (sapwebguimcp)                              │
+│  - Desktop backend with COM thread                      │
 │  - SAP-specific tools                                   │
 └─────────────────────────────────────────────────────────┘
             ↑
