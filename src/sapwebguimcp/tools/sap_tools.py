@@ -468,7 +468,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Send a keyboard shortcut to SAP Web GUI\n\n"
+            "Send a keyboard shortcut to SAP\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
             '- session="s2": Targets specific session (for parallel agents)'
@@ -480,7 +480,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         agent_id: str | None = None,
     ) -> KeyboardResult:
         """
-        Send a keyboard shortcut to SAP Web GUI.
+        Send a keyboard shortcut to SAP.
 
         Common SAP shortcuts:
         - "F3" - Back (Zurück)
@@ -839,15 +839,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             FieldLookupResult with known CSS selectors (WebGUI only).
         """
-        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
+        tcode_upper = transaction.upper().strip()
 
         if get_settings().backend_type == "desktop":
             return FieldLookupResult.failure(
                 "sap_lookup_fields returns WebGUI CSS selectors which don't work on Desktop. "
                 "Use sap_discover_fields to find fields dynamically.",
-                transaction=transaction.upper().strip(),
+                transaction=tcode_upper,
             )
-        tcode_upper = transaction.upper().strip()
 
         try:
             # Load the field registry
@@ -1188,13 +1187,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Set a single SAP form field by label or CSS selector. "
+            "Set a single SAP form field by label, CSS selector, or element name. "
             "Finds the field dynamically and fills it with the given value.\n\n"
             "The label parameter can be:\n"
-            "- Visible label text (e.g., 'Last Name', 'Nachname')\n"
-            "- CSS selector (e.g., '#M0:46:1:1::0:21', '[lsdata*=\"NAME_LAST\"]')\n\n"
-            "This is simpler than sap_fill_form for single fields, and returns "
-            "the CSS selector that was matched (useful for debugging).\n\n"
+            "- Visible label text (e.g., 'Last Name', 'Nachname') — works on all backends\n"
+            "- CSS selector (WebGUI only, e.g., '#M0:46:1:1::0:21')\n"
+            "- SAP GUI element name (Desktop only, e.g., 'BUT000-NAME_LAST')\n\n"
+            "This is simpler than sap_fill_form for single fields.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
             '- session="s2": Targets specific session (for parallel agents)'
@@ -1207,10 +1206,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         agent_id: str | None = None,
     ) -> SetFieldResult:
         """
-        Set a single SAP form field by label or CSS selector.
+        Set a single SAP form field by label, CSS selector, or element name.
 
-        This tool finds the field dynamically using label text or CSS selector,
-        and returns information about what was matched. Supports both regular
+        Finds the field dynamically and fills it. Supports both regular
         text inputs and dropdown/combobox fields.
 
         For dropdown fields, the tool automatically detects the field type and
@@ -1218,13 +1216,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         in the dropdown options, returns available_options listing valid choices.
 
         Args:
-            label: Field label text (e.g., 'Last Name', 'GP-Rolle') or CSS selector
+            label: Field label text (e.g., 'Last Name'), CSS selector (WebGUI),
+                   or SAP GUI element name (Desktop)
             value: Value to set in the field (for dropdowns: exact option text)
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
-            SetFieldResult with label, value, and the CSS selector that was used.
+            SetFieldResult with label, value, and the selector/ID that was used.
             For dropdown errors, includes available_options.
         """
         if not label:
