@@ -102,7 +102,7 @@ def _serialize_com_result(value: Any) -> str:
         return json.dumps(str(value))
 
 
-def _execute_single_op(  # pylint: disable=too-many-return-statements
+def _execute_single_op(  # pylint: disable=too-many-return-statements,too-many-locals
     session: Any, op: ComOperationInput
 ) -> ComOperation:
     """Execute a single COM operation on the COM thread (synchronous)."""
