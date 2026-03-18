@@ -889,7 +889,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Discover input fields on the current SAP screen. "
-            "Returns fields with reliable CSS selectors (use the 'selector' field). "
+            "Returns fields with label, name, value, and a selector/ID for targeting the field. "
+            "Use the label with sap_fill_form to fill fields (works on all backends). "
+            "On WebGUI, the 'selector' field is a CSS selector. "
+            "On Desktop, it's a SAP GUI element ID. "
             "For buttons, use sap_discover_buttons instead.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
@@ -903,12 +906,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         """
         Discover all input fields on the current SAP screen.
 
-        This tool analyzes the current page and returns information about
-        all visible input fields with reliable CSS selectors.
-
-        IMPORTANT: Use the 'selector' field directly with sap_fill_form or
-        sap_set_field - it is designed to work reliably. Avoid using raw
-        element IDs which may contain special characters.
+        Returns information about all visible input fields. Use the 'label'
+        field with sap_fill_form to fill fields reliably on any backend.
 
         Args:
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
@@ -917,9 +916,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             DiscoveredFields with list of fields including:
             - field_id: SAP field ID (e.g., 'NAME_FIRST', 'STREET')
-            - label: Associated label text (for display)
-            - selector: Reliable CSS selector to use with sap_fill_form
-            - alternative_selectors: Other valid selectors (fallbacks)
+            - label: Associated label text (for sap_fill_form)
+            - selector: CSS selector (WebGUI) or element ID (Desktop)
             - type: Input type (text, checkbox, etc.)
             - value: Current value (if any)
         """
@@ -941,9 +939,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Discover clickable buttons on the current SAP screen. "
-            "Returns buttons with label, selector (for browser_click), shortcut (e.g. F3), and accesskey. "
-            "Use the 'selector' field with browser_click to click buttons reliably. "
-            "Prefer keyboard shortcuts when available - they're faster. "
+            "Returns buttons with label, selector, shortcut (e.g. F3), and accesskey. "
+            "Prefer keyboard shortcuts (sap_keyboard) when available — they're faster and work on all backends. "
+            "On WebGUI, use the 'selector' field with browser_click. "
+            "On Desktop, use sap_com_evaluate to press buttons by element ID. "
             "For input fields use sap_discover_fields instead.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
@@ -1091,17 +1090,16 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Fill multiple SAP form fields in a single call. "
-            "Use this when filling 2+ fields on the SAME screen without UI navigation between them. "
-            "Much faster than multiple browser_fill/browser_keyboard calls.\n\n"
+            "Use this when filling 2+ fields on the SAME screen without UI navigation between them.\n\n"
             "Keys can be:\n"
-            "- Visible label text (e.g., 'First Name', 'Straße')\n"
-            "- CSS selectors starting with '#' (e.g., '#M0:46:1:1::0:21')\n\n"
+            "- Visible label text (e.g., 'First Name', 'Straße') — works on all backends\n"
+            "- CSS selectors starting with '#' (WebGUI only, e.g., '#M0:46:1:1::0:21')\n"
+            "- SAP GUI element names (Desktop only, e.g., 'BUT000-NAME_LAST')\n\n"
             "When to use:\n"
             "- Filling a form with multiple input fields\n"
             "- All fields visible on current screen\n"
             "- No button clicks or navigation needed between fields\n\n"
             "When NOT to use:\n"
-            "- Single field only (use browser_fill)\n"
             "- Fields on different screens/tabs\n"
             "- Need to click buttons between fills\n\n"
             "**Session parameter:**\n"
