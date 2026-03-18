@@ -1001,15 +1001,15 @@ class DesktopBackend:
             if sub_type == "TextEdit":
                 try:
                     text = raw_shell.Text
-                    if text and not text.startswith("SAPGUI."):
-                        return text.replace("\r\n", "\n").replace("\r", "\n")
+                    if text and not str(text).startswith("SAPGUI."):
+                        return str(text).replace("\r\n", "\n").replace("\r", "\n")
                 except Exception:  # pylint: disable=broad-exception-caught
                     logger.debug("read_editor_source: Text property failed", extra={"sub_type": sub_type})
 
             # Strategy 2: GetLineCount + GetLineText (AbapEditor on S/4)
             try:
                 num_lines = raw_shell.GetLineCount()
-                lines = [raw_shell.GetLineText(i) for i in range(num_lines)]
+                lines = [str(raw_shell.GetLineText(i)) for i in range(num_lines)]
                 return "\n".join(lines)
             except Exception:  # pylint: disable=broad-exception-caught
                 logger.debug("read_editor_source: GetLineCount/GetLineText failed", extra={"sub_type": sub_type})
@@ -1017,8 +1017,8 @@ class DesktopBackend:
             # Strategy 3: Text property as last resort (any subtype)
             try:
                 text = raw_shell.Text
-                if text and not text.startswith("SAPGUI."):
-                    return text.replace("\r\n", "\n").replace("\r", "\n")
+                if text and not str(text).startswith("SAPGUI."):
+                    return str(text).replace("\r\n", "\n").replace("\r", "\n")
             except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning(
                     "read_editor_source",
