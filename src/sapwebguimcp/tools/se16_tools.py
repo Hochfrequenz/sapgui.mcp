@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 SE16 (Data Browser) query tool for SAP table data.
 
