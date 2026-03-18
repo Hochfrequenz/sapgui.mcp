@@ -205,9 +205,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Log into SAP Web GUI. "
-            "REQUIRES: Chrome with --remote-debugging-port=9222, VPN connected (if internal SAP). "
-            "If connection fails, ask user to verify Chrome is running with debugging and VPN is connected."
+            "Log into SAP. "
+            "On WebGUI: requires Chrome with --remote-debugging-port=9222 and VPN (if internal SAP). "
+            "On Desktop: requires SAP GUI for Windows with scripting enabled. "
+            "Uses credentials from environment variables (SAP_USER, SAP_PASSWORD, SAP_MANDANT)."
         )
     )
     async def sap_login(
@@ -215,20 +216,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         ctx: Context | None = None,
     ) -> LoginResult:
         """
-        Log into SAP Web GUI.
+        Log into SAP.
 
-        Opens the SAP Web GUI URL and automatically logs in using credentials
-        from environment variables (SAP_USER, SAP_PASSWORD, SAP_MANDANT, SAP_LANGUAGE).
-
-        If credentials are not configured, opens the login page for manual entry.
-
-        PREREQUISITES:
-        - Chrome running with --remote-debugging-port=9222
-        - VPN connected (if SAP system is on internal network)
-        - CDP proxy running (for Docker setups)
+        On WebGUI, opens the SAP Web GUI URL and automatically logs in.
+        On Desktop, connects via SAP Logon and opens a new connection.
+        Both backends use credentials from environment variables
+        (SAP_USER, SAP_PASSWORD, SAP_MANDANT, SAP_LANGUAGE).
 
         Args:
-            url: SAP Web GUI URL. If not provided, uses SAP_URL from environment.
+            url: SAP Web GUI URL (WebGUI only). If not provided, uses SAP_URL from environment.
 
         Returns:
             LoginResult indicating login success or what action is needed.
