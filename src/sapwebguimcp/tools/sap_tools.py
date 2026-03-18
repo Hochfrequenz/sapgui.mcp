@@ -21,7 +21,7 @@ import json
 import logging
 import re
 from importlib import resources
-from typing import Optional
+from typing import Any, Optional
 
 from fastmcp import Context, FastMCP
 
@@ -54,6 +54,7 @@ from sapwebguimcp.models import (
     TransactionResult,
     get_settings,
 )
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.session_tools import (
     sap_session_bind_impl,
     sap_session_close_impl,
@@ -167,6 +168,35 @@ SELECTORS: dict[str, str] = {
 # =============================================================================
 
 
+async def _get_button_tooltips_desktop(backend: Any) -> list[str]:
+    """Read Tooltip property from all buttons on the current screen (Desktop backend)."""
+    from typing import cast  # pylint: disable=import-outside-toplevel
+
+    from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+    from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(backend, DesktopBackend):
+        return []
+    session = backend._require_session()  # pylint: disable=protected-access
+
+    def _read_tooltips() -> list[str]:
+        wnd = session.find_by_id("wnd[0]")
+        tree = cast(Any, wnd).dump_tree(max_depth=3)
+        tooltips: list[str] = []
+        for elem in _flatten(tree):
+            if elem.type_as_number == 40:  # GuiButton
+                try:
+                    raw = session.find_by_id(elem.id).com
+                    tooltip = str(getattr(raw, "Tooltip", ""))
+                    if tooltip:
+                        tooltips.append(tooltip)
+                except Exception:  # pylint: disable=broad-exception-caught
+                    logger.debug("tooltip_read_failed", extra={"element_id": elem.id})
+        return tooltips
+
+    return await backend._com.run(_read_tooltips)  # pylint: disable=protected-access
+
+
 def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements,too-many-locals
     """Register all SAP-specific tools with the MCP server."""
 
@@ -205,9 +235,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Log into SAP Web GUI. "
-            "REQUIRES: Chrome with --remote-debugging-port=9222, VPN connected (if internal SAP). "
-            "If connection fails, ask user to verify Chrome is running with debugging and VPN is connected."
+            "Log into SAP. "
+            "On WebGUI: requires Chrome with --remote-debugging-port=9222 and VPN (if internal SAP). "
+            "On Desktop: requires SAP GUI for Windows with scripting enabled. "
+            "Uses credentials from environment variables (SAP_USER, SAP_PASSWORD, SAP_MANDANT)."
         )
     )
     async def sap_login(
@@ -215,20 +246,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         ctx: Context | None = None,
     ) -> LoginResult:
         """
-        Log into SAP Web GUI.
+        Log into SAP.
 
-        Opens the SAP Web GUI URL and automatically logs in using credentials
-        from environment variables (SAP_USER, SAP_PASSWORD, SAP_MANDANT, SAP_LANGUAGE).
-
-        If credentials are not configured, opens the login page for manual entry.
-
-        PREREQUISITES:
-        - Chrome running with --remote-debugging-port=9222
-        - VPN connected (if SAP system is on internal network)
-        - CDP proxy running (for Docker setups)
+        On WebGUI, opens the SAP Web GUI URL and automatically logs in.
+        On Desktop, connects via SAP Logon and opens a new connection.
+        Both backends use credentials from environment variables
+        (SAP_USER, SAP_PASSWORD, SAP_MANDANT, SAP_LANGUAGE).
 
         Args:
-            url: SAP Web GUI URL. If not provided, uses SAP_URL from environment.
+            url: SAP Web GUI URL (WebGUI only). If not provided, uses SAP_URL from environment.
 
         Returns:
             LoginResult indicating login success or what action is needed.
@@ -839,6 +865,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             FieldLookupResult with known CSS selectors (WebGUI only).
         """
+        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
+
+        if get_settings().backend_type == "desktop":
+            return FieldLookupResult.failure(
+                "sap_lookup_fields returns WebGUI CSS selectors which don't work on Desktop. "
+                "Use sap_discover_fields to find fields dynamically.",
+                transaction=transaction.upper().strip(),
+            )
         tcode_upper = transaction.upper().strip()
 
         if get_settings().backend_type == "desktop":
@@ -1025,13 +1059,17 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return ShortcutsResult.failure(str(e))
 
         try:
-            # Get all title attributes via JavaScript - much more efficient than parsing HTML
-            titles: list[str] = await backend.evaluate_javascript("""() => {
-                    const elements = document.querySelectorAll('[title]');
-                    return Array.from(elements).map(el => el.title).filter(Boolean);
-                }""")
+            if _is_desktop_backend(backend):
+                # Desktop: read Tooltip property from all buttons via COM
+                titles = await _get_button_tooltips_desktop(backend)
+            else:
+                # WebGUI: get all title attributes via JavaScript
+                titles = await backend.evaluate_javascript("""() => {
+                        const elements = document.querySelectorAll('[title]');
+                        return Array.from(elements).map(el => el.title).filter(Boolean);
+                    }""")
 
-            # Parse titles for shortcuts
+            # Parse titles/tooltips for shortcuts (same format on both backends)
             shortcuts: list[ShortcutInfo] = []
             seen: set[tuple[str, str]] = set()
 
@@ -1040,8 +1078,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 if shortcut_info is None:
                     continue
 
-                # Skip duplicates (action and shortcut are str fields)
-                # pylint: disable=no-member  # False positive: ShortcutInfo.action/shortcut are str
+                # Skip duplicates
                 action_lower: str = shortcut_info.action.lower()
                 shortcut_lower: str = shortcut_info.shortcut.lower()
                 key = (action_lower, shortcut_lower)
@@ -1112,6 +1149,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "- All fields visible on current screen\n"
             "- No button clicks or navigation needed between fields\n\n"
             "When NOT to use:\n"
+            "- Single field only (use sap_set_field)\n"
             "- Fields on different screens/tabs\n"
             "- Need to click buttons between fills\n\n"
             "**Session parameter:**\n"
