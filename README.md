@@ -1,12 +1,12 @@
-# SAP Web GUI MCP Server
+# SAP MCP Server
 
 [![Unittests](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Unittests/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 [![Coverage](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Coverage/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 [![Linting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Linting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 [![Formatting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 
-An MCP (Model Context Protocol) server for SAP Web GUI browser automation.
-Control SAP through Claude Desktop or Claude Code with persistent browser sessions.
+An MCP (Model Context Protocol) server for SAP automation.
+Control SAP through Claude Desktop or Claude Code — via **SAP GUI desktop** (COM) or **SAP Web GUI** (browser).
 
 ## Setup
 
