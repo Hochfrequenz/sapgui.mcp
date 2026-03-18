@@ -200,6 +200,41 @@ def _safe_com_attr(com_obj: Any, attr: str, default: Any = None) -> Any:
         return default
 
 
+def _probe_bdt_fields(com_obj: Any) -> list[ElementInfo]:
+    """Discover fields on BDT containers via FindAllByNameEx wildcard.
+
+    BDT-based screens (e.g. BP) don't expose children via the standard
+    Children collection. Fields ARE accessible via FindAllByNameEx("*", type_num).
+    """
+    from sapwebguimcp.sapgui.models import ElementInfo
+
+    seen_ids: set[str] = set()
+    result: list[ElementInfo] = []
+    for type_num in [31, 32, 33, 34, 46]:  # txt, ctxt, pwd, cmb, label
+        try:
+            found = com_obj.FindAllByNameEx("*", type_num)
+            for j in range(found.Count):
+                child = found.Item(j)
+                child_id = str(_safe_com_attr(child, "Id", ""))
+                if child_id in seen_ids:
+                    continue
+                seen_ids.add(child_id)
+                result.append(
+                    ElementInfo(
+                        id=child_id,
+                        type=str(_safe_com_attr(child, "Type", "")),
+                        type_as_number=int(_safe_com_attr(child, "TypeAsNumber", 0)),
+                        name=str(_safe_com_attr(child, "Name", "")),
+                        text=str(_safe_com_attr(child, "Text", "")),
+                        changeable=bool(_safe_com_attr(child, "Changeable", False)),
+                        children=[],
+                    )
+                )
+        except Exception:
+            pass
+    return result
+
+
 def _dump_tree_recursive(com_obj: Any, depth: int, max_depth: int) -> list[ElementInfo]:
     """Recursively walk COM children and build a list of ElementInfo."""
     from sapwebguimcp.sapgui.models import ElementInfo
@@ -209,26 +244,34 @@ def _dump_tree_recursive(com_obj: Any, depth: int, max_depth: int) -> list[Eleme
         children_com = com_obj.Children
         count = children_com.Count
     except Exception:
-        return result
-    for i in range(count):
-        try:
-            child = children_com.Item(i)
-        except Exception:
-            continue
-        child_info = ElementInfo(
-            id=str(_safe_com_attr(child, "Id", "")),
-            type=str(_safe_com_attr(child, "Type", "")),
-            type_as_number=int(_safe_com_attr(child, "TypeAsNumber", 0)),
-            name=str(_safe_com_attr(child, "Name", "")),
-            text=str(_safe_com_attr(child, "Text", "")),
-            changeable=bool(_safe_com_attr(child, "Changeable", False)),
-            children=(
-                _dump_tree_recursive(child, depth + 1, max_depth)
-                if depth + 1 < max_depth and _safe_com_attr(child, "ContainerType", False)
-                else []
-            ),
-        )
-        result.append(child_info)
+        count = 0  # BDT containers throw here — treat as empty
+
+    if count > 0:
+        for i in range(count):
+            try:
+                child = children_com.Item(i)
+            except Exception:
+                continue
+            child_info = ElementInfo(
+                id=str(_safe_com_attr(child, "Id", "")),
+                type=str(_safe_com_attr(child, "Type", "")),
+                type_as_number=int(_safe_com_attr(child, "TypeAsNumber", 0)),
+                name=str(_safe_com_attr(child, "Name", "")),
+                text=str(_safe_com_attr(child, "Text", "")),
+                changeable=bool(_safe_com_attr(child, "Changeable", False)),
+                children=(
+                    _dump_tree_recursive(child, depth + 1, max_depth)
+                    if depth + 1 < max_depth and _safe_com_attr(child, "ContainerType", False)
+                    else []
+                ),
+            )
+            result.append(child_info)
+    elif _safe_com_attr(com_obj, "ContainerType", False):
+        # BDT fallback: probe for hidden fields when container has no standard children
+        obj_id = str(_safe_com_attr(com_obj, "Id", ""))
+        if "/usr" in obj_id.lower():
+            result.extend(_probe_bdt_fields(com_obj))
+
     return result
 
 
