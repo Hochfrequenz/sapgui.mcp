@@ -32,7 +32,97 @@ All three setup approaches below show you how to configure both.
 Download `sapwebgui_mcp_windows_<version>.exe` from
 [GitHub Releases](https://github.com/Hochfrequenz/sapwebgui.mcp/releases/latest).
 
-### Step 1: Start Chrome with remote debugging
+Choose a backend:
+
+| | Desktop Backend (SAP GUI) | WebGUI Backend (Browser) |
+|---|---|---|
+| **Platform** | Windows only | Windows, macOS, Linux |
+| **Requires** | SAP GUI for Windows | Chrome browser |
+| **Speed** | Faster (direct COM) | Slower (browser automation) |
+| **Setup** | Simpler (no Chrome/CDP) | More steps |
+
+### Option A: Desktop Backend (SAP GUI)
+
+**Windows-only.** Automates SAP GUI directly via COM — no browser needed.
+
+**Prerequisites:**
+- SAP GUI for Windows installed (standard path — the server finds it automatically via Windows registry)
+- SAP GUI Scripting enabled (one-time setup, see below)
+
+<details>
+<summary>Enable SAP GUI Scripting (one-time)</summary>
+
+**Server side** (requires admin/basis team):
+- Transaction `RZ11` → parameter `sapgui/user_scripting` → set to `TRUE`
+- Dynamic parameter — no server restart needed, but users must re-login (close and reopen SAP GUI)
+
+**Client side** (your PC):
+1. Open SAP GUI → go to Options (menu bar or tray icon)
+2. Navigate to **Accessibility & Scripting → Scripting**
+3. Check **"Enable Scripting"**
+4. Uncheck **"Notify when a script attaches to SAP GUI"**
+5. Uncheck **"Notify when a script opens a connection"**
+
+> [!IMPORTANT]
+> The two notification checkboxes **must** be unchecked. If left checked, every COM connection triggers a modal popup that blocks automation.
+
+</details>
+
+#### Claude Desktop
+
+Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_config.json`):
+
+```json
+{
+    "mcpServers": {
+        "sap-desktop": {
+            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "env": {
+                "BACKEND_TYPE": "desktop",
+                "SAP_CONNECTION_NAME": "Your SAP Logon Entry",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE"
+            }
+        }
+    }
+}
+```
+
+#### Claude Code
+
+Add to `.mcp.json` in your project root:
+
+```json
+{
+    "mcpServers": {
+        "sap-desktop": {
+            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "env": {
+                "BACKEND_TYPE": "desktop",
+                "SAP_CONNECTION_NAME": "Your SAP Logon Entry",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE"
+            }
+        }
+    }
+}
+```
+
+Replace:
+- `Your SAP Logon Entry` with the connection name from SAP Logon pad (e.g. `"HF S/4"`)
+- `your_username` / `your_password` with your SAP credentials
+
+No Chrome, no CDP proxy required.
+
+### Option B: WebGUI Backend (Browser)
+
+Automates SAP Web GUI through Chrome browser automation. Works on all platforms. This is the default — if you don't set `BACKEND_TYPE`, the server uses WebGUI.
+
+#### Step 1: Start Chrome with remote debugging
 
 ```powershell
 & "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
@@ -47,13 +137,13 @@ Download `sapwebgui_mcp_windows_<version>.exe` from
 >
 > Not sure where Chrome is installed? See [Finding your Chrome path](#finding-your-chrome-path) in the Troubleshooting section below.
 
-### Step 2: Configure your MCP client
+#### Step 2: Configure your MCP client
 
 **Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
 
 > `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove it if you don't need these features.
 
-#### Claude Desktop
+##### Claude Desktop
 
 Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_config.json`, macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
 
@@ -75,7 +165,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
 }
 ```
 
-#### Claude Code
+##### Claude Code
 
 Add to `.mcp.json` in your project root:
 
