@@ -542,7 +542,7 @@ Add to `.mcp.json` in your project root:
 
 | Tool                  | Description                                                  |
 | --------------------- | ------------------------------------------------------------ |
-| `sap_login`           | Opens SAP Web GUI login page                                 |
+| `sap_login`           | Logs into SAP (WebGUI: opens login page; Desktop: connects via SAP Logon) |
 | `sap_transaction`     | Enters and executes a transaction code                       |
 | `sap_keepalive_start` | Prevents session timeout (pings every 5 minutes)             |
 | `sap_keepalive_stop`  | Stops the keepalive task                                     |
@@ -550,6 +550,8 @@ Add to `.mcp.json` in your project root:
 | `log_feedback`        | Report issues (creates GitHub issues if `GITHUB_PAT` is set) |
 
 ### Browser Tools
+
+> **Note:** Browser tools are only available with the WebGUI backend (`BACKEND_TYPE=webgui`).
 
 | Tool                    | Description            |
 | ----------------------- | ---------------------- |
