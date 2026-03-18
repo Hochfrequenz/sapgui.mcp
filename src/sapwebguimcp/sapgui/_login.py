@@ -98,7 +98,10 @@ def login(
     conn = app.open_connection(connection_name, sync=True)
     session = _wait_for_session(conn, timeout=timeout)
 
-    # Step 3: Fill login screen (if we're on the login dynpro)
+    # Step 3: Dismiss any system message popups before the login screen
+    _dismiss_system_message_popups(session)
+
+    # Step 4: Fill login screen (if we're on the login dynpro)
     # find_by_id returns GuiComponent | None but the actual runtime objects
     # expose .text, .send_v_key, etc. via their concrete subclasses.
     if session.info.program == "SAPMSYST":
@@ -111,10 +114,10 @@ def login(
         # Brief wait for server response
         time.sleep(1)
 
-        # Step 4: Handle "multiple logon" popup
+        # Step 5: Handle "multiple logon" popup
         _handle_multiple_logon_popup(session)
 
-    # Step 5: Verify login succeeded
+    # Step 6: Verify login succeeded
     if session.info.program == "SAPMSYST":
         sbar = cast(Any, session.find_by_id("wnd[0]/sbar"))
         raise SapConnectionError(f"Login failed: {sbar.text}")
@@ -195,6 +198,28 @@ def _wait_for_session(conn: Any, timeout: int = 30) -> GuiSession:
             pass
         time.sleep(0.5)
     raise SapGuiTimeoutError(f"No session available on connection after {timeout}s")
+
+
+def _dismiss_system_message_popups(session: GuiSession) -> None:
+    """Dismiss system message popups that appear after opening a connection.
+
+    SAP Basis admins can broadcast messages (e.g. maintenance windows) that
+    appear as modal popups (wnd[1]) before the login screen is interactable.
+    These must be closed with Enter before the login fields can be filled.
+
+    Stops when no popup is present, or when a popup survives dismissal
+    (indicating it's interactive, like the multiple-logon dialog).
+    """
+    for _ in range(5):  # Handle up to 5 stacked popups
+        popup = session.find_by_id("wnd[1]", raise_error=False)
+        if popup is None:
+            return
+        logger.info("system_message_popup", extra={"title": str(cast(Any, popup).text)})
+        cast(Any, popup).send_v_key(0)  # Enter to dismiss
+        time.sleep(0.5)
+        # If popup is still there after Enter, it's not a simple system message
+        if session.find_by_id("wnd[1]", raise_error=False) is not None:
+            return
 
 
 def _handle_multiple_logon_popup(session: GuiSession) -> None:
