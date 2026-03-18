@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 SE16 (Data Browser) query tool for SAP table data.
 
@@ -529,8 +530,11 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
     return all_rows
 
 
-# SE16N selection criteria table control ID (stable across languages)
-_SE16N_TC_ID = "wnd[0]/usr/subTAB_SUB:SAPLSE16N:0121/tblSAPLSE16NSELFIELDS_TC"
+# SE16N selection criteria table control IDs — S/4 nests it in a subscreen, R/3 puts it directly in usr
+_SE16N_TC_IDS = [
+    "wnd[0]/usr/subTAB_SUB:SAPLSE16N:0121/tblSAPLSE16NSELFIELDS_TC",  # S/4
+    "wnd[0]/usr/tblSAPLSE16NSELFIELDS_TC",  # R/3
+]
 # Column indices in the SE16N selection criteria table control
 _SE16N_COL_FIELDNAME = 6  # GS_SELFIELDS-FIELDNAME (technical name)
 _SE16N_COL_LOW = 2  # GS_SELFIELDS-LOW (Von-Wert / From-Value)
@@ -576,9 +580,14 @@ async def _fill_se16n_filters_desktop(  # pylint: disable=protected-access
 
     def _apply_filters() -> list[str]:
         errors: list[str] = []
-        try:
-            tc = session.find_by_id(_SE16N_TC_ID)
-        except Exception:  # pylint: disable=broad-exception-caught
+        tc = None
+        for tc_id in _SE16N_TC_IDS:
+            try:
+                tc = session.find_by_id(tc_id)
+                break
+            except Exception:  # pylint: disable=broad-exception-caught
+                continue
+        if tc is None:
             return ["SE16N selection criteria table control not found"]
         # Unwrap Python wrapper to get the raw COM dispatch object
         raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
