@@ -236,9 +236,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Log into SAP. "
-            "On WebGUI: requires Chrome with --remote-debugging-port=9222 and VPN (if internal SAP). "
-            "On Desktop: requires SAP GUI for Windows with scripting enabled. "
-            "Uses credentials from environment variables (SAP_USER, SAP_PASSWORD, SAP_MANDANT)."
+            "On WebGUI: requires SAP_URL, Chrome with --remote-debugging-port=9222, and VPN (if internal SAP). "
+            "On Desktop: requires SAP_CONNECTION_NAME (SAP Logon entry) and SAP GUI for Windows with scripting enabled. "
+            "Both backends use SAP_USER, SAP_PASSWORD, SAP_MANDANT from environment."
         )
     )
     async def sap_login(
