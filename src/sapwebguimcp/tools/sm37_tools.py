@@ -341,7 +341,63 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
     )
 
 
-async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
+async def _fetch_job_log_desktop(backend: "SapUiBackend", language: SapLanguage) -> SM37JobLog | None:
+    """Desktop-specific: select the first job row and fetch its job log.
+
+    Clicks the first row in the ALV grid, clicks the Job-Log button,
+    reads log entries from ``get_screen_text().main_content``, and navigates back.
+    """
+    navigated_to_log = False
+    try:
+        # Re-select row 1 — desktop ALV may not retain selection after lookup
+        await backend.click_table_cell(1, 0, "click")
+        await backend.wait_for_ready()
+
+        # Click the Job-Log button (DE: "Job-Log", EN: "Job Log")
+        log_button_text = "Job-Log" if language == "DE" else "Job Log"
+        try:
+            await backend.click_button(log_button_text)
+        except ValueError:
+            logger.warning("Job log button not found label=%r", log_button_text)
+            return None
+
+        navigated_to_log = True
+        await backend.wait_for_ready()
+
+        # Build text content from ScreenText fields (not str() which includes Pydantic noise)
+        screen_text = await backend.get_screen_text()
+        text_content = "\n".join([screen_text.title or ""] + screen_text.main_content)
+
+        # Verify we're on the job log screen
+        if not _is_job_log_screen(text_content):
+            logger.warning("Expected job log screen but got something else on desktop")
+            return None
+
+        # Extract log lines from main_content
+        log_lines: list[str] = []
+        for line in screen_text.main_content:
+            line = line.strip()
+            if not line or len(line) < 3:
+                continue
+            # Skip UI chrome / headers
+            if any(skip in line for skip in ("Zum Auswählen", "To select", "Selektierte", "Selected")):
+                continue
+            if any(skip in line for skip in (_JOB_LOG_HEADING_DE, _JOB_LOG_HEADING_EN)):
+                continue
+            log_lines.append(line)
+
+        return SM37JobLog(job_name="", log_lines=log_lines)
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.exception("Fetching job log on desktop error=%s", e)
+        return None
+    finally:
+        if navigated_to_log:
+            await backend.press_key("F3")
+            await backend.wait_for_ready()
+
+
+async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
     backend: "SapUiBackend",
     job_name: str,
     username: str | None,
@@ -357,9 +413,13 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
     if _is_desktop_backend(backend):
-        if include_log:
-            logger.warning("SM37 desktop: include_log is not supported, ignoring include_log=True")
-        return await _execute_sm37_lookup_desktop(backend, job_name, username, statuses, from_date, to_date)
+        result = await _execute_sm37_lookup_desktop(backend, job_name, username, statuses, from_date, to_date)
+        if include_log and result.success and len(result.jobs) == 1:
+            desktop_log = await _fetch_job_log_desktop(backend, language)
+            if desktop_log:
+                desktop_log.job_name = result.jobs[0].job_name
+                result.job_log = desktop_log
+        return result
 
     tx_result = await backend.enter_transaction("SM37")
     if not tx_result.success:

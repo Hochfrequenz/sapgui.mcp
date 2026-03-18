@@ -24,7 +24,7 @@ from sapwebguimcp.lang import (
     SE09_DISPLAY_BUTTON_DE,
     SE09_DISPLAY_BUTTON_EN,
 )
-from sapwebguimcp.models.se09_models import TransportListResult, TransportRequest, TransportTask
+from sapwebguimcp.models.se09_models import TransportListResult, TransportObject, TransportRequest, TransportTask
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 
@@ -226,13 +226,182 @@ async def _set_se09_selection_screen(
     await _set_checkbox_bilingual(backend, "Freigegeben", "Released", rel_checked)
 
 
+def _parse_labels_to_requests(labels: list[str], default_owner: str) -> list[TransportRequest]:
+    """Parse SE09 screen labels into TransportRequest objects.
+
+    Labels come in groups: [transport_number, owner, description] with
+    optional header/target system entries interspersed.
+    """
+    transport_re = re.compile(r"^[A-Z0-9]{3}K\d{6}$")
+    requests: list[TransportRequest] = []
+    seen: set[str] = set()
+    i = 0
+    while i < len(labels):
+        lbl = labels[i]
+        if transport_re.match(lbl) and lbl not in seen:
+            seen.add(lbl)
+            owner = labels[i + 1] if i + 1 < len(labels) and not transport_re.match(labels[i + 1]) else default_owner
+            desc = labels[i + 2] if i + 2 < len(labels) and not transport_re.match(labels[i + 2]) else ""
+            requests.append(
+                TransportRequest(
+                    request_number=lbl,
+                    description=desc,
+                    owner=owner,
+                    status="",
+                    request_type="",
+                    target_system="",
+                )
+            )
+        i += 1
+    return requests
+
+
+async def _expand_request_node_desktop(backend: "SapUiBackend", request_number: str) -> bool:
+    """Focus on a transport request label and expand it via Edit > Expand.
+
+    Returns True if the expand was performed, False if the label wasn't found.
+    """
+    from typing import Any  # pylint: disable=import-outside-toplevel
+
+    from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(backend, DesktopBackend):
+        return False
+
+    session = backend._require_session()  # pylint: disable=protected-access
+    com = backend._com  # pylint: disable=protected-access
+
+    def _focus_expand() -> bool:
+        import time  # pylint: disable=import-outside-toplevel
+
+        try:
+            raw: Any = getattr(session, "com", getattr(session, "_com", session))
+            usr = raw.FindById("wnd[0]/usr")
+            for i in range(usr.Children.Count):
+                child = usr.Children(i)
+                if child.Type == "GuiLabel" and child.Text.strip() == request_number:
+                    child.SetFocus()
+                    time.sleep(0.3)
+                    # Find Edit menu and Expand item by text (not hard-coded index)
+                    mbar = raw.FindById("wnd[0]/mbar")
+                    edit_menu = mbar.Children(1)
+                    edit_menu.Select()
+                    time.sleep(0.3)
+                    for j in range(edit_menu.Children.Count):
+                        item_text = edit_menu.Children(j).Text
+                        if item_text in ("Expandieren", "Expand"):
+                            edit_menu.Children(j).Select()
+                            time.sleep(0.5)
+                            return True
+                    logger.warning("Expand menu item not found for %s", request_number)
+                    return False
+            return False
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            logger.warning("SE09 expand failed for %s: %s", request_number, exc)
+            return False
+
+    result = await com.run(_focus_expand)
+    if result:
+        await backend.wait(1000)
+    return result
+
+
+async def _collapse_request_node_desktop(backend: "SapUiBackend", request_number: str) -> None:
+    """Focus on a transport request label and collapse it via Edit > Compress."""
+    from typing import Any  # pylint: disable=import-outside-toplevel
+
+    from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(backend, DesktopBackend):
+        return
+
+    session = backend._require_session()  # pylint: disable=protected-access
+    com = backend._com  # pylint: disable=protected-access
+
+    def _focus_collapse() -> None:
+        import time  # pylint: disable=import-outside-toplevel
+
+        try:
+            raw: Any = getattr(session, "com", getattr(session, "_com", session))
+            usr = raw.FindById("wnd[0]/usr")
+            for i in range(usr.Children.Count):
+                child = usr.Children(i)
+                if child.Type == "GuiLabel" and child.Text.strip() == request_number:
+                    child.SetFocus()
+                    time.sleep(0.3)
+                    mbar = raw.FindById("wnd[0]/mbar")
+                    edit_menu = mbar.Children(1)
+                    edit_menu.Select()
+                    time.sleep(0.3)
+                    for j in range(edit_menu.Children.Count):
+                        item_text = edit_menu.Children(j).Text
+                        if item_text in ("Komprimieren", "Compress"):
+                            edit_menu.Children(j).Select()
+                            time.sleep(0.5)
+                            return
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            logger.warning("SE09 collapse failed for %s: %s", request_number, exc)
+
+    await com.run(_focus_collapse)
+    await backend.wait(500)
+
+
+def _parse_tasks_from_expanded_labels(
+    labels: list[str], parent_request: str, known_requests: set[str]
+) -> list[TransportTask]:
+    """Parse tasks from labels after expanding a request node.
+
+    After expansion, new transport numbers that are NOT in the known request
+    set are tasks belonging to the parent request.
+    """
+    transport_re = re.compile(r"^[A-Z0-9]{3}K\d{6}$")
+    tasks: list[TransportTask] = []
+    i = 0
+    while i < len(labels):
+        lbl = labels[i]
+        if transport_re.match(lbl) and lbl not in known_requests and lbl != parent_request:
+            # This is a task
+            task_type = ""
+            if i + 1 < len(labels) and not transport_re.match(labels[i + 1]):
+                task_type = labels[i + 1]
+            # Collect objects from subsequent labels until next transport number
+            objects: list[TransportObject] = []
+            j = i + 2 if task_type else i + 1
+            while j < len(labels) and not transport_re.match(labels[j]):
+                obj_text = labels[j].strip()
+                # Objects typically show as "PGMID OBJTYPE OBJNAME" or descriptions
+                parts = obj_text.split()
+                if len(parts) >= 2 and len(parts[0]) <= 4 and parts[0].isupper():
+                    objects.append(
+                        TransportObject(
+                            pgmid=parts[0],
+                            object_type=parts[1] if len(parts) > 1 else "",
+                            object_name=" ".join(parts[2:]) if len(parts) > 2 else "",
+                        )
+                    )
+                j += 1
+            tasks.append(
+                TransportTask(
+                    task_number=lbl,
+                    description="",
+                    owner="",
+                    status="",
+                    task_type=task_type,
+                    objects=objects,
+                )
+            )
+        i += 1
+    return tasks
+
+
 async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
     backend: "SapUiBackend",
     username: str | None,
     request_type: str,
     status: str,
+    include_objects: bool = False,
 ) -> TransportListResult:
-    """Desktop-specific SE09 lookup using get_screen_text instead of ARIA parsing."""
+    """Desktop-specific SE09 lookup using get_screen_text / label parsing."""
     now = datetime.now(UTC)
     logger.info("SE09 desktop backend path")
 
@@ -249,7 +418,7 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
     # Set selection screen: username, request type, status checkboxes
     await _set_se09_selection_screen(backend, username, request_type, status)
 
-    # Click Display button (via click_button)
+    # Click Display button
     for label in [SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN]:
         try:
             await backend.click_button(label)
@@ -260,28 +429,27 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
 
     await backend.wait(2000)
 
-    # Use get_screen_text to read the tree content
+    # Parse initial screen labels to get requests
     screen_text = await backend.get_screen_text()
-    text_content = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
+    requests = _parse_labels_to_requests(screen_text.labels, username or "")
 
-    # Parse transport numbers from screen text
-    transport_re = re.compile(r"([A-Z0-9]{3}K\d{6})")
-    requests: list[TransportRequest] = []
-    seen: set[str] = set()
-    for match in transport_re.finditer(text_content):
-        req_num = match.group(1)
-        if req_num not in seen:
-            seen.add(req_num)
-            requests.append(
-                TransportRequest(
-                    request_number=req_num,
-                    description="",
-                    owner=username or "",
-                    status="",
-                    request_type="",
-                    target_system="",
-                )
-            )
+    if not requests:
+        return TransportListResult(
+            requests=[],
+            request_count=0,
+            retrieved_at=now,
+        )
+
+    # If include_objects, expand each request node to find tasks
+    if include_objects:
+        known_request_nums = {r.request_number for r in requests}
+        for req in requests:
+            expanded = await _expand_request_node_desktop(backend, req.request_number)
+            if expanded:
+                expanded_text = await backend.get_screen_text()
+                tasks = _parse_tasks_from_expanded_labels(expanded_text.labels, req.request_number, known_request_nums)
+                req.tasks = tasks
+                await _collapse_request_node_desktop(backend, req.request_number)
 
     return TransportListResult(
         requests=requests,
@@ -300,11 +468,9 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
     """Look up transports in SE09."""
     now = datetime.now(UTC)
 
-    # Desktop backend: use get_screen_text instead of ARIA snapshot parsing
+    # Desktop backend: use label parsing instead of ARIA snapshot parsing
     if _is_desktop_backend(backend):
-        if include_objects:
-            logger.warning("SE09 desktop: include_objects is not supported, ignoring include_objects=True")
-        return await _lookup_transports_desktop(backend, username, request_type, status)
+        return await _lookup_transports_desktop(backend, username, request_type, status, include_objects)
 
     # Navigate to SE09 using session-aware helper
     tx_result = await backend.enter_transaction("SE09")
