@@ -271,7 +271,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "use the dedicated sap_se11_lookup, sap_se16_query, sap_se24_lookup, "
             "sap_se37_lookup, or sap_se93_lookup tools instead, which are faster and return structured data.\n\n"
             "**Multi-Session Support (for parallel agents):**\n"
-            "- `new_window=True`: Opens transaction in a NEW browser tab (SAP session)\n"
+            "- `new_window=True`: Opens transaction in a NEW SAP session (separate window)\n"
             "- Returns `session_count` showing total open sessions\n"
             "- Use `session` parameter on subsequent tool calls to target that session\n\n"
             "Example workflow for 5 parallel agents:\n"
