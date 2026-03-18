@@ -186,7 +186,10 @@ async def _get_button_tooltips_desktop(backend: Any) -> list[str]:
         for elem in _flatten(tree):
             if elem.type_as_number == 40:  # GuiButton
                 try:
-                    raw = session.find_by_id(elem.id).com
+                    btn = session.find_by_id(elem.id)
+                    if btn is None:
+                        continue
+                    raw = btn.com
                     tooltip = str(getattr(raw, "Tooltip", ""))
                     if tooltip:
                         tooltips.append(tooltip)
