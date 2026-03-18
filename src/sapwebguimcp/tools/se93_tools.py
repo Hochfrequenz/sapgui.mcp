@@ -114,6 +114,12 @@ async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
     screen_number = field_map.get("TSTC-DYPNO", "")
     auth_object = field_map.get("TSTCA-OBJCT", "") or None
 
+    # On R/3, nonexistent tcodes don't produce a status bar error — they show
+    # an empty form instead. Detect this by checking if both program and
+    # description are empty (a real tcode always has at least a program).
+    if not program and not description:
+        return SE93Error(tcode=tcode, error="Transaction code does not exist", retrieved_at=now)
+
     # Determine transaction type: dialog if screen number present, else report
     tx_type: SE93TransactionType = "dialog" if screen_number else "report"
 
