@@ -68,10 +68,30 @@ class GuiApplication(GuiContainer):
 
         Returns Any because wrap_com_object returns GuiComponent but the
         runtime object is always a GuiConnection.
+
+        Raises:
+            SapConnectionError: If the SAP server is unreachable or the
+                connection name is not found in SAP Logon.
         """
+        from sapwebguimcp.sapgui._errors import SapConnectionError
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
-        return wrap_com_object(self._com.OpenConnection(description, sync, raise_error))
+        try:
+            return wrap_com_object(self._com.OpenConnection(description, sync, raise_error))
+        except Exception as e:
+            # Check ConnectionErrorText for server-unreachable details
+            detail = ""
+            try:
+                detail = str(self._com.ConnectionErrorText).strip()
+            except Exception:
+                pass
+            if detail:
+                raise SapConnectionError(
+                    f"SAP server unreachable for connection '{description}'. " f"Check VPN and server status.\n{detail}"
+                ) from e
+            raise SapConnectionError(
+                f"Could not open connection '{description}'. " f"Verify the name matches an entry in SAP Logon."
+            ) from e
 
     def open_connection_by_connection_string(
         self, conn_string: str, sync: bool = True, raise_error: bool = True
