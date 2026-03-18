@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -57,6 +58,7 @@ def _make_mock_session(program: str = "SAPMSYST", sbar_text: str = "", message_t
     return session
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="winreg only available on Windows")
 class TestDiscoverSaplogonPath:
     """Tests for _discover_saplogon_path()."""
 

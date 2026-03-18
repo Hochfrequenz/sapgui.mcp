@@ -27,9 +27,12 @@ Lessons learned from live testing against HF S/4 (S4U, client 100):
 from __future__ import annotations
 
 import logging
+import sys
 import time
-import winreg
 from typing import TYPE_CHECKING, Any, cast
+
+if sys.platform == "win32":
+    import winreg
 
 from sapwebguimcp.sapgui._errors import SapConnectionError, SapGuiTimeoutError
 
@@ -43,6 +46,8 @@ _FALLBACK_SAPLOGON_PATH = r"C:\Program Files\SAP\FrontEnd\SAPGUI\saplogon.exe"
 
 def _discover_saplogon_path() -> str:
     """Read the SAP GUI install dir from the Windows registry, fall back to the default path."""
+    if sys.platform != "win32":
+        return _FALLBACK_SAPLOGON_PATH
     try:
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\SAP\SAP Shared") as key:
             sap_sysdir, _ = winreg.QueryValueEx(key, "SAPsysdir")
