@@ -170,25 +170,19 @@ SELECTORS: dict[str, str] = {
 
 async def _get_button_tooltips_desktop(backend: Any) -> list[str]:
     """Read Tooltip property from all buttons on the current screen (Desktop backend)."""
-    from typing import cast  # pylint: disable=import-outside-toplevel  # noqa: F811
+    from typing import cast  # pylint: disable=import-outside-toplevel
 
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+    from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
 
-    assert isinstance(backend, DesktopBackend)  # noqa: S101
+    if not isinstance(backend, DesktopBackend):
+        return []
     session = backend._require_session()  # pylint: disable=protected-access
 
     def _read_tooltips() -> list[str]:
         wnd = session.find_by_id("wnd[0]")
         tree = cast(Any, wnd).dump_tree(max_depth=3)
         tooltips: list[str] = []
-
-        def _flatten(items: list) -> list:  # type: ignore[type-arg]
-            result = []
-            for e in items:
-                result.append(e)
-                result.extend(_flatten(e.children))
-            return result
-
         for elem in _flatten(tree):
             if elem.type_as_number == 40:  # GuiButton
                 try:
@@ -196,8 +190,8 @@ async def _get_button_tooltips_desktop(backend: Any) -> list[str]:
                     tooltip = str(getattr(raw, "Tooltip", ""))
                     if tooltip:
                         tooltips.append(tooltip)
-                except Exception:
-                    pass
+                except Exception:  # pylint: disable=broad-exception-caught
+                    logger.debug("tooltip_read_failed", extra={"element_id": elem.id})
         return tooltips
 
     return await backend._com.run(_read_tooltips)  # pylint: disable=protected-access
@@ -1147,6 +1141,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "- All fields visible on current screen\n"
             "- No button clicks or navigation needed between fields\n\n"
             "When NOT to use:\n"
+            "- Single field only (use sap_set_field)\n"
             "- Fields on different screens/tabs\n"
             "- Need to click buttons between fills\n\n"
             "**Session parameter:**\n"
