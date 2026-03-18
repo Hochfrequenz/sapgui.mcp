@@ -240,7 +240,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Log into SAP. "
             "On WebGUI: requires SAP_URL, Chrome with --remote-debugging-port=9222, and VPN (if internal SAP). "
-            "On Desktop: requires SAP_CONNECTION_NAME (SAP Logon entry) and SAP GUI for Windows with scripting enabled. "
+            "On Desktop: requires SAP_CONNECTION_NAME (SAP Logon entry) "
+            "and SAP GUI for Windows with scripting enabled. "
             "Both backends use SAP_USER, SAP_PASSWORD, SAP_MANDANT from environment."
         )
     )
@@ -855,7 +856,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "On Desktop, use sap_discover_fields instead — it discovers fields dynamically."
         )
     )
-    async def sap_lookup_fields(transaction: str) -> FieldLookupResult:
+    async def sap_lookup_fields(transaction: str) -> FieldLookupResult:  # pylint: disable=too-many-return-statements
         """
         Look up known field CSS selectors for an SAP transaction.
 
@@ -868,15 +869,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             FieldLookupResult with known CSS selectors (WebGUI only).
         """
-        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
+        tcode_upper = transaction.upper().strip()
 
         if get_settings().backend_type == "desktop":
             return FieldLookupResult.failure(
                 "sap_lookup_fields returns WebGUI CSS selectors which don't work on Desktop. "
                 "Use sap_discover_fields to find fields dynamically.",
-                transaction=transaction.upper().strip(),
+                transaction=tcode_upper,
             )
-        tcode_upper = transaction.upper().strip()
 
         if get_settings().backend_type == "desktop":
             return FieldLookupResult.failure(
