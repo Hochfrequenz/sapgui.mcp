@@ -364,8 +364,8 @@ class TestDumpTree:
         assert result[0].children[0].text == "deep"
 
     def test_handles_exception_in_children(self):
-        """If Children raises, return empty list."""
-        parent_com = make_mock_com(container_type=True)
+        """If Children raises on a non-usr container, return empty list."""
+        parent_com = make_mock_com(container_type=True, id="/app/con[0]/ses[0]/wnd[0]/tbar[0]")
         # Force Children to raise
         type(parent_com).Children = property(lambda self: (_ for _ in ()).throw(RuntimeError("no children")))
         result = _dump_tree_recursive(parent_com, 0, 10)

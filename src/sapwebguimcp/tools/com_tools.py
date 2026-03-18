@@ -22,7 +22,14 @@ from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["register_com_tools"]
+__all__ = ["register_com_tools", "FindByNameRef"]
+
+
+class FindByNameRef(BaseModel):
+    """Reference to resolve an element via SAP's FindByName API."""
+
+    name: str = Field(description="SAP field name (e.g. 'BUT000-NAME_LAST')")
+    type_name: str = Field(description="SAP GUI type name (e.g. 'GuiTextField')")
 
 
 class ComOperationInput(BaseModel):
@@ -42,30 +49,84 @@ class ComOperationInput(BaseModel):
             "For 'call': positional args, e.g. [0, 'MATNR']. Not used for 'get'."
         ),
     )
+    find_by_name: FindByNameRef | None = Field(
+        default=None,
+        description=(
+            "Alternative element lookup via FindByName. "
+            "When set, element_id is the container to search within (e.g. 'wnd[0]/usr')."
+        ),
+    )
+
+
+def _safe_attr(obj: Any, name: str) -> str:
+    """Safely read a COM attribute, returning empty string on any failure."""
+    try:
+        return str(getattr(obj, name, ""))
+    except Exception:
+        return ""
 
 
 def _serialize_com_result(value: Any) -> str:
     """Serialize a COM return value to JSON string.
 
     COM can return primitives, collections, or COM objects.
+    Collections (objects with .Count and .Item) are serialized as JSON arrays.
     """
     if value is None:
         return "null"
     if isinstance(value, (str, int, float, bool)):
         return json.dumps(value)
-    # Try JSON serialization first
+    # Try COM collection serialization
+    try:
+        count = value.Count
+        if isinstance(count, int) and count >= 0:
+            cap = min(count, 100)
+            items = []
+            for i in range(cap):
+                item = value.Item(i)
+                items.append(
+                    {
+                        "Id": _safe_attr(item, "Id"),
+                        "Type": _safe_attr(item, "Type"),
+                        "Name": _safe_attr(item, "Name"),
+                        "Text": _safe_attr(item, "Text"),
+                    }
+                )
+            return json.dumps(items)
+    except Exception:
+        pass  # Not a well-behaved collection, fall through
+    # Fallback
     try:
         return json.dumps(value, default=str)
     except (TypeError, ValueError):
         return json.dumps(str(value))
 
 
-def _execute_single_op(  # pylint: disable=too-many-return-statements
+def _execute_single_op(  # pylint: disable=too-many-return-statements,too-many-locals
     session: Any, op: ComOperationInput
 ) -> ComOperation:
     """Execute a single COM operation on the COM thread (synchronous)."""
+    # --- Element resolution ---
     try:
-        elem = session.find_by_id(op.element_id)
+        if op.find_by_name is not None:
+            container = session.find_by_id(op.element_id)
+            raw_container: Any = getattr(container, "com", getattr(container, "_com", container))
+            resolved = raw_container.FindByName(op.find_by_name.name, op.find_by_name.type_name)
+            if resolved is None:
+                return ComOperation(
+                    success=False,
+                    error=(
+                        f"FindByName({op.find_by_name.name!r}, {op.find_by_name.type_name!r}) "
+                        f"returned nothing in {op.element_id}"
+                    ),
+                    element_id=op.element_id,
+                    action=op.action,
+                    property_or_method=op.property_or_method,
+                )
+            raw = resolved  # Already a raw COM object
+        else:
+            elem = session.find_by_id(op.element_id)
+            raw = getattr(elem, "com", getattr(elem, "_com", elem))
     except Exception as exc:  # pylint: disable=broad-exception-caught
         return ComOperation(
             success=False,
@@ -75,12 +136,27 @@ def _execute_single_op(  # pylint: disable=too-many-return-statements
             property_or_method=op.property_or_method,
         )
 
-    # Unwrap Python wrapper to get raw COM dispatch object
-    raw: Any = getattr(elem, "com", getattr(elem, "_com", elem))
+    # --- Chained property traversal ---
+    parts = op.property_or_method.split(".")
+    # Safety: block upward traversal
+    if any(p.lower() == "parent" for p in parts):
+        return ComOperation(
+            success=False,
+            error="'Parent' traversal is blocked for safety. Access elements directly by ID.",
+            element_id=op.element_id,
+            action=op.action,
+            property_or_method=op.property_or_method,
+        )
 
     try:
+        # Traverse to the target object
+        obj = raw
+        for part in parts[:-1]:
+            obj = getattr(obj, part)
+        final = parts[-1]
+
         if op.action == "get":
-            value = getattr(raw, op.property_or_method)
+            value = getattr(obj, final)
             return ComOperation(
                 element_id=op.element_id,
                 action=op.action,
@@ -90,9 +166,8 @@ def _execute_single_op(  # pylint: disable=too-many-return-statements
 
         if op.action == "set":
             set_value = op.args[0] if op.args else ""
-            setattr(raw, op.property_or_method, set_value)
-            # Read back the value to confirm
-            read_back = getattr(raw, op.property_or_method)
+            setattr(obj, final, set_value)
+            read_back = getattr(obj, final)
             return ComOperation(
                 element_id=op.element_id,
                 action=op.action,
@@ -101,7 +176,7 @@ def _execute_single_op(  # pylint: disable=too-many-return-statements
             )
 
         # action == "call"
-        method = getattr(raw, op.property_or_method)
+        method = getattr(obj, final)
         result = method(*(op.args or []))
         return ComOperation(
             element_id=op.element_id,
@@ -191,6 +266,14 @@ def register_com_tools(mcp: FastMCP) -> None:
             "- `wnd[0]/usr/chkNAME` — checkbox (chk prefix)\n"
             "- `wnd[0]/usr/cntl.../shell` — ALV grid or tree control\n"
             "- `wnd[0]/sbar` — status bar\n\n"
+            "**FindByName** (for BDT screens like BP where fields aren't in the snapshot):\n"
+            "Use `find_by_name` with the SAP field name and type. "
+            "Set `element_id` to the container (usually `wnd[0]/usr`).\n"
+            'Example: `{"element_id": "wnd[0]/usr", "find_by_name": '
+            '{"name": "BUT000-NAME_LAST", "type_name": "GuiTextField"}, '
+            '"action": "set", "property_or_method": "Text", "args": ["Smith"]}`\n\n'
+            "**Chained properties:** Use dot notation (e.g. `Children.Count`, `Children.Item`). "
+            "`Parent` is blocked for safety.\n\n"
             "**VKey codes** for SendVKey: 0=Enter, 2=F2, 3=F3/Back, 5=F5, 7=F7/Display, "
             "8=F8/Execute, 11=F11/Save, 12=F12/Cancel.\n\n"
             "**Batch:** Operations run sequentially. If op N fails, ops 1..N-1 already took effect. "
