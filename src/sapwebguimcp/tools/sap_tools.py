@@ -21,7 +21,7 @@ import json
 import logging
 import re
 from importlib import resources
-from typing import Optional
+from typing import Any, Optional
 
 from fastmcp import Context, FastMCP
 
@@ -54,6 +54,7 @@ from sapwebguimcp.models import (
     TransactionResult,
     get_settings,
 )
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.session_tools import (
     sap_session_bind_impl,
     sap_session_close_impl,
@@ -165,6 +166,41 @@ SELECTORS: dict[str, str] = {
 # =============================================================================
 # Tool Registration
 # =============================================================================
+
+
+async def _get_button_tooltips_desktop(backend: Any) -> list[str]:
+    """Read Tooltip property from all buttons on the current screen (Desktop backend)."""
+    from typing import cast  # pylint: disable=import-outside-toplevel  # noqa: F811
+
+    from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    assert isinstance(backend, DesktopBackend)  # noqa: S101
+    session = backend._require_session()  # pylint: disable=protected-access
+
+    def _read_tooltips() -> list[str]:
+        wnd = session.find_by_id("wnd[0]")
+        tree = cast(Any, wnd).dump_tree(max_depth=3)
+        tooltips: list[str] = []
+
+        def _flatten(items: list) -> list:  # type: ignore[type-arg]
+            result = []
+            for e in items:
+                result.append(e)
+                result.extend(_flatten(e.children))
+            return result
+
+        for elem in _flatten(tree):
+            if elem.type_as_number == 40:  # GuiButton
+                try:
+                    raw = session.find_by_id(elem.id).com
+                    tooltip = str(getattr(raw, "Tooltip", ""))
+                    if tooltip:
+                        tooltips.append(tooltip)
+                except Exception:
+                    pass
+        return tooltips
+
+    return await backend._com.run(_read_tooltips)  # pylint: disable=protected-access
 
 
 def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements,too-many-locals
@@ -1021,13 +1057,17 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return ShortcutsResult.failure(str(e))
 
         try:
-            # Get all title attributes via JavaScript - much more efficient than parsing HTML
-            titles: list[str] = await backend.evaluate_javascript("""() => {
-                    const elements = document.querySelectorAll('[title]');
-                    return Array.from(elements).map(el => el.title).filter(Boolean);
-                }""")
+            if _is_desktop_backend(backend):
+                # Desktop: read Tooltip property from all buttons via COM
+                titles = await _get_button_tooltips_desktop(backend)
+            else:
+                # WebGUI: get all title attributes via JavaScript
+                titles = await backend.evaluate_javascript("""() => {
+                        const elements = document.querySelectorAll('[title]');
+                        return Array.from(elements).map(el => el.title).filter(Boolean);
+                    }""")
 
-            # Parse titles for shortcuts
+            # Parse titles/tooltips for shortcuts (same format on both backends)
             shortcuts: list[ShortcutInfo] = []
             seen: set[tuple[str, str]] = set()
 
@@ -1036,8 +1076,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 if shortcut_info is None:
                     continue
 
-                # Skip duplicates (action and shortcut are str fields)
-                # pylint: disable=no-member  # False positive: ShortcutInfo.action/shortcut are str
+                # Skip duplicates
                 action_lower: str = shortcut_info.action.lower()
                 shortcut_lower: str = shortcut_info.shortcut.lower()
                 key = (action_lower, shortcut_lower)
