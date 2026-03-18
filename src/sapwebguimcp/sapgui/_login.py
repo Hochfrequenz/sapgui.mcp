@@ -46,7 +46,7 @@ def _discover_saplogon_path() -> str:
     if sys.platform != "win32":
         return _FALLBACK_SAPLOGON_PATH
     try:
-        import winreg  # pylint: disable=import-outside-toplevel
+        import winreg  # pylint: disable=import-outside-toplevel,import-error
 
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\SAP\SAP Shared") as key:
             sap_sysdir, _ = winreg.QueryValueEx(key, "SAPsysdir")
