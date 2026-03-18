@@ -468,7 +468,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Send a keyboard shortcut to SAP Web GUI\n\n"
+            "Send a keyboard shortcut to SAP\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
             '- session="s2": Targets specific session (for parallel agents)'
@@ -480,7 +480,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         agent_id: str | None = None,
     ) -> KeyboardResult:
         """
-        Send a keyboard shortcut to SAP Web GUI.
+        Send a keyboard shortcut to SAP.
 
         Common SAP shortcuts:
         - "F3" - Back (Zurück)
@@ -819,22 +819,34 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Getting screen info")
             return ScreenInfo.failure(f"Error getting screen info: {e}", title="", url="")
 
-    @mcp.tool(description="Look up known field selectors for an SAP transaction")
+    @mcp.tool(
+        description=(
+            "Look up known field CSS selectors for an SAP transaction (WebGUI only). "
+            "Returns pre-discovered selectors from a static registry. "
+            "On Desktop, use sap_discover_fields instead — it discovers fields dynamically."
+        )
+    )
     async def sap_lookup_fields(transaction: str) -> FieldLookupResult:
         """
-        Look up known field selectors for an SAP transaction.
+        Look up known field CSS selectors for an SAP transaction.
 
-        This tool returns pre-discovered CSS selectors for input fields
-        in common SAP transactions. Use this BEFORE trying to interact
-        with a transaction to find the correct field selectors.
+        This tool returns pre-discovered CSS selectors for WebGUI only.
+        On the Desktop backend, use sap_discover_fields instead.
 
         Args:
             transaction: Transaction code (e.g., SE16, VA01, BP)
 
         Returns:
-            FieldLookupResult with known field selectors for the transaction.
+            FieldLookupResult with known CSS selectors (WebGUI only).
         """
         tcode_upper = transaction.upper().strip()
+
+        if get_settings().backend_type == "desktop":
+            return FieldLookupResult.failure(
+                "sap_lookup_fields returns WebGUI CSS selectors which don't work on Desktop. "
+                "Use sap_discover_fields to find fields dynamically.",
+                transaction=tcode_upper,
+            )
 
         try:
             # Load the field registry
@@ -889,7 +901,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Discover input fields on the current SAP screen. "
-            "Returns fields with reliable CSS selectors (use the 'selector' field). "
+            "Returns fields with label, name, value, and a selector/ID for targeting the field. "
+            "Use the label with sap_fill_form to fill fields (works on all backends). "
+            "On WebGUI, the 'selector' field is a CSS selector. "
+            "On Desktop, it's a SAP GUI element ID. "
             "For buttons, use sap_discover_buttons instead.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
@@ -903,12 +918,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         """
         Discover all input fields on the current SAP screen.
 
-        This tool analyzes the current page and returns information about
-        all visible input fields with reliable CSS selectors.
-
-        IMPORTANT: Use the 'selector' field directly with sap_fill_form or
-        sap_set_field - it is designed to work reliably. Avoid using raw
-        element IDs which may contain special characters.
+        Returns information about all visible input fields. Use the 'label'
+        field with sap_fill_form to fill fields reliably on any backend.
 
         Args:
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
@@ -917,9 +928,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             DiscoveredFields with list of fields including:
             - field_id: SAP field ID (e.g., 'NAME_FIRST', 'STREET')
-            - label: Associated label text (for display)
-            - selector: Reliable CSS selector to use with sap_fill_form
-            - alternative_selectors: Other valid selectors (fallbacks)
+            - label: Associated label text (for sap_fill_form)
+            - selector: CSS selector (WebGUI) or element ID (Desktop)
             - type: Input type (text, checkbox, etc.)
             - value: Current value (if any)
         """
@@ -941,9 +951,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Discover clickable buttons on the current SAP screen. "
-            "Returns buttons with label, selector (for browser_click), shortcut (e.g. F3), and accesskey. "
-            "Use the 'selector' field with browser_click to click buttons reliably. "
-            "Prefer keyboard shortcuts when available - they're faster. "
+            "Returns buttons with label, selector, shortcut (e.g. F3), and accesskey. "
+            "Prefer keyboard shortcuts (sap_keyboard) when available — they're faster and work on all backends. "
+            "On WebGUI, use the 'selector' field with browser_click. "
+            "On Desktop, use sap_com_evaluate to press buttons by element ID. "
             "For input fields use sap_discover_fields instead.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
@@ -1091,17 +1102,16 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Fill multiple SAP form fields in a single call. "
-            "Use this when filling 2+ fields on the SAME screen without UI navigation between them. "
-            "Much faster than multiple browser_fill/browser_keyboard calls.\n\n"
+            "Use this when filling 2+ fields on the SAME screen without UI navigation between them.\n\n"
             "Keys can be:\n"
-            "- Visible label text (e.g., 'First Name', 'Straße')\n"
-            "- CSS selectors starting with '#' (e.g., '#M0:46:1:1::0:21')\n\n"
+            "- Visible label text (e.g., 'First Name', 'Straße') — works on all backends\n"
+            "- CSS selectors starting with '#' (WebGUI only, e.g., '#M0:46:1:1::0:21')\n"
+            "- SAP GUI element names (Desktop only, e.g., 'BUT000-NAME_LAST')\n\n"
             "When to use:\n"
             "- Filling a form with multiple input fields\n"
             "- All fields visible on current screen\n"
             "- No button clicks or navigation needed between fields\n\n"
             "When NOT to use:\n"
-            "- Single field only (use browser_fill)\n"
             "- Fields on different screens/tabs\n"
             "- Need to click buttons between fills\n\n"
             "**Session parameter:**\n"
@@ -1177,13 +1187,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Set a single SAP form field by label or CSS selector. "
+            "Set a single SAP form field by label, CSS selector, or element name. "
             "Finds the field dynamically and fills it with the given value.\n\n"
             "The label parameter can be:\n"
-            "- Visible label text (e.g., 'Last Name', 'Nachname')\n"
-            "- CSS selector (e.g., '#M0:46:1:1::0:21', '[lsdata*=\"NAME_LAST\"]')\n\n"
-            "This is simpler than sap_fill_form for single fields, and returns "
-            "the CSS selector that was matched (useful for debugging).\n\n"
+            "- Visible label text (e.g., 'Last Name', 'Nachname') — works on all backends\n"
+            "- CSS selector (WebGUI only, e.g., '#M0:46:1:1::0:21')\n"
+            "- SAP GUI element name (Desktop only, e.g., 'BUT000-NAME_LAST')\n\n"
+            "This is simpler than sap_fill_form for single fields.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
             '- session="s2": Targets specific session (for parallel agents)'
@@ -1196,10 +1206,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         agent_id: str | None = None,
     ) -> SetFieldResult:
         """
-        Set a single SAP form field by label or CSS selector.
+        Set a single SAP form field by label, CSS selector, or element name.
 
-        This tool finds the field dynamically using label text or CSS selector,
-        and returns information about what was matched. Supports both regular
+        Finds the field dynamically and fills it. Supports both regular
         text inputs and dropdown/combobox fields.
 
         For dropdown fields, the tool automatically detects the field type and
@@ -1207,13 +1216,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         in the dropdown options, returns available_options listing valid choices.
 
         Args:
-            label: Field label text (e.g., 'Last Name', 'GP-Rolle') or CSS selector
+            label: Field label text (e.g., 'Last Name'), CSS selector (WebGUI),
+                   or SAP GUI element name (Desktop)
             value: Value to set in the field (for dropdowns: exact option text)
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
-            SetFieldResult with label, value, and the CSS selector that was used.
+            SetFieldResult with label, value, and the selector/ID that was used.
             For dropdown errors, includes available_options.
         """
         if not label:
