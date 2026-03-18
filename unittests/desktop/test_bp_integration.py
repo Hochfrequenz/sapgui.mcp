@@ -20,9 +20,10 @@ async def test_bp_snapshot_shows_fields(backend):
 
     snapshot = await backend.get_snapshot()
     snapshot_text = str(snapshot)
-    # BDT fields should now appear in the snapshot
+    # BDT fields should now appear in the snapshot (BUS_JOEL on create screen,
+    # BUT000 on detail screen — either confirms the BDT fallback works)
     assert (
-        "BUT000" in snapshot_text or "NAME" in snapshot_text
+        "BUS_JOEL" in snapshot_text or "BUT000" in snapshot_text
     ), f"BDT fields not found in snapshot. First 500 chars: {snapshot_text[:500]}"
     await go_home(backend)
 
