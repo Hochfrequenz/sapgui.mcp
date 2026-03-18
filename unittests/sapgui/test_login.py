@@ -158,7 +158,10 @@ class TestLogin:
         )
 
         assert opt2.selected is True
-        popup.send_v_key.assert_called_once_with(0)
+        # send_v_key is called twice: once by _dismiss_system_message_popups (which
+        # tries to dismiss it, sees it persists, and stops), then once by
+        # _handle_multiple_logon_popup after selecting OPT2.
+        assert popup.send_v_key.call_count == 2
 
     @patch("sapwebguimcp.sapgui._login._wait_for_session")
     @patch("sapwebguimcp.sapgui.SapGui")

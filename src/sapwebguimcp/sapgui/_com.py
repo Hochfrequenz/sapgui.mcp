@@ -54,12 +54,31 @@ def _check_scripting_not_disabled(engine: Any) -> None:
     When sapgui/user_scripting=FALSE on the SAP server, the COM connection
     exists but DisabledByServer=True on each GuiConnection. The Children
     collection appears empty and all FindById calls fail silently.
+
+    Ghost connections (0 sessions) are cleaned up first — they are stale
+    leftovers from server restarts or failed connections and should not
+    block new login attempts.
     """
     try:
         connections = engine.Children
         count = connections.Count
         if count == 0:
             return  # No connections yet — nothing to check
+
+        # Clean up ghost connections (0 sessions) before checking
+        for i in range(count - 1, -1, -1):
+            conn = connections(i)
+            if conn.Children.Count == 0:
+                try:
+                    conn.CloseConnection()
+                except Exception:
+                    pass
+
+        # Re-read after cleanup
+        count = connections.Count
+        if count == 0:
+            return  # Only ghosts were present — all cleaned up
+
         disabled_count = sum(1 for i in range(count) if connections(i).DisabledByServer)
         if disabled_count == count:
             raise ScriptingDisabledError(
