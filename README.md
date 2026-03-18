@@ -579,25 +579,27 @@ Note: There is currently no bulk runner tool. The `workflow_list` tool returns, 
 
 ## Configuration Reference
 
-| Variable           | Required                    | Description                                                  | Default                      |
-| ------------------ | --------------------------- | ------------------------------------------------------------ | ---------------------------- |
-| `SAP_URL`          | **Yes** <sup>1</sup>        | SAP Web GUI URL                                              | `""`                         |
-| `SAP_USER`         | **Yes** <sup>1</sup>        | SAP username for auto-login                                  | `""`                         |
-| `SAP_PASSWORD`     | **Yes** <sup>1</sup>        | SAP password for auto-login                                  | `""`                         |
-| `SAP_MANDANT`      | **Yes** <sup>1</sup>        | SAP client (3-digit, e.g., `100`)                            | `""`                         |
-| `SAP_LANGUAGE`     | No                          | Login language (`DE` or `EN`)                                | `EN`                         |
-| `BROWSER_MODE`     | No                          | `connect` (existing Chrome) or `launch` (Playwright)         | `connect`                    |
-| `BROWSER_TYPE`     | No                          | `chromium`, `firefox`, or `webkit`                           | `chromium`                   |
-| `BROWSER_HEADLESS` | No                          | Run browser in headless mode                                 | `false`                      |
-| `CDP_URL`          | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL                                 | `http://localhost:9222`      |
-| `GITHUB_PAT`       | No                          | GitHub PAT for `log_feedback` issues and abapGit auth        | —                            |
-| `GITHUB_USER`      | No                          | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
-| `GITHUB_REPO`      | No                          | Repository for feedback issues                               | `Hochfrequenz/sapwebgui.mcp` |
-| `ABAPGIT_PAT`      | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
-| `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                    | `""` (off) <sup>2</sup>      |
-| `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                       | `0` (off) <sup>2</sup>       |
-| `LOG_FORMAT`       | No                          | Set to `json` for JSON log output                            | `""` (human-readable)        |
-| `LOG_LEVEL`        | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                       | `INFO`                       |
+| Variable              | Required                          | Description                                                  | Default                      |
+| --------------------- | --------------------------------- | ------------------------------------------------------------ | ---------------------------- |
+| `BACKEND_TYPE`        | No                                | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`           |
+| `SAP_CONNECTION_NAME` | When `BACKEND_TYPE=desktop`       | SAP Logon pad connection entry name (e.g. `"HF S/4"`)       | —                            |
+| `SAP_URL`             | When `BACKEND_TYPE=webgui` <sup>1</sup> | SAP Web GUI URL                                        | `""`                         |
+| `SAP_USER`            | **Yes** <sup>1</sup>             | SAP username for auto-login                                  | `""`                         |
+| `SAP_PASSWORD`        | **Yes** <sup>1</sup>             | SAP password for auto-login                                  | `""`                         |
+| `SAP_MANDANT`         | **Yes** <sup>1</sup>             | SAP client (3-digit, e.g., `100`)                            | `""`                         |
+| `SAP_LANGUAGE`        | No                                | Login language (`DE` or `EN`)                                | `EN`                         |
+| `BROWSER_MODE`        | No                                | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only. | `connect`              |
+| `BROWSER_TYPE`        | No                                | `chromium`, `firefox`, or `webkit`. WebGUI only.             | `chromium`                   |
+| `BROWSER_HEADLESS`    | No                                | Run browser in headless mode. WebGUI only.                   | `false`                      |
+| `CDP_URL`             | When `BROWSER_MODE=connect`       | Chrome DevTools Protocol URL. WebGUI only.                   | `http://localhost:9222`      |
+| `GITHUB_PAT`          | No                                | GitHub PAT for `log_feedback` issues and abapGit auth        | —                            |
+| `GITHUB_USER`         | No                                | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
+| `GITHUB_REPO`         | No                                | Repository for feedback issues                               | `Hochfrequenz/sapwebgui.mcp` |
+| `ABAPGIT_PAT`         | No                                | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
+| `PAPERTRAIL_HOST`     | No                                | Papertrail syslog host (empty to disable)                    | `""` (off) <sup>2</sup>      |
+| `PAPERTRAIL_PORT`     | No                                | Papertrail syslog port                                       | `0` (off) <sup>2</sup>       |
+| `LOG_FORMAT`          | No                                | Set to `json` for JSON log output                            | `""` (human-readable)        |
+| `LOG_LEVEL`           | No                                | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                       | `INFO`                       |
 
 <sup>1</sup> The server starts without these, but SAP login will fail.
 
