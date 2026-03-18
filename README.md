@@ -10,6 +10,7 @@
 
 An MCP (Model Context Protocol) server for SAP automation.
 Control SAP through Claude Desktop or Claude Code — via **SAP GUI desktop** or **SAP Web GUI** (browser).
+The MCP works with both SAP R/3 and S/4 (because some might even say "they are the same system" with just some different names and labels).
 
 ## Setup
 
