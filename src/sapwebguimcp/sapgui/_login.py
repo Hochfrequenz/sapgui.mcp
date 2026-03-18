@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import logging
 import time
+import winreg
 from typing import TYPE_CHECKING, Any, cast
 
 from sapwebguimcp.sapgui._errors import SapConnectionError, SapGuiTimeoutError
@@ -37,7 +38,17 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from sapwebguimcp.sapgui.components.session import GuiSession
 
-_DEFAULT_SAPLOGON_PATH = r"C:\Program Files\SAP\FrontEnd\SAPGUI\saplogon.exe"
+_FALLBACK_SAPLOGON_PATH = r"C:\Program Files\SAP\FrontEnd\SAPGUI\saplogon.exe"
+
+
+def _discover_saplogon_path() -> str:
+    """Read the SAP GUI install dir from the Windows registry, fall back to the default path."""
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\SAP\SAP Shared") as key:
+            sap_sysdir, _ = winreg.QueryValueEx(key, "SAPsysdir")
+            return rf"{sap_sysdir}\saplogon.exe"
+    except OSError:
+        return _FALLBACK_SAPLOGON_PATH
 
 
 def login(
@@ -77,7 +88,7 @@ def login(
     try:
         app = SapGui.connect()
     except SapConnectionError:
-        app = SapGui.launch(exe_path=saplogon_exe_path or _DEFAULT_SAPLOGON_PATH, timeout=timeout)
+        app = SapGui.launch(exe_path=saplogon_exe_path or _discover_saplogon_path(), timeout=timeout)
 
     # Step 2: Open connection
     conn = app.open_connection(connection_name, sync=True)
