@@ -74,3 +74,134 @@ class TestSerializeComResult:
         obj = MagicMock(spec=["SomeMethod"])  # no Count attribute
         result = _serialize_com_result(obj)
         assert isinstance(result, str)
+
+
+from sapwebguimcp.tools.com_tools import ComOperationInput, FindByNameRef, _execute_single_op
+
+
+def _make_mock_session(element_map: dict):
+    """Create a mock session with find_by_id routing."""
+    session = MagicMock()
+
+    def find_by_id(element_id, raise_error=True):
+        if element_id in element_map:
+            return element_map[element_id]
+        if raise_error:
+            raise Exception(f"Element not found: {element_id}")
+        return None
+
+    session.find_by_id = find_by_id
+    return session
+
+
+class TestChainedPropertyAccess:
+    def test_single_level_get(self):
+        """Backward compat: single property still works."""
+        elem = MagicMock()
+        elem.com.Text = "hello"
+        session = _make_mock_session({"wnd[0]/usr/txt1": elem})
+        op = ComOperationInput(element_id="wnd[0]/usr/txt1", action="get", property_or_method="Text")
+        result = _execute_single_op(session, op)
+        assert result.success
+        assert result.result == '"hello"'
+
+    def test_chained_get(self):
+        """Chained property: Children.Count works."""
+        children = MagicMock()
+        children.Count = 3
+        elem = MagicMock()
+        elem.com.Children = children
+        session = _make_mock_session({"wnd[0]/usr": elem})
+        op = ComOperationInput(element_id="wnd[0]/usr", action="get", property_or_method="Children.Count")
+        result = _execute_single_op(session, op)
+        assert result.success
+        assert result.result == "3"
+
+    def test_chained_call(self):
+        """Chained call: Children.Item(0) works."""
+        item = MagicMock()
+        item.Id = "child_id"
+        children = MagicMock()
+        children.Item = MagicMock(return_value=item)
+        elem = MagicMock()
+        elem.com.Children = children
+        session = _make_mock_session({"wnd[0]/usr": elem})
+        op = ComOperationInput(element_id="wnd[0]/usr", action="call", property_or_method="Children.Item", args=[0])
+        result = _execute_single_op(session, op)
+        assert result.success
+        children.Item.assert_called_once_with(0)
+
+    def test_parent_blocked(self):
+        """Parent in chain is blocked for safety."""
+        elem = MagicMock()
+        session = _make_mock_session({"wnd[0]": elem})
+        op = ComOperationInput(element_id="wnd[0]", action="get", property_or_method="Parent.Id")
+        result = _execute_single_op(session, op)
+        assert not result.success
+        assert "Parent" in result.error
+
+    def test_chained_set(self):
+        """Chained set: nested property write works."""
+        inner = MagicMock()
+        inner.Text = "old"
+        elem = MagicMock()
+        elem.com.Inner = inner
+        session = _make_mock_session({"wnd[0]/usr/txt1": elem})
+        op = ComOperationInput(
+            element_id="wnd[0]/usr/txt1", action="set", property_or_method="Inner.Text", args=["new"]
+        )
+        result = _execute_single_op(session, op)
+        assert result.success
+
+
+class TestFindByNameResolver:
+    def test_find_by_name_get(self):
+        """FindByName resolves element, then get works."""
+        field = MagicMock()
+        field.Text = "Joel"
+        container = MagicMock()
+        container.com.FindByName = MagicMock(return_value=field)
+        session = _make_mock_session({"wnd[0]/usr": container})
+        op = ComOperationInput(
+            element_id="wnd[0]/usr",
+            action="get",
+            property_or_method="Text",
+            find_by_name=FindByNameRef(name="BUT000-NAME_LAST", type_name="GuiTextField"),
+        )
+        result = _execute_single_op(session, op)
+        assert result.success
+        assert result.result == '"Joel"'
+        container.com.FindByName.assert_called_once_with("BUT000-NAME_LAST", "GuiTextField")
+
+    def test_find_by_name_set(self):
+        """FindByName resolves element, then set works."""
+        field = MagicMock()
+        field.Text = ""
+        container = MagicMock()
+        container.com.FindByName = MagicMock(return_value=field)
+        session = _make_mock_session({"wnd[0]/usr": container})
+        op = ComOperationInput(
+            element_id="wnd[0]/usr",
+            action="set",
+            property_or_method="Text",
+            args=["NewValue"],
+            find_by_name=FindByNameRef(name="BUT000-NAME_LAST", type_name="GuiTextField"),
+        )
+        result = _execute_single_op(session, op)
+        assert result.success
+
+    def test_find_by_name_not_found(self):
+        """FindByName returns None -> error."""
+        container = MagicMock()
+        container.com.FindByName = MagicMock(return_value=None)
+        session = _make_mock_session({"wnd[0]/usr": container})
+        op = ComOperationInput(
+            element_id="wnd[0]/usr",
+            action="get",
+            property_or_method="Text",
+            find_by_name=FindByNameRef(name="NONEXIST", type_name="GuiTextField"),
+        )
+        result = _execute_single_op(session, op)
+        assert not result.success
+        assert "FindByName" in result.error
+        assert "NONEXIST" in result.error
