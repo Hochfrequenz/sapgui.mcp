@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from sapwebguimcp.sapgui._errors import SapConnectionError, SapGuiTimeoutError
 from sapwebguimcp.sapgui._login import (
+    _FALLBACK_SAPLOGON_PATH,
+    _discover_saplogon_path,
     _handle_multiple_logon_popup,
     _wait_for_session,
     cleanup_ghost_connections,
@@ -53,6 +56,37 @@ def _make_mock_session(program: str = "SAPMSYST", sbar_text: str = "", message_t
 
     session._fields = fields
     return session
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="winreg only available on Windows")
+class TestDiscoverSaplogonPath:
+    """Tests for _discover_saplogon_path()."""
+
+    def test_reads_path_from_registry(self):
+        """Returns saplogon.exe path from the SAPsysdir registry value."""
+        import winreg  # pylint: disable=import-outside-toplevel
+
+        mock_key = MagicMock()
+        mock_key.__enter__ = lambda s: mock_key
+        mock_key.__exit__ = MagicMock(return_value=False)
+
+        with (
+            patch.object(winreg, "OpenKey", return_value=mock_key) as mock_open,
+            patch.object(winreg, "QueryValueEx", return_value=(r"D:\SAP\FrontEnd\SAPGUI", 1)),
+        ):
+            result = _discover_saplogon_path()
+
+        assert result == r"D:\SAP\FrontEnd\SAPGUI\saplogon.exe"
+        mock_open.assert_called_once_with(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\SAP\SAP Shared")
+
+    def test_falls_back_when_registry_missing(self):
+        """Returns fallback path when registry key does not exist."""
+        import winreg  # pylint: disable=import-outside-toplevel
+
+        with patch.object(winreg, "OpenKey", side_effect=OSError("Key not found")):
+            result = _discover_saplogon_path()
+
+        assert result == _FALLBACK_SAPLOGON_PATH
 
 
 class TestLogin:

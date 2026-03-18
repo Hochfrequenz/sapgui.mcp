@@ -1,12 +1,12 @@
-# SAP Web GUI MCP Server
+# SAP MCP Server
 
 [![Unittests](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Unittests/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 [![Coverage](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Coverage/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 [![Linting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Linting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 [![Formatting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 
-An MCP (Model Context Protocol) server for SAP Web GUI browser automation.
-Control SAP through Claude Desktop or Claude Code with persistent browser sessions.
+An MCP (Model Context Protocol) server for SAP automation.
+Control SAP through Claude Desktop or Claude Code — via **SAP GUI desktop** or **SAP Web GUI** (browser).
 
 ## Setup
 
@@ -32,7 +32,103 @@ All three setup approaches below show you how to configure both.
 Download `sapwebgui_mcp_windows_<version>.exe` from
 [GitHub Releases](https://github.com/Hochfrequenz/sapwebgui.mcp/releases/latest).
 
-### Step 1: Start Chrome with remote debugging
+Choose a backend:
+
+| | Desktop Backend (SAP GUI) | WebGUI Backend (Browser) |
+|---|---|---|
+| **Platform** | Windows only | Windows, macOS, Linux |
+| **Requires** | SAP GUI for Windows | Chrome browser |
+| **Speed** | Faster (works directly with SAP GUI) | Slower (works through a web browser) |
+| **Setup** | Simpler (just SAP GUI + this tool) | More steps (also needs Chrome browser setup) |
+
+### Option A: Desktop Backend (SAP GUI) — recommended for Windows users
+
+Automates SAP GUI directly — no browser needed. Windows only.
+
+**Prerequisites:**
+- SAP GUI for Windows installed (standard path — the server finds it automatically via Windows registry)
+- SAP GUI Scripting enabled (one-time setup, see below)
+
+<details>
+<summary>Enable SAP GUI Scripting (one-time)</summary>
+
+**Server side** (requires admin/basis team):
+- Transaction `RZ11` → parameter `sapgui/user_scripting` → set to `TRUE`
+- Dynamic parameter — no server restart needed, but users must re-login (close and reopen SAP GUI)
+
+**Client side** (your PC):
+1. Open SAP Logon or any SAP GUI session
+2. Go to **Options** (via menu bar, tray icon, or press **Alt+F12** in a session)
+3. Navigate to **Accessibility & Scripting → Scripting** (DE: **Barrierefreiheit & Skripting → Skripting**)
+4. Check **"Enable Scripting"** (DE: **"Skripting aktivieren"**)
+5. Uncheck **"Notify when a script attaches to SAP GUI"**
+6. Uncheck **"Notify when a script opens a connection"**
+
+> [!IMPORTANT]
+> The two notification checkboxes **must** be unchecked. If left checked, every COM connection triggers a modal popup that blocks automation.
+
+</details>
+
+#### Claude Desktop
+
+Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%APPDATA%\Claude`, press Enter. If `claude_desktop_config.json` does not exist, create a new text file with that exact name (make sure it ends in `.json`, not `.json.txt`).
+
+> [!TIP]
+> After downloading the `.exe`, note the full path. For example, if you saved `sapwebgui_mcp_windows_1.5.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapwebgui_mcp_windows_1.5.0.exe`. Always use forward slashes (`/`) in the JSON, not backslashes (`\`).
+
+```json
+{
+    "mcpServers": {
+        "sap-desktop": {
+            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "env": {
+                "BACKEND_TYPE": "desktop",
+                "SAP_CONNECTION_NAME": "Your SAP Logon Entry",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE"
+            }
+        }
+    }
+}
+```
+
+#### Claude Code
+
+Add to `.mcp.json` in your project root:
+
+```json
+{
+    "mcpServers": {
+        "sap-desktop": {
+            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "env": {
+                "BACKEND_TYPE": "desktop",
+                "SAP_CONNECTION_NAME": "Your SAP Logon Entry",
+                "SAP_USER": "your_username",
+                "SAP_PASSWORD": "your_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE"
+            }
+        }
+    }
+}
+```
+
+Replace:
+- `Your SAP Logon Entry` with the **description** shown in SAP Logon — this is the bold text in the list when you open SAP Logon (e.g. `"HF S/4"` or `"DEV - ERP Development"`). It is _not_ the system ID or server address.
+- `your_username` / `your_password` with your SAP credentials
+
+No Chrome, no browser setup required.
+
+> **Getting started:** Save the config file, then restart Claude Desktop. Try asking: _"Log me into SAP"_ or _"Run transaction SE16"_. SAP GUI will open automatically if it is not already running.
+
+### Option B: WebGUI Backend (Browser)
+
+Automates SAP Web GUI through Chrome browser automation. Works on all platforms. This is the default — if you don't set `BACKEND_TYPE`, the server uses WebGUI.
+
+#### Step 1: Start Chrome with remote debugging
 
 ```powershell
 & "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
@@ -47,13 +143,13 @@ Download `sapwebgui_mcp_windows_<version>.exe` from
 >
 > Not sure where Chrome is installed? See [Finding your Chrome path](#finding-your-chrome-path) in the Troubleshooting section below.
 
-### Step 2: Configure your MCP client
+#### Step 2: Configure your MCP client
 
 **Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
 
 > `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove it if you don't need these features.
 
-#### Claude Desktop
+##### Claude Desktop
 
 Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_config.json`, macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
 
@@ -75,7 +171,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
 }
 ```
 
-#### Claude Code
+##### Claude Code
 
 Add to `.mcp.json` in your project root:
 
@@ -452,7 +548,7 @@ Add to `.mcp.json` in your project root:
 
 | Tool                  | Description                                                  |
 | --------------------- | ------------------------------------------------------------ |
-| `sap_login`           | Opens SAP Web GUI login page                                 |
+| `sap_login`           | Logs into SAP (WebGUI: opens login page; Desktop: connects via SAP Logon) |
 | `sap_transaction`     | Enters and executes a transaction code                       |
 | `sap_keepalive_start` | Prevents session timeout (pings every 5 minutes)             |
 | `sap_keepalive_stop`  | Stops the keepalive task                                     |
@@ -460,6 +556,8 @@ Add to `.mcp.json` in your project root:
 | `log_feedback`        | Report issues (creates GitHub issues if `GITHUB_PAT` is set) |
 
 ### Browser Tools
+
+> **Note:** Browser tools are only available with the WebGUI backend (`BACKEND_TYPE=webgui`).
 
 | Tool                    | Description            |
 | ----------------------- | ---------------------- |
@@ -489,25 +587,27 @@ Note: There is currently no bulk runner tool. The `workflow_list` tool returns, 
 
 ## Configuration Reference
 
-| Variable           | Required                    | Description                                                  | Default                      |
-| ------------------ | --------------------------- | ------------------------------------------------------------ | ---------------------------- |
-| `SAP_URL`          | **Yes** <sup>1</sup>        | SAP Web GUI URL                                              | `""`                         |
-| `SAP_USER`         | **Yes** <sup>1</sup>        | SAP username for auto-login                                  | `""`                         |
-| `SAP_PASSWORD`     | **Yes** <sup>1</sup>        | SAP password for auto-login                                  | `""`                         |
-| `SAP_MANDANT`      | **Yes** <sup>1</sup>        | SAP client (3-digit, e.g., `100`)                            | `""`                         |
-| `SAP_LANGUAGE`     | No                          | Login language (`DE` or `EN`)                                | `EN`                         |
-| `BROWSER_MODE`     | No                          | `connect` (existing Chrome) or `launch` (Playwright)         | `connect`                    |
-| `BROWSER_TYPE`     | No                          | `chromium`, `firefox`, or `webkit`                           | `chromium`                   |
-| `BROWSER_HEADLESS` | No                          | Run browser in headless mode                                 | `false`                      |
-| `CDP_URL`          | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL                                 | `http://localhost:9222`      |
-| `GITHUB_PAT`       | No                          | GitHub PAT for `log_feedback` issues and abapGit auth        | —                            |
-| `GITHUB_USER`      | No                          | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
-| `GITHUB_REPO`      | No                          | Repository for feedback issues                               | `Hochfrequenz/sapwebgui.mcp` |
-| `ABAPGIT_PAT`      | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
-| `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                    | `""` (off) <sup>2</sup>      |
-| `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                       | `0` (off) <sup>2</sup>       |
-| `LOG_FORMAT`       | No                          | Set to `json` for JSON log output                            | `""` (human-readable)        |
-| `LOG_LEVEL`        | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                       | `INFO`                       |
+| Variable              | Required                          | Description                                                  | Default                      |
+| --------------------- | --------------------------------- | ------------------------------------------------------------ | ---------------------------- |
+| `BACKEND_TYPE`        | No                                | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`           |
+| `SAP_CONNECTION_NAME` | When `BACKEND_TYPE=desktop`       | SAP Logon pad connection entry name (e.g. `"HF S/4"`)       | —                            |
+| `SAP_URL`             | When `BACKEND_TYPE=webgui` <sup>1</sup> | SAP Web GUI URL                                        | `""`                         |
+| `SAP_USER`            | **Yes** <sup>1</sup>             | SAP username for auto-login                                  | `""`                         |
+| `SAP_PASSWORD`        | **Yes** <sup>1</sup>             | SAP password for auto-login                                  | `""`                         |
+| `SAP_MANDANT`         | **Yes** <sup>1</sup>             | SAP client (3-digit, e.g., `100`)                            | `""`                         |
+| `SAP_LANGUAGE`        | No                                | Login language (`DE` or `EN`)                                | `EN`                         |
+| `BROWSER_MODE`        | No                                | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only. | `connect`              |
+| `BROWSER_TYPE`        | No                                | `chromium`, `firefox`, or `webkit`. WebGUI only.             | `chromium`                   |
+| `BROWSER_HEADLESS`    | No                                | Run browser in headless mode. WebGUI only.                   | `false`                      |
+| `CDP_URL`             | When `BROWSER_MODE=connect`       | Chrome DevTools Protocol URL. WebGUI only.                   | `http://localhost:9222`      |
+| `GITHUB_PAT`          | No                                | GitHub PAT for `log_feedback` issues and abapGit auth        | —                            |
+| `GITHUB_USER`         | No                                | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
+| `GITHUB_REPO`         | No                                | Repository for feedback issues                               | `Hochfrequenz/sapwebgui.mcp` |
+| `ABAPGIT_PAT`         | No                                | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
+| `PAPERTRAIL_HOST`     | No                                | Papertrail syslog host (empty to disable)                    | `""` (off) <sup>2</sup>      |
+| `PAPERTRAIL_PORT`     | No                                | Papertrail syslog port                                       | `0` (off) <sup>2</sup>       |
+| `LOG_FORMAT`          | No                                | Set to `json` for JSON log output                            | `""` (human-readable)        |
+| `LOG_LEVEL`           | No                                | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                       | `INFO`                       |
 
 <sup>1</sup> The server starts without these, but SAP login will fail.
 
@@ -675,34 +775,32 @@ docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
 
 ## Architecture
 
+The server supports two backends. Choose one via `BACKEND_TYPE`.
+
+**WebGUI Backend** (`BACKEND_TYPE=webgui`, default):
+
+```mermaid
+graph BT
+    Claude["Claude Desktop / Claude Code"]
+    MCP["MCP Server (sapwebguimcp)\nPlaywright for browser automation\nSAP-specific tools"]
+    CDP["CDP Proxy (nginx)\nOnly needed for Docker"]
+    Chrome["Chrome\nSAP Web GUI loaded\nPersistent session"]
+
+    Claude -- "MCP (stdio)" --> MCP
+    MCP -- "HTTP / WebSocket" --> CDP
+    CDP -- "CDP (Chrome DevTools Protocol)" --> Chrome
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Chrome (with --remote-debugging-port=9222)             │
-│  - SAP Web GUI loaded                                   │
-│  - Persistent session                                   │
-└─────────────────────────────────────────────────────────┘
-            ↑
-            │ CDP (Chrome DevTools Protocol)
-            ↓
-┌─────────────────────────────────────────────────────────┐
-│  CDP Proxy (nginx) - only needed for Docker             │
-│  - Rewrites Host header for Chrome                      │
-│  - Rewrites WebSocket URLs                              │
-└─────────────────────────────────────────────────────────┘
-            ↑
-            │ HTTP/WebSocket
-            ↓
-┌─────────────────────────────────────────────────────────┐
-│  MCP Server (sapwebguimcp)                              │
-│  - Playwright for browser automation                    │
-│  - SAP-specific tools                                   │
-└─────────────────────────────────────────────────────────┘
-            ↑
-            │ MCP (stdio)
-            ↓
-┌─────────────────────────────────────────────────────────┐
-│  Claude Desktop / Claude Code                           │
-└─────────────────────────────────────────────────────────┘
+
+**Desktop Backend** (`BACKEND_TYPE=desktop`, Windows only):
+
+```mermaid
+graph BT
+    Claude["Claude Desktop / Claude Code"]
+    MCP["MCP Server (sapwebguimcp)\nDesktop backend with COM thread\nSAP-specific tools"]
+    SAP["SAP GUI for Windows\nCOM Scripting API\nPersistent session(s)"]
+
+    Claude -- "MCP (stdio)" --> MCP
+    MCP -- "COM (pywin32)" --> SAP
 ```
 
 ## Contributing

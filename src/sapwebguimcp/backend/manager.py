@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 from typing import TYPE_CHECKING, Any, get_args
 
 from sapwebguimcp.models.config import BackendType, get_settings
@@ -24,6 +25,11 @@ class BackendManager:  # pylint: disable=too-few-public-methods
     def __init__(self, backend_type: BackendType = "webgui") -> None:
         if backend_type not in _VALID_BACKEND_TYPES:
             raise ValueError(f"Unknown backend type '{backend_type}'. Valid types: {_VALID_BACKEND_TYPES}")
+        if backend_type == "desktop" and sys.platform != "win32":
+            raise RuntimeError(
+                "BACKEND_TYPE=desktop requires Windows with SAP GUI installed. "
+                "On macOS/Linux, use BACKEND_TYPE=webgui (the default) instead."
+            )
         self.backend_type = backend_type
         self._backends: dict[str, SapUiBackend] = {}  # Cache by session ID
         self._page_ids: dict[str, int] = {}  # Track page identity for cache invalidation
