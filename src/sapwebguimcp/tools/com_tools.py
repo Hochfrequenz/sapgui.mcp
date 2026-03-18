@@ -44,16 +44,43 @@ class ComOperationInput(BaseModel):
     )
 
 
+def _safe_attr(obj: Any, name: str) -> str:
+    """Safely read a COM attribute, returning empty string on any failure."""
+    try:
+        return str(getattr(obj, name, ""))
+    except Exception:
+        return ""
+
+
 def _serialize_com_result(value: Any) -> str:
     """Serialize a COM return value to JSON string.
 
     COM can return primitives, collections, or COM objects.
+    Collections (objects with .Count and .Item) are serialized as JSON arrays.
     """
     if value is None:
         return "null"
     if isinstance(value, (str, int, float, bool)):
         return json.dumps(value)
-    # Try JSON serialization first
+    # Try COM collection serialization
+    try:
+        count = value.Count
+        if isinstance(count, int) and count >= 0:
+            items = []
+            for i in range(count):
+                item = value.Item(i)
+                items.append(
+                    {
+                        "Id": _safe_attr(item, "Id"),
+                        "Type": _safe_attr(item, "Type"),
+                        "Name": _safe_attr(item, "Name"),
+                        "Text": _safe_attr(item, "Text"),
+                    }
+                )
+            return json.dumps(items)
+    except Exception:
+        pass  # Not a well-behaved collection, fall through
+    # Fallback
     try:
         return json.dumps(value, default=str)
     except (TypeError, ValueError):
