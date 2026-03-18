@@ -995,22 +995,34 @@ class DesktopBackend:
             if result is None:
                 return None
             raw_shell, sub_type = result
-            # GuiAbapEditor: GetLineCount() + GetLineText(i) on raw COM
+
+            # Strategy 1: Text property (works for TextEdit, also fallback for AbapEditor)
+            # TextEdit uses \r as line separator; normalize to \n.
+            if sub_type == "TextEdit":
+                try:
+                    text = raw_shell.Text
+                    if text and not str(text).startswith("SAPGUI."):
+                        return str(text).replace("\r\n", "\n").replace("\r", "\n")
+                except Exception:  # pylint: disable=broad-exception-caught
+                    logger.debug("read_editor_source: Text property failed", extra={"sub_type": sub_type})
+
+            # Strategy 2: GetLineCount + GetLineText (AbapEditor on S/4)
             try:
                 num_lines = raw_shell.GetLineCount()
-                lines = [raw_shell.GetLineText(i) for i in range(num_lines)]
-                return "\n".join(lines)
-            except Exception:  # pylint: disable=broad-exception-caught
-                logger.debug("read_editor_source: GetLineCount/GetLineText failed", extra={"sub_type": sub_type})
-            # GuiTextedit fallback: NumberOfLines + GetLineText
-            try:
-                num_lines = raw_shell.NumberOfLines
                 lines = [str(raw_shell.GetLineText(i)) for i in range(num_lines)]
                 return "\n".join(lines)
             except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug("read_editor_source: GetLineCount/GetLineText failed", extra={"sub_type": sub_type})
+
+            # Strategy 3: Text property as last resort (any subtype)
+            try:
+                text = raw_shell.Text
+                if text and not str(text).startswith("SAPGUI."):
+                    return str(text).replace("\r\n", "\n").replace("\r", "\n")
+            except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning(
                     "read_editor_source",
-                    extra={"sub_type": sub_type, "error": "Could not read lines from editor"},
+                    extra={"sub_type": sub_type, "error": "All read strategies failed"},
                 )
             return None
 
