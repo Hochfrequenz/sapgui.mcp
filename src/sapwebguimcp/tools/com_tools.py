@@ -80,8 +80,9 @@ def _serialize_com_result(value: Any) -> str:
     try:
         count = value.Count
         if isinstance(count, int) and count >= 0:
+            cap = min(count, 100)
             items = []
-            for i in range(count):
+            for i in range(cap):
                 item = value.Item(i)
                 items.append(
                     {

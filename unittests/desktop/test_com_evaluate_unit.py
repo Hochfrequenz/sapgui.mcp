@@ -205,3 +205,26 @@ class TestFindByNameResolver:
         assert not result.success
         assert "FindByName" in result.error
         assert "NONEXIST" in result.error
+
+
+class TestElementNotFound:
+    def test_element_not_found_returns_error(self):
+        """Standard element-not-found path returns error."""
+        session = _make_mock_session({})
+        op = ComOperationInput(element_id="wnd[0]/usr/doesNotExist", action="get", property_or_method="Text")
+        result = _execute_single_op(session, op)
+        assert not result.success
+        assert "Element not found" in result.error
+        assert "doesNotExist" in result.error
+
+
+class TestSimpleCall:
+    def test_single_level_call(self):
+        """Simple single-level method call works."""
+        elem = MagicMock()
+        elem.com.SendVKey = MagicMock(return_value=None)
+        session = _make_mock_session({"wnd[0]": elem})
+        op = ComOperationInput(element_id="wnd[0]", action="call", property_or_method="SendVKey", args=[0])
+        result = _execute_single_op(session, op)
+        assert result.success
+        elem.com.SendVKey.assert_called_once_with(0)

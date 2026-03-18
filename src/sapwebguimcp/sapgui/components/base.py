@@ -200,6 +200,18 @@ def _safe_com_attr(com_obj: Any, attr: str, default: Any = None) -> Any:
         return default
 
 
+# SAP GUI type numbers for BDT field probe
+_BDT_PROBE_TYPES = [
+    31,  # GuiTextField
+    32,  # GuiCTextField (context/search field)
+    33,  # GuiPasswordField
+    34,  # GuiComboBox
+    42,  # GuiRadioButton
+    43,  # GuiCheckBox
+    46,  # GuiLabel
+]
+
+
 def _probe_bdt_fields(com_obj: Any) -> list[ElementInfo]:
     """Discover fields on BDT containers via FindAllByNameEx wildcard.
 
@@ -210,7 +222,7 @@ def _probe_bdt_fields(com_obj: Any) -> list[ElementInfo]:
 
     seen_ids: set[str] = set()
     result: list[ElementInfo] = []
-    for type_num in [31, 32, 33, 34, 46]:  # txt, ctxt, pwd, cmb, label
+    for type_num in _BDT_PROBE_TYPES:
         try:
             found = com_obj.FindAllByNameEx("*", type_num)
             for j in range(found.Count):
