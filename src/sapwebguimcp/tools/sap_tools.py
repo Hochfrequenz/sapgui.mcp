@@ -819,21 +819,34 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             logger.exception("Getting screen info")
             return ScreenInfo.failure(f"Error getting screen info: {e}", title="", url="")
 
-    @mcp.tool(description="Look up known field selectors for an SAP transaction")
+    @mcp.tool(
+        description=(
+            "Look up known field CSS selectors for an SAP transaction (WebGUI only). "
+            "Returns pre-discovered selectors from a static registry. "
+            "On Desktop, use sap_discover_fields instead — it discovers fields dynamically."
+        )
+    )
     async def sap_lookup_fields(transaction: str) -> FieldLookupResult:
         """
-        Look up known field selectors for an SAP transaction.
+        Look up known field CSS selectors for an SAP transaction.
 
-        This tool returns pre-discovered CSS selectors for input fields
-        in common SAP transactions. Use this BEFORE trying to interact
-        with a transaction to find the correct field selectors.
+        This tool returns pre-discovered CSS selectors for WebGUI only.
+        On the Desktop backend, use sap_discover_fields instead.
 
         Args:
             transaction: Transaction code (e.g., SE16, VA01, BP)
 
         Returns:
-            FieldLookupResult with known field selectors for the transaction.
+            FieldLookupResult with known CSS selectors (WebGUI only).
         """
+        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
+
+        if get_settings().backend_type == "desktop":
+            return FieldLookupResult.failure(
+                "sap_lookup_fields returns WebGUI CSS selectors which don't work on Desktop. "
+                "Use sap_discover_fields to find fields dynamically.",
+                transaction=transaction.upper().strip(),
+            )
         tcode_upper = transaction.upper().strip()
 
         try:
