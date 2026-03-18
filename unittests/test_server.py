@@ -4,7 +4,10 @@ import asyncio
 
 from fastmcp import FastMCP
 
+from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.server import mcp
+
+_backend_type = get_settings().backend_type
 
 
 class TestMcpServer:
@@ -53,9 +56,11 @@ class TestMcpServer:
         assert result.error is None
         assert len(result.tools) > 0
 
-        # Verify known tools are present
+        # Verify known tools are present (browser_click only on webgui)
         tool_names = {t.name for t in result.tools}
-        expected_tools = {"sap_login", "sap_transaction", "browser_click", "log_intent"}
+        expected_tools = {"sap_login", "sap_transaction", "log_intent"}
+        if _backend_type == "webgui":
+            expected_tools.add("browser_click")
         assert expected_tools.issubset(tool_names), f"Missing tools: {expected_tools - tool_names}"
 
         # Verify tools have descriptions
@@ -68,10 +73,10 @@ class TestMcpServer:
         assert "Keyboard Shortcuts" in result.sap_knowledge, "Knowledge should contain shortcuts section"
         assert "sap_get_shortcuts" in result.sap_knowledge, "Knowledge should mention sap_get_shortcuts"
 
-    def test_browser_tools_are_registered(self) -> None:
-        """Test that browser automation tools are registered."""
+    def test_browser_tools_registration_matches_backend(self) -> None:
+        """Browser tools registered on webgui, absent on desktop."""
         tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
-        expected_browser_tools = {
+        browser_tools = {
             "browser_click",
             "browser_fill",
             "browser_keyboard",
@@ -83,9 +88,10 @@ class TestMcpServer:
             "browser_get_html",
             "browser_select_option",
         }
-        assert expected_browser_tools.issubset(
-            tool_names
-        ), f"Missing browser tools: {expected_browser_tools - tool_names}"
+        if _backend_type == "webgui":
+            assert browser_tools.issubset(tool_names), f"Missing browser tools: {browser_tools - tool_names}"
+        else:
+            assert browser_tools.isdisjoint(tool_names), f"Browser tools should not be registered on desktop"
 
     def test_catalog_tools_are_registered(self) -> None:
         """Test that transaction catalog tools are registered."""

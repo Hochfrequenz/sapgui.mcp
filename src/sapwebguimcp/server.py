@@ -175,7 +175,10 @@ mcp.add_middleware(ToolCallLoggingMiddleware())
 # Add FastMCP built-in logging with payload visibility
 mcp.add_middleware(LoggingMiddleware(include_payloads=True, max_payload_length=1000))
 
-# Register all tools
+# Register tools — conditionally based on backend type
+_backend = _settings.backend_type
+
+# Always available: SAP tools + transaction-specific tools
 register_sap_tools(mcp)
 register_se11_tools(mcp)
 register_se16_tools(mcp)
@@ -192,15 +195,23 @@ register_catalog_tools(mcp)
 register_table_tools(mcp)
 register_fm_tools(mcp)
 register_class_tools(mcp)
-register_browser_tools(mcp)
-register_com_tools(mcp)
+register_se24_edit_tools(mcp)
+register_se38_edit_tools(mcp)
+
+# Always available: logging and workflows
 register_intent_tools(mcp)
 register_feedback_tools(mcp)
 register_workflow_tools(mcp)
-register_abapgit_tools(mcp)
-register_se24_edit_tools(mcp)
-register_se37_edit_tools(mcp)
-register_se38_edit_tools(mcp)
+
+# WebGUI only: browser escape hatches, abapgit (JS-dependent), SE37 editor (no desktop impl)
+if _backend == "webgui":
+    register_browser_tools(mcp)
+    register_abapgit_tools(mcp)
+    register_se37_edit_tools(mcp)
+
+# Desktop only: COM escape hatches
+if _backend == "desktop":
+    register_com_tools(mcp)
 
 # Register prompts
 register_prompts(mcp)
