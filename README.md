@@ -779,58 +779,28 @@ The server supports two backends. Choose one via `BACKEND_TYPE`.
 
 **WebGUI Backend** (`BACKEND_TYPE=webgui`, default):
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  Chrome (with --remote-debugging-port=9222)             │
-│  - SAP Web GUI loaded                                   │
-│  - Persistent session                                   │
-└─────────────────────────────────────────────────────────┘
-            ↑
-            │ CDP (Chrome DevTools Protocol)
-            ↓
-┌─────────────────────────────────────────────────────────┐
-│  CDP Proxy (nginx) - only needed for Docker             │
-│  - Rewrites Host header for Chrome                      │
-│  - Rewrites WebSocket URLs                              │
-└─────────────────────────────────────────────────────────┘
-            ↑
-            │ HTTP/WebSocket
-            ↓
-┌─────────────────────────────────────────────────────────┐
-│  MCP Server (sapwebguimcp)                              │
-│  - Playwright for browser automation                    │
-│  - SAP-specific tools                                   │
-└─────────────────────────────────────────────────────────┘
-            ↑
-            │ MCP (stdio)
-            ↓
-┌─────────────────────────────────────────────────────────┐
-│  Claude Desktop / Claude Code                           │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph BT
+    Claude["Claude Desktop / Claude Code"]
+    MCP["MCP Server (sapwebguimcp)\nPlaywright for browser automation\nSAP-specific tools"]
+    CDP["CDP Proxy (nginx)\nOnly needed for Docker"]
+    Chrome["Chrome\nSAP Web GUI loaded\nPersistent session"]
+
+    Claude -- "MCP (stdio)" --> MCP
+    MCP -- "HTTP / WebSocket" --> CDP
+    CDP -- "CDP (Chrome DevTools Protocol)" --> Chrome
 ```
 
 **Desktop Backend** (`BACKEND_TYPE=desktop`, Windows only):
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  SAP GUI for Windows                                    │
-│  - COM Scripting API                                    │
-│  - Persistent session(s)                                │
-└─────────────────────────────────────────────────────────┘
-            ↑
-            │ COM (pywin32)
-            ↓
-┌─────────────────────────────────────────────────────────┐
-│  MCP Server (sapwebguimcp)                              │
-│  - Desktop backend with COM thread                      │
-│  - SAP-specific tools                                   │
-└─────────────────────────────────────────────────────────┘
-            ↑
-            │ MCP (stdio)
-            ↓
-┌─────────────────────────────────────────────────────────┐
-│  Claude Desktop / Claude Code                           │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph BT
+    Claude["Claude Desktop / Claude Code"]
+    MCP["MCP Server (sapwebguimcp)\nDesktop backend with COM thread\nSAP-specific tools"]
+    SAP["SAP GUI for Windows\nCOM Scripting API\nPersistent session(s)"]
+
+    Claude -- "MCP (stdio)" --> MCP
+    MCP -- "COM (pywin32)" --> SAP
 ```
 
 ## Contributing
