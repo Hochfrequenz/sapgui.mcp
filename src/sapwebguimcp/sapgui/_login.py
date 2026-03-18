@@ -31,9 +31,6 @@ import sys
 import time
 from typing import TYPE_CHECKING, Any, cast
 
-if sys.platform == "win32":
-    import winreg
-
 from sapwebguimcp.sapgui._errors import SapConnectionError, SapGuiTimeoutError
 
 logger = logging.getLogger(__name__)
@@ -49,6 +46,8 @@ def _discover_saplogon_path() -> str:
     if sys.platform != "win32":
         return _FALLBACK_SAPLOGON_PATH
     try:
+        import winreg  # pylint: disable=import-outside-toplevel
+
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\SAP\SAP Shared") as key:
             sap_sysdir, _ = winreg.QueryValueEx(key, "SAPsysdir")
             return rf"{sap_sysdir}\saplogon.exe"

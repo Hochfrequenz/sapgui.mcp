@@ -62,25 +62,29 @@ def _make_mock_session(program: str = "SAPMSYST", sbar_text: str = "", message_t
 class TestDiscoverSaplogonPath:
     """Tests for _discover_saplogon_path()."""
 
-    @patch("sapwebguimcp.sapgui._login.winreg")
-    def test_reads_path_from_registry(self, mock_winreg):
+    def test_reads_path_from_registry(self):
         """Returns saplogon.exe path from the SAPsysdir registry value."""
-        mock_key = MagicMock()
-        mock_winreg.OpenKey.return_value.__enter__ = lambda s: mock_key
-        mock_winreg.OpenKey.return_value.__exit__ = MagicMock(return_value=False)
-        mock_winreg.QueryValueEx.return_value = (r"D:\SAP\FrontEnd\SAPGUI", 1)
+        import winreg  # pylint: disable=import-outside-toplevel
 
-        result = _discover_saplogon_path()
+        mock_key = MagicMock()
+        mock_key.__enter__ = lambda s: mock_key
+        mock_key.__exit__ = MagicMock(return_value=False)
+
+        with (
+            patch.object(winreg, "OpenKey", return_value=mock_key) as mock_open,
+            patch.object(winreg, "QueryValueEx", return_value=(r"D:\SAP\FrontEnd\SAPGUI", 1)),
+        ):
+            result = _discover_saplogon_path()
 
         assert result == r"D:\SAP\FrontEnd\SAPGUI\saplogon.exe"
-        mock_winreg.OpenKey.assert_called_once_with(mock_winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\SAP\SAP Shared")
+        mock_open.assert_called_once_with(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\SAP\SAP Shared")
 
-    @patch("sapwebguimcp.sapgui._login.winreg")
-    def test_falls_back_when_registry_missing(self, mock_winreg):
+    def test_falls_back_when_registry_missing(self):
         """Returns fallback path when registry key does not exist."""
-        mock_winreg.OpenKey.side_effect = OSError("Key not found")
+        import winreg  # pylint: disable=import-outside-toplevel
 
-        result = _discover_saplogon_path()
+        with patch.object(winreg, "OpenKey", side_effect=OSError("Key not found")):
+            result = _discover_saplogon_path()
 
         assert result == _FALLBACK_SAPLOGON_PATH
 
