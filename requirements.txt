@@ -173,7 +173,7 @@ rpds-py==0.30.0
     #   referencing
 secretstorage==3.5.0
     # via keyring
-sse-starlette==3.3.2
+sse-starlette==3.3.3
     # via mcp
 starlette==0.52.1
     # via
