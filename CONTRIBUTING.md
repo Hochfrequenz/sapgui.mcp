@@ -1,6 +1,15 @@
-# Contributing to SAP Web GUI MCP Server
+# Contributing to SAP MCP Server
 
 Thank you for contributing to this project! This guide covers development setup, testing, and coding standards.
+
+## Architecture Overview
+
+The server supports two backends:
+
+- **WebGUI** (`BACKEND_TYPE=webgui`, default) — automates SAP Web GUI through Chrome/Playwright
+- **Desktop** (`BACKEND_TYPE=desktop`) — automates SAP GUI for Windows via COM scripting (pywin32)
+
+Both backends implement the same `SapUiBackend` protocol. Tools are backend-agnostic where possible — they call protocol methods that each backend implements differently.
 
 ## Development Setup
 
@@ -17,16 +26,24 @@ source .tox/dev/bin/activate  # Linux/macOS
 # or
 .tox\dev\Scripts\activate  # Windows
 
-# Install Playwright browsers
+# Install Playwright browsers (WebGUI backend only)
 playwright install chromium
 ```
+
+### SAP Test System Setup
+
+To run integration tests, you need a configured SAP system. See **[docs/SAP_TEST_PREREQUISITES.md](docs/SAP_TEST_PREREQUISITES.md)** for:
+- SAP GUI Scripting configuration (RZ11 + client settings)
+- Required test objects (report, class, function module)
+- `.env` file configuration
 
 ## Running Tests
 
 This project uses [tox](https://tox.wiki/) to run all tests and checks. The test suite includes:
 
-- **Unit tests**: Offline tests using HTML snapshots (no SAP required)
-- **Integration tests**: Tests against real SAP Web GUI (auto-skipped on non-SAP machines)
+- **Unit tests**: Offline tests using HTML snapshots and mocked COM (no SAP required)
+- **WebGUI integration tests**: Tests against real SAP Web GUI (auto-skipped on non-SAP machines)
+- **Desktop integration tests**: Tests against SAP GUI via COM (auto-skipped without SAP credentials)
 
 ### Tox Environments
 
@@ -96,9 +113,9 @@ We considered [syrupy](https://github.com/tophat/syrupy) (a pytest snapshot test
 
 Our approach: capture HTML once, then write focused assertions about selector behavior. If SAP's HTML structure changes, the selector tests fail with clear messages about which selector broke.
 
-### Integration Tests
+### WebGUI Integration Tests
 
-Integration tests run against a real SAP system. They:
+WebGUI integration tests run against SAP Web GUI in a browser. They:
 
 - Require SAP credentials in environment
 - Are slow (~10-30s each)
@@ -112,14 +129,44 @@ async def test_my_feature(sap_mcp_client: ClientSession) -> None:
     await capture_html_snapshot(sap_mcp_client, "my_feature_result")
 ```
 
-### Unit Tests
+### Desktop Integration Tests
 
-Unit tests use HTML snapshots from `unittests/webgui/testdata/html_snapshots/`.
+Desktop integration tests run against SAP GUI via COM. They:
+
+- Live in `unittests/desktop/`
+- Use the shared `backend` fixture from `conftest.py` (logs in once per module)
+- Auto-skip on non-Windows or when SAP credentials are missing
+- Test object names are centralized in `conftest.py` (`TEST_REPORT`, `TEST_CLASS`, etc.)
 
 ```python
+from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_my_desktop_feature(backend):
+    await backend.enter_transaction("SE16")
+    # ... test logic
+    await go_home(backend)  # Always return to Easy Access
+```
+
+See [docs/SAP_TEST_PREREQUISITES.md](docs/SAP_TEST_PREREQUISITES.md) for system setup.
+
+### Unit Tests
+
+Unit tests use HTML snapshots (WebGUI) or mocked COM objects (Desktop). No SAP connection needed.
+
+```python
+# WebGUI: HTML snapshot tests
 def test_my_parser():
     html = load_snapshot("bp_person_form_de.html")
     result = parse_something(html)
+    assert result == expected
+
+# Desktop: mocked COM tests
+def test_my_com_feature():
+    session = MagicMock()
+    result = my_function(session)
     assert result == expected
 ```
 
@@ -173,8 +220,8 @@ Both are sent to the AI client. Without the Args section, the LLM doesn't know w
 @mcp.tool(
     description=(
         "Discover clickable buttons on the current SAP screen. "
-        "Returns buttons with label, selector (for browser_click), shortcut. "
-        "Use the 'selector' field with browser_click to click buttons reliably. "
+        "Prefer keyboard shortcuts (sap_keyboard) when available — "
+        "they're faster and work on all backends. "
         "For input fields use sap_discover_fields instead."
     )
 )
