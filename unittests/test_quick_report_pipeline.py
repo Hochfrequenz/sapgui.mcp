@@ -378,3 +378,31 @@ class TestPostF8Keys:
             assert data["tcode"] == "VA05"
         finally:
             Path(output_path).unlink(missing_ok=True)
+
+    async def test_pipeline_exception_returns_failure(self) -> None:
+        """Unexpected exception during pipeline → failure result, not unhandled crash."""
+        backend = _make_backend()
+        backend.enter_transaction = AsyncMock(side_effect=RuntimeError("Browser disconnected"))
+
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            result = await _execute_quick_report(backend, tcode="VA05")
+
+        assert result.success is False
+        assert "Pipeline error" in result.error
+        assert "Browser disconnected" in result.error
+
+    async def test_read_table_exception_produces_warning(self) -> None:
+        """read_table raises → TABLE with empty rows and warning."""
+        backend = _make_backend()
+        backend.read_table = AsyncMock(side_effect=RuntimeError("Parse error"))
+
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
+
+        assert result.success is True
+        assert result.screen_type == ScreenClassification.TABLE
+        assert result.table is not None
+        assert len(result.table.rows) == 0
+        assert any("read_table failed" in w for w in result.warnings)

@@ -115,6 +115,39 @@ async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-
             screen_type=ScreenClassification.ERROR,
         )
 
+    try:
+        return await _run_pipeline(
+            backend,
+            tcode=tcode,
+            fields=fields,
+            checkboxes=checkboxes,
+            radios=radios,
+            max_rows=max_rows,
+            post_f8_keys=post_f8_keys,
+            output_file=output_file,
+            warnings=warnings,
+        )
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.exception("sap_quick_report pipeline error for tcode=%s", tcode)
+        return QuickReportResult.failure(
+            error=f"Pipeline error: {exc}",
+            tcode=tcode,
+            screen_type=ScreenClassification.ERROR,
+        )
+
+
+async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
+    backend: SapUiBackend,
+    tcode: str,
+    fields: dict[str, str] | None,
+    checkboxes: dict[str, bool] | None,
+    radios: dict[str, bool] | None,
+    max_rows: int,
+    post_f8_keys: list[str] | None,
+    output_file: str | None,
+    warnings: list[str],
+) -> QuickReportResult:
+    """Inner pipeline logic — called by _execute_quick_report inside try/except."""
     # 2. Enter transaction
     tx_result = await backend.enter_transaction(tcode)
     if not tx_result.success:
@@ -177,7 +210,7 @@ async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-
     if classification == ScreenClassification.TABLE:
         try:
             table = await backend.read_table(max_rows=max_rows)
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             warnings.append(f"read_table failed: {exc}")
             table = TableData(headers=[], rows=[], total_rows=0, start_row=1)
 
