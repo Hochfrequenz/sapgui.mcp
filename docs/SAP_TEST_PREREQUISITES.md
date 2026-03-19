@@ -4,12 +4,6 @@ This document describes everything needed to run integration tests on a fresh SA
 
 ## SAP System Configuration (both backends)
 
-### Server Side
-
-- **SAP GUI Scripting** (Desktop backend only): Transaction `RZ11` → parameter `sapgui/user_scripting` → set to `TRUE`
-    - Dynamic parameter, no server restart needed
-    - Users must re-login after the change (close and reopen SAP GUI)
-
 ### User Permissions
 
 The test user needs access to the following transactions:
@@ -37,17 +31,22 @@ The required test objects are maintained in an abapGit repository:
 
 Install via abapGit pull, or create manually:
 
-| Object                          | Transaction | Details                                                            |
-| ------------------------------- | ----------- | ------------------------------------------------------------------ |
-| Report `ZTEST_MCP_EDIT`         | SE38        | Must contain `REPORT ZTEST_MCP_EDIT.` + `WRITE 'MCP test report'.` |
-| Class `ZCL_TEST_MCP_EDIT`       | SE24        | Public class with method `DO_SOMETHING`                            |
-| Function module `Z_MCP_TEST_FM` | SE37        | In function group `ZMCP_TEST`                                      |
+| Object                    | Transaction | Details                                                            |
+| ------------------------- | ----------- | ------------------------------------------------------------------ |
+| Report `ZTEST_MCP_EDIT`   | SE38        | Must contain `REPORT ZTEST_MCP_EDIT.` + `WRITE 'MCP test report'.` |
+| Class `ZCL_TEST_MCP_EDIT` | SE24        | Public class with method `DO_SOMETHING`                            |
 
 Creating these objects generates **transport requests** owned by the test user (needed for SE09 tests).
 
 > **Note**: Test object names are centralized in `unittests/desktop/conftest.py` (`TEST_REPORT`, `TEST_CLASS`, `TEST_METHOD`). If you use different names, update them there.
 
 ## Desktop Backend Setup
+
+### Server Side
+
+- **SAP GUI Scripting**: Transaction `RZ11` → parameter `sapgui/user_scripting` → set to `TRUE`
+    - Dynamic parameter, no server restart needed
+    - Users must re-login after the change (close and reopen SAP GUI)
 
 ### Client Side
 

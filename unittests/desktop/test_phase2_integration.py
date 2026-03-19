@@ -19,7 +19,7 @@ from typing import Any, cast
 import pytest
 
 from sapwebguimcp.backend.desktop._element_finder import _flatten
-from unittests.desktop.conftest import skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import TEST_TABLE, skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
 
@@ -38,11 +38,11 @@ async def test_fill_field_on_se16(backend):
     """fill_field sets a text field value that can be read back."""
     await backend.enter_transaction("SE16")
 
-    await backend.fill_field("Tabellenname", "TSTC")
+    await backend.fill_field("Tabellenname", TEST_TABLE)
 
     fields = await backend.discover_fields()
     assert len(fields) > 0
-    assert fields[0].value == "TSTC"
+    assert fields[0].value == TEST_TABLE
 
     await backend.press_key("F3")
 
@@ -195,7 +195,7 @@ async def test_get_dropdown_options_on_sm37(backend):
 async def test_press_key_f8_executes(backend):
     """press_key F8 executes on SE16 after filling table name."""
     await backend.enter_transaction("SE16")
-    await backend.fill_field("Tabellenname", "TSTC")
+    await backend.fill_field("Tabellenname", TEST_TABLE)
 
     kr = await backend.press_key("F8")
     assert kr.success
@@ -281,11 +281,11 @@ async def test_fill_form_on_se16(backend):
     await backend.enter_transaction("SE16")
 
     # SE16 has one field: Tabellenname. fill_form with one entry should work.
-    result = await backend.fill_form({"Tabellenname": "TSTC"})
+    result = await backend.fill_form({"Tabellenname": TEST_TABLE})
     assert result.success
 
     fields = await backend.discover_fields()
-    assert any(f.value == "TSTC" for f in fields)
+    assert any(f.value == TEST_TABLE for f in fields)
 
     await backend.press_key("F3")
 
