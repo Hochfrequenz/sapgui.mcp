@@ -84,6 +84,24 @@ async def test_bp_com_evaluate_find_by_name_write(backend):
 
 
 @pytest.mark.anyio
+async def test_bp_fill_form_with_labels(backend):
+    """sap_fill_form fills BP fields by label including composite labels."""
+    await backend.enter_transaction("BP")
+    await backend.press_key("F5")
+    await backend.wait(1000)
+    await backend.press_key("Enter")
+    await backend.wait(1000)
+
+    result = await backend.fill_form({"Nachname": "IntegTest", "Vorname": "Max", "Land": "DE"})
+    assert result.success, f"fill_form failed: {result.error}"
+    assert "Nachname" in result.filled
+    assert "Vorname" in result.filled
+    assert "Land" in result.filled
+    assert len(result.not_found) == 0, f"Fields not found: {result.not_found}"
+    await go_home(backend)
+
+
+@pytest.mark.anyio
 async def test_se16_regression(backend):
     """SE16 still works after dump_tree changes (regression check)."""
     await backend.enter_transaction("SE16")
