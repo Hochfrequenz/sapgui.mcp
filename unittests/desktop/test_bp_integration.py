@@ -127,6 +127,55 @@ async def test_bp_fill_form_with_dropdown(backend):
 
 
 @pytest.mark.anyio
+async def test_bp_get_dropdown_options_anrede(backend):
+    """get_dropdown_options returns Anrede options, and setting one changes the snapshot."""
+    await backend.enter_transaction("BP")
+    await backend.press_key("F5")
+    await backend.wait(1000)
+    await backend.press_key("Enter")
+    await backend.wait(1000)
+
+    # 1) Read options
+    options = await backend.get_dropdown_options("Anrede")
+    assert len(options) > 0, "get_dropdown_options returned no options for Anrede"
+    options_lower = [o.lower() for o in options]
+    assert any("herr" in o for o in options_lower), f"'Herr' not found in options: {options}"
+    assert any("frau" in o for o in options_lower), f"'Frau' not found in options: {options}"
+
+    # 2) Set dropdown value using fill_form
+    result = await backend.fill_form({"Anrede": "Frau"})
+    assert result.success, f"fill_form failed: {result.error}"
+    assert "Anrede" in result.filled, f"Anrede not filled. Errors: {result.errors}"
+
+    # 3) Verify via snapshot that the value changed
+    snapshot = await backend.get_snapshot()
+    snapshot_text = str(snapshot)
+    assert "Frau" in snapshot_text, f"'Frau' not found in snapshot after setting dropdown: {snapshot_text[:500]}"
+    await go_home(backend)
+
+
+@pytest.mark.anyio
+async def test_bp_get_form_fields_with_dropdown_options(backend):
+    """get_form_fields(include_dropdown_options=True) populates dropdown options on BP."""
+    await backend.enter_transaction("BP")
+    await backend.press_key("F5")
+    await backend.wait(1000)
+    await backend.press_key("Enter")
+    await backend.wait(1000)
+
+    result = await backend.get_form_fields(include_dropdown_options=True)
+    assert result.success, f"get_form_fields failed: {result.error}"
+
+    # Find dropdown fields that have options populated
+    dropdowns_with_options = [f for f in result.fields if f.field_type == "dropdown" and f.options]
+    assert len(dropdowns_with_options) >= 1, (
+        f"Expected at least 1 dropdown with options, got {len(dropdowns_with_options)}. "
+        f"Dropdowns: {[(f.label, f.options) for f in result.fields if f.field_type == 'dropdown']}"
+    )
+    await go_home(backend)
+
+
+@pytest.mark.anyio
 async def test_se16_regression(backend):
     """SE16 still works after dump_tree changes (regression check)."""
     await backend.enter_transaction("SE16")

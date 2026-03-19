@@ -43,6 +43,7 @@ from sapwebguimcp.models.sap_results import (
     FormField,
     KeyboardResult,
     LoginResult,
+    SapFieldType,
     ScreenInfo,
     ScreenText,
     SessionInfo,
@@ -516,9 +517,7 @@ class DesktopBackend:
         logger.debug("discover_fields", extra={"count": len(items)})
         return [FieldInfo(**item) for item in items]
 
-    async def get_form_fields(  # pylint: disable=unused-argument
-        self, *, include_dropdown_options: bool = False
-    ) -> FormFieldsResult:
+    async def get_form_fields(self, *, include_dropdown_options: bool = False) -> FormFieldsResult:
         """Detect form fields with their current values and associated labels."""
         from sapwebguimcp.models.sap_results import (
             FormFieldsResult as _FormFieldsResult,  # pylint: disable=import-outside-toplevel
@@ -566,9 +565,16 @@ class DesktopBackend:
 
         items = await self._com.run(_discover)
         logger.debug("get_form_fields", extra={"count": len(items)})
+
+        fields = [FormField(**item) for item in items]
+        if include_dropdown_options:
+            for field in fields:
+                if field.field_type == SapFieldType.DROPDOWN:
+                    field.options = await self.get_dropdown_options(field.label)
+
         return _FormFieldsResult(
             success=True,
-            fields=[FormField(**item) for item in items],
+            fields=fields,
         )
 
     async def discover_buttons(self) -> list[ButtonInfo]:
@@ -724,9 +730,26 @@ class DesktopBackend:
         except Exception as e:
             return TableCellClickResult(success=False, row=row, column=str(column), selector_used="com", error=str(e))
 
-    async def get_dropdown_options(self, label: str) -> list[str]:  # pylint: disable=unused-argument
-        """Get options from a dropdown (not yet implemented — needs element finder)."""
-        return []
+    async def get_dropdown_options(self, label: str) -> list[str]:
+        """Get options from a GuiComboBox dropdown found by label.
+
+        Returns a list of ``"KEY - Display Value"`` strings (matching
+        the webgui backend format) or an empty list if the field is not
+        found or is not a combobox.
+        """
+        session = self._require_session()
+
+        def _read_options() -> list[str]:
+            try:
+                cmb = find_combobox_by_label(session, label)
+                if cmb is None:
+                    return []
+                return [f"{e.key} - {e.value}" for e in cmb.entries]
+            except Exception:
+                logger.warning("Failed to read dropdown options", extra={"label": label})
+                return []
+
+        return await self._com.run(_read_options)
 
     async def get_page_title(self) -> str:
         """Get the current window title."""
