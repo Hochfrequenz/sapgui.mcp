@@ -67,6 +67,55 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _unwrap_com(field: Any) -> Any:
+    """Get the raw COM dispatch object from a pysapgui wrapper."""
+    return getattr(field, "com", getattr(field, "_com", field))
+
+
+def _set_field_value(raw_com: Any, value: str) -> None:
+    """Set a field value, handling GuiComboBox dropdown fields automatically.
+
+    For GuiComboBox: searches the Entries collection for a matching display
+    value and sets the Key property. Accepts display text ("Herr"), key ("0002"),
+    or partial match.
+
+    For other field types: sets the Text property directly.
+    """
+    field_type = str(getattr(raw_com, "Type", ""))
+    if field_type == "GuiComboBox":
+        try:
+            entries = raw_com.Entries
+            if entries.Count == 0:
+                raise ValueError("Dropdown has no entries to select from")
+            # Try exact key match first
+            for i in range(entries.Count):
+                entry = entries.Item(i)
+                if str(entry.Key).strip() == value.strip():
+                    raw_com.Key = entry.Key
+                    return
+            # Try display value match (case-insensitive)
+            needle = value.strip().lower()
+            for i in range(entries.Count):
+                entry = entries.Item(i)
+                if str(entry.Value).strip().lower() == needle:
+                    raw_com.Key = entry.Key
+                    return
+            # Try substring match
+            for i in range(entries.Count):
+                entry = entries.Item(i)
+                if needle in str(entry.Value).strip().lower():
+                    raw_com.Key = entry.Key
+                    return
+            available = [f"{entries.Item(i).Key}={entries.Item(i).Value}" for i in range(entries.Count)]
+            raise ValueError(f"Dropdown value '{value}' not found. Available: {', '.join(available)}")
+        except ValueError:
+            raise
+        except Exception as exc:
+            raise ValueError(f"Failed to set dropdown: {exc}") from exc
+    else:
+        raw_com.Text = value
+
+
 class DesktopBackend:
     """SapUiBackend implementation using SAP GUI Scripting (COM).
 
@@ -708,14 +757,18 @@ class DesktopBackend:
     # ---- Stub methods (Phase 2 + 3) ----
 
     async def fill_field(self, label: str, value: str) -> None:
-        """Fill a labelled input field."""
+        """Fill a labelled input field.
+
+        Detects GuiComboBox fields and sets them by matching the display text
+        against the dropdown entries, setting the Key property instead of Text.
+        """
         session = self._require_session()
 
         def _fill() -> None:
             field = find_field_by_label(session, label)
             if field is None:
                 raise ValueError(f"Field not found: {label}")
-            cast(Any, field).text = value
+            _set_field_value(_unwrap_com(field), value)
 
         await self._com.run(_fill)
         logger.info("fill_field", extra={"label": label, "value": value})
@@ -728,7 +781,7 @@ class DesktopBackend:
             for lbl in labels:
                 field = find_field_by_label(session, lbl)
                 if field is not None:
-                    cast(Any, field).text = value
+                    _set_field_value(_unwrap_com(field), value)
                     return True
             return False
 
@@ -754,7 +807,7 @@ class DesktopBackend:
                     if field is None:
                         not_found.append(label)
                         continue
-                    cast(Any, field).text = value
+                    _set_field_value(_unwrap_com(field), value)
                     filled.append(label)
                 except Exception as exc:  # pylint: disable=broad-exception-caught
                     errors.append({"field": label, "error": str(exc)})
@@ -915,7 +968,7 @@ class DesktopBackend:
                 try:
                     field = session.find_by_id(f"wnd[0]/usr/{prefix}{accessible_name}", raise_error=False)
                     if field is not None:
-                        cast(Any, field).text = text
+                        _set_field_value(_unwrap_com(field), text)
                         logger.debug(
                             "focus_and_type_found",
                             extra={"field_name": accessible_name, "strategy": "direct", "prefix": prefix},
@@ -930,7 +983,7 @@ class DesktopBackend:
             field = find_field_by_label(session, accessible_name)
             if field is None:
                 return False
-            cast(Any, field).text = text
+            _set_field_value(_unwrap_com(field), text)
             return True
 
         result = await self._com.run(_type)

@@ -102,6 +102,31 @@ async def test_bp_fill_form_with_labels(backend):
 
 
 @pytest.mark.anyio
+async def test_bp_fill_form_with_dropdown(backend):
+    """sap_fill_form sets dropdown fields (Anrede) by display text."""
+    await backend.enter_transaction("BP")
+    await backend.press_key("F5")
+    await backend.wait(1000)
+    await backend.press_key("Enter")
+    await backend.wait(1000)
+
+    result = await backend.fill_form(
+        {
+            "Anrede": "Herr",
+            "Vorname": "DropdownTest",
+            "Nachname": "Integration",
+        }
+    )
+    assert result.success, f"fill_form failed: {result.error}"
+    assert "Anrede" in result.filled, f"Anrede not filled. Errors: {result.errors}"
+    assert "Vorname" in result.filled
+    assert "Nachname" in result.filled
+    assert len(result.not_found) == 0, f"Fields not found: {result.not_found}"
+    assert len(result.errors) == 0, f"Errors: {result.errors}"
+    await go_home(backend)
+
+
+@pytest.mark.anyio
 async def test_se16_regression(backend):
     """SE16 still works after dump_tree changes (regression check)."""
     await backend.enter_transaction("SE16")
