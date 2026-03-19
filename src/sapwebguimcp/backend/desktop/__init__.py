@@ -86,7 +86,7 @@ def _set_field_value(raw_com: Any, value: str) -> None:
         try:
             entries = raw_com.Entries
             if entries.Count == 0:
-                raise ValueError(f"Dropdown has no entries to select from")
+                raise ValueError("Dropdown has no entries to select from")
             # Try exact key match first
             for i in range(entries.Count):
                 entry = entries.Item(i)
