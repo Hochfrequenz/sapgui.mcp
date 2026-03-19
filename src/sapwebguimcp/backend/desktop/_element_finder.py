@@ -94,8 +94,62 @@ def _find_by_label_text(session: Any, label: str) -> Any | None:
     return None
 
 
+def _find_by_readonly_textfield_label(session: Any, label: str) -> Any | None:
+    """Strategy 3: Non-changeable GuiTextField acting as visual label.
+
+    SAP address screens use read-only GuiTextField (type 31, changeable=False) as
+    labels. Examples: "Straße/Hausnummer", "Postleitzahl/Ort".
+
+    For composite labels containing "/", the label text is split and each part is
+    matched to the consecutive changeable input fields that follow the label in the
+    flat tree. Example: "Straße" → ADDR2_DATA-STREET, "Hausnummer" → ADDR2_DATA-HOUSE_NUM1.
+
+    Also supports the full composite text (e.g. "Straße/Hausnummer" → first field).
+    """
+    usr = session.find_by_id("wnd[0]/usr")
+    tree = usr.dump_tree()
+    flat = _flatten(tree)
+    needle = label.strip().lower()
+    input_types = {_TYPE_TEXT_FIELD, _TYPE_CTEXT_FIELD, _TYPE_PASSWORD_FIELD, _TYPE_COMBOBOX}
+
+    for i, elem in enumerate(flat):
+        # Only consider non-changeable text fields as labels
+        if elem.type_as_number != _TYPE_TEXT_FIELD or elem.changeable:
+            continue
+        elem_text = elem.text.strip().lower()
+        if not elem_text:
+            continue
+
+        # Collect consecutive changeable input fields that follow this label
+        following_inputs: list[Any] = []
+        for j in range(i + 1, len(flat)):
+            sibling = flat[j]
+            if sibling.type_as_number in input_types and sibling.changeable:
+                following_inputs.append(sibling)
+            elif sibling.type_as_number in input_types and not sibling.changeable:
+                continue  # Skip other read-only text fields (might be another label)
+            else:
+                break  # Stop at non-input elements (buttons, boxes, containers)
+
+        if not following_inputs:
+            continue
+
+        # Exact match on full composite label → first input field
+        if elem_text == needle:
+            return session.find_by_id(following_inputs[0].id)
+
+        # Split composite label on "/" and match individual parts
+        if "/" in elem_text:
+            parts = [p.strip().lower() for p in elem_text.split("/")]
+            for idx, part in enumerate(parts):
+                if part == needle and idx < len(following_inputs):
+                    return session.find_by_id(following_inputs[idx].id)
+
+    return None
+
+
 def _find_by_sap_name(session: Any, label: str) -> Any | None:
-    """Strategy 3: Use SAP's native FindByName for GuiTextField."""
+    """Strategy 4: Use SAP's native FindByName for GuiTextField."""
     usr = session.find_by_id("wnd[0]/usr")
     for type_name in ("GuiTextField", "GuiCTextField", "GuiPasswordField", "GuiComboBox"):
         try:
@@ -114,7 +168,9 @@ def find_field_by_label(session: Any, label: str) -> Any | None:
     1. Name-prefix convention: label lblFOO -> try txtFOO, ctxtFOO, pwdFOO, cmbFOO
     2. Recursive label text match: walk usr subtree, find label matching text,
        then find associated field via name prefix
-    3. find_by_name fallback: use SAP's native FindByName
+    3. Read-only text field label: non-changeable GuiTextField as visual label,
+       supports composite labels like "Straße/Hausnummer"
+    4. find_by_name fallback: use SAP's native FindByName
     """
     # Strategy 1: direct name prefix
     field = _find_by_name_prefix(session, label)
@@ -122,13 +178,19 @@ def find_field_by_label(session: Any, label: str) -> Any | None:
         logger.debug("find_field", extra={"label": label, "strategy": "name_prefix"})
         return field
 
-    # Strategy 2: label text match
+    # Strategy 2: label text match (GuiLabel type 30)
     field = _find_by_label_text(session, label)
     if field is not None:
         logger.debug("find_field", extra={"label": label, "strategy": "label_text"})
         return field
 
-    # Strategy 3: SAP native FindByName
+    # Strategy 3: read-only text field label (composite labels like "Straße/Hausnummer")
+    field = _find_by_readonly_textfield_label(session, label)
+    if field is not None:
+        logger.debug("find_field", extra={"label": label, "strategy": "readonly_textfield_label"})
+        return field
+
+    # Strategy 4: SAP native FindByName
     field = _find_by_sap_name(session, label)
     if field is not None:
         logger.debug("find_field", extra={"label": label, "strategy": "sap_name"})
