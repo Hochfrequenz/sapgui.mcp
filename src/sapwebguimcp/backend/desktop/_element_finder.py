@@ -71,7 +71,7 @@ def _find_by_label_text(session: Any, label: str) -> Any | None:
     Prefers exact match (after stripping) over substring match.
     """
     usr = session.find_by_id("wnd[0]/usr")
-    tree = usr.dump_tree(max_depth=5)
+    tree = usr.dump_tree()
     flat = _flatten(tree)
     needle = label.strip().lower()
 
@@ -144,7 +144,7 @@ def find_button_by_label(session: Any, label: str) -> Any | None:
     Prefers exact match (after stripping) over substring match.
     """
     wnd = session.find_by_id("wnd[0]")
-    tree = wnd.dump_tree(max_depth=5)
+    tree = wnd.dump_tree()
     flat = _flatten(tree)
     needle = label.strip().lower()
 
@@ -167,7 +167,7 @@ def find_checkbox_by_label(session: Any, label: str) -> Any | None:
     Prefers exact match (after stripping) over substring match.
     """
     usr = session.find_by_id("wnd[0]/usr")
-    tree = usr.dump_tree(max_depth=5)
+    tree = usr.dump_tree()
     flat = _flatten(tree)
     needle = label.strip().lower()
 
@@ -206,7 +206,7 @@ def find_radio_by_label(session: Any, label: str) -> Any | None:
     Prefers exact match (after stripping) over substring match.
     """
     usr = session.find_by_id("wnd[0]/usr")
-    tree = usr.dump_tree(max_depth=5)
+    tree = usr.dump_tree()
     flat = _flatten(tree)
     needle = label.strip().lower()
 
@@ -245,7 +245,7 @@ def find_tab_by_label(session: Any, label: str) -> Any | None:
     Prefers exact match (after stripping) over substring match.
     """
     wnd = session.find_by_id("wnd[0]")
-    tree = wnd.dump_tree(max_depth=5)
+    tree = wnd.dump_tree()
     flat = _flatten(tree)
     needle = label.strip().lower()
 
@@ -268,7 +268,7 @@ def find_combobox_by_label(session: Any, label: str) -> Any | None:
     Prefers exact match (after stripping) over substring match.
     """
     usr = session.find_by_id("wnd[0]/usr")
-    tree = usr.dump_tree(max_depth=5)
+    tree = usr.dump_tree()
     flat = _flatten(tree)
     needle = label.strip().lower()
 

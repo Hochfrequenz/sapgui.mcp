@@ -397,7 +397,7 @@ class DesktopBackend:
             title = str(cast(Any, wnd).text)
             sbar = session.find_by_id("wnd[0]/sbar")
             sbar_text = str(cast(Any, sbar).text)
-            tree = cast(Any, wnd).dump_tree(max_depth=5)
+            tree = cast(Any, wnd).dump_tree()
 
             labels, buttons, tabs, content = [], [], [], []
             for elem in _flatten(tree):
@@ -433,7 +433,7 @@ class DesktopBackend:
 
         def _discover() -> list[dict[str, Any]]:
             usr = session.find_by_id("wnd[0]/usr")
-            tree = cast(Any, usr).dump_tree(max_depth=5)
+            tree = cast(Any, usr).dump_tree()
             fields = []
             input_types = {31, 32, 33, 34}  # txt, ctxt, pwd, cmb
             for elem in _flatten(tree):
@@ -466,7 +466,7 @@ class DesktopBackend:
 
         def _discover() -> list[dict[str, Any]]:
             usr = session.find_by_id("wnd[0]/usr")
-            tree = cast(Any, usr).dump_tree(max_depth=5)
+            tree = cast(Any, usr).dump_tree()
             flat = _flatten(tree)
 
             # Build label map: name -> label text
@@ -515,7 +515,7 @@ class DesktopBackend:
 
         def _discover() -> list[dict[str, Any]]:
             wnd = session.find_by_id("wnd[0]")
-            tree = cast(Any, wnd).dump_tree(max_depth=5)
+            tree = cast(Any, wnd).dump_tree()
             buttons: list[dict[str, Any]] = []
             for elem in _flatten(tree):
                 if elem.type_as_number == 40 and elem.text.strip():  # GuiButton
@@ -537,7 +537,7 @@ class DesktopBackend:
 
         def _dump() -> str:
             wnd = session.find_by_id("wnd[0]")
-            tree = cast(Any, wnd).dump_tree(max_depth=5)
+            tree = cast(Any, wnd).dump_tree()
             lines = []
             for elem in _flatten(tree):
                 indent = "  " * elem.id.count("/")
@@ -583,7 +583,7 @@ class DesktopBackend:
             # Find grid or table in the full window tree (not just usr).
             # SE16N places ALV grids in wnd[0]/shellcont, not wnd[0]/usr.
             wnd = session.find_by_id("wnd[0]")
-            tree = cast(Any, wnd).dump_tree(max_depth=5)
+            tree = cast(Any, wnd).dump_tree()
             grid_id = None
             for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
@@ -640,7 +640,7 @@ class DesktopBackend:
             from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             wnd = session.find_by_id("wnd[0]")
-            tree = cast(Any, wnd).dump_tree(max_depth=5)
+            tree = cast(Any, wnd).dump_tree()
             for elem in _flatten(tree):
                 if elem.type_as_number == 122:
                     grid = session.find_by_id(elem.id)
@@ -790,7 +790,7 @@ class DesktopBackend:
             from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             usr = session.find_by_id("wnd[0]/usr")
-            tree = cast(Any, usr).dump_tree(max_depth=5)
+            tree = cast(Any, usr).dump_tree()
             for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
                     grid = session.find_by_id(elem.id)
@@ -965,7 +965,7 @@ class DesktopBackend:
         """
         raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
         usr = session.find_by_id("wnd[0]/usr")
-        tree = cast(Any, usr).dump_tree(max_depth=5)
+        tree = cast(Any, usr).dump_tree()
         for elem in _flatten(tree):
             if elem.type_as_number == 122:  # GuiShell
                 shell = session.find_by_id(elem.id)
