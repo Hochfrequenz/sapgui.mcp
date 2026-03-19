@@ -10,7 +10,6 @@ import sys
 
 import pytest
 
-from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult
 from sapwebguimcp.tools.abapgit_tools import _abapgit_list_repos, _abapgit_pull_via_api
 from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
 
