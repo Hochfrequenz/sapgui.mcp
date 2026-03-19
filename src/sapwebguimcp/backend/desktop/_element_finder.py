@@ -1,13 +1,15 @@
 """Resolve label text to COM elements for the desktop backend.
 
 The core challenge: protocol methods use labels (e.g., fill_field(label="Material")),
-but COM uses ID paths. This module resolves labels to COM elements using three
+but COM uses ID paths. This module resolves labels to COM elements using four
 strategies tried in order:
 
 1. Name-prefix convention: label with name FOO -> try txtFOO, ctxtFOO, pwdFOO, cmbFOO
-2. Recursive label text match: walk usr subtree, find label matching text, then find
+2. Recursive label text match: walk usr subtree, find GuiLabel matching text, then find
    associated field via name prefix
-3. find_by_name fallback: use SAP's native FindByName
+3. Read-only text field label: non-changeable GuiTextField as visual label, supports
+   composite labels like "Straße/Hausnummer" → street + house number fields
+4. find_by_name fallback: use SAP's native FindByName
 """
 
 from __future__ import annotations
