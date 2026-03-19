@@ -11,7 +11,7 @@ from sapwebguimcp.backend.desktop._com_thread import ComThread
 @pytest.fixture
 def com_thread():
     """Create a ComThread for testing (no real COM — just the threading mechanism)."""
-    thread = ComThread(init_com=False)  # skip CoInitialize for unit tests
+    thread = ComThread(init_com=False, min_interval_ms=0)  # skip CoInitialize + throttle for unit tests
     yield thread
     thread.shutdown()
 
@@ -88,6 +88,38 @@ class TestComThread:
 
         with pytest.raises(KeyError, match="some_key"):
             await com_thread.run(fail)
+
+    @pytest.mark.anyio
+    async def test_rate_limiting_enforces_min_interval(self):
+        """Rapid calls are throttled by min_interval_ms."""
+        import time
+
+        thread = ComThread(init_com=False, min_interval_ms=100)
+        try:
+            start = time.monotonic()
+            for _ in range(5):
+                await thread.run(lambda: None)
+            elapsed = time.monotonic() - start
+            # 5 calls with 100ms interval → at least 400ms total (first call is immediate)
+            assert elapsed >= 0.35, f"Expected ≥350ms, got {elapsed*1000:.0f}ms"
+        finally:
+            thread.shutdown()
+
+    @pytest.mark.anyio
+    async def test_rate_limiting_disabled_with_zero(self):
+        """min_interval_ms=0 disables rate limiting."""
+        import time
+
+        thread = ComThread(init_com=False, min_interval_ms=0)
+        try:
+            start = time.monotonic()
+            for _ in range(10):
+                await thread.run(lambda: None)
+            elapsed = time.monotonic() - start
+            # 10 calls with no throttle should be very fast
+            assert elapsed < 0.5, f"Expected <500ms, got {elapsed*1000:.0f}ms"
+        finally:
+            thread.shutdown()
 
     def test_shutdown(self):
         thread = ComThread(init_com=False)
