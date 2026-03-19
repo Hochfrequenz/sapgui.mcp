@@ -15,7 +15,7 @@ from sapwebguimcp.models.quick_report_models import (
     QuickReportResult,
     ScreenClassification,
 )
-from sapwebguimcp.models.sap_results import ScreenText, StatusBarInfo, TableData
+from sapwebguimcp.models.sap_results import StatusBarInfo, TableData
 from sapwebguimcp.models.screen_state import SelectionScreenState
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.screen_state_helpers import ensure_screen_state
@@ -70,7 +70,7 @@ async def classify_result_screen(
 _MAX_POST_F8_KEYS = 3
 
 
-async def _execute_quick_report(
+async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
     backend: SapUiBackend,
     tcode: str,
     fields: dict[str, str] | None = None,
@@ -188,7 +188,9 @@ async def _execute_quick_report(
         status_bar_type=status_bar.type,
         status_bar_message=status_bar.message,
         table=table,
-        screen_text=screen_text if classification in (ScreenClassification.ERROR, ScreenClassification.UNKNOWN) else None,
+        screen_text=(
+            screen_text if classification in (ScreenClassification.ERROR, ScreenClassification.UNKNOWN) else None
+        ),
         warnings=warnings,
     )
 
@@ -230,7 +232,7 @@ def register_quick_report_tools(mcp: FastMCP) -> None:
         ),
         annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=False),
     )
-    async def sap_quick_report(
+    async def sap_quick_report(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         tcode: str,
         fields: dict[str, str] | None = None,
         checkboxes: dict[str, bool] | None = None,
@@ -241,7 +243,20 @@ def register_quick_report_tools(mcp: FastMCP) -> None:
         session: str | None = None,
         agent_id: str | None = None,
     ) -> QuickReportResult:
-        """Execute a transaction, fill selection screen, press F8, return result."""
+        """Execute a transaction, fill selection screen, press F8, return result.
+
+        Args:
+            tcode: SAP transaction code (e.g., "VA05", "ME2M", "FBL1N").
+            fields: Label-value pairs for text fields on the selection screen.
+            checkboxes: Label-checked pairs for checkboxes on the selection screen.
+            radios: Label-selected pairs for radio buttons on the selection screen.
+            max_rows: Maximum rows to read from the result table. Must be >= 1.
+            post_f8_keys: Keys to press after F8 to dismiss popups (e.g., ["Enter"]).
+                Max 3 keys. Each key is only pressed if the screen is still unresolved.
+            output_file: If provided, write the result as JSON to this file path.
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent ID for multi-agent session binding.
+        """
         from sapwebguimcp.backend.manager import get_backend  # pylint: disable=import-outside-toplevel
 
         try:

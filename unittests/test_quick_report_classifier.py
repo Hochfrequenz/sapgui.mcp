@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from sapwebguimcp.models import StatusBarInfo, ScreenText
+from sapwebguimcp.models import ScreenText, StatusBarInfo
 from sapwebguimcp.models.quick_report_models import ScreenClassification
 from sapwebguimcp.tools.quick_report_tools import classify_result_screen
 
@@ -18,13 +18,9 @@ def _make_backend(
 ) -> AsyncMock:
     """Create a mock backend with configurable responses."""
     backend = AsyncMock()
-    backend.get_status_bar = AsyncMock(
-        return_value=StatusBarInfo(type=status_type, message=status_message)
-    )
+    backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type=status_type, message=status_message))
     backend.get_snapshot = AsyncMock(return_value=snapshot)
-    backend.get_screen_text = AsyncMock(
-        return_value=ScreenText(title=screen_title)
-    )
+    backend.get_screen_text = AsyncMock(return_value=ScreenText(title=screen_title))
     backend.get_page_title = AsyncMock(return_value=screen_title)
     return backend
 

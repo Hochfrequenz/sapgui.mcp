@@ -48,35 +48,26 @@ def _make_backend(
         )
 
     # press_key
-    backend.press_key = AsyncMock(
-        return_value=KeyboardResult(key="F8", page_title=screen_title)
-    )
+    backend.press_key = AsyncMock(return_value=KeyboardResult(key="F8", page_title=screen_title))
 
     # wait_for_ready
     backend.wait_for_ready = AsyncMock()
 
     # get_status_bar
-    backend.get_status_bar = AsyncMock(
-        return_value=StatusBarInfo(type=status_type, message=status_message)
-    )
+    backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type=status_type, message=status_message))
 
     # get_snapshot
     backend.get_snapshot = AsyncMock(return_value=snapshot)
 
     # get_screen_text
-    backend.get_screen_text = AsyncMock(
-        return_value=ScreenText(title=screen_title)
-    )
+    backend.get_screen_text = AsyncMock(return_value=ScreenText(title=screen_title))
 
     # get_page_title
     backend.get_page_title = AsyncMock(return_value=screen_title)
 
     # read_table
     headers = table_headers or ["Col1", "Col2"]
-    rows = [
-        TableRow(row=i + 1, data=row_data)
-        for i, row_data in enumerate(table_rows or [{"Col1": "a", "Col2": "b"}])
-    ]
+    rows = [TableRow(row=i + 1, data=row_data) for i, row_data in enumerate(table_rows or [{"Col1": "a", "Col2": "b"}])]
     backend.read_table = AsyncMock(
         return_value=TableData(
             headers=headers,
@@ -187,9 +178,7 @@ class TestQuickReportPipeline:
         backend = _make_backend()
         with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
             with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff(
-                    warnings=["Label 'FakeField' not found on screen"]
-                )
+                mock_ess.return_value = ScreenStateDiff(warnings=["Label 'FakeField' not found on screen"])
                 result = await _execute_quick_report(
                     backend,
                     tcode="VA05",
@@ -225,7 +214,9 @@ class TestQuickReportPipeline:
             return ScreenStateDiff()
 
         with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", side_effect=track_ensure_screen_state):
+            with patch(
+                "sapwebguimcp.tools.quick_report_tools.ensure_screen_state", side_effect=track_ensure_screen_state
+            ):
                 await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
 
         assert call_log[0] == "enter_transaction"
@@ -371,7 +362,9 @@ class TestPostF8Keys:
 
         try:
             with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-                with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                with patch(
+                    "sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock
+                ) as mock_ess:
                     mock_ess.return_value = ScreenStateDiff()
                     result = await _execute_quick_report(
                         backend,
