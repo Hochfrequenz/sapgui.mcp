@@ -4,15 +4,15 @@ abapGit integration tools for SAP Web GUI.
 
 This module provides:
 - List: Enumerate all registered abapGit repositories and their metadata
-- Pull: Fetch and apply changes from a remote git repository via Z_ABAPGIT_PULL
+- Pull: Fetch and apply changes from a remote git repository via Z_ABAPGIT_PULL_MCP
 - SE38 Verification: Read ABAP report source code to verify pulls
 
-The pull operation uses the Z_ABAPGIT_PULL transaction which calls the abapGit
+The pull operation uses the Z_ABAPGIT_PULL_MCP transaction which calls the abapGit
 ABAP API directly, avoiding fragile UI automation. The ABAP report source is
 maintained in:
-  unittests/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY/src/z_abapgit_pull.prog.abap
+  https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT/blob/main/src/z_abapgit_pull_mcp_shortcut.prog.abap
 
-If the Z_ABAPGIT_PULL transaction is not found, you need to create it in SAP.
+If the Z_ABAPGIT_PULL_MCP transaction is not found, you need to create it in SAP.
 The tool will provide a link to the source code.
 """
 
@@ -291,7 +291,7 @@ def _validate_and_prepare_params(
     if effective_pat:
         params.append(f"P_TOKEN={effective_pat}")
 
-    tcode_with_params = f"/nZ_ABAPGIT_PULL {'; '.join(params)};"
+    tcode_with_params = f"/nZ_ABAPGIT_PULL_MCP {'; '.join(params)};"
 
     return PullParams(
         repo=repo,
@@ -407,8 +407,8 @@ async def _execute_pull_transaction(
             action="pull",
             repo_name=repo,
             error=(
-                "Transaction Z_ABAPGIT_PULL not found. Create this transaction in your SAP system. "
-                "See docs/plans/2026-01-23-abapgit-api-pull-design.md for the ABAP source code."
+                "Transaction Z_ABAPGIT_PULL_MCP not found. Create this transaction in your SAP system. "
+                "See https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT for the ABAP source code."
             ),
         )
     return None
@@ -453,7 +453,7 @@ def _clean_timestamp(value: str) -> str | None:
 
 
 def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
-    """Parse tilde-delimited WRITE output from Z_ABAPGIT_PULL LIST mode.
+    """Parse tilde-delimited WRITE output from Z_ABAPGIT_PULL_MCP_SHORTCUT LIST mode.
 
     Expected format per line: name~url~package~branch~deserialized_at~deserialized_by~offline
     Uses ~ as delimiter because SAP WebGUI strips | (pipe) characters from WRITE output.
@@ -486,11 +486,11 @@ def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
 
 
 async def _abapgit_list_repos(backend: "SapUiBackend") -> AbapGitListResult:
-    """List all registered abapGit repositories via Z_ABAPGIT_PULL P_ACTION=LIST."""
+    """List all registered abapGit repositories via Z_ABAPGIT_PULL_MCP P_ACTION=LIST."""
     logger.info("Listing abapGit repositories")
 
     try:
-        tcode_with_params = "/nZ_ABAPGIT_PULL P_ACTION=LIST;"
+        tcode_with_params = "/nZ_ABAPGIT_PULL_MCP P_ACTION=LIST;"
         okcode_error = await _enter_tcode_via_okcode(backend, tcode_with_params, "LIST")
         if okcode_error:
             return AbapGitListResult(success=False, error=okcode_error.error or "Failed to enter transaction")
@@ -502,9 +502,9 @@ async def _abapgit_list_repos(backend: "SapUiBackend") -> AbapGitListResult:
             return AbapGitListResult(
                 success=False,
                 error=(
-                    "Transaction Z_ABAPGIT_PULL not found. "
+                    "Transaction Z_ABAPGIT_PULL_MCP not found. "
                     "Ensure the report is deployed with LIST support. "
-                    "See docs/plans/2026-02-26-abapgit-list-repos-design.md"
+                    "See https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT"
                 ),
             )
 
@@ -537,7 +537,7 @@ async def _abapgit_pull_via_api(
     username: str | None,
     pat: str | None,
 ) -> AbapGitActionResult:
-    """Pull changes using the Z_ABAPGIT_PULL transaction (abapGit ABAP API)."""
+    """Pull changes using the Z_ABAPGIT_PULL_MCP transaction (abapGit ABAP API)."""
     logger.info("Starting abapGit Pull via API", extra={"repo": repo})
 
     try:
@@ -922,7 +922,7 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Pull changes from a remote git repository using abapGit API. "
-            "Uses the Z_ABAPGIT_PULL report/transaction for reliable execution. "
+            "Uses the Z_ABAPGIT_PULL_MCP_SHORTCUT report / Z_ABAPGIT_PULL_MCP transaction for reliable execution. "
             "WARNING: This overwrites local ABAP objects with remote versions. "
             "If SAP requires a transport request, the tool returns an error with guidance. "
             "Look up an open transport (e.g. via SE09/SE10), then retry with trkorr=... "
