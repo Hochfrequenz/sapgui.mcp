@@ -8,13 +8,12 @@ from sapwebguimcp.tools.se24_edit_tools import (
     _edit_check_activate_method,
     _navigate_to_method_editor_desktop,
 )
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import TEST_CLASS, TEST_METHOD, go_home, skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
-# The test class and method — must exist in the SAP system.
-_TEST_CLASS = "ZCL_TEST_MCP_EDIT"
-_TEST_METHOD = "DO_SOMETHING"
+_TEST_CLASS = TEST_CLASS
+_TEST_METHOD = TEST_METHOD
 
 
 @skip_not_sap

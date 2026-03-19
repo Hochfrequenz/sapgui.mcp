@@ -5,12 +5,11 @@ import sys
 import pytest
 
 from sapwebguimcp.tools.se38_edit_tools import _edit_check_activate, _navigate_and_open_editor_desktop
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import TEST_REPORT, go_home, skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
-# The test report — must exist in the SAP system.
-_TEST_REPORT = "ZTEST_MCP_EDIT"
+_TEST_REPORT = TEST_REPORT
 
 
 @skip_not_sap
