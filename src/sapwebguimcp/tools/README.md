@@ -6,10 +6,17 @@ This directory contains MCP tool definitions for SAP Web GUI automation.
 
 ```
 tools/
-├── __init__.py         # Package exports (register functions)
-├── sap_tools.py        # High-level SAP tools
-├── browser_tools.py    # Low-level browser escape hatches
-└── README.md           # This file
+├── __init__.py            # Package exports (register functions)
+├── sap_tools.py           # High-level SAP tools
+├── browser_tools.py       # Low-level browser escape hatches
+├── se11_tools.py          # SE11 ABAP Dictionary lookup
+├── se16_tools.py          # SE16N table data query
+├── se24_tools.py          # SE24 Class Builder lookup
+├── se37_tools.py          # SE37 Function Builder lookup
+├── se93_tools.py          # SE93 Transaction Maintenance lookup
+├── sm37_tools.py          # SM37 background job lookup
+├── quick_report_tools.py  # Composite: TX → fill → F8 → read result
+└── README.md              # This file
 ```
 
 ## Available Tools
@@ -34,6 +41,13 @@ High-level, SAP-specific operations:
 | `sap_se24_lookup` | `se24_tools.py` | Look up class/interface metadata from Class Builder       |
 | `sap_se37_lookup` | `se37_tools.py` | Look up function module signatures from Function Builder  |
 | `sap_se93_lookup` | `se93_tools.py` | Look up transaction metadata from Transaction Maintenance |
+| `sap_sm37_lookup` | `sm37_tools.py` | Look up background job status and logs |
+
+### Composite Tools (multi-step pipelines)
+
+| Tool               | File                   | Description                                                    |
+| ------------------ | ---------------------- | -------------------------------------------------------------- |
+| `sap_quick_report` | `quick_report_tools.py` | TX → fill selection screen → F8 → classify & read result table |
 
 **Note:** Use these specialized tools instead of `sap_transaction('SExx')` - they are faster
 and return structured Pydantic models instead of requiring manual screen parsing.

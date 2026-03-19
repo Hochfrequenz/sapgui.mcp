@@ -6,10 +6,13 @@ This directory contains data models and core infrastructure for the SAP Web GUI 
 
 ```
 models/
-├── __init__.py      # Package exports
-├── config.py        # Configuration settings (pydantic-settings)
-├── browser.py       # Browser manager for Playwright sessions
-└── README.md        # This file
+├── __init__.py              # Package exports
+├── config.py                # Configuration settings (pydantic-settings)
+├── browser.py               # Browser manager for Playwright sessions
+├── sap_results.py           # Core SAP result models (StatusBarInfo, TableData, etc.)
+├── screen_state.py          # Selection screen state models
+├── quick_report_models.py   # QuickReportResult, ScreenClassification
+└── README.md                # This file
 ```
 
 ## Configuration (`config.py`)
