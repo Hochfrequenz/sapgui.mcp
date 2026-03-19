@@ -22,6 +22,7 @@ def _make_elem(
     text: str = "",
     elem_id: str = "wnd[0]/usr/lblFIELD1",
     elem_type: str = "GuiLabel",
+    changeable: bool = False,
     children: list | None = None,
 ) -> SimpleNamespace:
     """Create a mock ElementInfo."""
@@ -31,6 +32,7 @@ def _make_elem(
         text=text,
         id=elem_id,
         type=elem_type,
+        changeable=changeable,
         children=children or [],
     )
 
@@ -86,7 +88,7 @@ class TestFindFieldByLabelNamePrefix:
 
     def test_returns_none_when_no_match(self):
         session = _make_session_with_tree([])
-        # Make find_by_name raise so strategy 3 also fails
+        # Make find_by_name raise so strategy 4 also fails
         usr = session.find_by_id("wnd[0]/usr")
         usr.find_by_name.side_effect = Exception("not found")
         result = find_field_by_label(session, "NONEXISTENT")
@@ -128,7 +130,7 @@ class TestFindFieldByLabelText:
 
 
 class TestFindFieldByLabelSapName:
-    """Strategy 3: SAP native FindByName fallback."""
+    """Strategy 4: SAP native FindByName fallback."""
 
     def test_finds_via_find_by_name(self):
         field_mock = MagicMock()
@@ -237,3 +239,109 @@ class TestFindComboboxByLabel:
         )
         result = find_combobox_by_label(session, "Language")
         assert result is cmb_mock
+
+
+class TestFindByReadonlyTextfieldLabel:
+    """Strategy 3: Read-only GuiTextField as visual label (composite labels)."""
+
+    def test_full_composite_label_resolves_to_first_field(self):
+        """'Straße/Hausnummer' → first changeable field (street)."""
+        label = _make_elem(
+            type_as_number=31,
+            name="ADDR2_KEYW-STREET",
+            text="Straße/Hausnummer",
+            elem_id="wnd[0]/usr/txtADDR2_KEYW-STREET",
+            changeable=False,
+        )
+        street = _make_elem(
+            type_as_number=32,
+            name="ADDR2_DATA-STREET",
+            text="",
+            elem_id="wnd[0]/usr/ctxtADDR2_DATA-STREET",
+            changeable=True,
+        )
+        house = _make_elem(
+            type_as_number=31,
+            name="ADDR2_DATA-HOUSE_NUM1",
+            text="",
+            elem_id="wnd[0]/usr/txtADDR2_DATA-HOUSE_NUM1",
+            changeable=True,
+        )
+        street_mock = MagicMock()
+        session = _make_session_with_tree(
+            [label, street, house],
+            find_by_id_extras={"wnd[0]/usr/ctxtADDR2_DATA-STREET": street_mock},
+        )
+        result = find_field_by_label(session, "Straße/Hausnummer")
+        assert result is street_mock
+
+    def test_composite_part_resolves_to_correct_field(self):
+        """'Hausnummer' → second changeable field."""
+        label = _make_elem(
+            type_as_number=31,
+            name="ADDR2_KEYW-STREET",
+            text="Straße/Hausnummer",
+            elem_id="wnd[0]/usr/txtADDR2_KEYW-STREET",
+            changeable=False,
+        )
+        street = _make_elem(
+            type_as_number=32,
+            name="ADDR2_DATA-STREET",
+            text="",
+            elem_id="wnd[0]/usr/ctxtADDR2_DATA-STREET",
+            changeable=True,
+        )
+        house = _make_elem(
+            type_as_number=31,
+            name="ADDR2_DATA-HOUSE_NUM1",
+            text="",
+            elem_id="wnd[0]/usr/txtADDR2_DATA-HOUSE_NUM1",
+            changeable=True,
+        )
+        house_mock = MagicMock()
+        session = _make_session_with_tree(
+            [label, street, house],
+            find_by_id_extras={"wnd[0]/usr/txtADDR2_DATA-HOUSE_NUM1": house_mock},
+        )
+        result = find_field_by_label(session, "Hausnummer")
+        assert result is house_mock
+
+    def test_non_composite_readonly_label(self):
+        """Read-only text field without '/' resolves to following input."""
+        label = _make_elem(
+            type_as_number=31,
+            name="LABEL1",
+            text="Bemerkungen",
+            elem_id="wnd[0]/usr/txtLABEL1",
+            changeable=False,
+        )
+        field = _make_elem(
+            type_as_number=31,
+            name="REMARK",
+            text="",
+            elem_id="wnd[0]/usr/txtREMARK",
+            changeable=True,
+        )
+        field_mock = MagicMock()
+        session = _make_session_with_tree(
+            [label, field],
+            find_by_id_extras={"wnd[0]/usr/txtREMARK": field_mock},
+        )
+        result = find_field_by_label(session, "Bemerkungen")
+        assert result is field_mock
+
+    def test_no_following_inputs_returns_none(self):
+        """Read-only label with no changeable fields after it → None (if FindByName also fails)."""
+        label = _make_elem(
+            type_as_number=31,
+            name="LABEL1",
+            text="Hinweis",
+            elem_id="wnd[0]/usr/txtLABEL1",
+            changeable=False,
+        )
+        session = _make_session_with_tree([label])
+        # Ensure Strategy 4 (FindByName) also returns nothing
+        usr = session.find_by_id("wnd[0]/usr")
+        usr.find_by_name.return_value = None
+        result = find_field_by_label(session, "Hinweis")
+        assert result is None

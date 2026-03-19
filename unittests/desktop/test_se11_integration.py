@@ -7,7 +7,7 @@ import pytest
 
 from sapwebguimcp.models.se11_models import SE11Entry, SE11Error
 from sapwebguimcp.tools.se11_tools import _lookup_se11_desktop
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import TEST_TABLE, go_home, skip_no_creds, skip_not_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -81,7 +81,7 @@ async def test_se11_lookup_structure_bapiret2(backend):
 async def test_se11_fields_have_types(backend):
     """SE11: all fields should have a non-empty datatype."""
     await _navigate_se11(backend)
-    result = await _lookup_se11_desktop(backend, "TSTC", "table")
+    result = await _lookup_se11_desktop(backend, TEST_TABLE, "table")
     assert isinstance(result, SE11Entry)
     for field in result.fields:
         assert field.datatype, f"Field {field.name} should have a datatype"

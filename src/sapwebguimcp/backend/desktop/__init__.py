@@ -67,6 +67,55 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _unwrap_com(field: Any) -> Any:
+    """Get the raw COM dispatch object from a pysapgui wrapper."""
+    return getattr(field, "com", getattr(field, "_com", field))
+
+
+def _set_field_value(raw_com: Any, value: str) -> None:
+    """Set a field value, handling GuiComboBox dropdown fields automatically.
+
+    For GuiComboBox: searches the Entries collection for a matching display
+    value and sets the Key property. Accepts display text ("Herr"), key ("0002"),
+    or partial match.
+
+    For other field types: sets the Text property directly.
+    """
+    field_type = str(getattr(raw_com, "Type", ""))
+    if field_type == "GuiComboBox":
+        try:
+            entries = raw_com.Entries
+            if entries.Count == 0:
+                raise ValueError("Dropdown has no entries to select from")
+            # Try exact key match first
+            for i in range(entries.Count):
+                entry = entries.Item(i)
+                if str(entry.Key).strip() == value.strip():
+                    raw_com.Key = entry.Key
+                    return
+            # Try display value match (case-insensitive)
+            needle = value.strip().lower()
+            for i in range(entries.Count):
+                entry = entries.Item(i)
+                if str(entry.Value).strip().lower() == needle:
+                    raw_com.Key = entry.Key
+                    return
+            # Try substring match
+            for i in range(entries.Count):
+                entry = entries.Item(i)
+                if needle in str(entry.Value).strip().lower():
+                    raw_com.Key = entry.Key
+                    return
+            available = [f"{entries.Item(i).Key}={entries.Item(i).Value}" for i in range(entries.Count)]
+            raise ValueError(f"Dropdown value '{value}' not found. Available: {', '.join(available)}")
+        except ValueError:
+            raise
+        except Exception as exc:
+            raise ValueError(f"Failed to set dropdown: {exc}") from exc
+    else:
+        raw_com.Text = value
+
+
 class DesktopBackend:
     """SapUiBackend implementation using SAP GUI Scripting (COM).
 
@@ -397,7 +446,7 @@ class DesktopBackend:
             title = str(cast(Any, wnd).text)
             sbar = session.find_by_id("wnd[0]/sbar")
             sbar_text = str(cast(Any, sbar).text)
-            tree = cast(Any, wnd).dump_tree(max_depth=5)
+            tree = cast(Any, wnd).dump_tree()
 
             labels, buttons, tabs, content = [], [], [], []
             for elem in _flatten(tree):
@@ -433,7 +482,7 @@ class DesktopBackend:
 
         def _discover() -> list[dict[str, Any]]:
             usr = session.find_by_id("wnd[0]/usr")
-            tree = cast(Any, usr).dump_tree(max_depth=5)
+            tree = cast(Any, usr).dump_tree()
             fields = []
             input_types = {31, 32, 33, 34}  # txt, ctxt, pwd, cmb
             for elem in _flatten(tree):
@@ -466,7 +515,7 @@ class DesktopBackend:
 
         def _discover() -> list[dict[str, Any]]:
             usr = session.find_by_id("wnd[0]/usr")
-            tree = cast(Any, usr).dump_tree(max_depth=5)
+            tree = cast(Any, usr).dump_tree()
             flat = _flatten(tree)
 
             # Build label map: name -> label text
@@ -515,7 +564,7 @@ class DesktopBackend:
 
         def _discover() -> list[dict[str, Any]]:
             wnd = session.find_by_id("wnd[0]")
-            tree = cast(Any, wnd).dump_tree(max_depth=5)
+            tree = cast(Any, wnd).dump_tree()
             buttons: list[dict[str, Any]] = []
             for elem in _flatten(tree):
                 if elem.type_as_number == 40 and elem.text.strip():  # GuiButton
@@ -537,7 +586,7 @@ class DesktopBackend:
 
         def _dump() -> str:
             wnd = session.find_by_id("wnd[0]")
-            tree = cast(Any, wnd).dump_tree(max_depth=5)
+            tree = cast(Any, wnd).dump_tree()
             lines = []
             for elem in _flatten(tree):
                 indent = "  " * elem.id.count("/")
@@ -583,7 +632,7 @@ class DesktopBackend:
             # Find grid or table in the full window tree (not just usr).
             # SE16N places ALV grids in wnd[0]/shellcont, not wnd[0]/usr.
             wnd = session.find_by_id("wnd[0]")
-            tree = cast(Any, wnd).dump_tree(max_depth=5)
+            tree = cast(Any, wnd).dump_tree()
             grid_id = None
             for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
@@ -640,7 +689,7 @@ class DesktopBackend:
             from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             wnd = session.find_by_id("wnd[0]")
-            tree = cast(Any, wnd).dump_tree(max_depth=5)
+            tree = cast(Any, wnd).dump_tree()
             for elem in _flatten(tree):
                 if elem.type_as_number == 122:
                     grid = session.find_by_id(elem.id)
@@ -708,14 +757,18 @@ class DesktopBackend:
     # ---- Stub methods (Phase 2 + 3) ----
 
     async def fill_field(self, label: str, value: str) -> None:
-        """Fill a labelled input field."""
+        """Fill a labelled input field.
+
+        Detects GuiComboBox fields and sets them by matching the display text
+        against the dropdown entries, setting the Key property instead of Text.
+        """
         session = self._require_session()
 
         def _fill() -> None:
             field = find_field_by_label(session, label)
             if field is None:
                 raise ValueError(f"Field not found: {label}")
-            cast(Any, field).text = value
+            _set_field_value(_unwrap_com(field), value)
 
         await self._com.run(_fill)
         logger.info("fill_field", extra={"label": label, "value": value})
@@ -728,7 +781,7 @@ class DesktopBackend:
             for lbl in labels:
                 field = find_field_by_label(session, lbl)
                 if field is not None:
-                    cast(Any, field).text = value
+                    _set_field_value(_unwrap_com(field), value)
                     return True
             return False
 
@@ -754,7 +807,7 @@ class DesktopBackend:
                     if field is None:
                         not_found.append(label)
                         continue
-                    cast(Any, field).text = value
+                    _set_field_value(_unwrap_com(field), value)
                     filled.append(label)
                 except Exception as exc:  # pylint: disable=broad-exception-caught
                     errors.append({"field": label, "error": str(exc)})
@@ -790,7 +843,7 @@ class DesktopBackend:
             from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             usr = session.find_by_id("wnd[0]/usr")
-            tree = cast(Any, usr).dump_tree(max_depth=5)
+            tree = cast(Any, usr).dump_tree()
             for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
                     grid = session.find_by_id(elem.id)
@@ -915,7 +968,7 @@ class DesktopBackend:
                 try:
                     field = session.find_by_id(f"wnd[0]/usr/{prefix}{accessible_name}", raise_error=False)
                     if field is not None:
-                        cast(Any, field).text = text
+                        _set_field_value(_unwrap_com(field), text)
                         logger.debug(
                             "focus_and_type_found",
                             extra={"field_name": accessible_name, "strategy": "direct", "prefix": prefix},
@@ -930,7 +983,7 @@ class DesktopBackend:
             field = find_field_by_label(session, accessible_name)
             if field is None:
                 return False
-            cast(Any, field).text = text
+            _set_field_value(_unwrap_com(field), text)
             return True
 
         result = await self._com.run(_type)
@@ -965,7 +1018,7 @@ class DesktopBackend:
         """
         raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
         usr = session.find_by_id("wnd[0]/usr")
-        tree = cast(Any, usr).dump_tree(max_depth=5)
+        tree = cast(Any, usr).dump_tree()
         for elem in _flatten(tree):
             if elem.type_as_number == 122:  # GuiShell
                 shell = session.find_by_id(elem.id)
@@ -995,22 +1048,34 @@ class DesktopBackend:
             if result is None:
                 return None
             raw_shell, sub_type = result
-            # GuiAbapEditor: GetLineCount() + GetLineText(i) on raw COM
+
+            # Strategy 1: Text property (works for TextEdit, also fallback for AbapEditor)
+            # TextEdit uses \r as line separator; normalize to \n.
+            if sub_type == "TextEdit":
+                try:
+                    text = raw_shell.Text
+                    if text and not str(text).startswith("SAPGUI."):
+                        return str(text).replace("\r\n", "\n").replace("\r", "\n")
+                except Exception:  # pylint: disable=broad-exception-caught
+                    logger.debug("read_editor_source: Text property failed", extra={"sub_type": sub_type})
+
+            # Strategy 2: GetLineCount + GetLineText (AbapEditor on S/4)
             try:
                 num_lines = raw_shell.GetLineCount()
-                lines = [raw_shell.GetLineText(i) for i in range(num_lines)]
-                return "\n".join(lines)
-            except Exception:  # pylint: disable=broad-exception-caught
-                logger.debug("read_editor_source: GetLineCount/GetLineText failed", extra={"sub_type": sub_type})
-            # GuiTextedit fallback: NumberOfLines + GetLineText
-            try:
-                num_lines = raw_shell.NumberOfLines
                 lines = [str(raw_shell.GetLineText(i)) for i in range(num_lines)]
                 return "\n".join(lines)
             except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug("read_editor_source: GetLineCount/GetLineText failed", extra={"sub_type": sub_type})
+
+            # Strategy 3: Text property as last resort (any subtype)
+            try:
+                text = raw_shell.Text
+                if text and not str(text).startswith("SAPGUI."):
+                    return str(text).replace("\r\n", "\n").replace("\r", "\n")
+            except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning(
                     "read_editor_source",
-                    extra={"sub_type": sub_type, "error": "Could not read lines from editor"},
+                    extra={"sub_type": sub_type, "error": "All read strategies failed"},
                 )
             return None
 

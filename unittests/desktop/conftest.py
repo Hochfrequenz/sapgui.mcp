@@ -17,6 +17,18 @@ from sapwebguimcp.sapgui import SapGui
 from unittests.conftest import is_sap_integration_test_machine
 
 # ---------------------------------------------------------------------------
+# Test object names — centralized so they can be changed in one place.
+# These objects must exist on the SAP test system.
+# See docs/SAP_TEST_PREREQUISITES.md for setup instructions.
+# abapGit repo: https://github.com/Hochfrequenz/Z_MCP_TEST_EDITABLE_WB_OBJECTS
+# ---------------------------------------------------------------------------
+
+TEST_REPORT = "ZTEST_MCP_EDIT"
+TEST_CLASS = "ZCL_TEST_MCP_EDIT"
+TEST_METHOD = "DO_SOMETHING"
+TEST_TABLE = "TSTC"  # Standard SAP table (exists on all systems)
+
+# ---------------------------------------------------------------------------
 # Skip markers – importable by per-transaction test modules
 # ---------------------------------------------------------------------------
 

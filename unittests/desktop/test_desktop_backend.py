@@ -137,6 +137,8 @@ class TestDesktopBackendFillField:
         from sapwebguimcp.backend.desktop import DesktopBackend
 
         field_mock = MagicMock()
+        field_mock.com = field_mock  # unwrap returns self
+        field_mock.Type = "GuiTextField"  # not a combobox
         session = make_mock_session()
 
         backend = DesktopBackend.__new__(DesktopBackend)
@@ -153,7 +155,7 @@ class TestDesktopBackendFillField:
             return_value=field_mock,
         ):
             await backend.fill_field("Material", "123")
-            assert field_mock.text == "123"
+            assert field_mock.Text == "123"
 
     @pytest.mark.anyio
     async def test_fill_field_raises_when_not_found(self):
@@ -304,7 +306,11 @@ class TestDesktopBackendFillForm:
         from sapwebguimcp.backend.desktop import DesktopBackend
 
         field1 = MagicMock()
+        field1.com = field1
+        field1.Type = "GuiTextField"
         field2 = MagicMock()
+        field2.com = field2
+        field2.Type = "GuiTextField"
 
         def mock_find(session, label):
             return {"Material": field1, "Plant": field2}.get(label)
@@ -326,8 +332,8 @@ class TestDesktopBackendFillForm:
             result = await backend.fill_form({"Material": "123", "Plant": "1000"})
             assert result.success is True
             assert result.filled == ["Material", "Plant"]
-            assert field1.text == "123"
-            assert field2.text == "1000"
+            assert field1.Text == "123"
+            assert field2.Text == "1000"
 
     @pytest.mark.anyio
     async def test_fill_form_reports_not_found(self):

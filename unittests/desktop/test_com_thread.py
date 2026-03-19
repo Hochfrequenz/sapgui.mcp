@@ -63,6 +63,32 @@ class TestComThread:
         assert len(set(ids)) == 1, "All calls should be on the same thread"
         assert ids[0] != threading.current_thread().ident, "Should be a different thread"
 
+    @pytest.mark.anyio
+    async def test_rpc_disconnected_wraps_with_cause(self, com_thread):
+        """RPC_E_DISCONNECTED (-2147417848) is wrapped with actionable message."""
+
+        class FakeComError(Exception):
+            def __init__(self, hr):
+                super().__init__(hr)
+                self.hresult = hr
+
+        def disconnected():
+            raise FakeComError(-2147417848)
+
+        with pytest.raises(RuntimeError, match="COM connection lost") as exc_info:
+            await com_thread.run(disconnected)
+        assert isinstance(exc_info.value.__cause__, FakeComError)
+
+    @pytest.mark.anyio
+    async def test_other_exceptions_not_wrapped(self, com_thread):
+        """Non-disconnect exceptions propagate unchanged."""
+
+        def fail():
+            raise KeyError("some_key")
+
+        with pytest.raises(KeyError, match="some_key"):
+            await com_thread.run(fail)
+
     def test_shutdown(self):
         thread = ComThread(init_com=False)
         assert thread._thread.is_alive()
