@@ -33,6 +33,7 @@ playwright install chromium
 ### SAP Test System Setup
 
 To run integration tests, you need a configured SAP system. See **[docs/SAP_TEST_PREREQUISITES.md](docs/SAP_TEST_PREREQUISITES.md)** for:
+
 - SAP GUI Scripting configuration (RZ11 + client settings)
 - Required test objects (report, class, function module)
 - `.env` file configuration
