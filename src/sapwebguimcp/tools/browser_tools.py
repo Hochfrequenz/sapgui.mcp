@@ -46,6 +46,13 @@ logger = logging.getLogger(__name__)
 # This prevents context bloat for large SAP pages
 _HTML_SIZE_THRESHOLD_BYTES = 50 * 1024
 
+_SCREENSHOT_WARNING = (
+    "⚠️ You used browser_screenshot which consumes significant context. "
+    "Use browser_snapshot (text-based accessibility tree) instead. "
+    "Only use browser_screenshot when the user explicitly asks for a screenshot "
+    "or when debugging visual rendering issues."
+)
+
 
 def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements
     """Register all browser automation tools with the MCP server."""
@@ -98,11 +105,15 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
 
     @mcp.tool(
         description=(
-            "Take a screenshot of the current page if and only if browser_snapshot is insufficient. "
-            "AVOID THIS TOOL - it returns a large image that fills up conversation context. "
-            "Use browser_snapshot instead for a compact text-based accessibility tree. "
-            "Only use screenshots when visual layout verification is absolutely necessary "
-            "(e.g., debugging rendering issues, user explicitly requests screenshot). "
+            "⚠️ WRONG TOOL — use browser_snapshot instead. "
+            "browser_snapshot returns a compact text-based accessibility tree "
+            "that is sufficient for 95% of use cases.\n\n"
+            "ONLY use browser_screenshot when:\n"
+            "1. The user EXPLICITLY asks for a screenshot\n"
+            "2. You need to verify visual rendering/layout issues that cannot be "
+            "diagnosed from the accessibility tree\n\n"
+            "This tool returns a large image that rapidly fills up conversation context "
+            "and degrades performance.\n\n"
             "Args: full_page = capture entire scrollable page, "
             "selector = optional CSS selector to capture specific element.\n\n"
             "**Session parameter:**\n"
@@ -115,7 +126,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         selector: Optional[str] = None,
         session: str | None = None,
         agent_id: str | None = None,
-    ) -> Image | ScreenshotResult:
+    ) -> list[str | Image] | ScreenshotResult:
         """Take a screenshot of the current page.
 
         Args:
@@ -149,8 +160,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
             else:
                 screenshot = await page.screenshot(full_page=full_page)
 
-            # Return native MCP Image instead of base64 string to reduce token usage
-            return Image(data=screenshot, format="png")
+            return [_SCREENSHOT_WARNING, Image(data=screenshot, format="png")]
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Taking screenshot")
             return ScreenshotResult.failure(
