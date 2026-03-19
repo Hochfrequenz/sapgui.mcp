@@ -1,7 +1,5 @@
 """Unit tests for QuickReportResult and ScreenClassification models."""
 
-import json
-
 import pytest
 from pydantic import ValidationError
 
