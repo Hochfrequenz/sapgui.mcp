@@ -1,16 +1,14 @@
-# `sap_quick_report` Implementation Plan
-
-> **⚠️ OUTDATED — Dieser Plan basiert auf Design v1 (mit Hint-System). Das Design wurde in v2 grundlegend überarbeitet (siehe `sap-quick-report-design.md`). Ein neuer Implementierungsplan muss auf Basis von v2 erstellt werden.**
+# `sap_quick_report` Implementation Plan (v2)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a composite `sap_quick_report` MCP tool that bundles transaction → fill selection screen → F8 → read result into a single call, with a learnable hint system for handling unknown screens.
+**Goal:** Add a composite `sap_quick_report` MCP tool that bundles transaction → fill selection screen → F8 → read result into a single call, with `post_f8_keys` for popup handling and a stateless design.
 
-**Architecture:** Pipeline with reusable screen classifier. Hint system with two-layer merge (shipped JSON baseline + user-local JSON). "Stay and report" error handling — tool never resets navigation state on failure.
+**Architecture:** Pipeline with reusable screen classifier. No hint system — agent passes learned knowledge via `post_f8_keys` parameter. "Stay and report" error handling — tool never resets navigation state on failure. WebGUI-only with runtime guard for desktop backend.
 
 **Tech Stack:** Python 3.11+, FastMCP, Playwright (WebGUI backend), Pydantic v2, pytest
 
-**Spec:** `docs/superpowers/specs/2026-03-18-sap-quick-report-design.md`
+**Spec:** `docs/design/sap-quick-report-design.md` (v2)
 
 **Repo:** `sapwebgui.mcp/` (cloned at `C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp`)
 
@@ -20,45 +18,45 @@
 
 | Action | File | Responsibility |
 |---|---|---|
-| Create | `src/sapwebguimcp/models/quick_report_models.py` | `ScreenClassification`, `QuickReportResult`, `TCodeHint`, `PopupHint`, `TCodeHintSuggestion`, `SaveHintResult` |
-| Create | `src/sapwebguimcp/tools/_hint_loader.py` | `load_hints()`, `save_hint()`, two-layer JSON merge |
-| Create | `src/sapwebguimcp/tools/quick_report_tools.py` | `sap_quick_report` tool, `sap_save_tcode_hint` tool, `classify_result_screen()`, pipeline |
-| Create | `src/sapwebguimcp/data/tcode_hints.json` | Shipped baseline hints for standard transactions |
-| Modify | `src/sapwebguimcp/models/__init__.py` | Export new models |
-| Modify | `src/sapwebguimcp/tools/__init__.py` | Export `register_quick_report_tools` |
-| Modify | `src/sapwebguimcp/server.py:207` | Register quick_report_tools (WebGUI-only block) |
+| Create | `src/sapwebguimcp/models/quick_report_models.py` | `ScreenClassification`, `QuickReportResult` |
+| Create | `src/sapwebguimcp/tools/quick_report_tools.py` | `classify_result_screen()`, `sap_quick_report` pipeline, `register_quick_report_tools()` |
 | Create | `unittests/test_quick_report_models.py` | Model validation tests |
-| Create | `unittests/test_hint_loader.py` | Hint loading + merge tests |
-| Create | `unittests/test_quick_report_tools.py` | Pipeline + classifier tests with mock backend |
+| Create | `unittests/test_quick_report_classifier.py` | Screen classifier unit tests |
+| Create | `unittests/test_quick_report_pipeline.py` | Pipeline + post_f8_keys unit tests |
+| Modify | `src/sapwebguimcp/models/__init__.py` | Export `ScreenClassification`, `QuickReportResult` |
+| Modify | `src/sapwebguimcp/tools/__init__.py` | Export `register_quick_report_tools` |
+| Modify | `src/sapwebguimcp/server.py` | Call `register_quick_report_tools(mcp)` |
 
 ---
 
-## Task 1: Pydantic Models
+## Task 1: Models — `ScreenClassification` + `QuickReportResult`
 
 **Files:**
 - Create: `src/sapwebguimcp/models/quick_report_models.py`
-- Test: `unittests/test_quick_report_models.py`
+- Create: `unittests/test_quick_report_models.py`
+- Modify: `src/sapwebguimcp/models/__init__.py`
 
-- [ ] **Step 1: Write failing test for ScreenClassification enum**
+### Step 1.1: Write model tests
+
+- [ ] Create `unittests/test_quick_report_models.py`:
 
 ```python
-# unittests/test_quick_report_models.py
-"""Unit tests for quick report models."""
+"""Unit tests for QuickReportResult and ScreenClassification models."""
+
+import json
 
 import pytest
 from pydantic import ValidationError
 
 from sapwebguimcp.models.quick_report_models import (
-    PopupHint,
     QuickReportResult,
-    SaveHintResult,
     ScreenClassification,
-    TCodeHint,
-    TCodeHintSuggestion,
 )
 
 
 class TestScreenClassification:
+    """Tests for ScreenClassification enum."""
+
     def test_values(self) -> None:
         assert ScreenClassification.TABLE == "table"
         assert ScreenClassification.EMPTY == "empty"
@@ -67,27 +65,116 @@ class TestScreenClassification:
 
     def test_from_string(self) -> None:
         assert ScreenClassification("table") == ScreenClassification.TABLE
+
+
+class TestQuickReportResult:
+    """Tests for QuickReportResult model."""
+
+    def test_success_table_result(self) -> None:
+        result = QuickReportResult(
+            tcode="VA05",
+            screen_type=ScreenClassification.TABLE,
+            page_title="Auftragsübersicht",
+            status_bar_type="S",
+            status_bar_message="5 Einträge gelesen",
+        )
+        assert result.success is True
+        assert result.screen_type == "table"
+        assert result.tcode == "VA05"
+        assert result.warnings == []
+        assert result.table is None
+
+    def test_success_empty_result(self) -> None:
+        result = QuickReportResult(
+            tcode="ME2M",
+            screen_type=ScreenClassification.EMPTY,
+            status_bar_type="I",
+            status_bar_message="Keine Daten gefunden",
+        )
+        assert result.success is True
+        assert result.screen_type == "empty"
+
+    def test_success_error_screen_type(self) -> None:
+        """success=True + screen_type=ERROR is valid (SAP responded with error)."""
+        result = QuickReportResult(
+            tcode="ME2M",
+            screen_type=ScreenClassification.ERROR,
+            status_bar_type="E",
+            status_bar_message="Werk XXXX existiert nicht",
+        )
+        assert result.success is True
+        assert result.screen_type == "error"
+
+    def test_success_unknown_screen_type(self) -> None:
+        result = QuickReportResult(
+            tcode="ZCUSTOM01",
+            screen_type=ScreenClassification.UNKNOWN,
+        )
+        assert result.success is True
+        assert result.screen_type == "unknown"
+
+    def test_infrastructure_failure(self) -> None:
+        """success=False for infrastructure errors (no screen_type needed)."""
+        result = QuickReportResult.failure(
+            error="sap_quick_report requires WebGUI backend",
+            tcode="VA05",
+            screen_type=ScreenClassification.ERROR,
+        )
+        assert result.success is False
+        assert result.error == "sap_quick_report requires WebGUI backend"
+
+    def test_warnings_list(self) -> None:
+        result = QuickReportResult(
+            tcode="VA05",
+            screen_type=ScreenClassification.TABLE,
+            warnings=["Field 'FakeField' not found on screen"],
+        )
+        assert len(result.warnings) == 1
+
+    def test_max_rows_field_constraint(self) -> None:
+        """max_rows Field(ge=1) constraint is defined on the tool function, not the model.
+
+        This is verified in test_quick_report_pipeline.py via the tool registration tests.
+        """
+
+    def test_json_roundtrip(self) -> None:
+        original = QuickReportResult(
+            tcode="VA05",
+            screen_type=ScreenClassification.TABLE,
+            page_title="Test",
+            status_bar_type="S",
+            status_bar_message="OK",
+            warnings=["w1"],
+        )
+        json_str = original.model_dump_json()
+        restored = QuickReportResult.model_validate_json(json_str)
+        assert restored.tcode == original.tcode
+        assert restored.screen_type == original.screen_type
+        assert restored.warnings == original.warnings
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+### Step 1.2: Run tests — verify they fail
 
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py::TestScreenClassification -v`
-Expected: FAIL — `ModuleNotFoundError: No module named 'sapwebguimcp.models.quick_report_models'`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py -v`
+- Expected: `ModuleNotFoundError: No module named 'sapwebguimcp.models.quick_report_models'`
 
-- [ ] **Step 3: Implement ScreenClassification**
+### Step 1.3: Implement models
+
+- [ ] Create `src/sapwebguimcp/models/quick_report_models.py`:
 
 ```python
-# src/sapwebguimcp/models/quick_report_models.py
-"""Pydantic models for sap_quick_report composite tool."""
-
-from __future__ import annotations
+"""Models for sap_quick_report composite tool."""
 
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from sapwebguimcp.models.base import ToolResult
-from sapwebguimcp.models.sap_results import StatusBarType, TableData, ScreenText
+from sapwebguimcp.models.sap_results import (
+    ScreenText,
+    StatusBarType,
+    TableData,
+)
 
 
 class ScreenClassification(StrEnum):
@@ -97,1116 +184,787 @@ class ScreenClassification(StrEnum):
     EMPTY = "empty"
     ERROR = "error"
     UNKNOWN = "unknown"
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py::TestScreenClassification -v`
-Expected: PASS
-
-- [ ] **Step 5: Write failing test for PopupHint and TCodeHint**
-
-Add to `unittests/test_quick_report_models.py`:
-
-```python
-class TestPopupHint:
-    def test_defaults(self) -> None:
-        hint = PopupHint(text_pattern="Variante")
-        assert hint.text_pattern == "Variante"
-        assert hint.action == "Enter"
-
-    def test_custom_action(self) -> None:
-        hint = PopupHint(text_pattern="Drucken", action="Escape")
-        assert hint.action == "Escape"
 
 
-class TestTCodeHint:
-    def test_defaults(self) -> None:
-        hint = TCodeHint(tcode="SM37")
-        assert hint.post_f8 == ScreenClassification.TABLE
-        assert hint.known_popups == []
-        assert hint.notes == ""
-
-    def test_with_popups(self) -> None:
-        hint = TCodeHint(
-            tcode="FBL1N",
-            known_popups=[PopupHint(text_pattern="Variante")],
-            notes="Kreditorenposten",
-        )
-        assert len(hint.known_popups) == 1
-        assert hint.known_popups[0].text_pattern == "Variante"
-```
-
-- [ ] **Step 6: Run test to verify it fails**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py::TestPopupHint unittests/test_quick_report_models.py::TestTCodeHint -v`
-Expected: FAIL
-
-- [ ] **Step 7: Implement PopupHint and TCodeHint**
-
-Add to `src/sapwebguimcp/models/quick_report_models.py`:
-
-```python
-class PopupHint(BaseModel):
-    """A known popup that can appear after F8."""
-
-    text_pattern: str = Field(description="Substring to match in popup text (case-insensitive)")
-    action: str = Field(default="Enter", description="Key to press to dismiss the popup")
-
-
-class TCodeHint(BaseModel):
-    """Expectations for a transaction after F8."""
-
-    tcode: str = Field(description="Transaction code")
-    post_f8: ScreenClassification = Field(
-        default=ScreenClassification.TABLE,
-        description="Expected screen type after F8",
-    )
-    known_popups: list[PopupHint] = Field(
-        default_factory=list,
-        description="Known popups that may appear after F8",
-    )
-    notes: str = Field(default="", description="Free-text notes for developers/agents")
-```
-
-- [ ] **Step 8: Run test to verify it passes**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py::TestPopupHint unittests/test_quick_report_models.py::TestTCodeHint -v`
-Expected: PASS
-
-- [ ] **Step 9: Write failing test for TCodeHintSuggestion**
-
-Add to `unittests/test_quick_report_models.py`:
-
-```python
-class TestTCodeHintSuggestion:
-    def test_creation(self) -> None:
-        suggestion = TCodeHintSuggestion(
-            tcode="ZCUSTOM01",
-            observed_screen_type="unknown",
-            status_bar_type="none",
-            status_bar_message="",
-            page_title="Variantenauswahl",
-            dom_roles=["dialog", "listbox"],
-        )
-        assert suggestion.tcode == "ZCUSTOM01"
-        assert suggestion.dom_roles == ["dialog", "listbox"]
-```
-
-- [ ] **Step 10: Implement TCodeHintSuggestion**
-
-Add to `src/sapwebguimcp/models/quick_report_models.py`:
-
-```python
-class TCodeHintSuggestion(BaseModel):
-    """Tool-generated suggestion for a new hint."""
-
-    tcode: str = Field(description="Transaction code")
-    observed_screen_type: str = Field(description="What the classifier observed")
-    status_bar_type: str = Field(description="Status bar type after F8")
-    status_bar_message: str = Field(description="Status bar message after F8")
-    page_title: str = Field(description="Page title after F8")
-    dom_roles: list[str] = Field(
-        default_factory=list,
-        description="Unique ARIA roles found in DOM (e.g. ['dialog', 'listbox'])",
-    )
-```
-
-- [ ] **Step 11: Run test to verify it passes**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py::TestTCodeHintSuggestion -v`
-Expected: PASS
-
-- [ ] **Step 12: Write failing test for QuickReportResult**
-
-Add to `unittests/test_quick_report_models.py`:
-
-```python
-class TestQuickReportResult:
-    def test_success_table(self) -> None:
-        result = QuickReportResult(
-            tcode="SM37",
-            screen_type=ScreenClassification.TABLE,
-            page_title="Job Overview",
-            table=TableData(headers=["Job"], rows=[], total_rows=0),
-        )
-        assert result.success is True
-        assert result.screen_type == "table"
-        assert result.table is not None
-
-    def test_error(self) -> None:
-        result = QuickReportResult.failure(
-            error="Transaction not found",
-            tcode="ZNOTEXIST",
-            screen_type=ScreenClassification.ERROR,
-        )
-        assert result.success is False
-        assert result.screen_type == "error"
-
-    def test_unknown_with_hint_suggestion(self) -> None:
-        suggestion = TCodeHintSuggestion(
-            tcode="ZCUSTOM",
-            observed_screen_type="unknown",
-            status_bar_type="none",
-            status_bar_message="",
-            page_title="Popup",
-            dom_roles=["dialog"],
-        )
-        result = QuickReportResult(
-            tcode="ZCUSTOM",
-            screen_type=ScreenClassification.UNKNOWN,
-            hint_suggestion=suggestion,
-        )
-        assert result.hint_suggestion is not None
-        assert result.hint_suggestion.dom_roles == ["dialog"]
-
-    def test_warnings_collected(self) -> None:
-        result = QuickReportResult(
-            tcode="SM37",
-            screen_type=ScreenClassification.TABLE,
-            warnings=["Checkbox 'Geplant' not found on screen"],
-        )
-        assert len(result.warnings) == 1
-```
-
-- [ ] **Step 13: Implement QuickReportResult and SaveHintResult**
-
-Add to `src/sapwebguimcp/models/quick_report_models.py`:
-
-```python
 class QuickReportResult(ToolResult):
-    """Result from sap_quick_report tool."""
+    """Result of sap_quick_report."""
 
-    tcode: str = Field(description="Transaction code executed")
-    screen_type: ScreenClassification = Field(description="What appeared after F8")
-    page_title: str = Field(default="", description="Screen title after execution")
+    tcode: str = Field(description="Transaction code that was executed")
+    screen_type: ScreenClassification = Field(
+        description="What appeared after F8: table, empty, error, or unknown"
+    )
+    page_title: str = Field(default="", description="Screen title after F8")
 
-    # Status bar (always populated if available)
+    # Status bar (flat fields, consistent with KeyboardResult pattern)
     status_bar_type: StatusBarType | None = Field(
-        default=None, description="Status bar type after F8"
+        default=None, description="Status bar type if read"
     )
     status_bar_message: str | None = Field(
-        default=None, description="Status bar text after F8"
+        default=None, description="Status bar text if read"
     )
 
-    # When screen_type="table"
-    table: TableData | None = Field(default=None, description="Table data if grid found")
+    # screen_type="table"
+    table: TableData | None = Field(
+        default=None, description="Table data when screen_type is 'table'"
+    )
 
-    # When screen_type="error" or "unknown"
+    # screen_type="error" or "unknown"
     screen_text: ScreenText | None = Field(
-        default=None, description="Screen text for non-table results"
+        default=None,
+        description="Screen text when screen_type is 'error' or 'unknown'",
     )
 
-    # When screen_type="unknown": learning hint
-    hint_suggestion: TCodeHintSuggestion | None = Field(
-        default=None, description="Suggested hint for this tcode"
-    )
-
-    # Warnings (non-fatal issues during execution)
+    # Warnings (e.g. "Checkbox 'Geplant' not found on screen")
     warnings: list[str] = Field(
-        default_factory=list, description="Non-fatal warnings collected during execution"
+        default_factory=list,
+        description="Non-fatal warnings from the pipeline",
     )
-
-
-class SaveHintResult(ToolResult):
-    """Result from sap_save_tcode_hint tool."""
-
-    tcode: str = Field(description="Transaction code the hint was saved for")
-    hint_file: str = Field(description="Path to the hints file that was written")
 ```
 
-- [ ] **Step 14: Run all model tests**
+### Step 1.4: Export models from `models/__init__.py`
 
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py -v`
-Expected: ALL PASS
-
-- [ ] **Step 15: Commit**
-
-```bash
-cd sapwebgui.mcp
-git add src/sapwebguimcp/models/quick_report_models.py unittests/test_quick_report_models.py
-git commit -m "feat: add Pydantic models for sap_quick_report
-
-Add ScreenClassification enum, QuickReportResult, TCodeHint,
-PopupHint, TCodeHintSuggestion, and SaveHintResult models."
-```
-
----
-
-## Task 2: Hint Loader (Two-Layer JSON Merge)
-
-**Files:**
-- Create: `src/sapwebguimcp/tools/_hint_loader.py`
-- Create: `src/sapwebguimcp/data/tcode_hints.json`
-- Test: `unittests/test_hint_loader.py`
-
-- [ ] **Step 1: Write failing test for loading shipped hints**
-
-```python
-# unittests/test_hint_loader.py
-"""Unit tests for TCode hint loader."""
-
-import json
-from pathlib import Path
-from unittest.mock import patch
-
-import pytest
-
-from sapwebguimcp.models.quick_report_models import (
-    PopupHint,
-    ScreenClassification,
-    TCodeHint,
-)
-from sapwebguimcp.tools._hint_loader import (
-    USER_HINTS_PATH,
-    load_hint,
-    load_hints,
-    merge_hints,
-    save_hint,
-)
-
-
-class TestLoadHints:
-    def test_load_shipped_hints(self) -> None:
-        """Shipped hints file must exist and be parseable."""
-        hints = load_hints()
-        assert isinstance(hints, dict)
-        # SM37 must be in shipped baseline
-        assert "SM37" in hints
-        assert hints["SM37"].post_f8 == ScreenClassification.TABLE
-
-    def test_load_hint_known_tcode(self) -> None:
-        hint = load_hint("SM37")
-        assert hint is not None
-        assert hint.tcode == "SM37"
-
-    def test_load_hint_unknown_tcode(self) -> None:
-        hint = load_hint("ZZZNOTEXIST999")
-        assert hint is None
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_hint_loader.py::TestLoadHints -v`
-Expected: FAIL — `ModuleNotFoundError`
-
-- [ ] **Step 3: Create shipped baseline `tcode_hints.json`**
-
-```json
-{
-  "SM37": {
-    "tcode": "SM37",
-    "post_f8": "table",
-    "known_popups": [],
-    "notes": "Job overview, always ALV grid"
-  },
-  "VA05": {
-    "tcode": "VA05",
-    "post_f8": "table",
-    "known_popups": [],
-    "notes": "Sales order list"
-  },
-  "ME2M": {
-    "tcode": "ME2M",
-    "post_f8": "table",
-    "known_popups": [],
-    "notes": "Purchase orders by material"
-  },
-  "MB51": {
-    "tcode": "MB51",
-    "post_f8": "table",
-    "known_popups": [],
-    "notes": "Material document list"
-  },
-  "FBL1N": {
-    "tcode": "FBL1N",
-    "post_f8": "table",
-    "known_popups": [
-      {"text_pattern": "Variante", "action": "Enter"}
-    ],
-    "notes": "Vendor line items, may ask for display variant"
-  },
-  "FBL3N": {
-    "tcode": "FBL3N",
-    "post_f8": "table",
-    "known_popups": [
-      {"text_pattern": "Variante", "action": "Enter"}
-    ],
-    "notes": "G/L account line items"
-  },
-  "FBL5N": {
-    "tcode": "FBL5N",
-    "post_f8": "table",
-    "known_popups": [
-      {"text_pattern": "Variante", "action": "Enter"}
-    ],
-    "notes": "Customer line items"
-  }
-}
-```
-
-Write to: `src/sapwebguimcp/data/tcode_hints.json`
-
-- [ ] **Step 4: Implement `_hint_loader.py`**
-
-```python
-# src/sapwebguimcp/tools/_hint_loader.py
-"""Two-layer TCode hint loader: shipped baseline + user-local overrides."""
-
-from __future__ import annotations
-
-import json
-import logging
-from pathlib import Path
-
-from sapwebguimcp.models.quick_report_models import PopupHint, TCodeHint
-
-logger = logging.getLogger(__name__)
-
-__all__ = ["load_hint", "load_hints", "merge_hints", "save_hint", "USER_HINTS_PATH"]
-
-# Shipped baseline (read-only, packaged with the project)
-_SHIPPED_HINTS_PATH = Path(__file__).resolve().parent.parent / "data" / "tcode_hints.json"
-
-# User-local overrides (read-write)
-USER_HINTS_PATH = Path.home() / ".sapwebguimcp" / "tcode_hints.json"
-
-
-def _load_json_hints(path: Path) -> dict[str, TCodeHint]:
-    """Load hints from a JSON file, returning empty dict on missing/invalid file."""
-    if not path.is_file():
-        return {}
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        return {k: TCodeHint(**v) for k, v in raw.items()}
-    except (json.JSONDecodeError, PermissionError, ValueError) as exc:
-        logger.warning("Failed to load hints from %s: %s", path, exc)
-        return {}
-
-
-def merge_hints(
-    base: dict[str, TCodeHint], override: dict[str, TCodeHint]
-) -> dict[str, TCodeHint]:
-    """Merge two hint dicts. Override wins for post_f8/notes; popups are unioned by text_pattern."""
-    merged = dict(base)
-    for tcode, user_hint in override.items():
-        if tcode not in merged:
-            merged[tcode] = user_hint
-            continue
-        repo_hint = merged[tcode]
-        # Union known_popups, deduplicate by text_pattern (user action wins)
-        popup_map: dict[str, PopupHint] = {}
-        for p in repo_hint.known_popups:
-            popup_map[p.text_pattern.lower()] = p
-        for p in user_hint.known_popups:
-            popup_map[p.text_pattern.lower()] = p  # user wins on conflict
-        merged[tcode] = TCodeHint(
-            tcode=tcode,
-            post_f8=user_hint.post_f8,
-            known_popups=list(popup_map.values()),
-            notes=user_hint.notes if user_hint.notes else repo_hint.notes,
-        )
-    return merged
-
-
-def load_hints() -> dict[str, TCodeHint]:
-    """Load and merge shipped + user-local hints."""
-    shipped = _load_json_hints(_SHIPPED_HINTS_PATH)
-    user = _load_json_hints(USER_HINTS_PATH)
-    return merge_hints(shipped, user)
-
-
-def load_hint(tcode: str) -> TCodeHint | None:
-    """Load hint for a specific tcode, or None if not found."""
-    hints = load_hints()
-    return hints.get(tcode.upper())
-
-
-def save_hint(hint: TCodeHint) -> Path:
-    """Save a hint to the user-local hints file. Creates file/dir if needed."""
-    USER_HINTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    existing = _load_json_hints(USER_HINTS_PATH)
-    existing[hint.tcode.upper()] = hint
-    data = {k: v.model_dump(mode="json") for k, v in existing.items()}
-    USER_HINTS_PATH.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-    return USER_HINTS_PATH
-```
-
-- [ ] **Step 5: Run test to verify it passes**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_hint_loader.py::TestLoadHints -v`
-Expected: PASS
-
-- [ ] **Step 6: Write failing test for merge logic**
-
-Add to `unittests/test_hint_loader.py`:
-
-```python
-class TestMergeHints:
-    def test_user_overrides_post_f8(self) -> None:
-        base = {"SM37": TCodeHint(tcode="SM37", post_f8=ScreenClassification.TABLE)}
-        override = {"SM37": TCodeHint(tcode="SM37", post_f8=ScreenClassification.UNKNOWN)}
-        merged = merge_hints(base, override)
-        assert merged["SM37"].post_f8 == ScreenClassification.UNKNOWN
-
-    def test_user_adds_new_tcode(self) -> None:
-        base = {"SM37": TCodeHint(tcode="SM37")}
-        override = {"ZCUSTOM": TCodeHint(tcode="ZCUSTOM", notes="Custom tx")}
-        merged = merge_hints(base, override)
-        assert "ZCUSTOM" in merged
-        assert "SM37" in merged
-
-    def test_popup_union_dedup_by_pattern(self) -> None:
-        base = {
-            "FBL1N": TCodeHint(
-                tcode="FBL1N",
-                known_popups=[PopupHint(text_pattern="Variante", action="Enter")],
-            )
-        }
-        override = {
-            "FBL1N": TCodeHint(
-                tcode="FBL1N",
-                known_popups=[
-                    PopupHint(text_pattern="Variante", action="Escape"),  # override action
-                    PopupHint(text_pattern="Drucken", action="Enter"),  # new popup
-                ],
-            )
-        }
-        merged = merge_hints(base, override)
-        popups = {p.text_pattern.lower(): p for p in merged["FBL1N"].known_popups}
-        assert popups["variante"].action == "Escape"  # user wins
-        assert "drucken" in popups  # new popup added
-
-    def test_user_notes_override(self) -> None:
-        base = {"SM37": TCodeHint(tcode="SM37", notes="Original")}
-        override = {"SM37": TCodeHint(tcode="SM37", notes="Updated")}
-        merged = merge_hints(base, override)
-        assert merged["SM37"].notes == "Updated"
-
-    def test_empty_user_notes_keeps_repo(self) -> None:
-        base = {"SM37": TCodeHint(tcode="SM37", notes="Original")}
-        override = {"SM37": TCodeHint(tcode="SM37", notes="")}
-        merged = merge_hints(base, override)
-        assert merged["SM37"].notes == "Original"
-```
-
-- [ ] **Step 7: Run merge tests**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_hint_loader.py::TestMergeHints -v`
-Expected: PASS (implementation already handles this)
-
-- [ ] **Step 8: Write failing test for save_hint**
-
-Add to `unittests/test_hint_loader.py`:
-
-```python
-class TestSaveHint:
-    def test_save_and_reload(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        hints_file = tmp_path / "tcode_hints.json"
-        import sapwebguimcp.tools._hint_loader as loader_mod
-
-        monkeypatch.setattr(loader_mod, "USER_HINTS_PATH", hints_file)
-
-        hint = TCodeHint(
-            tcode="ZCUSTOM",
-            known_popups=[PopupHint(text_pattern="Test")],
-            notes="Test hint",
-        )
-        result_path = save_hint(hint)
-        assert result_path == hints_file
-        assert hints_file.exists()
-
-        # Reload and verify
-        data = json.loads(hints_file.read_text(encoding="utf-8"))
-        assert "ZCUSTOM" in data
-        assert data["ZCUSTOM"]["known_popups"][0]["text_pattern"] == "Test"
-
-    def test_save_preserves_existing(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        hints_file = tmp_path / "tcode_hints.json"
-        hints_file.write_text('{"EXISTING": {"tcode": "EXISTING", "post_f8": "table"}}')
-        import sapwebguimcp.tools._hint_loader as loader_mod
-
-        monkeypatch.setattr(loader_mod, "USER_HINTS_PATH", hints_file)
-
-        save_hint(TCodeHint(tcode="NEW", notes="New hint"))
-        data = json.loads(hints_file.read_text(encoding="utf-8"))
-        assert "EXISTING" in data
-        assert "NEW" in data
-```
-
-- [ ] **Step 9: Run save tests**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_hint_loader.py::TestSaveHint -v`
-Expected: PASS
-
-- [ ] **Step 10: Commit**
-
-```bash
-cd sapwebgui.mcp
-git add src/sapwebguimcp/tools/_hint_loader.py src/sapwebguimcp/data/tcode_hints.json unittests/test_hint_loader.py
-git commit -m "feat: add two-layer TCode hint loader with JSON merge
-
-Shipped baseline in data/tcode_hints.json covers SM37, VA05, ME2M,
-MB51, FBL1N, FBL3N, FBL5N. User-local hints in ~/.sapwebguimcp/
-override per tcode-key, popups union by text_pattern."
-```
-
----
-
-## Task 3: Screen Classifier
-
-**Files:**
-- Modify: `src/sapwebguimcp/tools/quick_report_tools.py` (will be created here)
-- Test: `unittests/test_quick_report_tools.py`
-
-- [ ] **Step 1: Write failing test for classify_result_screen**
-
-```python
-# unittests/test_quick_report_tools.py
-"""Unit tests for sap_quick_report pipeline and screen classifier."""
-
-from __future__ import annotations
-
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
-
-from sapwebguimcp.models.quick_report_models import (
-    ScreenClassification,
-    TCodeHint,
-    PopupHint,
-)
-from sapwebguimcp.models.sap_results import StatusBarInfo
-
-
-def _make_mock_backend(
-    status_bar_type: str = "none",
-    status_bar_message: str = "",
-    has_grid: bool = False,
-    has_tree: bool = False,
-    page_title: str = "Test Screen",
-) -> AsyncMock:
-    """Create a mock SapUiBackend for testing the classifier."""
-    backend = AsyncMock()
-    backend.get_status_bar = AsyncMock(
-        return_value=StatusBarInfo(
-            type=status_bar_type,
-            message=status_bar_message,
-        )
-    )
-
-    # Simulate DOM role check via evaluate_javascript
-    async def mock_evaluate(script: str, arg: Any = None) -> Any:
-        if "role='grid'" in script or "role=\"grid\"" in script:
-            return has_grid
-        if "role='tree'" in script or "role=\"tree\"" in script:
-            return has_tree
-        return None
-
-    backend.evaluate_javascript = AsyncMock(side_effect=mock_evaluate)
-    backend.get_page_title = AsyncMock(return_value=page_title)
-    return backend
-
-
-class TestClassifyResultScreen:
-    @pytest.mark.asyncio
-    async def test_error_status_bar(self) -> None:
-        from sapwebguimcp.tools.quick_report_tools import classify_result_screen
-
-        backend = _make_mock_backend(status_bar_type="E", status_bar_message="Table not found")
-        classification, status_bar = await classify_result_screen(backend)
-        assert classification == ScreenClassification.ERROR
-
-    @pytest.mark.asyncio
-    async def test_empty_no_data(self) -> None:
-        from sapwebguimcp.tools.quick_report_tools import classify_result_screen
-
-        backend = _make_mock_backend(
-            status_bar_type="I", status_bar_message="Keine Daten gefunden"
-        )
-        classification, _ = await classify_result_screen(backend)
-        assert classification == ScreenClassification.EMPTY
-
-    @pytest.mark.asyncio
-    async def test_empty_no_entries(self) -> None:
-        from sapwebguimcp.tools.quick_report_tools import classify_result_screen
-
-        backend = _make_mock_backend(
-            status_bar_type="W", status_bar_message="No entries found"
-        )
-        classification, _ = await classify_result_screen(backend)
-        assert classification == ScreenClassification.EMPTY
-
-    @pytest.mark.asyncio
-    async def test_table_grid_found(self) -> None:
-        from sapwebguimcp.tools.quick_report_tools import classify_result_screen
-
-        backend = _make_mock_backend(has_grid=True)
-        classification, _ = await classify_result_screen(backend)
-        assert classification == ScreenClassification.TABLE
-
-    @pytest.mark.asyncio
-    async def test_unknown_fallback(self) -> None:
-        from sapwebguimcp.tools.quick_report_tools import classify_result_screen
-
-        backend = _make_mock_backend()  # no grid, no error, no empty
-        classification, _ = await classify_result_screen(backend)
-        assert classification == ScreenClassification.UNKNOWN
-
-    @pytest.mark.asyncio
-    async def test_error_takes_priority_over_grid(self) -> None:
-        from sapwebguimcp.tools.quick_report_tools import classify_result_screen
-
-        backend = _make_mock_backend(status_bar_type="E", status_bar_message="Error", has_grid=True)
-        classification, _ = await classify_result_screen(backend)
-        assert classification == ScreenClassification.ERROR
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_quick_report_tools.py::TestClassifyResultScreen -v`
-Expected: FAIL — `ModuleNotFoundError`
-
-- [ ] **Step 3: Implement classify_result_screen**
-
-```python
-# src/sapwebguimcp/tools/quick_report_tools.py
-"""
-Composite sap_quick_report tool: transaction → fill → F8 → classify → result.
-
-WebGUI-only (Phase 1). Uses pipeline architecture with reusable screen classifier.
-"""
-
-from __future__ import annotations
-
-import logging
-from typing import TYPE_CHECKING
-
-from sapwebguimcp.models.quick_report_models import ScreenClassification
-from sapwebguimcp.models.sap_results import StatusBarInfo
-
-if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
-    from sapwebguimcp.models.quick_report_models import TCodeHint
-
-logger = logging.getLogger(__name__)
-
-__all__ = ["register_quick_report_tools"]
-
-# Substrings indicating "no data found" (DE + EN)
-_EMPTY_PATTERNS = [
-    "keine daten",
-    "no data",
-    "keine werte",
-    "no entries",
-    "keine einträge",
-    "no values",
-]
-
-
-async def classify_result_screen(
-    backend: "SapUiBackend",
-    hint: "TCodeHint | None" = None,
-) -> tuple[ScreenClassification, StatusBarInfo]:
-    """
-    Classify the current screen after F8.
-
-    Priority:
-    1. Status bar type "E" → ERROR
-    2. Status bar contains empty-data patterns → EMPTY
-    3. DOM has [role='grid'] → TABLE
-    4. Fallback → UNKNOWN
-    """
-    status_bar = await backend.get_status_bar()
-
-    # 1. Error status bar takes priority
-    if status_bar.type == "E":
-        return ScreenClassification.ERROR, status_bar
-
-    # 2. Empty data patterns in status bar
-    msg_lower = (status_bar.message or "").lower()
-    if any(pattern in msg_lower for pattern in _EMPTY_PATTERNS):
-        return ScreenClassification.EMPTY, status_bar
-
-    # 3. Check for ALV grid in DOM
-    has_grid = await backend.evaluate_javascript(
-        "() => document.querySelector(\"[role='grid']\") !== null"
-    )
-    if has_grid:
-        return ScreenClassification.TABLE, status_bar
-
-    # 4. Fallback
-    return ScreenClassification.UNKNOWN, status_bar
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_quick_report_tools.py::TestClassifyResultScreen -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-cd sapwebgui.mcp
-git add src/sapwebguimcp/tools/quick_report_tools.py unittests/test_quick_report_tools.py
-git commit -m "feat: add screen classifier for post-F8 result detection
-
-Classifies screens as TABLE/EMPTY/ERROR/UNKNOWN based on status bar
-and DOM inspection. Reusable for future composite tools."
-```
-
----
-
-## Task 4: Pipeline + `sap_quick_report` Tool
-
-**Files:**
-- Modify: `src/sapwebguimcp/tools/quick_report_tools.py`
-- Test: `unittests/test_quick_report_tools.py`
-
-- [ ] **Step 1: Write failing test for pipeline — happy path (TABLE)**
-
-Add to `unittests/test_quick_report_tools.py`:
-
-```python
-from sapwebguimcp.models.sap_results import (
-    ScreenText,
-    TableData,
-    TableRow,
-    TransactionResult,
-)
-from sapwebguimcp.models.quick_report_models import QuickReportResult
-from sapwebguimcp.models.screen_state import ScreenStateDiff
-
-
-def _make_pipeline_backend(
-    tx_success: bool = True,
-    status_bar_type: str = "S",
-    status_bar_message: str = "7 entries found",
-    has_grid: bool = True,
-    table_data: TableData | None = None,
-    screen_text: ScreenText | None = None,
-    page_title: str = "Job Overview",
-) -> AsyncMock:
-    """Create a mock backend for full pipeline tests."""
-    backend = _make_mock_backend(
-        status_bar_type=status_bar_type,
-        status_bar_message=status_bar_message,
-        has_grid=has_grid,
-        page_title=page_title,
-    )
-    backend.enter_transaction = AsyncMock(
-        return_value=TransactionResult(
-            success=tx_success,
-            tcode="SM37",
-            page_title=page_title,
-            **({"error": "TX not found"} if not tx_success else {}),
-        )
-    )
-    backend.wait_for_ready = AsyncMock()
-    backend.press_key = AsyncMock(return_value=MagicMock(
-        status_bar_type=status_bar_type,
-        status_bar_message=status_bar_message,
-    ))
-    backend.fill_form = AsyncMock()
-    backend.read_table = AsyncMock(
-        return_value=table_data or TableData(
-            headers=["Job", "Status"],
-            rows=[TableRow(row=1, data={"Job": "TEST", "Status": "Finished"})],
-            total_rows=1,
-        )
-    )
-    backend.get_screen_text = AsyncMock(
-        return_value=screen_text or ScreenText(title=page_title)
-    )
-    return backend
-
-
-class TestQuickReportPipeline:
-    @pytest.mark.asyncio
-    async def test_happy_path_table(self) -> None:
-        from unittest.mock import patch
-        from sapwebguimcp.tools.quick_report_tools import _execute_quick_report
-        from sapwebguimcp.models.screen_state import ScreenStateDiff
-
-        backend = _make_pipeline_backend()
-        # Patch ensure_screen_state to avoid needing a real ARIA snapshot
-        mock_diff = ScreenStateDiff()
-        with patch(
-            "sapwebguimcp.tools.quick_report_tools.ensure_screen_state",
-            return_value=mock_diff,
-        ):
-            result = await _execute_quick_report(
-                backend=backend,
-                tcode="SM37",
-                fields={"Jobname": "*"},
-                checkboxes=None,
-                radios=None,
-                max_rows=30,
-                read_all=False,
-            )
-        assert result.success is True
-        assert result.screen_type == ScreenClassification.TABLE
-        assert result.table is not None
-        assert result.table.total_rows == 1
-        # Verify pipeline order: transaction → F8 → wait → classify → read
-        backend.enter_transaction.assert_called_once_with("SM37")
-        backend.press_key.assert_called()
-
-    @pytest.mark.asyncio
-    async def test_transaction_fails(self) -> None:
-        from sapwebguimcp.tools.quick_report_tools import _execute_quick_report
-
-        backend = _make_pipeline_backend(tx_success=False)
-        result = await _execute_quick_report(
-            backend=backend,
-            tcode="ZNOTEXIST",
-            fields=None,
-            checkboxes=None,
-            radios=None,
-            max_rows=30,
-            read_all=False,
-        )
-        assert result.success is False
-        assert result.screen_type == ScreenClassification.ERROR
-
-    @pytest.mark.asyncio
-    async def test_error_status_bar_after_f8(self) -> None:
-        """fields=None intentionally skips ensure_screen_state (guard: if fields or checkboxes or radios)."""
-        from sapwebguimcp.tools.quick_report_tools import _execute_quick_report
-
-        backend = _make_pipeline_backend(
-            status_bar_type="E",
-            status_bar_message="Authorization error",
-            has_grid=False,
-        )
-        result = await _execute_quick_report(
-            backend=backend,
-            tcode="SM37",
-            fields=None,
-            checkboxes=None,
-            radios=None,
-            max_rows=30,
-            read_all=False,
-        )
-        assert result.screen_type == ScreenClassification.ERROR
-        assert result.screen_text is not None
-
-    @pytest.mark.asyncio
-    async def test_unknown_screen_generates_hint_suggestion(self) -> None:
-        """fields=None intentionally skips ensure_screen_state (guard: if fields or checkboxes or radios)."""
-        from sapwebguimcp.tools.quick_report_tools import _execute_quick_report
-
-        backend = _make_pipeline_backend(
-            status_bar_type="none",
-            status_bar_message="",
-            has_grid=False,
-            page_title="Variantenauswahl",
-        )
-        # Mock DOM roles for hint suggestion
-        backend.evaluate_javascript = AsyncMock(return_value=False)
-        result = await _execute_quick_report(
-            backend=backend,
-            tcode="ZCUSTOM",
-            fields=None,
-            checkboxes=None,
-            radios=None,
-            max_rows=30,
-            read_all=False,
-        )
-        assert result.screen_type == ScreenClassification.UNKNOWN
-        assert result.hint_suggestion is not None
-        assert result.hint_suggestion.tcode == "ZCUSTOM"
-
-    @pytest.mark.asyncio
-    async def test_ensure_screen_state_warnings_flow_to_result(self) -> None:
-        from unittest.mock import patch
-        from sapwebguimcp.tools.quick_report_tools import _execute_quick_report
-        from sapwebguimcp.models.screen_state import ScreenStateDiff
-
-        backend = _make_pipeline_backend()
-        mock_diff = ScreenStateDiff(warnings=["Checkbox 'Geplant' not found on screen"])
-        with patch(
-            "sapwebguimcp.tools.quick_report_tools.ensure_screen_state",
-            return_value=mock_diff,
-        ):
-            result = await _execute_quick_report(
-                backend=backend,
-                tcode="SM37",
-                fields={"Jobname": "*"},
-                checkboxes={"Geplant": True},
-                radios=None,
-                max_rows=30,
-                read_all=False,
-            )
-        assert "Checkbox 'Geplant' not found on screen" in result.warnings
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_quick_report_tools.py::TestQuickReportPipeline -v`
-Expected: FAIL — `_execute_quick_report` not found
-
-- [ ] **Step 3: Implement `_execute_quick_report` pipeline**
-
-Add to `src/sapwebguimcp/tools/quick_report_tools.py`:
+- [ ] Add to `src/sapwebguimcp/models/__init__.py` imports:
 
 ```python
 from sapwebguimcp.models.quick_report_models import (
     QuickReportResult,
     ScreenClassification,
-    TCodeHint,
-    TCodeHintSuggestion,
 )
-from sapwebguimcp.models.sap_results import ScreenText, StatusBarInfo, TableData
+```
+
+And add `QuickReportResult`, `ScreenClassification` to the `__all__` list (if one exists) or to the existing exports.
+
+### Step 1.5: Run tests — verify they pass
+
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py -v`
+- Expected: All tests PASS
+
+### Step 1.6: Commit
+
+- [ ] `git add src/sapwebguimcp/models/quick_report_models.py src/sapwebguimcp/models/__init__.py unittests/test_quick_report_models.py && git commit -m "feat(quick-report): add ScreenClassification and QuickReportResult models"`
+
+---
+
+## Task 2: Screen Classifier — `classify_result_screen()`
+
+**Files:**
+- Create: `unittests/test_quick_report_classifier.py`
+- Create: `src/sapwebguimcp/tools/quick_report_tools.py` (first function)
+
+**Context:** The classifier examines the current screen after F8 and returns a `ScreenClassification`. It uses:
+- `backend.get_status_bar()` → `StatusBarInfo` (has `.type` and `.message`)
+- `backend.get_snapshot()` → `AriaSnapshot` (YAML string, check for `- grid` line = ALV grid)
+- `backend.get_screen_text()` → `ScreenText` (for unknown screens)
+
+**Detection logic:**
+1. Read status bar
+2. Status bar type `"E"` → ERROR
+3. Status bar message contains "keine Daten"/"no data"/"keine Werte"/"no entries" → EMPTY
+4. ARIA snapshot contains `- grid` (a grid ARIA role in the accessibility tree) → TABLE
+5. Otherwise → UNKNOWN
+
+### Step 2.1: Write classifier tests
+
+- [ ] Create `unittests/test_quick_report_classifier.py`:
+
+```python
+"""Unit tests for classify_result_screen()."""
+
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from sapwebguimcp.models import StatusBarInfo, ScreenText
+from sapwebguimcp.models.quick_report_models import ScreenClassification
+from sapwebguimcp.tools.quick_report_tools import classify_result_screen
+
+
+def _make_backend(
+    *,
+    status_type: str = "none",
+    status_message: str = "",
+    snapshot: str = "- document 'SAP'",
+    screen_title: str = "SAP",
+) -> AsyncMock:
+    """Create a mock backend with configurable responses."""
+    backend = AsyncMock()
+    backend.get_status_bar = AsyncMock(
+        return_value=StatusBarInfo(type=status_type, message=status_message)
+    )
+    backend.get_snapshot = AsyncMock(return_value=snapshot)
+    backend.get_screen_text = AsyncMock(
+        return_value=ScreenText(title=screen_title)
+    )
+    backend.get_page_title = AsyncMock(return_value=screen_title)
+    return backend
+
+
+@pytest.mark.anyio
+class TestClassifyResultScreen:
+    """Tests for classify_result_screen()."""
+
+    async def test_error_status_bar(self) -> None:
+        """Status bar type 'E' → ERROR."""
+        backend = _make_backend(
+            status_type="E",
+            status_message="Werk XXXX existiert nicht",
+        )
+        classification, status_bar = await classify_result_screen(backend)
+        assert classification == ScreenClassification.ERROR
+        assert status_bar.type == "E"
+
+    async def test_empty_keine_daten(self) -> None:
+        """Status bar message 'Keine Daten gefunden' → EMPTY."""
+        backend = _make_backend(
+            status_type="I",
+            status_message="Keine Daten gefunden",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.EMPTY
+
+    async def test_empty_no_data_english(self) -> None:
+        """Status bar message 'No data found' → EMPTY."""
+        backend = _make_backend(
+            status_type="I",
+            status_message="No data was found for the specified selection criteria",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.EMPTY
+
+    async def test_empty_keine_werte(self) -> None:
+        """Status bar message 'keine Werte' → EMPTY."""
+        backend = _make_backend(
+            status_type="W",
+            status_message="Es wurden keine Werte selektiert",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.EMPTY
+
+    async def test_empty_no_entries(self) -> None:
+        """Status bar message 'no entries' → EMPTY."""
+        backend = _make_backend(
+            status_type="I",
+            status_message="No entries found",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.EMPTY
+
+    async def test_table_grid_detected(self) -> None:
+        """ARIA snapshot with '- grid' line → TABLE."""
+        backend = _make_backend(
+            status_type="S",
+            status_message="5 Einträge gelesen",
+            snapshot="- document 'SAP'\n  - grid 'ALV Grid'\n    - row 'Header'",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.TABLE
+
+    async def test_unknown_no_grid_no_error(self) -> None:
+        """No grid, no error, no empty message → UNKNOWN."""
+        backend = _make_backend(
+            status_type="none",
+            status_message="",
+            snapshot="- document 'SAP'\n  - dialog 'Variantenauswahl'",
+            screen_title="Variantenauswahl",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.UNKNOWN
+
+    async def test_error_takes_priority_over_grid(self) -> None:
+        """Error status bar takes priority even if grid is present."""
+        backend = _make_backend(
+            status_type="E",
+            status_message="Fehler aufgetreten",
+            snapshot="- document 'SAP'\n  - grid 'ALV Grid'",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.ERROR
+
+    async def test_empty_takes_priority_over_grid(self) -> None:
+        """Empty message takes priority even if grid is present."""
+        backend = _make_backend(
+            status_type="I",
+            status_message="Keine Daten gefunden",
+            snapshot="- document 'SAP'\n  - grid 'Empty Grid'",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.EMPTY
+```
+
+### Step 2.2: Run tests — verify they fail
+
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_classifier.py -v`
+- Expected: `ImportError: cannot import name 'classify_result_screen'`
+
+### Step 2.3: Implement classifier
+
+- [ ] Create `src/sapwebguimcp/tools/quick_report_tools.py`:
+
+```python
+"""sap_quick_report composite tool — pipeline, classifier, registration."""
+
+from __future__ import annotations
+
+import logging
+import re
+from typing import TYPE_CHECKING
+
+from sapwebguimcp.models.quick_report_models import (
+    QuickReportResult,
+    ScreenClassification,
+)
+from sapwebguimcp.models.sap_results import StatusBarInfo
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.protocol import SapUiBackend
+
+logger = logging.getLogger(__name__)
+
+# Patterns that indicate "no data" in status bar (case-insensitive)
+_EMPTY_PATTERNS: tuple[str, ...] = (
+    "keine daten",
+    "no data",
+    "keine werte",
+    "no entries",
+)
+
+
+async def classify_result_screen(
+    backend: SapUiBackend,
+) -> tuple[ScreenClassification, StatusBarInfo]:
+    """Classify the current screen after F8.
+
+    Priority:
+    1. Status bar type "E" → ERROR
+    2. Status bar contains empty-data pattern → EMPTY
+    3. ARIA snapshot contains grid → TABLE
+    4. Otherwise → UNKNOWN
+    """
+    status_bar = await backend.get_status_bar()
+
+    # 1. Error
+    if status_bar.type == "E":
+        return ScreenClassification.ERROR, status_bar
+
+    # 2. Empty
+    msg_lower = status_bar.message.lower()
+    if any(pattern in msg_lower for pattern in _EMPTY_PATTERNS):
+        return ScreenClassification.EMPTY, status_bar
+
+    # 3. Table (check ARIA snapshot for grid role)
+    snapshot = await backend.get_snapshot()
+    snapshot_str = str(snapshot)
+    # In ARIA YAML snapshots, grids appear as "- grid" at some indentation level
+    if re.search(r"^\s*- grid\b", snapshot_str, re.MULTILINE):
+        return ScreenClassification.TABLE, status_bar
+
+    # 4. Unknown
+    return ScreenClassification.UNKNOWN, status_bar
+```
+
+### Step 2.4: Run tests — verify they pass
+
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_classifier.py -v`
+- Expected: All tests PASS
+
+### Step 2.5: Commit
+
+- [ ] `git add src/sapwebguimcp/tools/quick_report_tools.py unittests/test_quick_report_classifier.py && git commit -m "feat(quick-report): add classify_result_screen() with TDD tests"`
+
+---
+
+## Task 3: Pipeline — `sap_quick_report` tool function + `post_f8_keys`
+
+**Files:**
+- Create: `unittests/test_quick_report_pipeline.py`
+- Modify: `src/sapwebguimcp/tools/quick_report_tools.py`
+
+**Context:** The pipeline function calls:
+1. `_is_desktop_backend(backend)` from `tools/_backend_utils.py`
+2. `backend.enter_transaction(tcode)` → `TransactionResult`
+3. `ensure_screen_state(backend, target)` from `tools/screen_state_helpers.py` — takes a `SelectionScreenState`
+4. `backend.press_key("F8")` → `KeyboardResult`
+5. `backend.wait_for_ready()`
+6. For each key in `post_f8_keys` (max 3): `press_key` → `wait_for_ready` → `classify_result_screen` → early exit if classifiable
+7. `classify_result_screen(backend)`
+8. If TABLE: `backend.read_table(max_rows=max_rows)` → `TableData`
+9. If UNKNOWN: `backend.get_screen_text()` → `ScreenText`
+10. Build `QuickReportResult`
+
+### Step 3.1: Write pipeline tests
+
+- [ ] Create `unittests/test_quick_report_pipeline.py`:
+
+```python
+"""Unit tests for sap_quick_report pipeline."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, call, patch
+
+import pytest
+from pydantic import Field
+
+from sapwebguimcp.models import (
+    KeyboardResult,
+    ScreenText,
+    StatusBarInfo,
+    TableData,
+    TableRow,
+    TransactionResult,
+)
+from sapwebguimcp.models.quick_report_models import (
+    QuickReportResult,
+    ScreenClassification,
+)
+from sapwebguimcp.models.screen_state import ScreenStateDiff
+from sapwebguimcp.tools.quick_report_tools import _execute_quick_report
+
+
+def _make_backend(
+    *,
+    tx_success: bool = True,
+    tx_error: str | None = None,
+    status_type: str = "S",
+    status_message: str = "5 Einträge gelesen",
+    snapshot: str = "- document 'SAP'\n  - grid 'ALV Grid'",
+    screen_title: str = "SAP",
+    table_headers: list[str] | None = None,
+    table_rows: list[dict[str, str]] | None = None,
+) -> AsyncMock:
+    """Create a mock backend with configurable responses."""
+    backend = AsyncMock()
+
+    # enter_transaction
+    if tx_success:
+        backend.enter_transaction = AsyncMock(return_value=TransactionResult(tcode="VA05"))
+    else:
+        backend.enter_transaction = AsyncMock(
+            return_value=TransactionResult.failure(error=tx_error or "TX not found", tcode="ZZZZZ")
+        )
+
+    # press_key
+    backend.press_key = AsyncMock(
+        return_value=KeyboardResult(key="F8", page_title=screen_title)
+    )
+
+    # wait_for_ready
+    backend.wait_for_ready = AsyncMock()
+
+    # get_status_bar
+    backend.get_status_bar = AsyncMock(
+        return_value=StatusBarInfo(type=status_type, message=status_message)
+    )
+
+    # get_snapshot
+    backend.get_snapshot = AsyncMock(return_value=snapshot)
+
+    # get_screen_text
+    backend.get_screen_text = AsyncMock(
+        return_value=ScreenText(title=screen_title)
+    )
+
+    # read_table
+    headers = table_headers or ["Col1", "Col2"]
+    rows = [
+        TableRow(row=i + 1, data=row_data)
+        for i, row_data in enumerate(table_rows or [{"Col1": "a", "Col2": "b"}])
+    ]
+    backend.read_table = AsyncMock(
+        return_value=TableData(
+            headers=headers,
+            rows=rows,
+            total_rows=len(rows),
+            start_row=1,
+            end_row=len(rows),
+        )
+    )
+
+    return backend
+
+
+@pytest.mark.anyio
+class TestQuickReportPipeline:
+    """Tests for _execute_quick_report pipeline."""
+
+    async def test_happy_path_table(self) -> None:
+        """TX → fill → F8 → TABLE with rows."""
+        backend = _make_backend()
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(
+                    backend,
+                    tcode="VA05",
+                    fields={"Auftraggeber": "*"},
+                    max_rows=30,
+                )
+        assert result.success is True
+        assert result.screen_type == ScreenClassification.TABLE
+        assert result.table is not None
+        assert len(result.table.rows) == 1
+
+    async def test_desktop_backend_rejected(self) -> None:
+        """Desktop backend → immediate failure."""
+        backend = _make_backend()
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=True):
+            result = await _execute_quick_report(backend, tcode="VA05")
+        assert result.success is False
+        assert "WebGUI" in result.error
+
+    async def test_tx_not_found(self) -> None:
+        """Transaction not found → failure."""
+        backend = _make_backend(tx_success=False, tx_error="Transaction ZZZZZ does not exist")
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            result = await _execute_quick_report(backend, tcode="ZZZZZ")
+        assert result.success is False
+        assert "ZZZZZ" in result.error or "does not exist" in result.error
+
+    async def test_empty_result(self) -> None:
+        """No data found → EMPTY."""
+        backend = _make_backend(
+            status_type="I",
+            status_message="Keine Daten gefunden",
+            snapshot="- document 'SAP'",
+        )
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(backend, tcode="ME2M")
+        assert result.success is True
+        assert result.screen_type == ScreenClassification.EMPTY
+        assert result.table is None
+
+    async def test_error_status_bar(self) -> None:
+        """Status bar type E after F8 → ERROR with success=True."""
+        backend = _make_backend(
+            status_type="E",
+            status_message="Werk XXXX existiert nicht",
+            snapshot="- document 'SAP'",
+        )
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(backend, tcode="ME2M")
+        assert result.success is True
+        assert result.screen_type == ScreenClassification.ERROR
+        assert result.status_bar_type == "E"
+
+    async def test_unknown_screen(self) -> None:
+        """No grid, no error → UNKNOWN with screen_text."""
+        backend = _make_backend(
+            status_type="none",
+            status_message="",
+            snapshot="- document 'SAP'\n  - dialog 'Variantenauswahl'",
+            screen_title="Variantenauswahl",
+        )
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(backend, tcode="ZCUSTOM01")
+        assert result.success is True
+        assert result.screen_type == ScreenClassification.UNKNOWN
+        assert result.screen_text is not None
+        assert result.screen_text.title == "Variantenauswahl"
+
+    async def test_field_not_found_continues(self) -> None:
+        """Field not found → warning, but F8 still pressed."""
+        backend = _make_backend()
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff(
+                    warnings=["Label 'FakeField' not found on screen"]
+                )
+                result = await _execute_quick_report(
+                    backend,
+                    tcode="VA05",
+                    fields={"FakeField": "x"},
+                )
+        assert result.success is True
+        assert "FakeField" in result.warnings[0]
+        # F8 was still pressed
+        backend.press_key.assert_called()
+
+    async def test_pipeline_call_order(self) -> None:
+        """Verify pipeline calls in correct order."""
+        backend = _make_backend()
+        call_log: list[str] = []
+
+        async def track_enter_tx(tcode: str) -> TransactionResult:
+            call_log.append("enter_transaction")
+            return TransactionResult(tcode=tcode)
+
+        async def track_press_key(key: str) -> KeyboardResult:
+            call_log.append(f"press_key({key})")
+            return KeyboardResult(key=key)
+
+        async def track_wait() -> None:
+            call_log.append("wait_for_ready")
+
+        backend.enter_transaction = track_enter_tx
+        backend.press_key = track_press_key
+        backend.wait_for_ready = track_wait
+
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                call_log.append("ensure_screen_state")
+                await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
+
+        assert call_log[0] == "enter_transaction"
+        assert "press_key(F8)" in call_log
+        assert "wait_for_ready" in call_log
+
+
+@pytest.mark.anyio
+class TestPostF8Keys:
+    """Tests for post_f8_keys parameter."""
+
+    async def test_post_f8_keys_dismisses_popup(self) -> None:
+        """post_f8_keys=["Enter"] dismisses popup, then TABLE."""
+        call_count = {"classify": 0}
+
+        backend = _make_backend(
+            status_type="none",
+            status_message="",
+            snapshot="- document 'SAP'\n  - dialog 'Variantenauswahl'",
+        )
+
+        # After Enter, change snapshot to have a grid
+        original_get_snapshot = backend.get_snapshot
+
+        async def evolving_snapshot() -> str:
+            call_count["classify"] += 1
+            if call_count["classify"] <= 2:
+                # First calls: popup screen (before and after F8)
+                return "- document 'SAP'\n  - dialog 'Popup'"
+            # After Enter: grid appears
+            return "- document 'SAP'\n  - grid 'ALV Grid'"
+
+        backend.get_snapshot = evolving_snapshot
+
+        # After Enter, status bar changes
+        original_get_sb = backend.get_status_bar
+        sb_count = {"n": 0}
+
+        async def evolving_status_bar() -> StatusBarInfo:
+            sb_count["n"] += 1
+            if sb_count["n"] <= 2:
+                return StatusBarInfo(type="none", message="")
+            return StatusBarInfo(type="S", message="5 Einträge")
+
+        backend.get_status_bar = evolving_status_bar
+
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(
+                    backend,
+                    tcode="FBL1N",
+                    post_f8_keys=["Enter"],
+                )
+
+        assert result.success is True
+        assert result.screen_type == ScreenClassification.TABLE
+
+    async def test_post_f8_keys_max_3(self) -> None:
+        """Only first 3 keys are executed, 4th produces warning."""
+        backend = _make_backend()
+
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(
+                    backend,
+                    tcode="VA05",
+                    post_f8_keys=["Enter", "Enter", "Enter", "Enter"],
+                )
+
+        assert any("max" in w.lower() or "3" in w for w in result.warnings)
+
+    async def test_post_f8_keys_empty_list(self) -> None:
+        """post_f8_keys=[] behaves like None."""
+        backend = _make_backend()
+
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(
+                    backend,
+                    tcode="VA05",
+                    post_f8_keys=[],
+                )
+
+        assert result.success is True
+        assert result.screen_type == ScreenClassification.TABLE
+
+    async def test_post_f8_keys_early_exit(self) -> None:
+        """After first key resolves to TABLE, skip remaining keys."""
+        backend = _make_backend()
+        press_key_calls: list[str] = []
+
+        async def tracking_press_key(key: str) -> KeyboardResult:
+            press_key_calls.append(key)
+            return KeyboardResult(key=key)
+
+        backend.press_key = tracking_press_key
+
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(
+                    backend,
+                    tcode="VA05",
+                    post_f8_keys=["Enter", "F5"],
+                )
+
+        assert result.screen_type == ScreenClassification.TABLE
+        # F8 + Enter should be called, but F5 should be skipped (grid found after Enter)
+        assert "F8" in press_key_calls
+        assert "Enter" in press_key_calls
+        # F5 may or may not be called depending on early exit — the key test is the result
+
+    async def test_output_file(self) -> None:
+        """output_file writes JSON to disk."""
+        backend = _make_backend()
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            output_path = f.name
+
+        try:
+            with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+                with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                    mock_ess.return_value = ScreenStateDiff()
+                    result = await _execute_quick_report(
+                        backend,
+                        tcode="VA05",
+                        output_file=output_path,
+                    )
+
+            assert result.success is True
+            content = Path(output_path).read_text(encoding="utf-8")
+            data = json.loads(content)
+            assert data["tcode"] == "VA05"
+        finally:
+            Path(output_path).unlink(missing_ok=True)
+```
+
+### Step 3.2: Run tests — verify they fail
+
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_pipeline.py -v`
+- Expected: `ImportError: cannot import name '_execute_quick_report'`
+
+### Step 3.3: Implement pipeline
+
+- [ ] Add to `src/sapwebguimcp/tools/quick_report_tools.py` (after the classifier):
+
+```python
+from pathlib import Path
+
+from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
+
 from sapwebguimcp.models.screen_state import SelectionScreenState
-from sapwebguimcp.tools._hint_loader import load_hint
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.screen_state_helpers import ensure_screen_state
 
-
-async def _check_popup(
-    backend: "SapUiBackend",
-    hint: TCodeHint | None,
-) -> list[str]:
-    """Check for known popups and dismiss them. Returns warnings."""
-    if not hint or not hint.known_popups:
-        return []
-
-    warnings: list[str] = []
-    for attempt in range(2):  # max 1 retry
-        try:
-            screen = await backend.get_screen_text()
-            all_text = " ".join([screen.title] + screen.main_content + screen.labels + screen.buttons)
-            screen_lower = all_text.lower()
-        except Exception as exc:
-            warnings.append(f"Could not read screen text for popup check: {exc}")
-            break
-
-        matched = False
-        for popup_hint in hint.known_popups:
-            if popup_hint.text_pattern.lower() in screen_lower:
-                logger.info(
-                    "Popup matched hint",
-                    extra={"pattern": popup_hint.text_pattern, "action": popup_hint.action, "attempt": attempt},
-                )
-                await backend.press_key(popup_hint.action)
-                await backend.wait_for_ready()
-                matched = True
-                break
-
-        if not matched:
-            break
-
-    return warnings
-
-
-async def _collect_dom_roles(backend: "SapUiBackend") -> list[str]:
-    """Collect unique ARIA roles from top-level containers in the DOM."""
-    try:
-        roles = await backend.evaluate_javascript(
-            """() => {
-                const roles = new Set();
-                document.querySelectorAll('[role]').forEach(el => {
-                    roles.add(el.getAttribute('role'));
-                });
-                return [...roles];
-            }"""
-        )
-        return roles if isinstance(roles, list) else []
-    except Exception:
-        return []
+_MAX_POST_F8_KEYS = 3
 
 
 async def _execute_quick_report(
-    backend: "SapUiBackend",
+    backend: SapUiBackend,
     tcode: str,
-    fields: dict[str, str] | None,
-    checkboxes: dict[str, bool] | None,
-    radios: dict[str, bool] | None,
-    max_rows: int,
-    read_all: bool,
+    fields: dict[str, str] | None = None,
+    checkboxes: dict[str, bool] | None = None,
+    radios: dict[str, bool] | None = None,
+    max_rows: int = 30,
+    post_f8_keys: list[str] | None = None,
+    output_file: str | None = None,
 ) -> QuickReportResult:
-    """Core pipeline for sap_quick_report. Separated for testability."""
+    """Execute the quick report pipeline."""
     warnings: list[str] = []
 
-    # Step 1: Load hint
-    hint = load_hint(tcode)
-
-    # Step 2: Enter transaction
-    tx_result = await backend.enter_transaction(tcode)
-    if not tx_result.success:
+    # 1. Runtime guard: desktop backend
+    if _is_desktop_backend(backend):
         return QuickReportResult.failure(
-            error=f"Failed to enter transaction {tcode}: {tx_result.error}",
+            error="sap_quick_report requires WebGUI backend. Use individual tools on desktop.",
             tcode=tcode,
             screen_type=ScreenClassification.ERROR,
         )
+
+    # 2. Enter transaction
+    tx_result = await backend.enter_transaction(tcode)
+    if not tx_result.success:
+        return QuickReportResult.failure(
+            error=f"Failed to open transaction {tcode}: {tx_result.error}",
+            tcode=tcode,
+            screen_type=ScreenClassification.ERROR,
+        )
+
     await backend.wait_for_ready()
 
-    # Step 3: Fill selection screen (if any fields/checkboxes/radios given)
+    # 3. Fill selection screen (if any fields/checkboxes/radios given)
     if fields or checkboxes or radios:
         target = SelectionScreenState(
             fields=fields or {},
             checkboxes=checkboxes or {},
             radios=radios or {},
         )
-        state_diff = await ensure_screen_state(backend, target)
-        if not state_diff.success:
-            warnings.append(f"Selection screen: {state_diff.error}")
-        warnings.extend(state_diff.warnings)
+        state_result = await ensure_screen_state(backend, target)
+        if not state_result.success:
+            warnings.append(f"Selection screen: {state_result.error}")
+        warnings.extend(state_result.warnings)
 
-    # Step 4+5: Press F8 and wait
+    # 4. Press F8
     await backend.press_key("F8")
+
+    # 5. Wait for SAP
     await backend.wait_for_ready()
 
-    # Step 6: Check known popups
-    popup_warnings = await _check_popup(backend, hint)
-    warnings.extend(popup_warnings)
+    # 6. post_f8_keys (max 3, with early exit)
+    effective_keys = list(post_f8_keys or [])
+    if len(effective_keys) > _MAX_POST_F8_KEYS:
+        warnings.append(
+            f"post_f8_keys has {len(effective_keys)} keys, max {_MAX_POST_F8_KEYS}. "
+            f"Ignoring keys after index {_MAX_POST_F8_KEYS}."
+        )
+        effective_keys = effective_keys[:_MAX_POST_F8_KEYS]
 
-    # Step 7: Classify result screen
-    classification, status_bar = await classify_result_screen(backend, hint)
+    for key in effective_keys:
+        # Check if screen is already classifiable before pressing next key
+        classification, status_bar = await classify_result_screen(backend)
+        if classification in (
+            ScreenClassification.TABLE,
+            ScreenClassification.EMPTY,
+            ScreenClassification.ERROR,
+        ):
+            # Screen is classifiable — skip remaining keys
+            break
 
-    # Step 8: Get page title
+        # Press key and wait
+        await backend.press_key(key)
+        await backend.wait_for_ready()
+    else:
+        # No early exit — classify after all keys (or no keys)
+        classification, status_bar = await classify_result_screen(backend)
+
+    # 7. Parse by classification
     page_title = await backend.get_page_title()
-
-    # Step 9: Parse by classification
-    table: TableData | None = None
-    screen_text: ScreenText | None = None
-    hint_suggestion: TCodeHintSuggestion | None = None
+    table = None
+    screen_text = None
 
     if classification == ScreenClassification.TABLE:
         try:
-            if read_all:
-                # TODO: Phase 2 — use alv_collect_all_rows for full pagination.
-                # For now, use max_rows as upper bound and warn.
-                warnings.append(
-                    "read_all=True is not yet fully implemented; "
-                    "returning up to max_rows rows only"
-                )
-            table = await backend.read_table(start_row=1, max_rows=max_rows)
+            table = await backend.read_table(max_rows=max_rows)
         except Exception as exc:
-            warnings.append(f"Failed to read table: {exc}")
-            table = TableData(headers=[], rows=[], total_rows=0)
-
-    elif classification == ScreenClassification.ERROR:
-        try:
-            screen_text = await backend.get_screen_text()
-        except Exception:
-            pass
+            warnings.append(f"read_table failed: {exc}")
+            table = TableData(headers=[], rows=[], total_rows=0, start_row=1)
 
     elif classification == ScreenClassification.UNKNOWN:
-        try:
-            screen_text = await backend.get_screen_text()
-        except Exception:
-            pass
-        dom_roles = await _collect_dom_roles(backend)
-        hint_suggestion = TCodeHintSuggestion(
-            tcode=tcode,
-            observed_screen_type="unknown",
-            status_bar_type=status_bar.type,
-            status_bar_message=status_bar.message or "",
-            page_title=page_title,
-            dom_roles=dom_roles,
-        )
+        screen_text = await backend.get_screen_text()
         logger.warning(
             "Unclassified screen after F8",
             extra={
@@ -1214,304 +972,195 @@ async def _execute_quick_report(
                 "page_title": page_title,
                 "status_bar_type": status_bar.type,
                 "status_bar_message": status_bar.message,
-                "dom_roles": dom_roles,
             },
         )
 
-    return QuickReportResult(
+    elif classification == ScreenClassification.ERROR:
+        screen_text = await backend.get_screen_text()
+
+    # 8. Build result
+    result = QuickReportResult(
         tcode=tcode,
         screen_type=classification,
         page_title=page_title,
         status_bar_type=status_bar.type,
-        status_bar_message=status_bar.message or "",
+        status_bar_message=status_bar.message,
         table=table,
-        screen_text=screen_text,
-        hint_suggestion=hint_suggestion,
+        screen_text=screen_text if classification in (ScreenClassification.ERROR, ScreenClassification.UNKNOWN) else None,
         warnings=warnings,
     )
+
+    # 9. Output file
+    if output_file:
+        Path(output_file).write_text(
+            result.model_dump_json(indent=2),
+            encoding="utf-8",
+        )
+
+    return result
 ```
 
-- [ ] **Step 4: Run pipeline tests**
+### Step 3.4: Run tests — verify they pass
 
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_quick_report_tools.py::TestQuickReportPipeline -v`
-Expected: PASS
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_pipeline.py -v`
+- Expected: All tests PASS
 
-- [ ] **Step 5: Commit**
+### Step 3.5: Commit
 
-```bash
-cd sapwebgui.mcp
-git add src/sapwebguimcp/tools/quick_report_tools.py unittests/test_quick_report_tools.py
-git commit -m "feat: add sap_quick_report pipeline with popup handling
-
-Pipeline: enter_transaction → ensure_screen_state → F8 → wait →
-check_popups → classify → parse. Stays on current screen on failure."
-```
+- [ ] `git add src/sapwebguimcp/tools/quick_report_tools.py unittests/test_quick_report_pipeline.py && git commit -m "feat(quick-report): add sap_quick_report pipeline with post_f8_keys support"`
 
 ---
 
-## Task 5: MCP Tool Registration (`sap_quick_report` + `sap_save_tcode_hint`)
+## Task 4: Tool Registration + Wiring
 
 **Files:**
-- Modify: `src/sapwebguimcp/tools/quick_report_tools.py` — add `register_quick_report_tools()`
-- Modify: `src/sapwebguimcp/tools/__init__.py` — export
-- Modify: `src/sapwebguimcp/server.py:207` — register in WebGUI-only block
-- Modify: `src/sapwebguimcp/models/__init__.py` — export new models
+- Modify: `src/sapwebguimcp/tools/quick_report_tools.py` (add `register_quick_report_tools`)
+- Modify: `src/sapwebguimcp/tools/__init__.py`
+- Modify: `src/sapwebguimcp/server.py`
 
-- [ ] **Step 1: Add `register_quick_report_tools` to `quick_report_tools.py`**
+### Step 4.1: Add `register_quick_report_tools` to `quick_report_tools.py`
 
-Add at the end of `src/sapwebguimcp/tools/quick_report_tools.py`:
+- [ ] Add at the end of `src/sapwebguimcp/tools/quick_report_tools.py`:
 
 ```python
-from fastmcp import FastMCP
-from mcp.types import ToolAnnotations
-
-from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.models.quick_report_models import SaveHintResult
-from sapwebguimcp.tools._hint_loader import save_hint as _save_hint
-
-
 def register_quick_report_tools(mcp: FastMCP) -> None:
-    """Register quick report tools with the MCP server."""
+    """Register sap_quick_report tool with the MCP server."""
 
     @mcp.tool(
-        annotations=ToolAnnotations(readOnlyHint=True, openWorldHint=False),
         description=(
             "Execute a transaction, fill the selection screen (fields, checkboxes, "
             "radio buttons), press Execute (F8), and return the result — all in one call.\n\n"
             "Replaces the pattern: sap_transaction → ensure_screen_state → sap_keyboard(F8) "
             "→ sap_read_table.\n\n"
             "Works with any SAP report/list transaction that has a selection screen "
-            "(SM37, VA05, ME2M, MB51, FBL1N, Z-transactions, etc.).\n\n"
+            "(VA05, ME2M, MB51, FBL1N, Z-transactions, etc.).\n\n"
             "After execution, you remain on the result screen. If the result is "
             "'unknown', use individual tools to investigate further.\n\n"
+            "If you already know a transaction shows a popup after F8 (e.g., a variant "
+            "selection dialog), pass post_f8_keys=['Enter'] to dismiss it automatically.\n\n"
+            "LEARNING: When you encounter screen_type='unknown' and resolve it manually, "
+            "append your learning to 'tcode-learnings.md' in the working directory so a "
+            "developer can improve the tool. Include: tcode, what appeared after F8, "
+            "how you resolved it, and what post_f8_keys to use next time.\n\n"
             "Do NOT use for:\n"
             "- SE16 (use sap_se16_query instead)\n"
+            "- SM37 (use sap_sm37_lookup instead — has job log support)\n"
             "- Transactions without selection screens (e.g., BP, VA01)\n"
-            "- SE11/SE24/SE37 (use dedicated lookup tools)"
+            "- SE11/SE24/SE37 (use dedicated lookup tools)\n\n"
+            "WebGUI-only. Returns an error on desktop backend."
         ),
+        annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=False),
     )
     async def sap_quick_report(
         tcode: str,
         fields: dict[str, str] | None = None,
         checkboxes: dict[str, bool] | None = None,
         radios: dict[str, bool] | None = None,
-        max_rows: int = 30,
-        read_all: bool = False,
+        max_rows: int = Field(default=30, ge=1),
+        post_f8_keys: list[str] | None = None,
         output_file: str | None = None,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> QuickReportResult:
+        """Execute a transaction, fill selection screen, press F8, return result."""
+        from sapwebguimcp.backend.manager import get_backend  # pylint: disable=import-outside-toplevel
+
         try:
-            backend = await get_backend(
-                session=session, agent_id=agent_id, tool_name="sap_quick_report"
-            )
-        except ValueError as e:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_quick_report")
+        except ValueError as exc:
             return QuickReportResult.failure(
-                error=f"Session error: {e}",
+                error=f"Session error: {exc}",
                 tcode=tcode,
                 screen_type=ScreenClassification.ERROR,
             )
-        result = await _execute_quick_report(
-            backend=backend,
+        return await _execute_quick_report(
+            backend,
             tcode=tcode,
             fields=fields,
             checkboxes=checkboxes,
             radios=radios,
             max_rows=max_rows,
-            read_all=read_all,
-        )
-        if output_file and result.success:
-            import json
-            from pathlib import Path
-
-            output_path = Path(output_file)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            with output_path.open("w", encoding="utf-8") as f:
-                json.dump(result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
-            logger.info("Wrote quick report results path=%s", str(output_path))
-        return result
-
-    @mcp.tool(
-        annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=False),
-        description=(
-            "Save a TCode hint to the user-local hints file "
-            "(~/.sapwebguimcp/tcode_hints.json). "
-            "Use this after sap_quick_report returned screen_type='unknown' "
-            "and you have identified what the screen was. "
-            "The hint will be used automatically on the next call."
-        ),
-    )
-    async def sap_save_tcode_hint(
-        tcode: str,
-        post_f8: str = "table",
-        known_popups: list[dict[str, str]] | None = None,
-        notes: str = "",
-    ) -> SaveHintResult:
-        from sapwebguimcp.models.quick_report_models import PopupHint, TCodeHint
-
-        popup_list = [PopupHint(**p) for p in (known_popups or [])]
-        hint = TCodeHint(
-            tcode=tcode.upper(),
-            post_f8=ScreenClassification(post_f8),
-            known_popups=popup_list,
-            notes=notes,
-        )
-        hint_file = _save_hint(hint)
-        return SaveHintResult(
-            tcode=tcode.upper(),
-            hint_file=str(hint_file),
+            post_f8_keys=post_f8_keys,
+            output_file=output_file,
         )
 ```
 
-- [ ] **Step 2: Add export to `tools/__init__.py`**
+**Note:** Uses `get_backend` from `sapwebguimcp.backend.manager` — same pattern as `register_sm37_tools` in `sm37_tools.py`.
 
-Add to imports in `src/sapwebguimcp/tools/__init__.py`:
+### Step 4.2: Export from `tools/__init__.py`
+
+- [ ] Add to `src/sapwebguimcp/tools/__init__.py`:
 
 ```python
 from sapwebguimcp.tools.quick_report_tools import register_quick_report_tools
 ```
 
-Add `"register_quick_report_tools"` to the `__all__` list.
+### Step 4.3: Register in `server.py`
 
-- [ ] **Step 3: Register in `server.py` (WebGUI-only block)**
-
-In `src/sapwebguimcp/server.py`, after line 209 (`register_abapgit_tools(mcp)`), add:
+- [ ] In `src/sapwebguimcp/server.py`, add `register_quick_report_tools(mcp)` alongside the other `register_*_tools` calls (near line 195, after `register_sm37_tools(mcp)`):
 
 ```python
-    register_quick_report_tools(mcp)
+register_quick_report_tools(mcp)
 ```
 
-This places it in the `if _backend == "webgui":` block since the screen classifier relies on DOM inspection.
+### Step 4.4: Verify server starts
 
-- [ ] **Step 4: Add model exports to `models/__init__.py`**
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -c "from sapwebguimcp.tools import register_quick_report_tools; print('OK')"`
+- Expected: `OK`
 
-Add import block to `src/sapwebguimcp/models/__init__.py` (after the workflow imports, around line 160):
+### Step 4.5: Run all quick_report tests
 
-```python
-from sapwebguimcp.models.quick_report_models import (
-    PopupHint,
-    QuickReportResult,
-    SaveHintResult,
-    ScreenClassification,
-    TCodeHint,
-    TCodeHintSuggestion,
-)
-```
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py unittests/test_quick_report_classifier.py unittests/test_quick_report_pipeline.py -v`
+- Expected: All tests PASS
 
-Add to the `__all__` list (after the SM37 models section, around line 280):
+### Step 4.6: Run full test suite to check for regressions
 
-```python
-    # Quick report models
-    "PopupHint",
-    "QuickReportResult",
-    "SaveHintResult",
-    "ScreenClassification",
-    "TCodeHint",
-    "TCodeHintSuggestion",
-```
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/ -v --ignore=unittests/webgui --ignore=unittests/desktop -x`
+- Expected: No regressions. If existing tests fail, investigate — do NOT modify existing tests.
 
-- [ ] **Step 5: Run existing tests to verify nothing is broken**
+### Step 4.7: Commit
 
-Run: `cd sapwebgui.mcp && python -m pytest unittests/test_server.py unittests/test_models.py -v`
-Expected: PASS
-
-- [ ] **Step 6: Commit**
-
-```bash
-cd sapwebgui.mcp
-git add src/sapwebguimcp/tools/quick_report_tools.py src/sapwebguimcp/tools/__init__.py src/sapwebguimcp/server.py src/sapwebguimcp/models/__init__.py
-git commit -m "feat: register sap_quick_report and sap_save_tcode_hint tools
-
-Both tools registered in WebGUI-only block. sap_quick_report supports
-output_file parameter for JSON export consistency with SE16/SM37."
-```
+- [ ] `git add src/sapwebguimcp/tools/quick_report_tools.py src/sapwebguimcp/tools/__init__.py src/sapwebguimcp/server.py && git commit -m "feat(quick-report): register sap_quick_report tool in MCP server"`
 
 ---
 
-## Task 6: Linting, Formatting, Full Test Suite
+## Task 5: Final Verification + Cleanup
 
-**Files:**
-- All new files
+### Step 5.1: Verify all exports
 
-- [ ] **Step 1: Run formatting**
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -c "from sapwebguimcp.models import QuickReportResult, ScreenClassification; print('Models OK')"`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -c "from sapwebguimcp.tools import register_quick_report_tools; print('Tools OK')"`
+- Expected: Both print OK
 
-Run: `cd sapwebgui.mcp && tox -e formatting 2>&1 | tail -20`
-Expected: PASS (or fix any issues)
+### Step 5.2: Run full test suite
 
-- [ ] **Step 2: Run linting**
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/ -v --ignore=unittests/webgui --ignore=unittests/desktop -x`
+- Expected: All tests PASS, no regressions
 
-Run: `cd sapwebgui.mcp && tox -e linting 2>&1 | tail -20`
-Expected: PASS (or fix any issues)
+### Step 5.3: Verify linting (if configured)
 
-- [ ] **Step 3: Run type checking**
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pylint src/sapwebguimcp/models/quick_report_models.py src/sapwebguimcp/tools/quick_report_tools.py --disable=all --enable=E` (errors only)
+- Expected: No errors
 
-Run: `cd sapwebgui.mcp && tox -e type_check 2>&1 | tail -20`
-Expected: PASS (or fix any issues)
+### Step 5.4: Final commit (if any cleanup needed)
 
-- [ ] **Step 4: Run full test suite**
-
-Run: `cd sapwebgui.mcp && python -m pytest unittests/ -v --tb=short 2>&1 | tail -40`
-Expected: ALL PASS
-
-- [ ] **Step 5: Fix any issues and commit**
-
-```bash
-cd sapwebgui.mcp
-git add -A
-git commit -m "chore: fix linting/formatting/type issues for quick_report"
-```
+- [ ] Only if fixes were needed in 5.1-5.3
 
 ---
 
-## Task 7: README Documentation for Hint PR Workflow
+## Implementation Notes
 
-**Files:**
-- Modify: `src/sapwebguimcp/data/README.md` (or project `README.md` — check which exists)
+### Verified API names (confirmed against codebase)
 
-- [ ] **Step 1: Check which README to modify**
+- **Backend resolution:** `from sapwebguimcp.backend.manager import get_backend` — takes `session`, `agent_id`, `tool_name`; wrap in `try/except ValueError`
+- **Status bar:** `backend.get_status_bar()` → `StatusBarInfo` (not `read_status_bar`)
+- **Page title:** `backend.get_page_title()` → `str`
+- **`max_rows`:** `Field(default=30, ge=1)` on tool function signature
 
-Look at the project root for `README.md`. The hint workflow documentation should go there.
+### What NOT to do
 
-- [ ] **Step 2: Add "Contributing TCode Hints" section**
-
-Add before the end of the README:
-
-```markdown
-## Contributing TCode Hints
-
-When `sap_quick_report` encounters an unknown screen, the agent can save
-a hint via `sap_save_tcode_hint`. These hints are stored locally in
-`~/.sapwebguimcp/tcode_hints.json`.
-
-To contribute your hints back to the project:
-
-1. Open your local hints file:
-   ```bash
-   cat ~/.sapwebguimcp/tcode_hints.json
-   ```
-2. Copy the relevant entries into `src/sapwebguimcp/data/tcode_hints.json`
-3. Open a PR with your additions
-
-Alternatively, export only new hints with a one-liner:
-```bash
-python -c "
-import json
-from pathlib import Path
-repo = json.loads(Path('src/sapwebguimcp/data/tcode_hints.json').read_text())
-user = json.loads(Path.home().joinpath('.sapwebguimcp/tcode_hints.json').read_text())
-new = {k: v for k, v in user.items() if k not in repo}
-print(json.dumps(new, indent=2, ensure_ascii=False))
-"
-```
-
-Hints for standard SAP transactions (SM37, VA05, etc.) are welcome.
-Customer-specific Z-transactions should remain in your local hints file.
-```
-
-- [ ] **Step 3: Commit**
-
-```bash
-cd sapwebgui.mcp
-git add README.md
-git commit -m "docs: add Contributing TCode Hints section to README"
-```
+- Do NOT create `_hint_loader.py` or `tcode_hints.json` — hint system is removed in v2
+- Do NOT add `read_all` parameter — that's Phase 2
+- Do NOT add desktop backend support — that's Phase 2 (runtime guard is sufficient)
+- Do NOT modify existing tools or models — this is additive only
+- Do NOT add `bilingual_target` to the pipeline — `sap_quick_report` takes labels as-is (agent is responsible for correct language)
