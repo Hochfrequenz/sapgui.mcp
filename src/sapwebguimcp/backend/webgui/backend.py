@@ -271,6 +271,16 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                     url=url,
                 )
 
+            # Wait for all login fields to be ready before filling.
+            # On first load the fields may appear in the DOM before they are
+            # interactable, causing fill() to silently miss a field (#468).
+            for field_selector in (
+                '#sap-client, input[name="sap-client"]',
+                '#sap-user, input[name="sap-user"]',
+                '#sap-password, input[name="sap-password"]',
+            ):
+                await self._page.wait_for_selector(field_selector, state="visible", timeout=10000)
+
             # Fill credentials
             logger.info("Performing automatic login", extra={"sap_user": username})
             await self._page.fill('#sap-client, input[name="sap-client"]', client)
