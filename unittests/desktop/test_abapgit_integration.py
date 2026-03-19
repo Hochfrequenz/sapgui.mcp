@@ -57,7 +57,7 @@ async def test_abapgit_pull_returns_status_message(backend) -> None:
     assert result.success, f"Pull failed: {result.error}"
     assert result.message is not None, "Expected a status message, got None"
     assert "unknown" not in (result.message or "").lower(), (
-        f"Got ambiguous status: {result.message}. " "networkidle wait should have captured the ABAP MESSAGE."
+        f"Got ambiguous status: {result.message}. " "Wait should have captured the ABAP MESSAGE."
     )
     await go_home(backend)
 
@@ -76,7 +76,7 @@ async def test_abapgit_pull_private_repo_with_pat(backend) -> None:
         repo="Z_PRIVATE_ABAPGIT_TEST_REPOSITORY",
         trkorr=DEFAULT_TRANSPORT,
         username=None,
-        pat=None,
+        pat=actual_pat,
     )
 
     assert result.success, f"Pull failed: {result.error}"
