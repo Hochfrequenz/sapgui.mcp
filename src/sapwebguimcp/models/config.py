@@ -144,6 +144,16 @@ class SapWebGuiSettings(BaseSettings):
         description="SAP Logon connection entry name (e.g. 'HF S/4') for desktop GUI login",
         json_schema_extra={"env": "SAP_CONNECTION_NAME"},
     )
+    com_min_interval_ms: int = Field(
+        default=50,
+        ge=0,
+        le=5000,
+        description=(
+            "Minimum milliseconds between COM calls (desktop only). "
+            "Prevents COM overload with parallel agents. 0 to disable."
+        ),
+        json_schema_extra={"env": "COM_MIN_INTERVAL_MS"},
+    )
 
     # Browser Configuration
     browser_mode: BrowserMode = Field(
