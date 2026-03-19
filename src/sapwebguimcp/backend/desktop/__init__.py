@@ -67,6 +67,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _unwrap_com(field: Any) -> Any:
+    """Get the raw COM dispatch object from a pysapgui wrapper."""
+    return getattr(field, "com", getattr(field, "_com", field))
+
+
 def _set_field_value(raw_com: Any, value: str) -> None:
     """Set a field value, handling GuiComboBox dropdown fields automatically.
 
@@ -78,9 +83,11 @@ def _set_field_value(raw_com: Any, value: str) -> None:
     """
     field_type = str(getattr(raw_com, "Type", ""))
     if field_type == "GuiComboBox":
-        # Try exact key match first
         try:
             entries = raw_com.Entries
+            if entries.Count == 0:
+                raise ValueError(f"Dropdown has no entries to select from")
+            # Try exact key match first
             for i in range(entries.Count):
                 entry = entries.Item(i)
                 if str(entry.Key).strip() == value.strip():
@@ -761,8 +768,7 @@ class DesktopBackend:
             field = find_field_by_label(session, label)
             if field is None:
                 raise ValueError(f"Field not found: {label}")
-            raw = getattr(field, "com", getattr(field, "_com", field))
-            _set_field_value(raw, value)
+            _set_field_value(_unwrap_com(field), value)
 
         await self._com.run(_fill)
         logger.info("fill_field", extra={"label": label, "value": value})
@@ -775,8 +781,7 @@ class DesktopBackend:
             for lbl in labels:
                 field = find_field_by_label(session, lbl)
                 if field is not None:
-                    raw = getattr(field, "com", getattr(field, "_com", field))
-                    _set_field_value(raw, value)
+                    _set_field_value(_unwrap_com(field), value)
                     return True
             return False
 
@@ -802,8 +807,7 @@ class DesktopBackend:
                     if field is None:
                         not_found.append(label)
                         continue
-                    raw = getattr(field, "com", getattr(field, "_com", field))
-                    _set_field_value(raw, value)
+                    _set_field_value(_unwrap_com(field), value)
                     filled.append(label)
                 except Exception as exc:  # pylint: disable=broad-exception-caught
                     errors.append({"field": label, "error": str(exc)})
@@ -964,7 +968,7 @@ class DesktopBackend:
                 try:
                     field = session.find_by_id(f"wnd[0]/usr/{prefix}{accessible_name}", raise_error=False)
                     if field is not None:
-                        cast(Any, field).text = text
+                        _set_field_value(_unwrap_com(field), text)
                         logger.debug(
                             "focus_and_type_found",
                             extra={"field_name": accessible_name, "strategy": "direct", "prefix": prefix},
@@ -979,7 +983,7 @@ class DesktopBackend:
             field = find_field_by_label(session, accessible_name)
             if field is None:
                 return False
-            cast(Any, field).text = text
+            _set_field_value(_unwrap_com(field), text)
             return True
 
         result = await self._com.run(_type)
