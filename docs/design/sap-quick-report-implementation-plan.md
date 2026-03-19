@@ -1,5 +1,7 @@
 # `sap_quick_report` Implementation Plan
 
+> **⚠️ OUTDATED — Dieser Plan basiert auf Design v1 (mit Hint-System). Das Design wurde in v2 grundlegend überarbeitet (siehe `sap-quick-report-design.md`). Ein neuer Implementierungsplan muss auf Basis von v2 erstellt werden.**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a composite `sap_quick_report` MCP tool that bundles transaction → fill selection screen → F8 → read result into a single call, with a learnable hint system for handling unknown screens.

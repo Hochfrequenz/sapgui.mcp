@@ -1,21 +1,35 @@
-# Design: `sap_quick_report` — Robustes Composite-Tool mit lernfähigem Screen-Classifier
+# Design: `sap_quick_report` — Robustes Composite-Tool (v2)
 
-**Datum:** 2026-03-18
+**Datum:** 2026-03-19 (v2, überarbeitet nach Review PR #438)
 **Repo:** https://github.com/Hochfrequenz/sapwebgui.mcp
 **PR-Kontext:** https://github.com/Hochfrequenz/sapwebgui.mcp/pull/426 (Maßnahme 3)
 **Typ:** Feature-Design (Machbarkeitsstudie → Implementierungsvorlage)
-**Backend-Scope:** WebGUI-only (Phase 1). Desktop-Backend-Support ist nicht Teil dieses Designs, da der Screen-Classifier auf DOM-Rollen (`[role='grid']` etc.) basiert. Desktop-Backend nutzt COM-basierte Inspektion ohne DOM.
+**Backend-Scope:** WebGUI-only (Phase 1). Runtime-Guard: Tool gibt sofort Fehler bei Desktop-Backend zurück. Desktop-Support (COM-Tree-basierter Classifier) ist Phase 2.
+
+---
+
+## Änderungen gegenüber v1
+
+Basierend auf hf-kleins Review (#438) und kritischer Machbarkeitsanalyse:
+
+| Was | v1 | v2 | Warum |
+|---|---|---|---|
+| Hint-System | Zwei-Schicht-Merge, `save_hint` Tool, stateful | **Entfernt.** Agent lernt, Tool führt aus | MCP-Server bleibt stateless; Qualitätskontrolle durch Entwickler statt automatisch |
+| Popup-Handling | Hint-basiert mit Retry-Logik | **`post_f8_keys` Parameter** — Agent gibt Instruktionen mit | Einfacher, backend-agnostisch, kein Hint-Loader nötig |
+| Lernfähigkeit | Agent → `save_hint()` → Datei auf Disk | **Agent → Markdown-Log** → Entwickler reviewed → Tool-Verbesserung via PR | Mensch-in-the-Loop statt unkontrolliertes Lernen |
+| `readOnlyHint` | `True` | **`False`** | Transaktionen können Daten ändern/löschen |
+| `read_all` | Phase 1 | **Phase 2** | Pagination ist komplex (~100 Zeilen in SE16); `max_rows` reicht |
+| Desktop-Backend | "Phase 2" ohne Guard | **Runtime-Guard** mit klarem Fehler | Kein stilles Degradieren |
+| Testfälle | Nur Kategorien | **Konkrete TX + Input + Expected** | hf-kleins Kernforderung |
+| `dom_roles` in Result | Ja (für Hint-Suggestions) | **Entfernt** | Funktioniert nicht auf Desktop; kein Hint-System mehr |
 
 ---
 
 ## Kontext & Motivation
 
-Der häufigste SAP-Workflow — Transaktion öffnen, Selektionsbild füllen, F8 drücken, Ergebnis lesen — braucht 4-6 einzelne Tool-Calls mit ~3.000-5.000 Tokens Orchestrierungs-Overhead. Ein Composite-Tool könnte das auf 1 Call reduzieren.
+Der häufigste SAP-Workflow — Transaktion öffnen, Selektionsbild füllen, F8 drücken, Ergebnis lesen — braucht 4-6 einzelne Tool-Calls mit ~3.000-5.000 Tokens Orchestrierungs-Overhead. `sap_quick_report` bündelt das in 1 Call.
 
-**hf-kleins Bedenken (PR #426, Zeilen 259-277):**
-> "Man muss sich sehr genau überlegen, wie man z.B. Error Handling macht, was wenn Schritt 3 von 5 failed? Was ist die Erwartung ans Tool? Bleiben wir auf halber Strecke stecken? Gehen wir zurück auf die Startseite? Was ist mit Transaktionalität?"
-
-Dieses Design adressiert diese Bedenken mit einer Pipeline-Architektur, einem erweiterbaren Screen-Classifier und einem lernfähigen Hint-System.
+**Designprinzip (hf-klein):** Lieber ein weniger mächtiges Tool das robust ist als eine universelle eierlegende Wollmilchsau.
 
 ---
 
@@ -23,15 +37,15 @@ Dieses Design adressiert diese Bedenken mit einer Pipeline-Architektur, einem er
 
 | Frage | Entscheidung | Begründung |
 |---|---|---|
-| Scope | Robust & generisch | Alle Screen-Typen nach F8 werden behandelt, nicht nur ALV-Grids |
+| Scope | Robust & fokussiert | TX → Fill → F8 → Read. Nicht mehr, nicht weniger |
 | Error-Handling | Steckenbleiben & melden | Agent behält Screen-Kontext, kann mit Einzeltools weiterarbeiten |
 | Screen-Typen (Phase 1) | Table, Empty, Error, Unknown | 80%+ Abdeckung; Einzelsatz/Baum in Phase 2 |
 | Selektionsbild | Fields + Checkboxes + Radios | Voller `ensure_screen_state`-Support via `bilingual_target`-Pattern |
-| Sprachhandling | Labels wie übergeben | Agent ist verantwortlich für korrekte Sprache; generisches Tool kann nicht vorab mappen |
+| Sprachhandling | Labels wie übergeben | Agent ist verantwortlich für korrekte Sprache |
 | Architektur | Pipeline mit Screen-Classifier | Testbar, erweiterbar, Classifier wiederverwendbar |
-| Lernfähigkeit | Hybrid: Repo-Hints + User-lokale Hints | Shipped Baseline für Standard-TCodes + Agent kann kundenspezifische Hints sammeln |
-| Hints ins Repo | Phase 1: README-Doku mit manuellem Export; Phase 2: CLI-Command | Kein neues CLI-Framework in Phase 1 nötig |
-| Datenformat | JSON (nicht YAML) | Konsistenz mit bestehenden Data-Files (`transactions.json`, `tables.json` etc.); kein PyYAML als Runtime-Dependency |
+| Lernfähigkeit | Agent lernt → loggt in Markdown → Entwickler reviewed | Stateless Tool, Qualitätskontrolle durch Mensch |
+| Backend | WebGUI-only + Runtime-Guard | Desktop (COM) braucht eigenen Classifier (Phase 2) |
+| Popup-Handling | `post_f8_keys` Parameter | Agent gibt gelerntes Wissen als Instruktion mit, Tool bleibt stateless |
 
 ---
 
@@ -48,12 +62,20 @@ Dieses Design adressiert diese Bedenken mit einer Pipeline-Architektur, einem er
         "(SM37, VA05, ME2M, MB51, FBL1N, Z-transactions, etc.).\n\n"
         "After execution, you remain on the result screen. If the result is "
         "'unknown', use individual tools to investigate further.\n\n"
+        "If you already know a transaction shows a popup after F8 (e.g., a variant "
+        "selection dialog), pass post_f8_keys=['Enter'] to dismiss it automatically.\n\n"
+        "LEARNING: When you encounter screen_type='unknown' and resolve it manually, "
+        "append your learning to 'tcode-learnings.md' in the working directory so a "
+        "developer can improve the tool. Include: tcode, what appeared after F8, "
+        "how you resolved it, and what post_f8_keys to use next time.\n\n"
         "Do NOT use for:\n"
         "- SE16 (use sap_se16_query instead)\n"
+        "- SM37 (use sap_sm37_lookup instead — has job log support)\n"
         "- Transactions without selection screens (e.g., BP, VA01)\n"
-        "- SE11/SE24/SE37 (use dedicated lookup tools)"
+        "- SE11/SE24/SE37 (use dedicated lookup tools)\n\n"
+        "WebGUI-only. Returns an error on desktop backend."
     ),
-    annotations=ToolAnnotations(readOnlyHint=True, openWorldHint=False),
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=False),
 )
 async def sap_quick_report(
     tcode: str,
@@ -61,7 +83,7 @@ async def sap_quick_report(
     checkboxes: dict[str, bool] | None = None,
     radios: dict[str, bool] | None = None,
     max_rows: int = 30,
-    read_all: bool = False,
+    post_f8_keys: list[str] | None = None,
     output_file: str | None = None,
     session: str | None = None,
     agent_id: str | None = None,
@@ -72,15 +94,17 @@ async def sap_quick_report(
 
 | Parameter | Typ | Default | Beschreibung |
 |---|---|---|---|
-| `tcode` | `str` | required | Transaktionscode (z.B. "SM37", "VA05") |
+| `tcode` | `str` | required | Transaktionscode (z.B. "VA05", "ME2M") |
 | `fields` | `dict[str, str] \| None` | `None` | Textfelder auf dem Selektionsbild, Key = Label-Text |
 | `checkboxes` | `dict[str, bool] \| None` | `None` | Checkboxen, Key = Label-Text, Value = gewünscht an/aus |
-| `radios` | `dict[str, bool] \| None` | `None` | Radio-Buttons, Key = Label-Text, Value = `True` um zu selektieren (konsistent mit `bilingual_target`) |
-| `max_rows` | `int` | `30` | Max. Zeilen bei Tabellenergebnis |
-| `read_all` | `bool` | `False` | Alle Zeilen via Pagination sammeln (langsam) |
-| `output_file` | `str \| None` | `None` | Pfad für JSON-Export der vollständigen Ergebnisse (konsistent mit `sap_se16_query`) |
+| `radios` | `dict[str, bool] \| None` | `None` | Radio-Buttons, Key = Label-Text, Value = `True` um zu selektieren |
+| `max_rows` | `int` | `30` | Max. Zeilen bei Tabellenergebnis. `Field(ge=1)`. |
+| `post_f8_keys` | `list[str] \| None` | `None` | Tasten die nach F8 gedrückt werden sollen (z.B. `["Enter"]` bei bekanntem Popup). Jede Taste wird gedrückt, danach `wait_for_ready()`. Max. 3 Tasten. Keys werden nicht validiert — `press_key()` Error-Handling greift. **Abbruch:** Nach jeder Taste prüft der Classifier ob der Screen schon klassifizierbar ist (TABLE/EMPTY/ERROR). Falls ja, werden restliche Keys übersprungen. |
+| `output_file` | `str \| None` | `None` | Pfad für JSON-Export der vollständigen Ergebnisse |
 | `session` | `str \| None` | `None` | Session-ID bei Multi-Session |
 | `agent_id` | `str \| None` | `None` | Agent-ID bei Multi-Agent |
+
+**Anmerkung zu `fields`:** Der Key ist Label-Text wie er auf dem Selektionsbild steht. `ensure_screen_state` füllt den ersten Match für ein Label. Bei ambiguen Labels (z.B. "Postleitzahl" 2x in TX BP) wird das falsche Feld gefüllt — es gibt aktuell **keine automatische Erkennung** dafür. Für Transaktionen mit bekannten Duplikat-Labels sind die Einzeltools besser geeignet, da der LLM dort per Feedback-Loop den richtigen CSS-Selektor lernen kann. Die Tool-Description listet solche TXen unter "Do NOT use for".
 
 ---
 
@@ -110,14 +134,24 @@ class QuickReportResult(ToolResult):
     # Bei screen_type="error" oder "unknown"
     screen_text: ScreenText | None = None
 
-    # Bei screen_type="unknown": Hint-Vorschlag für Lernfähigkeit
-    hint_suggestion: TCodeHintSuggestion | None = None
-
     # Warnungen (z.B. "Checkbox 'Geplant' not found on screen")
     warnings: list[str] = []
 ```
 
-**Anmerkung:** `status_bar_type` + `status_bar_message` als Flat-Fields, konsistent mit dem bestehenden `KeyboardResult`-Pattern im Repo (das ebenfalls Flat-Fields statt eingebettetem `StatusBarInfo` nutzt).
+**Anmerkung:** `status_bar_type` + `status_bar_message` als Flat-Fields, konsistent mit dem bestehenden `KeyboardResult`-Pattern im Repo.
+
+**`success` vs `screen_type` Semantik:**
+
+| Situation | `success` | `screen_type` | Warum |
+|---|---|---|---|
+| Desktop-Backend | `False` | — | Infrastruktur-Fehler, Tool konnte nicht starten |
+| TX nicht gefunden | `False` | — | Infrastruktur-Fehler |
+| Grid gefunden, Tabelle gelesen | `True` | `TABLE` | Erfolg |
+| "Keine Daten gefunden" | `True` | `EMPTY` | SAP hat korrekt geantwortet, nur leer |
+| Status-Bar Typ "E" nach F8 | `True` | `ERROR` | SAP hat geantwortet, Pipeline lief durch |
+| Screen nicht klassifizierbar | `True` | `UNKNOWN` | Pipeline lief durch, Agent muss weitermachen |
+
+**Regel:** `success=False` nur bei Infrastruktur-Fehlern wo die Pipeline nicht komplett durchlief. `success=True` + `screen_type=ERROR/UNKNOWN` wenn SAP geantwortet hat aber das Ergebnis kein Table war.
 
 ---
 
@@ -126,15 +160,16 @@ class QuickReportResult(ToolResult):
 ### Ablauf
 
 ```
-1. load_hints(tcode)                    → TCodeHint | None
-2. backend.enter_transaction(tcode)     → TransactionResult (bei Fehler: return ERROR)
-3. ensure_screen_state(...)             → ScreenStateDiff (Warnings sammeln, weitermachen)
-4. backend.press_key("F8")             → KeyboardResult
-5. backend.wait_for_ready()            → explizit warten bis SAP fertig
-6. check_known_popups(hint)            → Popup erkannt? → hint.popup_action + wait_for_ready()
-7. classify_result_screen()            → ScreenClassification
-8. parse_by_classification()           → TableData | ScreenText | None
-9. build_result()                      → QuickReportResult (ggf. mit hint_suggestion)
+1. Runtime-Guard: _is_desktop_backend()     → bei Desktop: return ERROR sofort
+2. backend.enter_transaction(tcode)         → TransactionResult (bei Fehler: return ERROR)
+3. ensure_screen_state(...)                 → ScreenStateDiff (Warnings sammeln, weitermachen)
+4. backend.press_key("F8")                 → KeyboardResult
+5. backend.wait_for_ready()                → explizit warten bis SAP fertig
+6. post_f8_keys ausführen (falls gegeben)  → je Taste: press_key + wait_for_ready + classify.
+                                              Falls klassifizierbar → restliche Keys überspringen. Max. 3 Tasten.
+7. classify_result_screen()                → ScreenClassification
+8. parse_by_classification()               → TableData | ScreenText | None
+9. build_result()                          → QuickReportResult
 ```
 
 ### Error-Handling pro Schritt
@@ -143,10 +178,13 @@ Das Tool bleibt bei Fehlern **auf dem aktuellen Screen stehen** (kein `/n` Reset
 
 | Schritt | Fehler | Verhalten |
 |---|---|---|
+| Runtime-Guard | Desktop-Backend | Return `ERROR`: "sap_quick_report requires WebGUI backend" |
 | `enter_transaction` | TX nicht gefunden | Return `ERROR` + status_bar |
 | `ensure_screen_state` | Feld/Checkbox nicht gefunden | Warning anhängen, **weitermachen** mit F8 |
-| `press_key("F8")` | Unerwartetes Popup | Hint vorhanden → `popup_action` + `wait_for_ready()` ausführen; kein Hint → `UNKNOWN` + screen_text |
-| `classify_result_screen` | Kein Grid, kein Error | `UNKNOWN` + screen_text + hint_suggestion |
+| `ensure_screen_state` | Ambigue Labels | Kein automatischer Schutz — füllt ersten Match. Bekannte Duplikat-TXen in Tool-Description ausschließen |
+| `press_key("F8")` | SAP-Fehler | Return `ERROR` + status_bar |
+| `post_f8_keys` | Taste schlägt fehl | Warning anhängen, **weitermachen** mit Klassifizierung |
+| `classify_result_screen` | Kein Grid, kein Error | `UNKNOWN` + screen_text |
 | `read_table` | Parse-Fehler oder leeres Grid | `TABLE` mit leerer TableData + warning |
 
 ### Screen-Classifier
@@ -154,7 +192,6 @@ Das Tool bleibt bei Fehlern **auf dem aktuellen Screen stehen** (kein `/n` Reset
 ```python
 async def classify_result_screen(
     backend: SapUiBackend,
-    hint: TCodeHint | None = None,
 ) -> tuple[ScreenClassification, StatusBarInfo]:
     """
     Analysiert den aktuellen Screen nach F8.
@@ -164,27 +201,14 @@ async def classify_result_screen(
     2. Status-Bar Typ "E"? → ERROR
     3. Status-Bar enthält "keine Daten"/"no data"/"keine Werte"/"no entries"? → EMPTY
     4. DOM hat [role='grid']? → TABLE
-    5. Hint sagt was erwartet wird? → Hint-Typ, ABER nur wenn DOM-Check bestätigt
-    6. Sonst → UNKNOWN
+    5. Sonst → UNKNOWN
     """
 ```
-
-**Wichtig:** Der Hint wird **nicht blind vertraut**. Wenn ein Hint `post_f8: table` sagt aber kein `[role='grid']` im DOM ist, gewinnt die DOM-Realität und das Ergebnis ist `UNKNOWN`.
 
 **Phase 2 Erweiterungen** (nicht in diesem Design):
 - `SINGLE_RECORD` — Einzelsatz-Anzeige erkennen (kein Grid, aber strukturierte Felder)
 - `TREE` — Baumstruktur erkennen (`[role='tree']` im DOM)
-
-### Popup-Erkennung (Detail)
-
-Die Popup-Erkennung in Schritt 6 funktioniert wie folgt:
-
-1. **Detection:** `backend.get_screen_text()` aufrufen. Wenn `title` oder `main_content` einen `text_pattern` aus dem Hint enthält (Substring-Match, case-insensitive) → Popup erkannt.
-2. **Action:** `backend.press_key(hint.popup_action)` ausführen, dann `backend.wait_for_ready()`.
-3. **Max 1 Retry:** Falls nach der Action erneut ein Popup erkannt wird (anderes Pattern), wird ein zweites Mal versucht. Danach → `UNKNOWN` mit screen_text.
-4. **Kein Hint, aber Popup:** Wenn kein Hint vorhanden ist und der Screen wie ein Dialog aussieht (z.B. `title` enthält typische Popup-Wörter), wird **nicht** automatisch agiert → `UNKNOWN` + screen_text + hint_suggestion.
-
-**`text_pattern` ist immer Substring-Match** (kein Regex). Das ist robuster und vermeidet `re.error` bei fehlerhaften User-Hints.
+- Desktop-Backend-Support mit COM-Tree-basiertem Classifier
 
 ### Dateistruktur
 
@@ -192,206 +216,101 @@ Die Popup-Erkennung in Schritt 6 funktioniert wie folgt:
 src/sapwebguimcp/
   tools/
     quick_report_tools.py          ← Tool-Funktion + Pipeline + classify_result_screen()
-    _hint_loader.py                ← load_hints(), merge Repo + User, save_hint()
-  data/
-    tcode_hints.json               ← Shipped Baseline (read-only)
   models/
-    quick_report_models.py         ← QuickReportResult, ScreenClassification, TCodeHint, PopupHint, TCodeHintSuggestion
+    quick_report_models.py         ← QuickReportResult, ScreenClassification
 ```
 
-**Änderung gegenüber v1:** Flachere Struktur, konsistent mit bestehenden Conventions:
-- Keine neuen Top-Level-Packages (`classifiers/`, `hints/`)
-- Modelle in `models/quick_report_models.py` (analog zu `sm37_models.py`)
-- Classifier inline in `quick_report_tools.py` (ist ~30 Zeilen, braucht kein eigenes Package)
-- Hint-Loader als privates Modul `_hint_loader.py` in `tools/`
-- CLI-Export auf Phase 2 verschoben
+Flachere Struktur als v1: kein `_hint_loader.py`, kein `tcode_hints.json`, keine Hint-Modelle.
+
+**Registrierung:** `register_quick_report_tools(mcp)` Wrapper-Funktion, konsistent mit `register_sm37_tools(mcp)` und `register_se16_tools(mcp)`.
 
 ---
 
-## Hint-System
+## Lernfähigkeit: Agent → Markdown-Log → Entwickler
 
-### Datenmodell
+### Prinzip
 
-```python
-class PopupHint(BaseModel):
-    """Bekanntes Popup das nach F8 erscheinen kann."""
-    text_pattern: str          # Substring im Popup-Text (case-insensitive)
-    action: str = "Enter"      # Tastendruck um Popup zu schließen
+Das Tool ist stateless. Die Lernfähigkeit liegt beim Agent und beim Entwickler:
 
-class TCodeHint(BaseModel):
-    """Erwartungen an eine Transaktion nach F8."""
-    tcode: str
-    post_f8: ScreenClassification = ScreenClassification.TABLE
-    known_popups: list[PopupHint] = []
-    notes: str = ""            # Freitext für Entwickler/Agent
+1. **Tool** gibt bei `UNKNOWN` strukturierte Info zurück (`screen_text`, `status_bar_message`)
+2. **Agent** löst das Problem manuell mit Einzeltools
+3. **Agent** loggt sein Learning in eine Markdown-Datei
+4. **Entwickler** liest den Log und entscheidet:
+   - Häufiges Pattern → ins Tool einbauen (z.B. als Default-`post_f8_keys` in der Tool-Description)
+   - Nicht automatisierbar → in die Tool-Description als "Do NOT use for" aufnehmen
+   - Edge Case → neuer Screen-Typ für Phase 2
 
-class TCodeHintSuggestion(BaseModel):
-    """Vom Tool generierter Vorschlag für einen neuen Hint."""
-    tcode: str
-    observed_screen_type: str
-    status_bar_type: str
-    status_bar_message: str
-    page_title: str
-    dom_roles: list[str]       # Eindeutige ARIA-Rollen im DOM (z.B. ["dialog", "listbox"])
-```
+### Format der Markdown-Log-Datei
 
-### Zwei-Schicht-Merge
-
-```
-Schicht 1 (read-only):   src/sapwebguimcp/data/tcode_hints.json    ← shipped im Package
-Schicht 2 (read-write):  ~/.sapwebguimcp/tcode_hints.json           ← user-lokal
-```
-
-**Merge-Logik:**
-- User-Hints überschreiben Repo-Hints per tcode-Key
-- Innerhalb eines Hints: `post_f8` und `notes` werden überschrieben (User gewinnt)
-- `known_popups` werden zusammengeführt (union), dedupliziert per `text_pattern`-Key. Bei gleichem `text_pattern` gewinnt die User-`action`.
-
-### Shipped Baseline
-
-```json
-{
-  "SM37": {
-    "post_f8": "table",
-    "known_popups": [],
-    "notes": "Job-Übersicht, immer ALV-Grid"
-  },
-  "VA05": {
-    "post_f8": "table",
-    "known_popups": [],
-    "notes": "Auftragsübersicht"
-  },
-  "ME2M": {
-    "post_f8": "table",
-    "known_popups": [],
-    "notes": "Bestellübersicht Material"
-  },
-  "MB51": {
-    "post_f8": "table",
-    "known_popups": [],
-    "notes": "Materialbelegübersicht"
-  },
-  "FBL1N": {
-    "post_f8": "table",
-    "known_popups": [
-      {"text_pattern": "Variante", "action": "Enter"}
-    ],
-    "notes": "Kreditorenposten, fragt manchmal nach Anzeigevariante"
-  },
-  "FBL3N": {
-    "post_f8": "table",
-    "known_popups": [
-      {"text_pattern": "Variante", "action": "Enter"}
-    ],
-    "notes": "Sachkontenposten"
-  },
-  "FBL5N": {
-    "post_f8": "table",
-    "known_popups": [
-      {"text_pattern": "Variante", "action": "Enter"}
-    ],
-    "notes": "Debitorenposten"
-  }
-}
-```
-
-### Tool zum Speichern von Hints
-
-```python
-@mcp.tool(
-    description=(
-        "Save a TCode hint to the user-local hints file "
-        "(~/.sapwebguimcp/tcode_hints.json). "
-        "Use this after sap_quick_report returned screen_type='unknown' "
-        "and you have identified what the screen was. "
-        "The hint will be used automatically on the next call."
-    ),
-    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=False),
-)
-async def sap_save_tcode_hint(
-    tcode: str,
-    post_f8: str = "table",
-    known_popups: list[dict[str, str]] | None = None,
-    notes: str = "",
-) -> SaveHintResult:
-```
-
-### Hints ins Repo bringen (Phase 1: manuell, Phase 2: CLI)
-
-**Phase 1 — Manuell (README-Dokumentation):**
+Die Tool-Description instruiert den Agent, Learnings in `tcode-learnings.md` im Working Directory zu loggen:
 
 ```markdown
-## Contributing TCode Hints
+# TCode Learnings
 
-When `sap_quick_report` encounters an unknown screen, the agent can save
-a hint via `sap_save_tcode_hint`. These hints are stored locally in
-`~/.sapwebguimcp/tcode_hints.json`.
-
-To contribute your hints back to the project:
-
-1. Open your local hints file:
-   ```bash
-   cat ~/.sapwebguimcp/tcode_hints.json
-   ```
-2. Copy the relevant entries into `src/sapwebguimcp/data/tcode_hints.json`
-3. Open a PR with your additions
-
-Alternatively, export only new hints with Python:
-   ```bash
-   python -c "
-   import json
-   from pathlib import Path
-   repo = json.loads(Path('src/sapwebguimcp/data/tcode_hints.json').read_text())
-   user = json.loads(Path.home().joinpath('.sapwebguimcp/tcode_hints.json').read_text())
-   new = {k: v for k, v in user.items() if k not in repo}
-   print(json.dumps(new, indent=2, ensure_ascii=False))
-   "
-   ```
-
-Hints for standard SAP transactions (SM37, VA05, etc.) are welcome.
-Customer-specific Z-transactions should remain in your local hints file.
-```
-
-**Phase 2 — CLI-Command** (separates Design):
-- `sapwebguimcp hints export [--new-only]`
-- CLI-Framework und Entry-Point werden im Phase-2-Design spezifiziert
+Gesammelte Erkenntnisse aus `sap_quick_report` Aufrufen mit `screen_type: "unknown"`.
+Entwickler: Prüfe diese Einträge und übernimm relevante Patterns ins Tool.
 
 ---
 
-## Lernfähiger Ablauf (End-to-End Beispiel)
+## FBL1N — Kreditorenposten
+- **Datum:** 2026-03-19
+- **Screen nach F8:** Popup "Variantenauswahl" mit Buttons [Übernehmen, Abbrechen]
+- **Lösung:** Enter drücken, danach TABLE mit Kreditorenposten
+- **Für nächsten Call:** `post_f8_keys=["Enter"]`
+- **Empfehlung für Tool:** Häufiges Pattern, könnte als Beispiel in die Tool-Description
+
+## ZCUSTOM01 — Kundenreport Werk
+- **Datum:** 2026-03-20
+- **Screen nach F8:** Dialogfenster "Druckvorschau"
+- **Lösung:** F3 (Back), dann Layout-Variante wählen, dann erneut F8
+- **Für nächsten Call:** Nicht mit sap_quick_report lösbar, Einzeltools nötig
+- **Empfehlung für Tool:** In "Do NOT use for" aufnehmen
+```
+
+### Warum Markdown statt JSON/Hint-Dateien
+
+| Aspekt | JSON Hint-System (v1) | Markdown Log (v2) |
+|---|---|---|
+| Neuer Code im Tool | ~200 Zeilen | 0 Zeilen |
+| MCP-Server | Stateful (Disk-I/O) | Stateless |
+| Wer entscheidet was ins Tool kommt | Automatisch (fragil) | Entwickler (bewusst) |
+| Qualitätskontrolle | Keine | Review durch Mensch |
+| Desktop-kompatibel | Nein (DOM-Roles in Hints) | Ja (nur Text) |
+| Für den Agent nutzbar | Indirekt (Tool liest Hints) | Direkt (Agent liest eigenen Log) |
+
+### Lernfähiger Ablauf (End-to-End Beispiel)
 
 ```
 Erstes Mal — unbekannte Transaktion:
 ──────────────────────────────────────
-1. Agent ruft auf: sap_quick_report("ZCUSTOM01", fields={"Werk": "1000"})
+1. Agent ruft auf: sap_quick_report("FBL1N", fields={"Kreditor": "*"})
 2. Pipeline: transaction → fill → F8 → wait_for_ready → classify
-3. Classifier: kein Grid, kein Error → UNKNOWN
+3. Classifier: kein Grid, kein Error, kein "keine Daten" → UNKNOWN
 4. Tool gibt zurück:
    {
      screen_type: "unknown",
-     screen_text: {title: "Variantenauswahl", buttons: ["Übernehmen", "Abbrechen"]},
-     hint_suggestion: {
-       tcode: "ZCUSTOM01",
-       observed_screen_type: "unknown",
-       status_bar_type: "none",
-       status_bar_message: "",
-       page_title: "Variantenauswahl",
-       dom_roles: ["dialog", "listbox"]
-     }
+     screen_text: {title: "Variantenauswahl", ...},
+     status_bar_message: ""
    }
-5. Agent sieht: Aha, ein Varianten-Popup. Nutzt sap_keyboard("Enter") um es zu schließen.
+5. Agent sieht: Popup. Nutzt sap_keyboard("Enter") um es zu schließen.
 6. Agent liest Ergebnis mit sap_read_table().
-7. Agent speichert: sap_save_tcode_hint("ZCUSTOM01",
-     known_popups=[{"text_pattern": "Variante", "action": "Enter"}])
+7. Agent loggt Learning in tcode-learnings.md
 
-Zweites Mal — Hint greift:
+Zweites Mal — Agent hat gelernt:
 ──────────────────────────────────────
-1. Agent ruft auf: sap_quick_report("ZCUSTOM01", fields={"Werk": "1000"})
-2. Pipeline: transaction → fill → F8 → wait_for_ready
-3. Popup erscheint → Hint sagt: "Variante" → Enter → wait_for_ready
-4. Classifier: Grid gefunden → TABLE
-5. Tool gibt zurück: {screen_type: "table", table: TableData(...)}
-6. Ein Call statt sechs.
+1. Agent ruft auf: sap_quick_report("FBL1N", fields={"Kreditor": "*"},
+                                     post_f8_keys=["Enter"])
+2. Pipeline: transaction → fill → F8 → wait_for_ready → Enter → wait_for_ready
+3. Classifier: Grid gefunden → TABLE
+4. Tool gibt zurück: {screen_type: "table", table: TableData(...)}
+5. Ein Call statt sechs.
+
+Später — Entwickler reviewed Log:
+──────────────────────────────────────
+1. Entwickler liest tcode-learnings.md
+2. Sieht: FBL1N braucht immer Enter nach F8
+3. Entscheidet: Tool-Description um Beispiel erweitern
+4. PR mit aktualisierter Description → alle Agents lernen es
 ```
 
 ---
@@ -406,9 +325,7 @@ logger.warning(
         "page_title": page_title,
         "status_bar_type": status_bar.type,
         "status_bar_message": status_bar.message,
-        "dom_roles": dom_roles,       # z.B. ["dialog", "listbox"]
         "has_grid": has_grid,
-        "has_tree": has_tree,
     },
 )
 ```
@@ -417,42 +334,56 @@ logger.warning(
 
 ## Testbarkeit
 
-| Aspekt | Offline-testbar | Wie |
-|---|---|---|
-| `QuickReportResult` Modell | Ja | Pydantic-Validierung |
-| `ScreenClassification` | Ja | Enum-Tests |
-| `classify_result_screen` | Ja | Mock-Backend: simuliere verschiedene DOMs + Status-Bars |
-| Hint-Loader + Merge | Ja | Unit-Test: Repo-JSON + User-JSON → merged result, Popup-Deduplizierung |
-| Popup-Erkennung | Ja | Mock: Popup-Text matcht Hint → action ausgeführt + wait_for_ready |
-| Popup max 1 Retry | Ja | Mock: 2 Popups hintereinander → zweites wird behandelt, drittes → UNKNOWN |
-| Pipeline-Reihenfolge | Ja | Mock-Backend: assert Call-Reihenfolge inkl. wait_for_ready-Calls |
-| `ensure_screen_state` Integration | Ja | Bereits getestet in sm37_tools.py |
-| Error-Handling pro Schritt | Ja | Mock: simuliere Fehler bei jedem Schritt → korrekte Rückgabe |
-| `output_file` Export | Ja | Temp-Datei, assert JSON-Inhalt |
-| End-to-End mit SAP | Nein | Integration-Test |
+### Unit-Tests (offline, Mock-Backend)
 
-**Geschätzte Offline-Abdeckung: ~85%**
+| Test Case | TX | Input | Mock-Setup | Erwartetes Ergebnis |
+|---|---|---|---|---|
+| Happy path: Tabelle | VA05 | `fields={"Auftraggeber": "*"}` | `enter_transaction` OK, Snapshot hat `[role='grid']`, `read_table` liefert 3 Rows | `screen_type=TABLE`, 3 Rows |
+| Keine Daten | ME2M | `fields={"Werk": "9999"}` | Status-Bar: type="I", message="Keine Daten gefunden" | `screen_type=EMPTY`, kein Table |
+| Error: TX nicht gefunden | ZZZZZ | keine | `enter_transaction` → `success=False`, error="TX not found" | `screen_type=ERROR`, error message |
+| Error: Desktop-Backend | VA05 | beliebig | `_is_desktop_backend()` → `True` | `success=False`, error="requires WebGUI backend" |
+| Feld nicht gefunden | VA05 | `fields={"FakeField": "x"}` | Feld nicht im Snapshot | `warnings` enthält "FakeField not found", F8 trotzdem gedrückt |
+| Ambigue Labels (kein Schutz) | — | `fields={"Postleitzahl": "12345"}` | Snapshot hat "Postleitzahl" 2x | `ensure_screen_state` füllt ersten Match — kein Fehler, potenziell falsches Feld. Bekannte TXen via Tool-Description ausschließen |
+| Unknown Screen | ZCUSTOM01 | keine | Kein `[role='grid']`, Status-Bar type != "E", kein "keine Daten" | `screen_type=UNKNOWN`, screen_text gesetzt |
+| Status-Bar Typ E | ME2M | `fields={"Werk": "XXXX"}` | Status-Bar: type="E", message="Werk XXXX existiert nicht" | `screen_type=ERROR`, status_bar_message gesetzt |
+| post_f8_keys ausgeführt | FBL1N | `post_f8_keys=["Enter"]` | Nach F8: Popup-Screen, nach Enter: Grid | `screen_type=TABLE`, press_key("Enter") aufgerufen |
+| post_f8_keys max 3 | — | `post_f8_keys=["Enter","Enter","Enter","Enter"]` | — | Nur 3 Tasten ausgeführt, Warning für 4. |
+| post_f8_keys leere Liste | VA05 | `post_f8_keys=[]` | Grid nach F8 | Identisch zu `None` — TABLE |
+| post_f8_keys löst Popup nicht | FBL1N | `post_f8_keys=["Escape"]` | Popup bleibt nach Escape | `screen_type=UNKNOWN`, Popup-Screen in screen_text |
+| post_f8_keys Early-Exit | — | `post_f8_keys=["Enter","F5"]` | Nach Enter: Grid erkannt | TABLE, nur Enter ausgeführt, F5 übersprungen |
+| max_rows Validation | VA05 | `max_rows=0` | — | Validierungsfehler (`Field(ge=1)`) |
+| Pipeline-Reihenfolge | VA05 | `fields={"X": "Y"}` | Mock-Backend | Assert: enter_transaction → ensure_screen_state → press_key("F8") → wait_for_ready → classify |
+| output_file Export | VA05 | `output_file="/tmp/out.json"` | Table-Result | Temp-Datei existiert, JSON valide |
+
+### Integrationstests (Live-SAP)
+
+| Test Case | TX | Input | Erwartetes Ergebnis |
+|---|---|---|---|
+| VA05 Auftragsübersicht | VA05 | `fields={"Auftraggeber": "*"}` | `screen_type=TABLE`, `table.headers` nicht leer |
+| ME2M Bestellungen | ME2M | `fields={"Werk": "<valid_plant>"}` | `screen_type=TABLE` oder `EMPTY` |
+| Ungültige Transaktion | ZZZZNOTREAL | keine | `screen_type=ERROR` |
+| FBL1N ohne post_f8_keys | FBL1N | `fields={"Kreditor": "*"}` | `screen_type=UNKNOWN` (Varianten-Popup blockiert) — beweist das Limit |
+| FBL1N mit post_f8_keys | FBL1N | `fields={"Kreditor": "*"}, post_f8_keys=["Enter"]` | `screen_type=TABLE` — beweist dass post_f8_keys funktioniert |
+| MB51 Materialbelege | MB51 | `fields={"Material": "<valid_mat>"}` | `screen_type=TABLE` oder `EMPTY` |
+| Result-Model Roundtrip | VA05 | beliebig | `QuickReportResult.model_dump_json()` → `QuickReportResult.model_validate_json()` |
+
+**Geschätzte Offline-Abdeckung: ~90%** (höher als v1, da kein Hint-System zu mocken)
 
 ---
 
 ## Implementierungsreihenfolge
 
-| Schritt | Was | Abhängigkeiten | Aufwand | Phase |
-|---|---|---|---|---|
-| 1 | `ScreenClassification` + `QuickReportResult` + Hint-Modelle in `models/quick_report_models.py` | Keine | Klein | 1 |
-| 2 | Hint-Loader (`tools/_hint_loader.py`: JSON lesen, Zwei-Schicht-Merge) | Schritt 1 | Klein | 1 |
-| 3 | `classify_result_screen()` in `tools/quick_report_tools.py` | Schritt 1 | Mittel | 1 |
-| 4 | `sap_quick_report` Pipeline | Schritte 1-3 | Mittel | 1 |
-| 5 | `sap_save_tcode_hint` Tool | Schritt 2 | Klein | 1 |
-| 6 | Shipped `tcode_hints.json` Baseline | Schritt 2 | Klein | 1 |
-| 7 | README-Doku für Hint-PR-Workflow | Schritt 6 | Klein | 1 |
-| 8 | Tests für alles | Schritte 1-7 | Mittel | 1 |
-| 9 | Tool-Registrierung in `server.py` | Schritt 4 | Klein | 1 |
-| 10 | CLI `hints export` Command | Schritt 2 | Klein | 2 |
-| 11 | Desktop-Backend-Support für Classifier | Schritt 3 | Mittel | 2 |
-| 12 | `SINGLE_RECORD` + `TREE` Screen-Typen | Schritt 3 | Mittel | 2 |
+| Schritt | Was | Abhängigkeiten | Aufwand |
+|---|---|---|---|
+| 1 | `ScreenClassification` + `QuickReportResult` in `models/quick_report_models.py` | Keine | Klein |
+| 2 | `classify_result_screen()` in `tools/quick_report_tools.py` | Schritt 1 | Klein |
+| 3 | `sap_quick_report` Pipeline inkl. Runtime-Guard + `post_f8_keys` | Schritte 1-2 | Mittel |
+| 4 | Tool-Registrierung in `server.py` | Schritt 3 | Klein |
+| 5 | Tests (Unit + Integration-Stubs) | Schritte 1-4 | Mittel |
 
-Schritte 1, 2, 6 können parallel bearbeitet werden.
+Schritte 1 und 2 können parallel bearbeitet werden.
+
+**Gesamtaufwand Phase 1:** ~150-200 Zeilen Produktionscode, ~300 Zeilen Tests
 
 ---
 
@@ -460,14 +391,11 @@ Schritte 1, 2, 6 können parallel bearbeitet werden.
 
 | Risiko | Wahrscheinlichkeit | Mitigation |
 |---|---|---|
-| Screen-Classifier erkennt Grid nicht (DOM-Varianten) | Mittel | Fallback auf `UNKNOWN` + hint_suggestion; Agent kann mit Einzeltools weiter |
-| `ensure_screen_state` schlägt bei unbekannten Selektionsbildern fehl | Mittel | Warnings statt Abbruch; F8 wird trotzdem gedrückt |
-| Popup-Erkennung per text_pattern zu fragil | Niedrig | Substring-Match (kein Regex) ist robust; Agent kann Hint nachbessern |
-| Hint-Merge bei konkurrierenden User-/Repo-Hints | Niedrig | Klare Regel: User überschreibt Repo per tcode-Key; Popups per text_pattern dedupliziert |
-| Performance-Overhead durch Hint-Loading | Niedrig | JSON ist klein, wird einmal pro Call geladen, Caching möglich |
-| `~/.sapwebguimcp/` existiert nicht | Niedrig | `sap_save_tcode_hint` erstellt Verzeichnis + Datei automatisch |
-| Desktop-Backend nicht unterstützt | Phase 1 akzeptiert | Explizit als WebGUI-only dokumentiert; Desktop-Support in Phase 2 |
-| Verkettete Popups (Popup → Action → Popup → ...) | Niedrig | Max 1 Retry; danach UNKNOWN. Deckt 99% der Fälle |
+| Screen-Classifier erkennt Grid nicht (DOM-Varianten) | Mittel | Fallback auf `UNKNOWN` + screen_text; Agent kann mit Einzeltools weiter |
+| `ensure_screen_state` schlägt bei unbekannten Selektionsbildern fehl | Mittel | Warnings statt Abbruch; F8 wird trotzdem gedrückt. Bei ambiguen Labels: klarer Fehler |
+| Agent loggt nicht in tcode-learnings.md | Mittel | Instruktion ist in Tool-Description; kein harter Zwang, aber Best Practice |
+| `post_f8_keys` reicht nicht für komplexe Popups | Niedrig | Max 3 Tasten deckt 99% der Fälle; komplexere → Einzeltools |
+| Desktop-Backend nicht unterstützt | Phase 1 akzeptiert | Runtime-Guard mit klarem Fehler; Desktop-Support in Phase 2 |
 
 ---
 
@@ -481,3 +409,13 @@ Schritte 1, 2, 6 können parallel bearbeitet werden.
 | `sap_quick_report` | Generisch | Für jede Transaktion mit Selektionsbild → F8 → Ergebnis |
 
 `sap_quick_report` ersetzt NICHT die dedizierten Tools — es ergänzt sie für Transaktionen ohne eigenes Tool.
+
+---
+
+## Phase 2 (separat)
+
+Nicht in diesem Design, aber als Ausblick:
+- Desktop-Backend-Support mit COM-Tree-basiertem Classifier
+- `SINGLE_RECORD` + `TREE` Screen-Typen
+- `read_all` Pagination
+- Shipped `post_f8_keys` Defaults in einer Konfigurationsdatei (wenn tcode-learnings.md genug Patterns zeigt)
