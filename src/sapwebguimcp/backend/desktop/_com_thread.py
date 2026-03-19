@@ -28,11 +28,6 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-# Default minimum interval between COM calls (seconds).
-# 50ms is enough to prevent COM disconnection under 5-agent parallel load
-# while adding negligible latency for single-agent use (~20 calls/sec).
-_DEFAULT_MIN_INTERVAL_S = 0.05
-
 
 class ComThread:
     """Dedicated thread for all SAP GUI COM calls.

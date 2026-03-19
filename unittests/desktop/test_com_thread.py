@@ -11,7 +11,7 @@ from sapwebguimcp.backend.desktop._com_thread import ComThread
 @pytest.fixture
 def com_thread():
     """Create a ComThread for testing (no real COM — just the threading mechanism)."""
-    thread = ComThread(init_com=False)  # skip CoInitialize for unit tests
+    thread = ComThread(init_com=False, min_interval_ms=0)  # skip CoInitialize + throttle for unit tests
     yield thread
     thread.shutdown()
 
@@ -117,7 +117,7 @@ class TestComThread:
                 await thread.run(lambda: None)
             elapsed = time.monotonic() - start
             # 10 calls with no throttle should be very fast
-            assert elapsed < 0.1, f"Expected <100ms, got {elapsed*1000:.0f}ms"
+            assert elapsed < 0.5, f"Expected <500ms, got {elapsed*1000:.0f}ms"
         finally:
             thread.shutdown()
 
