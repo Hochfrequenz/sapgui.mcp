@@ -45,7 +45,7 @@ class ComThread:
         self._thread.start()
         logger.debug("com_thread_started", extra={"min_interval_ms": min_interval_ms})
 
-    def _run(self) -> None:
+    def _run(self) -> None:  # pylint: disable=too-many-branches
         """Worker loop: CoInitialize, process queue, CoUninitialize on exit."""
         if self._init_com:
             import pythoncom  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel

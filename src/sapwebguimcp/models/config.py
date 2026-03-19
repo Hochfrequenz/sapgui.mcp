@@ -148,7 +148,10 @@ class SapWebGuiSettings(BaseSettings):
         default=50,
         ge=0,
         le=5000,
-        description="Minimum milliseconds between COM calls (desktop only). Prevents COM overload with parallel agents. 0 to disable.",
+        description=(
+            "Minimum milliseconds between COM calls (desktop only). "
+            "Prevents COM overload with parallel agents. 0 to disable."
+        ),
         json_schema_extra={"env": "COM_MIN_INTERVAL_MS"},
     )
 

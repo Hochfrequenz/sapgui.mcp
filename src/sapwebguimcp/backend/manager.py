@@ -35,7 +35,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
         self._page_ids: dict[str, int] = {}  # Track page identity for cache invalidation
         self._com_thread: Any = None  # Lazy-init ComThread for desktop backend
 
-    async def get_or_create(
+    async def get_or_create(  # pylint: disable=too-many-locals
         self,
         session: str | None = None,
         agent_id: str | None = None,
@@ -79,8 +79,8 @@ class BackendManager:  # pylint: disable=too-few-public-methods
                     )
                 return cached
             if self._com_thread is None:
-                from sapwebguimcp.models.config import (
-                    get_settings as _get_settings,  # pylint: disable=import-outside-toplevel
+                from sapwebguimcp.models.config import (  # pylint: disable=import-outside-toplevel,reimported
+                    get_settings as _get_settings,
                 )
 
                 self._com_thread = ComThread(min_interval_ms=_get_settings().com_min_interval_ms)
