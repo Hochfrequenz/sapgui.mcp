@@ -239,7 +239,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Log into SAP. "
-            "On WebGUI: requires SAP_URL, Chrome with --remote-debugging-port=9222, and VPN (if internal SAP). "
+            "On WebGUI: requires SAP_URL, Chrome with --remote-debugging-port=9222, "
+            "and VPN (if internal SAP). "
             "On Desktop: requires SAP_CONNECTION_NAME (SAP Logon entry) "
             "and SAP GUI for Windows with scripting enabled. "
             "Both backends use SAP_USER, SAP_PASSWORD, SAP_MANDANT from environment."
@@ -267,21 +268,18 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         session_id = getattr(ctx, "session_id", None) if ctx else None
         effective_url = url or settings.sap_url
 
-        if not effective_url:
+        # URL check only applies to WebGUI — Desktop uses SAP_CONNECTION_NAME instead
+        if settings.backend_type == "webgui" and not effective_url:
             return LoginResult.failure(
                 "No SAP URL provided. Either pass a URL parameter or set the SAP_URL environment variable."
             )
 
         if not all([settings.sap_user, settings.sap_password, settings.sap_mandant]):
-            return LoginResult.failure(
-                "Credentials not configured (SAP_USER, SAP_PASSWORD, SAP_MANDANT). "
-                "Please enter credentials manually in the browser window.",
-                url=effective_url,
-            )
+            return LoginResult.failure("Credentials not configured (SAP_USER, SAP_PASSWORD, SAP_MANDANT).")
 
         backend = await get_backend(tool_name="sap_login")
         result = await backend.login(
-            url=effective_url,
+            url=effective_url or "",
             username=settings.sap_user,
             password=settings.sap_password,
             client=settings.sap_mandant,
