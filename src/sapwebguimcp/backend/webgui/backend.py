@@ -320,7 +320,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Enter a transaction code via the OK-Code field.
 
-        Supports parameterised transactions (e.g. ``/NZ_ABAPGIT_PULL P_REPO=...``).
+        Supports parameterised transactions (e.g. ``/NZ_ABAPGIT_PULL_MCP P_REPO=...``).
         The ``TransactionResult.tcode`` field stores only the base tcode
         (first token before any parameters).
 

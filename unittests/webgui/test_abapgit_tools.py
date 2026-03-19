@@ -2,7 +2,7 @@
 Tests for abapGit MCP tools (sap_abapgit_pull, sap_read_se38_source).
 
 These tests verify the abapGit integration functionality:
-- Pull: Fetch and apply changes from remote git repository via Z_ABAPGIT_PULL
+- Pull: Fetch and apply changes from remote git repository via Z_ABAPGIT_PULL_MCP
 - SE38 Verification: Read ABAP report source code
 
 Run with: pytest unittests/test_abapgit_tools.py -v
@@ -314,7 +314,7 @@ def test_abapgit_list_result_failure_requires_error() -> None:
 
 
 def test_parse_repo_list_output() -> None:
-    """Test parsing tilde-delimited WRITE output from Z_ABAPGIT_PULL LIST mode."""
+    """Test parsing tilde-delimited WRITE output from Z_ABAPGIT_PULL_MCP_SHORTCUT LIST mode."""
     from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
 
     raw_output = (
@@ -388,10 +388,10 @@ def test_parse_repo_list_output_initial_timestamp() -> None:
 @pytest.mark.anyio
 async def test_abapgit_pull_public_repo(sap_mcp_client: ClientSession) -> None:
     """
-    Test pulling a public repository via Z_ABAPGIT_PULL transaction.
+    Test pulling a public repository via Z_ABAPGIT_PULL_MCP transaction.
 
     This test verifies that the sap_abapgit_pull tool can:
-    1. Call the Z_ABAPGIT_PULL transaction with parameters
+    1. Call the Z_ABAPGIT_PULL_MCP transaction with parameters
     2. Successfully pull from a public repository
 
     The test repo is a submodule at unittests/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY
@@ -649,7 +649,7 @@ async def test_abapgit_list_repos(sap_mcp_client: ClientSession) -> None:
     """
     Test listing registered abapGit repositories.
 
-    Requires Z_ABAPGIT_PULL to be deployed with LIST support.
+    Requires Z_ABAPGIT_PULL_MCP to be deployed with LIST support.
     Verifies that at least the known test repos are returned.
     """
     from sapwebguimcp.models.abapgit_models import AbapGitListResult
