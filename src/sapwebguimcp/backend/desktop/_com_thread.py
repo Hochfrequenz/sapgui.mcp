@@ -51,7 +51,9 @@ class ComThread:
                 except Exception as exc:
                     # Detect COM disconnection (RPC_E_DISCONNECTED = -2147417848)
                     # and provide actionable guidance instead of a raw COM error.
-                    error_code = getattr(exc, "hresult", None) or (exc.args[0] if exc.args else None)
+                    error_code = getattr(exc, "hresult", None)
+                    if error_code is None and exc.args:
+                        error_code = exc.args[0]
                     if error_code == -2147417848:
                         wrapped = RuntimeError(
                             "SAP GUI COM connection lost (RPC_E_DISCONNECTED). "
