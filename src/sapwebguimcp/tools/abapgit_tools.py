@@ -30,6 +30,7 @@ from mcp.types import ToolAnnotations
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
 from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 
 if TYPE_CHECKING:
     from sapwebguimcp.backend.protocol import SapUiBackend
@@ -512,13 +513,17 @@ async def _abapgit_list_repos(backend: "SapUiBackend") -> AbapGitListResult:
         await backend.press_key("F8")
         await backend.wait(3000)
 
-        # Read the WRITE output from the screen via JavaScript
-        raw_output = await backend.evaluate_javascript("""
-            () => {
-                const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
-                return body.innerText || body.textContent || '';
-            }
-        """)
+        # Read the WRITE output from the screen
+        if _is_desktop_backend(backend):
+            screen = await backend.get_screen_text()
+            raw_output = "\n".join(screen.main_content) if screen.main_content else ""
+        else:
+            raw_output = await backend.evaluate_javascript("""
+                () => {
+                    const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
+                    return body.innerText || body.textContent || '';
+                }
+            """)
 
         repos = parse_repo_list_output(raw_output or "")
         logger.info("Found repositories", extra={"count": len(repos)})
