@@ -49,7 +49,22 @@ class ComThread:
                     result = fn()
                     cf_future.set_result(result)
                 except Exception as exc:
-                    cf_future.set_exception(exc)
+                    # Detect COM disconnection (RPC_E_DISCONNECTED = -2147417848)
+                    # and provide actionable guidance instead of a raw COM error.
+                    error_code = getattr(exc, "hresult", None)
+                    if error_code is None and exc.args:
+                        error_code = exc.args[0]
+                    if error_code == -2147417848:
+                        wrapped = RuntimeError(
+                            "SAP GUI COM connection lost (RPC_E_DISCONNECTED). "
+                            "This typically happens when too many parallel agents "
+                            "overload the COM interface or SAP GUI was closed. "
+                            "Call sap_login to re-establish the connection."
+                        )
+                        wrapped.__cause__ = exc
+                        cf_future.set_exception(wrapped)
+                    else:
+                        cf_future.set_exception(exc)
         except Exception:
             logger.exception("com_thread_crashed")
         finally:
