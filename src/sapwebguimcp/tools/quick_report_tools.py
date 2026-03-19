@@ -83,6 +83,14 @@ async def _execute_quick_report(
     """Execute the quick report pipeline."""
     warnings: list[str] = []
 
+    # 0. Validate max_rows (Field(ge=1) on tool signature is schema-only)
+    if max_rows < 1:
+        return QuickReportResult.failure(
+            error=f"max_rows must be >= 1, got {max_rows}",
+            tcode=tcode,
+            screen_type=ScreenClassification.ERROR,
+        )
+
     # 1. Runtime guard: desktop backend
     if _is_desktop_backend(backend):
         return QuickReportResult.failure(

@@ -119,6 +119,14 @@ class TestQuickReportPipeline:
         assert result.success is False
         assert "WebGUI" in result.error
 
+    async def test_max_rows_zero_rejected(self) -> None:
+        """max_rows=0 → immediate failure."""
+        backend = _make_backend()
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            result = await _execute_quick_report(backend, tcode="VA05", max_rows=0)
+        assert result.success is False
+        assert "max_rows" in result.error
+
     async def test_tx_not_found(self) -> None:
         """Transaction not found → failure."""
         backend = _make_backend(tx_success=False, tx_error="Transaction ZZZZZ does not exist")
