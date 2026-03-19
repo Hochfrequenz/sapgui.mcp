@@ -15,7 +15,7 @@ from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from pydantic import BaseModel
 
-from unittests.conftest import _AUTHORIZED_SAP_TEST_MACHINE, is_sap_integration_test_machine
+from unittests.conftest import _AUTHORIZED_SAP_TEST_MACHINES, is_sap_integration_test_machine
 
 # =============================================================================
 # LANGUAGE HANDLING
@@ -280,7 +280,7 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     if not is_sap_integration_test_machine():
         pytest.skip(
             f"SAP integration tests only run on authorized machines "
-            f"(current: '{current_host}', required: '{_AUTHORIZED_SAP_TEST_MACHINE}')"
+            f"(current: '{current_host}', required: '{_AUTHORIZED_SAP_TEST_MACHINES}')"
         )
 
     # Reload .env after clean_environment fixture has cleared env vars

@@ -14,7 +14,7 @@ load_dotenv()
 # SAP INTEGRATION TEST MACHINE CHECK
 # =============================================================================
 
-_AUTHORIZED_SAP_TEST_MACHINE = "HF-KKLEIN3"
+_AUTHORIZED_SAP_TEST_MACHINES = {"HF-KKLEIN3", "HF-MeiskeJ"}
 
 
 def is_sap_integration_test_machine() -> bool:
@@ -26,10 +26,10 @@ def is_sap_integration_test_machine() -> bool:
     checks the hostname to determine if the current machine has SAP access.
 
     Returns:
-        True if running on a machine with SAP access (HF-KKLEIN3),
+        True if running on a machine with SAP access,
         False otherwise (CI environments, other dev machines).
     """
-    return socket.gethostname() == _AUTHORIZED_SAP_TEST_MACHINE
+    return socket.gethostname() in _AUTHORIZED_SAP_TEST_MACHINES
 
 
 # =============================================================================
