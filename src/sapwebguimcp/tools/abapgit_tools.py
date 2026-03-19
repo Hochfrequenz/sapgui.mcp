@@ -515,8 +515,10 @@ async def _abapgit_list_repos(backend: "SapUiBackend") -> AbapGitListResult:
 
         # Read the WRITE output from the screen
         if _is_desktop_backend(backend):
+            # On the desktop backend, WRITE output appears as labels (GuiLabel)
             screen = await backend.get_screen_text()
-            raw_output = "\n".join(screen.main_content) if screen.main_content else ""
+            all_text = (screen.labels or []) + (screen.main_content or [])
+            raw_output = "\n".join(all_text)
         else:
             raw_output = await backend.evaluate_javascript("""
                 () => {
