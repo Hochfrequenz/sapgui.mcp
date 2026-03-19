@@ -37,6 +37,10 @@ from sapwebguimcp.models.intent_models import (
     IntentEntry,
     IntentLogResult,
 )
+from sapwebguimcp.models.quick_report_models import (
+    QuickReportResult,
+    ScreenClassification,
+)
 from sapwebguimcp.models.sap_results import (
     ButtonInfo,
     CapabilitiesResult,
@@ -185,6 +189,9 @@ __all__ = [
     "get_settings",
     # Session registry
     "SessionRegistry",
+    # Quick report models
+    "QuickReportResult",
+    "ScreenClassification",
     # SAP results
     "ButtonInfo",
     "CapabilitiesResult",
