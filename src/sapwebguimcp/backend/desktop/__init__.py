@@ -205,27 +205,40 @@ class DesktopBackend:
             return LoginResult(success=False, error=str(e))
 
     async def enter_transaction(self, tcode: str) -> TransactionResult:
-        """Navigate to a transaction code."""
+        """Navigate to a transaction code.
+
+        Supports parameterised transactions (e.g. ``/nZ_ABAPGIT_PULL P_REPO=...``).
+        The ``TransactionResult.tcode`` field stores only the base tcode.
+        """
+        # Extract base tcode for the result model (strip /n prefix and parameters)
+        base_tcode = tcode.split()[0] if " " in tcode else tcode
+        if base_tcode.startswith("/n") or base_tcode.startswith("/o"):
+            base_tcode = base_tcode[2:]
+
         session = self._require_session()
 
         def _enter() -> str:
             okcd = session.find_by_id("wnd[0]/tbar[0]/okcd")
-            cast(Any, okcd).text = f"/n{tcode}"
+            if tcode.startswith("/n") or tcode.startswith("/o"):
+                transaction_input = tcode
+            else:
+                transaction_input = f"/n{tcode}"
+            cast(Any, okcd).text = transaction_input
             wnd = session.find_by_id("wnd[0]")
             cast(Any, wnd).send_v_key(0)
             return str(cast(Any, session.find_by_id("wnd[0]")).text)
 
         try:
             title = await self._com.run(_enter)
-            logger.info("transaction", extra={"tcode": tcode, "title": title, "success": True})
+            logger.info("transaction", extra={"tcode": base_tcode, "title": title, "success": True})
             return TransactionResult(
                 success=True,
-                tcode=tcode,
+                tcode=base_tcode,
                 page_title=title,
             )
         except Exception as e:
-            logger.warning("transaction", extra={"tcode": tcode, "success": False, "error": str(e)})
-            return TransactionResult(success=False, tcode=tcode, error=str(e))
+            logger.warning("transaction", extra={"tcode": base_tcode, "success": False, "error": str(e)})
+            return TransactionResult(success=False, tcode=base_tcode, error=str(e))
 
     async def get_session_status(self) -> SessionStatus:
         """Check whether the SAP session is logged in and responsive."""
