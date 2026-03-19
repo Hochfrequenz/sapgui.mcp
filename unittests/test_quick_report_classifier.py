@@ -115,3 +115,43 @@ class TestClassifyResultScreen:
         )
         classification, _ = await classify_result_screen(backend)
         assert classification == ScreenClassification.EMPTY
+
+    async def test_easy_access_classified_as_error(self) -> None:
+        """Easy Access page (invalid tcode bounce-back) → ERROR, not TABLE."""
+        backend = _make_backend(
+            status_type="none",
+            status_message="",
+            snapshot="- document 'SAP'\n  - grid 'SAP Menu'",
+            screen_title="SAP Easy Access",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.ERROR
+
+    async def test_easy_access_takes_priority_over_grid(self) -> None:
+        """Easy Access detection runs before grid detection."""
+        backend = _make_backend(
+            status_type="S",
+            status_message="",
+            snapshot="- document 'SAP'\n  - grid 'Tree'",
+            screen_title="SAP Easy Access S4U (100)",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.ERROR
+
+    async def test_empty_kein_job(self) -> None:
+        """SM37 'Kein Job entspricht den Selektionsbedingungen' → EMPTY."""
+        backend = _make_backend(
+            status_type="I",
+            status_message="Kein Job entspricht den Selektionsbedingungen",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.EMPTY
+
+    async def test_empty_no_documents(self) -> None:
+        """'No documents found' → EMPTY."""
+        backend = _make_backend(
+            status_type="I",
+            status_message="No documents found for the selection",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.EMPTY

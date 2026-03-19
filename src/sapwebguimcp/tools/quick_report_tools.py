@@ -31,6 +31,16 @@ _EMPTY_PATTERNS: tuple[str, ...] = (
     "no data",
     "keine werte",
     "no entries",
+    "kein job",
+    "no job",
+    "keine belege",
+    "no documents",
+)
+
+# Page titles that indicate SAP Easy Access (main menu), not a report result.
+_EASY_ACCESS_TITLES: tuple[str, ...] = (
+    "sap easy access",
+    "sap-easy-access",
 )
 
 
@@ -42,8 +52,9 @@ async def classify_result_screen(
     Priority:
     1. Status bar type "E" → ERROR
     2. Status bar contains empty-data pattern → EMPTY
-    3. ARIA snapshot contains grid → TABLE
-    4. Otherwise → UNKNOWN
+    3. Page title is Easy Access → ERROR (transaction didn't navigate away)
+    4. ARIA snapshot contains grid → TABLE
+    5. Otherwise → UNKNOWN
     """
     status_bar = await backend.get_status_bar()
 
@@ -56,14 +67,19 @@ async def classify_result_screen(
     if any(pattern in msg_lower for pattern in _EMPTY_PATTERNS):
         return ScreenClassification.EMPTY, status_bar
 
-    # 3. Table (check ARIA snapshot for grid role)
+    # 3. Easy Access — transaction didn't open or invalid tcode bounced back
+    page_title = await backend.get_page_title()
+    if any(ea in page_title.lower() for ea in _EASY_ACCESS_TITLES):
+        return ScreenClassification.ERROR, status_bar
+
+    # 4. Table (check ARIA snapshot for grid role)
     snapshot = await backend.get_snapshot()
     snapshot_str = str(snapshot)
     # In ARIA YAML snapshots, grids appear as "- grid" at some indentation level
     if re.search(r"^\s*- grid\b", snapshot_str, re.MULTILINE):
         return ScreenClassification.TABLE, status_bar
 
-    # 4. Unknown
+    # 5. Unknown
     return ScreenClassification.UNKNOWN, status_bar
 
 
@@ -167,15 +183,26 @@ async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-
 
     elif classification == ScreenClassification.UNKNOWN:
         screen_text = await backend.get_screen_text()
-        logger.warning(
-            "Unclassified screen after F8",
-            extra={
-                "tcode": tcode,
-                "page_title": page_title,
-                "status_bar_type": status_bar.type,
-                "status_bar_message": status_bar.message,
-            },
-        )
+
+        # Fallback: get_status_bar() may return empty if SAP hasn't
+        # updated the DOM yet (race with networkidle). screen_text
+        # captures it more reliably. Re-check empty patterns.
+        if screen_text and screen_text.status_bar:
+            sb_text_lower = screen_text.status_bar.lower()
+            if any(pattern in sb_text_lower for pattern in _EMPTY_PATTERNS):
+                classification = ScreenClassification.EMPTY
+                screen_text = None  # not needed for EMPTY
+
+        if classification == ScreenClassification.UNKNOWN:
+            logger.warning(
+                "Unclassified screen after F8",
+                extra={
+                    "tcode": tcode,
+                    "page_title": page_title,
+                    "status_bar_type": status_bar.type,
+                    "status_bar_message": status_bar.message,
+                },
+            )
 
     elif classification == ScreenClassification.ERROR:
         screen_text = await backend.get_screen_text()

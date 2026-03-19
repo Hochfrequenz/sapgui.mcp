@@ -32,7 +32,7 @@ def _make_backend(
     status_type: str = "S",
     status_message: str = "5 Einträge gelesen",
     snapshot: str = "- document 'SAP'\n  - grid 'ALV Grid'",
-    screen_title: str = "SAP",
+    screen_title: str = "Report Output",
     table_headers: list[str] | None = None,
     table_rows: list[dict[str, str]] | None = None,
 ) -> AsyncMock:
