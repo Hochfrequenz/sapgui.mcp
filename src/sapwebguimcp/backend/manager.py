@@ -79,7 +79,11 @@ class BackendManager:  # pylint: disable=too-few-public-methods
                     )
                 return cached
             if self._com_thread is None:
-                self._com_thread = ComThread()
+                from sapwebguimcp.models.config import (
+                    get_settings as _get_settings,  # pylint: disable=import-outside-toplevel
+                )
+
+                self._com_thread = ComThread(min_interval_ms=_get_settings().com_min_interval_ms)
             new_backend = DesktopBackend(com_thread=self._com_thread)
             self._backends["desktop"] = new_backend
             _current_session_id.set(session or "s1")
