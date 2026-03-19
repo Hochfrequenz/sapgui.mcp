@@ -29,6 +29,7 @@ from sapwebguimcp.tools import (
     register_feedback_tools,
     register_fm_tools,
     register_intent_tools,
+    register_quick_report_tools,
     register_sap_tools,
     register_se09_tools,
     register_se11_tools,
@@ -208,6 +209,7 @@ if _backend == "webgui":
     register_browser_tools(mcp)
     register_abapgit_tools(mcp)
     register_se37_edit_tools(mcp)
+    register_quick_report_tools(mcp)
 
 # Desktop only: COM escape hatches
 if _backend == "desktop":
