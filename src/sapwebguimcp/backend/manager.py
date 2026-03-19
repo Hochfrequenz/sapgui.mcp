@@ -79,8 +79,8 @@ class BackendManager:  # pylint: disable=too-few-public-methods
                     )
                 return cached
             if self._com_thread is None:
-                from sapwebguimcp.models.config import (  # pylint: disable=import-outside-toplevel,reimported
-                    get_settings as _get_settings,
+                from sapwebguimcp.models.config import (
+                    get_settings as _get_settings,  # pylint: disable=import-outside-toplevel,reimported
                 )
 
                 self._com_thread = ComThread(min_interval_ms=_get_settings().com_min_interval_ms)
