@@ -290,11 +290,11 @@ def _dump_tree_recursive(com_obj: Any, depth: int, max_depth: int) -> list[Eleme
 class GuiVContainer(GuiContainer, GuiVComponent):
     """Wraps the COM GuiVContainer interface — visual container with children and layout."""
 
-    def dump_tree(self, max_depth: int = 10) -> list[ElementInfo]:
+    def dump_tree(self, max_depth: int = 20) -> list[ElementInfo]:
         """Return a recursive tree of ElementInfo for all children.
 
         Args:
-            max_depth: Maximum recursion depth (default 10).
+            max_depth: Maximum recursion depth (default 20).
 
         Returns:
             A list of ElementInfo representing the child tree.
