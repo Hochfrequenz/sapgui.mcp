@@ -5,6 +5,7 @@ All settings are loaded from environment variables using pydantic-settings.
 """
 
 import sys
+import tempfile
 from enum import StrEnum
 from pathlib import Path
 from typing import Literal, Optional
@@ -179,6 +180,18 @@ class SapWebGuiSettings(BaseSettings):
         default="http://localhost:9222",
         description="Chrome DevTools Protocol URL for connecting to existing browser",
         json_schema_extra={"env": "CDP_URL"},
+    )
+
+    # Chrome auto-launch (for connect mode on Windows)
+    chrome_path: str = Field(
+        default="",
+        description="Explicit path to chrome.exe. If empty, Chrome is auto-detected via registry/known paths.",
+        json_schema_extra={"env": "CHROME_PATH"},
+    )
+    chrome_user_data_dir: str = Field(
+        default=str(Path(tempfile.gettempdir()) / "chrome-debug"),
+        description="User data directory for auto-launched Chrome (separate from default profile).",
+        json_schema_extra={"env": "CHROME_USER_DATA_DIR"},
     )
 
     # GitHub Settings (optional)

@@ -57,6 +57,8 @@ def clean_environment() -> Generator[None, None, None]:
         "BROWSER_HEADLESS",
         "CDP_URL",
         "SAP_CONNECTION_NAME",
+        "CHROME_PATH",
+        "CHROME_USER_DATA_DIR",
     ]
 
     original_values = {var: os.environ.get(var) for var in env_vars_to_clear}

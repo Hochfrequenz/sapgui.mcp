@@ -63,32 +63,16 @@ logger = logging.getLogger(__name__)
 
 
 async def _check_cdp_available(cdp_url: str) -> bool:
-    """Check Chrome CDP availability and log status. Non-blocking — warns but does not fail."""
+    """Check Chrome CDP availability. If not reachable, log that auto-launch will be attempted."""
     try:
         async with httpx.AsyncClient() as client:
             await client.get(f"{cdp_url}/json/version", timeout=2.0)
         logger.info("[OK] Chrome CDP reachable at %s", cdp_url)
         return True
     except (httpx.ConnectError, httpx.TimeoutException, OSError):
-        if sys.platform == "win32":
-            hint = (
-                '& "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"'
-                ' --remote-debugging-port=9222 --user-data-dir="C:\\temp\\chrome-debug"'
-                " (NOTE: Chrome path may differ — if installed per-user, try"
-                ' "%LOCALAPPDATA%\\Google\\Chrome\\Application\\chrome.exe" instead)'
-            )
-        elif sys.platform == "darwin":
-            hint = (
-                '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"'
-                " --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug"
-            )
-        else:
-            hint = "google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug"
-        logger.warning(
-            "[ACTION REQUIRED] Chrome not detected at %s. "
-            "Start Chrome with remote debugging, then restart this server: %s",
+        logger.info(
+            "Chrome not detected at %s. Will attempt auto-launch when browser is needed.",
             cdp_url,
-            hint,
         )
         return False
 
@@ -107,7 +91,7 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
         if cdp_ok:
             logger.info("[READY] Server started successfully. Waiting for MCP client connection on stdio.")
         else:
-            logger.info("[WAITING] Server started but Chrome is not available. Start Chrome, then restart this server.")
+            logger.info("[READY] Server started. Chrome not detected yet — will auto-launch when browser is needed.")
     else:
         logger.info("[READY] Server started (backend=%s). Waiting for MCP client connection.", _settings.backend_type)
 
@@ -137,21 +121,26 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
 SERVER_INSTRUCTIONS = """
 SAP Web GUI automation server. Controls SAP through a Chrome browser with remote debugging enabled.
 
-IMPORTANT: Do NOT attempt to install Chrome or any browser. The user must start Chrome manually.
+BROWSER SETUP:
+Chrome is auto-launched with debugging flags when not already running.
+If Chrome cannot be found automatically, set CHROME_PATH in the .env file.
+The user may also pre-launch Chrome manually with --remote-debugging-port=9222.
 
-PREREQUISITES (user must set up BEFORE using these tools):
-- Chrome running with --remote-debugging-port=9222 (user starts this manually)
+IMPORTANT: Do NOT attempt to install Chrome or any browser.
+
+PREREQUISITES:
+- Chrome installed (auto-detected, or CHROME_PATH set in .env)
 - VPN connected (if SAP system is on internal network)
 - CDP proxy running (for Docker setups)
 
 IF CONNECTION FAILS:
 Do NOT try to install browsers. Instead, ask the user to verify:
-1. "Is Chrome running with --remote-debugging-port=9222?"
+1. "Is Chrome installed?" (set CHROME_PATH in .env if not auto-detected)
 2. "Is your VPN connected?" (for internal SAP systems)
 3. "Is the CDP proxy running?" (docker compose up -d)
 
 COMMON ERROR CAUSES:
-- "Cannot connect to browser": Chrome not started with debugging flags, or CDP proxy not running
+- "Chrome konnte nicht automatisch gefunden werden": Set CHROME_PATH in .env
 - "SAP URL not reachable": VPN not connected
 - Login fails: Check SAP_USER, SAP_PASSWORD, SAP_MANDANT environment variables
 
