@@ -47,13 +47,15 @@ def _make_backend(
             return_value=TransactionResult.failure(error=tx_error or "TX not found", tcode="ZZZZZ")
         )
 
-    # press_key
+    # click_button — simulate Ausführen button found and clicked
+    backend.click_button = AsyncMock(return_value=None)
+
+    # press_key — fallback if click_button fails
     backend.press_key = AsyncMock(return_value=KeyboardResult(key="F8", page_title=screen_title))
 
-    # wait_for_ready
+    # wait / wait_for_ready / wait_for_sap_ready
+    backend.wait = AsyncMock()
     backend.wait_for_ready = AsyncMock()
-
-    # wait_for_sap_ready
     backend.wait_for_sap_ready = AsyncMock()
 
     # get_status_bar
@@ -177,7 +179,7 @@ class TestQuickReportPipeline:
         assert result.screen_text.title == "Variantenauswahl"
 
     async def test_field_not_found_continues(self) -> None:
-        """Field not found → warning, but F8 still pressed."""
+        """Field not found → warning, but F8 still executed."""
         backend = _make_backend()
         with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
             with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
@@ -189,8 +191,8 @@ class TestQuickReportPipeline:
                 )
         assert result.success is True
         assert "FakeField" in result.warnings[0]
-        # F8 was still pressed
-        backend.press_key.assert_called()
+        # F8 was executed (via click_button or press_key)
+        assert backend.click_button.called or backend.press_key.called
 
     async def test_pipeline_call_order(self) -> None:
         """Verify pipeline calls in correct order."""
@@ -201,6 +203,9 @@ class TestQuickReportPipeline:
             call_log.append("enter_transaction")
             return TransactionResult(tcode=tcode)
 
+        async def track_click_button(label: str) -> None:
+            call_log.append(f"click_button({label})")
+
         async def track_press_key(key: str) -> KeyboardResult:
             call_log.append(f"press_key({key})")
             return KeyboardResult(key=key)
@@ -209,6 +214,7 @@ class TestQuickReportPipeline:
             call_log.append("wait_for_ready")
 
         backend.enter_transaction = track_enter_tx
+        backend.click_button = track_click_button
         backend.press_key = track_press_key
         backend.wait_for_ready = track_wait
 
@@ -223,11 +229,12 @@ class TestQuickReportPipeline:
                 await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
 
         assert call_log[0] == "enter_transaction"
-        assert "press_key(F8)" in call_log
+        # F8 executed via click_button (primary) or press_key (fallback)
+        assert any("click_button" in c for c in call_log) or any("press_key(F8)" in c for c in call_log)
         assert "wait_for_ready" in call_log
 
     async def test_wait_for_sap_ready_called_before_f8(self) -> None:
-        """Pipeline must call wait_for_sap_ready between enter_transaction and press_key(F8)."""
+        """Pipeline must call wait_for_sap_ready between enter_transaction and F8 execution."""
         backend = _make_backend()
         call_log: list[str] = []
 
@@ -241,13 +248,17 @@ class TestQuickReportPipeline:
         async def track_wait_sap_ready(timeout_ms: int = 5000) -> None:
             call_log.append("wait_for_sap_ready")
 
+        async def track_click_button(label: str) -> None:
+            call_log.append("execute_f8")
+
         async def track_press_key(key: str) -> KeyboardResult:
-            call_log.append(f"press_key({key})")
+            call_log.append("execute_f8")
             return KeyboardResult(key=key)
 
         backend.enter_transaction = track_enter_tx
         backend.wait_for_ready = track_wait_ready
         backend.wait_for_sap_ready = track_wait_sap_ready
+        backend.click_button = track_click_button
         backend.press_key = track_press_key
 
         with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
@@ -257,11 +268,74 @@ class TestQuickReportPipeline:
                 mock_ess.return_value = ScreenStateDiff()
                 await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
 
-        # wait_for_sap_ready must appear AFTER enter_transaction and BEFORE press_key(F8)
+        # wait_for_sap_ready must appear AFTER enter_transaction and BEFORE F8 execution
         idx_sap_ready = call_log.index("wait_for_sap_ready")
         idx_enter = call_log.index("enter_transaction")
-        idx_f8 = call_log.index("press_key(F8)")
+        idx_f8 = call_log.index("execute_f8")
         assert idx_enter < idx_sap_ready < idx_f8
+
+
+@pytest.mark.anyio
+class TestF8Retry:
+    """Tests for the F8 retry loop (swallowed keystrokes)."""
+
+    async def test_f8_retried_on_swallowed_keystroke(self) -> None:
+        """F8 swallowed (ERROR, no status message) → retry → TABLE on 3rd attempt."""
+        f8_count = {"n": 0}
+
+        backend = _make_backend(
+            status_type="none",
+            status_message="",
+            snapshot="- main 'SM37':\n  - textbox 'Jobname'",
+        )
+
+        async def counting_click_button(label: str) -> None:
+            f8_count["n"] += 1
+
+        async def evolving_snapshot() -> str:
+            if f8_count["n"] < 3:
+                # Still on selection screen (textbox → ERROR)
+                return "- main 'SM37':\n  - textbox 'Jobname'"
+            return "- document 'SAP'\n  - grid 'ALV Grid'"
+
+        async def evolving_status_bar() -> StatusBarInfo:
+            if f8_count["n"] < 3:
+                return StatusBarInfo(type="none", message="")
+            return StatusBarInfo(type="S", message="10 Einträge gelesen")
+
+        backend.click_button = counting_click_button
+        backend.get_snapshot = evolving_snapshot
+        backend.get_status_bar = evolving_status_bar
+
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(backend, tcode="SM37")
+
+        assert result.screen_type == ScreenClassification.TABLE
+        assert f8_count["n"] == 3  # needed 3 attempts
+
+    async def test_f8_retry_stops_on_real_error(self) -> None:
+        """SAP error (status_bar type E) → no retry, return immediately."""
+        f8_count = {"n": 0}
+
+        backend = _make_backend(
+            status_type="E",
+            status_message="Werk XXXX existiert nicht",
+        )
+
+        async def counting_click_button(label: str) -> None:
+            f8_count["n"] += 1
+
+        backend.click_button = counting_click_button
+
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(backend, tcode="SM37")
+
+        assert result.screen_type == ScreenClassification.ERROR
+        assert f8_count["n"] == 1  # no retry on real error
 
 
 @pytest.mark.anyio
@@ -354,7 +428,12 @@ class TestPostF8Keys:
             snapshot="- document 'SAP'\n  - dialog 'Popup'",
         )
         press_key_calls: list[str] = []
+        click_button_called = False
         classify_count = {"n": 0}
+
+        async def tracking_click_button(label: str) -> None:
+            nonlocal click_button_called
+            click_button_called = True
 
         async def tracking_press_key(key: str) -> KeyboardResult:
             press_key_calls.append(key)
@@ -362,17 +441,18 @@ class TestPostF8Keys:
 
         async def evolving_snapshot() -> str:
             classify_count["n"] += 1
-            if classify_count["n"] <= 1:
-                # After F8: popup
+            if classify_count["n"] <= 2:
+                # After F8 + UNKNOWN re-classify: still popup
                 return "- document 'SAP'\n  - dialog 'Popup'"
-            # After Enter: grid appears
+            # After Enter (post_f8_key): grid appears
             return "- document 'SAP'\n  - grid 'ALV Grid'"
 
         async def evolving_status_bar() -> StatusBarInfo:
-            if classify_count["n"] <= 1:
+            if classify_count["n"] <= 2:
                 return StatusBarInfo(type="none", message="")
             return StatusBarInfo(type="S", message="5 Einträge")
 
+        backend.click_button = tracking_click_button
         backend.press_key = tracking_press_key
         backend.get_snapshot = evolving_snapshot
         backend.get_status_bar = evolving_status_bar
@@ -387,8 +467,9 @@ class TestPostF8Keys:
                 )
 
         assert result.screen_type == ScreenClassification.TABLE
-        # F8 + Enter should be called, but F5 should be skipped (grid found after Enter)
-        assert "F8" in press_key_calls
+        # F8 was executed (via click_button or press_key)
+        assert click_button_called or "F8" in press_key_calls
+        # Enter should be called via press_key, but F5 should be skipped
         assert "Enter" in press_key_calls
         assert "F5" not in press_key_calls
 

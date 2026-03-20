@@ -107,6 +107,44 @@ async def classify_result_screen(
 
 
 _MAX_POST_F8_KEYS = 3
+_F8_MAX_RETRIES = 3
+
+# Labels for the SAP "Execute" button (DE + EN, with/without highlight marker)
+_EXECUTE_BUTTON_LABELS: tuple[str, ...] = (
+    "Ausführen",
+    "Ausführen Hervorgehoben",
+    "Execute",
+    "Execute Highlighted",
+)
+
+
+async def _press_f8(backend: SapUiBackend, tcode: str, attempt: int) -> None:
+    """Execute the report by clicking the Ausführen button or pressing F8.
+
+    Prefers a direct DOM click on the Execute button (reliable across all
+    focus states).  Falls back to ``keyboard.press("F8")`` when the button
+    is not found (some transactions hide it).
+    """
+    for label in _EXECUTE_BUTTON_LABELS:
+        try:
+            await backend.click_button(label)
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+        # Button was clicked — wait for the server roundtrip.
+        # This must be OUTSIDE the try/except so a timeout doesn't
+        # cause us to retry with the next label (click already fired).
+        await backend.wait_for_ready()
+        logger.debug(
+            "F8 via click_button(%s) attempt %d",
+            label,
+            attempt,
+            extra={"tcode": tcode},
+        )
+        return
+
+    # Fallback: keyboard F8
+    logger.debug("F8 via keyboard (attempt %d)", attempt, extra={"tcode": tcode})
+    await backend.press_key("F8")
 
 
 async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
@@ -199,21 +237,43 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
             warnings.append(f"Selection screen: {state_result.error}")
         warnings.extend(state_result.warnings)
 
-    # 4. Press F8
-    f8_result = await backend.press_key("F8")
-    if f8_result.status_bar_type and f8_result.status_bar_type != "none":
-        logger.debug(
-            "F8 status bar: type=%s, msg=%s",
-            f8_result.status_bar_type,
-            f8_result.status_bar_message,
+    # 4. Execute report (F8) — retry up to 3 times if screen doesn't change.
+    #    Strategy: click the Ausführen button (DOM click, most reliable),
+    #    fall back to keyboard F8 if the button is not found.
+    classification = ScreenClassification.UNKNOWN
+    status_bar = StatusBarInfo(type="none", message="")
+
+    for attempt in range(1, _F8_MAX_RETRIES + 1):
+        await _press_f8(backend, tcode, attempt)
+        classification, status_bar = await classify_result_screen(backend)
+
+        # If we got a definitive result, stop retrying.
+        if classification not in (ScreenClassification.ERROR, ScreenClassification.UNKNOWN):
+            break
+
+        # UNKNOWN with empty status bar likely means SAP is still rendering
+        # (e.g. loading popup). Wait and re-classify once.
+        if classification == ScreenClassification.UNKNOWN and not status_bar.message:
+            await backend.wait(2000)
+            await backend.wait_for_ready()
+            classification, status_bar = await classify_result_screen(backend)
+            if classification != ScreenClassification.ERROR:
+                break
+
+        # ERROR with a real SAP message (E/W) means SAP responded —
+        # don't retry, it's a genuine error, not a missed F8.
+        if status_bar.type in ("E", "W"):
+            break
+
+        # Otherwise F8 was likely swallowed — retry with increasing delay.
+        logger.warning(
+            "F8 attempt %d/%d: still on selection screen, retrying",
+            attempt,
+            _F8_MAX_RETRIES,
             extra={"tcode": tcode},
         )
-
-    # 5. Wait for SAP
-    await backend.wait_for_ready()
-
-    # 6. Classify, then apply post_f8_keys (max 3, with early exit)
-    classification, status_bar = await classify_result_screen(backend)
+        if attempt < _F8_MAX_RETRIES:
+            await backend.wait(500 * attempt)  # 500ms, 1000ms
 
     effective_keys = list(post_f8_keys or [])
     if len(effective_keys) > _MAX_POST_F8_KEYS:
