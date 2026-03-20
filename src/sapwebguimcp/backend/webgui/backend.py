@@ -390,7 +390,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 # the page title changed or the OK-code field was cleared.
                 navigated = await self._verify_transaction_submitted(transaction_input, title_before)
                 if navigated:
-                    title = await self._page.title()
+                    title = await self._poll_title_change(title_before)
                     if attempt > 1:
                         logger.info(
                             "enter_transaction succeeded on attempt %d",
@@ -446,6 +446,32 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception:  # pylint: disable=broad-exception-caught
             # Element detached / page navigated → success.
             return True
+
+    async def _poll_title_change(
+        self, old_title: str, *, timeout_ms: int = 3000, interval_ms: int = 200
+    ) -> str:
+        """Poll until the page title differs from *old_title*, or timeout.
+
+        Returns the new title, or the current title if timeout is reached
+        (e.g. navigating from SE24 back to SE24 where the title stays the same).
+        """
+        title = await self._page.title()
+        if title != old_title:
+            return title
+
+        deadline = time.monotonic() + timeout_ms / 1000
+        while time.monotonic() < deadline:
+            await self._page.wait_for_timeout(interval_ms)
+            title = await self._page.title()
+            if title != old_title:
+                return title
+
+        logger.debug(
+            "Title unchanged after %dms (may be same-tcode navigation)",
+            timeout_ms,
+            extra={"old_title": old_title},
+        )
+        return title
 
     # ---- keepalive ----
 
