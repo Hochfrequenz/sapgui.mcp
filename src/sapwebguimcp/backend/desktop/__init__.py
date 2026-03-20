@@ -262,6 +262,9 @@ class DesktopBackend:
                 return
             await asyncio.sleep(0.2)
 
+    async def wait_for_sap_ready(self, timeout_ms: int = 5000) -> None:
+        """Desktop backend: COM calls are synchronous, so this is a no-op."""
+
     async def bring_to_front(self) -> None:
         """Bring the SAP GUI window to the foreground."""
         session = self._require_session()
