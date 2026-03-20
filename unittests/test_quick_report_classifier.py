@@ -166,3 +166,14 @@ class TestClassifyResultScreen:
         )
         classification, _ = await classify_result_screen(backend)
         assert classification == ScreenClassification.LIST
+
+    async def test_grid_takes_priority_over_list(self) -> None:
+        """Snapshot with both grid and list → TABLE (grid check runs first)."""
+        backend = _make_backend(
+            status_type="S",
+            status_message="10 Einträge gelesen",
+            snapshot="- document 'SAP'\n  - grid 'ALV Grid'\n  - list 'Navigation'",
+            screen_title="Report Output",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.TABLE

@@ -45,6 +45,7 @@ async def test_enter_transaction_returns_new_title_after_slow_navigation():
     page.keyboard.press = AsyncMock()
 
     # Create backend with mocked page — set all required attributes
+    # Bypass __init__ -- update attribute list below if constructor changes
     backend = WebGuiBackend.__new__(WebGuiBackend)
     backend._page = page
     backend._session_token = "test-token"
@@ -61,3 +62,28 @@ async def test_enter_transaction_returns_new_title_after_slow_navigation():
     assert "IW29" in result.page_title or "PM Orders" in result.page_title
     # Must NOT be the old title
     assert "FBL1N" not in result.page_title
+
+
+@pytest.mark.anyio
+async def test_poll_title_change_returns_on_timeout():
+    """When title never changes (same-tcode navigation), _poll_title_change returns after timeout."""
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
+    page = AsyncMock()
+    # Title never changes
+    page.title = AsyncMock(return_value="SE24 - Class Builder: Initial Screen")
+    page.wait_for_timeout = AsyncMock()
+
+    backend = WebGuiBackend.__new__(WebGuiBackend)
+    backend._page = page
+    backend._session_token = "test-token"
+    backend._keepalive_task = None
+
+    # Use short timeout to keep test fast
+    result = await backend._poll_title_change(
+        "SE24 - Class Builder: Initial Screen", timeout_ms=500, interval_ms=100
+    )
+
+    assert result == "SE24 - Class Builder: Initial Screen"
+    # Verify polling happened (at least one wait_for_timeout call)
+    assert page.wait_for_timeout.call_count >= 1
