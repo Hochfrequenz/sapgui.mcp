@@ -177,3 +177,54 @@ class TestClassifyResultScreen:
         )
         classification, _ = await classify_result_screen(backend)
         assert classification == ScreenClassification.TABLE
+
+    async def test_warning_classified_as_error(self) -> None:
+        """Status bar type 'W' without empty pattern → ERROR."""
+        backend = _make_backend(
+            status_type="W",
+            status_message="Selektion wurde nicht eingeschränkt",
+        )
+        classification, status_bar = await classify_result_screen(backend)
+        assert classification == ScreenClassification.ERROR
+        assert status_bar.type == "W"
+
+    async def test_warning_with_empty_pattern_still_empty(self) -> None:
+        """Warning with empty-data message → EMPTY (empty check runs first)."""
+        backend = _make_backend(
+            status_type="W",
+            status_message="Es wurden keine Werte selektiert",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.EMPTY
+
+    async def test_selection_screen_with_execute_detected_as_error(self) -> None:
+        """Still on selection screen (textbox + Ausführen) → ERROR."""
+        backend = _make_backend(
+            status_type="none",
+            status_message="",
+            snapshot=(
+                "- main 'Materialbelegliste':\n"
+                "  - textbox 'Werk'\n"
+                "  - textbox 'Material'\n"
+                '  - button "Ausführen Hervorgehoben"\n'
+            ),
+            screen_title="Materialbelegliste",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.ERROR
+
+    async def test_selection_screen_without_execute_detected_as_error(self) -> None:
+        """Selection screen without Ausführen (e.g. VF05) → ERROR."""
+        backend = _make_backend(
+            status_type="none",
+            status_message="",
+            snapshot=(
+                "- main 'Liste Fakturen':\n"
+                "  - textbox 'Regulierer'\n"
+                "  - textbox 'Material'\n"
+                "  - button 'Anzeigevarianten'\n"
+            ),
+            screen_title="Liste Fakturen",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.ERROR

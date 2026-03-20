@@ -52,9 +52,13 @@ async def classify_result_screen(
     Priority:
     1. Status bar type "E" → ERROR
     2. Status bar contains empty-data pattern → EMPTY
-    3. Page title is Easy Access → ERROR (transaction didn't navigate away)
-    4. ARIA snapshot contains grid → TABLE
-    5. Otherwise → UNKNOWN
+    3. Status bar type "W" (Warning) → ERROR (SAP refused to execute, e.g.
+       "Selektion wurde nicht eingeschränkt")
+    4. Page title is Easy Access → ERROR (transaction didn't navigate away)
+    5. ARIA snapshot contains grid → TABLE
+    5b. ARIA snapshot contains list/listitem → LIST
+    6. Still on selection screen (textbox + Ausführen button visible) → ERROR
+    7. Otherwise → UNKNOWN
     """
     status_bar = await backend.get_status_bar()
 
@@ -67,23 +71,38 @@ async def classify_result_screen(
     if any(pattern in msg_lower for pattern in _EMPTY_PATTERNS):
         return ScreenClassification.EMPTY, status_bar
 
-    # 3. Easy Access — transaction didn't open or invalid tcode bounced back
+    # 3. Warning — SAP showed a warning after F8 (e.g. selection not restricted).
+    #    The report did not execute; treat as error so the agent can decide next steps.
+    if status_bar.type == "W":
+        return ScreenClassification.ERROR, status_bar
+
+    # 4. Easy Access — transaction didn't open or invalid tcode bounced back
     page_title = await backend.get_page_title()
     if any(ea in page_title.lower() for ea in _EASY_ACCESS_TITLES):
         return ScreenClassification.ERROR, status_bar
 
-    # 4. Table (check ARIA snapshot for grid role)
+    # 5. Table (check ARIA snapshot for grid role)
     snapshot = await backend.get_snapshot()
     snapshot_str = str(snapshot)
     # In ARIA YAML snapshots, grids appear as "- grid" at some indentation level
     if re.search(r"^\s*- grid\b", snapshot_str, re.MULTILINE):
         return ScreenClassification.TABLE, status_bar
 
-    # 4b. Classic list (list/listitem roles, no grid)
+    # 5b. Classic list (list/listitem roles, no grid)
     if re.search(r"^\s*- (?:list|listitem)\b", snapshot_str, re.MULTILINE):
         return ScreenClassification.LIST, status_bar
 
-    # 5. Unknown
+    # 6. Still on selection screen — F8 didn't navigate away.
+    #    Selection screens have input textboxes.  Some transactions also show
+    #    the Ausführen button, others (e.g. VF05) do not.  At this point we
+    #    already ruled out grid, list, error, empty, and Easy Access, so
+    #    textboxes remaining strongly indicates we never left the selection
+    #    screen.
+    if "textbox" in snapshot_str:
+        logger.debug("classify_result_screen: still on selection screen after F8")
+        return ScreenClassification.ERROR, status_bar
+
+    # 7. Unknown
     return ScreenClassification.UNKNOWN, status_bar
 
 
@@ -181,7 +200,14 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
         warnings.extend(state_result.warnings)
 
     # 4. Press F8
-    await backend.press_key("F8")
+    f8_result = await backend.press_key("F8")
+    if f8_result.status_bar_type and f8_result.status_bar_type != "none":
+        logger.debug(
+            "F8 status bar: type=%s, msg=%s",
+            f8_result.status_bar_type,
+            f8_result.status_bar_message,
+            extra={"tcode": tcode},
+        )
 
     # 5. Wait for SAP
     await backend.wait_for_ready()
