@@ -6,7 +6,7 @@
 
 **Architecture:** pysapgui is a typed Python wrapper around the SAP GUI Scripting COM API. It lives at `src/sapwebguimcp/sapgui/` with 28 source files and 15 test files. Zero coupling to the MCP server. Work happens in-place; extraction is the final step.
 
-**Tech Stack:** Python 3.10+, pywin32 (COM), dataclasses (replacing Pydantic), pytest
+**Tech Stack:** Python 3.10+, pywin32 (COM), Pydantic v2 (models), pytest
 
 **Spec:** `docs/superpowers/specs/2026-03-20-pysapgui-open-source-readiness-design.md`
 
@@ -919,9 +919,32 @@ git add src/sapwebguimcp/sapgui/components/application.py unittests/sapgui/test_
 git commit -m "feat(pysapgui): add context manager protocol to GuiApplication (#480)"
 ```
 
+- [ ] **Step 6: Update `SapGui.connect()` docstring to advertise context manager**
+
+In `src/sapwebguimcp/sapgui/__init__.py`, update the `connect()` docstring:
+
+```python
+    @staticmethod
+    def connect() -> "GuiApplication":
+        """Attach to a running SAP GUI instance via the Running Object Table.
+
+        Returns a GuiApplication that supports the context manager protocol::
+
+            with SapGui.connect() as app:
+                session = app.connections[0].sessions[0]
+                # ... work with session
+            # all connections closed on exit
+        """
+```
+
+```bash
+git add src/sapwebguimcp/sapgui/__init__.py
+git commit --amend --no-edit
+```
+
 ---
 
-### Task 9: Narrow exception catching in _safe_com_attr (#481)
+### Task 9: Log non-COM exceptions in _safe_com_attr (#481)
 
 **Files:**
 - Modify: `src/sapwebguimcp/sapgui/components/base.py` (lines 191-200)
@@ -979,92 +1002,9 @@ git commit -m "fix(pysapgui): log non-COM exceptions in _safe_com_attr (#481)"
 
 ---
 
-### Task 10: Replace Pydantic with dataclasses in models.py (#482)
+### ~~Task 10: Replace Pydantic with dataclasses (#482) — CANCELLED~~
 
-**Files:**
-- Modify: `src/sapwebguimcp/sapgui/models.py` (33 lines)
-- Modify: `unittests/sapgui/test_models.py`
-- Modify: `src/sapwebguimcp/sapgui/components/base.py` (imports ElementInfo)
-- Modify: `src/sapwebguimcp/backend/desktop/__init__.py` (if it imports SessionInfo/ElementInfo)
-
-- [ ] **Step 1: Read models.py and find all importers**
-
-Read `src/sapwebguimcp/sapgui/models.py`. Then grep for `from sapwebguimcp.sapgui.models import` across the codebase.
-
-- [ ] **Step 2: Rewrite models.py with dataclasses**
-
-```python
-"""Data models for pysapgui — pure stdlib, no Pydantic dependency."""
-
-from __future__ import annotations
-
-from dataclasses import dataclass, field, asdict
-from typing import Any
-
-
-@dataclass
-class SessionInfo:
-    """Structured session metadata from GuiSessionInfo."""
-
-    system_name: str
-    client: str
-    user: str
-    language: str
-    transaction: str
-    program: str
-    screen_number: int
-    application_server: str
-    response_time: int
-    round_trips: int
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize to a plain dict."""
-        return asdict(self)
-
-
-@dataclass
-class ElementInfo:
-    """Single element in a tree dump."""
-
-    id: str
-    type: str
-    type_as_number: int
-    name: str
-    text: str
-    changeable: bool
-    children: list[ElementInfo] = field(default_factory=list)
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize to a plain dict (recursive for children)."""
-        return asdict(self)
-```
-
-- [ ] **Step 3: Update consumers across the FULL codebase**
-
-Search the entire `src/sapwebguimcp/` and `unittests/` trees for:
-- `.model_dump()` or `.dict()` calls on SessionInfo/ElementInfo → replace with `.to_dict()`
-- Construction patterns like `ElementInfo(children=None)` → won't auto-coerce to `[]` with dataclasses (Pydantic did this); fix to `children=[]`
-- Any `from pydantic import BaseModel` that only existed for these two models
-
-Check `base.py` where `ElementInfo` is constructed — should work identically since dataclass construction uses the same `ElementInfo(id=..., type=..., ...)` syntax as Pydantic.
-
-- [ ] **Step 4: Update tests**
-
-Update `test_models.py` to remove any Pydantic-specific assertions (e.g., `.model_dump()`). Replace with `.to_dict()`.
-
-- [ ] **Step 5: Run FULL test suite (not just sapgui)**
-
-Run: `python -m pytest unittests/ -v`
-Expected: ALL PASS — the desktop backend also uses these models transitively
-
-- [ ] **Step 6: Run isort + black, then commit**
-
-```bash
-python -m isort src/sapwebguimcp/sapgui/models.py unittests/sapgui/test_models.py
-python -m black src/sapwebguimcp/sapgui/models.py unittests/sapgui/test_models.py
-git add src/sapwebguimcp/sapgui/models.py unittests/sapgui/test_models.py
-git commit -m "refactor(pysapgui): replace Pydantic with dataclasses in models.py (#482)"
-```
+**Decision:** Keeping Pydantic. Better usability (`.model_dump()`, validation, JSON serialization) outweighs the dependency cost. `pydantic>=2.0` will be a dependency of the standalone package.
 
 ---
 
@@ -1145,7 +1085,7 @@ git commit -m "docs(pysapgui): add thread safety documentation to _com.py (#484)
 ### Task 13: Write README (#485)
 
 **Files:**
-- Create: `src/sapwebguimcp/sapgui/README.md`
+- Create: `docs/pysapgui-README.md`
 
 - [ ] **Step 1: Write the README**
 
@@ -1163,7 +1103,7 @@ The README should include:
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/README.md
+git add docs/pysapgui-README.md
 git commit -m "docs(pysapgui): add README for standalone library (#485)"
 ```
 
@@ -1195,10 +1135,10 @@ git commit -m "docs(pysapgui): complete docstring audit (#486)"
 ### Task 15: Create examples directory (#487)
 
 **Files:**
-- Create: `src/sapwebguimcp/sapgui/examples/basic_navigation.py`
-- Create: `src/sapwebguimcp/sapgui/examples/alv_grid_export.py`
-- Create: `src/sapwebguimcp/sapgui/examples/form_filling.py`
-- Create: `src/sapwebguimcp/sapgui/examples/tree_navigation.py`
+- Create: `examples/pysapgui/basic_navigation.py`
+- Create: `examples/pysapgui/alv_grid_export.py`
+- Create: `examples/pysapgui/form_filling.py`
+- Create: `examples/pysapgui/tree_navigation.py`
 
 - [ ] **Step 1: Write basic_navigation.py**
 
@@ -1285,9 +1225,97 @@ for key in keys[:10]:  # first 10
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/examples/
+git add examples/pysapgui/
 git commit -m "docs(pysapgui): add example scripts (#487)"
 ```
+
+### Task 15a: Add doctests to public API methods (#497)
+
+**Files:**
+- Modify: key files in `src/sapwebguimcp/sapgui/components/`
+
+- [ ] **Step 1: Add doctests to high-value methods**
+
+Add usage examples as doctests to at least 10 methods. Use `# doctest: +SKIP` for methods requiring COM. Example:
+
+```python
+class GuiGridView(GuiShell):
+    def get_cell_value(self, row: int, column: str) -> str:
+        """Return the raw value of a cell.
+
+        Example::
+
+            >>> grid = session.find_by_id("wnd[0]/usr/cntlGRID/shellcont/shell")  # doctest: +SKIP
+            >>> grid.get_cell_value(0, "MATNR")  # doctest: +SKIP
+            '000000001234'
+        """
+        return self._com.GetCellValue(row, column)
+```
+
+Target methods: `SapGui.connect()`, `GuiSession.find_by_id()`, `GuiSession.send_command()`, `GuiGridView.get_cell_value()`, `GuiTree.select_node()`, `GuiComboBox.entries`, `GuiVContainer.dump_tree()`, `GuiTextField.text`, `GuiButton.press()`, `GuiFrameWindow.send_v_key()`.
+
+- [ ] **Step 2: Run isort + black, then commit**
+
+```bash
+python -m isort src/sapwebguimcp/sapgui/
+python -m black src/sapwebguimcp/sapgui/
+git add src/sapwebguimcp/sapgui/
+git commit -m "docs(pysapgui): add doctests to public API methods (#497)"
+```
+
+---
+
+### Task 15b: Set up documentation site (#498)
+
+**Files:**
+- Create: docs config (e.g., `mkdocs.yml` or use pdoc)
+- Create: GitHub Actions workflow for docs deployment
+
+- [ ] **Step 1: Decide on tooling**
+
+Read the existing project CI to understand constraints. Recommended: start with `pdoc` — one command, zero config:
+
+```bash
+pip install pdoc
+pdoc src/sapwebguimcp/sapgui/ -o site/
+```
+
+If mkdocs/RTD preferred, set up `mkdocs.yml` with `mkdocstrings` plugin.
+
+- [ ] **Step 2: Build docs locally and verify**
+
+Verify all classes appear, doctests render as code examples, hierarchy is navigable.
+
+- [ ] **Step 3: Add GitHub Actions workflow**
+
+```yaml
+# .github/workflows/docs.yml
+name: Deploy Docs
+on:
+  push:
+    branches: [main]
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - run: pip install pdoc pydantic pywin32-stubs
+      - run: pdoc src/sapwebguimcp/sapgui/ -o site/
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add .github/workflows/docs.yml
+git commit -m "ci(pysapgui): add docs site deployment (#498)"
+```
+
+**Note:** This task completes in the standalone repo (#492). The workflow above is a template — adapt to the final repo structure.
 
 ---
 

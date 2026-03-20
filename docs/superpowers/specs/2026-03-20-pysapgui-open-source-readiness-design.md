@@ -42,18 +42,22 @@ Issues declare their dependencies so execution order is visible from the tickets
 |---|---|---|
 | #479 | Extract `_login.py` to login submodule | — |
 | #480 | Add context manager protocol to GuiApplication | — |
-| #481 | Narrow exception catching in `_safe_com_attr()` | — |
-| #482 | Replace Pydantic with dataclasses in models.py | — |
+| #481 | Log non-COM exceptions in `_safe_com_attr()` | — |
+| ~~#482~~ | ~~Replace Pydantic with dataclasses~~ | **CLOSED — keeping Pydantic** |
 | #483 | Add `__all__` to all component modules | — |
 | #484 | Document thread safety / COM apartment rules | — |
+| #499 | Fix `-> Any` return types for typed DX | — |
+| #500 | Packaging polish (py.typed, __version__, CHANGELOG) | #492 |
 
 ### Phase 3: Documentation — depends on Phase 1+2
 
 | Issue | Title | Depends On |
 |---|---|---|
-| #485 | Write README with quickstart, installation, examples | #473–#478, #482 |
+| #485 | Write README with quickstart, installation, examples | #473–#478 |
 | #486 | Docstring audit for all public classes/methods | #473–#478 |
 | #487 | Create examples directory | #473–#478, #485 |
+| #497 | Add doctests to public API methods | #473–#478, #486 |
+| #498 | Set up documentation site (RTD or GitHub Pages) | #486, #497, #492 |
 
 ### Phase 4: Testing — depends on Phase 1
 
@@ -75,12 +79,13 @@ Issues declare their dependencies so execution order is visible from the tickets
 ```
 Phase 1 (parallel):  #473  #474  #475  #476  #477  #478
                        │     │     │     │     │     │
-Phase 2 (parallel):  #479  #480  #481  #482  #483  #484
-                                         │
-                                         ▼
-Phase 3:              #485 ◄── Phase 1 + #482
+Phase 2 (parallel):  #479  #480  #481  #483  #484
+
+Phase 3:              #485 ◄── Phase 1
                        │       #486 ◄── Phase 1
                        ▼       #487 ◄── Phase 1 + #485
+                      #497 ◄── Phase 1 + #486
+                       │
 Phase 4:              #488 ◄── Phase 1
                        │
                       #489 ◄── #488
@@ -90,7 +95,11 @@ Phase 4:              #488 ◄── Phase 1
 Phase 5:              #491 ◄── All Phase 1–4
                        │
                       #492 ◄── #491, #485, #490
+                       │
+                      #498 ◄── #486, #497, #492
 ```
+
+Note: #482 (Pydantic → dataclasses) is CANCELLED — Pydantic stays.
 
 ## Phase Details
 
@@ -135,11 +144,12 @@ Phase 5:              #491 ◄── All Phase 1–4
 **2.2 Context manager protocol (#480)**
 - `with SapGui.connect() as app:` for automatic cleanup
 
-**2.3 Narrow exception catching (#481)**
-- Catch `pywintypes.com_error` instead of bare `Exception`
+**2.3 Log non-COM exceptions in `_safe_com_attr()` (#481)**
+- Keep broad `Exception` catch as safety net (COM errors are not always `pywintypes.com_error`)
+- Add warning log for non-COM exceptions so real bugs are visible in logs
 
-**2.4 Replace Pydantic with dataclasses (#482)**
-- Remove heavy dependency, use stdlib `@dataclass`
+**~~2.4 Replace Pydantic with dataclasses (#482)~~ — CANCELLED**
+- Keeping Pydantic — better usability (`.model_dump()`, validation, JSON serialization)
 
 **2.5 Add `__all__` (#483)**
 - Every public module declares exports
@@ -152,6 +162,8 @@ Phase 5:              #491 ◄── All Phase 1–4
 **3.1 README (#485)** — quickstart, installation, comparison, architecture
 **3.2 Docstring audit (#486)** — 100% coverage on public API
 **3.3 Examples (#487)** — 4 runnable example scripts
+**3.4 Doctests (#497)** — at least 10 doctest examples across key methods
+**3.5 Documentation site (#498)** — auto-generated API docs (pdoc + GitHub Pages or RTD)
 
 ### Phase 4: Testing
 
