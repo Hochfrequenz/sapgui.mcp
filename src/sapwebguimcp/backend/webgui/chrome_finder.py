@@ -18,9 +18,6 @@ from urllib.parse import urlparse
 
 import httpx
 
-if sys.platform == "win32":
-    import winreg  # pylint: disable=import-error
-
 __all__ = [
     "extract_port_from_cdp_url",
     "find_chrome",
@@ -37,20 +34,27 @@ _KNOWN_CHROME_PATHS: list[str] = [
 ]
 
 
-def _chrome_from_registry() -> Optional[str]:
-    """Look up chrome.exe in the Windows registry (App Paths)."""
-    if sys.platform != "win32":  # pragma: no cover
+if sys.platform == "win32":
+    import winreg  # pylint: disable=import-error
+
+    def _chrome_from_registry() -> Optional[str]:
+        """Look up chrome.exe in the Windows registry (App Paths)."""
+        for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+            try:
+                with winreg.OpenKey(hive, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe") as key:
+                    path, _ = winreg.QueryValueEx(key, "")
+                    if path and Path(path).is_file():
+                        logger.info("Chrome found via registry: %s", path)
+                        return str(path)
+            except OSError:
+                continue
         return None
-    for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
-        try:
-            with winreg.OpenKey(hive, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe") as key:
-                path, _ = winreg.QueryValueEx(key, "")
-                if path and Path(path).is_file():
-                    logger.info("Chrome found via registry: %s", path)
-                    return str(path)
-        except OSError:
-            continue
-    return None
+
+else:
+
+    def _chrome_from_registry() -> Optional[str]:
+        """No-op on non-Windows platforms."""
+        return None
 
 
 def _chrome_from_localappdata() -> Optional[str]:
