@@ -159,6 +159,11 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
 
     await backend.wait_for_ready()
 
+    # Wait for SAP's client-side JS to finish initialising the screen.
+    # networkidle is insufficient: toolbar buttons and event handlers
+    # may not be attached yet, causing F8 to be silently ignored.
+    await backend.wait_for_sap_ready()
+
     # 3. Fill selection screen (if any fields/checkboxes/radios given)
     if fields or checkboxes or radios:
         target = SelectionScreenState(

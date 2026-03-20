@@ -53,6 +53,9 @@ def _make_backend(
     # wait_for_ready
     backend.wait_for_ready = AsyncMock()
 
+    # wait_for_sap_ready
+    backend.wait_for_sap_ready = AsyncMock()
+
     # get_status_bar
     backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type=status_type, message=status_message))
 
@@ -222,6 +225,43 @@ class TestQuickReportPipeline:
         assert call_log[0] == "enter_transaction"
         assert "press_key(F8)" in call_log
         assert "wait_for_ready" in call_log
+
+    async def test_wait_for_sap_ready_called_before_f8(self) -> None:
+        """Pipeline must call wait_for_sap_ready between enter_transaction and press_key(F8)."""
+        backend = _make_backend()
+        call_log: list[str] = []
+
+        async def track_enter_tx(tcode: str) -> TransactionResult:
+            call_log.append("enter_transaction")
+            return TransactionResult(tcode=tcode)
+
+        async def track_wait_ready() -> None:
+            call_log.append("wait_for_ready")
+
+        async def track_wait_sap_ready(timeout_ms: int = 5000) -> None:
+            call_log.append("wait_for_sap_ready")
+
+        async def track_press_key(key: str) -> KeyboardResult:
+            call_log.append(f"press_key({key})")
+            return KeyboardResult(key=key)
+
+        backend.enter_transaction = track_enter_tx
+        backend.wait_for_ready = track_wait_ready
+        backend.wait_for_sap_ready = track_wait_sap_ready
+        backend.press_key = track_press_key
+
+        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch(
+                "sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock
+            ) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
+
+        # wait_for_sap_ready must appear AFTER enter_transaction and BEFORE press_key(F8)
+        idx_sap_ready = call_log.index("wait_for_sap_ready")
+        idx_enter = call_log.index("enter_transaction")
+        idx_f8 = call_log.index("press_key(F8)")
+        assert idx_enter < idx_sap_ready < idx_f8
 
 
 @pytest.mark.anyio

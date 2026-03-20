@@ -674,6 +674,19 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         """Wait for SAP page to finish loading."""
         await self._page.wait_for_load_state("networkidle", timeout=timeout_ms)
 
+    async def wait_for_sap_ready(self, timeout_ms: int = 5000) -> None:
+        """Wait for SAP toolbar buttons to appear (screen fully interactive)."""
+        try:
+            await self._page.wait_for_function(
+                load_js("wait_for_sap_ready.js"),
+                timeout=timeout_ms,
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            # Fallback: fixed delay if the check times out (e.g. screen
+            # without toolbar buttons, like a direct-entry transaction).
+            logger.debug("wait_for_sap_ready: toolbar check timed out, using fixed delay")
+            await self._page.wait_for_timeout(1000)
+
     async def bring_to_front(self) -> None:
         """Bring the browser window to the foreground."""
         await self._page.bring_to_front()

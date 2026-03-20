@@ -205,6 +205,14 @@ class SapNavigation(Protocol):
     async def bring_to_front(self) -> None:
         """Bring the SAP browser window to the foreground."""
 
+    async def wait_for_sap_ready(self, timeout_ms: int = 5000) -> None:
+        """Wait until SAP screen has finished client-side rendering.
+
+        Goes beyond ``wait_for_ready`` (networkidle) by checking that
+        interactive DOM elements are present.  Falls back to a fixed
+        delay if the check times out.
+        """
+
     async def wait(self, timeout_ms: int = 200) -> None:
         """Wait for a fixed duration (e.g. to let popups render)."""
 
