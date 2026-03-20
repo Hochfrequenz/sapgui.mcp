@@ -16,6 +16,7 @@ class ScreenClassification(StrEnum):
     """What appeared on screen after F8."""
 
     TABLE = "table"
+    LIST = "list"
     EMPTY = "empty"
     ERROR = "error"
     UNKNOWN = "unknown"

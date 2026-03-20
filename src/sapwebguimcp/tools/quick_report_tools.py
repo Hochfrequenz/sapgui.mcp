@@ -79,6 +79,10 @@ async def classify_result_screen(
     if re.search(r"^\s*- grid\b", snapshot_str, re.MULTILINE):
         return ScreenClassification.TABLE, status_bar
 
+    # 4b. Classic list (list/listitem roles, no grid)
+    if re.search(r"^\s*- (?:list|listitem)\b", snapshot_str, re.MULTILINE):
+        return ScreenClassification.LIST, status_bar
+
     # 5. Unknown
     return ScreenClassification.UNKNOWN, status_bar
 
@@ -197,6 +201,7 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
         # If screen is already classifiable, skip remaining keys
         if classification in (
             ScreenClassification.TABLE,
+            ScreenClassification.LIST,
             ScreenClassification.EMPTY,
             ScreenClassification.ERROR,
         ):
@@ -212,7 +217,7 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
     table = None
     screen_text = None
 
-    if classification == ScreenClassification.TABLE:
+    if classification in (ScreenClassification.TABLE, ScreenClassification.LIST):
         try:
             table = await backend.read_table(max_rows=max_rows)
         except Exception as exc:  # pylint: disable=broad-except

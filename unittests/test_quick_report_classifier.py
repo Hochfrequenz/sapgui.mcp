@@ -155,3 +155,14 @@ class TestClassifyResultScreen:
         )
         classification, _ = await classify_result_screen(backend)
         assert classification == ScreenClassification.EMPTY
+
+    async def test_list_screen_detected(self) -> None:
+        """Classic SAP list (not ALV grid) should classify as LIST."""
+        backend = _make_backend(
+            status_type="S",
+            status_message="100 Einträge gelesen",
+            snapshot="- document 'SAP'\n  - list 'Report Output'\n    - listitem 'Row 1'",
+            screen_title="Materialbelegliste",
+        )
+        classification, _ = await classify_result_screen(backend)
+        assert classification == ScreenClassification.LIST
