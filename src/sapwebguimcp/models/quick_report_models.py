@@ -26,7 +26,9 @@ class QuickReportResult(ToolResult):
     """Result of sap_quick_report."""
 
     tcode: str = Field(description="Transaction code that was executed")
-    screen_type: ScreenClassification = Field(description="What appeared after F8: table, list, empty, error, or unknown")
+    screen_type: ScreenClassification = Field(
+        description="What appeared after F8: table, list, empty, error, or unknown"
+    )
     page_title: str = Field(default="", description="Screen title after F8")
 
     # Status bar (flat fields, consistent with KeyboardResult pattern)

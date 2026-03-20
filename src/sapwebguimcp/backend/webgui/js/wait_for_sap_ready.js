@@ -5,10 +5,14 @@
     const buttons = document.querySelectorAll('.lsButton[role="button"]');
     for (const btn of buttons) {
         const style = window.getComputedStyle(btn);
-        if (style.display !== 'none' && style.visibility !== 'hidden'
-            && btn.offsetWidth > 0 && btn.offsetHeight > 0) {
+        if (
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            btn.offsetWidth > 0 &&
+            btn.offsetHeight > 0
+        ) {
             return true;
         }
     }
     return false;
-}
+};

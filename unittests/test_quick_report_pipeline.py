@@ -262,9 +262,7 @@ class TestQuickReportPipeline:
         backend.press_key = track_press_key
 
         with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch(
-                "sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock
-            ) as mock_ess:
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff()
                 await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
 

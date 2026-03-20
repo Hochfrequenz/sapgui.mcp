@@ -213,8 +213,22 @@ async def test_quick_report_warnings_on_unknown_field(sap_mcp_client: ClientSess
 
 # All 16 transactions from the field test (tcode-learnings-agent.md)
 _FIELD_TEST_TCODES = [
-    "VA05", "MB51", "IW29", "ME2M", "FBL1N", "IH08", "IW28", "IW38",
-    "ME5A", "FBL3N", "FBL5N", "COOIS", "QA33", "VF05", "IP24", "IW39",
+    "VA05",
+    "MB51",
+    "IW29",
+    "ME2M",
+    "FBL1N",
+    "IH08",
+    "IW28",
+    "IW38",
+    "ME5A",
+    "FBL3N",
+    "FBL5N",
+    "COOIS",
+    "QA33",
+    "VF05",
+    "IP24",
+    "IW39",
 ]
 
 
@@ -261,7 +275,6 @@ async def test_quick_report_field_test_16_tcodes(sap_mcp_client: ClientSession) 
     print(f"  {len(results) - len(failures)}/{len(results)} passed")
     print("=" * 60 + "\n")
 
-    assert not failures, (
-        f"{len(failures)}/{len(results)} transactions returned unknown:\n"
-        + "\n".join(f"  - {f}" for f in failures)
+    assert not failures, f"{len(failures)}/{len(results)} transactions returned unknown:\n" + "\n".join(
+        f"  - {f}" for f in failures
     )

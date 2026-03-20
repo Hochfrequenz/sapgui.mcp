@@ -44,7 +44,7 @@ _EASY_ACCESS_TITLES: tuple[str, ...] = (
 )
 
 
-async def classify_result_screen(
+async def classify_result_screen(  # pylint: disable=too-many-return-statements
     backend: SapUiBackend,
 ) -> tuple[ScreenClassification, StatusBarInfo]:
     """Classify the current screen after F8.
@@ -197,7 +197,7 @@ async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-
         )
 
 
-async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
+async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches,too-many-statements
     backend: SapUiBackend,
     tcode: str,
     fields: dict[str, str] | None,
