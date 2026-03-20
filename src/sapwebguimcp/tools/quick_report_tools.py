@@ -44,7 +44,7 @@ _EASY_ACCESS_TITLES: tuple[str, ...] = (
 )
 
 
-async def classify_result_screen(
+async def classify_result_screen(  # pylint: disable=too-many-return-statements
     backend: SapUiBackend,
 ) -> tuple[ScreenClassification, StatusBarInfo]:
     """Classify the current screen after F8.
@@ -52,9 +52,13 @@ async def classify_result_screen(
     Priority:
     1. Status bar type "E" → ERROR
     2. Status bar contains empty-data pattern → EMPTY
-    3. Page title is Easy Access → ERROR (transaction didn't navigate away)
-    4. ARIA snapshot contains grid → TABLE
-    5. Otherwise → UNKNOWN
+    3. Status bar type "W" (Warning) → ERROR (SAP refused to execute, e.g.
+       "Selektion wurde nicht eingeschränkt")
+    4. Page title is Easy Access → ERROR (transaction didn't navigate away)
+    5. ARIA snapshot contains grid → TABLE
+    5b. ARIA snapshot contains list/listitem → LIST
+    6. Still on selection screen (textbox + Ausführen button visible) → ERROR
+    7. Otherwise → UNKNOWN
     """
     status_bar = await backend.get_status_bar()
 
@@ -67,23 +71,80 @@ async def classify_result_screen(
     if any(pattern in msg_lower for pattern in _EMPTY_PATTERNS):
         return ScreenClassification.EMPTY, status_bar
 
-    # 3. Easy Access — transaction didn't open or invalid tcode bounced back
+    # 3. Warning — SAP showed a warning after F8 (e.g. selection not restricted).
+    #    The report did not execute; treat as error so the agent can decide next steps.
+    if status_bar.type == "W":
+        return ScreenClassification.ERROR, status_bar
+
+    # 4. Easy Access — transaction didn't open or invalid tcode bounced back
     page_title = await backend.get_page_title()
     if any(ea in page_title.lower() for ea in _EASY_ACCESS_TITLES):
         return ScreenClassification.ERROR, status_bar
 
-    # 4. Table (check ARIA snapshot for grid role)
+    # 5. Table (check ARIA snapshot for grid role)
     snapshot = await backend.get_snapshot()
     snapshot_str = str(snapshot)
     # In ARIA YAML snapshots, grids appear as "- grid" at some indentation level
     if re.search(r"^\s*- grid\b", snapshot_str, re.MULTILINE):
         return ScreenClassification.TABLE, status_bar
 
-    # 5. Unknown
+    # 5b. Classic list (list/listitem roles, no grid)
+    if re.search(r"^\s*- (?:list|listitem)\b", snapshot_str, re.MULTILINE):
+        return ScreenClassification.LIST, status_bar
+
+    # 6. Still on selection screen — F8 didn't navigate away.
+    #    Selection screens have input textboxes.  Some transactions also show
+    #    the Ausführen button, others (e.g. VF05) do not.  At this point we
+    #    already ruled out grid, list, error, empty, and Easy Access, so
+    #    textboxes remaining strongly indicates we never left the selection
+    #    screen.
+    if "textbox" in snapshot_str:
+        logger.debug("classify_result_screen: still on selection screen after F8")
+        return ScreenClassification.ERROR, status_bar
+
+    # 7. Unknown
     return ScreenClassification.UNKNOWN, status_bar
 
 
 _MAX_POST_F8_KEYS = 3
+_F8_MAX_RETRIES = 3
+
+# Labels for the SAP "Execute" button (DE + EN, with/without highlight marker)
+_EXECUTE_BUTTON_LABELS: tuple[str, ...] = (
+    "Ausführen",
+    "Ausführen Hervorgehoben",
+    "Execute",
+    "Execute Highlighted",
+)
+
+
+async def _press_f8(backend: SapUiBackend, tcode: str, attempt: int) -> None:
+    """Execute the report by clicking the Ausführen button or pressing F8.
+
+    Prefers a direct DOM click on the Execute button (reliable across all
+    focus states).  Falls back to ``keyboard.press("F8")`` when the button
+    is not found (some transactions hide it).
+    """
+    for label in _EXECUTE_BUTTON_LABELS:
+        try:
+            await backend.click_button(label)
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+        # Button was clicked — wait for the server roundtrip.
+        # This must be OUTSIDE the try/except so a timeout doesn't
+        # cause us to retry with the next label (click already fired).
+        await backend.wait_for_ready()
+        logger.debug(
+            "F8 via click_button(%s) attempt %d",
+            label,
+            attempt,
+            extra={"tcode": tcode},
+        )
+        return
+
+    # Fallback: keyboard F8
+    logger.debug("F8 via keyboard (attempt %d)", attempt, extra={"tcode": tcode})
+    await backend.press_key("F8")
 
 
 async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
@@ -136,7 +197,7 @@ async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-
         )
 
 
-async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
+async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches,too-many-statements
     backend: SapUiBackend,
     tcode: str,
     fields: dict[str, str] | None,
@@ -159,6 +220,11 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
 
     await backend.wait_for_ready()
 
+    # Wait for SAP's client-side JS to finish initialising the screen.
+    # networkidle is insufficient: toolbar buttons and event handlers
+    # may not be attached yet, causing F8 to be silently ignored.
+    await backend.wait_for_sap_ready()
+
     # 3. Fill selection screen (if any fields/checkboxes/radios given)
     if fields or checkboxes or radios:
         target = SelectionScreenState(
@@ -171,14 +237,43 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
             warnings.append(f"Selection screen: {state_result.error}")
         warnings.extend(state_result.warnings)
 
-    # 4. Press F8
-    await backend.press_key("F8")
+    # 4. Execute report (F8) — retry up to 3 times if screen doesn't change.
+    #    Strategy: click the Ausführen button (DOM click, most reliable),
+    #    fall back to keyboard F8 if the button is not found.
+    classification = ScreenClassification.UNKNOWN
+    status_bar = StatusBarInfo(type="none", message="")
 
-    # 5. Wait for SAP
-    await backend.wait_for_ready()
+    for attempt in range(1, _F8_MAX_RETRIES + 1):
+        await _press_f8(backend, tcode, attempt)
+        classification, status_bar = await classify_result_screen(backend)
 
-    # 6. Classify, then apply post_f8_keys (max 3, with early exit)
-    classification, status_bar = await classify_result_screen(backend)
+        # If we got a definitive result, stop retrying.
+        if classification not in (ScreenClassification.ERROR, ScreenClassification.UNKNOWN):
+            break
+
+        # UNKNOWN with empty status bar likely means SAP is still rendering
+        # (e.g. loading popup). Wait and re-classify once.
+        if classification == ScreenClassification.UNKNOWN and not status_bar.message:
+            await backend.wait(2000)
+            await backend.wait_for_ready()
+            classification, status_bar = await classify_result_screen(backend)
+            if classification != ScreenClassification.ERROR:
+                break
+
+        # ERROR with a real SAP message (E/W) means SAP responded —
+        # don't retry, it's a genuine error, not a missed F8.
+        if status_bar.type in ("E", "W"):
+            break
+
+        # Otherwise F8 was likely swallowed — retry with increasing delay.
+        logger.warning(
+            "F8 attempt %d/%d: still on selection screen, retrying",
+            attempt,
+            _F8_MAX_RETRIES,
+            extra={"tcode": tcode},
+        )
+        if attempt < _F8_MAX_RETRIES:
+            await backend.wait(500 * attempt)  # 500ms, 1000ms
 
     effective_keys = list(post_f8_keys or [])
     if len(effective_keys) > _MAX_POST_F8_KEYS:
@@ -192,6 +287,7 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
         # If screen is already classifiable, skip remaining keys
         if classification in (
             ScreenClassification.TABLE,
+            ScreenClassification.LIST,
             ScreenClassification.EMPTY,
             ScreenClassification.ERROR,
         ):
@@ -207,7 +303,7 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
     table = None
     screen_text = None
 
-    if classification == ScreenClassification.TABLE:
+    if classification in (ScreenClassification.TABLE, ScreenClassification.LIST):
         try:
             table = await backend.read_table(max_rows=max_rows)
         except Exception as exc:  # pylint: disable=broad-except
