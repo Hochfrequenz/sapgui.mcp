@@ -21,13 +21,15 @@ async def test_enter_transaction_returns_new_title_after_slow_navigation():
     page.is_closed.return_value = False
 
     # Title sequence: first calls return old title, then new title appears
-    title_sequence = iter([
-        "FBL1N - Vendor Line Items",  # title_before
-        "FBL1N - Vendor Line Items",  # _verify check
-        "FBL1N - Vendor Line Items",  # _poll first read
-        "FBL1N - Vendor Line Items",  # _poll poll iteration 1
-        "IW29 - PM Orders",           # _poll poll iteration 2 → changed!
-    ])
+    title_sequence = iter(
+        [
+            "FBL1N - Vendor Line Items",  # title_before
+            "FBL1N - Vendor Line Items",  # _verify check
+            "FBL1N - Vendor Line Items",  # _poll first read
+            "FBL1N - Vendor Line Items",  # _poll poll iteration 1
+            "IW29 - PM Orders",  # _poll poll iteration 2 → changed!
+        ]
+    )
     page.title = AsyncMock(side_effect=lambda: next(title_sequence))
 
     # OK-code field mock: verify sees cleared value → navigation confirmed
@@ -80,9 +82,7 @@ async def test_poll_title_change_returns_on_timeout():
     backend._keepalive_task = None
 
     # Use short timeout to keep test fast
-    result = await backend._poll_title_change(
-        "SE24 - Class Builder: Initial Screen", timeout_ms=500, interval_ms=100
-    )
+    result = await backend._poll_title_change("SE24 - Class Builder: Initial Screen", timeout_ms=500, interval_ms=100)
 
     assert result == "SE24 - Class Builder: Initial Screen"
     # Verify polling happened (at least one wait_for_timeout call)

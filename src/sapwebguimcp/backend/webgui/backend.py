@@ -447,9 +447,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             # Element detached / page navigated → success.
             return True
 
-    async def _poll_title_change(
-        self, old_title: str, *, timeout_ms: int = 3000, interval_ms: int = 200
-    ) -> str:
+    async def _poll_title_change(self, old_title: str, *, timeout_ms: int = 3000, interval_ms: int = 200) -> str:
         """Poll until the page title differs from *old_title*, or timeout.
 
         Returns the new title, or the current title if timeout is reached
