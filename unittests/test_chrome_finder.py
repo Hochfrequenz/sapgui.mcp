@@ -17,7 +17,6 @@ from sapwebguimcp.backend.webgui.chrome_finder import (
 )
 from sapwebguimcp.models.config import SapWebGuiSettings
 
-
 # =============================================================================
 # Tests for find_chrome()
 # =============================================================================

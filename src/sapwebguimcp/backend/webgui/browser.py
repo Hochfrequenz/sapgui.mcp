@@ -36,7 +36,6 @@ _DOCKER_DIAGNOSTIC_CMDS = (
 )
 
 
-
 class BrowserManager:  # pylint: disable=too-many-instance-attributes
     """
     Manages a persistent browser session for SAP Web GUI automation.
@@ -61,7 +60,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         self._default_page_name = "sap"
         self._initialized = False
         self._registry = SessionRegistry()
-        self._chrome_process: Optional[subprocess.Popen] = None
+        self._chrome_process: Optional[subprocess.Popen[bytes]] = None
 
     @property
     def is_initialized(self) -> bool:
@@ -285,7 +284,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
             raise RuntimeError(
                 "Chrome konnte nicht automatisch gefunden werden.\n\n"
                 "Bitte setzen Sie CHROME_PATH in der .env Datei, z.B.:\n"
-                '  CHROME_PATH=C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\n\n'
+                "  CHROME_PATH=C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\n\n"
                 "Tipp: Rechtsklick auf Chrome-Verknüpfung → Eigenschaften → Ziel-Pfad kopieren."
             )
 
@@ -355,9 +354,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                 f"Original error: {original_error}"
             ) from original_error
 
-        if any(
-            phrase in error_msg for phrase in ["connection refused", "connect econnrefused", "actively refused"]
-        ):
+        if any(phrase in error_msg for phrase in ["connection refused", "connect econnrefused", "actively refused"]):
             raise RuntimeError(
                 f"Connection refused by cdp-proxy at {cdp_url}.\n\n"
                 f"The CDP proxy container is not running. Start it with:\n"

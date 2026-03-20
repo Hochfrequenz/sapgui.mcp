@@ -6,7 +6,6 @@ Tools are organized in separate modules under sapwebguimcp.tools.
 """
 
 import logging
-import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 

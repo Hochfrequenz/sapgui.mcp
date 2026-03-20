@@ -6,18 +6,20 @@ on the CDP port, this module finds chrome.exe, launches it with the required
 flags, and waits until the CDP endpoint is ready.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from urllib.parse import urlparse
 
 import httpx
 
-if sys.platform == "win32":
-    import winreg
+if sys.platform == "win32" or TYPE_CHECKING:
+    import winreg  # pylint: disable=import-error
 
 __all__ = [
     "extract_port_from_cdp_url",
@@ -119,31 +121,17 @@ def find_chrome(configured_path: Optional[str] = None) -> Optional[str]:
             return str(p)
         logger.warning("Configured CHROME_PATH does not exist: %s", configured_path)
 
-    # 2. Registry
-    path = _chrome_from_registry()
-    if path:
-        return path
-
-    # 3. LOCALAPPDATA
-    path = _chrome_from_localappdata()
-    if path:
-        return path
-
-    # 4. Known paths
-    path = _chrome_from_known_paths()
-    if path:
-        return path
-
-    # 5. PATH
-    path = _chrome_from_path()
-    if path:
-        return path
+    # 2–5: Registry → LOCALAPPDATA → known paths → PATH
+    for finder in (_chrome_from_registry, _chrome_from_localappdata, _chrome_from_known_paths, _chrome_from_path):
+        path = finder()
+        if path:
+            return path
 
     logger.warning("Chrome could not be found automatically")
     return None
 
 
-def launch_chrome(exe_path: str, port: int, user_data_dir: str) -> subprocess.Popen:
+def launch_chrome(exe_path: str, port: int, user_data_dir: str) -> subprocess.Popen[bytes]:
     """Launch Chrome with remote debugging enabled.
 
     Args:
