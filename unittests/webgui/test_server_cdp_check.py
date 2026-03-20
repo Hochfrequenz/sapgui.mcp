@@ -26,10 +26,10 @@ class TestCdpCheck:
     @respx.mock
     @pytest.mark.anyio
     async def test_cdp_check_failure(self, caplog: pytest.LogCaptureFixture) -> None:
-        """Returns False and logs [ACTION REQUIRED] when Chrome CDP is not reachable."""
+        """Returns False and logs info when Chrome CDP is not reachable."""
         respx.get("http://localhost:9222/json/version").mock(side_effect=ConnectError("Connection refused"))
-        with caplog.at_level(logging.WARNING):
+        with caplog.at_level(logging.INFO):
             result = await _check_cdp_available("http://localhost:9222")
         assert result is False
-        assert "[ACTION REQUIRED]" in caplog.text
-        assert "--remote-debugging-port=9222" in caplog.text
+        assert "not detected" in caplog.text
+        assert "auto-launch" in caplog.text

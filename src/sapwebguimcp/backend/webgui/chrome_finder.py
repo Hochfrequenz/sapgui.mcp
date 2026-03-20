@@ -13,12 +13,12 @@ import logging
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 from urllib.parse import urlparse
 
 import httpx
 
-if sys.platform == "win32" or TYPE_CHECKING:
+if sys.platform == "win32":
     import winreg  # pylint: disable=import-error
 
 __all__ = [
@@ -39,6 +39,8 @@ _KNOWN_CHROME_PATHS: list[str] = [
 
 def _chrome_from_registry() -> Optional[str]:
     """Look up chrome.exe in the Windows registry (App Paths)."""
+    if sys.platform != "win32":  # pragma: no cover
+        return None
     for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
         try:
             with winreg.OpenKey(hive, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe") as key:
