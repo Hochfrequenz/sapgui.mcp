@@ -95,3 +95,34 @@ class GuiTree(GuiShell):
     def get_node_key_by_path(self, path: str) -> str:
         """Return the node key for a given path."""
         return str(self._com.GetNodeKeyByPath(path))
+
+    # --- Checkbox methods ---
+
+    def change_checkbox(self, node_key: str, item_name: str, checked: bool) -> None:
+        """Set the checkbox state of a tree item."""
+        self._com.ChangeCheckbox(node_key, item_name, checked)
+
+    def get_checkbox_state(self, node_key: str, item_name: str) -> bool:
+        """Return the checkbox state of a tree item."""
+        return bool(self._com.GetCheckBoxState(node_key, item_name))
+
+    # --- Node info methods ---
+
+    def get_item_type(self, node_key: str, item_name: str) -> int:
+        """Return the type of a tree item.
+
+        Values: 0=Hierarchy, 1=Image, 2=Text, 3=Bool, 4=Button, 5=Link.
+        """
+        return int(self._com.GetItemType(node_key, item_name))
+
+    def get_item_tooltip(self, node_key: str, item_name: str) -> str:
+        """Return the tooltip text of a tree item."""
+        return str(self._com.GetItemToolTip(node_key, item_name))
+
+    def get_node_style(self, node_key: str) -> int:
+        """Return the style of a tree node."""
+        return int(self._com.GetNodeStyle(node_key))
+
+    def is_folder(self, node_key: str) -> bool:
+        """Return whether a tree node is a folder (expandable)."""
+        return bool(self._com.IsFolder(node_key))
