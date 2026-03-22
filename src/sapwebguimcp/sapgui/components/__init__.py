@@ -37,7 +37,7 @@ from sapwebguimcp.sapgui.components.shell import (
 from sapwebguimcp.sapgui.components.statusbar import GuiStatusbar, GuiStatusPane, GuiVHViewSwitch
 from sapwebguimcp.sapgui.components.tab import GuiTab, GuiTabStrip
 from sapwebguimcp.sapgui.components.table import GuiTableColumn, GuiTableControl, GuiTableRow
-from sapwebguimcp.sapgui.components.toolbar import GuiMenu, GuiMenubar, GuiTitlebar, GuiToolbar
+from sapwebguimcp.sapgui.components.toolbar import GuiContextMenu, GuiMenu, GuiMenubar, GuiTitlebar, GuiToolbar
 from sapwebguimcp.sapgui.components.tree import GuiTree
 from sapwebguimcp.sapgui.components.window import GuiFrameWindow, GuiMainWindow, GuiMessageWindow, GuiModalWindow
 
@@ -115,6 +115,7 @@ __all__ = [
     "GuiToolbar",
     "GuiMenubar",
     "GuiMenu",
+    "GuiContextMenu",
     "GuiTitlebar",
     # tree
     "GuiTree",
