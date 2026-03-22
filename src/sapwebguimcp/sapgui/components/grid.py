@@ -197,9 +197,9 @@ class GuiGridView(GuiShell):
         """Return the icon string (e.g. '@01@') displayed in a cell."""
         return str(self._com.GetCellIcon(row, column))
 
-    def get_display_cell_value(self, row: int, column: str) -> str:
-        """Return the formatted display value of a cell (vs raw value from get_cell_value)."""
-        return str(self._com.GetDisplayCellValue(row, column))
+    def get_cell_state(self, row: int, column: str) -> str:
+        """Return the state of a cell ('Normal', 'Error', 'Warning', 'Info')."""
+        return str(self._com.GetCellState(row, column))
 
     def modify_cell(self, row: int, column: str, value: str) -> None:
         """Modify a cell value. SAP spec alias for set_cell_value."""
@@ -215,9 +215,9 @@ class GuiGridView(GuiShell):
 
     # --- Column info methods ---
 
-    def get_column_title_by_name(self, column: str) -> str:
-        """Return the display title for a column given its technical name."""
-        return str(self._com.GetColumnTitleByName(column))
+    def get_displayed_column_title(self, column: str) -> str:
+        """Return the currently displayed title for a column."""
+        return str(self._com.GetDisplayedColumnTitle(column))
 
     def get_column_tooltip(self, column: str) -> str:
         """Return the tooltip text for a column header."""
