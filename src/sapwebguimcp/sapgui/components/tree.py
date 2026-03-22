@@ -108,13 +108,16 @@ class GuiTree(GuiShell):
 
     # --- Node info methods ---
 
-    def get_node_item_type(self, node_key: str, item_name: str) -> int:
-        """Return the type of a tree item (0=hierarchy, 1=image, 2=text)."""
-        return int(self._com.GetNodeItemType(node_key, item_name))
+    def get_item_type(self, node_key: str, item_name: str) -> int:
+        """Return the type of a tree item.
+
+        Values: 0=Hierarchy, 1=Image, 2=Text, 3=Bool, 4=Button, 5=Link.
+        """
+        return int(self._com.GetItemType(node_key, item_name))
 
     def get_item_tooltip(self, node_key: str, item_name: str) -> str:
         """Return the tooltip text of a tree item."""
-        return str(self._com.GetItemTooltip(node_key, item_name))
+        return str(self._com.GetItemToolTip(node_key, item_name))
 
     def get_node_style(self, node_key: str) -> int:
         """Return the style of a tree node."""
@@ -123,17 +126,3 @@ class GuiTree(GuiShell):
     def is_folder(self, node_key: str) -> bool:
         """Return whether a tree node is a folder (expandable)."""
         return bool(self._com.IsFolder(node_key))
-
-    def is_changeable(self, node_key: str) -> bool:
-        """Return whether a tree node is changeable."""
-        return bool(self._com.IsChangeable(node_key))
-
-    # --- List/Column tree methods ---
-
-    def get_list_tree_item_text(self, node_key: str, item_name: str) -> str:
-        """Return text of an item in a list tree. Only valid for tree_type == list."""
-        return str(self._com.GetListTreeItemText(node_key, item_name))
-
-    def get_column_tree_item_text(self, node_key: str, item_name: str) -> str:
-        """Return text of an item in a column tree. Only valid for tree_type == column."""
-        return str(self._com.GetColumnTreeItemText(node_key, item_name))

@@ -25,14 +25,14 @@ class TestGuiTreeCheckbox:
 
 
 class TestGuiTreeNodeInfo:
-    def test_get_node_item_type(self):
+    def test_get_item_type(self):
         tree = _make_tree()
-        tree._com.GetNodeItemType.return_value = 1
-        assert tree.get_node_item_type("KEY1", "COL1") == 1
+        tree._com.GetItemType.return_value = 1
+        assert tree.get_item_type("KEY1", "COL1") == 1
 
     def test_get_item_tooltip(self):
         tree = _make_tree()
-        tree._com.GetItemTooltip.return_value = "tip"
+        tree._com.GetItemToolTip.return_value = "tip"
         assert tree.get_item_tooltip("KEY1", "COL1") == "tip"
 
     def test_get_node_style(self):
@@ -44,20 +44,3 @@ class TestGuiTreeNodeInfo:
         tree = _make_tree()
         tree._com.IsFolder.return_value = True
         assert tree.is_folder("KEY1") is True
-
-    def test_is_changeable(self):
-        tree = _make_tree()
-        tree._com.IsChangeable.return_value = False
-        assert tree.is_changeable("KEY1") is False
-
-
-class TestGuiTreeListColumnText:
-    def test_get_list_tree_item_text(self):
-        tree = _make_tree()
-        tree._com.GetListTreeItemText.return_value = "text"
-        assert tree.get_list_tree_item_text("KEY1", "COL1") == "text"
-
-    def test_get_column_tree_item_text(self):
-        tree = _make_tree()
-        tree._com.GetColumnTreeItemText.return_value = "text"
-        assert tree.get_column_tree_item_text("KEY1", "COL1") == "text"
