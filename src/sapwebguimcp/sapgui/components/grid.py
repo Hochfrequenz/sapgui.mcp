@@ -191,15 +191,15 @@ class GuiGridView(GuiShell):
 
     def get_cell_color(self, row: int, column: str) -> int:
         """Return the color index of a cell."""
-        return self._com.GetCellColor(row, column)
+        return int(self._com.GetCellColor(row, column))
 
     def get_cell_icon(self, row: int, column: str) -> str:
         """Return the icon string (e.g. '@01@') displayed in a cell."""
-        return self._com.GetCellIcon(row, column)
+        return str(self._com.GetCellIcon(row, column))
 
     def get_display_cell_value(self, row: int, column: str) -> str:
         """Return the formatted display value of a cell (vs raw value from get_cell_value)."""
-        return self._com.GetDisplayCellValue(row, column)
+        return str(self._com.GetDisplayCellValue(row, column))
 
     def modify_cell(self, row: int, column: str, value: str) -> None:
         """Modify a cell value. SAP spec alias for set_cell_value."""
@@ -211,18 +211,18 @@ class GuiGridView(GuiShell):
 
     def get_cell_tooltip(self, row: int, column: str) -> str:
         """Return the tooltip text for a cell."""
-        return self._com.GetCellTooltip(row, column)
+        return str(self._com.GetCellTooltip(row, column))
 
     # --- Column info methods ---
 
     def get_column_title_by_name(self, column: str) -> str:
         """Return the display title for a column given its technical name."""
-        return self._com.GetColumnTitleByName(column)
+        return str(self._com.GetColumnTitleByName(column))
 
     def get_column_tooltip(self, column: str) -> str:
         """Return the tooltip text for a column header."""
-        return self._com.GetColumnTooltip(column)
+        return str(self._com.GetColumnTooltip(column))
 
     def get_column_data_type(self, column: str) -> str:
         """Return the ABAP data type of a column (e.g. 'CHAR', 'NUMC')."""
-        return self._com.GetColumnDataType(column)
+        return str(self._com.GetColumnDataType(column))
