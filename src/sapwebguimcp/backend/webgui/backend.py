@@ -239,6 +239,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         client: str,
         language: str,
         session_id: str | None = None,
+        connection_name: str | None = None,  # ignored for WebGUI; SAP_URL is the system selector
     ) -> LoginResult:
         """Navigate to SAP WebGUI and log in.
 
@@ -326,6 +327,14 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Logging in to SAP")
             return LoginResult.failure(f"Error during SAP login: {e}", url=url)
+
+    async def list_connections(self) -> list:
+        """WebGUI backend has no SAP Logon entries."""
+        return []
+
+    async def discover_clients(self, connection_name: str) -> dict:
+        """WebGUI backend has no SAP Logon — client discovery not supported."""
+        return {"session_id": None, "default_client": "", "clients": [], "info_text": ""}
 
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Enter a transaction code via the OK-Code field.

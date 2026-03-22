@@ -26,6 +26,9 @@ from typing import Any, Optional
 from fastmcp import Context, FastMCP
 
 from sapwebguimcp.backend.manager import get_backend
+from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+from sapwebguimcp.tools.sap_list_connections_impl import ConnectionListResult, sap_list_connections_impl
+from sapwebguimcp.tools.sap_discover_clients_impl import DiscoverClientsResult, sap_discover_clients_impl
 from sapwebguimcp.models import (
     CapabilitiesResult,
     ClosePopupResult,
@@ -243,11 +246,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "and VPN (if internal SAP). "
             "On Desktop: requires SAP_CONNECTION_NAME (SAP Logon entry) "
             "and SAP GUI for Windows with scripting enabled. "
-            "Both backends use SAP_USER, SAP_PASSWORD, SAP_MANDANT from environment."
+            "Both backends use SAP_USER, SAP_PASSWORD, SAP_MANDANT from environment. "
+            "Use client to override SAP_MANDANT and connection_name to override SAP_CONNECTION_NAME."
         )
     )
     async def sap_login(
         url: Optional[str] = None,
+        client: Optional[str] = None,
+        connection_name: Optional[str] = None,
         ctx: Context | None = None,
     ) -> LoginResult:
         """
@@ -260,37 +266,39 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         Args:
             url: SAP Web GUI URL (WebGUI only). If not provided, uses SAP_URL from environment.
+            client: SAP client/mandant (3-digit string, e.g. '200'). Overrides SAP_MANDANT if provided.
+            connection_name: SAP Logon entry name (Desktop only, e.g. 'S4U'). Overrides SAP_CONNECTION_NAME.
 
         Returns:
             LoginResult indicating login success or what action is needed.
         """
-        settings = get_settings()
         session_id = getattr(ctx, "session_id", None) if ctx else None
-        effective_url = url or settings.sap_url
+        return await sap_login_impl(url=url, client=client, connection_name=connection_name, session_id=session_id)
 
-        # URL check only applies to WebGUI — Desktop uses SAP_CONNECTION_NAME instead
-        if settings.backend_type == "webgui" and not effective_url:
-            return LoginResult.failure(
-                "No SAP URL provided. Either pass a URL parameter or set the SAP_URL environment variable."
-            )
-
-        if not all([settings.sap_user, settings.sap_password, settings.sap_mandant]):
-            return LoginResult.failure("Credentials not configured (SAP_USER, SAP_PASSWORD, SAP_MANDANT).")
-
-        backend = await get_backend(tool_name="sap_login")
-        result = await backend.login(
-            url=effective_url or "",
-            username=settings.sap_user,
-            password=settings.sap_password,
-            client=settings.sap_mandant,
-            language=settings.sap_language,
-            session_id=session_id,
+    @mcp.tool(
+        description=(
+            "List available SAP systems from SAP Logon (SAPUILandscape.xml). "
+            "Returns connection names that can be passed to sap_login as connection_name. "
+            "Desktop backend only."
         )
+    )
+    async def sap_list_connections() -> ConnectionListResult:
+        """List available SAP Logon connections."""
+        return await sap_list_connections_impl()
 
-        if result.success:
-            await backend.start_keepalive()
-
-        return result
+    @mcp.tool(
+        description=(
+            "Open an SAP connection and return the available clients (Mandanten) "
+            "from the login screen. Returns the pre-filled default client and a list "
+            "of available clients parsed from the Information section. "
+            "The session is left open — pass the returned session_id to sap_login "
+            "to reuse it. Desktop backend only. "
+            "Use this before sap_login when the client is not yet known."
+        )
+    )
+    async def sap_discover_clients(connection_name: str | None = None) -> DiscoverClientsResult:
+        """Discover available SAP clients (Mandanten) from the login screen."""
+        return await sap_discover_clients_impl(connection_name)
 
     @mcp.tool(
         description=(

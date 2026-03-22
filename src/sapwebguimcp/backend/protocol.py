@@ -190,8 +190,22 @@ class SapNavigation(Protocol):
         client: str,
         language: str,
         session_id: str | None = None,
+        connection_name: str | None = None,
     ) -> LoginResult:
         """Log into SAP Web GUI."""
+
+    async def list_connections(self) -> list:
+        """List available SAP Logon connection entries."""
+
+    async def discover_clients(self, connection_name: str) -> dict:
+        """Open an SAP connection and return available clients from the login screen.
+
+        Returns a dict with keys:
+            session_id: str | None  — registered session at login screen
+            default_client: str     — pre-filled client value on the login screen
+            clients: list[dict]     — parsed from the info text, each {"id", "description"}
+            info_text: str          — raw info text from the login screen
+        """
 
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Navigate to a transaction code."""

@@ -174,12 +174,13 @@ class DesktopBackend:
         client: str,
         language: str,
         session_id: str | None = None,
+        connection_name: str | None = None,
     ) -> LoginResult:
-        """Log into SAP GUI desktop (url is ignored — uses SAP_CONNECTION_NAME)."""
+        """Log into SAP GUI desktop (url is ignored — uses connection_name or SAP_CONNECTION_NAME)."""
         from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
 
         settings = get_settings()
-        connection_name = settings.sap_connection_name
+        connection_name = connection_name or settings.sap_connection_name
         if not connection_name:
             return LoginResult(success=False, error="SAP_CONNECTION_NAME not configured")
 
@@ -206,6 +207,36 @@ class DesktopBackend:
                 extra={"connection": connection_name, "user": username, "success": False, "error": str(e)},
             )
             return LoginResult(success=False, error=str(e))
+
+    async def list_connections(self) -> list:
+        """List available SAP Logon connections from the landscape file."""
+        from sapwebguimcp.tools.sap_list_connections_impl import _find_landscape_path, _parse_landscape_xml  # pylint: disable=import-outside-toplevel
+
+        path = _find_landscape_path()
+        if path is None:
+            return []
+        return _parse_landscape_xml(path.read_text(encoding="utf-8"))
+
+    async def discover_clients(self, connection_name: str) -> dict:
+        """Open a SAP connection and return available clients from the login screen.
+
+        The session is left open at the login screen and registered under a new
+        session_id so that a subsequent ``sap_login`` call can reuse it.
+        """
+        from sapwebguimcp.backend.desktop._discovery import open_for_discovery  # pylint: disable=import-outside-toplevel
+        from sapwebguimcp.tools.sap_discover_clients_impl import parse_clients_from_login_info  # pylint: disable=import-outside-toplevel
+
+        session, default_client, info_text = await self._com.run(
+            lambda: open_for_discovery(connection_name=connection_name)
+        )
+        session_id = self._registry.register(session)
+        clients = parse_clients_from_login_info(info_text)
+        return {
+            "session_id": session_id,
+            "default_client": default_client,
+            "clients": clients,
+            "info_text": info_text,
+        }
 
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Navigate to a transaction code.
