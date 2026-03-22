@@ -32,7 +32,7 @@ class GuiScrollbar:
 
     @position.setter
     def position(self, value: int) -> None:
-        self._com.Position = value
+        self._com.Position = int(value)
 
     @property
     def page_size(self) -> int:
