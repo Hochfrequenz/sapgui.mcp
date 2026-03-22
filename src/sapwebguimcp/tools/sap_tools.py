@@ -26,9 +26,6 @@ from typing import Any, Optional
 from fastmcp import Context, FastMCP
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.tools.sap_login_impl import sap_login_impl
-from sapwebguimcp.tools.sap_list_connections_impl import ConnectionListResult, sap_list_connections_impl
-from sapwebguimcp.tools.sap_discover_clients_impl import DiscoverClientsResult, sap_discover_clients_impl
 from sapwebguimcp.models import (
     CapabilitiesResult,
     ClosePopupResult,
@@ -58,6 +55,9 @@ from sapwebguimcp.models import (
     get_settings,
 )
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
+from sapwebguimcp.tools.sap_discover_clients_impl import DiscoverClientsResult, sap_discover_clients_impl
+from sapwebguimcp.tools.sap_list_connections_impl import ConnectionListResult, sap_list_connections_impl
+from sapwebguimcp.tools.sap_login_impl import sap_login_impl
 from sapwebguimcp.tools.session_tools import (
     sap_session_bind_impl,
     sap_session_close_impl,

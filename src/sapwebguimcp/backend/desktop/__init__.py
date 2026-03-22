@@ -210,10 +210,10 @@ class DesktopBackend:
 
     async def list_connections(self) -> list[Any]:
         """List available SAP Logon connections from the landscape file."""
-        from sapwebguimcp.tools.sap_list_connections_impl import (
+        from sapwebguimcp.tools.sap_list_connections_impl import (  # pylint: disable=import-outside-toplevel
             _find_landscape_path,
             _parse_landscape_xml,
-        )  # pylint: disable=import-outside-toplevel
+        )
 
         path = _find_landscape_path()
         if path is None:
