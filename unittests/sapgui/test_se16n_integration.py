@@ -110,6 +110,10 @@ class TestGuiGridViewNewMethods:
         color = se16n_grid.get_cell_color(0, "MANDT")
         assert isinstance(color, int)
 
+    def test_get_cell_icon(self, se16n_grid):
+        icon = se16n_grid.get_cell_icon(0, "MANDT")
+        assert isinstance(icon, str)
+
     def test_get_cell_state(self, se16n_grid):
         state = se16n_grid.get_cell_state(0, "MANDT")
         assert state in ("Normal", "Error", "Warning", "Info", "")
