@@ -14,6 +14,31 @@
 
 ---
 
+## ⚠ PDF Verification Errata (2026-03-22)
+
+**All Phase 1 COM method names were cross-checked against the SAP GUI Scripting API 6.40 PDF (`docs/sap_gui_scripting_api_reference.pdf`).** The plan's code samples below contain errors in method names, signatures, and non-existent methods. Apply these corrections when implementing:
+
+### Task 1 (GuiGridView #473) — 2 errors
+1. ~~`get_display_cell_value()` / `GetDisplayCellValue`~~ → **`get_cell_state()` / `GetCellState`** — `GetDisplayCellValue` does not exist in API 6.40. `GetCellState` returns `'Normal'`/`'Error'`/`'Warning'`/`'Info'`.
+2. ~~`get_column_title_by_name()` / `GetColumnTitleByName`~~ → **`get_displayed_column_title()` / `GetDisplayedColumnTitle`** — `GetColumnTitleByName` does not exist.
+3. All return values must be wrapped with `int()`/`str()`/`bool()` casts (plan omits these).
+
+### Task 2 (GuiTree #474) — 5 errors
+1. ~~`get_node_item_type()` / `GetNodeItemType`~~ → **`get_item_type()` / `GetItemType`** — wrong COM method name. Also: enum is 0-5 (not 0-2): 0=Hierarchy, 1=Image, 2=Text, 3=Bool, 4=Button, 5=Link.
+2. ~~`GetItemTooltip`~~ → **`GetItemToolTip`** — capital T in "ToolTip" (contrast with GuiGridView's `GetCellTooltip` lowercase).
+3. ~~`is_changeable()` / `IsChangeable()`~~ → **remove entirely** — `Changeable` is a read-only property inherited from `GuiComponent` base class. No `IsChangeable()` method exists.
+4. ~~`get_list_tree_item_text()` / `GetListTreeItemText`~~ → **remove entirely** — does not exist in API. `get_item_text()` (COM: `GetItemText`) already exists and works for all tree types.
+5. ~~`get_column_tree_item_text()` / `GetColumnTreeItemText`~~ → **remove entirely** — same as above.
+
+### Task 3 (GuiTextedit/GuiAbapEditor #475) — 1 error, 2 notes
+1. `set_unprotected_text_part()` should return **`bool`** (not `None`) — COM: `SetUnprotectedTextPart` returns `Boolean` (True on success).
+2. Note: `LastVisibleLine` is not in PDF 6.40 but likely works in practice (newer SAP GUI version).
+3. Note: `GuiAbapEditor` class is entirely absent from PDF 6.40 — cannot verify its properties. Implement based on observed behavior.
+
+### Tasks 4-6 — pending verification (results will be added here)
+
+---
+
 ## Phase 1: API Completeness
 
 All Phase 1 tasks are independent and can be parallelized.
