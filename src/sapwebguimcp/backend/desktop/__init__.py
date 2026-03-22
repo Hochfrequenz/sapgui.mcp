@@ -208,23 +208,28 @@ class DesktopBackend:
             )
             return LoginResult(success=False, error=str(e))
 
-    async def list_connections(self) -> list:
+    async def list_connections(self) -> list[Any]:
         """List available SAP Logon connections from the landscape file."""
-        from sapwebguimcp.tools.sap_list_connections_impl import _find_landscape_path, _parse_landscape_xml  # pylint: disable=import-outside-toplevel
+        from sapwebguimcp.tools.sap_list_connections_impl import (
+            _find_landscape_path,
+            _parse_landscape_xml,
+        )  # pylint: disable=import-outside-toplevel
 
         path = _find_landscape_path()
         if path is None:
             return []
         return _parse_landscape_xml(path.read_text(encoding="utf-8"))
 
-    async def discover_clients(self, connection_name: str) -> dict:
+    async def discover_clients(self, connection_name: str) -> dict[str, Any]:
         """Open a SAP connection and return available clients from the login screen.
 
         The session is left open at the login screen and registered under a new
         session_id so that a subsequent ``sap_login`` call can reuse it.
         """
         from sapwebguimcp.backend.desktop._discovery import open_for_discovery  # pylint: disable=import-outside-toplevel
-        from sapwebguimcp.tools.sap_discover_clients_impl import parse_clients_from_login_info  # pylint: disable=import-outside-toplevel
+        from sapwebguimcp.tools.sap_discover_clients_impl import (  # pylint: disable=import-outside-toplevel
+            parse_clients_from_login_info,
+        )
 
         session, default_client, info_text = await self._com.run(
             lambda: open_for_discovery(connection_name=connection_name)

@@ -39,8 +39,9 @@ class TestSapLoginClientOverride:
         settings = _make_settings(mandant="100")
         backend = _make_backend()
 
-        with patch(_PATCH_GET_SETTINGS, return_value=settings), patch(
-            _PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)
+        with (
+            patch(_PATCH_GET_SETTINGS, return_value=settings),
+            patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
             await sap_login(client=None)
 
@@ -56,8 +57,9 @@ class TestSapLoginClientOverride:
         settings = _make_settings(mandant="100")
         backend = _make_backend()
 
-        with patch(_PATCH_GET_SETTINGS, return_value=settings), patch(
-            _PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)
+        with (
+            patch(_PATCH_GET_SETTINGS, return_value=settings),
+            patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
             await sap_login(client="200")
 
@@ -78,8 +80,9 @@ class TestSapLoginConnectionNameOverride:
         settings.sap_connection_name = "HFQ"
         backend = _make_backend()
 
-        with patch(_PATCH_GET_SETTINGS, return_value=settings), patch(
-            _PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)
+        with (
+            patch(_PATCH_GET_SETTINGS, return_value=settings),
+            patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
             await sap_login(connection_name=None)
 
@@ -96,8 +99,9 @@ class TestSapLoginConnectionNameOverride:
         settings.sap_connection_name = "HFQ"
         backend = _make_backend()
 
-        with patch(_PATCH_GET_SETTINGS, return_value=settings), patch(
-            _PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)
+        with (
+            patch(_PATCH_GET_SETTINGS, return_value=settings),
+            patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
             await sap_login(connection_name="S4U")
 

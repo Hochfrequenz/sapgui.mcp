@@ -20,9 +20,13 @@ _CLIENT_RE = re.compile(r"^\s*(\d{3})\s+(.+?)\s*$")
 class DiscoverClientsResult(ToolResult):
     """Result from sap_discover_clients tool."""
 
-    session_id: str | None = Field(default=None, description="Session ID of the open login screen (reuse for sap_login)")
+    session_id: str | None = Field(
+        default=None, description="Session ID of the open login screen (reuse for sap_login)"
+    )
     default_client: str = Field(default="", description="Client pre-filled on the login screen")
-    clients: list[dict[str, Any]] = Field(default_factory=list, description="Available clients from login screen info text")
+    clients: list[dict[str, Any]] = Field(
+        default_factory=list, description="Available clients from login screen info text"
+    )
     connection_name: str = Field(default="", description="SAP connection name used")
     info_text: str = Field(default="", description="Raw information text from the login screen")
 

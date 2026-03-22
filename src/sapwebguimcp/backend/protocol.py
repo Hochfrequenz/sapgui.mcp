@@ -194,10 +194,10 @@ class SapNavigation(Protocol):
     ) -> LoginResult:
         """Log into SAP Web GUI."""
 
-    async def list_connections(self) -> list:
+    async def list_connections(self) -> list[Any]:
         """List available SAP Logon connection entries."""
 
-    async def discover_clients(self, connection_name: str) -> dict:
+    async def discover_clients(self, connection_name: str) -> dict[str, Any]:
         """Open an SAP connection and return available clients from the login screen.
 
         Returns a dict with keys:

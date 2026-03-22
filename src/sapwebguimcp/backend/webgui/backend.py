@@ -231,7 +231,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             registry.register(self._page)
         await self._capture_sap_identity(effective_url, mandant, session_id)
 
-    async def login(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    async def login(  # pylint: disable=too-many-arguments,too-many-positional-arguments,unused-argument
         self,
         url: str,
         username: str,
@@ -328,11 +328,11 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             logger.exception("Logging in to SAP")
             return LoginResult.failure(f"Error during SAP login: {e}", url=url)
 
-    async def list_connections(self) -> list:
+    async def list_connections(self) -> list[Any]:
         """WebGUI backend has no SAP Logon entries."""
         return []
 
-    async def discover_clients(self, connection_name: str) -> dict:
+    async def discover_clients(self, connection_name: str) -> dict[str, Any]:  # pylint: disable=unused-argument
         """WebGUI backend has no SAP Logon — client discovery not supported."""
         return {"session_id": None, "default_client": "", "clients": [], "info_text": ""}
 

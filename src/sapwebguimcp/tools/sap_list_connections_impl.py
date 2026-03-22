@@ -5,9 +5,10 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
+from pydantic import Field
+
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.base import ToolResult
-from pydantic import Field
 
 __all__ = ["sap_list_connections_impl", "_parse_landscape_xml"]
 
