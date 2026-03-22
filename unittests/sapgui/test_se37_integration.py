@@ -193,6 +193,18 @@ class TestGuiTableControl:
         assert isinstance(table, GuiTableControl)
         assert table.row_count >= 0
 
+    def test_get_absolute_row(self, se37_session):
+        """get_absolute_row returns a GuiTableRow for visible rows."""
+        from sapwebguimcp.sapgui.components.table import GuiTableRow
+
+        table = _find_table_in_tab(se37_session, _TAB_IMPORT_ID)
+        if table is None:
+            pytest.skip("No table control found in Import tab")
+        if table.row_count == 0:
+            pytest.skip("Import table has no data")
+        row = table.get_absolute_row(0)
+        assert isinstance(row, GuiTableRow)
+
 
 # ---------------------------------------------------------------------------
 # GuiScrollbar integration tests via table's vertical scrollbar
