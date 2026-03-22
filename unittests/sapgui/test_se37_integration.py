@@ -204,3 +204,33 @@ class TestGuiTableControl:
             pytest.skip("Import table has no data")
         row = table.get_absolute_row(0)
         assert isinstance(row, GuiTableRow)
+
+
+# ---------------------------------------------------------------------------
+# GuiScrollbar integration tests via table's vertical scrollbar
+# ---------------------------------------------------------------------------
+
+
+class TestGuiScrollbar:
+    def test_scrollbar_properties(self, se37_session):
+        """Verify scrollbar properties on a table's vertical scrollbar."""
+        from sapwebguimcp.sapgui.components.container import GuiScrollbar
+
+        table = _find_table_in_tab(se37_session, _TAB_IMPORT_ID)
+        if table is None:
+            pytest.skip("No table control found in Import tab")
+
+        # Access the raw COM vertical scrollbar and wrap it
+        try:
+            raw_sb = table.com.VerticalScrollbar
+            sb = GuiScrollbar(raw_sb)
+        except Exception:
+            pytest.skip("No vertical scrollbar on this table")
+
+        assert isinstance(sb.minimum, int)
+        assert isinstance(sb.maximum, int)
+        assert isinstance(sb.position, int)
+        assert isinstance(sb.page_size, int)
+        assert sb.minimum >= 0
+        assert sb.maximum >= sb.minimum
+        assert sb.page_size > 0

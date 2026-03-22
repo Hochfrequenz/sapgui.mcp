@@ -7,6 +7,44 @@ from typing import Any
 from sapwebguimcp.sapgui.components.base import GuiVContainer
 
 
+class GuiScrollbar:
+    """Scrollbar object exposed by GuiUserArea.
+
+    Not a GuiComponent subclass — it's a standalone helper object
+    accessible via GuiUserArea.vertical_scrollbar / horizontal_scrollbar.
+    """
+
+    def __init__(self, com_obj: Any) -> None:
+        self._com = com_obj
+
+    @property
+    def minimum(self) -> int:
+        """Minimum scroll position."""
+        return int(self._com.Minimum)
+
+    @property
+    def maximum(self) -> int:
+        """Maximum scroll position."""
+        return int(self._com.Maximum)
+
+    @property
+    def position(self) -> int:
+        """Current scroll position."""
+        return int(self._com.Position)
+
+    @position.setter
+    def position(self, value: int) -> None:
+        self._com.Position = int(value)
+
+    @property
+    def page_size(self) -> int:
+        """Number of visible rows/columns (page size for scrolling)."""
+        return int(self._com.PageSize)
+
+    def __repr__(self) -> str:
+        return f"<GuiScrollbar pos={self.position} range={self.minimum}-{self.maximum}>"
+
+
 class GuiUserArea(GuiVContainer):
     """Wraps the COM GuiUserArea interface (TypeAsNumber 74).
 
@@ -14,14 +52,14 @@ class GuiUserArea(GuiVContainer):
     """
 
     @property
-    def vertical_scrollbar(self) -> Any:
-        """Return the vertical scrollbar COM object."""
-        return self._com.VerticalScrollbar
+    def vertical_scrollbar(self) -> GuiScrollbar:
+        """Vertical scrollbar of the user area."""
+        return GuiScrollbar(self._com.VerticalScrollbar)
 
     @property
-    def horizontal_scrollbar(self) -> Any:
-        """Return the horizontal scrollbar COM object."""
-        return self._com.HorizontalScrollbar
+    def horizontal_scrollbar(self) -> GuiScrollbar:
+        """Horizontal scrollbar of the user area."""
+        return GuiScrollbar(self._com.HorizontalScrollbar)
 
 
 class GuiScrollContainer(GuiVContainer):
