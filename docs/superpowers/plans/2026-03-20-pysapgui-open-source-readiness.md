@@ -14,6 +14,38 @@
 
 ---
 
+## ⚠ PDF Verification Errata (2026-03-22)
+
+**All Phase 1 COM method names were cross-checked against the SAP GUI Scripting API 6.40 PDF (`docs/sap_gui_scripting_api_reference.pdf`).** The plan's code samples below contain errors in method names, signatures, and non-existent methods. Apply these corrections when implementing:
+
+### Task 1 (GuiGridView #473) — 2 errors — fix PR: #506
+1. **Remove** ~~`get_display_cell_value()` / `GetDisplayCellValue`~~ — does not exist in API 6.40. **Add instead:** `get_cell_state()` / `GetCellState(Row, Column) -> String` — returns `'Normal'`/`'Error'`/`'Warning'`/`'Info'`. Note: this is NOT a functional replacement — it serves a different purpose (cell status vs formatted value).
+2. ~~`get_column_title_by_name()` / `GetColumnTitleByName`~~ → **`get_displayed_column_title()` / `GetDisplayedColumnTitle(Column) -> String`** — `GetColumnTitleByName` does not exist.
+3. All return values must be wrapped with type casts: `int()` for `get_cell_color`, `str()` for `get_cell_icon`, `get_cell_state`, `get_cell_tooltip`, `get_displayed_column_title`, `get_column_tooltip`, `get_column_data_type`, `bool()` for `is_cell_hotspot`. The code samples below omit these.
+
+### Task 2 (GuiTree #474) — 5 errors — fixed in PR: #505
+1. ~~`get_node_item_type()` / `GetNodeItemType`~~ → **`get_item_type()` / `GetItemType`** — wrong COM method name. Also: enum is 0-5 (not 0-2): 0=Hierarchy, 1=Image, 2=Text, 3=Bool, 4=Button, 5=Link.
+2. ~~`GetItemTooltip`~~ → **`GetItemToolTip`** — capital T in "ToolTip" (contrast with GuiGridView's `GetCellTooltip` lowercase).
+3. ~~`is_changeable()` / `IsChangeable()`~~ → **remove entirely** — `Changeable` is a read-only property inherited from `GuiComponent` base class. No `IsChangeable()` method exists.
+4. ~~`get_list_tree_item_text()` / `GetListTreeItemText`~~ → **remove entirely** — does not exist in API. `get_item_text()` (COM: `GetItemText`) already exists and works for all tree types.
+5. ~~`get_column_tree_item_text()` / `GetColumnTreeItemText`~~ → **remove entirely** — same as above.
+
+### Task 3 (GuiTextedit/GuiAbapEditor #475) — 1 error, 2 notes
+1. `set_unprotected_text_part()` should return **`bool`** (not `None`) — COM: `SetUnprotectedTextPart` returns `Boolean` (True on success).
+2. Note: `LastVisibleLine` is not in PDF 6.40 but likely works in practice (newer SAP GUI version).
+3. Note: `GuiAbapEditor` class is entirely absent from PDF 6.40 — cannot verify its properties. Implement based on observed behavior.
+
+### Task 4 (GuiTableControl #476) — no errors
+All three planned additions (`GetAbsoluteRow`, `Columns`, `Rows`) confirmed in PDF. Note: `GetAbsoluteRow` raises an exception if the row is not currently visible (unlike `Rows` collection which resets index 0 after scrolling).
+
+### Task 5 (GuiContextMenu #477) — 1 error
+1. ~~`class GuiContextMenu(GuiVContainer)`~~ → **`class GuiContextMenu(GuiMenu)`** — PDF says GuiContextMenu extends GuiMenu, not GuiVContainer. Since `GuiMenu` already implements `select()`, the class body can be just a docstring — `select()` is inherited for free.
+
+### Task 6 (GuiScrollbar #478) — no errors
+All 4 properties (`Minimum`, `Maximum`, `Position`, `PageSize`) confirmed with correct names and access modes. Standalone (non-GuiComponent) design confirmed.
+
+---
+
 ## Phase 1: API Completeness
 
 All Phase 1 tasks are independent and can be parallelized.
@@ -53,10 +85,10 @@ class TestGuiGridViewCellInfo:
         grid._com.GetCellIcon.return_value = "@01@"
         assert grid.get_cell_icon(0, "COL") == "@01@"
 
-    def test_get_display_cell_value(self):
+    def test_get_cell_state(self):
         grid = _make_grid()
-        grid._com.GetDisplayCellValue.return_value = "1,234.56"
-        assert grid.get_display_cell_value(0, "COL") == "1,234.56"
+        grid._com.GetCellState.return_value = "Normal"
+        assert grid.get_cell_state(0, "COL") == "Normal"
 
     def test_modify_cell(self):
         grid = _make_grid()
@@ -75,10 +107,10 @@ class TestGuiGridViewCellInfo:
 
 
 class TestGuiGridViewColumnInfo:
-    def test_get_column_title_by_name(self):
+    def test_get_displayed_column_title(self):
         grid = _make_grid()
-        grid._com.GetColumnTitleByName.return_value = "Material"
-        assert grid.get_column_title_by_name("MATNR") == "Material"
+        grid._com.GetDisplayedColumnTitle.return_value = "Material"
+        assert grid.get_displayed_column_title("MATNR") == "Material"
 
     def test_get_column_tooltip(self):
         grid = _make_grid()
@@ -105,15 +137,15 @@ Append to `src/sapwebguimcp/sapgui/components/grid.py` inside the `GuiGridView` 
 
     def get_cell_color(self, row: int, column: str) -> int:
         """Return the color index of a cell."""
-        return self._com.GetCellColor(row, column)
+        return int(self._com.GetCellColor(row, column))
 
     def get_cell_icon(self, row: int, column: str) -> str:
         """Return the icon string (e.g. '@01@') displayed in a cell."""
-        return self._com.GetCellIcon(row, column)
+        return str(self._com.GetCellIcon(row, column))
 
-    def get_display_cell_value(self, row: int, column: str) -> str:
-        """Return the formatted display value of a cell (vs raw value from get_cell_value)."""
-        return self._com.GetDisplayCellValue(row, column)
+    def get_cell_state(self, row: int, column: str) -> str:
+        """Return the state of a cell ('Normal', 'Error', 'Warning', 'Info')."""
+        return str(self._com.GetCellState(row, column))
 
     def modify_cell(self, row: int, column: str, value: str) -> None:
         """Modify a cell value. SAP spec alias for set_cell_value."""
@@ -125,21 +157,21 @@ Append to `src/sapwebguimcp/sapgui/components/grid.py` inside the `GuiGridView` 
 
     def get_cell_tooltip(self, row: int, column: str) -> str:
         """Return the tooltip text for a cell."""
-        return self._com.GetCellTooltip(row, column)
+        return str(self._com.GetCellTooltip(row, column))
 
     # --- Column info methods ---
 
-    def get_column_title_by_name(self, column: str) -> str:
-        """Return the display title for a column given its technical name."""
-        return self._com.GetColumnTitleByName(column)
+    def get_displayed_column_title(self, column: str) -> str:
+        """Return the currently displayed title for a column."""
+        return str(self._com.GetDisplayedColumnTitle(column))
 
     def get_column_tooltip(self, column: str) -> str:
         """Return the tooltip text for a column header."""
-        return self._com.GetColumnTooltip(column)
+        return str(self._com.GetColumnTooltip(column))
 
     def get_column_data_type(self, column: str) -> str:
         """Return the ABAP data type of a column (e.g. 'CHAR', 'NUMC')."""
-        return self._com.GetColumnDataType(column)
+        return str(self._com.GetColumnDataType(column))
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -192,14 +224,14 @@ class TestGuiTreeCheckbox:
 
 
 class TestGuiTreeNodeInfo:
-    def test_get_node_item_type(self):
+    def test_get_item_type(self):
         tree = _make_tree()
-        tree._com.GetNodeItemType.return_value = 1
-        assert tree.get_node_item_type("KEY1", "COL1") == 1
+        tree._com.GetItemType.return_value = 1
+        assert tree.get_item_type("KEY1", "COL1") == 1
 
     def test_get_item_tooltip(self):
         tree = _make_tree()
-        tree._com.GetItemTooltip.return_value = "tip"
+        tree._com.GetItemToolTip.return_value = "tip"
         assert tree.get_item_tooltip("KEY1", "COL1") == "tip"
 
     def test_get_node_style(self):
@@ -211,23 +243,6 @@ class TestGuiTreeNodeInfo:
         tree = _make_tree()
         tree._com.IsFolder.return_value = True
         assert tree.is_folder("KEY1") is True
-
-    def test_is_changeable(self):
-        tree = _make_tree()
-        tree._com.IsChangeable.return_value = False
-        assert tree.is_changeable("KEY1") is False
-
-
-class TestGuiTreeListColumnText:
-    def test_get_list_tree_item_text(self):
-        tree = _make_tree()
-        tree._com.GetListTreeItemText.return_value = "text"
-        assert tree.get_list_tree_item_text("KEY1", "COL1") == "text"
-
-    def test_get_column_tree_item_text(self):
-        tree = _make_tree()
-        tree._com.GetColumnTreeItemText.return_value = "text"
-        assert tree.get_column_tree_item_text("KEY1", "COL1") == "text"
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -252,35 +267,24 @@ Append to `GuiTree` class in `src/sapwebguimcp/sapgui/components/tree.py`:
 
     # --- Node info methods ---
 
-    def get_node_item_type(self, node_key: str, item_name: str) -> int:
-        """Return the type of a tree item (0=hierarchy, 1=image, 2=text)."""
-        return self._com.GetNodeItemType(node_key, item_name)
+    def get_item_type(self, node_key: str, item_name: str) -> int:
+        """Return the type of a tree item.
+
+        Values: 0=Hierarchy, 1=Image, 2=Text, 3=Bool, 4=Button, 5=Link.
+        """
+        return int(self._com.GetItemType(node_key, item_name))
 
     def get_item_tooltip(self, node_key: str, item_name: str) -> str:
         """Return the tooltip text of a tree item."""
-        return self._com.GetItemTooltip(node_key, item_name)
+        return str(self._com.GetItemToolTip(node_key, item_name))
 
     def get_node_style(self, node_key: str) -> int:
         """Return the style of a tree node."""
-        return self._com.GetNodeStyle(node_key)
+        return int(self._com.GetNodeStyle(node_key))
 
     def is_folder(self, node_key: str) -> bool:
         """Return whether a tree node is a folder (expandable)."""
         return bool(self._com.IsFolder(node_key))
-
-    def is_changeable(self, node_key: str) -> bool:
-        """Return whether a tree node is changeable."""
-        return bool(self._com.IsChangeable(node_key))
-
-    # --- List/Column tree methods ---
-
-    def get_list_tree_item_text(self, node_key: str, item_name: str) -> str:
-        """Return text of an item in a list tree. Only valid for tree_type == list."""
-        return self._com.GetListTreeItemText(node_key, item_name)
-
-    def get_column_tree_item_text(self, node_key: str, item_name: str) -> str:
-        """Return text of an item in a column tree. Only valid for tree_type == column."""
-        return self._com.GetColumnTreeItemText(node_key, item_name)
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -345,8 +349,10 @@ class TestGuiTexteditMissing:
 
     def test_set_unprotected_text_part(self):
         te = _make_textedit()
-        te.set_unprotected_text_part(0, "new text")
+        te._com.SetUnprotectedTextPart.return_value = True
+        result = te.set_unprotected_text_part(0, "new text")
         te._com.SetUnprotectedTextPart.assert_called_once_with(0, "new text")
+        assert result is True
 
     def test_get_unprotected_text_part(self):
         te = _make_textedit()
@@ -400,13 +406,16 @@ In `src/sapwebguimcp/sapgui/components/editor.py`, add to `GuiTextedit` class:
         """Last visible line in the editor viewport (read-only)."""
         return self._com.LastVisibleLine
 
-    def set_unprotected_text_part(self, part: int, text: str) -> None:
-        """Set the text of an unprotected text part by index."""
-        self._com.SetUnprotectedTextPart(part, text)
+    def set_unprotected_text_part(self, part: int, text: str) -> bool:
+        """Set the text of an unprotected text part by index.
+
+        Returns True on success, False on failure.
+        """
+        return bool(self._com.SetUnprotectedTextPart(part, text))
 
     def get_unprotected_text_part(self, part: int) -> str:
         """Get the text of an unprotected text part by index."""
-        return self._com.GetUnprotectedTextPart(part)
+        return str(self._com.GetUnprotectedTextPart(part))
 ```
 
 Add to `GuiAbapEditor` class:
@@ -585,16 +594,13 @@ Expected: FAIL — GuiContextMenu not defined
 Add to `src/sapwebguimcp/sapgui/components/toolbar.py`:
 
 ```python
-class GuiContextMenu(GuiVContainer):
+class GuiContextMenu(GuiMenu):
     """Context menu item (type 127).
 
+    Extends GuiMenu — inherits select() and other menu methods.
     Appears when a context menu is open. Each item in the menu is a
     GuiContextMenu object. Call select() to click the menu item.
     """
-
-    def select(self) -> None:
-        """Select (click) this context menu item."""
-        self._com.Select()
 ```
 
 - [ ] **Step 5: Register in factory**

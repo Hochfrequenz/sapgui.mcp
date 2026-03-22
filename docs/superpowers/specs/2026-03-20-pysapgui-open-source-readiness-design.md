@@ -105,33 +105,34 @@ Note: #482 (Pydantic → dataclasses) is CANCELLED — Pydantic stays.
 
 ### Phase 1: API Completeness
 
-**1.1 GuiGridView gaps (#473)**
-- `get_cell_color()`, `get_cell_icon()`, `get_display_cell_value()`
+**1.1 GuiGridView gaps (#473)** _(PDF-verified 2026-03-22)_
+- `get_cell_color()`, `get_cell_icon()`, `get_cell_state()` ~~`get_display_cell_value()`~~ (not in API 6.40)
 - `modify_cell()` (alias for set_cell_value — SAP spec uses both names)
-- `get_column_title_by_name()`, `get_column_tooltip()`, `get_column_data_type()`
+- `get_displayed_column_title()` ~~`get_column_title_by_name()`~~ (not in API), `get_column_tooltip()`, `get_column_data_type()`
 - `is_cell_hotspot()`, `get_cell_tooltip()`
 
-**1.2 GuiTree gaps (#474)**
+**1.2 GuiTree gaps (#474)** _(PDF-verified 2026-03-22)_
 - `change_checkbox()`, `get_checkbox_state()` — tree checkbox support
-- `get_node_item_type()`, `get_item_tooltip()`
-- `get_node_style()`, `is_folder()`, `is_changeable()`
-- `get_list_tree_item_text()`, `get_column_tree_item_text()` (for list/column tree types)
+- `get_item_type()` ~~`get_node_item_type()`~~ (COM: GetItemType, not GetNodeItemType), `get_item_tooltip()` (COM: GetItemToolTip, capital T)
+- `get_node_style()`, `is_folder()`
+- ~~`is_changeable()`~~ (already inherited as `changeable` property from base)
+- ~~`get_list_tree_item_text()`, `get_column_tree_item_text()`~~ (not in API; `get_item_text()` already covers all tree types)
 
-**1.3 GuiTextedit / GuiAbapEditor gaps (#475)**
-- `set_unprotected_text_part()`, `get_unprotected_text_part()`
-- `is_read_only` property (GuiTextedit has it, verify GuiAbapEditor)
-- `first_visible_line` (r/w), `last_visible_line` (read-only)
+**1.3 GuiTextedit / GuiAbapEditor gaps (#475)** _(PDF-verified 2026-03-22)_
+- `set_unprotected_text_part()` (returns bool, not void), `get_unprotected_text_part()`
+- `is_read_only` property (GuiTextedit has it, verify GuiAbapEditor — note: GuiAbapEditor not in PDF 6.40)
+- `first_visible_line` (r/w), `last_visible_line` (read-only — not in PDF 6.40, likely newer API)
 
-**1.4 GuiTableControl gaps (#476)**
-- `get_absolute_row()` — for scrolled tables
+**1.4 GuiTableControl gaps (#476)** _(PDF-verified 2026-03-22 — no errors)_
+- `get_absolute_row()` — for scrolled tables (raises if row not visible)
 - `columns` property should return typed `GuiTableColumn` collection
 - `rows` property should return typed `GuiTableRow` collection
 
-**1.5 GuiContextMenu (type 127) (#477)**
-- New class with properties: `text`, methods: `select()`
+**1.5 GuiContextMenu (type 127) (#477)** _(PDF-verified 2026-03-22)_
+- New class extending **`GuiMenu`** ~~`GuiVContainer`~~ — inherits `select()` from GuiMenu
 - Register in factory + types
 
-**1.6 GuiScrollbar (type 100) (#478)**
+**1.6 GuiScrollbar (type 100) (#478)** _(PDF-verified 2026-03-22 — no errors)_
 - Properties: `minimum`, `maximum`, `position` (r/w), `page_size`
 - Update `GuiUserArea` to return typed scrollbars
 
