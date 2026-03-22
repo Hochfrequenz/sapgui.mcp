@@ -55,7 +55,7 @@ class GuiTextedit(GuiShell):
     @property
     def first_visible_line(self) -> int:
         """First visible line in the editor viewport."""
-        return self._com.FirstVisibleLine
+        return int(self._com.FirstVisibleLine)
 
     @first_visible_line.setter
     def first_visible_line(self, value: int) -> None:
@@ -64,7 +64,7 @@ class GuiTextedit(GuiShell):
     @property
     def last_visible_line(self) -> int:
         """Last visible line in the editor viewport (read-only)."""
-        return self._com.LastVisibleLine
+        return int(self._com.LastVisibleLine)
 
     def set_unprotected_text_part(self, part: int, text: str) -> bool:
         """Set the text of an unprotected text part by index.
@@ -108,7 +108,7 @@ class GuiAbapEditor(GuiShell):
     @property
     def first_visible_line(self) -> int:
         """First visible line in the editor viewport."""
-        return self._com.FirstVisibleLine
+        return int(self._com.FirstVisibleLine)
 
     @first_visible_line.setter
     def first_visible_line(self, value: int) -> None:
@@ -117,7 +117,7 @@ class GuiAbapEditor(GuiShell):
     @property
     def last_visible_line(self) -> int:
         """Last visible line in the editor viewport (read-only)."""
-        return self._com.LastVisibleLine
+        return int(self._com.LastVisibleLine)
 
     @property
     def is_read_only(self) -> bool:
