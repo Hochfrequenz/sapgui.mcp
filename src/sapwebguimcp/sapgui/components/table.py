@@ -55,6 +55,15 @@ class GuiTableControl(GuiVContainer):
         """Return the COM object for the cell at (row, col)."""
         return self._com.GetCell(row, col)
 
+    def get_absolute_row(self, row: int) -> "GuiTableRow":
+        """Return a row by absolute index (works with scrolled tables).
+
+        Unlike indexing via rows[i], this accounts for the scroll position
+        and returns the row at the given absolute position in the data.
+        Raises an exception if the row is not currently visible.
+        """
+        return GuiTableRow(self._com.GetAbsoluteRow(row))
+
 
 class GuiTableRow(GuiComponent):
     """Wraps a single row of a GuiTableControl."""

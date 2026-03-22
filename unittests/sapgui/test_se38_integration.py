@@ -102,3 +102,23 @@ class TestGuiAbapEditorProperties:
         count = se38_editor.com.GetLineCount()
         assert isinstance(count, int)
         assert count > 0
+
+
+# ---------------------------------------------------------------------------
+# New methods added in PR #521 (editor methods #475)
+# ---------------------------------------------------------------------------
+
+
+class TestGuiAbapEditorNewMethods:
+    def test_first_visible_line_not_on_s4(self, se38_editor):
+        """On S/4, FirstVisibleLine raises AttributeError on AbapEditor.
+
+        The property exists on GuiTextedit but not on the S/4 AbapEditor
+        COM object. This test documents the known limitation.
+        """
+        try:
+            fvl = se38_editor.first_visible_line
+            # If it works (R/3 or newer S/4), verify it's an int
+            assert isinstance(fvl, int)
+        except AttributeError:
+            pytest.skip("FirstVisibleLine not available on S/4 AbapEditor")
