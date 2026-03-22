@@ -21,5 +21,14 @@ class GuiMenu(GuiVContainer):
         self._com.Select()
 
 
+class GuiContextMenu(GuiMenu):
+    """Context menu item (type 127).
+
+    Extends GuiMenu — inherits select() and other menu methods.
+    Appears when a context menu is open. Each item in the menu is a
+    GuiContextMenu object. Call select() to click the menu item.
+    """
+
+
 class GuiTitlebar(GuiVContainer):
     """Wraps the COM GuiTitlebar interface (TypeAsNumber 102)."""

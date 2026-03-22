@@ -46,7 +46,7 @@ from sapwebguimcp.sapgui.components.shell import (
 from sapwebguimcp.sapgui.components.statusbar import GuiStatusbar, GuiStatusPane, GuiVHViewSwitch
 from sapwebguimcp.sapgui.components.tab import GuiTab, GuiTabStrip
 from sapwebguimcp.sapgui.components.table import GuiTableControl
-from sapwebguimcp.sapgui.components.toolbar import GuiMenu, GuiMenubar, GuiTitlebar, GuiToolbar
+from sapwebguimcp.sapgui.components.toolbar import GuiContextMenu, GuiMenu, GuiMenubar, GuiTitlebar, GuiToolbar
 from sapwebguimcp.sapgui.components.tree import GuiTree
 from sapwebguimcp.sapgui.components.window import (
     GuiFrameWindow,
@@ -93,6 +93,7 @@ _TYPE_MAP: dict[int, type[GuiComponent]] = {
     123: GuiGOSShell,
     125: GuiDialogShell,
     126: GuiDockShell,
+    127: GuiContextMenu,
     129: GuiVHViewSwitch,
 }
 

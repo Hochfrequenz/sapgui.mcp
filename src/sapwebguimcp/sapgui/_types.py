@@ -68,6 +68,7 @@ class GuiComponentType(IntEnum):
     GuiGOSShell = 123
     GuiDialogShell = 125
     GuiDockShell = 126
+    GuiContextMenu = 127
     GuiComponentCollection = 128
     GuiVHViewSwitch = 129
 

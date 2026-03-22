@@ -117,3 +117,37 @@ class TestGuiTreeNewMethods:
         """Verify the inherited `changeable` property works (was wrongly
         planned as is_changeable() method)."""
         assert isinstance(se80_tree.changeable, bool)
+
+
+# ---------------------------------------------------------------------------
+# GuiContextMenu integration test via SE80 tree context menu (#477)
+# ---------------------------------------------------------------------------
+
+
+class TestGuiContextMenu:
+    def test_context_menu_on_tree_node(self, se80_tree, sap_desktop_session):
+        """Open a context menu on the SE80 tree and verify it's a GuiContextMenu."""
+        from sapwebguimcp.sapgui.components.toolbar import GuiContextMenu
+
+        key = se80_tree.top_node
+
+        # Open context menu on the top node
+        se80_tree.com.NodeContextMenu(key)
+        time.sleep(0.5)
+
+        try:
+            ctx = se80_tree.com.CurrentContextMenu
+            assert ctx.TypeAsNumber == 127
+
+            # Verify children are also GuiContextMenu items
+            assert ctx.Children.Count > 0
+            first_item = ctx.Children.Item(0)
+            assert first_item.TypeAsNumber == 127
+
+            # Wrap with our class and verify select() exists
+            menu_item = GuiContextMenu(first_item)
+            assert isinstance(menu_item.text, str)
+            assert len(menu_item.text) > 0
+        finally:
+            # Close context menu by pressing Escape
+            sap_desktop_session.find_by_id("wnd[0]").send_v_key(12)
