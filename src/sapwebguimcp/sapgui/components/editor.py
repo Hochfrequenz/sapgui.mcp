@@ -52,6 +52,31 @@ class GuiTextedit(GuiShell):
         """Press F4 (value help) in the editor."""
         self._com.PressF4()
 
+    @property
+    def first_visible_line(self) -> int:
+        """First visible line in the editor viewport."""
+        return self._com.FirstVisibleLine
+
+    @first_visible_line.setter
+    def first_visible_line(self, value: int) -> None:
+        self._com.FirstVisibleLine = value
+
+    @property
+    def last_visible_line(self) -> int:
+        """Last visible line in the editor viewport (read-only)."""
+        return self._com.LastVisibleLine
+
+    def set_unprotected_text_part(self, part: int, text: str) -> bool:
+        """Set the text of an unprotected text part by index.
+
+        Returns True on success, False on failure.
+        """
+        return bool(self._com.SetUnprotectedTextPart(part, text))
+
+    def get_unprotected_text_part(self, part: int) -> str:
+        """Get the text of an unprotected text part by index."""
+        return str(self._com.GetUnprotectedTextPart(part))
+
 
 class GuiAbapEditor(GuiShell):
     """Wraps the COM GuiAbapEditor shell (SubType 'AbapEditor').
@@ -79,3 +104,22 @@ class GuiAbapEditor(GuiShell):
     def press_f1(self) -> None:
         """Press F1 (help) in the editor."""
         self._com.PressF1()
+
+    @property
+    def first_visible_line(self) -> int:
+        """First visible line in the editor viewport."""
+        return self._com.FirstVisibleLine
+
+    @first_visible_line.setter
+    def first_visible_line(self, value: int) -> None:
+        self._com.FirstVisibleLine = value
+
+    @property
+    def last_visible_line(self) -> int:
+        """Last visible line in the editor viewport (read-only)."""
+        return self._com.LastVisibleLine
+
+    @property
+    def is_read_only(self) -> bool:
+        """Whether the editor is in read-only mode."""
+        return bool(self._com.IsReadOnly)
