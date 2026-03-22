@@ -91,6 +91,7 @@ class TestGuiTreePreExisting:
         se80_tree.select_node(key)
         if se80_tree.is_folder(key):
             se80_tree.expand_node(key)
+            assert se80_tree.get_node_children_count(key) > 0
             se80_tree.collapse_node(key)
 
 
