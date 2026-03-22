@@ -186,3 +186,43 @@ class GuiGridView(GuiShell):
     def get_toolbar_button_tooltip(self, pos: int) -> str:
         """Return the toolbar button tooltip at the given position."""
         return str(self._com.GetToolbarButtonTooltip(pos))
+
+    # --- Cell info methods ---
+
+    def get_cell_color(self, row: int, column: str) -> int:
+        """Return the color index of a cell."""
+        return int(self._com.GetCellColor(row, column))
+
+    def get_cell_icon(self, row: int, column: str) -> str:
+        """Return the icon string (e.g. '@01@') displayed in a cell."""
+        return str(self._com.GetCellIcon(row, column))
+
+    def get_display_cell_value(self, row: int, column: str) -> str:
+        """Return the formatted display value of a cell (vs raw value from get_cell_value)."""
+        return str(self._com.GetDisplayCellValue(row, column))
+
+    def modify_cell(self, row: int, column: str, value: str) -> None:
+        """Modify a cell value. SAP spec alias for set_cell_value."""
+        self._com.ModifyCell(row, column, value)
+
+    def is_cell_hotspot(self, row: int, column: str) -> bool:
+        """Return whether a cell is a clickable hotspot."""
+        return bool(self._com.IsCellHotspot(row, column))
+
+    def get_cell_tooltip(self, row: int, column: str) -> str:
+        """Return the tooltip text for a cell."""
+        return str(self._com.GetCellTooltip(row, column))
+
+    # --- Column info methods ---
+
+    def get_column_title_by_name(self, column: str) -> str:
+        """Return the display title for a column given its technical name."""
+        return str(self._com.GetColumnTitleByName(column))
+
+    def get_column_tooltip(self, column: str) -> str:
+        """Return the tooltip text for a column header."""
+        return str(self._com.GetColumnTooltip(column))
+
+    def get_column_data_type(self, column: str) -> str:
+        """Return the ABAP data type of a column (e.g. 'CHAR', 'NUMC')."""
+        return str(self._com.GetColumnDataType(column))
