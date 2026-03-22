@@ -35,7 +35,14 @@
 2. Note: `LastVisibleLine` is not in PDF 6.40 but likely works in practice (newer SAP GUI version).
 3. Note: `GuiAbapEditor` class is entirely absent from PDF 6.40 — cannot verify its properties. Implement based on observed behavior.
 
-### Tasks 4-6 — pending verification (results will be added here)
+### Task 4 (GuiTableControl #476) — no errors
+All three planned additions (`GetAbsoluteRow`, `Columns`, `Rows`) confirmed in PDF. Note: `GetAbsoluteRow` raises an exception if the row is not currently visible (unlike `Rows` collection which resets index 0 after scrolling).
+
+### Task 5 (GuiContextMenu #477) — 1 error
+1. ~~`class GuiContextMenu(GuiVContainer)`~~ → **`class GuiContextMenu(GuiMenu)`** — PDF says GuiContextMenu extends GuiMenu, not GuiVContainer. Since `GuiMenu` already implements `select()`, the class body can be just a docstring — `select()` is inherited for free.
+
+### Task 6 (GuiScrollbar #478) — no errors
+All 4 properties (`Minimum`, `Maximum`, `Position`, `PageSize`) confirmed with correct names and access modes. Standalone (non-GuiComponent) design confirmed.
 
 ---
 

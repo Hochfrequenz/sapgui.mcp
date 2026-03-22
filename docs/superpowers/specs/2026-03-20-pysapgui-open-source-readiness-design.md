@@ -123,16 +123,16 @@ Note: #482 (Pydantic → dataclasses) is CANCELLED — Pydantic stays.
 - `is_read_only` property (GuiTextedit has it, verify GuiAbapEditor — note: GuiAbapEditor not in PDF 6.40)
 - `first_visible_line` (r/w), `last_visible_line` (read-only — not in PDF 6.40, likely newer API)
 
-**1.4 GuiTableControl gaps (#476)**
-- `get_absolute_row()` — for scrolled tables
+**1.4 GuiTableControl gaps (#476)** _(PDF-verified 2026-03-22 — no errors)_
+- `get_absolute_row()` — for scrolled tables (raises if row not visible)
 - `columns` property should return typed `GuiTableColumn` collection
 - `rows` property should return typed `GuiTableRow` collection
 
-**1.5 GuiContextMenu (type 127) (#477)**
-- New class with properties: `text`, methods: `select()`
+**1.5 GuiContextMenu (type 127) (#477)** _(PDF-verified 2026-03-22)_
+- New class extending **`GuiMenu`** ~~`GuiVContainer`~~ — inherits `select()` from GuiMenu
 - Register in factory + types
 
-**1.6 GuiScrollbar (type 100) (#478)**
+**1.6 GuiScrollbar (type 100) (#478)** _(PDF-verified 2026-03-22 — no errors)_
 - Properties: `minimum`, `maximum`, `position` (r/w), `page_size`
 - Update `GuiUserArea` to return typed scrollbars
 
