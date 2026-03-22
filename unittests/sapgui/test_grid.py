@@ -24,10 +24,10 @@ class TestGuiGridViewCellInfo:
         grid._com.GetCellIcon.return_value = "@01@"
         assert grid.get_cell_icon(0, "COL") == "@01@"
 
-    def test_get_display_cell_value(self):
+    def test_get_cell_state(self):
         grid = _make_grid()
-        grid._com.GetDisplayCellValue.return_value = "1,234.56"
-        assert grid.get_display_cell_value(0, "COL") == "1,234.56"
+        grid._com.GetCellState.return_value = "Normal"
+        assert grid.get_cell_state(0, "COL") == "Normal"
 
     def test_modify_cell(self):
         grid = _make_grid()
@@ -46,10 +46,10 @@ class TestGuiGridViewCellInfo:
 
 
 class TestGuiGridViewColumnInfo:
-    def test_get_column_title_by_name(self):
+    def test_get_displayed_column_title(self):
         grid = _make_grid()
-        grid._com.GetColumnTitleByName.return_value = "Material"
-        assert grid.get_column_title_by_name("MATNR") == "Material"
+        grid._com.GetDisplayedColumnTitle.return_value = "Material"
+        assert grid.get_displayed_column_title("MATNR") == "Material"
 
     def test_get_column_tooltip(self):
         grid = _make_grid()
