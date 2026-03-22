@@ -93,7 +93,12 @@ class TestGuiAbapEditorProperties:
         assert se38_editor.type == "GuiShell"
 
     def test_raw_com_get_line_count(self, se38_editor):
-        """GetLineCount is the S/4 method for total line count."""
+        """GetLineCount is the S/4 COM method for total line count.
+
+        Uses raw COM because GuiAbapEditor has no wrapper for this yet —
+        the existing number_of_lines property wraps NumberOfLines which
+        may only work on R/3, not S/4. See issue #516.
+        """
         count = se38_editor.com.GetLineCount()
         assert isinstance(count, int)
         assert count > 0
