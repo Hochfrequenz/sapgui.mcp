@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from sapwebguimcp.sapgui.components.base import GuiVContainer
 
 
@@ -12,7 +14,7 @@ class GuiScrollbar:
     accessible via GuiUserArea.vertical_scrollbar / horizontal_scrollbar.
     """
 
-    def __init__(self, com_obj) -> None:  # noqa: ANN001
+    def __init__(self, com_obj: Any) -> None:
         self._com = com_obj
 
     @property
