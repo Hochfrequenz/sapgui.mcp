@@ -2,8 +2,8 @@
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.editor import GuiAbapEditor, GuiTextedit
-from sapwebguimcp.sapgui.components.shell import GuiShell
+from sapsucker.components.editor import GuiAbapEditor, GuiTextedit
+from sapsucker.components.shell import GuiShell
 
 
 def _make_textedit():

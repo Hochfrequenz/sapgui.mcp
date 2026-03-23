@@ -2,7 +2,7 @@
 
 import pytest
 
-from sapwebguimcp.sapgui._types import (
+from sapsucker._types import (
     PREFIX_TO_TYPE_NAME,
     SHELL_SUBTYPE_NAMES,
     GuiComponentType,

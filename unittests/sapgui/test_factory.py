@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import pytest
 
-from sapwebguimcp.sapgui._factory import (
+from sapsucker._factory import (
     _SHELL_SUBTYPE_MAP,
     _TYPE_MAP,
     wrap_com_object,
 )
-from sapwebguimcp.sapgui.components.base import GuiComponent
-from sapwebguimcp.sapgui.components.button import GuiButton
-from sapwebguimcp.sapgui.components.field import GuiTextField
-from sapwebguimcp.sapgui.components.grid import GuiGridView
-from sapwebguimcp.sapgui.components.shell import GuiShell
-from sapwebguimcp.sapgui.components.tree import GuiTree
-from sapwebguimcp.sapgui.components.window import GuiMainWindow
+from sapsucker.components.base import GuiComponent
+from sapsucker.components.button import GuiButton
+from sapsucker.components.field import GuiTextField
+from sapsucker.components.grid import GuiGridView
+from sapsucker.components.shell import GuiShell
+from sapsucker.components.tree import GuiTree
+from sapsucker.components.window import GuiMainWindow
 from unittests.sapgui.conftest import make_mock_com
 
 

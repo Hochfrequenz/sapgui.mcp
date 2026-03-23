@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.table import (
+from sapsucker.components.table import (
     GuiTableColumn,
     GuiTableControl,
     GuiTableRow,

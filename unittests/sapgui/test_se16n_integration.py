@@ -22,7 +22,7 @@ pytestmark = [
 
 def _open_se16n_t000(session):
     """Navigate to SE16N, query table T000, return the grid."""
-    from sapwebguimcp.sapgui.components.grid import GuiGridView
+    from sapsucker.components.grid import GuiGridView
 
     okcode = session.find_by_id("wnd[0]/tbar[0]/okcd")
     okcode.text = "/nSE16N"

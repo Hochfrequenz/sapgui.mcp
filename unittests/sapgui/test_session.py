@@ -2,8 +2,8 @@
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.base import GuiContainer
-from sapwebguimcp.sapgui.components.session import GuiSession, GuiSessionInfo
+from sapsucker.components.base import GuiContainer
+from sapsucker.components.session import GuiSession, GuiSessionInfo
 from unittests.sapgui.conftest import make_mock_com
 
 

@@ -2,7 +2,7 @@
 
 import pytest
 
-from sapwebguimcp.sapgui._errors import (
+from sapsucker._errors import (
     ElementNotFoundError,
     SapConnectionError,
     SapGuiError,

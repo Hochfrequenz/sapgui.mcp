@@ -1,6 +1,6 @@
 """Tests for GuiCheckBox and GuiRadioButton — issue #513."""
 
-from sapwebguimcp.sapgui.components.checkbox import GuiCheckBox, GuiRadioButton
+from sapsucker.components.checkbox import GuiCheckBox, GuiRadioButton
 from unittests.sapgui.conftest import make_mock_com
 
 

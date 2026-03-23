@@ -1,6 +1,6 @@
 """Tests for Pydantic data models."""
 
-from sapwebguimcp.sapgui.models import ElementInfo, SessionInfo
+from sapsucker.models import ElementInfo, SessionInfo
 
 
 class TestSessionInfo:

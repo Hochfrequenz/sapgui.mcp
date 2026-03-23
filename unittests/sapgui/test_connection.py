@@ -2,8 +2,8 @@
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.base import GuiContainer
-from sapwebguimcp.sapgui.components.connection import GuiConnection
+from sapsucker.components.base import GuiContainer
+from sapsucker.components.connection import GuiConnection
 from unittests.sapgui.conftest import make_mock_com
 
 
@@ -21,7 +21,7 @@ class TestGuiConnectionProperties:
     def test_sessions(self):
         com = make_mock_com(container_type=True, children=[make_mock_com(type_as_number=12, type_name="GuiSession")])
         conn = GuiConnection(com)
-        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+        from sapsucker.components.collection import GuiComponentCollection
 
         assert isinstance(conn.sessions, GuiComponentCollection)
         assert len(conn.sessions) == 1

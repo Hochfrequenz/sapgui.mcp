@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.grid import GuiGridView
+from sapsucker.components.grid import GuiGridView
 
 
 def _make_grid():
