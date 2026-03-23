@@ -48,6 +48,7 @@ def open_for_discovery(
     info_text = ""
 
     if session.info.program == "SAPMSYST":
+        # Normal login screen — read pre-filled client and info text
         try:
             mandt_field = session.find_by_id("wnd[0]/usr/txtRSYST-MANDT", raise_error=False)
             if mandt_field is not None:
@@ -56,6 +57,13 @@ def open_for_discovery(
             pass
 
         info_text = _collect_window_text(session)
+    else:
+        # SSO — already logged in, no login screen to inspect
+        default_client = str(session.info.client or "")
+        info_text = (
+            f"SSO active: already logged in as {session.info.user}"
+            f" on client {default_client} ({session.info.system_name})"
+        )
 
     return session, default_client, info_text
 

@@ -12,12 +12,12 @@ _SAMPLE_LANDSCAPE_XML = dedent("""\
     <?xml version="1.0"?>
     <Landscape>
       <Services>
-        <Service type="SAPGUI" uuid="aaa" name="HFQ" systemid="HFQ" server="172.22.100.151:3200"/>
-        <Service type="Reference" uuid="bbb" name="HF ECC Lieferant" systemid="HFQ" client="100"
-                 user="dachnerm" language="DE" link="aaa"/>
-        <Service type="Reference" uuid="ccc" name="HF ECC Netz" systemid="HFQ" client="200"
-                 user="dachnerm" language="DE" link="aaa"/>
-        <Service type="SAPGUI" uuid="ddd" name="S4U" systemid="S4U" server="srvhfuhana:3200"/>
+        <Service type="SAPGUI" uuid="a1b2c3d4-e5f6-7890-abcd-ef1234567890" name="HFQ" systemid="HFQ" server="172.22.100.151:3200"/>
+        <Service type="Reference" uuid="b2c3d4e5-f6a7-8901-bcde-f12345678901" name="HF ECC Lieferant" systemid="HFQ" client="100"
+                 user="dachnerm" language="DE" link="a1b2c3d4-e5f6-7890-abcd-ef1234567890"/>
+        <Service type="Reference" uuid="c3d4e5f6-a7b8-9012-cdef-123456789012" name="HF ECC Netz" systemid="HFQ" client="200"
+                 user="dachnerm" language="DE" link="a1b2c3d4-e5f6-7890-abcd-ef1234567890"/>
+        <Service type="SAPGUI" uuid="d4e5f6a7-b8c9-0123-defa-234567890123" name="S4U" systemid="S4U" server="srvhfuhana:3200"/>
       </Services>
     </Landscape>
 """)
