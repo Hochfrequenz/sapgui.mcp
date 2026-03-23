@@ -130,6 +130,35 @@ Replace:
 - `Your SAP Logon Entry` with the **description** shown in SAP Logon — this is the bold text in the list when you open SAP Logon (e.g. `"HF S/4"` or `"DEV - ERP Development"`). It is _not_ the system ID or server address.
 - `your_username` / `your_password` with your SAP credentials
 
+#### Multi-system access
+
+To connect to multiple SAP systems from the same MCP server, use `SAP_CREDENTIALS` to provide per-system login credentials. The LLM can then call `sap_login` with a `connection_name` and optional `client` to switch systems on the fly.
+
+```json
+{
+    "mcpServers": {
+        "sap-desktop": {
+            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "env": {
+                "BACKEND_TYPE": "desktop",
+                "SAP_CONNECTION_NAME": "HF S/4",
+                "SAP_USER": "default_user",
+                "SAP_PASSWORD": "default_password",
+                "SAP_MANDANT": "100",
+                "SAP_LANGUAGE": "DE",
+                "SAP_CREDENTIALS": "{\"DEV System\": {\"user\": \"dev_user\", \"password\": \"dev_pass\"}, \"QA System\": {\"user\": \"qa_user\", \"password\": \"qa_pass\"}}"
+            }
+        }
+    }
+}
+```
+
+- `SAP_CREDENTIALS` is a JSON object mapping connection names to `{"user": "...", "password": "..."}`.
+- When `sap_login(connection_name="DEV System")` is called, it uses the credentials from the mapping.
+- If the connection name is not in the mapping, it falls back to `SAP_USER` / `SAP_PASSWORD`.
+- Use `sap_list_connections` to discover available SAP Logon entries.
+- Use `sap_discover_clients(connection_name="...")` to discover available clients (Mandanten) on a system.
+
 No Chrome, no browser setup required.
 
 > **Getting started:** Save the config file, then restart Claude Desktop. Try asking: _"Log me into SAP"_ or _"Run transaction SE16"_. SAP GUI will open automatically if it is not already running.
