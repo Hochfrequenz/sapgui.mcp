@@ -108,3 +108,17 @@ class GuiApplication(GuiContainer):
     def create_gui_collection(self) -> Any:
         """Create a new empty GuiCollection COM object."""
         return self._com.CreateGuiCollection()
+
+    def __enter__(self) -> GuiApplication:
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Close all connections on exit. Best-effort — errors are suppressed."""
+        try:
+            for i in range(self._com.Children.Count):
+                try:
+                    self._com.Children.Item(i).CloseConnection()
+                except Exception:  # noqa: BLE001
+                    pass
+        except Exception:  # noqa: BLE001
+            pass
