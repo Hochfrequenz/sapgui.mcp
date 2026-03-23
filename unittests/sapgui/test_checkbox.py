@@ -1,7 +1,5 @@
 """Tests for GuiCheckBox and GuiRadioButton — issue #513."""
 
-from unittest.mock import MagicMock
-
 from sapwebguimcp.sapgui.components.checkbox import GuiCheckBox, GuiRadioButton
 from unittests.sapgui.conftest import make_mock_com
 
@@ -61,10 +59,15 @@ class TestGuiRadioButton:
         rb = _make_radio(Selected=1)
         assert rb.selected is True
 
-    def test_selected_setter(self):
+    def test_selected_setter_true(self):
         rb = _make_radio()
         rb.selected = True
         assert rb._com.Selected == 1
+
+    def test_selected_setter_false(self):
+        rb = _make_radio()
+        rb.selected = False
+        assert rb._com.Selected == 0
 
     def test_highlighted(self):
         rb = _make_radio(Highlighted=False)

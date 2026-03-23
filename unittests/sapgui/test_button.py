@@ -1,7 +1,5 @@
 """Tests for GuiButton — issue #513."""
 
-from unittest.mock import MagicMock
-
 from sapwebguimcp.sapgui.components.button import GuiButton
 from unittests.sapgui.conftest import make_mock_com
 
