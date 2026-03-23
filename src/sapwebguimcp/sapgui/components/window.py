@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from sapwebguimcp.sapgui.components.base import GuiVComponent, GuiVContainer
 
+__all__ = ["GuiFrameWindow", "GuiMainWindow", "GuiMessageWindow", "GuiModalWindow"]
+
 
 class GuiFrameWindow(GuiVContainer):
     """Wraps the COM GuiFrameWindow interface (TypeAsNumber 20).

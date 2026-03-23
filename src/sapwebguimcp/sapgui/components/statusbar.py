@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from sapwebguimcp.sapgui.components.base import GuiVComponent
 
+__all__ = ["GuiStatusPane", "GuiStatusbar", "GuiVHViewSwitch"]
+
 
 class GuiStatusbar(GuiVComponent):
     """Wraps the COM GuiStatusbar interface (TypeAsNumber 103).

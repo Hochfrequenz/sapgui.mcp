@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from sapwebguimcp.sapgui.components.base import GuiVComponent
 
+__all__ = ["GuiButton"]
+
 
 class GuiButton(GuiVComponent):
     """Wraps the COM GuiButton interface (TypeAsNumber 40).

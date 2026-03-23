@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from sapwebguimcp.sapgui.components.base import GuiVComponent
 
+__all__ = ["GuiOkCodeField"]
+
 
 class GuiOkCodeField(GuiVComponent):
     """Wraps the COM GuiOkCodeField interface (TypeAsNumber 35).

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from sapwebguimcp.sapgui.components.base import GuiVComponent
 
+__all__ = ["GuiCheckBox", "GuiRadioButton"]
+
 
 class GuiCheckBox(GuiVComponent):
     """Wraps the COM GuiCheckBox interface (TypeAsNumber 42)."""

@@ -6,6 +6,18 @@ from typing import Any
 
 from sapwebguimcp.sapgui.components.base import GuiVContainer
 
+__all__ = [
+    "GuiContainerShell",
+    "GuiCustomControl",
+    "GuiDialogShell",
+    "GuiDockShell",
+    "GuiGOSShell",
+    "GuiScrollContainer",
+    "GuiSimpleContainer",
+    "GuiSplitterContainer",
+    "GuiUserArea",
+]
+
 
 class GuiUserArea(GuiVContainer):
     """Wraps the COM GuiUserArea interface (TypeAsNumber 74).

@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from sapwebguimcp.sapgui.components.application import GuiApplication
 
+__all__ = ["SapGui"]
+
 
 class SapGui:
     """High-level facade for launching or connecting to SAP GUI."""

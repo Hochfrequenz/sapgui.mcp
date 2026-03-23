@@ -6,6 +6,8 @@ from typing import Any
 
 from sapwebguimcp.sapgui.components.shell import GuiShell
 
+__all__ = ["GuiTree"]
+
 
 class GuiTree(GuiShell):
     """Wraps the COM GuiTree shell (SubType 'Tree').
