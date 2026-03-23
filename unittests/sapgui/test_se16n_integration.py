@@ -78,10 +78,9 @@ class TestGuiGridViewProperties:
 
     def test_column_order(self, se16n_grid):
         order = se16n_grid.column_order
-        assert order is not None
-        # column_order is a COM collection; verify first column is readable
-        first_col = str(order(0))
-        assert len(first_col) > 0
+        assert isinstance(order, list)
+        assert len(order) > 0
+        assert isinstance(order[0], str)
 
     def test_toolbar_button_count(self, se16n_grid):
         assert se16n_grid.toolbar_button_count > 0

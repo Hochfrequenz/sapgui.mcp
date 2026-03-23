@@ -8,10 +8,12 @@ Prerequisites:
     - Authorization for SE38 and report RSPARAM.
 """
 
+from typing import Any
+
 from sapwebguimcp.sapgui import SapGui
 
 
-def main(session=None):
+def main(session: Any = None) -> None:
     """Run the example. Pass a session for testing, or None to auto-connect."""
     if session is None:
         app = SapGui.connect()

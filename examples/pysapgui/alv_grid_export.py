@@ -9,12 +9,13 @@ Prerequisites:
 """
 
 import time
+from typing import Any
 
 from sapwebguimcp.sapgui import SapGui
 from sapwebguimcp.sapgui.components.grid import GuiGridView
 
 
-def main(session=None):
+def main(session: Any = None) -> None:
     """Run the example. Pass a session for testing, or None to auto-connect."""
     if session is None:
         app = SapGui.connect()
