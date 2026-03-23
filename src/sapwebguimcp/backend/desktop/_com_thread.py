@@ -123,11 +123,13 @@ class ComThread:
                 result = fn()
                 duration = time.monotonic() - start
 
+                # Detect latency spike BEFORE updating the average
+                is_spike = duration > 5 * self._avg_latency_s and self._avg_latency_s > 0.005
+
                 # Update latency tracking (exponential moving average, alpha=0.2)
                 self._avg_latency_s = 0.8 * self._avg_latency_s + 0.2 * duration
 
-                # Detect latency spike: if call took 5x the average, COM is under pressure
-                if duration > 5 * self._avg_latency_s and self._avg_latency_s > 0.005:
+                if is_spike:
                     self._increase_interval("latency_spike", duration)
                 else:
                     self._decrease_interval()
@@ -168,11 +170,6 @@ class ComThread:
                 else:
                     cf_future.set_exception(exc)
                 return
-
-        # Exhausted retries
-        cf_future.set_exception(
-            RuntimeError(f"COM call failed after {self._max_retries} retries (last error code: {error_code})")
-        )
 
     def _increase_interval(self, reason: str, observed_delay: float) -> None:
         """Increase the throttle interval (back off)."""
