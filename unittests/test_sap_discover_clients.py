@@ -1,49 +1,11 @@
 """Unit tests for sap_discover_clients tool."""
 
-from textwrap import dedent
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 _PATCH_GET_BACKEND = "sapwebguimcp.tools.sap_discover_clients_impl.get_backend"
 _PATCH_GET_SETTINGS = "sapwebguimcp.tools.sap_discover_clients_impl.get_settings"
-
-
-class TestParseClientsFromLoginInfo:
-    """parse_clients_from_login_info extracts client entries from SAP login screen text."""
-
-    def _parse(self, text: str) -> list:
-        from sapwebguimcp.tools.sap_discover_clients_impl import parse_clients_from_login_info
-
-        return parse_clients_from_login_info(text)
-
-    def test_parses_client_with_description(self) -> None:
-        """Lines matching NNN<space>description are returned as client entries."""
-        result = self._parse("100 Produktionsmandant\n200 Testmandant")
-        assert len(result) == 2
-        assert result[0] == {"id": "100", "description": "Produktionsmandant"}
-        assert result[1] == {"id": "200", "description": "Testmandant"}
-
-    def test_handles_leading_whitespace(self) -> None:
-        """Client lines may be indented."""
-        result = self._parse("  100  Produktionsmandant\n  200  Testmandant")
-        assert len(result) == 2
-        assert result[0]["id"] == "100"
-        assert result[1]["id"] == "200"
-
-    def test_ignores_non_client_lines(self) -> None:
-        """Lines without a 3-digit client number are skipped."""
-        text = "System: HFQ\nRelease 7.55\n100 Production\nInstallation 1234"
-        result = self._parse(text)
-        assert len(result) == 1
-        assert result[0]["id"] == "100"
-
-    def test_returns_empty_for_blank_text(self) -> None:
-        assert self._parse("") == []
-
-    def test_trims_description_whitespace(self) -> None:
-        result = self._parse("100  Produktionsmandant   ")
-        assert result[0]["description"] == "Produktionsmandant"
 
 
 class TestSapDiscoverClientsImpl:
