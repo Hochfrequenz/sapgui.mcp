@@ -3,7 +3,6 @@
 from unittest.mock import MagicMock, PropertyMock
 
 import pytest
-
 from sapsucker.components.base import _dump_tree_recursive, _probe_bdt_fields
 
 
