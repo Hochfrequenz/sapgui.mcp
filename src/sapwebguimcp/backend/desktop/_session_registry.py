@@ -1,6 +1,6 @@
 """Session registry for desktop (COM) backend.
 
-Mirrors WebGUI's SessionRegistry but stores pysapgui GuiSession objects
+Mirrors WebGUI's SessionRegistry but stores sapsucker GuiSession objects
 instead of Playwright Pages. Stale sessions are detected on access via
 a COM probe (no close-event mechanism exists for SAP GUI COM).
 """

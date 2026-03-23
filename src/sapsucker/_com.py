@@ -8,7 +8,7 @@ given SAP GUI session **must** happen from the same thread that called
 them on another will raise ``pywintypes.com_error`` or cause silent
 corruption.
 
-If you use pysapgui from async code, run all COM calls in a dedicated thread
+If you use sapsucker from async code, run all COM calls in a dedicated thread
 via ``asyncio.to_thread()`` or a ``concurrent.futures.ThreadPoolExecutor``.
 Each worker thread must call ``pythoncom.CoInitialize()`` before its first
 COM operation and ``pythoncom.CoUninitialize()`` when done.

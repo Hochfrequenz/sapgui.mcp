@@ -1,4 +1,4 @@
-"""Integration tests for the pysapgui library.
+"""Integration tests for the sapsucker library.
 
 Tests are skipped unless:
 - Running on Windows (COM is Windows-only)

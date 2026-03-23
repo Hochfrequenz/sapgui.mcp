@@ -30,17 +30,17 @@ print(session.find_by_id("wnd[0]/sbar").text)
 
 ## Why sapsucker?
 
-| Feature                      | sapsucker | pysapscript | sapguipy | raw COM |
-| ---------------------------- | --------- | ----------- | -------- | ------- |
-| Typed wrappers (40+ classes) | Yes       | No          | No       | No      |
-| IDE autocomplete             | Yes       | No          | No       | No      |
-| Type hints on every method   | Yes       | No          | No       | No      |
-| Docstrings with SAP context  | Yes       | Partial     | No       | No      |
-| Unit tests                   | 430+      | No          | No       | —       |
-| Integration tests (real SAP) | 50+       | No          | No       | —       |
-| CI (lint, mypy, black)       | Yes       | No          | No       | —       |
-| API verified against PDF     | Yes       | No          | No       | —       |
-| License                      | MIT       | GPL-3       | MIT      | —       |
+| Feature                       | sapsucker | pysapscript | sapguipy | raw COM |
+| ----------------------------- | --------- | ----------- | -------- | ------- |
+| Typed wrappers (40+ classes)  | Yes       | No          | No       | No      |
+| IDE autocomplete              | Yes       | No          | No       | No      |
+| Type hints on every method    | Yes       | No          | No       | No      |
+| Docstrings with SAP context   | Yes       | Partial     | No       | No      |
+| Unit tests                    | 430+      | No          | No       | —       |
+| Integration tests (real SAP)  | 50+       | No          | No       | —       |
+| Linting (pylint, mypy, black) | Yes       | No          | No       | —       |
+| API verified against PDF      | Yes       | No          | No       | —       |
+| License                       | MIT       | GPL-3       | MIT      | —       |
 
 Other Python libraries for SAP GUI (`pysapscript`, `PySapGUI`, `sapguipy`,
 `robotframework-sapguilibrary`) use generic `read()`/`write()` methods or
@@ -50,8 +50,10 @@ own Python class, so `GuiGridView` has `get_cell_value()` and `GuiTree` has
 
 ## Installation
 
+> **Note:** sapsucker is not yet published on PyPI. Install from the repository:
+
 ```bash
-pip install sapsucker
+pip install git+https://github.com/Hochfrequenz/sapwebgui.mcp.git
 ```
 
 ### Prerequisites
@@ -174,12 +176,15 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 
 ```bash
 # Clone and install dev dependencies
-git clone https://github.com/Hochfrequenz/sapsucker.git
-cd sapsucker
+git clone https://github.com/Hochfrequenz/sapwebgui.mcp.git
+cd sapwebgui.mcp
 pip install -e ".[dev]"
 
-# Run tests (unit tests work without SAP)
+# Run unit tests (no SAP required)
 pytest unittests/sapgui/ -v
+
+# Run integration tests (requires SAP GUI + credentials in .env)
+pytest unittests/sapgui/ -k integration -v
 
 # Format
 black src/ unittests/ examples/

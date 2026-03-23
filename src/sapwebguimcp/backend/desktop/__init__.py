@@ -69,7 +69,7 @@ logger = logging.getLogger(__name__)
 
 
 def _unwrap_com(field: Any) -> Any:
-    """Get the raw COM dispatch object from a pysapgui wrapper."""
+    """Get the raw COM dispatch object from a sapsucker wrapper."""
     return getattr(field, "com", getattr(field, "_com", field))
 
 
@@ -1052,7 +1052,7 @@ class DesktopBackend:
         """Find an AbapEditor or TextEdit shell via raw COM.
 
         Returns ``(raw_com_shell, sub_type)`` or ``None``.
-        Uses raw COM ``FindById`` to avoid pysapgui wrapper issues
+        Uses raw COM ``FindById`` to avoid sapsucker wrapper issues
         with ``GuiAbapEditor`` property access.
         """
         raw_session: Any = getattr(session, "com", getattr(session, "_com", session))

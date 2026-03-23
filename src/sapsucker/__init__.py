@@ -1,4 +1,4 @@
-"""pysapgui — Pythonic SAP GUI Scripting Library."""
+"""sapsucker — Pythonic SAP GUI Scripting Library."""
 
 # pylint: disable=import-outside-toplevel
 
