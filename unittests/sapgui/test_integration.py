@@ -188,7 +188,7 @@ def test_read_statusbar_text():
 def test_login_and_logoff():
     """Login with real credentials, verify session info, then logoff."""
     from sapwebguimcp.models.config import get_settings
-    from sapwebguimcp.sapgui._login import login, logoff
+    from sapwebguimcp.sapgui.login import login, logoff
 
     settings = get_settings()
     session = login(
@@ -210,7 +210,7 @@ def test_login_and_logoff():
 def test_login_handles_easy_access():
     """After login, session should be at Easy Access (not the login screen)."""
     from sapwebguimcp.models.config import get_settings
-    from sapwebguimcp.sapgui._login import login, logoff
+    from sapwebguimcp.sapgui.login import login, logoff
 
     settings = get_settings()
     session = login(
@@ -242,7 +242,7 @@ def test_create_additional_mode():
     """Opening a new mode (/o) creates a session within the SAME connection."""
     from sapwebguimcp.models.config import get_settings
     from sapwebguimcp.sapgui import SapGui
-    from sapwebguimcp.sapgui._login import cleanup_ghost_connections, login
+    from sapwebguimcp.sapgui.login import cleanup_ghost_connections, login
 
     settings = get_settings()
 
@@ -283,7 +283,7 @@ def test_create_additional_mode():
 def test_two_connections_independent():
     """Two separate logins create independent connections (not modes)."""
     from sapwebguimcp.models.config import get_settings
-    from sapwebguimcp.sapgui._login import cleanup_ghost_connections, login
+    from sapwebguimcp.sapgui.login import cleanup_ghost_connections, login
 
     settings = get_settings()
 

@@ -16,7 +16,7 @@ import tempfile
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
 
-import sapwebguimcp.sapgui._login as _login_mod
+import sapwebguimcp.sapgui.login as _login_mod
 from sapwebguimcp.backend.desktop._com_thread import ComThread
 from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
