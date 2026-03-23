@@ -12,6 +12,8 @@ if TYPE_CHECKING:
     from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
     from sapwebguimcp.sapgui.models import ElementInfo
 
+__all__ = ["GuiComponent", "GuiContainer", "GuiVComponent", "GuiVContainer"]
+
 
 class GuiComponent:
     """Wraps the COM GuiComponent interface — the root of the SAP GUI type tree."""

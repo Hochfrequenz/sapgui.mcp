@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from sapwebguimcp.sapgui.components.base import GuiVContainer
 
+__all__ = ["GuiTab", "GuiTabStrip"]
+
 
 class GuiTabStrip(GuiVContainer):
     """Wraps the COM GuiTabStrip interface (TypeAsNumber 90)."""

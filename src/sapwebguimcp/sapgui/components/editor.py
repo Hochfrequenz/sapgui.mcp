@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from sapwebguimcp.sapgui.components.shell import GuiShell
 
+__all__ = ["GuiAbapEditor", "GuiTextedit"]
+
 
 class GuiTextedit(GuiShell):
     """Wraps the COM GuiTextedit shell (SubType 'TextEdit').

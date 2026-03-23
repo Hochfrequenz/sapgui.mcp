@@ -11,6 +11,8 @@ from sapwebguimcp.sapgui.components.base import GuiContainer
 if TYPE_CHECKING:
     from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
 
+__all__ = ["GuiApplication"]
+
 
 class GuiApplication(GuiContainer):
     """Wraps the COM GuiApplication interface (TypeAsNumber 10).

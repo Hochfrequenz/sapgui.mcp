@@ -8,6 +8,8 @@ from typing import Any
 
 from sapwebguimcp.sapgui.components.shell import GuiShell
 
+__all__ = ["GuiGridView"]
+
 
 class GuiGridView(GuiShell):
     """Wraps the COM GuiGridView shell (SubType 'GridView').

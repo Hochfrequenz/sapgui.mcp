@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+__all__ = ["ElementInfo", "SessionInfo"]
+
 
 class SessionInfo(BaseModel):
     """Structured information about a SAP GUI session."""

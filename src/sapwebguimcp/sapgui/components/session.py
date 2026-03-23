@@ -8,6 +8,8 @@ from typing import Any
 
 from sapwebguimcp.sapgui.components.base import GuiComponent, GuiContainer
 
+__all__ = ["GuiSession", "GuiSessionInfo"]
+
 
 class GuiSessionInfo:
     """Wraps the COM GuiSessionInfo object (read-only session metadata)."""
