@@ -10,6 +10,8 @@ from sapwebguimcp.sapgui.components.base import GuiContainer
 
 if TYPE_CHECKING:
     from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+    from sapwebguimcp.sapgui.components.connection import GuiConnection
+    from sapwebguimcp.sapgui.components.session import GuiSession
 
 __all__ = ["GuiApplication"]
 
@@ -29,9 +31,11 @@ class GuiApplication(GuiContainer):
         return GuiComponentCollection(self._com.Children)
 
     @property
-    def active_session(self) -> Any:
-        """Return the COM object for the currently active session."""
-        return self._com.ActiveSession
+    def active_session(self) -> GuiSession:
+        """Return the currently active session."""
+        from sapwebguimcp.sapgui._factory import wrap_com_object
+
+        return wrap_com_object(self._com.ActiveSession)  # type: ignore[return-value]
 
     @property
     def connection_error_text(self) -> str:
@@ -65,11 +69,8 @@ class GuiApplication(GuiContainer):
     def allow_system_messages(self, value: bool) -> None:
         self._com.AllowSystemMessages = value
 
-    def open_connection(self, description: str, sync: bool = True, raise_error: bool = True) -> Any:
+    def open_connection(self, description: str, sync: bool = True, raise_error: bool = True) -> GuiConnection:
         """Open a connection by system description (as shown in SAP Logon).
-
-        Returns Any because wrap_com_object returns GuiComponent but the
-        runtime object is always a GuiConnection.
 
         Raises:
             SapConnectionError: If the SAP server is unreachable or the
@@ -97,12 +98,8 @@ class GuiApplication(GuiContainer):
 
     def open_connection_by_connection_string(
         self, conn_string: str, sync: bool = True, raise_error: bool = True
-    ) -> Any:
-        """Open a connection using a raw connection string.
-
-        Returns Any because wrap_com_object returns GuiComponent but the
-        runtime object is always a GuiConnection.
-        """
+    ) -> GuiConnection:
+        """Open a connection using a raw connection string."""
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
         return wrap_com_object(self._com.OpenConnectionByConnectionString(conn_string, sync, raise_error))
