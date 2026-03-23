@@ -103,7 +103,7 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     """
     try:
         from _sapwebguimcp_version import version as _server_version
-    except ImportError:
+    except (ImportError, SyntaxError):
         _server_version = "unknown"
     logger.info("[STARTING] SAP MCP Server v%s initializing (backend=%s)...", _server_version, _settings.backend_type)
     if _settings.backend_type == "webgui":
