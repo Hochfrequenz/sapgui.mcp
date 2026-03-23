@@ -78,6 +78,11 @@ class TestGuiTextField:
                     assert isinstance(field.is_required, bool)
                     assert isinstance(field.changeable, bool)
                     assert isinstance(field.text, str)
+                    assert isinstance(field.caret_position, int)
+                    assert isinstance(field.is_numerical, bool)
+                    assert isinstance(field.is_hotspot, bool)
+                    assert isinstance(field.highlighted, bool)
+                    assert isinstance(field.is_list_element, bool)
                     return
             except Exception:
                 continue
@@ -112,6 +117,15 @@ class TestGuiLabel:
                     assert len(label.text) > 0
                     assert isinstance(label.max_length, int)
                     assert isinstance(label.displayed_text, str)
+                    assert isinstance(label.is_numerical, bool)
+                    assert isinstance(label.is_hotspot, bool)
+                    assert isinstance(label.highlighted, bool)
+                    assert isinstance(label.is_list_element, bool)
+                    assert isinstance(label.color_index, int)
+                    assert isinstance(label.color_intensified, bool)
+                    assert isinstance(label.color_inverse, bool)
+                    assert isinstance(label.char_height, int)
+                    assert isinstance(label.char_width, int)
                     return
             except Exception:
                 continue
