@@ -27,7 +27,7 @@ def _find_alv_grid_id(session: GuiSession) -> str | None:
     tree = cast(Any, wnd).dump_tree()
     for elem in _flatten(tree):
         if elem.type_as_number in (122, 80):
-            return elem.id
+            return str(elem.id)
     return None
 
 
