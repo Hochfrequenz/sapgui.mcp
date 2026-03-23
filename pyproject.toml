@@ -25,6 +25,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "pywin32>=306; sys_platform == 'win32'",
+    "sapsucker>=0.0.1",  # Typed SAP GUI Scripting wrapper
 ]
 dynamic = ["readme", "version"]
 
@@ -80,6 +81,7 @@ target_version = ["py311", "py312", "py313", "py314"]
 [tool.isort]
 line_length = 120
 profile = "black"
+known_third_party = ["sapsucker"]
 
 [tool.pylint."MESSAGES CONTROL"]
 max-line-length = 120

@@ -17,6 +17,7 @@ from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
 
 import sapsucker.login as _login_mod
+
 from sapwebguimcp.backend.desktop._com_thread import ComThread
 from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
@@ -57,6 +58,7 @@ from sapwebguimcp.models.sap_results import (
 
 if TYPE_CHECKING:
     from sapsucker.components.session import GuiSession
+
     from sapwebguimcp.backend.protocol import CheckActivateResult
     from sapwebguimcp.models.sap_results import (
         ClosePopupResult,
