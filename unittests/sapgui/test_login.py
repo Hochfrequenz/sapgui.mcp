@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sapwebguimcp.sapgui._errors import SapConnectionError, SapGuiTimeoutError
-from sapwebguimcp.sapgui._login import (
+from sapwebguimcp.sapgui.login import (
     _FALLBACK_SAPLOGON_PATH,
     _discover_saplogon_path,
     _handle_multiple_logon_popup,
@@ -92,9 +92,9 @@ class TestDiscoverSaplogonPath:
 class TestLogin:
     """Tests for login()."""
 
-    @patch("sapwebguimcp.sapgui._login._wait_for_session")
+    @patch("sapwebguimcp.sapgui.login._wait_for_session")
     @patch("sapwebguimcp.sapgui.SapGui")
-    @patch("sapwebguimcp.sapgui._login.time")
+    @patch("sapwebguimcp.sapgui.login.time")
     def test_happy_path(self, mock_time, mock_sap_gui_cls, mock_wait):
         """login() fills credentials, presses Enter, and returns session."""
         session = _make_mock_session(program="SAPMSYST")
@@ -125,9 +125,9 @@ class TestLogin:
         mock_sap_gui_cls.connect.assert_called_once()
         session._fields["wnd[0]"].send_v_key.assert_called_once_with(0)
 
-    @patch("sapwebguimcp.sapgui._login._wait_for_session")
+    @patch("sapwebguimcp.sapgui.login._wait_for_session")
     @patch("sapwebguimcp.sapgui.SapGui")
-    @patch("sapwebguimcp.sapgui._login.time")
+    @patch("sapwebguimcp.sapgui.login.time")
     def test_handles_multiple_logon_popup(self, mock_time, mock_sap_gui_cls, mock_wait):
         """login() handles the multiple logon popup by selecting OPT2."""
         session = _make_mock_session(program="SAPMSYST")
@@ -163,9 +163,9 @@ class TestLogin:
         # _handle_multiple_logon_popup after selecting OPT2.
         assert popup.send_v_key.call_count == 2
 
-    @patch("sapwebguimcp.sapgui._login._wait_for_session")
+    @patch("sapwebguimcp.sapgui.login._wait_for_session")
     @patch("sapwebguimcp.sapgui.SapGui")
-    @patch("sapwebguimcp.sapgui._login.time")
+    @patch("sapwebguimcp.sapgui.login.time")
     def test_raises_on_bad_credentials(self, mock_time, mock_sap_gui_cls, mock_wait):
         """login() raises SapConnectionError when login screen stays after Enter."""
         session = _make_mock_session(program="SAPMSYST", sbar_text="Login failed: bad password")
@@ -181,9 +181,9 @@ class TestLogin:
                 password="wrong",
             )
 
-    @patch("sapwebguimcp.sapgui._login._wait_for_session")
+    @patch("sapwebguimcp.sapgui.login._wait_for_session")
     @patch("sapwebguimcp.sapgui.SapGui")
-    @patch("sapwebguimcp.sapgui._login.time")
+    @patch("sapwebguimcp.sapgui.login.time")
     def test_launches_sap_gui_when_connect_fails(self, mock_time, mock_sap_gui_cls, mock_wait):
         """login() launches SAP GUI when connect() raises SapConnectionError."""
         mock_sap_gui_cls.connect.side_effect = SapConnectionError("Not running")
@@ -203,7 +203,7 @@ class TestLogin:
 class TestLogoff:
     """Tests for logoff()."""
 
-    @patch("sapwebguimcp.sapgui._login.cleanup_ghost_connections")
+    @patch("sapwebguimcp.sapgui.login.cleanup_ghost_connections")
     def test_closes_parent_connection(self, mock_cleanup):
         """logoff() closes the parent connection via CloseConnection()."""
         session = MagicMock()
@@ -211,7 +211,7 @@ class TestLogoff:
         session.com.Parent.CloseConnection.assert_called_once()
         mock_cleanup.assert_called_once()
 
-    @patch("sapwebguimcp.sapgui._login.cleanup_ghost_connections")
+    @patch("sapwebguimcp.sapgui.login.cleanup_ghost_connections")
     def test_no_fallback_to_nex(self, mock_cleanup):
         """logoff() does NOT fall back to /nEX — it just swallows the error."""
         session = MagicMock()
@@ -220,7 +220,7 @@ class TestLogoff:
         session.send_command.assert_not_called()
         mock_cleanup.assert_called_once()
 
-    @patch("sapwebguimcp.sapgui._login.cleanup_ghost_connections")
+    @patch("sapwebguimcp.sapgui.login.cleanup_ghost_connections")
     def test_handles_already_closed_session(self, mock_cleanup):
         """logoff() does not raise when session is already closed."""
         session = MagicMock()
@@ -283,7 +283,7 @@ class TestHandleMultipleLogonPopup:
 
         session.find_by_id = find_by_id
 
-        with patch("sapwebguimcp.sapgui._login.time"):
+        with patch("sapwebguimcp.sapgui.login.time"):
             _handle_multiple_logon_popup(session)
 
         assert opt2.selected is True
