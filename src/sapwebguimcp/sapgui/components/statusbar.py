@@ -21,14 +21,8 @@ class GuiStatusbar(GuiVComponent):
 
 
 class GuiStatusPane(GuiVComponent):
-    """Wraps the COM GuiStatusPane interface (TypeAsNumber 43).
-
-    An individual pane within the status bar area.
-    """
+    """Individual pane within the status bar (TypeAsNumber 43)."""
 
 
 class GuiVHViewSwitch(GuiVComponent):
-    """Wraps the COM GuiVHViewSwitch interface (TypeAsNumber 129).
-
-    Vertical/Horizontal view switcher control.
-    """
+    """View switch control in the status bar area (TypeAsNumber 129)."""
