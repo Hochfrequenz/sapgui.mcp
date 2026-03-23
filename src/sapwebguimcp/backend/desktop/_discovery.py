@@ -120,10 +120,10 @@ def open_and_discover_clients(  # pylint: disable=too-many-arguments,too-many-po
         default_client: the client used for login
         clients: list of {"id": "NNN", "description": "..."} from T000
     """
-    # TODO: sapsucker exposes these as private APIs — tracked for public exposure:
-    #   https://github.com/Hochfrequenz/sapsucker/issues/5  (_discover_saplogon_path)
-    #   https://github.com/Hochfrequenz/sapsucker/issues/6  (_wait_for_session)
-    #   https://github.com/Hochfrequenz/sapsucker/issues/7  (_dismiss_system_message_popups, _handle_multiple_logon_popup)
+    # TODO: these use private sapsucker APIs — tracked for public exposure:
+    #   sapsucker#5: _discover_saplogon_path
+    #   sapsucker#6: _wait_for_session
+    #   sapsucker#7: _dismiss_system_message_popups, _handle_multiple_logon_popup
     # pylint: disable=protected-access
     import sapsucker.login as _login_mod  # pylint: disable=import-outside-toplevel
     from sapsucker import SapGui  # pylint: disable=import-outside-toplevel
