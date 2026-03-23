@@ -145,7 +145,11 @@ def _query_t000_clients(session: GuiSession) -> list[dict[str, str]]:
         grid_com = cast(Any, grid)
         row_count = grid_com.row_count
         col_order = grid_com.column_order
-        columns = [str(col_order(i)) for i in range(col_order.Count)]
+        # sapsucker >=0.1.0 returns a Python list; older versions return a COM collection
+        if isinstance(col_order, list):
+            columns = [str(c) for c in col_order]
+        else:
+            columns = [str(col_order(i)) for i in range(col_order.Count)]
 
         mandt_col = next((c for c in columns if c.upper() == "MANDT"), None)
         mtext_col = next((c for c in columns if c.upper() == "MTEXT"), None)
