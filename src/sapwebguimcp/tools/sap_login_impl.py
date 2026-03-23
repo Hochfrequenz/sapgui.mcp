@@ -30,6 +30,8 @@ async def sap_login_impl(
     settings = get_settings()
     effective_url = url or settings.sap_url
     effective_client = client or settings.sap_mandant
+    effective_connection = connection_name or settings.sap_connection_name
+    user, password = settings.credentials_for(effective_connection)
 
     # URL check only applies to WebGUI — Desktop uses SAP_CONNECTION_NAME instead
     if settings.backend_type == "webgui" and not effective_url:
@@ -37,14 +39,14 @@ async def sap_login_impl(
             "No SAP URL provided. Either pass a URL parameter or set the SAP_URL environment variable."
         )
 
-    if not all([settings.sap_user, settings.sap_password, effective_client]):
+    if not all([user, password, effective_client]):
         return LoginResult.failure("Credentials not configured (SAP_USER, SAP_PASSWORD, SAP_MANDANT).")
 
     backend = await get_backend(tool_name="sap_login")
     result = await backend.login(
         url=effective_url or "",
-        username=settings.sap_user,
-        password=settings.sap_password,
+        username=user,
+        password=password,
         client=effective_client,
         language=settings.sap_language,
         session_id=session_id,

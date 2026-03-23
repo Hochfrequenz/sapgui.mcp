@@ -10,7 +10,7 @@ _PATCH_GET_BACKEND = "sapwebguimcp.tools.sap_login_impl.get_backend"
 _PATCH_GET_SETTINGS = "sapwebguimcp.tools.sap_login_impl.get_settings"
 
 
-def _make_settings(mandant: str = "100") -> MagicMock:
+def _make_settings(mandant: str = "100", connection_name: str = "") -> MagicMock:
     settings = MagicMock()
     settings.backend_type = "desktop"
     settings.sap_user = "testuser"
@@ -18,6 +18,8 @@ def _make_settings(mandant: str = "100") -> MagicMock:
     settings.sap_mandant = mandant
     settings.sap_language = "DE"
     settings.sap_url = ""
+    settings.sap_connection_name = connection_name
+    settings.credentials_for = MagicMock(return_value=("testuser", "testpass"))
     return settings
 
 

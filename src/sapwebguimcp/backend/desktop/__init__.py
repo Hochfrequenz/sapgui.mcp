@@ -221,26 +221,32 @@ class DesktopBackend:
         return _parse_landscape_xml(path.read_text(encoding="utf-8"))
 
     async def discover_clients(self, connection_name: str) -> dict[str, Any]:
-        """Open a SAP connection and return available clients from the login screen.
+        """Open a SAP connection, log in, and query T000 for available clients.
 
-        The session is left open at the login screen and registered under a new
-        session_id so that a subsequent ``sap_login`` call can reuse it.
+        Logs in with the default client, queries T000 via SE16N, and returns
+        all clients in the system.  The session is left logged-in and registered
+        so that subsequent tool calls can reuse it.
         """
-        from sapwebguimcp.backend.desktop._discovery import open_for_discovery  # pylint: disable=import-outside-toplevel
-        from sapwebguimcp.tools.sap_discover_clients_impl import (  # pylint: disable=import-outside-toplevel
-            parse_clients_from_login_info,
-        )
+        from sapwebguimcp.backend.desktop._discovery import open_and_discover_clients  # pylint: disable=import-outside-toplevel
+        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
 
-        session, default_client, info_text = await self._com.run(
-            lambda: open_for_discovery(connection_name=connection_name)
+        settings = get_settings()
+        user, password = settings.credentials_for(connection_name)
+
+        session, default_client, clients = await self._com.run(
+            lambda: open_and_discover_clients(
+                connection_name=connection_name,
+                user=user,
+                password=password,
+                language=settings.sap_language or "EN",
+            )
         )
         session_id = self._registry.register(session)
-        clients = parse_clients_from_login_info(info_text)
         return {
             "session_id": session_id,
             "default_client": default_client,
             "clients": clients,
-            "info_text": info_text,
+            "info_text": "",
         }
 
     async def enter_transaction(self, tcode: str) -> TransactionResult:

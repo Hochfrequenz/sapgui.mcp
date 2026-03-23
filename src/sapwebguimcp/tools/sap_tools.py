@@ -288,12 +288,12 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Open an SAP connection and return the available clients (Mandanten) "
-            "from the login screen. Returns the pre-filled default client and a list "
-            "of available clients parsed from the Information section. "
-            "The session is left open — pass the returned session_id to sap_login "
-            "to reuse it. Desktop backend only. "
-            "Use this before sap_login when the client is not yet known."
+            "Discover all available SAP clients (Mandanten) by logging in and querying table T000. "
+            "Logs in with the default client from the login screen (or via SSO), "
+            "queries SE16N on T000, and returns all clients with descriptions. "
+            "The session is left logged-in — pass the returned session_id to subsequent tool calls. "
+            "Desktop backend only. "
+            "Use this before sap_login when the target client is not yet known."
         )
     )
     async def sap_discover_clients(connection_name: str | None = None) -> DiscoverClientsResult:

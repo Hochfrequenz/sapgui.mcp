@@ -4,6 +4,7 @@ Configuration models for SAP Web GUI MCP Server.
 All settings are loaded from environment variables using pydantic-settings.
 """
 
+import json
 import sys
 from enum import StrEnum
 from pathlib import Path
@@ -144,6 +145,14 @@ class SapWebGuiSettings(BaseSettings):
         description="SAP Logon connection entry name (e.g. 'HF S/4') for desktop GUI login",
         json_schema_extra={"env": "SAP_CONNECTION_NAME"},
     )
+    sap_credentials: str = Field(
+        default="",
+        description=(
+            'Per-system credentials as JSON: {"HFQ": {"user": "...", "password": "..."}, ...}. '
+            "Falls back to SAP_USER / SAP_PASSWORD when the connection name is not in the mapping."
+        ),
+        json_schema_extra={"env": "SAP_CREDENTIALS"},
+    )
     com_min_interval_ms: int = Field(
         default=50,
         ge=0,
@@ -224,6 +233,23 @@ class SapWebGuiSettings(BaseSettings):
         "Required for private repositories or to avoid rate limits.",
         json_schema_extra={"env": "ABAPGIT_PAT"},
     )
+
+    def credentials_for(self, connection_name: str) -> tuple[str, str]:
+        """Return (user, password) for a connection name.
+
+        Looks up ``connection_name`` in the ``SAP_CREDENTIALS`` JSON mapping.
+        Falls back to ``SAP_USER`` / ``SAP_PASSWORD`` when the connection name
+        is not in the mapping or the mapping is empty.
+        """
+        if self.sap_credentials:
+            try:
+                mapping = json.loads(self.sap_credentials)
+                if connection_name in mapping:
+                    entry = mapping[connection_name]
+                    return entry.get("user", self.sap_user), entry.get("password", self.sap_password)
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                pass
+        return self.sap_user, self.sap_password
 
     def validate_for_browser(self) -> list[str]:
         """Validate settings required for browser connection."""
