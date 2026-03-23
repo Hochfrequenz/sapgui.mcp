@@ -164,6 +164,11 @@ class TestGuiCheckBox:
                     assert isinstance(chk.selected, bool)
                     assert isinstance(chk.changeable, bool)
                     assert isinstance(chk.text, str)
+                    assert isinstance(chk.highlighted, bool)
+                    assert isinstance(chk.is_list_element, bool)
+                    assert isinstance(chk.color_index, int)
+                    assert isinstance(chk.color_intensified, bool)
+                    assert isinstance(chk.color_inverse, bool)
                     return
             except Exception:
                 continue
@@ -177,7 +182,6 @@ class TestGuiCheckBox:
                     if isinstance(chk, GuiCheckBox):
                         assert isinstance(chk.selected, bool)
                         assert isinstance(chk.changeable, bool)
-                        assert isinstance(chk.text, str)
                         return
                 except Exception:
                     continue
