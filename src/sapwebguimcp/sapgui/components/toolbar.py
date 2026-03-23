@@ -8,15 +8,15 @@ __all__ = ["GuiContextMenu", "GuiMenu", "GuiMenubar", "GuiTitlebar", "GuiToolbar
 
 
 class GuiToolbar(GuiVContainer):
-    """Wraps the COM GuiToolbar interface (TypeAsNumber 101)."""
+    """Standard SAP toolbar below the menu bar (TypeAsNumber 101)."""
 
 
 class GuiMenubar(GuiVContainer):
-    """Wraps the COM GuiMenubar interface (TypeAsNumber 111)."""
+    """The menu bar at the top of the SAP window (TypeAsNumber 111)."""
 
 
 class GuiMenu(GuiVContainer):
-    """Wraps the COM GuiMenu interface (TypeAsNumber 110)."""
+    """A menu or menu item. Call select() to click it (TypeAsNumber 110)."""
 
     def select(self) -> None:
         """Click / activate this menu item."""
@@ -33,4 +33,4 @@ class GuiContextMenu(GuiMenu):
 
 
 class GuiTitlebar(GuiVContainer):
-    """Wraps the COM GuiTitlebar interface (TypeAsNumber 102)."""
+    """The title bar of a SAP window (TypeAsNumber 102). Only available in New Visual Design."""

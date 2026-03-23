@@ -75,32 +75,32 @@ class GuiUserArea(GuiVContainer):
 
 
 class GuiScrollContainer(GuiVContainer):
-    """Wraps the COM GuiScrollContainer interface (TypeAsNumber 72)."""
+    """Scrollable container (TypeAsNumber 72)."""
 
 
 class GuiSimpleContainer(GuiVContainer):
-    """Wraps the COM GuiSimpleContainer interface (TypeAsNumber 71)."""
+    """Simple container without scrollbars (TypeAsNumber 71)."""
 
 
 class GuiCustomControl(GuiVContainer):
-    """Wraps the COM GuiCustomControl interface (TypeAsNumber 50)."""
+    """Wrapper for ActiveX controls on dynpro screens (TypeAsNumber 50). Parent of shell controls."""
 
 
 class GuiContainerShell(GuiVContainer):
-    """Wraps the COM GuiContainerShell interface (TypeAsNumber 51)."""
+    """Container for shell controls (TypeAsNumber 51)."""
 
 
 class GuiDialogShell(GuiVContainer):
-    """Wraps the COM GuiDialogShell interface (TypeAsNumber 125)."""
+    """External window container for shells, e.g. toolbar popups (TypeAsNumber 125)."""
 
 
 class GuiDockShell(GuiVContainer):
-    """Wraps the COM GuiDockShell interface (TypeAsNumber 126)."""
+    """Dockable shell container (TypeAsNumber 126)."""
 
 
 class GuiGOSShell(GuiVContainer):
-    """Wraps the COM GuiGOSShell interface (TypeAsNumber 123)."""
+    """Generic Object Services shell (TypeAsNumber 123). Only available in New Visual Design."""
 
 
 class GuiSplitterContainer(GuiVContainer):
-    """Wraps the COM GuiSplitterContainer interface (TypeAsNumber 75)."""
+    """Splitter container that divides an area into panes (TypeAsNumber 75)."""

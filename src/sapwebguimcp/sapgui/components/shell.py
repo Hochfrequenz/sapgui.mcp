@@ -65,7 +65,7 @@ class GuiShell(GuiVContainer):
 
 
 class GuiHTMLViewer(GuiShell):
-    """Wraps the COM GuiHTMLViewer shell (SubType 'HTMLViewer')."""
+    """Embedded HTML browser control (SubType 'HTMLViewer')."""
 
     @property
     def browser_handle(self) -> int:
@@ -87,7 +87,7 @@ class GuiHTMLViewer(GuiShell):
 
 
 class GuiToolbarControl(GuiShell):
-    """Wraps the COM GuiToolbarControl shell (SubType 'ToolbarControl')."""
+    """Shell-based toolbar with buttons and menus (SubType 'ToolbarControl')."""
 
     @property
     def button_count(self) -> int:
@@ -145,15 +145,15 @@ class GuiToolbarControl(GuiShell):
 
 
 class GuiPicture(GuiShell):
-    """Wraps the COM GuiPicture shell (SubType 'Picture')."""
+    """Image display control (SubType 'Picture')."""
 
 
 class GuiCalendar(GuiShell):
-    """Wraps the COM GuiCalendar shell (SubType 'Calendar')."""
+    """Calendar date picker control (SubType 'Calendar')."""
 
 
 class GuiColorSelector(GuiShell):
-    """Wraps the COM GuiColorSelector shell (SubType 'ColorSelector')."""
+    """Color selection control (SubType 'ColorSelector')."""
 
     def change_selection(self, index: int) -> None:
         """Change the selected color by index."""
@@ -161,12 +161,12 @@ class GuiColorSelector(GuiShell):
 
 
 class GuiComboBoxControl(GuiShell):
-    """Wraps the COM GuiComboBoxControl shell (SubType 'ComboBoxControl')."""
+    """Shell-based combobox control (SubType 'ComboBoxControl')."""
 
 
 class GuiInputFieldControl(GuiShell):
-    """Wraps the COM GuiInputFieldControl shell (SubType 'InputFieldControl')."""
+    """Shell-based input field control (SubType 'InputFieldControl')."""
 
 
 class GuiSplit(GuiShell):
-    """Wraps the COM GuiSplit shell (SubType 'Splitter')."""
+    """Splitter shell that divides a shell area into panes (SubType 'Splitter')."""

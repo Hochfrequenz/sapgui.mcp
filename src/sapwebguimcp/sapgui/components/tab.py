@@ -8,7 +8,7 @@ __all__ = ["GuiTab", "GuiTabStrip"]
 
 
 class GuiTabStrip(GuiVContainer):
-    """Wraps the COM GuiTabStrip interface (TypeAsNumber 90)."""
+    """Tab strip container holding multiple GuiTab pages (TypeAsNumber 90)."""
 
 
 class GuiTab(GuiVContainer):

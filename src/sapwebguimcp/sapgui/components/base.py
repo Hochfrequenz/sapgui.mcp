@@ -304,21 +304,21 @@ class GuiVContainer(GuiContainer, GuiVComponent):
         return _dump_tree_recursive(self._com, 0, max_depth)
 
     def find_by_name(self, name: str, type_name: str) -> GuiComponent | None:
-        """Find a child element by name and type name string."""
+        """Find the first child element matching name and type string. Returns None if not found."""
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
         result = self._com.FindByName(name, type_name)
         return wrap_com_object(result) if result is not None else None
 
     def find_by_name_ex(self, name: str, type_number: int) -> GuiComponent | None:
-        """Find a child element by name and type number."""
+        """Find the first child element matching name and type number. Returns None if not found."""
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
         result = self._com.FindByNameEx(name, type_number)
         return wrap_com_object(result) if result is not None else None
 
     def find_all_by_name(self, name: str, type_name: str) -> GuiComponentCollection:
-        """Find all child elements matching name and type name string."""
+        """Find all child elements matching name and type string."""
         from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
 
         return GuiComponentCollection(self._com.FindAllByName(name, type_name))
