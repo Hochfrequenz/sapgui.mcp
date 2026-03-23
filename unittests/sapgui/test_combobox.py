@@ -79,6 +79,18 @@ class TestGuiComboBox:
         assert isinstance(entries[0], GuiComboBoxEntry)
         assert entries[0].key == "K1"
 
+    def test_entries_multiple(self):
+        combo = _make_combo()
+        e0, e1 = MagicMock(), MagicMock()
+        e0.Key, e0.Value, e0.Pos = "A", "Alpha", 0
+        e1.Key, e1.Value, e1.Pos = "B", "Beta", 1
+        combo._com.Entries.Count = 2
+        combo._com.Entries.Item.side_effect = lambda i: [e0, e1][i]
+        entries = combo.entries
+        assert len(entries) == 2
+        assert entries[0].key == "A"
+        assert entries[1].key == "B"
+
     def test_entries_empty(self):
         combo = _make_combo()
         combo._com.Entries.Count = 0
