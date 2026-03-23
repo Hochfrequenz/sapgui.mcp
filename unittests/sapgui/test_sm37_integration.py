@@ -197,10 +197,15 @@ class TestGuiComboBox:
             combo = sm37_session.find_by_id("wnd[0]/usr/cmbBTCH2170-EVENTID")
             if isinstance(combo, GuiComboBox):
                 assert combo.item_count > 0
+                assert isinstance(combo.value, str)
+                assert isinstance(combo.is_required, bool)
+                assert isinstance(combo.highlighted, bool)
+                assert isinstance(combo.is_list_element, bool)
                 entries = combo.entries
                 assert len(entries) > 0
                 assert isinstance(entries[0].key, str)
                 assert isinstance(entries[0].value, str)
+                assert isinstance(entries[0].pos, int)
                 return
         except Exception:
             pass
