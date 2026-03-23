@@ -80,7 +80,8 @@ class GuiApplication(GuiContainer):
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
         try:
-            return wrap_com_object(self._com.OpenConnection(description, sync, raise_error))  # type: ignore[return-value]
+            com_conn = self._com.OpenConnection(description, sync, raise_error)
+            return wrap_com_object(com_conn)  # type: ignore[return-value]
         except Exception as e:
             # Check ConnectionErrorText for server-unreachable details
             detail = ""
@@ -102,7 +103,8 @@ class GuiApplication(GuiContainer):
         """Open a connection using a raw connection string."""
         from sapwebguimcp.sapgui._factory import wrap_com_object
 
-        return wrap_com_object(self._com.OpenConnectionByConnectionString(conn_string, sync, raise_error))  # type: ignore[return-value]
+        com_conn = self._com.OpenConnectionByConnectionString(conn_string, sync, raise_error)
+        return wrap_com_object(com_conn)  # type: ignore[return-value]
 
     def create_gui_collection(self) -> Any:
         """Create a new empty GuiCollection COM object."""
