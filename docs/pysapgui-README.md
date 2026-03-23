@@ -30,13 +30,13 @@ print(session.find_by_id("wnd[0]/sbar").text)
 
 ## Why pysapgui?
 
-| Feature | pysapgui | pysapscript | raw COM |
-|---------|----------|-------------|---------|
-| Typed wrappers (40+ classes) | Yes | No | No |
-| IDE autocomplete | Yes | No | No |
-| Type hints on every method | Yes | No | No |
-| Docstrings with SAP context | Yes | Partial | No |
-| License | MIT | GPL-3 | — |
+| Feature                      | pysapgui | pysapscript | raw COM |
+| ---------------------------- | -------- | ----------- | ------- |
+| Typed wrappers (40+ classes) | Yes      | No          | No      |
+| IDE autocomplete             | Yes      | No          | No      |
+| Type hints on every method   | Yes      | No          | No      |
+| Docstrings with SAP context  | Yes      | Partial     | No      |
+| License                      | MIT      | GPL-3       | —       |
 
 Other Python libraries for SAP GUI (`pysapscript`, `PySapGUI`, `sapguipy`,
 `robotframework-sapguilibrary`) use generic `read()`/`write()` methods or
@@ -147,22 +147,22 @@ and an `asyncio.to_thread()` example.
 
 ## API Overview
 
-| Class | Description |
-|-------|-------------|
-| `SapGui` | Entry point — `SapGui.connect()` returns `GuiApplication` |
-| `GuiApplication` | Root object, manages connections |
-| `GuiConnection` | A TCP connection to an SAP server |
-| `GuiSession` | A session (mode) within a connection |
-| `GuiMainWindow` | The main SAP window |
-| `GuiTextField` | Single-line input field |
-| `GuiButton` | Push button |
-| `GuiCheckBox` | Checkbox |
-| `GuiComboBox` | Dropdown list |
-| `GuiGridView` | ALV grid (most common data display) |
-| `GuiTableControl` | Classic dynpro table |
-| `GuiTree` | Tree control (simple, list, or column) |
-| `GuiAbapEditor` | ABAP source code editor |
-| `GuiStatusbar` | Status bar at bottom of window |
+| Class             | Description                                               |
+| ----------------- | --------------------------------------------------------- |
+| `SapGui`          | Entry point — `SapGui.connect()` returns `GuiApplication` |
+| `GuiApplication`  | Root object, manages connections                          |
+| `GuiConnection`   | A TCP connection to an SAP server                         |
+| `GuiSession`      | A session (mode) within a connection                      |
+| `GuiMainWindow`   | The main SAP window                                       |
+| `GuiTextField`    | Single-line input field                                   |
+| `GuiButton`       | Push button                                               |
+| `GuiCheckBox`     | Checkbox                                                  |
+| `GuiComboBox`     | Dropdown list                                             |
+| `GuiGridView`     | ALV grid (most common data display)                       |
+| `GuiTableControl` | Classic dynpro table                                      |
+| `GuiTree`         | Tree control (simple, list, or column)                    |
+| `GuiAbapEditor`   | ABAP source code editor                                   |
+| `GuiStatusbar`    | Status bar at bottom of window                            |
 
 ## Contributing
 
