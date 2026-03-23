@@ -13,6 +13,7 @@ from sapwebguimcp.sapgui.components.container import (
     GuiDialogShell,
     GuiDockShell,
     GuiGOSShell,
+    GuiScrollbar,
     GuiScrollContainer,
     GuiSimpleContainer,
     GuiSplitterContainer,
@@ -58,6 +59,7 @@ __all__ = [
     "GuiModalWindow",
     "GuiMessageWindow",
     # containers
+    "GuiScrollbar",
     "GuiUserArea",
     "GuiScrollContainer",
     "GuiSimpleContainer",
