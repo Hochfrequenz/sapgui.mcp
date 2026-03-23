@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from sapwebguimcp.sapgui.components.shell import GuiShell
 
 __all__ = ["GuiTree"]
@@ -54,17 +52,20 @@ class GuiTree(GuiShell):
         """Return the number of children for a given node."""
         return int(self._com.GetNodeChildrenCount(key))
 
-    def get_all_node_keys(self) -> Any:
+    def get_all_node_keys(self) -> list[str]:
         """Return all node keys in the tree."""
-        return self._com.GetAllNodeKeys()
+        col = self._com.GetAllNodeKeys()
+        return [str(col(i)) for i in range(col.Count)]
 
-    def get_column_names(self) -> Any:
-        """Return the column names collection."""
-        return self._com.GetColumnNames()
+    def get_column_names(self) -> list[str]:
+        """Return the column names as a list of strings."""
+        col = self._com.GetColumnNames()
+        return [str(col(i)) for i in range(col.Count)]
 
-    def get_column_headers(self) -> Any:
-        """Return the column headers collection."""
-        return self._com.GetColumnHeaders()
+    def get_column_headers(self) -> list[str]:
+        """Return the column headers as a list of strings."""
+        col = self._com.GetColumnHeaders()
+        return [str(col(i)) for i in range(col.Count)]
 
     def select_node(self, key: str) -> None:
         """Select a tree node by key."""

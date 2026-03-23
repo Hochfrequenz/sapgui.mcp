@@ -27,10 +27,13 @@ class TestGuiApplicationProperties:
         assert len(app.connections) == 1
 
     def test_active_session(self):
-        session = MagicMock()
+        session = make_mock_com(type_as_number=12, type_name="GuiSession")
         com = make_mock_com(ActiveSession=session)
         app = GuiApplication(com)
-        assert app.active_session is session
+        result = app.active_session
+        from sapwebguimcp.sapgui.components.session import GuiSession
+
+        assert isinstance(result, GuiSession)
 
     def test_connection_error_text(self):
         com = make_mock_com(ConnectionErrorText="some error")

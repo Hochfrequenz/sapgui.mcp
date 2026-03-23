@@ -4,8 +4,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from sapwebguimcp.sapgui.components.shell import GuiShell
 
 __all__ = ["GuiGridView"]
@@ -64,9 +62,10 @@ class GuiGridView(GuiShell):
         self._com.FirstVisibleRow = value
 
     @property
-    def column_order(self) -> Any:
-        """Return the column order collection."""
-        return self._com.ColumnOrder
+    def column_order(self) -> list[str]:
+        """Return the column order as a list of column names."""
+        col = self._com.ColumnOrder
+        return [str(col(i)) for i in range(col.Count)]
 
     @property
     def toolbar_button_count(self) -> int:
