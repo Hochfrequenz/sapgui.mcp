@@ -51,7 +51,7 @@ def _get_com_error_code(exc: Exception) -> int | None:
     return code
 
 
-class ComThread:
+class ComThread:  # pylint: disable=too-many-instance-attributes
     """Dedicated thread for all SAP GUI COM calls.
 
     All operations are serialized through a single thread with CoInitialize.
