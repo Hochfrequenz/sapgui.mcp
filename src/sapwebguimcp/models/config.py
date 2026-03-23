@@ -4,12 +4,13 @@ Configuration models for SAP Web GUI MCP Server.
 All settings are loaded from environment variables using pydantic-settings.
 """
 
+import json
 import sys
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = [
@@ -80,6 +81,13 @@ class BrowserType(StrEnum):
     WEBKIT = "webkit"
 
 
+class SapSystemCredentials(BaseModel):
+    """Credentials for a single SAP system in the SAP_CREDENTIALS mapping."""
+
+    user: str
+    password: str
+
+
 class SapWebGuiSettings(BaseSettings):
     """
     Settings for SAP Web GUI MCP Server.
@@ -144,14 +152,29 @@ class SapWebGuiSettings(BaseSettings):
         description="SAP Logon connection entry name (e.g. 'HF S/4') for desktop GUI login",
         json_schema_extra={"env": "SAP_CONNECTION_NAME"},
     )
-    sap_credentials: dict[str, dict[str, str]] = Field(
-        default_factory=dict,
+    sap_credentials: str = Field(
+        default="",
         description=(
-            'Per-system credentials: {"HFQ": {"user": "...", "password": "..."}, ...}. '
-            "Falls back to SAP_USER / SAP_PASSWORD when the connection name is not in the mapping."
+            'Per-system credentials as JSON: {"HFQ": {"user": "...", "password": "..."}, ...}. '
+            "Falls back to SAP_USER / SAP_PASSWORD when the connection name is not in the mapping. "
+            "Empty string or unset is fine."
         ),
         json_schema_extra={"env": "SAP_CREDENTIALS"},
     )
+
+    @property
+    def sap_credentials_parsed(self) -> dict[str, SapSystemCredentials]:
+        """Parse and validate SAP_CREDENTIALS JSON into typed models.
+
+        Returns an empty dict if the field is empty or unset.
+        Raises ValueError with a clear message if the JSON is malformed
+        or entries are missing required fields (user, password).
+        """
+        if not self.sap_credentials:
+            return {}
+        raw = json.loads(self.sap_credentials)  # raises JSONDecodeError if malformed
+        return {name: SapSystemCredentials(**entry) for name, entry in raw.items()}
+
     com_min_interval_ms: int = Field(
         default=50,
         ge=0,
@@ -236,13 +259,14 @@ class SapWebGuiSettings(BaseSettings):
     def credentials_for(self, connection_name: str) -> tuple[str, str]:
         """Return (user, password) for a connection name.
 
-        Looks up ``connection_name`` in the ``SAP_CREDENTIALS`` JSON mapping.
+        Looks up ``connection_name`` in the ``SAP_CREDENTIALS`` mapping.
         Falls back to ``SAP_USER`` / ``SAP_PASSWORD`` when the connection name
         is not in the mapping or the mapping is empty.
         """
-        if self.sap_credentials and connection_name in self.sap_credentials:
-            entry = self.sap_credentials[connection_name]
-            return entry.get("user", self.sap_user), entry.get("password", self.sap_password)
+        parsed = self.sap_credentials_parsed
+        if parsed and connection_name in parsed:
+            entry = parsed[connection_name]
+            return entry.user, entry.password
         return self.sap_user, self.sap_password
 
     def validate_for_browser(self) -> list[str]:
