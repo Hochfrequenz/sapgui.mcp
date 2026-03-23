@@ -1,4 +1,34 @@
-"""Low-level COM helpers for connecting to SAP GUI."""
+"""Low-level COM helpers for connecting to SAP GUI.
+
+Thread Safety
+-------------
+COM objects use the Single-Threaded Apartment (STA) model.  All calls to a
+given SAP GUI session **must** happen from the same thread that called
+``pythoncom.CoInitialize()``.  Creating COM objects on one thread and using
+them on another will raise ``pywintypes.com_error`` or cause silent
+corruption.
+
+If you use pysapgui from async code, run all COM calls in a dedicated thread
+via ``asyncio.to_thread()`` or a ``concurrent.futures.ThreadPoolExecutor``.
+Each worker thread must call ``pythoncom.CoInitialize()`` before its first
+COM operation and ``pythoncom.CoUninitialize()`` when done.
+
+Example::
+
+    import asyncio, pythoncom
+    from sapwebguimcp.sapgui import SapGui
+
+    def _read_status_bar() -> str:
+        pythoncom.CoInitialize()
+        try:
+            app = SapGui.connect()
+            session = app.connections[0].sessions[0]
+            return session.find_by_id("wnd[0]/sbar").text
+        finally:
+            pythoncom.CoUninitialize()
+
+    text = asyncio.run(asyncio.to_thread(_read_status_bar))
+"""
 
 # pylint: disable=import-outside-toplevel,invalid-name
 
