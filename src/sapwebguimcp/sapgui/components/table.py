@@ -6,6 +6,8 @@ from typing import Any
 
 from sapwebguimcp.sapgui.components.base import GuiComponent, GuiVContainer
 
+__all__ = ["GuiTableColumn", "GuiTableControl", "GuiTableRow"]
+
 
 class GuiTableControl(GuiVContainer):
     """Wraps the COM GuiTableControl interface (TypeAsNumber 80).

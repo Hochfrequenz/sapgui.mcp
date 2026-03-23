@@ -1,5 +1,13 @@
 """SAP GUI Scripting error hierarchy."""
 
+__all__ = [
+    "ElementNotFoundError",
+    "SapConnectionError",
+    "SapGuiError",
+    "SapGuiTimeoutError",
+    "ScriptingDisabledError",
+]
+
 
 class SapGuiError(Exception):
     """Base exception for all SAP GUI Scripting errors."""

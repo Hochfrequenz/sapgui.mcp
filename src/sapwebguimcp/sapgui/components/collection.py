@@ -8,6 +8,8 @@ from typing import Any, Iterator
 
 from sapwebguimcp.sapgui.components.base import GuiComponent
 
+__all__ = ["GuiCollection", "GuiComponentCollection"]
+
 
 class GuiComponentCollection:
     """Wraps a COM GuiComponentCollection (children of a container)."""

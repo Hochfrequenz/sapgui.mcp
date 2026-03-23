@@ -6,6 +6,18 @@ from typing import Any
 
 from sapwebguimcp.sapgui.components.base import GuiVContainer
 
+__all__ = [
+    "GuiContainerShell",
+    "GuiCustomControl",
+    "GuiDialogShell",
+    "GuiDockShell",
+    "GuiGOSShell",
+    "GuiScrollContainer",
+    "GuiSimpleContainer",
+    "GuiSplitterContainer",
+    "GuiUserArea",
+]
+
 
 class GuiScrollbar:
     """Scrollbar object exposed by GuiUserArea.

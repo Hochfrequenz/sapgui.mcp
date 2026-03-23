@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from sapwebguimcp.sapgui.components.base import GuiVComponent
 
+__all__ = ["GuiBox", "GuiCTextField", "GuiLabel", "GuiPasswordField", "GuiTextField"]
+
 
 class GuiTextField(GuiVComponent):
     """Wraps the COM GuiTextField interface (TypeAsNumber 31).

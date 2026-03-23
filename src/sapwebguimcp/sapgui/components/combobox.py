@@ -6,6 +6,8 @@ from typing import Any
 
 from sapwebguimcp.sapgui.components.base import GuiVComponent
 
+__all__ = ["GuiComboBox", "GuiComboBoxEntry"]
+
 
 class GuiComboBoxEntry:
     """A single entry in a GuiComboBox dropdown list."""

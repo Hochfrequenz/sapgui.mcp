@@ -6,6 +6,18 @@ from typing import Any
 
 from sapwebguimcp.sapgui.components.base import GuiVContainer
 
+__all__ = [
+    "GuiCalendar",
+    "GuiColorSelector",
+    "GuiComboBoxControl",
+    "GuiHTMLViewer",
+    "GuiInputFieldControl",
+    "GuiPicture",
+    "GuiShell",
+    "GuiSplit",
+    "GuiToolbarControl",
+]
+
 
 class GuiShell(GuiVContainer):
     """Wraps the COM GuiShell interface (TypeAsNumber 122).
