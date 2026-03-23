@@ -124,6 +124,15 @@ class TestGuiApplicationContextManager:
         # Should not raise
         app.__exit__(None, None, None)
 
+    def test_exit_closes_multiple_connections(self):
+        conn1 = MagicMock()
+        conn2 = MagicMock()
+        com = make_mock_com(children=[conn1, conn2])
+        app = GuiApplication(com)
+        app.__exit__(None, None, None)
+        conn1.CloseConnection.assert_called_once()
+        conn2.CloseConnection.assert_called_once()
+
     def test_used_as_context_manager(self):
         com = make_mock_com(children=[])
         with GuiApplication(com) as app:
