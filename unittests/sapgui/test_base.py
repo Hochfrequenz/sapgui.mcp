@@ -4,15 +4,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sapwebguimcp.sapgui._errors import ElementNotFoundError
-from sapwebguimcp.sapgui.components.base import (
+from sapsucker._errors import ElementNotFoundError
+from sapsucker.components.base import (
     GuiComponent,
     GuiContainer,
     GuiVComponent,
     GuiVContainer,
     _dump_tree_recursive,
 )
-from sapwebguimcp.sapgui.models import ElementInfo
+from sapsucker.models import ElementInfo
 from unittests.sapgui.conftest import make_mock_com
 
 # ---------------------------------------------------------------------------
@@ -172,7 +172,7 @@ class TestGuiContainer:
         com = make_mock_com(container_type=True, children=[child1, child2])
         gc = GuiContainer(com)
         children = gc.children
-        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+        from sapsucker.components.collection import GuiComponentCollection
 
         assert isinstance(children, GuiComponentCollection)
         assert len(children) == 2
@@ -252,7 +252,7 @@ class TestGuiVContainer:
         vc = GuiVContainer(com)
         result = vc.find_all_by_name("FIELD", "GuiTextField")
         com.FindAllByName.assert_called_once_with("FIELD", "GuiTextField")
-        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+        from sapsucker.components.collection import GuiComponentCollection
 
         assert isinstance(result, GuiComponentCollection)
 
@@ -264,7 +264,7 @@ class TestGuiVContainer:
         vc = GuiVContainer(com)
         result = vc.find_all_by_name_ex("FIELD", 31)
         com.FindAllByNameEx.assert_called_once_with("FIELD", 31)
-        from sapwebguimcp.sapgui.components.collection import GuiComponentCollection
+        from sapsucker.components.collection import GuiComponentCollection
 
         assert isinstance(result, GuiComponentCollection)
 

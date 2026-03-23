@@ -121,8 +121,8 @@ def sap_desktop_session() -> Generator:
     if not is_sap_integration_test_machine():
         pytest.skip("Not on SAP integration test machine")
 
+    from sapsucker.login import login, logoff
     from sapwebguimcp.models.config import get_settings
-    from sapwebguimcp.sapgui.login import login, logoff
 
     settings = get_settings()
     if not settings.sap_connection_name:

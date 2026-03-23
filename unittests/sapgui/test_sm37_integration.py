@@ -40,7 +40,7 @@ def sm37_session(sap_desktop_session):
 
 class TestGuiWindow:
     def test_main_window_properties(self, sm37_session):
-        from sapwebguimcp.sapgui.components.window import GuiMainWindow
+        from sapsucker.components.window import GuiMainWindow
 
         wnd = sm37_session.find_by_id("wnd[0]")
         assert isinstance(wnd, GuiMainWindow)
@@ -63,7 +63,7 @@ class TestGuiWindow:
 
 class TestGuiTextField:
     def test_text_field_properties(self, sm37_session):
-        from sapwebguimcp.sapgui.components.field import GuiTextField
+        from sapsucker.components.field import GuiTextField
 
         # SM37 has jobname and username text fields
         for field_id in [
@@ -103,7 +103,7 @@ class TestGuiTextField:
 
 class TestGuiLabel:
     def test_label_properties(self, sm37_session):
-        from sapwebguimcp.sapgui.components.field import GuiLabel
+        from sapsucker.components.field import GuiLabel
 
         # SM37 has labels like "Jobname", "Benutzername" / "User name"
         for label_id in [
@@ -148,7 +148,7 @@ class TestGuiLabel:
 
 class TestGuiCheckBox:
     def test_checkbox_properties(self, sm37_session):
-        from sapwebguimcp.sapgui.components.checkbox import GuiCheckBox
+        from sapsucker.components.checkbox import GuiCheckBox
 
         # SM37 has checkboxes for job status (Scheduled, Released, etc.)
         for chk_id in [
@@ -190,7 +190,7 @@ class TestGuiCheckBox:
 
 class TestGuiComboBox:
     def test_combobox_entries(self, sm37_session):
-        from sapwebguimcp.sapgui.components.combobox import GuiComboBox
+        from sapsucker.components.combobox import GuiComboBox
 
         # SM37 has an event ID combobox
         try:

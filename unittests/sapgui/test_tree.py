@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.tree import GuiTree
+from sapsucker.components.tree import GuiTree
 
 
 def _make_tree():

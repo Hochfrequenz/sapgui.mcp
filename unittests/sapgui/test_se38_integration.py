@@ -26,7 +26,7 @@ pytestmark = [
 
 def _open_se38_display(session):
     """Navigate to SE38, display report RSPARAM."""
-    from sapwebguimcp.sapgui.components.editor import GuiAbapEditor
+    from sapsucker.components.editor import GuiAbapEditor
 
     okcode = session.find_by_id("wnd[0]/tbar[0]/okcd")
     okcode.text = "/nSE38"

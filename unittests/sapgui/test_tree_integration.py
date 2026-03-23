@@ -30,7 +30,7 @@ def _navigate_to_se80(session):
 
 def _find_se80_tree(session):
     """Find the tree control in SE80's left panel."""
-    from sapwebguimcp.sapgui.components.tree import GuiTree
+    from sapsucker.components.tree import GuiTree
 
     _navigate_to_se80(session)
     tree_id = "wnd[0]/shellcont/shell/shellcont[1]/shell/shellcont[2]/shell"
@@ -127,7 +127,7 @@ class TestGuiTreeNewMethods:
 class TestGuiContextMenu:
     def test_context_menu_on_tree_node(self, se80_tree, sap_desktop_session):
         """Open a context menu on the SE80 tree and verify it's a GuiContextMenu."""
-        from sapwebguimcp.sapgui.components.toolbar import GuiContextMenu
+        from sapsucker.components.toolbar import GuiContextMenu
 
         key = se80_tree.top_node
 

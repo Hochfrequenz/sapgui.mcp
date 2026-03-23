@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sapwebguimcp.sapgui.components.collection import GuiCollection, GuiComponentCollection
+from sapsucker.components.collection import GuiCollection, GuiComponentCollection
 from unittests.sapgui.conftest import make_mock_com
 
 

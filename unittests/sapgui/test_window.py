@@ -1,6 +1,6 @@
 """Tests for GuiFrameWindow, GuiMainWindow, GuiModalWindow, GuiMessageWindow — issue #518."""
 
-from sapwebguimcp.sapgui.components.window import (
+from sapsucker.components.window import (
     GuiFrameWindow,
     GuiMainWindow,
     GuiMessageWindow,

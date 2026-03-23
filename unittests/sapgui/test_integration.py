@@ -31,7 +31,7 @@ skip_not_sap_machine = pytest.mark.skipif(
 def _has_active_session() -> bool:
     """Check if SAP GUI has at least one logged-in session (for read-only tests)."""
     try:
-        from sapwebguimcp.sapgui import SapGui
+        from sapsucker import SapGui
 
         app = SapGui.connect()
         if len(app.connections) == 0:
@@ -67,7 +67,7 @@ skip_no_login_creds = pytest.mark.skipif(not _login_creds_configured(), reason="
 
 def _get_session():
     """Helper: connect and return a wrapped GuiSession for the first session."""
-    from sapwebguimcp.sapgui import SapGui
+    from sapsucker import SapGui
 
     app = SapGui.connect()
     conn = app.connections[0]
@@ -77,8 +77,8 @@ def _get_session():
 @skip_not_sap_machine
 @skip_no_active_session
 def test_connect_returns_gui_application():
-    from sapwebguimcp.sapgui import SapGui
-    from sapwebguimcp.sapgui.components.application import GuiApplication
+    from sapsucker import SapGui
+    from sapsucker.components.application import GuiApplication
 
     app = SapGui.connect()
     assert isinstance(app, GuiApplication)
@@ -87,7 +87,7 @@ def test_connect_returns_gui_application():
 @skip_not_sap_machine
 @skip_no_active_session
 def test_application_has_connections():
-    from sapwebguimcp.sapgui import SapGui
+    from sapsucker import SapGui
 
     app = SapGui.connect()
     assert len(app.connections) > 0
@@ -96,7 +96,7 @@ def test_application_has_connections():
 @skip_not_sap_machine
 @skip_no_active_session
 def test_connection_has_sessions():
-    from sapwebguimcp.sapgui import SapGui
+    from sapsucker import SapGui
 
     app = SapGui.connect()
     conn = app.connections[0]
@@ -116,7 +116,7 @@ def test_session_info():
 @skip_not_sap_machine
 @skip_no_active_session
 def test_find_main_window():
-    from sapwebguimcp.sapgui.components.window import GuiMainWindow
+    from sapsucker.components.window import GuiMainWindow
 
     session = _get_session()
     wnd = session.find_by_id("wnd[0]")
@@ -126,7 +126,7 @@ def test_find_main_window():
 @skip_not_sap_machine
 @skip_no_active_session
 def test_find_statusbar():
-    from sapwebguimcp.sapgui.components.statusbar import GuiStatusbar
+    from sapsucker.components.statusbar import GuiStatusbar
 
     session = _get_session()
     sbar = session.find_by_id("wnd[0]/sbar")
@@ -136,7 +136,7 @@ def test_find_statusbar():
 @skip_not_sap_machine
 @skip_no_active_session
 def test_find_okcode_field():
-    from sapwebguimcp.sapgui.components.okcode import GuiOkCodeField
+    from sapsucker.components.okcode import GuiOkCodeField
 
     session = _get_session()
     okcode = session.find_by_id("wnd[0]/tbar[0]/okcd")
@@ -146,7 +146,7 @@ def test_find_okcode_field():
 @skip_not_sap_machine
 @skip_no_active_session
 def test_find_by_id_returns_typed_wrappers():
-    from sapwebguimcp.sapgui.components.base import GuiComponent
+    from sapsucker.components.base import GuiComponent
 
     session = _get_session()
     elem = session.find_by_id("wnd[0]")
@@ -157,7 +157,7 @@ def test_find_by_id_returns_typed_wrappers():
 @skip_not_sap_machine
 @skip_no_active_session
 def test_dump_tree_on_main_window():
-    from sapwebguimcp.sapgui.models import ElementInfo
+    from sapsucker.models import ElementInfo
 
     session = _get_session()
     wnd = session.find_by_id("wnd[0]")
@@ -187,8 +187,8 @@ def test_read_statusbar_text():
 @skip_no_login_creds
 def test_login_and_logoff():
     """Login with real credentials, verify session info, then logoff."""
+    from sapsucker.login import login, logoff
     from sapwebguimcp.models.config import get_settings
-    from sapwebguimcp.sapgui.login import login, logoff
 
     settings = get_settings()
     session = login(
@@ -209,8 +209,8 @@ def test_login_and_logoff():
 @skip_no_login_creds
 def test_login_handles_easy_access():
     """After login, session should be at Easy Access (not the login screen)."""
+    from sapsucker.login import login, logoff
     from sapwebguimcp.models.config import get_settings
-    from sapwebguimcp.sapgui.login import login, logoff
 
     settings = get_settings()
     session = login(
@@ -240,9 +240,9 @@ def test_login_handles_easy_access():
 @skip_no_login_creds
 def test_create_additional_mode():
     """Opening a new mode (/o) creates a session within the SAME connection."""
+    from sapsucker import SapGui
+    from sapsucker.login import cleanup_ghost_connections, login
     from sapwebguimcp.models.config import get_settings
-    from sapwebguimcp.sapgui import SapGui
-    from sapwebguimcp.sapgui.login import cleanup_ghost_connections, login
 
     settings = get_settings()
 
@@ -282,8 +282,8 @@ def test_create_additional_mode():
 @skip_no_login_creds
 def test_two_connections_independent():
     """Two separate logins create independent connections (not modes)."""
+    from sapsucker.login import cleanup_ghost_connections, login
     from sapwebguimcp.models.config import get_settings
-    from sapwebguimcp.sapgui.login import cleanup_ghost_connections, login
 
     settings = get_settings()
 

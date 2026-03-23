@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.shell import (
+from sapsucker.components.shell import (
     GuiCalendar,
     GuiColorSelector,
     GuiComboBoxControl,

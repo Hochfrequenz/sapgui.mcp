@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.toolbar import GuiContextMenu, GuiMenu
+from sapsucker.components.toolbar import GuiContextMenu, GuiMenu
 
 
 def _make_context_menu():

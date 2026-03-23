@@ -58,7 +58,7 @@ async def _read_checkbox(backend: SapUiBackend, sap_name: str) -> bool:
     com = backend._com  # pylint: disable=protected-access
 
     def _read() -> bool:
-        from sapwebguimcp.sapgui.components.base import GuiVContainer  # pylint: disable=import-outside-toplevel
+        from sapsucker.components.base import GuiVContainer  # pylint: disable=import-outside-toplevel
 
         usr = session.find_by_id("wnd[0]/usr")
         if not isinstance(usr, GuiVContainer):

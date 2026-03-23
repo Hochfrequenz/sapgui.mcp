@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.combobox import GuiComboBox, GuiComboBoxEntry
+from sapsucker.components.combobox import GuiComboBox, GuiComboBoxEntry
 from unittests.sapgui.conftest import make_mock_com
 
 

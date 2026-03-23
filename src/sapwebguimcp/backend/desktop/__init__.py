@@ -16,7 +16,7 @@ import tempfile
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
 
-import sapwebguimcp.sapgui.login as _login_mod
+import sapsucker.login as _login_mod
 from sapwebguimcp.backend.desktop._com_thread import ComThread
 from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
@@ -56,6 +56,7 @@ from sapwebguimcp.models.sap_results import (
 )
 
 if TYPE_CHECKING:
+    from sapsucker.components.session import GuiSession
     from sapwebguimcp.backend.protocol import CheckActivateResult
     from sapwebguimcp.models.sap_results import (
         ClosePopupResult,
@@ -63,7 +64,6 @@ if TYPE_CHECKING:
         FillFormResult,
         FormFieldsResult,
     )
-    from sapwebguimcp.sapgui.components.session import GuiSession
 
 logger = logging.getLogger(__name__)
 
@@ -299,7 +299,7 @@ class DesktopBackend:
             await asyncio.sleep(1)
 
             def _navigate() -> tuple[Any, int, str | None]:
-                from sapwebguimcp.sapgui._factory import wrap_com_object  # pylint: disable=import-outside-toplevel
+                from sapsucker._factory import wrap_com_object  # pylint: disable=import-outside-toplevel
 
                 conn_com = session.com.Parent
                 count = conn_com.Children.Count
@@ -649,7 +649,7 @@ class DesktopBackend:
         session = self._require_session()
 
         def _read() -> dict[str, Any]:  # pylint: disable=too-many-locals
-            from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
+            from sapsucker.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             # Find grid or table in the full window tree (not just usr).
             # SE16N places ALV grids in wnd[0]/shellcont, not wnd[0]/usr.
@@ -708,7 +708,7 @@ class DesktopBackend:
         session = self._require_session()
 
         def _click() -> None:
-            from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
+            from sapsucker.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             wnd = session.find_by_id("wnd[0]")
             tree = cast(Any, wnd).dump_tree()
@@ -879,7 +879,7 @@ class DesktopBackend:
         session = self._require_session()
 
         def _fill() -> None:
-            from sapwebguimcp.sapgui.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
+            from sapsucker.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree()

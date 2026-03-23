@@ -55,7 +55,7 @@ def _find_table_in_tab(session, tab_id):
     Important: after ``tab.select()`` the original COM reference can become
     stale, so we re-fetch the tab via ``find_by_id`` before walking.
     """
-    from sapwebguimcp.sapgui._factory import wrap_com_object
+    from sapsucker._factory import wrap_com_object
 
     tab = session.find_by_id(tab_id)
     tab.select()
@@ -103,14 +103,14 @@ def se37_session(sap_desktop_session):
 class TestGuiTab:
     def test_find_tab_strip(self, se37_session):
         """SE37 has a tab strip (FUNC_TAB_STRIP) for parameter pages."""
-        from sapwebguimcp.sapgui.components.tab import GuiTabStrip
+        from sapsucker.components.tab import GuiTabStrip
 
         tabstrip = se37_session.find_by_id(_TAB_STRIP_ID)
         assert isinstance(tabstrip, GuiTabStrip)
 
     def test_tab_select_import(self, se37_session):
         """Select the Import tab and verify no error."""
-        from sapwebguimcp.sapgui.components.tab import GuiTab
+        from sapsucker.components.tab import GuiTab
 
         tab = se37_session.find_by_id(_TAB_IMPORT_ID)
         assert isinstance(tab, GuiTab)
@@ -118,7 +118,7 @@ class TestGuiTab:
 
     def test_tab_select_export(self, se37_session):
         """Select the Export tab and verify no error."""
-        from sapwebguimcp.sapgui.components.tab import GuiTab
+        from sapsucker.components.tab import GuiTab
 
         tab = se37_session.find_by_id(_TAB_EXPORT_ID)
         assert isinstance(tab, GuiTab)
@@ -126,7 +126,7 @@ class TestGuiTab:
 
     def test_tab_select_tables(self, se37_session):
         """Select the Tables tab and verify no error."""
-        from sapwebguimcp.sapgui.components.tab import GuiTab
+        from sapsucker.components.tab import GuiTab
 
         tab = se37_session.find_by_id(_TAB_TABLES_ID)
         assert isinstance(tab, GuiTab)
@@ -134,7 +134,7 @@ class TestGuiTab:
 
     def test_tab_select_multiple(self, se37_session):
         """Cycle through several tabs to verify switching works."""
-        from sapwebguimcp.sapgui.components.tab import GuiTab
+        from sapsucker.components.tab import GuiTab
 
         for tab_id in [_TAB_IMPORT_ID, _TAB_EXPORT_ID, _TAB_TABLES_ID, _TAB_EXCEPT_ID]:
             tab = se37_session.find_by_id(tab_id)
@@ -146,7 +146,7 @@ class TestGuiTab:
 class TestGuiTableControl:
     def test_table_properties(self, se37_session):
         """Find the Import parameters table and read its properties."""
-        from sapwebguimcp.sapgui.components.table import GuiTableControl
+        from sapsucker.components.table import GuiTableControl
 
         table = _find_table_in_tab(se37_session, _TAB_IMPORT_ID)
         if table is None:
@@ -185,7 +185,7 @@ class TestGuiTableControl:
 
     def test_table_in_export_tab(self, se37_session):
         """The Export tab also contains a table control."""
-        from sapwebguimcp.sapgui.components.table import GuiTableControl
+        from sapsucker.components.table import GuiTableControl
 
         table = _find_table_in_tab(se37_session, _TAB_EXPORT_ID)
         if table is None:
@@ -195,7 +195,7 @@ class TestGuiTableControl:
 
     def test_get_absolute_row(self, se37_session):
         """get_absolute_row returns a GuiTableRow for visible rows."""
-        from sapwebguimcp.sapgui.components.table import GuiTableRow
+        from sapsucker.components.table import GuiTableRow
 
         table = _find_table_in_tab(se37_session, _TAB_IMPORT_ID)
         if table is None:
@@ -214,7 +214,7 @@ class TestGuiTableControl:
 class TestGuiScrollbar:
     def test_scrollbar_properties(self, se37_session):
         """Verify scrollbar properties on a table's vertical scrollbar."""
-        from sapwebguimcp.sapgui.components.container import GuiScrollbar
+        from sapsucker.components.container import GuiScrollbar
 
         table = _find_table_in_tab(se37_session, _TAB_IMPORT_ID)
         if table is None:

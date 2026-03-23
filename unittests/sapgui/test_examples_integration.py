@@ -1,4 +1,4 @@
-"""Integration tests that run the pysapgui example scripts.
+"""Integration tests that run the sapsucker example scripts.
 
 Ensures examples stay working as the API evolves.
 Each test passes a live session to the example's main() function.
@@ -21,21 +21,21 @@ pytestmark = [
 
 class TestExamples:
     def test_basic_navigation(self, sap_desktop_session):
-        from examples.pysapgui.basic_navigation import main
+        from examples.sapsucker.basic_navigation import main
 
         main(session=sap_desktop_session)
 
     def test_form_filling(self, sap_desktop_session):
-        from examples.pysapgui.form_filling import main
+        from examples.sapsucker.form_filling import main
 
         main(session=sap_desktop_session)
 
     def test_tree_navigation(self, sap_desktop_session):
-        from examples.pysapgui.tree_navigation import main
+        from examples.sapsucker.tree_navigation import main
 
         main(session=sap_desktop_session)
 
     def test_alv_grid_export(self, sap_desktop_session):
-        from examples.pysapgui.alv_grid_export import main
+        from examples.sapsucker.alv_grid_export import main
 
         main(session=sap_desktop_session)

@@ -1,6 +1,6 @@
 """Tests for GuiTextField, GuiCTextField, GuiPasswordField, GuiLabel, GuiBox — issue #514."""
 
-from sapwebguimcp.sapgui.components.field import (
+from sapsucker.components.field import (
     GuiBox,
     GuiCTextField,
     GuiLabel,
@@ -146,7 +146,7 @@ class TestGuiLabel:
 
 class TestGuiBox:
     def test_inherits_from_gui_v_component(self):
-        from sapwebguimcp.sapgui.components.base import GuiVComponent
+        from sapsucker.components.base import GuiVComponent
 
         com = make_mock_com(type_as_number=62, type_name="GuiBox")
         box = GuiBox(com)

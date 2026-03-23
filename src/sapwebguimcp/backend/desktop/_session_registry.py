@@ -11,7 +11,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sapwebguimcp.sapgui.components.session import GuiSession
+    from sapsucker.components.session import GuiSession
 
 logger = logging.getLogger(__name__)
 

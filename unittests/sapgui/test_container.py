@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.container import GuiScrollbar, GuiUserArea
+from sapsucker.components.container import GuiScrollbar, GuiUserArea
 
 
 def _make_scrollbar():

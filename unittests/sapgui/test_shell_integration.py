@@ -38,7 +38,7 @@ def se80_session(sap_desktop_session):
 class TestGuiShellBase:
     def test_shell_properties_on_toolbar(self, se80_session):
         """Test GuiShell base properties on the SE80 toolbar."""
-        from sapwebguimcp.sapgui.components.shell import GuiShell
+        from sapsucker.components.shell import GuiShell
 
         toolbar = se80_session.find_by_id("wnd[0]/shellcont/shell/shellcont[0]/shell")
         assert isinstance(toolbar, GuiShell)
@@ -56,7 +56,7 @@ class TestGuiToolbarViaCom:
         factory returns GuiShell. We test the COM methods directly to verify
         they work — these are the same methods wrapped by GuiToolbarControl.
         """
-        from sapwebguimcp.sapgui.components.shell import GuiShell
+        from sapsucker.components.shell import GuiShell
 
         toolbar = se80_session.find_by_id("wnd[0]/shellcont/shell/shellcont[0]/shell")
         assert isinstance(toolbar, GuiShell)
@@ -83,7 +83,7 @@ class TestGuiToolbarViaCom:
 class TestGuiHTMLViewer:
     def test_html_viewer_sub_type(self, se80_session):
         """Verify the HTML viewer is found and has correct sub_type."""
-        from sapwebguimcp.sapgui.components.shell import GuiShell
+        from sapsucker.components.shell import GuiShell
 
         html = se80_session.find_by_id("wnd[0]/usr/cntlIMAGE/shellcont/shell")
         assert isinstance(html, GuiShell)
