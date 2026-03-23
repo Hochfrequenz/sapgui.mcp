@@ -227,7 +227,9 @@ class DesktopBackend:
         all clients in the system.  The session is left logged-in and registered
         so that subsequent tool calls can reuse it.
         """
-        from sapwebguimcp.backend.desktop._discovery import open_and_discover_clients  # pylint: disable=import-outside-toplevel
+        from sapwebguimcp.backend.desktop._discovery import (  # pylint: disable=import-outside-toplevel
+            open_and_discover_clients,
+        )
         from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
 
         settings = get_settings()

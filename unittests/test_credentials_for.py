@@ -26,26 +26,20 @@ class TestCredentialsFor:
         assert password == "default_pass"
 
     def test_returns_system_credentials_when_mapped(self) -> None:
-        settings = _make_settings(
-            sap_credentials='{"HFQ": {"user": "hfq_user", "password": "hfq_pass"}}'
-        )
+        settings = _make_settings(sap_credentials='{"HFQ": {"user": "hfq_user", "password": "hfq_pass"}}')
         user, password = settings.credentials_for("HFQ")
         assert user == "hfq_user"
         assert password == "hfq_pass"
 
     def test_falls_back_for_unmapped_system(self) -> None:
-        settings = _make_settings(
-            sap_credentials='{"HFQ": {"user": "hfq_user", "password": "hfq_pass"}}'
-        )
+        settings = _make_settings(sap_credentials='{"HFQ": {"user": "hfq_user", "password": "hfq_pass"}}')
         user, password = settings.credentials_for("S4U")
         assert user == "default_user"
         assert password == "default_pass"
 
     def test_partial_mapping_falls_back_per_field(self) -> None:
         """If only user is mapped, password falls back to global."""
-        settings = _make_settings(
-            sap_credentials='{"HFQ": {"user": "hfq_user"}}'
-        )
+        settings = _make_settings(sap_credentials='{"HFQ": {"user": "hfq_user"}}')
         user, password = settings.credentials_for("HFQ")
         assert user == "hfq_user"
         assert password == "default_pass"

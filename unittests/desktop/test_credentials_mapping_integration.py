@@ -38,7 +38,9 @@ async def test_discover_clients_uses_credentials_mapping() -> None:
     try:
         # Login via the backend fixture to establish the base session
         r = await backend.login(
-            "x", user, password,
+            "x",
+            user,
+            password,
             os.environ.get("SAP_MANDANT", "100"),
             os.environ.get("SAP_LANGUAGE", "DE"),
         )
@@ -89,7 +91,9 @@ async def test_discover_clients_fails_with_wrong_mapping_password() -> None:
     try:
         # Login with correct creds for base session
         r = await backend.login(
-            "x", user, password,
+            "x",
+            user,
+            password,
             os.environ.get("SAP_MANDANT", "100"),
             os.environ.get("SAP_LANGUAGE", "DE"),
         )

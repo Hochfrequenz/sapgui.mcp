@@ -28,8 +28,8 @@ async def test_discover_clients_returns_t000_entries(backend) -> None:
 
     # The default client should be in the returned list
     client_ids = [c["id"] for c in result["clients"]]
-    assert result["default_client"] in client_ids, (
-        f"Default client {result['default_client']} not found in T000 results: {client_ids}"
-    )
+    assert (
+        result["default_client"] in client_ids
+    ), f"Default client {result['default_client']} not found in T000 results: {client_ids}"
 
     await go_home(backend)

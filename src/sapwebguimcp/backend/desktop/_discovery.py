@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def open_and_discover_clients(
+def open_and_discover_clients(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
     connection_name: str,
     user: str,
     password: str,
@@ -34,6 +34,7 @@ def open_and_discover_clients(
         default_client: the client used for login
         clients: list of {"id": "NNN", "description": "..."} from T000
     """
+    # pylint: disable=protected-access
     import sapsucker.login as _login_mod  # pylint: disable=import-outside-toplevel
     from sapsucker import SapGui  # pylint: disable=import-outside-toplevel
     from sapsucker._errors import SapConnectionError  # pylint: disable=import-outside-toplevel
@@ -84,7 +85,9 @@ def open_and_discover_clients(
     return session, default_client, clients
 
 
-def _query_t000_clients(session: GuiSession) -> list[dict[str, str]]:
+def _query_t000_clients(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    session: GuiSession,
+) -> list[dict[str, str]]:
     """Query T000 via SE16N and return all clients in the system.
 
     Returns a list of ``{"id": "NNN", "description": "..."}`` dicts.
@@ -121,8 +124,9 @@ def _query_t000_clients(session: GuiSession) -> list[dict[str, str]]:
         time.sleep(2)
 
         # Find ALV grid
-        from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
         from sapsucker.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
+
+        from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
 
         wnd = session.find_by_id("wnd[0]")
         tree = cast(Any, wnd).dump_tree()
