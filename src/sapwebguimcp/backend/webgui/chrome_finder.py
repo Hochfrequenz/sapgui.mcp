@@ -161,7 +161,7 @@ def launch_chrome(exe_path: str, port: int, user_data_dir: str) -> subprocess.Po
     ]
     logger.info("Launching Chrome: %s", " ".join(cmd))
 
-    process = subprocess.Popen(
+    process = subprocess.Popen(  # pylint: disable=consider-using-with
         cmd,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

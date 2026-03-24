@@ -247,7 +247,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
 
         try:
             self._browser = await self._playwright.chromium.connect_over_cdp(settings.cdp_url)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             error_msg = str(e).lower()
             parsed_url = urlparse(settings.cdp_url) if settings.cdp_url else None
             cdp_host = parsed_url.hostname if parsed_url else ""

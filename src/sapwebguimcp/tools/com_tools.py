@@ -62,7 +62,7 @@ def _safe_attr(obj: Any, name: str) -> str:
     """Safely read a COM attribute, returning empty string on any failure."""
     try:
         return str(getattr(obj, name, ""))
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         return ""
 
 
@@ -93,7 +93,7 @@ def _serialize_com_result(value: Any) -> str:
                     }
                 )
             return json.dumps(items)
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         pass  # Not a well-behaved collection, fall through
     # Fallback
     try:

@@ -1093,8 +1093,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     continue
 
                 # Skip duplicates
-                action_lower: str = shortcut_info.action.lower()
-                shortcut_lower: str = shortcut_info.shortcut.lower()
+                action_lower: str = shortcut_info.action.lower()  # pylint: disable=no-member
+                shortcut_lower: str = shortcut_info.shortcut.lower()  # pylint: disable=no-member
                 key = (action_lower, shortcut_lower)
                 if key in seen:
                     continue

@@ -571,8 +571,8 @@ class DesktopBackend:
 
     async def get_form_fields(self, *, include_dropdown_options: bool = False) -> FormFieldsResult:
         """Detect form fields with their current values and associated labels."""
-        from sapwebguimcp.models.sap_results import (
-            FormFieldsResult as _FormFieldsResult,  # pylint: disable=import-outside-toplevel
+        from sapwebguimcp.models.sap_results import (  # pylint: disable=import-outside-toplevel
+            FormFieldsResult as _FormFieldsResult,
         )
 
         session = self._require_session()
@@ -881,8 +881,8 @@ class DesktopBackend:
 
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
         """Fill multiple form fields."""
-        from sapwebguimcp.models.sap_results import (
-            FillFormResult as _FillFormResult,  # pylint: disable=import-outside-toplevel
+        from sapwebguimcp.models.sap_results import (  # pylint: disable=import-outside-toplevel
+            FillFormResult as _FillFormResult,
         )
 
         session = self._require_session()
@@ -1018,8 +1018,8 @@ class DesktopBackend:
 
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select a dropdown option."""
-        from sapwebguimcp.models.sap_results import (
-            DropdownFillResult as _DropdownFillResult,  # pylint: disable=import-outside-toplevel
+        from sapwebguimcp.models.sap_results import (  # pylint: disable=import-outside-toplevel
+            DropdownFillResult as _DropdownFillResult,
         )
 
         session = self._require_session()
@@ -1234,7 +1234,9 @@ class DesktopBackend:
         Sends VKey 26 (check), reads status bar, handles "Inactive Objects"
         popup, then sends VKey 27 (activate) and reads status bar again.
         """
-        from sapwebguimcp.backend.protocol import CheckActivateResult as _CheckActivateResult
+        from sapwebguimcp.backend.protocol import (
+            CheckActivateResult as _CheckActivateResult,
+        )  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -1315,7 +1317,7 @@ class DesktopBackend:
         Checks if wnd[1] exists, then reads its title, text content,
         and button labels to build a PopupInfo.
         """
-        from sapwebguimcp.models.base import PopupButton, PopupType
+        from sapwebguimcp.models.base import PopupButton, PopupType  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -1374,7 +1376,9 @@ class DesktopBackend:
         If button_label is given, finds and clicks the matching button.
         Otherwise, presses Enter (VKey 0) as default.
         """
-        from sapwebguimcp.models.sap_results import ClosePopupResult as _ClosePopupResult
+        from sapwebguimcp.models.sap_results import (
+            ClosePopupResult as _ClosePopupResult,
+        )  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
