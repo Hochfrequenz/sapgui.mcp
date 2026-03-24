@@ -23,7 +23,6 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is 
 
 
 @skip_no_sap
-@skip_no_sap
 @pytest.mark.anyio
 async def test_check_popup_returns_none_on_easy_access(backend):
     """No popup on Easy Access screen."""
@@ -31,7 +30,6 @@ async def test_check_popup_returns_none_on_easy_access(backend):
     assert popup is None
 
 
-@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_check_popup_detects_modal(backend):
@@ -54,7 +52,6 @@ async def test_check_popup_detects_modal(backend):
     await backend.press_key("F3")
 
 
-@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_dismiss_popup_on_exit_with_changes(backend):
@@ -90,7 +87,6 @@ async def test_dismiss_popup_on_exit_with_changes(backend):
 
 
 @skip_no_sap
-@skip_no_sap
 @pytest.mark.anyio
 async def test_dismiss_language_dialog_no_op_when_absent(backend):
     """dismiss_language_dialog is a no-op when no language dialog is present."""
@@ -104,7 +100,6 @@ async def test_dismiss_language_dialog_no_op_when_absent(backend):
 
 
 @skip_no_sap
-@skip_no_sap
 @pytest.mark.anyio
 async def test_read_editor_source_returns_none_on_non_editor_screen(backend):
     """read_editor_source returns None when no editor is on screen."""
@@ -113,7 +108,6 @@ async def test_read_editor_source_returns_none_on_non_editor_screen(backend):
     assert result is None
 
 
-@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_read_editor_source_on_se38(backend):
@@ -148,7 +142,6 @@ async def test_read_editor_source_on_se38(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_check_and_activate_returns_result(backend):
