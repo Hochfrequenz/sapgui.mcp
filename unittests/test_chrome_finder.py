@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -118,7 +119,7 @@ class TestWaitForCdp:
     @pytest.mark.anyio
     async def test_wait_for_cdp_timeout_on_unreachable_port(self) -> None:
         """wait_for_cdp() should return False if CDP never becomes reachable."""
-        result = await wait_for_cdp("http://localhost:19999", timeout=2.0)
+        result = await wait_for_cdp("http://localhost:19999", timeout=timedelta(seconds=2))
         assert result is False
 
     @pytest.mark.skipif(sys.platform != "win32", reason="Windows-only")
@@ -134,7 +135,7 @@ class TestWaitForCdp:
         process = launch_chrome(chrome_path, port, user_data_dir)
 
         try:
-            result = await wait_for_cdp(f"http://localhost:{port}", timeout=15.0)
+            result = await wait_for_cdp(f"http://localhost:{port}", timeout=timedelta(seconds=15))
             assert result is True
         finally:
             process.terminate()
@@ -216,7 +217,7 @@ class TestEndToEnd:
         process = launch_chrome(chrome_path, port, user_data_dir)
         try:
             # Wait for CDP
-            ready = await wait_for_cdp(cdp_url, timeout=15.0)
+            ready = await wait_for_cdp(cdp_url, timeout=timedelta(seconds=15))
             assert ready, "CDP should become reachable after launch"
 
             # Verify we can actually get version info

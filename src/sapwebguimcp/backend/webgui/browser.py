@@ -7,6 +7,7 @@ session across multiple tool calls, following the dev-browser pattern.
 
 import logging
 import subprocess
+from datetime import timedelta
 from typing import NoReturn, Optional
 from urllib.parse import urlparse
 
@@ -292,7 +293,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         self._chrome_process = launch_chrome(chrome_path, port, settings.chrome_user_data_dir)
 
         # Wait for CDP to become ready
-        if not await wait_for_cdp(settings.cdp_url, timeout=10.0):
+        if not await wait_for_cdp(settings.cdp_url, timeout=timedelta(seconds=10)):
             self._terminate_chrome()
             raise RuntimeError(
                 f"Chrome wurde gestartet, aber CDP wurde nicht erreichbar auf {settings.cdp_url}.\n"

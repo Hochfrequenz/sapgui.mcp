@@ -12,6 +12,7 @@ import asyncio
 import logging
 import subprocess
 import sys
+from datetime import timedelta
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
@@ -169,19 +170,19 @@ def launch_chrome(exe_path: str, port: int, user_data_dir: str) -> subprocess.Po
     return process
 
 
-async def wait_for_cdp(cdp_url: str, timeout: float = 10.0) -> bool:
+async def wait_for_cdp(cdp_url: str, timeout: timedelta = timedelta(seconds=10)) -> bool:
     """Poll the CDP endpoint until it responds or timeout expires.
 
     Args:
         cdp_url: Base CDP URL, e.g. ``http://localhost:9222``.
-        timeout: Maximum seconds to wait.
+        timeout: Maximum time to wait.
 
     Returns:
         True if CDP became reachable, False on timeout.
     """
     version_url = f"{cdp_url}/json/version"
     loop = asyncio.get_running_loop()
-    deadline = loop.time() + timeout
+    deadline = loop.time() + timeout.total_seconds()
 
     async with httpx.AsyncClient() as client:
         while loop.time() < deadline:
@@ -194,7 +195,7 @@ async def wait_for_cdp(cdp_url: str, timeout: float = 10.0) -> bool:
                 pass
             await asyncio.sleep(0.5)
 
-    logger.warning("CDP endpoint did not become ready within %.1fs", timeout)
+    logger.warning("CDP endpoint did not become ready within %s", timeout)
     return False
 
 
