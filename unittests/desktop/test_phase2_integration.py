@@ -23,7 +23,6 @@ from unittests.desktop.conftest import TEST_TABLE, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
 
-skip_not_sap_machine = skip_no_sap
 
 
 # ---------------------------------------------------------------------------
@@ -31,7 +30,7 @@ skip_not_sap_machine = skip_no_sap
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap_machine
+@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_fill_field_on_se16(backend):
@@ -52,7 +51,7 @@ async def test_fill_field_on_se16(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap_machine
+@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_fill_main_input_on_se38(backend):
@@ -74,7 +73,7 @@ async def test_fill_main_input_on_se38(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap_machine
+@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_click_button_changes_screen(backend):
@@ -111,7 +110,7 @@ async def test_click_button_changes_screen(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap_machine
+@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_set_checkbox_on_sm37(backend):
@@ -162,7 +161,7 @@ async def test_set_checkbox_on_sm37(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap_machine
+@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_get_dropdown_options_on_sm37(backend):
@@ -189,7 +188,7 @@ async def test_get_dropdown_options_on_sm37(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap_machine
+@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_press_key_f8_executes(backend):
@@ -214,7 +213,7 @@ async def test_press_key_f8_executes(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap_machine
+@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_discover_fields_returns_field_info(backend):
@@ -233,7 +232,7 @@ async def test_discover_fields_returns_field_info(backend):
     await backend.press_key("F3")
 
 
-@skip_no_sap_machine
+@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_discover_buttons_returns_button_info(backend):
@@ -252,7 +251,7 @@ async def test_discover_buttons_returns_button_info(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap_machine
+@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_get_screen_text_has_content(backend):
@@ -273,7 +272,7 @@ async def test_get_screen_text_has_content(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap_machine
+@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_fill_form_on_se16(backend):
@@ -295,7 +294,7 @@ async def test_fill_form_on_se16(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_no_sap_machine
+@skip_no_sap
 @skip_no_sap
 @pytest.mark.anyio
 async def test_screen_info_after_transaction(backend):
