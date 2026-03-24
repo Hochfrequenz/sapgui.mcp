@@ -65,7 +65,7 @@ class FMSearchResultItem(BaseModel):
     is_rfc_enabled: bool = Field(default=False, description="RFC-enabled flag")
     import_params: list[FMParameterResult] = Field(description="Import parameters")
     export_params: list[FMParameterResult] = Field(description="Export parameters")
-    score: int = Field(description="Relevance score (0-100)")
+    score: float = Field(description="Relevance score (0-100)")
     match_reason: str = Field(description="Why this FM matched")
 
 

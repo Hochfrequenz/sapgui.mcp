@@ -364,3 +364,21 @@ class TestIntegration:
         assert table.name == "EUITRANS"
         assert score >= 80  # Exact or prefix match
         assert len(table.fields) > 0
+
+
+class TestFuzzyTableSearch:
+    """Tests for fuzzy matching in table search (GH-250)."""
+
+    def test_fuzzy_finds_table_by_partial_description(self) -> None:
+        from sapwebguimcp.tables.search import search_tables
+
+        table = TableInfo(
+            name="T000",
+            description="Mandanten in der Datenbank",
+            delivery_class="S",
+            fields=[TableField(name="MANDT", description="Mandant", data_type="CLNT", length=3)],
+        )
+        catalog = TableCatalog(tables={"T000": table}, source_system="test")
+        results = search_tables(catalog, "Mandanten Datenbank", limit=5)
+        assert len(results) > 0
+        assert results[0].match_reason == "fuzzy description"

@@ -137,3 +137,17 @@ class TestClassCatalogSearchIntegration:
         assert len(results) > 0
         cls_names = [r.cls.name for r in results]
         assert any("CONTRACT" in name for name in cls_names)
+
+
+class TestFuzzyClassSearch:
+    """Tests for fuzzy matching in class search (GH-250)."""
+
+    def test_fuzzy_finds_class_by_partial_description(self) -> None:
+        from sapwebguimcp.classcatalog.models import ClassCatalog, ClassEntry
+        from sapwebguimcp.classcatalog.search import search_classes
+
+        cls = ClassEntry(name="CL_TEST", description="Vertragsverwaltung Utilities")
+        catalog = ClassCatalog(classes={"CL_TEST": cls}, source_system="test", language="DE")
+        results = search_classes(catalog, "Vertragsverwalter", limit=5)
+        assert len(results) > 0
+        assert results[0].match_reason == "fuzzy description"
