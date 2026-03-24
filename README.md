@@ -1,9 +1,5 @@
 # SAP MCP Server
 
-> [!TIP]
-> Aktuell ist der MCP-Server in einem Übergang, der Support für die SAP GUI (Desktop - ohne Browser) einführt.
-> Dieses Feature ist aber noch experimentell. Die Web GUI sollte wie gehabt funktionieren.
-
 [![Unittests](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Unittests/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 [![Coverage](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Coverage/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 [![Linting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Linting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
