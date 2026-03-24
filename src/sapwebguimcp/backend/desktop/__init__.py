@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any, cast
 import sapsucker.login as _login_mod
 
 from sapwebguimcp.backend.desktop._com_thread import ComThread
+from sapwebguimcp.backend.desktop._landscape import _find_landscape_path, _parse_landscape_xml
 from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
 #: Per-async-task session ID — set by BackendManager before each tool call.
@@ -215,11 +216,6 @@ class DesktopBackend:
 
     async def list_connections(self) -> list[Any]:
         """List available SAP Logon connections from the landscape file."""
-        from sapwebguimcp.tools.sap_list_connections_impl import (  # pylint: disable=import-outside-toplevel
-            _find_landscape_path,
-            _parse_landscape_xml,
-        )
-
         path = _find_landscape_path()
         if path is None:
             return []
