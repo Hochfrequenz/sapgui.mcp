@@ -130,6 +130,31 @@ Replace:
 - `Your SAP Logon Entry` with the **description** shown in SAP Logon — this is the bold text in the list when you open SAP Logon (e.g. `"HF S/4"` or `"DEV - ERP Development"`). It is _not_ the system ID or server address.
 - `your_username` / `your_password` with your SAP credentials
 
+#### Multi-system access (desktop backend only)
+
+By default, the MCP server connects to one SAP system with one set of credentials. With multi-system access, the LLM can switch between different SAP systems and clients on the fly — useful when you work across DEV, QA, and PROD.
+
+**How it works:**
+
+1. `sap_list_connections` reads your SAP Logon entries (from `SAPUILandscape.xml`) to show which systems are available.
+2. `sap_login(connection_name="QA System", client="200")` logs into a specific system and client, using credentials from `SAP_CREDENTIALS`.
+3. `sap_discover_clients(connection_name="QA System")` opens a connection and queries table T000 to list all available clients (Mandanten) on that system. Requires SE16N authorization.
+
+**Configuration:** Add `SAP_CREDENTIALS` to map connection names to their login credentials. Each system can have its own user/password:
+
+```json
+{
+    "BACKEND_TYPE": "desktop",
+    "SAP_CONNECTION_NAME": "HF S/4",
+    "SAP_USER": "default_user",
+    "SAP_PASSWORD": "default_password",
+    "SAP_MANDANT": "100",
+    "SAP_CREDENTIALS": "{\"DEV System\": {\"user\": \"dev_user\", \"password\": \"dev_pass\"}, \"QA System\": {\"user\": \"qa_user\", \"password\": \"qa_pass\"}}"
+}
+```
+
+When `sap_login(connection_name="DEV System")` is called, it looks up the credentials in `SAP_CREDENTIALS`. If the system is not in the mapping, it falls back to `SAP_USER` / `SAP_PASSWORD`.
+
 No Chrome, no browser setup required.
 
 > **Getting started:** Save the config file, then restart Claude Desktop. Try asking: _"Log me into SAP"_ or _"Run transaction SE16"_. SAP GUI will open automatically if it is not already running.

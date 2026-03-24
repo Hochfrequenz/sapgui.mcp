@@ -14,7 +14,7 @@ load_dotenv()
 # SAP INTEGRATION TEST MACHINE CHECK
 # =============================================================================
 
-_AUTHORIZED_SAP_TEST_MACHINES = {"HF-KKLEIN3", "HF-MeiskeJ"}
+_AUTHORIZED_SAP_TEST_MACHINES = {"HF-KKLEIN3", "HF-MeiskeJ", "HFDACHNERMR"}
 
 
 def is_sap_integration_test_machine() -> bool:
