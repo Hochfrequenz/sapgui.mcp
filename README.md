@@ -588,35 +588,9 @@ Add to `.mcp.json` in your project root:
 | `log_intent`          | Log what you're doing for accountability                                  |
 | `log_feedback`        | Report issues (creates GitHub issues if `GITHUB_PAT` is set)              |
 
-### Browser Tools
+### Browser Tools (WebGUI only)
 
-> **Note:** Browser tools are only available with the WebGUI backend (`BACKEND_TYPE=webgui`).
-
-| Tool                    | Description            |
-| ----------------------- | ---------------------- |
-| `browser_snapshot`      | Get accessibility tree |
-| `browser_screenshot`    | Take a screenshot      |
-| `browser_click`         | Click an element       |
-| `browser_fill`          | Fill an input field    |
-| `browser_keyboard`      | Send keyboard input    |
-| `browser_navigate`      | Navigate to URL        |
-| `browser_evaluate`      | Execute JavaScript     |
-| `browser_wait`          | Wait for element state |
-| `browser_get_html`      | Get HTML content       |
-| `browser_select_option` | Select dropdown option |
-
-### Workflow Tools (Bulk Operations)
-
-For repetitive tasks like "create 100 business partners":
-
-| Tool              | Description                                        |
-| ----------------- | -------------------------------------------------- |
-| `workflow_list`   | List saved workflows                               |
-| `workflow_save`   | Save a workflow                                    |
-| `workflow_submit` | Submit workflow to dev team (creates GitHub issue) |
-| `workflow_delete` | Delete a workflow                                  |
-
-Note: There is currently no bulk runner tool. The `workflow_list` tool returns, for each saved workflow, a prompt or instruction that you (or the calling agent) should follow manually, one item at a time.
+Low-level browser escape hatches (`browser_snapshot`, `browser_screenshot`, `browser_click`, `browser_fill`, `browser_keyboard`, etc.) are available when using the WebGUI backend. These are fallbacks — the SAP-specific tools above handle most interactions.
 
 ## Configuration Reference
 

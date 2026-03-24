@@ -41,7 +41,6 @@ from sapwebguimcp.tools.sm37_tools import register_sm37_tools
 from sapwebguimcp.tools.spro_tools import register_spro_tools
 from sapwebguimcp.tools.st22_tools import register_st22_tools
 from sapwebguimcp.tools.table_tools import register_table_tools
-from sapwebguimcp.tools.workflow_tools import register_workflow_tools
 
 __all__ = [
     "register_abapgit_tools",
@@ -69,7 +68,6 @@ __all__ = [
     "register_sm37_tools",
     "register_st22_tools",
     "register_table_tools",
-    "register_workflow_tools",
     "get_session_feedback",
     "clear_session_feedback",
     "get_session_intents",
