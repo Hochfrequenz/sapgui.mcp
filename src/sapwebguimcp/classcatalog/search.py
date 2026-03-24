@@ -20,7 +20,7 @@ class ClassSearchResult:
     """A single search result with relevance score."""
 
     cls: ClassEntry
-    score: int
+    score: float
     match_reason: str
 
 
@@ -71,7 +71,7 @@ def search_classes(
         if score == 0 and cls.description:
             fuzzy_score = fuzz.WRatio(query, cls.description, score_cutoff=50)
             if fuzzy_score:
-                score = 5 + int((fuzzy_score - 50) * 9.0 / 50.0)
+                score = 5.0 + (fuzzy_score - 50) * 9.0 / 50.0
                 match_reason = "fuzzy description"
 
         if score > 0:

@@ -38,7 +38,7 @@ class SearchResult:
 
     transaction: TransactionInfo
     score: float
-    match_type: str  # "exact_tcode", "prefix_tcode", "description", "program"
+    match_type: str  # "exact_tcode", "prefix_tcode", "description", "program", "fuzzy"
 
 
 def normalize_query(query: str) -> str:

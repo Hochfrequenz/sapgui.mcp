@@ -30,7 +30,7 @@ class TableSearchResult:
     """A single search result with relevance score."""
 
     table: TableInfo
-    score: int
+    score: float
     match_reason: str
 
 
@@ -102,7 +102,7 @@ def search_tables(
         if score == 0 and table.description:
             fuzzy_score = fuzz.WRatio(query, table.description, score_cutoff=50)
             if fuzzy_score:
-                score = 5 + int((fuzzy_score - 50) * 9.0 / 50.0)
+                score = 5.0 + (fuzzy_score - 50) * 9.0 / 50.0
                 match_reason = "fuzzy description"
 
         if score > 0:
