@@ -174,12 +174,13 @@ class DesktopBackend:
         client: str,
         language: str,
         session_id: str | None = None,
+        connection_name: str | None = None,
     ) -> LoginResult:
-        """Log into SAP GUI desktop (url is ignored — uses SAP_CONNECTION_NAME)."""
+        """Log into SAP GUI desktop (url is ignored — uses connection_name or SAP_CONNECTION_NAME)."""
         from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
 
         settings = get_settings()
-        connection_name = settings.sap_connection_name
+        connection_name = connection_name or settings.sap_connection_name
         if not connection_name:
             return LoginResult(success=False, error="SAP_CONNECTION_NAME not configured")
 
@@ -206,6 +207,49 @@ class DesktopBackend:
                 extra={"connection": connection_name, "user": username, "success": False, "error": str(e)},
             )
             return LoginResult(success=False, error=str(e))
+
+    async def list_connections(self) -> list[Any]:
+        """List available SAP Logon connections from the landscape file."""
+        from sapwebguimcp.tools.sap_list_connections_impl import (  # pylint: disable=import-outside-toplevel
+            _find_landscape_path,
+            _parse_landscape_xml,
+        )
+
+        path = _find_landscape_path()
+        if path is None:
+            return []
+        return _parse_landscape_xml(path.read_text(encoding="utf-8"))
+
+    async def discover_clients(self, connection_name: str) -> dict[str, Any]:
+        """Open a SAP connection, log in, and query T000 for available clients.
+
+        Logs in with the default client, queries T000 via SE16N, and returns
+        all clients in the system.  The session is left logged-in and registered
+        so that subsequent tool calls can reuse it.
+        """
+        from sapwebguimcp.backend.desktop._discovery import (  # pylint: disable=import-outside-toplevel
+            open_and_discover_clients,
+        )
+        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
+
+        settings = get_settings()
+        user, password = settings.credentials_for(connection_name)
+
+        session, default_client, clients = await self._com.run(
+            lambda: open_and_discover_clients(
+                connection_name=connection_name,
+                user=user,
+                password=password,
+                language=settings.sap_language or "EN",
+            )
+        )
+        session_id = self._registry.register(session)
+        return {
+            "session_id": session_id,
+            "default_client": default_client,
+            "clients": clients,
+            "info_text": "",
+        }
 
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Navigate to a transaction code.
