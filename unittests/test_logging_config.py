@@ -268,20 +268,17 @@ class TestConfigureLogging:
 
     def test_configure_logging_default_console(self) -> None:
         """Default config uses console formatter."""
-        with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("LOG_FORMAT", None)
-            configure_logging()
-            root = logging.getLogger()
-            assert any(isinstance(h.formatter, StructuredFormatter) for h in root.handlers)
+        configure_logging()
+        root = logging.getLogger()
+        assert any(isinstance(h.formatter, StructuredFormatter) for h in root.handlers)
 
     def test_configure_logging_json_mode(self) -> None:
-        """LOG_FORMAT=json uses JSON formatter."""
-        with patch.dict(os.environ, {"LOG_FORMAT": "json"}):
-            configure_logging()
-            root = logging.getLogger()
-            structured_handlers = [h for h in root.handlers if isinstance(h.formatter, StructuredFormatter)]
-            assert len(structured_handlers) > 0
-            assert structured_handlers[0].formatter.json_mode is True
+        """log_format='json' uses JSON formatter."""
+        configure_logging(log_format="json")
+        root = logging.getLogger()
+        structured_handlers = [h for h in root.handlers if isinstance(h.formatter, StructuredFormatter)]
+        assert len(structured_handlers) > 0
+        assert structured_handlers[0].formatter.json_mode is True
 
     def test_configure_logging_preserves_non_stream_handlers(self) -> None:
         """configure_logging does not remove non-StreamHandler handlers."""

@@ -244,6 +244,18 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "GITHUB_REPO"},
     )
 
+    # Logging
+    log_format: str = Field(
+        default="",
+        description="Set to 'json' for JSON log output. Default is human-readable console.",
+        json_schema_extra={"env": "LOG_FORMAT"},
+    )
+    log_level: str = Field(
+        default="INFO",
+        description="Log level: DEBUG, INFO, WARNING, or ERROR.",
+        json_schema_extra={"env": "LOG_LEVEL"},
+    )
+
     # Papertrail Logging (optional)
     # Defaults are empty — Papertrail is OFF for bare Python / pip install.
     # The .exe build bundles .env.production which provides the real values.
