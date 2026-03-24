@@ -84,7 +84,7 @@ async def test_multi_session_parallel_stress(backend):
     try:
         # Open 2 extra sessions
         for _ in range(2):
-            sid, _count, _title = await backend.open_new_session("/n")
+            sid, _count, _title = await backend.open_new_session("SESSION_MANAGER")
             if sid:
                 extra_session_ids.append(sid)
                 await asyncio.sleep(2)
