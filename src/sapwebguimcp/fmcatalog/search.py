@@ -51,7 +51,7 @@ def search_function_modules(  # pylint: disable=too-many-locals,too-many-branche
     results: list[FMSearchResult] = []
 
     for fm in catalog.function_modules.values():
-        score = 0
+        score = 0.0
         match_reason = ""
 
         fm_name_upper = fm.name.upper()

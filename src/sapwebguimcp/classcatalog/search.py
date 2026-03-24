@@ -46,7 +46,7 @@ def search_classes(
     results: list[ClassSearchResult] = []
 
     for cls in catalog.classes.values():
-        score = 0
+        score = 0.0
         match_reason = ""
 
         cls_name_upper = cls.name.upper()

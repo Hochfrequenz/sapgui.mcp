@@ -30,7 +30,7 @@ class ClassSearchResultItem(BaseModel):
     name: str = Field(description="Class name (e.g., 'CL_ISU_CONTRACT')")
     description: str = Field(description="Class description")
     object_type: str = Field(description="Object type: 'class' or 'interface'")
-    score: int = Field(description="Relevance score (0-100)")
+    score: float = Field(description="Relevance score (0-100)")
     match_reason: str = Field(description="Why this class matched")
 
 

@@ -42,7 +42,7 @@ class TableSearchResultItem(BaseModel):
     description: str = Field(description="Table description")
     delivery_class: str = Field(description="Delivery class")
     fields: list[TableFieldResult] = Field(description="Table fields")
-    score: int = Field(description="Relevance score (0-100)")
+    score: float = Field(description="Relevance score (0-100)")
     match_reason: str = Field(description="Why this table matched")
 
 

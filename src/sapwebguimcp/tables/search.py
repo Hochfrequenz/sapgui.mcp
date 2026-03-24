@@ -58,7 +58,7 @@ def search_tables(  # pylint: disable=too-many-branches
     results: list[TableSearchResult] = []
 
     for table in catalog.tables.values():
-        score = 0
+        score = 0.0
         match_reason = ""
 
         table_name_upper = table.name.upper()
@@ -98,7 +98,7 @@ def search_tables(  # pylint: disable=too-many-branches
                     match_reason = f"field {field.name} description contains"
                     break
 
-        # Fuzzy match on table description (catches typos, partial stems)
+        # Fuzzy match on table description only (not fields — too noisy)
         if score == 0 and table.description:
             fuzzy_score = fuzz.WRatio(query, table.description, score_cutoff=50)
             if fuzzy_score:
