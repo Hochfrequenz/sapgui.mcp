@@ -37,7 +37,8 @@ def _coerce_tags(v: Any) -> list[str] | None:
             pass
         # Single bare string → wrap in list
         return [v]
-    return v
+    # v is already a list[str] from Pydantic pre-processing
+    return v  # type: ignore[no-any-return]
 
 
 Tags = Annotated[list[str] | None, BeforeValidator(_coerce_tags)]
