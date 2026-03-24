@@ -648,3 +648,48 @@ class TestAreaPrefixCoverage:
         for module in common_modules:
             matching_prefixes = [p for p in SAP_AREA_PREFIXES if SAP_AREA_PREFIXES[p].startswith(module)]
             assert len(matching_prefixes) > 0, f"Module {module} has no prefixes"
+
+
+class TestFuzzySearch:
+    """Tests for fuzzy matching via rapidfuzz (GH-250)."""
+
+    def _make_catalog(self, transactions: list[TransactionInfo]) -> TransactionCatalog:
+        return TransactionCatalog(transactions=transactions, source_system="test", language="DE")
+
+    def _make_txn(self, tcode: str, description: str) -> TransactionInfo:
+        return TransactionInfo(
+            tcode=tcode,
+            description=description,
+            program="TEST",
+            transaction_type="dialog",
+            gui_html=True,
+            gui_windows=True,
+            enriched=True,
+            retrieved_at=datetime.now(UTC),
+        )
+
+    def test_fuzzy_finds_emmacl_via_klarfalle(self) -> None:
+        """The original GH-250 case: 'Klärfälle' should find 'Klärungsliste anzeigen'."""
+        catalog = self._make_catalog([self._make_txn("EMMACL", "Klärungsliste anzeigen")])
+        results = search_transactions(catalog, "Klärfälle", limit=10)
+        tcodes = [r.transaction.tcode for r in results]
+        assert "EMMACL" in tcodes, f"EMMACL not found via fuzzy search. Results: {tcodes}"
+
+    def test_fuzzy_finds_non_substring_match(self) -> None:
+        """Fuzzy matching finds results where query is NOT a substring of description."""
+        catalog = self._make_catalog([self._make_txn("ZZ99", "Vertragskonto anlegen")])
+        results = search_transactions(catalog, "Vertragskonten", limit=5)
+        assert len(results) > 0, "Fuzzy should match 'Vertragskonten' against 'Vertragskonto anlegen'"
+        assert results[0].match_type == "fuzzy"
+
+    def test_exact_match_beats_fuzzy(self) -> None:
+        """Exact tcode matches should always score higher than fuzzy."""
+        catalog = self._make_catalog(
+            [
+                self._make_txn("VA01", "Kundenauftrag anlegen"),
+                self._make_txn("ZZ01", "Kundenauftrag anlegen copy"),
+            ]
+        )
+        results = search_transactions(catalog, "VA01", limit=5)
+        assert results[0].score >= 80, "Exact/prefix match should score >= 80"
+        assert results[0].transaction.tcode == "VA01"

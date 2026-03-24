@@ -7,31 +7,27 @@ It searches the bundled transactions.json - no SAP session required.
 For DEVELOPMENT (building/updating the catalog), see scraper.py.
 ===========================================================================
 
-Provides keyword search over the transaction catalog to help
+Provides keyword + fuzzy search over the transaction catalog to help
 Claude find relevant SAP transactions for user tasks.
 
-KNOWN LIMITATIONS (intentional simplifications):
+SCORING (priority order):
+1. Exact tcode match: 100
+2. Tcode prefix match: 80
+3. Description contains all query tokens: 60
+4. Description contains some query tokens: 40 * match_ratio
+5. Program name contains query: 20
+6. Fuzzy match on description (rapidfuzz WRatio >= 50): 10-19
 
-1. LANGUAGE: Descriptions are in German (scraped from German SAP UI).
-   English queries like "create sales order" won't match "Kundenauftrag anlegen".
-   This is a DATA limitation, not a code bug. Re-scrape with English UI to fix.
-
-2. NO FUZZY MATCHING: We use simple token matching, not fuzzy/Levenshtein.
-   "salesorder" won't match "Sales Order". This keeps the code simple and fast.
-   If needed, add rapidfuzz dependency and fuzzy scoring later.
-
-3. AREA NOT SEARCHABLE: The `area` field (e.g., "SD-Sales") is only used
-   for filtering, not text search. Searching "materials management" won't
-   find MM* transactions. This is intentional - area is structured data,
-   not free text.
-
-4. PROGRAM NAME SEARCH IS WEAK: Score of 20 is intentionally low because
-   program names (e.g., "SAPMV45A") are rarely what users search for.
-   This is a fallback, not a primary match.
+KNOWN LIMITATIONS:
+- LANGUAGE: Descriptions are in German. English queries won't match well.
+  Re-scrape with English UI to fix.
+- AREA NOT SEARCHABLE: The `area` field is only used for filtering.
 """
 
 import re
 from dataclasses import dataclass
+
+from rapidfuzz import fuzz
 
 from sapwebguimcp.catalog.models import TransactionCatalog, TransactionInfo
 
@@ -42,7 +38,7 @@ class SearchResult:
 
     transaction: TransactionInfo
     score: float
-    match_type: str  # "exact_tcode", "prefix_tcode", "description", "program"
+    match_type: str  # "exact_tcode", "prefix_tcode", "description", "program", "fuzzy"
 
 
 def normalize_query(query: str) -> str:
@@ -57,7 +53,7 @@ def tokenize(text: str) -> list[str]:
     return [t for t in tokens if t]
 
 
-def search_transactions(
+def search_transactions(  # pylint: disable=too-many-locals,too-many-branches
     catalog: TransactionCatalog,
     query: str,
     area: str | None = None,
@@ -141,6 +137,14 @@ def search_transactions(
         if score == 0 and txn.program and query_normalized in txn.program.upper():
             score = 20.0
             match_type = "program"
+
+        # 5. Fuzzy match on description (catches typos, partial stems, word reordering)
+        if score == 0 and txn.description:
+            fuzzy_score = fuzz.WRatio(query, txn.description, score_cutoff=50)
+            if fuzzy_score:
+                # Map rapidfuzz 50-100 range to our 10-19 score range
+                score = 10.0 + (fuzzy_score - 50) * 9.0 / 50.0
+                match_type = "fuzzy"
 
         # Only include results with positive score
         if score > 0:

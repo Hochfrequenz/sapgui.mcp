@@ -167,3 +167,17 @@ class TestFMCatalogSearchIntegration:
         assert len(results) > 10
         for r in results:
             assert "FKK" in r.fm.name
+
+
+class TestFuzzyFMSearch:
+    """Tests for fuzzy matching in FM search (GH-250)."""
+
+    def test_fuzzy_finds_fm_by_partial_description(self) -> None:
+        from sapwebguimcp.fmcatalog.models import FMCatalog, FunctionModuleEntry
+        from sapwebguimcp.fmcatalog.search import search_function_modules
+
+        fm = FunctionModuleEntry(name="Z_TEST_FM", description="Rechnungsstellung durchführen")
+        catalog = FMCatalog(function_modules={"Z_TEST_FM": fm}, source_system="test", language="DE")
+        results = search_function_modules(catalog, "Rechnungen", limit=5)
+        assert len(results) > 0
+        assert results[0].match_reason == "fuzzy description"
