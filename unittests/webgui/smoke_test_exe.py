@@ -37,7 +37,7 @@ def main() -> None:
 
     try:
         # Wait for the server to start (PyInstaller --onefile decompresses on first run)
-        for i in range(60):
+        for i in range(20):
             time.sleep(1)
             if proc.poll() is not None:
                 stderr_file.seek(0)
@@ -45,7 +45,7 @@ def main() -> None:
                 print(f"FAIL: Process exited early with code {proc.returncode}")
                 print(f"stderr: {stderr[:2000]}")
                 sys.exit(1)
-            if i >= 14:  # Wait at least 15 seconds before proceeding
+            if i >= 4:  # Wait at least 5 seconds before proceeding
                 break
 
         print("Server running. Sending MCP initialize request...")
@@ -88,7 +88,7 @@ def main() -> None:
 
         t = threading.Thread(target=reader, daemon=True)
         t.start()
-        t.join(timeout=30.0)
+        t.join(timeout=15.0)
 
         if not output_lines:
             stderr_file.seek(0)
