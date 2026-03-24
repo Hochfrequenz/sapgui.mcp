@@ -263,7 +263,7 @@ class DesktopBackend:
             stripped = base_tcode[2:]
             if stripped:
                 base_tcode = stripped
-            # else: pure navigation command (e.g. /n, /nex) — keep as-is
+            # else: bare navigation command (/n or /o alone) — keep as-is
 
         session = self._require_session()
 

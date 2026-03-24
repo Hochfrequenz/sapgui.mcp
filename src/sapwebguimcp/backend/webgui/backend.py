@@ -351,6 +351,11 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         # TransactionResult.tcode validates against a strict pattern;
         # extract the base tcode (first token) for the result model.
         base_tcode = tcode.split()[0] if " " in tcode else tcode
+        if base_tcode.startswith("/n") or base_tcode.startswith("/o"):
+            stripped = base_tcode[2:]
+            if stripped:
+                base_tcode = stripped
+            # else: bare navigation command (/n or /o alone) — keep as-is
         try:
             if tcode.startswith("/n") or tcode.startswith("/o"):
                 transaction_input = tcode
