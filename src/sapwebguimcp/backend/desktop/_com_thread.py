@@ -87,7 +87,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         if self._init_com:
             import pythoncom  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel
 
-            pythoncom.CoInitialize()
+            pythoncom.CoInitialize()  # pylint: disable=no-member
         last_call = 0.0
         try:
             while True:
@@ -103,7 +103,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             if self._init_com:
                 import pythoncom  # pylint: disable=import-outside-toplevel
 
-                pythoncom.CoUninitialize()
+                pythoncom.CoUninitialize()  # pylint: disable=no-member
 
     def _execute_with_retry(
         self,

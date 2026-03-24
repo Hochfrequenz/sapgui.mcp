@@ -212,7 +212,7 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
     status_filter_applied = True
     if statuses:
         effective = set(statuses)
-        _CHECKBOX_LABELS: dict[str, list[str]] = {
+        _CHECKBOX_LABELS: dict[str, list[str]] = {  # pylint: disable=invalid-name
             "scheduled": ["Geplant", "Scheduled"],
             "released": ["Freigegeben", "Released"],
             "ready": ["Bereit", "Ready"],

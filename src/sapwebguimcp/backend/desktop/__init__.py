@@ -571,9 +571,7 @@ class DesktopBackend:
 
     async def get_form_fields(self, *, include_dropdown_options: bool = False) -> FormFieldsResult:
         """Detect form fields with their current values and associated labels."""
-        from sapwebguimcp.models.sap_results import (
-            FormFieldsResult as _FormFieldsResult,  # pylint: disable=import-outside-toplevel
-        )
+        from sapwebguimcp.models.sap_results import FormFieldsResult  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -624,7 +622,7 @@ class DesktopBackend:
                 if field.field_type == SapFieldType.DROPDOWN:
                     field.options = await self.get_dropdown_options(field.label)
 
-        return _FormFieldsResult(
+        return FormFieldsResult(
             success=True,
             fields=fields,
         )
@@ -881,9 +879,7 @@ class DesktopBackend:
 
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
         """Fill multiple form fields."""
-        from sapwebguimcp.models.sap_results import (
-            FillFormResult as _FillFormResult,  # pylint: disable=import-outside-toplevel
-        )
+        from sapwebguimcp.models.sap_results import FillFormResult  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -917,7 +913,7 @@ class DesktopBackend:
             if data["errors"]:
                 parts.append(f"Errors: {', '.join(e['field'] for e in data['errors'])}")
             error_msg = "; ".join(parts)
-        return _FillFormResult(
+        return FillFormResult(
             success=not has_failures,
             error=error_msg,
             filled=data["filled"],
@@ -1018,9 +1014,7 @@ class DesktopBackend:
 
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select a dropdown option."""
-        from sapwebguimcp.models.sap_results import (
-            DropdownFillResult as _DropdownFillResult,  # pylint: disable=import-outside-toplevel
-        )
+        from sapwebguimcp.models.sap_results import DropdownFillResult  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -1039,7 +1033,7 @@ class DesktopBackend:
 
         data = await self._com.run(_select)
         logger.info("select_dropdown", extra={"label": label, "option": option, "success": data["success"]})
-        return _DropdownFillResult(**data)
+        return DropdownFillResult(**data)
 
     async def focus_and_type(  # pylint: disable=unused-argument
         self, accessible_name: str, text: str, delay_ms: int = 0
@@ -1234,7 +1228,7 @@ class DesktopBackend:
         Sends VKey 26 (check), reads status bar, handles "Inactive Objects"
         popup, then sends VKey 27 (activate) and reads status bar again.
         """
-        from sapwebguimcp.backend.protocol import CheckActivateResult as _CheckActivateResult
+        from sapwebguimcp.backend.protocol import CheckActivateResult  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -1281,10 +1275,10 @@ class DesktopBackend:
                 "check_and_activate",
                 extra={"activated": activated, "message_count": len(messages)},
             )
-            return _CheckActivateResult(success=True, messages=messages, activated=activated)
+            return CheckActivateResult(success=True, messages=messages, activated=activated)
         except Exception as e:
             logger.warning("check_and_activate", extra={"error": str(e)})
-            return _CheckActivateResult(success=False, error=str(e), messages=[], activated=False)
+            return CheckActivateResult(success=False, error=str(e), messages=[], activated=False)
 
     async def dismiss_language_dialog(self) -> None:
         """Dismiss the 'Different original and logon languages' dialog if present.
@@ -1315,7 +1309,7 @@ class DesktopBackend:
         Checks if wnd[1] exists, then reads its title, text content,
         and button labels to build a PopupInfo.
         """
-        from sapwebguimcp.models.base import PopupButton, PopupType
+        from sapwebguimcp.models.base import PopupButton, PopupType  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -1374,7 +1368,7 @@ class DesktopBackend:
         If button_label is given, finds and clicks the matching button.
         Otherwise, presses Enter (VKey 0) as default.
         """
-        from sapwebguimcp.models.sap_results import ClosePopupResult as _ClosePopupResult
+        from sapwebguimcp.models.sap_results import ClosePopupResult  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -1428,7 +1422,7 @@ class DesktopBackend:
                     "use_close": use_close_button,
                 },
             )
-            return _ClosePopupResult(
+            return ClosePopupResult(
                 success=data["dismissed"],
                 error=None if data["dismissed"] else "No popup found",
                 button_clicked=data["button_clicked"],
@@ -1438,7 +1432,7 @@ class DesktopBackend:
             )
         except Exception as e:
             logger.warning("dismiss_popup", extra={"error": str(e)})
-            return _ClosePopupResult(
+            return ClosePopupResult(
                 success=False,
                 error=str(e),
                 popup_closed=False,
