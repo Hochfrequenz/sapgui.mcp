@@ -1,4 +1,5 @@
 # SAP MCP Server
+
 > [!TIP]
 > Aktuell ist der MCP-Server in einem Übergang, der Support für die SAP GUI (Desktop - ohne Browser) einführt.
 > Dieses Feature ist aber noch experimentell. Die Web GUI sollte wie gehabt funktionieren.
@@ -38,18 +39,20 @@ Download `sapwebgui_mcp_windows_<version>.exe` from
 
 Choose a backend:
 
-| | Desktop Backend (SAP GUI) | WebGUI Backend (Browser) |
-|---|---|---|
-| **Platform** | Windows only | Windows, macOS, Linux |
-| **Requires** | SAP GUI for Windows | Chrome browser |
-| **Speed** | Faster (works directly with SAP GUI) | Slower (works through a web browser) |
-| **Setup** | Simpler (just SAP GUI + this tool) | More steps (also needs Chrome browser setup) |
+|              | Desktop Backend (SAP GUI)            | WebGUI Backend (Browser)                     |
+| ------------ | ------------------------------------ | -------------------------------------------- |
+| **Platform** | Windows only                         | Windows, macOS, Linux                        |
+| **Requires** | SAP GUI for Windows                  | Chrome browser                               |
+| **Speed**    | Faster (works directly with SAP GUI) | Slower (works through a web browser)         |
+| **Setup**    | Simpler (just SAP GUI + this tool)   | More steps (also needs Chrome browser setup) |
 
 ### Option A: Desktop Backend (SAP GUI) — recommended for Windows users
 
 Automates SAP GUI directly — no browser needed. Windows only.
+Uses [sapsucker](https://github.com/Hochfrequenz/sapsucker) for typed SAP GUI Scripting access.
 
 **Prerequisites:**
+
 - SAP GUI for Windows installed (standard path — the server finds it automatically via Windows registry)
 - SAP GUI Scripting enabled (one-time setup, see below)
 
@@ -57,10 +60,12 @@ Automates SAP GUI directly — no browser needed. Windows only.
 <summary>Enable SAP GUI Scripting (one-time)</summary>
 
 **Server side** (requires admin/basis team):
+
 - Transaction `RZ11` → parameter `sapgui/user_scripting` → set to `TRUE`
 - Dynamic parameter — no server restart needed, but users must re-login (close and reopen SAP GUI)
 
 **Client side** (your PC):
+
 1. Open SAP Logon or any SAP GUI session
 2. Go to **Options** (via menu bar, tray icon, or press **Alt+F12** in a session)
 3. Navigate to **Accessibility & Scripting → Scripting** (DE: **Barrierefreiheit & Skripting → Skripting**)
@@ -121,6 +126,7 @@ Add to `.mcp.json` in your project root:
 ```
 
 Replace:
+
 - `Your SAP Logon Entry` with the **description** shown in SAP Logon — this is the bold text in the list when you open SAP Logon (e.g. `"HF S/4"` or `"DEV - ERP Development"`). It is _not_ the system ID or server address.
 - `your_username` / `your_password` with your SAP credentials
 
@@ -550,14 +556,14 @@ Add to `.mcp.json` in your project root:
 
 ### SAP Tools
 
-| Tool                  | Description                                                  |
-| --------------------- | ------------------------------------------------------------ |
+| Tool                  | Description                                                               |
+| --------------------- | ------------------------------------------------------------------------- |
 | `sap_login`           | Logs into SAP (WebGUI: opens login page; Desktop: connects via SAP Logon) |
-| `sap_transaction`     | Enters and executes a transaction code                       |
-| `sap_keepalive_start` | Prevents session timeout (pings every 5 minutes)             |
-| `sap_keepalive_stop`  | Stops the keepalive task                                     |
-| `log_intent`          | Log what you're doing for accountability                     |
-| `log_feedback`        | Report issues (creates GitHub issues if `GITHUB_PAT` is set) |
+| `sap_transaction`     | Enters and executes a transaction code                                    |
+| `sap_keepalive_start` | Prevents session timeout (pings every 5 minutes)                          |
+| `sap_keepalive_stop`  | Stops the keepalive task                                                  |
+| `log_intent`          | Log what you're doing for accountability                                  |
+| `log_feedback`        | Report issues (creates GitHub issues if `GITHUB_PAT` is set)              |
 
 ### Browser Tools
 
@@ -591,27 +597,27 @@ Note: There is currently no bulk runner tool. The `workflow_list` tool returns, 
 
 ## Configuration Reference
 
-| Variable              | Required                          | Description                                                  | Default                      |
-| --------------------- | --------------------------------- | ------------------------------------------------------------ | ---------------------------- |
-| `BACKEND_TYPE`        | No                                | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`           |
-| `SAP_CONNECTION_NAME` | When `BACKEND_TYPE=desktop`       | SAP Logon pad connection entry name (e.g. `"HF S/4"`)       | —                            |
-| `SAP_URL`             | When `BACKEND_TYPE=webgui` <sup>1</sup> | SAP Web GUI URL                                        | `""`                         |
-| `SAP_USER`            | **Yes** <sup>1</sup>             | SAP username for auto-login                                  | `""`                         |
-| `SAP_PASSWORD`        | **Yes** <sup>1</sup>             | SAP password for auto-login                                  | `""`                         |
-| `SAP_MANDANT`         | **Yes** <sup>1</sup>             | SAP client (3-digit, e.g., `100`)                            | `""`                         |
-| `SAP_LANGUAGE`        | No                                | Login language (`DE` or `EN`)                                | `EN`                         |
-| `BROWSER_MODE`        | No                                | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only. | `connect`              |
-| `BROWSER_TYPE`        | No                                | `chromium`, `firefox`, or `webkit`. WebGUI only.             | `chromium`                   |
-| `BROWSER_HEADLESS`    | No                                | Run browser in headless mode. WebGUI only.                   | `false`                      |
-| `CDP_URL`             | When `BROWSER_MODE=connect`       | Chrome DevTools Protocol URL. WebGUI only.                   | `http://localhost:9222`      |
-| `GITHUB_PAT`          | No                                | GitHub PAT for `log_feedback` issues and abapGit auth        | —                            |
-| `GITHUB_USER`         | No                                | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
-| `GITHUB_REPO`         | No                                | Repository for feedback issues                               | `Hochfrequenz/sapwebgui.mcp` |
-| `ABAPGIT_PAT`         | No                                | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
-| `PAPERTRAIL_HOST`     | No                                | Papertrail syslog host (empty to disable)                    | `""` (off) <sup>2</sup>      |
-| `PAPERTRAIL_PORT`     | No                                | Papertrail syslog port                                       | `0` (off) <sup>2</sup>       |
-| `LOG_FORMAT`          | No                                | Set to `json` for JSON log output                            | `""` (human-readable)        |
-| `LOG_LEVEL`           | No                                | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                       | `INFO`                       |
+| Variable              | Required                                | Description                                                            | Default                      |
+| --------------------- | --------------------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
+| `BACKEND_TYPE`        | No                                      | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`                     |
+| `SAP_CONNECTION_NAME` | When `BACKEND_TYPE=desktop`             | SAP Logon pad connection entry name (e.g. `"HF S/4"`)                  | —                            |
+| `SAP_URL`             | When `BACKEND_TYPE=webgui` <sup>1</sup> | SAP Web GUI URL                                                        | `""`                         |
+| `SAP_USER`            | **Yes** <sup>1</sup>                    | SAP username for auto-login                                            | `""`                         |
+| `SAP_PASSWORD`        | **Yes** <sup>1</sup>                    | SAP password for auto-login                                            | `""`                         |
+| `SAP_MANDANT`         | **Yes** <sup>1</sup>                    | SAP client (3-digit, e.g., `100`)                                      | `""`                         |
+| `SAP_LANGUAGE`        | No                                      | Login language (`DE` or `EN`)                                          | `EN`                         |
+| `BROWSER_MODE`        | No                                      | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.     | `connect`                    |
+| `BROWSER_TYPE`        | No                                      | `chromium`, `firefox`, or `webkit`. WebGUI only.                       | `chromium`                   |
+| `BROWSER_HEADLESS`    | No                                      | Run browser in headless mode. WebGUI only.                             | `false`                      |
+| `CDP_URL`             | When `BROWSER_MODE=connect`             | Chrome DevTools Protocol URL. WebGUI only.                             | `http://localhost:9222`      |
+| `GITHUB_PAT`          | No                                      | GitHub PAT for `log_feedback` issues and abapGit auth                  | —                            |
+| `GITHUB_USER`         | No                                      | GitHub username for abapGit (falls back to `x-access-token`)           | —                            |
+| `GITHUB_REPO`         | No                                      | Repository for feedback issues                                         | `Hochfrequenz/sapwebgui.mcp` |
+| `ABAPGIT_PAT`         | No                                      | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)               | —                            |
+| `PAPERTRAIL_HOST`     | No                                      | Papertrail syslog host (empty to disable)                              | `""` (off) <sup>2</sup>      |
+| `PAPERTRAIL_PORT`     | No                                      | Papertrail syslog port                                                 | `0` (off) <sup>2</sup>       |
+| `LOG_FORMAT`          | No                                      | Set to `json` for JSON log output                                      | `""` (human-readable)        |
+| `LOG_LEVEL`           | No                                      | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                                 | `INFO`                       |
 
 <sup>1</sup> The server starts without these, but SAP login will fail.
 

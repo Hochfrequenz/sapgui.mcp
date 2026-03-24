@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 # Backend type: "webgui" for Playwright browser automation,
-# "desktop" for SAP GUI Scripting (COM) via pysapgui.
+# "desktop" for SAP GUI Scripting (COM) via sapsucker.
 BackendType = Literal["webgui", "desktop"]
 
 
@@ -146,7 +146,7 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "SAP_CONNECTION_NAME"},
     )
     com_min_interval_ms: int = Field(
-        default=50,
+        default=100,
         ge=0,
         le=5000,
         description=(

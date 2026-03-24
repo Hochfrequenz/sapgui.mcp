@@ -16,6 +16,7 @@ class ScreenClassification(StrEnum):
     """What appeared on screen after F8."""
 
     TABLE = "table"
+    LIST = "list"
     EMPTY = "empty"
     ERROR = "error"
     UNKNOWN = "unknown"
@@ -25,7 +26,9 @@ class QuickReportResult(ToolResult):
     """Result of sap_quick_report."""
 
     tcode: str = Field(description="Transaction code that was executed")
-    screen_type: ScreenClassification = Field(description="What appeared after F8: table, empty, error, or unknown")
+    screen_type: ScreenClassification = Field(
+        description="What appeared after F8: table, list, empty, error, or unknown"
+    )
     page_title: str = Field(default="", description="Screen title after F8")
 
     # Status bar (flat fields, consistent with KeyboardResult pattern)
@@ -33,7 +36,7 @@ class QuickReportResult(ToolResult):
     status_bar_message: str | None = Field(default=None, description="Status bar text if read")
 
     # screen_type="table"
-    table: TableData | None = Field(default=None, description="Table data when screen_type is 'table'")
+    table: TableData | None = Field(default=None, description="Table data when screen_type is 'table' or 'list'")
 
     # screen_type="error" or "unknown"
     screen_text: ScreenText | None = Field(

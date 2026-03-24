@@ -9,11 +9,11 @@ from unittest.mock import MagicMock
 
 import pytest
 from dotenv import load_dotenv
+from sapsucker import SapGui
 
 from sapwebguimcp.backend.desktop import DesktopBackend
 from sapwebguimcp.backend.desktop._com_thread import ComThread
 from sapwebguimcp.models.config import get_settings
-from sapwebguimcp.sapgui import SapGui
 from unittests.conftest import is_sap_integration_test_machine
 
 # ---------------------------------------------------------------------------

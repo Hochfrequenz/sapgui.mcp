@@ -1,6 +1,6 @@
 """Session registry for desktop (COM) backend.
 
-Mirrors WebGUI's SessionRegistry but stores pysapgui GuiSession objects
+Mirrors WebGUI's SessionRegistry but stores sapsucker GuiSession objects
 instead of Playwright Pages. Stale sessions are detected on access via
 a COM probe (no close-event mechanism exists for SAP GUI COM).
 """
@@ -11,7 +11,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sapwebguimcp.sapgui.components.session import GuiSession
+    from sapsucker.components.session import GuiSession
 
 logger = logging.getLogger(__name__)
 

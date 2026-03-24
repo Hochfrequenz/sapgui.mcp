@@ -37,11 +37,12 @@ cffi==2.0.0
     # via cryptography
 click==8.3.1
     # via uvicorn
+colorama==0.4.6
+    # via click
 cryptography==46.0.5
     # via
     #   authlib
     #   pyjwt
-    #   secretstorage
 cyclopts==4.8.0
     # via fastmcp
 dnspython==2.8.0
@@ -84,10 +85,6 @@ jaraco-context==6.1.1
     # via keyring
 jaraco-functools==4.4.0
     # via keyring
-jeepney==0.9.0
-    # via
-    #   keyring
-    #   secretstorage
 jsonref==1.1.0
     # via fastmcp
 jsonschema==4.26.0
@@ -130,6 +127,7 @@ pydantic[email]==2.12.5
     #   mcp
     #   openapi-pydantic
     #   pydantic-settings
+    #   sapsucker
     #   sapwebguimcp (pyproject.toml)
 pydantic-core==2.41.5
     # via pydantic
@@ -151,6 +149,13 @@ python-dotenv==1.2.2
     #   pydantic-settings
 python-multipart==0.0.22
     # via mcp
+pywin32==311 ; sys_platform == "win32"
+    # via
+    #   mcp
+    #   sapsucker
+    #   sapwebguimcp (pyproject.toml)
+pywin32-ctypes==0.2.3
+    # via keyring
 pyyaml==6.0.3
     # via
     #   fastmcp
@@ -171,8 +176,8 @@ rpds-py==0.30.0
     # via
     #   jsonschema
     #   referencing
-secretstorage==3.5.0
-    # via keyring
+sapsucker==0.0.1
+    # via sapwebguimcp (pyproject.toml)
 sse-starlette==3.3.3
     # via mcp
 starlette==0.52.1

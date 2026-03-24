@@ -3,8 +3,7 @@
 from unittest.mock import MagicMock, PropertyMock
 
 import pytest
-
-from sapwebguimcp.sapgui.components.base import _dump_tree_recursive, _probe_bdt_fields
+from sapsucker.components.base import _dump_tree_recursive, _probe_bdt_fields
 
 
 def _make_normal_container(children_data):

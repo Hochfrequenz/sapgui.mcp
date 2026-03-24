@@ -390,7 +390,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 # the page title changed or the OK-code field was cleared.
                 navigated = await self._verify_transaction_submitted(transaction_input, title_before)
                 if navigated:
-                    title = await self._page.title()
+                    title = await self._poll_title_change(title_before)
                     if attempt > 1:
                         logger.info(
                             "enter_transaction succeeded on attempt %d",
@@ -446,6 +446,30 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception:  # pylint: disable=broad-exception-caught
             # Element detached / page navigated → success.
             return True
+
+    async def _poll_title_change(self, old_title: str, *, timeout_ms: int = 3000, interval_ms: int = 200) -> str:
+        """Poll until the page title differs from *old_title*, or timeout.
+
+        Returns the new title, or the current title if timeout is reached
+        (e.g. navigating from SE24 back to SE24 where the title stays the same).
+        """
+        title = await self._page.title()
+        if title != old_title:
+            return title
+
+        deadline = time.monotonic() + timeout_ms / 1000
+        while time.monotonic() < deadline:
+            await self._page.wait_for_timeout(interval_ms)
+            title = await self._page.title()
+            if title != old_title:
+                return title
+
+        logger.debug(
+            "Title unchanged after %dms (may be same-tcode navigation)",
+            timeout_ms,
+            extra={"old_title": old_title},
+        )
+        return title
 
     # ---- keepalive ----
 
@@ -647,6 +671,19 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     async def wait_for_ready(self, timeout_ms: int = 15000) -> None:
         """Wait for SAP page to finish loading."""
         await self._page.wait_for_load_state("networkidle", timeout=timeout_ms)
+
+    async def wait_for_sap_ready(self, timeout_ms: int = 5000) -> None:
+        """Wait for SAP toolbar buttons to appear (screen fully interactive)."""
+        try:
+            await self._page.wait_for_function(
+                load_js("wait_for_sap_ready.js"),
+                timeout=timeout_ms,
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            # Fallback: fixed delay if the check times out (e.g. screen
+            # without toolbar buttons, like a direct-entry transaction).
+            logger.debug("wait_for_sap_ready: toolbar check timed out, using fixed delay")
+            await self._page.wait_for_timeout(1000)
 
     async def bring_to_front(self) -> None:
         """Bring the browser window to the foreground."""
