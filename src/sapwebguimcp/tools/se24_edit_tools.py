@@ -10,6 +10,7 @@ individual method source code within a class.
 
 import asyncio
 import logging
+from typing import Any, cast
 
 from fastmcp import FastMCP
 
@@ -165,8 +166,6 @@ async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-re
     backend: SapUiBackend, class_name: str, method_name: str
 ) -> str | None:
     """Desktop-specific: find method in table control and open its source editor."""
-    from typing import Any  # pylint: disable=import-outside-toplevel
-
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
     from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
 
@@ -187,8 +186,6 @@ async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-re
 
     def _select_method_row() -> str | None:
         """Find the method row in the table control and select it."""
-        from typing import cast  # pylint: disable=import-outside-toplevel
-
         wnd = session.find_by_id("wnd[0]")
         tree = cast(Any, wnd).dump_tree(max_depth=8)
         flat = _flatten(tree)

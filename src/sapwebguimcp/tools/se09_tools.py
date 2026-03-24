@@ -10,9 +10,10 @@ import asyncio
 import json
 import logging
 import re
+import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -261,8 +262,6 @@ async def _expand_request_node_desktop(backend: "SapUiBackend", request_number: 
 
     Returns True if the expand was performed, False if the label wasn't found.
     """
-    from typing import Any  # pylint: disable=import-outside-toplevel
-
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
     if not isinstance(backend, DesktopBackend):
@@ -272,8 +271,6 @@ async def _expand_request_node_desktop(backend: "SapUiBackend", request_number: 
     com = backend._com  # pylint: disable=protected-access
 
     def _focus_expand() -> bool:
-        import time  # pylint: disable=import-outside-toplevel
-
         try:
             raw: Any = getattr(session, "com", getattr(session, "_com", session))
             usr = raw.FindById("wnd[0]/usr")
@@ -308,8 +305,6 @@ async def _expand_request_node_desktop(backend: "SapUiBackend", request_number: 
 
 async def _collapse_request_node_desktop(backend: "SapUiBackend", request_number: str) -> None:
     """Focus on a transport request label and collapse it via Edit > Compress."""
-    from typing import Any  # pylint: disable=import-outside-toplevel
-
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
     if not isinstance(backend, DesktopBackend):
@@ -319,8 +314,6 @@ async def _collapse_request_node_desktop(backend: "SapUiBackend", request_number
     com = backend._com  # pylint: disable=protected-access
 
     def _focus_collapse() -> None:
-        import time  # pylint: disable=import-outside-toplevel
-
         try:
             raw: Any = getattr(session, "com", getattr(session, "_com", session))
             usr = raw.FindById("wnd[0]/usr")

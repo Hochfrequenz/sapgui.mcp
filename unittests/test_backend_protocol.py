@@ -53,7 +53,12 @@ def test_check_activate_result_with_values() -> None:
 
 
 def test_webgui_backend_implements_protocol() -> None:
-    """WebGuiBackend must satisfy the SapUiBackend protocol."""
+    """WebGuiBackend must satisfy the SapUiBackend protocol.
+
+    Note: issubclass() cannot be used because SapUiBackend has non-method
+    members (backend_type).  We verify key protocol attributes instead.
+    """
     from sapwebguimcp.backend.webgui.backend import WebGuiBackend
 
-    assert issubclass(WebGuiBackend, SapUiBackend)
+    for attr in ("backend_type", "login", "enter_transaction", "get_screen_info", "press_key"):
+        assert hasattr(WebGuiBackend, attr), f"WebGuiBackend missing protocol member: {attr}"
