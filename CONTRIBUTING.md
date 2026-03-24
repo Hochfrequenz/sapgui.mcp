@@ -2,14 +2,9 @@
 
 Thank you for contributing to this project! This guide covers development setup, testing, and coding standards.
 
-## Architecture Overview
+## Architecture
 
-The server supports two backends:
-
-- **WebGUI** (`BACKEND_TYPE=webgui`, default) — automates SAP Web GUI through Chrome/Playwright
-- **Desktop** (`BACKEND_TYPE=desktop`) — automates SAP GUI for Windows via COM scripting (pywin32)
-
-Both backends implement the same `SapUiBackend` protocol. Tools are backend-agnostic where possible — they call protocol methods that each backend implements differently.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture overview — layers, request flow diagrams, file organization, and how to add new transaction tools.
 
 ## Development Setup
 
