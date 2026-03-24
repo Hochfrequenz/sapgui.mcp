@@ -245,12 +245,12 @@ class SapWebGuiSettings(BaseSettings):
     )
 
     # Logging
-    log_format: str = Field(
+    log_format: Literal["", "json"] = Field(
         default="",
         description="Set to 'json' for JSON log output. Default is human-readable console.",
         json_schema_extra={"env": "LOG_FORMAT"},
     )
-    log_level: str = Field(
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field(
         default="INFO",
         description="Log level: DEBUG, INFO, WARNING, or ERROR.",
         json_schema_extra={"env": "LOG_LEVEL"},
