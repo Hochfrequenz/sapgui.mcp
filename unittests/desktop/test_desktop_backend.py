@@ -53,6 +53,44 @@ class TestDesktopBackendEnterTransaction:
         assert result.success is True
         assert result.tcode == "SE16"
 
+    @pytest.mark.anyio
+    async def test_enter_transaction_pure_navigation_slash_n(self):
+        """GH-555: /n (reset to Easy Access) must not fail TCode validation."""
+        from sapwebguimcp.backend.desktop import DesktopBackend
+
+        session = make_mock_session()
+        backend = DesktopBackend.__new__(DesktopBackend)
+        backend._session = session
+
+        async def mock_run(fn):
+            return fn()
+
+        backend._com = MagicMock()
+        backend._com.run = mock_run
+
+        result = await backend.enter_transaction("/n")
+        assert result.success is True
+        assert result.tcode == "/N"
+
+    @pytest.mark.anyio
+    async def test_enter_transaction_slash_n_with_tcode(self):
+        """/nSE24 should strip prefix and use SE24 as tcode."""
+        from sapwebguimcp.backend.desktop import DesktopBackend
+
+        session = make_mock_session()
+        backend = DesktopBackend.__new__(DesktopBackend)
+        backend._session = session
+
+        async def mock_run(fn):
+            return fn()
+
+        backend._com = MagicMock()
+        backend._com.run = mock_run
+
+        result = await backend.enter_transaction("/nSE24")
+        assert result.success is True
+        assert result.tcode == "SE24"
+
 
 class TestDesktopBackendSessionStatus:
     @pytest.mark.anyio
