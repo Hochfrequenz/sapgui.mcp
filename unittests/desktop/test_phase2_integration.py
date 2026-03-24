@@ -24,7 +24,6 @@ from unittests.desktop.conftest import TEST_TABLE, skip_no_sap
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
 
 
-
 # ---------------------------------------------------------------------------
 # fill_field
 # ---------------------------------------------------------------------------

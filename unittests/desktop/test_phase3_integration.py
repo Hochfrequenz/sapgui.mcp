@@ -16,7 +16,6 @@ from unittests.desktop.conftest import skip_no_sap
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
 
 
-
 # ---------------------------------------------------------------------------
 # check_popup / dismiss_popup
 # ---------------------------------------------------------------------------
