@@ -6,11 +6,19 @@ session across multiple tool calls, following the dev-browser pattern.
 """
 
 import logging
-from typing import Optional
+import subprocess
+from datetime import timedelta
+from typing import NoReturn, Optional
 from urllib.parse import urlparse
 
 from playwright.async_api import Browser, BrowserContext, Page, Playwright, async_playwright
 
+from sapwebguimcp.backend.webgui.chrome_finder import (
+    extract_port_from_cdp_url,
+    find_chrome,
+    launch_chrome,
+    wait_for_cdp,
+)
 from sapwebguimcp.models.config import BrowserMode, SapWebGuiSettings, get_settings
 from sapwebguimcp.models.session_registry import SessionRegistry
 
@@ -27,34 +35,6 @@ _DOCKER_COMPOSE_CMD = "docker compose up -d cdp-proxy"
 _DOCKER_DIAGNOSTIC_CMDS = (
     "Diagnostic commands:\n" + "  docker network ls | grep sapwebguimcp\n" + "  docker ps | grep cdp-proxy"
 )
-
-
-def _chrome_debug_commands() -> str:
-    """Return platform-specific commands to start Chrome with remote debugging."""
-    return (
-        "Start Chrome with remote debugging:\n"
-        "  Windows (PowerShell):\n"
-        '    & "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" '
-        "--remote-debugging-port=9222 "
-        '--user-data-dir="C:\\temp\\chrome-debug" '
-        "--ignore-certificate-errors\n"
-        "\n"
-        "  NOTE: Your Chrome path may differ! Common locations on Windows:\n"
-        '    - "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" (system-wide install)\n'
-        '    - "%LOCALAPPDATA%\\Google\\Chrome\\Application\\chrome.exe" (per-user install)\n'
-        "  To find your Chrome path: right-click the Chrome shortcut on your desktop or\n"
-        '  Start menu → Properties → copy the "Target" field.\n'
-        "\n"
-        "  macOS:\n"
-        "    /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome "
-        "--remote-debugging-port=9222 "
-        '--user-data-dir="/tmp/chrome-debug" '
-        "--ignore-certificate-errors\n"
-        "  Linux:\n"
-        "    google-chrome --remote-debugging-port=9222 "
-        '--user-data-dir="/tmp/chrome-debug" '
-        "--ignore-certificate-errors"
-    )
 
 
 class BrowserManager:  # pylint: disable=too-many-instance-attributes
@@ -81,6 +61,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         self._default_page_name = "sap"
         self._initialized = False
         self._registry = SessionRegistry()
+        self._chrome_process: Optional[subprocess.Popen[bytes]] = None
 
     @property
     def is_initialized(self) -> bool:
@@ -253,8 +234,9 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
     async def _connect_to_existing_browser(self) -> None:
         """Connect to an existing Chrome browser via CDP (default mode).
 
-        Expects Chrome running with --remote-debugging-port (default: 9222).
-        Does not require Playwright browser binaries — only the Python package.
+        If no Chrome is reachable on the CDP port, attempts to auto-detect
+        and launch Chrome with the required debugging flags (Windows only).
+        Raises RuntimeError with guidance to set CHROME_PATH if auto-detection fails.
         """
         settings = self._settings or get_settings()
 
@@ -265,25 +247,12 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
 
         try:
             self._browser = await self._playwright.chromium.connect_over_cdp(settings.cdp_url)
-
-            # Get existing contexts or create new one
-            contexts = self._browser.contexts
-            if contexts:
-                self._context = contexts[0]
-                logger.info("Connected to existing browser context", extra={"contexts": len(contexts)})
-            else:
-                self._context = await self._browser.new_context(
-                    viewport={"width": 1280, "height": 800},
-                    ignore_https_errors=True,  # SAP systems often use self-signed certificates
-                )
-                logger.info("Created new context in connected browser", extra={"cdp_url": settings.cdp_url})
-
         except Exception as e:
             error_msg = str(e).lower()
             parsed_url = urlparse(settings.cdp_url) if settings.cdp_url else None
             cdp_host = parsed_url.hostname if parsed_url else ""
 
-            # Detect invalid URL format
+            # Detect invalid URL format — no auto-launch possible
             if "invalid url" in error_msg:
                 raise RuntimeError(
                     f"Invalid CDP_URL format: '{settings.cdp_url}'\n\n"
@@ -291,66 +260,134 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                     f"Original error: {e}"
                 ) from e
 
-            # Detect Docker network issues (DNS resolution failure for cdp-proxy)
-            if cdp_host == "cdp-proxy" and any(
-                phrase in error_msg
-                for phrase in [
-                    "nodename nor servname",  # macOS
-                    "name or service not known",  # Linux
-                    "getaddrinfo",  # General
-                    "enotfound",  # Windows/Node.js
-                    "temporary failure in name resolution",  # Linux
-                    "no such host",  # Windows
-                ]
-            ):
-                raise RuntimeError(
-                    f"Cannot resolve hostname 'cdp-proxy'. This usually means:\n\n"
-                    f"1. The Docker network 'sapwebguimcp_default' does not exist, or\n"
-                    f"2. The cdp-proxy service is not running\n\n"
-                    f"Solution: Run this command first:\n"
-                    f"  {_DOCKER_COMPOSE_CMD}\n\n"
-                    f"This starts the CDP proxy and creates the required Docker network.\n\n"
-                    f"{_DOCKER_DIAGNOSTIC_CMDS}\n\n"
-                    f"Original error: {e}"
-                ) from e
-
-            # Detect connection refused (service not running)
-            if any(
-                phrase in error_msg for phrase in ["connection refused", "connect econnrefused", "actively refused"]
-            ):
-                if cdp_host == "cdp-proxy":
-                    raise RuntimeError(
-                        f"Connection refused by cdp-proxy at {settings.cdp_url}.\n\n"
-                        f"The CDP proxy container is not running. Start it with:\n"
-                        f"  {_DOCKER_COMPOSE_CMD}\n\n"
-                        f"Then ensure Chrome is running with remote debugging enabled.\n\n"
-                        f"Original error: {e}"
-                    ) from e
-                raise RuntimeError(
-                    f"Connection refused at {settings.cdp_url}.\n\n"
-                    f"Chrome is not running or not accepting CDP connections.\n"
-                    f"{_chrome_debug_commands()}\n\n"
-                    f"Original error: {e}"
-                ) from e
-
-            # Generic fallback with context-aware help
+            # Docker setups — auto-launch not applicable, keep original errors
             if cdp_host == "cdp-proxy":
-                raise RuntimeError(
-                    f"Failed to connect to browser via CDP proxy at {settings.cdp_url}.\n\n"
-                    f"Checklist:\n"
-                    f"1. Is the Docker network created? Run: {_DOCKER_COMPOSE_CMD}\n"
-                    f"2. Is Chrome running with --remote-debugging-port=9222?\n"
-                    f"3. Is the CDP proxy forwarding correctly?\n\n"
-                    f"{_DOCKER_DIAGNOSTIC_CMDS}\n\n"
-                    f"Original error: {e}"
-                ) from e
+                self._raise_docker_error(error_msg, settings.cdp_url, e)
 
-            # Fallback for non-Docker setups
+            # Local connection failed — try auto-launch on Windows
+            logger.info("Chrome not reachable at %s, attempting auto-launch...", settings.cdp_url)
+            await self._auto_launch_and_connect(settings)
+            return
+
+        # Connection succeeded — set up context
+        await self._setup_browser_context(settings)
+
+    async def _auto_launch_and_connect(self, settings: SapWebGuiSettings) -> None:
+        """Find Chrome, launch it with CDP flags, wait for CDP, and connect."""
+        port = extract_port_from_cdp_url(settings.cdp_url)
+
+        # Try to find Chrome automatically
+        chrome_path = find_chrome(settings.chrome_path or None)
+
+        # If not found, raise with actionable message (no interactive prompt —
+        # stdin is owned by the MCP protocol transport)
+        if chrome_path is None:
             raise RuntimeError(
-                f"Failed to connect to browser at {settings.cdp_url}.\n\n"
-                f"{_chrome_debug_commands()}\n\n"
-                f"Original error: {e}"
-            ) from e
+                "Chrome konnte nicht automatisch gefunden werden.\n\n"
+                "Bitte setzen Sie CHROME_PATH in der .env Datei, z.B.:\n"
+                "  CHROME_PATH=C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\n\n"
+                "Tipp: Rechtsklick auf Chrome-Verknüpfung → Eigenschaften → Ziel-Pfad kopieren."
+            )
+
+        # Launch Chrome
+        self._chrome_process = launch_chrome(chrome_path, port, settings.chrome_user_data_dir)
+
+        # Wait for CDP to become ready
+        if not await wait_for_cdp(settings.cdp_url, timeout=timedelta(seconds=10)):
+            self._terminate_chrome()
+            raise RuntimeError(
+                f"Chrome wurde gestartet, aber CDP wurde nicht erreichbar auf {settings.cdp_url}.\n"
+                f"Chrome-Pfad: {chrome_path}\n"
+                f"Bitte prüfen Sie, ob der Port {port} bereits belegt ist."
+            )
+
+        # Connect via CDP — terminate Chrome if this fails
+        if self._playwright is None:
+            raise RuntimeError("Playwright not initialized")
+
+        try:
+            self._browser = await self._playwright.chromium.connect_over_cdp(settings.cdp_url)
+            await self._setup_browser_context(settings)
+        except Exception:
+            self._terminate_chrome()
+            raise
+
+        logger.info("Successfully auto-launched Chrome and connected via CDP")
+
+    async def _setup_browser_context(self, settings: SapWebGuiSettings) -> None:
+        """Set up the browser context after a successful CDP connection."""
+        if self._browser is None:
+            raise RuntimeError("Browser not connected")
+
+        contexts = self._browser.contexts
+        if contexts:
+            self._context = contexts[0]
+            logger.info("Connected to existing browser context", extra={"contexts": len(contexts)})
+        else:
+            self._context = await self._browser.new_context(
+                viewport={"width": 1280, "height": 800},
+                ignore_https_errors=True,
+            )
+            logger.info("Created new context in connected browser", extra={"cdp_url": settings.cdp_url})
+
+    @staticmethod
+    def _raise_docker_error(error_msg: str, cdp_url: str, original_error: Exception) -> NoReturn:
+        """Raise Docker-specific connection errors."""
+        if any(
+            phrase in error_msg
+            for phrase in [
+                "nodename nor servname",
+                "name or service not known",
+                "getaddrinfo",
+                "enotfound",
+                "temporary failure in name resolution",
+                "no such host",
+            ]
+        ):
+            raise RuntimeError(
+                f"Cannot resolve hostname 'cdp-proxy'. This usually means:\n\n"
+                f"1. The Docker network 'sapwebguimcp_default' does not exist, or\n"
+                f"2. The cdp-proxy service is not running\n\n"
+                f"Solution: Run this command first:\n"
+                f"  {_DOCKER_COMPOSE_CMD}\n\n"
+                f"This starts the CDP proxy and creates the required Docker network.\n\n"
+                f"{_DOCKER_DIAGNOSTIC_CMDS}\n\n"
+                f"Original error: {original_error}"
+            ) from original_error
+
+        if any(phrase in error_msg for phrase in ["connection refused", "connect econnrefused", "actively refused"]):
+            raise RuntimeError(
+                f"Connection refused by cdp-proxy at {cdp_url}.\n\n"
+                f"The CDP proxy container is not running. Start it with:\n"
+                f"  {_DOCKER_COMPOSE_CMD}\n\n"
+                f"Then ensure Chrome is running with remote debugging enabled.\n\n"
+                f"Original error: {original_error}"
+            ) from original_error
+
+        raise RuntimeError(
+            f"Failed to connect to browser via CDP proxy at {cdp_url}.\n\n"
+            f"Checklist:\n"
+            f"1. Is the Docker network created? Run: {_DOCKER_COMPOSE_CMD}\n"
+            f"2. Is Chrome running with --remote-debugging-port=9222?\n"
+            f"3. Is the CDP proxy forwarding correctly?\n\n"
+            f"{_DOCKER_DIAGNOSTIC_CMDS}\n\n"
+            f"Original error: {original_error}"
+        ) from original_error
+
+    def _terminate_chrome(self) -> None:
+        """Terminate the auto-launched Chrome process if it exists."""
+        if self._chrome_process is not None:
+            try:
+                self._chrome_process.terminate()
+                self._chrome_process.wait(timeout=5)
+                logger.info("Chrome process terminated (PID %d)", self._chrome_process.pid)
+            except (OSError, subprocess.TimeoutExpired):
+                try:
+                    self._chrome_process.kill()
+                    logger.warning("Chrome process killed (PID %d)", self._chrome_process.pid)
+                except OSError:
+                    pass
+            self._chrome_process = None
 
     async def _reconnect(self) -> None:
         """Force reconnection to the browser."""
@@ -471,6 +508,9 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         if self._playwright:
             await self._playwright.stop()
             self._playwright = None
+
+        # Terminate auto-launched Chrome process
+        self._terminate_chrome()
 
         self._initialized = False
         logger.info("Browser manager closed")
