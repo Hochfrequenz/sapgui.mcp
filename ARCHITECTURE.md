@@ -14,7 +14,7 @@ This MCP server automates that interaction — it enters tcodes, fills fields, r
 graph TD
     Client["MCP Client<br/>(Claude Desktop, Claude Code)"]
     Server["FastMCP Server<br/>server.py"]
-    Tools["Tools Layer<br/>tools/*.py — 30+ tool modules"]
+    Tools["Tools Layer<br/>tools/*.py — ~27 tool modules"]
     Manager["Backend Manager<br/>backend/manager.py"]
     Protocol["SapUiBackend Protocol<br/>backend/protocol.py"]
     WebGUI["WebGuiBackend<br/>backend/webgui/backend.py<br/>(Playwright + Chrome)"]
@@ -44,8 +44,8 @@ graph TD
 | **Protocol** | `backend/protocol.py` | Structural typing protocol (`SapUiBackend`) with 5 sub-protocols: Navigation, Primitives, Inspection, Editor, Popup. Both backends implement this — tools never import a concrete backend |
 | **WebGUI Backend** | `backend/webgui/backend.py`, `browser.py` | Implements protocol via Playwright page automation. Fills fields with JavaScript, reads screens with ARIA snapshots |
 | **Desktop Backend** | `backend/desktop/__init__.py` | Implements protocol via COM scripting through [sapsucker](https://github.com/Hochfrequenz/sapsucker). Dispatches all COM calls to a dedicated thread (`_com_thread.py`) for apartment-threading safety |
-| **Parsers** | `backend/webgui/parsers/*.py` | WebGUI-specific HTML → structured data extraction. One parser per transaction (e.g., `se16_parser.py`, `se24_parser.py`) |
-| **Models** | `models/*.py` | Pydantic models for tool results, screen state, config. Shared by both backends. Never import from backend or tools |
+| **Parsers** | `backend/webgui/parsers/*.py` | WebGUI-specific HTML-to-structured-data extraction. One parser per transaction (e.g., `se16_parser.py`, `se24_parser.py`) |
+| **Models** | `models/*.py` | Pydantic models for tool results, screen state, and config. Shared by both backends. Result models never import from backend or tools |
 
 ## Request Flow
 
@@ -65,7 +65,7 @@ sequenceDiagram
     Tool->>BE: enter_transaction("SE16N")
     BE->>SAP: Navigate to SE16N
     SAP-->>BE: Screen loaded
-    Tool->>BE: fill_field("Table", "MARA")
+    Tool->>BE: focus_and_type("Table", "MARA")
     Tool->>BE: press_key("F8")
     BE->>SAP: Execute query
     SAP-->>BE: Results displayed
@@ -76,12 +76,14 @@ sequenceDiagram
 
 ## File Organization
 
+Core packages only — helper packages (`catalog/`, `classcatalog/`, `fmcatalog/`, `tables/`) provide offline SAP metadata search; `middleware/`, `resources/`, `prompts/`, `workflows/`, `loghandlers/` handle cross-cutting concerns.
+
 ```
 src/sapwebguimcp/
   server.py                    # FastMCP app, tool registration, lifecycle
   models/
     config.py                  # SapWebGuiSettings (all env vars)
-    base.py                    # ToolResult base class, TCode type
+    base.py                    # ToolResult base class, TCode type, PopupInfo
     sap_results.py             # Shared results (LoginResult, ScreenInfo, ...)
     se16_models.py             # SE16-specific result models
     se24_models.py             # SE24-specific result models
@@ -89,11 +91,11 @@ src/sapwebguimcp/
   backend/
     protocol.py                # SapUiBackend protocol definition
     manager.py                 # Backend factory + session routing
-    types.py                   # Shared type aliases
+    types.py                   # ScreenSnapshot, AriaSnapshot, ComTreeSnapshot aliases
     webgui/
       backend.py               # WebGuiBackend implementation
       browser.py               # Chrome/Playwright lifecycle management
-      chrome_finder.py          # Auto-detect Chrome installation
+      chrome_finder.py         # Auto-detect Chrome installation
       js_helpers.py            # JavaScript helper loader
       js/*.js                  # Injected JS for field filling, screen reading
       parsers/                 # HTML → structured data (one per transaction)
@@ -113,7 +115,7 @@ src/sapwebguimcp/
     se37_tools.py              # SE37 function module lookup
     se37_edit_tools.py         # SE37 function module editing
     se38_edit_tools.py         # SE38 report editing
-    ...                        # More transaction tools
+    ...                        # More transaction tools (se09, se11, se93, sm30, sm37, slg1, spro, st22)
     _backend_utils.py          # _is_desktop_backend() helper
     field_helpers.py           # Shared field-filling logic
     table_helpers.py           # Shared table-reading logic
@@ -191,13 +193,7 @@ else:
 
 ### 5. Register the tool
 
-In `server.py`, add:
-
-```python
-from sapwebguimcp.tools.se99_tools import register_se99_tools
-# ... in create_mcp_server():
-register_se99_tools(mcp)
-```
+In `server.py`, add the import and call `register_se99_tools(mcp)` alongside the existing registrations. Also export the registration function from `tools/__init__.py`.
 
 ### 6. Add tests
 
@@ -209,13 +205,15 @@ register_se99_tools(mcp)
 
 ### Categories
 
-| Category | Location | Needs SAP? | How to run |
+| Category | Examples | Needs SAP? | How to run |
 |----------|----------|-----------|------------|
-| Unit tests | `unittests/test_*.py` | No | `tox -e unit_tests` |
-| Desktop unit tests | `unittests/desktop/test_*_unit.py`, `test_desktop_backend.py` | No | `tox -e unit_tests` |
-| WebGUI snapshot tests | `unittests/webgui/test_*_integration.py` (HTML-based) | No | `tox -e unit_tests` |
-| Desktop integration | `unittests/desktop/test_*_integration.py` | Yes | `tox -e integration_tests` |
-| WebGUI integration | `unittests/webgui/test_*_exploration.py` | Yes | `tox -e integration_tests` |
+| **Root unit tests** | `unittests/test_models.py`, `test_config.py`, `test_catalog.py`, ... | No | `tox -e tests` (auto-runs) |
+| **Desktop unit tests** | `unittests/desktop/test_desktop_backend.py`, `test_com_thread.py`, `test_element_finder.py`, `test_key_mapping.py`, ... | No (mocked) | `tox -e tests` (auto-runs) |
+| **WebGUI parser tests** | `unittests/webgui/test_selectors.py`, `test_se93_parser.py`, `test_se37_parser.py` | No (HTML snapshots) | `tox -e unit_tests` |
+| **Desktop integration** | `unittests/desktop/test_se16_integration.py`, `test_se24_integration.py`, ... | Yes (SAP GUI) | `tox -e integration_tests` |
+| **WebGUI integration** | `unittests/webgui/test_se16_integration.py`, `test_*_exploration.py`, ... | Yes (SAP WebGUI) | `tox -e integration_tests` |
+
+**Note:** `tox -e unit_tests` runs only the 3 WebGUI parser test files (fast offline check). `tox -e tests` runs the full suite — integration tests auto-skip if SAP is not available.
 
 ### Skip Mechanism
 
@@ -229,9 +227,9 @@ Desktop test files include `pytestmark = pytest.mark.skipif(sys.platform != "win
 ### Running Tests
 
 ```bash
-tox -e unit_tests          # Fast, no SAP needed (~200 tests)
-tox -e integration_tests   # Needs SAP connection
-tox -e tests               # Both (integration auto-skips without SAP)
+tox -e tests               # Full suite (integration auto-skips without SAP)
+tox -e unit_tests          # WebGUI parser tests only (3 files, fast)
+tox -e integration_tests   # SAP integration tests only
 tox -e linting             # pylint
 tox -e type_check          # mypy --strict
 tox -e formatting          # black + isort check
@@ -241,14 +239,15 @@ tox -e formatting          # black + isort check
 
 All settings are in `src/sapwebguimcp/models/config.py` and loaded from environment variables or `.env` files.
 
-### Required
+### Core (have defaults, but needed for SAP operations)
 
-| Variable | Description |
-|----------|-------------|
-| `BACKEND_TYPE` | `desktop` or `webgui` (default: `webgui`) |
-| `SAP_USER` | SAP login username |
-| `SAP_PASSWORD` | SAP login password |
-| `SAP_MANDANT` | SAP client number (e.g., `100`) |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `BACKEND_TYPE` | `desktop` or `webgui` | `webgui` |
+| `SAP_USER` | SAP login username | `""` |
+| `SAP_PASSWORD` | SAP login password | `""` |
+| `SAP_MANDANT` | SAP client number (e.g., `100`) | `""` |
+| `SAP_LANGUAGE` | `DE` or `EN` | `EN` |
 
 **Desktop-only:** `SAP_CONNECTION_NAME` — SAP Logon entry name (bold text in SAP Logon list)
 
@@ -258,11 +257,10 @@ All settings are in `src/sapwebguimcp/models/config.py` and loaded from environm
 
 | Group | Variables | Purpose |
 |-------|-----------|---------|
-| **Language** | `SAP_LANGUAGE` | `DE` or `EN` (default: `DE`) |
 | **Multi-system** | `SAP_CREDENTIALS` | JSON mapping connection names to credentials (see README) |
-| **Browser** | `BROWSER_MODE`, `CDP_URL`, `CHROME_PATH`, `CHROME_USER_DATA_DIR`, `BROWSER_HEADLESS` | Chrome/Playwright configuration |
+| **Browser** | `BROWSER_MODE`, `BROWSER_TYPE`, `CDP_URL`, `CHROME_PATH`, `CHROME_USER_DATA_DIR`, `BROWSER_HEADLESS` | Chrome/Playwright configuration |
 | **COM timing** | `COM_MIN_INTERVAL_MS` | Minimum ms between COM calls (desktop, prevents overload) |
-| **GitHub** | `GITHUB_PAT`, `GITHUB_REPO`, `ABAPGIT_PAT` | Feedback issue creation, abapGit operations |
+| **GitHub** | `GITHUB_PAT`, `GITHUB_USER`, `GITHUB_REPO`, `ABAPGIT_PAT` | Feedback issue creation, abapGit operations |
 | **Logging** | `PAPERTRAIL_HOST`, `PAPERTRAIL_PORT` | Remote syslog (optional) |
 
 See `.env.example` for a complete template with descriptions.
