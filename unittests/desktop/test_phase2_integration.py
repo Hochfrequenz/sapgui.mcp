@@ -19,11 +19,9 @@ from typing import Any, cast
 import pytest
 
 from sapwebguimcp.backend.desktop._element_finder import _flatten
-from unittests.desktop.conftest import TEST_TABLE, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import TEST_TABLE, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
-
-skip_not_sap_machine = skip_not_sap
 
 
 # ---------------------------------------------------------------------------
@@ -31,8 +29,7 @@ skip_not_sap_machine = skip_not_sap
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_fill_field_on_se16(backend):
     """fill_field sets a text field value that can be read back."""
@@ -52,8 +49,7 @@ async def test_fill_field_on_se16(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_fill_main_input_on_se38(backend):
     """fill_main_input fills the first matching field."""
@@ -74,8 +70,7 @@ async def test_fill_main_input_on_se38(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_click_button_changes_screen(backend):
     """click_button navigates to a new screen."""
@@ -111,8 +106,7 @@ async def test_click_button_changes_screen(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_set_checkbox_on_sm37(backend):
     """set_checkbox changes checkbox state on SM37 job selection screen."""
@@ -162,8 +156,7 @@ async def test_set_checkbox_on_sm37(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_get_dropdown_options_on_sm37(backend):
     """get_dropdown_options reads combobox entries from SM37."""
@@ -189,8 +182,7 @@ async def test_get_dropdown_options_on_sm37(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_press_key_f8_executes(backend):
     """press_key F8 executes on SE16 after filling table name."""
@@ -214,8 +206,7 @@ async def test_press_key_f8_executes(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_discover_fields_returns_field_info(backend):
     """discover_fields returns FieldInfo objects with id, name, type, value."""
@@ -233,8 +224,7 @@ async def test_discover_fields_returns_field_info(backend):
     await backend.press_key("F3")
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_discover_buttons_returns_button_info(backend):
     """discover_buttons returns ButtonInfo objects with label."""
@@ -252,8 +242,7 @@ async def test_discover_buttons_returns_button_info(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_get_screen_text_has_content(backend):
     """get_screen_text returns structured text from the current screen."""
@@ -273,8 +262,7 @@ async def test_get_screen_text_has_content(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_fill_form_on_se16(backend):
     """fill_form fills multiple fields — here just the one field on SE16."""
@@ -295,8 +283,7 @@ async def test_fill_form_on_se16(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_screen_info_after_transaction(backend):
     """get_screen_info returns transaction and program info."""

@@ -135,10 +135,9 @@ Desktop integration tests run against SAP GUI via COM. They:
 - Test object names are centralized in `conftest.py` (`TEST_REPORT`, `TEST_CLASS`, etc.)
 
 ```python
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_my_desktop_feature(backend):
     await backend.enter_transaction("SE16")

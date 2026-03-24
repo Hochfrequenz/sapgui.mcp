@@ -19,14 +19,11 @@ import time
 
 import pytest
 
-from unittests.conftest import is_sap_integration_test_machine
+from unittests.conftest import has_sap_desktop_creds
 
 pytestmark = [
     pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only"),
-    pytest.mark.skipif(
-        not is_sap_integration_test_machine(),
-        reason="SAP integration tests only run on authorized machines",
-    ),
+    pytest.mark.skipif(not has_sap_desktop_creds(), reason="No SAP desktop credentials"),
 ]
 
 

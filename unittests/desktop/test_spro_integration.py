@@ -7,13 +7,12 @@ import pytest
 
 from sapwebguimcp.models.spro_models import SPROSearchResult
 from sapwebguimcp.tools.spro_tools import _search_img_desktop
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_spro_search_finanzwesen(backend):
     """SPRO: search for 'Finanzwesen' returns results from the IMG tree."""
@@ -25,8 +24,7 @@ async def test_spro_search_finanzwesen(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_spro_search_no_results(backend):
     """SPRO: search for nonsense returns 0 results."""
@@ -37,8 +35,7 @@ async def test_spro_search_no_results(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_spro_model_serializes(backend):
     """SPROSearchResult must JSON-serialize (roundtrip)."""

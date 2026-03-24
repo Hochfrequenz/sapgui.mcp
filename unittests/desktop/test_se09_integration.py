@@ -7,13 +7,12 @@ import pytest
 
 from sapwebguimcp.models.se09_models import TransportListResult
 from sapwebguimcp.tools.se09_tools import _lookup_transports_desktop
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se09_default_lookup(backend):
     """SE09: default params returns TransportListResult (may be empty)."""
@@ -31,8 +30,7 @@ async def test_se09_default_lookup(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se09_model_serializes(backend):
     """TransportListResult must JSON-serialize (roundtrip)."""
@@ -48,8 +46,7 @@ async def test_se09_model_serializes(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se09_screen_elements(backend):
     """SE09: screen has expected elements (transaction field, etc.)."""
@@ -66,8 +63,7 @@ async def test_se09_screen_elements(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se09_workbench_only(backend):
     """SE09: request_type='workbench' filters to workbench requests only."""
@@ -77,8 +73,7 @@ async def test_se09_workbench_only(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se09_customizing_only(backend):
     """SE09: request_type='customizing' filters to customizing requests only."""
@@ -88,8 +83,7 @@ async def test_se09_customizing_only(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se09_released_only(backend):
     """SE09: status='released' filters to released requests only."""
@@ -99,8 +93,7 @@ async def test_se09_released_only(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se09_all_status(backend):
     """SE09: status='all' returns both modifiable and released requests."""
@@ -110,8 +103,7 @@ async def test_se09_all_status(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se09_no_results_fake_user(backend):
     """SE09: username='ZZZFAKEUSER' returns 0 requests."""
@@ -121,8 +113,7 @@ async def test_se09_no_results_fake_user(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se09_include_objects_desktop(backend):
     """SE09: include_objects=True expands request nodes to reveal tasks.

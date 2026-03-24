@@ -14,7 +14,7 @@ from sapsucker import SapGui
 from sapwebguimcp.backend.desktop import DesktopBackend
 from sapwebguimcp.backend.desktop._com_thread import ComThread
 from sapwebguimcp.models.config import get_settings
-from unittests.conftest import is_sap_integration_test_machine
+from unittests.conftest import has_sap_desktop_creds
 
 # ---------------------------------------------------------------------------
 # Test object names — centralized so they can be changed in one place.
@@ -29,23 +29,11 @@ TEST_METHOD = "DO_SOMETHING"
 TEST_TABLE = "TSTC"  # Standard SAP table (exists on all systems)
 
 # ---------------------------------------------------------------------------
-# Skip markers – importable by per-transaction test modules
+# Skip marker – importable by per-transaction test modules.
+# Skips when SAP desktop credentials are not configured in the environment.
 # ---------------------------------------------------------------------------
 
-skip_not_sap = pytest.mark.skipif(not is_sap_integration_test_machine(), reason="Not SAP machine")
-skip_no_creds: pytest.MarkDecorator
-
-
-def _creds_ok() -> bool:
-    try:
-        load_dotenv()
-        s = get_settings()
-        return bool(s.sap_connection_name and s.sap_user and s.sap_password and s.sap_mandant)
-    except Exception:
-        return False
-
-
-skip_no_creds = pytest.mark.skipif(not _creds_ok(), reason="No SAP credentials")
+skip_no_sap = pytest.mark.skipif(not has_sap_desktop_creds(), reason="No SAP desktop credentials")
 
 
 # ---------------------------------------------------------------------------

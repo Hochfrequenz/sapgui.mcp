@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_discover_clients_returns_t000_entries(backend) -> None:
     """discover_clients logs in, queries T000, and returns client list."""

@@ -7,9 +7,9 @@ discoverable and interactable via the improved COM tools.
 
 import pytest
 
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
-pytestmark = [skip_not_sap, skip_no_creds]
+pytestmark = [skip_no_sap]
 
 
 @pytest.mark.anyio
