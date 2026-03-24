@@ -174,12 +174,13 @@ class DesktopBackend:
         client: str,
         language: str,
         session_id: str | None = None,
+        connection_name: str | None = None,
     ) -> LoginResult:
-        """Log into SAP GUI desktop (url is ignored — uses SAP_CONNECTION_NAME)."""
+        """Log into SAP GUI desktop (url is ignored — uses connection_name or SAP_CONNECTION_NAME)."""
         from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
 
         settings = get_settings()
-        connection_name = settings.sap_connection_name
+        connection_name = connection_name or settings.sap_connection_name
         if not connection_name:
             return LoginResult(success=False, error="SAP_CONNECTION_NAME not configured")
 
@@ -207,6 +208,49 @@ class DesktopBackend:
             )
             return LoginResult(success=False, error=str(e))
 
+    async def list_connections(self) -> list[Any]:
+        """List available SAP Logon connections from the landscape file."""
+        from sapwebguimcp.tools.sap_list_connections_impl import (  # pylint: disable=import-outside-toplevel
+            _find_landscape_path,
+            _parse_landscape_xml,
+        )
+
+        path = _find_landscape_path()
+        if path is None:
+            return []
+        return _parse_landscape_xml(path.read_text(encoding="utf-8"))
+
+    async def discover_clients(self, connection_name: str) -> dict[str, Any]:
+        """Open a SAP connection, log in, and query T000 for available clients.
+
+        Logs in with the default client, queries T000 via SE16N, and returns
+        all clients in the system.  The session is left logged-in and registered
+        so that subsequent tool calls can reuse it.
+        """
+        from sapwebguimcp.backend.desktop._discovery import (  # pylint: disable=import-outside-toplevel
+            open_and_discover_clients,
+        )
+        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
+
+        settings = get_settings()
+        user, password = settings.credentials_for(connection_name)
+
+        session, default_client, clients = await self._com.run(
+            lambda: open_and_discover_clients(
+                connection_name=connection_name,
+                user=user,
+                password=password,
+                language=settings.sap_language or "EN",
+            )
+        )
+        session_id = self._registry.register(session)
+        return {
+            "session_id": session_id,
+            "default_client": default_client,
+            "clients": clients,
+            "info_text": "",
+        }
+
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Navigate to a transaction code.
 
@@ -216,7 +260,10 @@ class DesktopBackend:
         # Extract base tcode for the result model (strip /n prefix and parameters)
         base_tcode = tcode.split()[0] if " " in tcode else tcode
         if base_tcode.startswith("/n") or base_tcode.startswith("/o"):
-            base_tcode = base_tcode[2:]
+            stripped = base_tcode[2:]
+            if stripped:
+                base_tcode = stripped
+            # else: bare navigation command (/n or /o alone) — keep as-is
 
         session = self._require_session()
 
@@ -670,10 +717,12 @@ class DesktopBackend:
             if isinstance(grid, GuiGridView):
                 row_count = cast(Any, grid).row_count
                 col_order = cast(Any, grid).column_order
-                headers = []
-                for ci in range(col_order.Count):
-                    col_name = str(col_order(ci))
-                    headers.append(col_name)
+                # col_order may be a Python list (sapsucker) or COM collection
+                headers = (
+                    list(col_order)
+                    if isinstance(col_order, list)
+                    else [str(col_order(ci)) for ci in range(col_order.Count)]
+                )
 
                 actual_end = min(end_row or (start_row + max_rows - 1), row_count)
                 rows = []
@@ -721,7 +770,7 @@ class DesktopBackend:
                         col_name = str(column)
                         if isinstance(column, int):
                             col_order = cast(Any, grid).column_order
-                            col_name = str(col_order(column))
+                            col_name = str(col_order[column]) if isinstance(col_order, list) else str(col_order(column))
                         if action in ("dblclick", "double_click"):
                             cast(Any, grid).double_click(row - 1, col_name)
                         else:
@@ -892,7 +941,7 @@ class DesktopBackend:
                         col_name = str(column)
                         if isinstance(column, int):
                             col_order = cast(Any, grid).column_order
-                            col_name = str(col_order(column))
+                            col_name = str(col_order[column]) if isinstance(col_order, list) else str(col_order(column))
                         cast(Any, grid).set_cell_value(row - 1, col_name, value)
                         return
             raise ValueError("No ALV grid found on screen")

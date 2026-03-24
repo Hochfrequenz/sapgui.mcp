@@ -14,7 +14,7 @@ load_dotenv()
 # SAP INTEGRATION TEST MACHINE CHECK
 # =============================================================================
 
-_AUTHORIZED_SAP_TEST_MACHINES = {"HF-KKLEIN3", "HF-MeiskeJ"}
+_AUTHORIZED_SAP_TEST_MACHINES = {"HF-KKLEIN3", "HF-MeiskeJ", "HFDACHNERMR"}
 
 
 def is_sap_integration_test_machine() -> bool:
@@ -57,6 +57,8 @@ def clean_environment() -> Generator[None, None, None]:
         "BROWSER_HEADLESS",
         "CDP_URL",
         "SAP_CONNECTION_NAME",
+        "CHROME_PATH",
+        "CHROME_USER_DATA_DIR",
     ]
 
     original_values = {var: os.environ.get(var) for var in env_vars_to_clear}

@@ -53,6 +53,44 @@ class TestDesktopBackendEnterTransaction:
         assert result.success is True
         assert result.tcode == "SE16"
 
+    @pytest.mark.anyio
+    async def test_enter_transaction_pure_navigation_slash_n(self):
+        """GH-555: /n (reset to Easy Access) must not fail TCode validation."""
+        from sapwebguimcp.backend.desktop import DesktopBackend
+
+        session = make_mock_session()
+        backend = DesktopBackend.__new__(DesktopBackend)
+        backend._session = session
+
+        async def mock_run(fn):
+            return fn()
+
+        backend._com = MagicMock()
+        backend._com.run = mock_run
+
+        result = await backend.enter_transaction("/n")
+        assert result.success is True
+        assert result.tcode == "/N"
+
+    @pytest.mark.anyio
+    async def test_enter_transaction_slash_n_with_tcode(self):
+        """/nSE24 should strip prefix and use SE24 as tcode."""
+        from sapwebguimcp.backend.desktop import DesktopBackend
+
+        session = make_mock_session()
+        backend = DesktopBackend.__new__(DesktopBackend)
+        backend._session = session
+
+        async def mock_run(fn):
+            return fn()
+
+        backend._com = MagicMock()
+        backend._com.run = mock_run
+
+        result = await backend.enter_transaction("/nSE24")
+        assert result.success is True
+        assert result.tcode == "SE24"
+
 
 class TestDesktopBackendSessionStatus:
     @pytest.mark.anyio
@@ -528,3 +566,105 @@ class TestCheckAndActivate:
         assert len(calls) == 2
         assert calls[0].args[0] == 26
         assert calls[1].args[0] == 27
+
+
+class TestDesktopBackendReadTable:
+    """GH-553: read_table must handle column_order as Python list (sapsucker)."""
+
+    @pytest.mark.anyio
+    async def test_read_table_column_order_as_list(self):
+        """column_order returns a Python list from sapsucker, not a COM collection."""
+        from sapsucker.components.grid import GuiGridView
+
+        from sapwebguimcp.backend.desktop import DesktopBackend
+
+        session = make_mock_session()
+        backend = DesktopBackend.__new__(DesktopBackend)
+        backend._session = session
+
+        # Create a mock that passes isinstance(grid, GuiGridView)
+        mock_grid = MagicMock(spec=GuiGridView)
+        mock_grid.row_count = 2
+        mock_grid.column_order = ["COL_A", "COL_B"]  # Python list, not COM collection
+        mock_grid.get_cell_value = MagicMock(side_effect=lambda r, c: f"val_{r}_{c}")
+
+        # Mock dump_tree to return a grid element
+        mock_elem = MagicMock()
+        mock_elem.type_as_number = 122
+        mock_elem.id = "wnd[0]/shellcont/shell"
+        mock_elem.children = []
+
+        wnd = session.find_by_id("wnd[0]")
+        wnd.dump_tree = MagicMock(return_value=[mock_elem])
+
+        # Route find_by_id to return the mock grid for the grid ID
+        original_find = session.find_by_id
+
+        def patched_find(element_id, raise_error=True):
+            if element_id == "wnd[0]/shellcont/shell":
+                return mock_grid
+            return original_find(element_id, raise_error)
+
+        session.find_by_id = patched_find
+
+        async def mock_run(fn):
+            return fn()
+
+        backend._com = MagicMock()
+        backend._com.run = mock_run
+
+        result = await backend.read_table(start_row=1, max_rows=2)
+
+        assert result.success is True
+        assert result.headers == ["COL_A", "COL_B"]
+        assert len(result.rows) == 2
+
+    @pytest.mark.anyio
+    async def test_read_table_column_order_as_com_collection(self):
+        """column_order as COM collection (with .Count attribute) still works."""
+        from sapsucker.components.grid import GuiGridView
+
+        from sapwebguimcp.backend.desktop import DesktopBackend
+
+        session = make_mock_session()
+        backend = DesktopBackend.__new__(DesktopBackend)
+        backend._session = session
+
+        # Mock COM collection for column_order
+        com_collection = MagicMock()
+        com_collection.Count = 2
+        com_collection.side_effect = lambda i: ["COL_X", "COL_Y"][i]
+
+        mock_grid = MagicMock(spec=GuiGridView)
+        mock_grid.row_count = 1
+        mock_grid.column_order = com_collection
+        mock_grid.get_cell_value = MagicMock(return_value="v")
+
+        mock_elem = MagicMock()
+        mock_elem.type_as_number = 122
+        mock_elem.id = "wnd[0]/shellcont/shell"
+        mock_elem.children = []
+
+        wnd = session.find_by_id("wnd[0]")
+        wnd.dump_tree = MagicMock(return_value=[mock_elem])
+
+        original_find = session.find_by_id
+
+        def patched_find(element_id, raise_error=True):
+            if element_id == "wnd[0]/shellcont/shell":
+                return mock_grid
+            return original_find(element_id, raise_error)
+
+        session.find_by_id = patched_find
+
+        async def mock_run(fn):
+            return fn()
+
+        backend._com = MagicMock()
+        backend._com.run = mock_run
+
+        result = await backend.read_table(start_row=1, max_rows=1)
+
+        assert result.success is True
+        assert result.headers == ["COL_X", "COL_Y"]
+        assert len(result.rows) == 1

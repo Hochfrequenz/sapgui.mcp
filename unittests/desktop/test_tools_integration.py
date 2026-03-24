@@ -48,3 +48,34 @@ async def test_screen_info_round_trip(backend):
 async def test_backend_detected_as_desktop(backend):
     """_is_desktop_backend returns True for DesktopBackend."""
     assert _is_desktop_backend(backend) is True
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_enter_transaction_slash_n_does_not_crash(backend):
+    """GH-555: enter_transaction('/n') must succeed, not fail TCode validation."""
+    result = await backend.enter_transaction("/n")
+    assert result.success is True
+    assert result.tcode == "/N"
+
+
+@skip_not_sap
+@skip_no_creds
+@pytest.mark.anyio
+async def test_reset_first_round_trip(backend):
+    """GH-555: navigate to SE16, then reset_first back to Easy Access + SE24."""
+    # Navigate somewhere first
+    r1 = await backend.enter_transaction("SE16")
+    assert r1.success is True
+
+    # Reset via /n (the operation that was crashing)
+    r2 = await backend.enter_transaction("/n")
+    assert r2.success is True
+
+    # Now navigate to another tcode (simulates reset_first workflow)
+    await backend.wait_for_ready()
+    r3 = await backend.enter_transaction("SE24")
+    assert r3.success is True
+    assert r3.tcode == "SE24"
+    await go_home(backend)

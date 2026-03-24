@@ -6,14 +6,42 @@ patterns, friction points, and optimization opportunities.
 """
 
 import asyncio
+import json
 import logging
 from datetime import datetime, timezone
+from typing import Annotated, Any
 
 import httpx
 from fastmcp import Context, FastMCP
+from pydantic import BeforeValidator
 
 from sapwebguimcp.models import FeedbackEntry, FeedbackLogResult
 from sapwebguimcp.models.config import get_settings
+
+
+def _coerce_tags(v: Any) -> list[str] | None:
+    """Coerce stringified JSON arrays into actual lists.
+
+    Some MCP clients serialize ``["a", "b"]`` as a JSON string before
+    sending it to the server.  This validator transparently handles that
+    case so the tool never rejects a valid tag list.  See GH-554.
+    """
+    if v is None:
+        return None
+    if isinstance(v, str):
+        try:
+            parsed = json.loads(v)
+            if isinstance(parsed, list):
+                return [str(t) for t in parsed]
+        except (json.JSONDecodeError, TypeError):
+            pass
+        # Single bare string → wrap in list
+        return [v]
+    # v is already a list[str] from Pydantic pre-processing
+    return v  # type: ignore[no-any-return]
+
+
+Tags = Annotated[list[str] | None, BeforeValidator(_coerce_tags)]
 
 __all__ = ["register_feedback_tools", "get_session_feedback", "clear_session_feedback"]
 
@@ -109,7 +137,7 @@ def register_feedback_tools(mcp: FastMCP) -> None:
     )
     async def log_feedback(  # pylint: disable=missing-function-docstring
         feedback: str,
-        tags: list[str] | None = None,
+        tags: Tags = None,
         ctx: Context | None = None,
     ) -> FeedbackLogResult:
         session_id = getattr(ctx, "session_id", None) if ctx else None

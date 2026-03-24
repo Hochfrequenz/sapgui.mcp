@@ -231,7 +231,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             registry.register(self._page)
         await self._capture_sap_identity(effective_url, mandant, session_id)
 
-    async def login(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    async def login(  # pylint: disable=too-many-arguments,too-many-positional-arguments,unused-argument
         self,
         url: str,
         username: str,
@@ -239,6 +239,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         client: str,
         language: str,
         session_id: str | None = None,
+        connection_name: str | None = None,  # ignored for WebGUI; SAP_URL is the system selector
     ) -> LoginResult:
         """Navigate to SAP WebGUI and log in.
 
@@ -327,6 +328,14 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             logger.exception("Logging in to SAP")
             return LoginResult.failure(f"Error during SAP login: {e}", url=url)
 
+    async def list_connections(self) -> list[Any]:
+        """WebGUI backend has no SAP Logon entries."""
+        return []
+
+    async def discover_clients(self, connection_name: str) -> dict[str, Any]:  # pylint: disable=unused-argument
+        """WebGUI backend has no SAP Logon — client discovery not supported."""
+        return {"session_id": None, "default_client": "", "clients": [], "info_text": ""}
+
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Enter a transaction code via the OK-Code field.
 
@@ -342,6 +351,11 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         # TransactionResult.tcode validates against a strict pattern;
         # extract the base tcode (first token) for the result model.
         base_tcode = tcode.split()[0] if " " in tcode else tcode
+        if base_tcode.startswith("/n") or base_tcode.startswith("/o"):
+            stripped = base_tcode[2:]
+            if stripped:
+                base_tcode = stripped
+            # else: bare navigation command (/n or /o alone) — keep as-is
         try:
             if tcode.startswith("/n") or tcode.startswith("/o"):
                 transaction_input = tcode
