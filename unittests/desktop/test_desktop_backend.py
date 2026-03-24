@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
 from unittests.desktop.conftest import make_mock_session
+
+pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
 class TestDesktopBackendType:
