@@ -717,10 +717,12 @@ class DesktopBackend:
             if isinstance(grid, GuiGridView):
                 row_count = cast(Any, grid).row_count
                 col_order = cast(Any, grid).column_order
-                headers = []
-                for ci in range(col_order.Count):
-                    col_name = str(col_order(ci))
-                    headers.append(col_name)
+                # col_order may be a Python list (sapsucker) or COM collection
+                headers = (
+                    list(col_order)
+                    if isinstance(col_order, list)
+                    else [str(col_order(ci)) for ci in range(col_order.Count)]
+                )
 
                 actual_end = min(end_row or (start_row + max_rows - 1), row_count)
                 rows = []
@@ -768,7 +770,7 @@ class DesktopBackend:
                         col_name = str(column)
                         if isinstance(column, int):
                             col_order = cast(Any, grid).column_order
-                            col_name = str(col_order(column))
+                            col_name = str(col_order[column]) if isinstance(col_order, list) else str(col_order(column))
                         if action in ("dblclick", "double_click"):
                             cast(Any, grid).double_click(row - 1, col_name)
                         else:
@@ -939,7 +941,7 @@ class DesktopBackend:
                         col_name = str(column)
                         if isinstance(column, int):
                             col_order = cast(Any, grid).column_order
-                            col_name = str(col_order(column))
+                            col_name = str(col_order[column]) if isinstance(col_order, list) else str(col_order(column))
                         cast(Any, grid).set_cell_value(row - 1, col_name, value)
                         return
             raise ValueError("No ALV grid found on screen")
