@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import re
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -530,8 +531,6 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
         Polls for the radio button since SE11 may take a moment to render
         after transaction navigation.  Returns None on success, error on failure.
         """
-        import time  # pylint: disable=import-outside-toplevel
-
         raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
         # Poll for the radio button (SE11 screen may not be rendered yet)
         radio = None

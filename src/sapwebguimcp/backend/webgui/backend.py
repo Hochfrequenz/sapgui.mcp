@@ -15,8 +15,11 @@ import time
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
+from playwright.async_api import Error as PlaywrightError
+
 from sapwebguimcp.backend.protocol import CheckActivateResult
 from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.webgui.browser import get_browser_manager
 from sapwebguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils
 from sapwebguimcp.middleware.logging import set_sap_identity
 from sapwebguimcp.models.alv_models import AlvCellInfo, AlvMetadata, TableCellClickResult
@@ -34,6 +37,7 @@ from sapwebguimcp.models.sap_results import (
     FormFieldsResult,
     KeyboardResult,
     LoginResult,
+    SapFieldType,
     ScreenInfo,
     ScreenText,
     SessionInfo,
@@ -1061,8 +1065,6 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     async def get_form_fields(self, *, include_dropdown_options: bool = False) -> FormFieldsResult:
         """Discover fillable form fields with type information."""
         try:
-            from sapwebguimcp.models.sap_results import SapFieldType  # pylint: disable=import-outside-toplevel
-
             raw_fields = await self._page.evaluate(load_js("detect_form_fields.js"))
             fields = []
             for raw in raw_fields:
@@ -1264,8 +1266,6 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     async def read_editor_source(self) -> str | None:
         """Read the current source code from the SAP editor textarea."""
-        from playwright.async_api import Error as PlaywrightError  # pylint: disable=import-outside-toplevel
-
         try:
             textarea = self._page.locator("textarea[id*='textedit']").first
             if not await textarea.is_visible(timeout=3000):
@@ -1277,8 +1277,6 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     async def replace_editor_source(self, code: str) -> bool:
         """Replace the entire editor content with new source code."""
-        from playwright.async_api import Error as PlaywrightError  # pylint: disable=import-outside-toplevel
-
         try:
             textarea = self._page.locator("textarea[id*='textedit']").first
             await textarea.click()
@@ -1418,8 +1416,6 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     @staticmethod
     async def _get_registry() -> SessionRegistry:
         """Get the shared session registry (lazy import to avoid circular deps)."""
-        from sapwebguimcp.backend.webgui.browser import get_browser_manager  # pylint: disable=import-outside-toplevel
-
         manager = await get_browser_manager()
         return manager.registry
 

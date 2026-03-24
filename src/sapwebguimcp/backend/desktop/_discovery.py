@@ -10,6 +10,13 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any, cast
 
+from sapwebguimcp.backend.desktop._element_finder import _flatten
+
+try:
+    from sapsucker.components.grid import GuiGridView
+except ImportError:  # pragma: no cover – sapsucker not installed (non-Windows)
+    GuiGridView = None  # type: ignore[assignment,misc]
+
 if TYPE_CHECKING:
     from sapsucker.components.session import GuiSession
 
@@ -21,8 +28,6 @@ logger = logging.getLogger(__name__)
 
 def _find_alv_grid_id(session: GuiSession) -> str | None:
     """Find the first ALV grid (type 122) or table control (type 80) in the window."""
-    from sapwebguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
-
     wnd = session.find_by_id("wnd[0]")
     tree = cast(Any, wnd).dump_tree()
     for elem in _flatten(tree):
@@ -33,8 +38,6 @@ def _find_alv_grid_id(session: GuiSession) -> str | None:
 
 def _read_clients_from_grid(session: GuiSession, grid_id: str) -> list[dict[str, str]]:
     """Read MANDT + MTEXT columns from an ALV grid showing T000 results."""
-    from sapsucker.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
-
     grid = session.find_by_id(grid_id)
     if not isinstance(grid, GuiGridView):
         logger.debug("T000 query: found element is not a GuiGridView")
