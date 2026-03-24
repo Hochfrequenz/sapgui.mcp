@@ -179,13 +179,13 @@ class SapUiInspection(Protocol):
 
 
 @runtime_checkable
-class SapNavigation(Protocol):
+class SapNavigation(Protocol):  # pylint: disable=too-many-public-methods
     """Navigation and session lifecycle."""
 
     @property
     def backend_type(self) -> str:
         """Return backend identifier: ``'desktop'`` or ``'webgui'``."""
-        ...
+        return ""  # pragma: no cover
 
     async def login(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,

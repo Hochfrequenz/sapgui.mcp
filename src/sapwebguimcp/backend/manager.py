@@ -11,10 +11,7 @@ from sapwebguimcp.backend.webgui.backend import WebGuiBackend
 from sapwebguimcp.backend.webgui.browser import close_browser_manager, get_browser_manager
 from sapwebguimcp.models.config import BackendType, get_settings
 
-if sys.platform == "win32":
-    from sapwebguimcp.backend.desktop import DesktopBackend, _current_session_id
-    from sapwebguimcp.backend.desktop._com_thread import ComThread
-elif TYPE_CHECKING:
+if sys.platform == "win32" or TYPE_CHECKING:
     from sapwebguimcp.backend.desktop import DesktopBackend, _current_session_id
     from sapwebguimcp.backend.desktop._com_thread import ComThread
 
@@ -68,19 +65,16 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             # Single shared DesktopBackend — session routing via ContextVar
             cached = self._backends.get("desktop")
             if cached is not None:
-                _current_session_id.set(
-                    session or "s1"
-                )  # pylint: disable=used-before-assignment,possibly-used-before-assignment
-                if isinstance(
-                    cached, DesktopBackend
-                ):  # pylint: disable=used-before-assignment,possibly-used-before-assignment
+                _current_session_id.set(session or "s1")  # pylint: disable=possibly-used-before-assignment
+                if isinstance(cached, DesktopBackend):  # pylint: disable=possibly-used-before-assignment
                     cached._registry.check_binding(  # pylint: disable=protected-access
                         session or "s1", agent_id, tool_name
                     )
                 return cached
             if self._com_thread is None:
-                self._com_thread = ComThread(  # pylint: disable=used-before-assignment,possibly-used-before-assignment
-                    min_interval_ms=get_settings().com_min_interval_ms
+                interval = get_settings().com_min_interval_ms
+                self._com_thread = ComThread(  # pylint: disable=possibly-used-before-assignment
+                    min_interval_ms=interval
                 )
             new_backend = DesktopBackend(com_thread=self._com_thread)
             self._backends["desktop"] = new_backend
