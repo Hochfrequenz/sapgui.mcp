@@ -39,7 +39,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
         self._page_ids: dict[str, int] = {}  # Track page identity for cache invalidation
         self._com_thread: Any = None  # Lazy-init ComThread for desktop backend
 
-    async def get_or_create(  # pylint: disable=too-many-locals
+    async def get_or_create(  # pylint: disable=too-many-locals,used-before-assignment,possibly-used-before-assignment
         self,
         session: str | None = None,
         agent_id: str | None = None,
@@ -65,17 +65,15 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             # Single shared DesktopBackend — session routing via ContextVar
             cached = self._backends.get("desktop")
             if cached is not None:
-                _current_session_id.set(session or "s1")  # pylint: disable=possibly-used-before-assignment
-                if isinstance(cached, DesktopBackend):  # pylint: disable=possibly-used-before-assignment
+                _current_session_id.set(session or "s1")
+                if isinstance(cached, DesktopBackend):
                     cached._registry.check_binding(  # pylint: disable=protected-access
                         session or "s1", agent_id, tool_name
                     )
                 return cached
             if self._com_thread is None:
                 interval = get_settings().com_min_interval_ms
-                self._com_thread = ComThread(  # pylint: disable=possibly-used-before-assignment
-                    min_interval_ms=interval
-                )
+                self._com_thread = ComThread(min_interval_ms=interval)
             new_backend = DesktopBackend(com_thread=self._com_thread)
             self._backends["desktop"] = new_backend
             _current_session_id.set(session or "s1")
