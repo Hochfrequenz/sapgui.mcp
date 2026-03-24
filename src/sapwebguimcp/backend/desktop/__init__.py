@@ -260,7 +260,10 @@ class DesktopBackend:
         # Extract base tcode for the result model (strip /n prefix and parameters)
         base_tcode = tcode.split()[0] if " " in tcode else tcode
         if base_tcode.startswith("/n") or base_tcode.startswith("/o"):
-            base_tcode = base_tcode[2:]
+            stripped = base_tcode[2:]
+            if stripped:
+                base_tcode = stripped
+            # else: bare navigation command (/n or /o alone) — keep as-is
 
         session = self._require_session()
 

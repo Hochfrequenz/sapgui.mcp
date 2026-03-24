@@ -131,6 +131,21 @@ class TestTransactionCodeValidation:
         with pytest.raises(ValidationError):
             TransactionResult(tcode="SE16#")
 
+    def test_invalid_tcode_empty_string(self) -> None:
+        """Test that empty string fails TCode validation (GH-555)."""
+        with pytest.raises(ValidationError):
+            TransactionResult(tcode="")
+
+    def test_valid_tcode_navigation_command(self) -> None:
+        """Test that navigation commands like /n are valid TCode values (GH-555)."""
+        result = TransactionResult(tcode="/n")
+        assert result.tcode == "/N"
+
+    def test_valid_tcode_navigation_nex(self) -> None:
+        """Test /nex (exit all sessions) is a valid TCode value."""
+        result = TransactionResult(tcode="/nex")
+        assert result.tcode == "/NEX"
+
 
 class TestIntegerConstraints:
     """Tests for integer field constraints (ge=0, ge=1)."""
