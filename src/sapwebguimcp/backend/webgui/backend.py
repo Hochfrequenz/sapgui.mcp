@@ -116,6 +116,11 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         self._session_token = f"webgui-{next(_token_counter)}"
         self._keepalive_task: asyncio.Task[None] | None = None
 
+    @property
+    def backend_type(self) -> str:
+        """Return backend identifier."""
+        return "webgui"
+
     def get_session_token(self) -> str:
         """Return opaque token identifying the underlying session."""
         return self._session_token

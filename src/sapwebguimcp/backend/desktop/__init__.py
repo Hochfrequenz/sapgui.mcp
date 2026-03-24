@@ -133,6 +133,11 @@ class DesktopBackend:
         self._registry = DesktopSessionRegistry()
 
     @property
+    def backend_type(self) -> str:
+        """Return backend identifier."""
+        return "desktop"
+
+    @property
     def _session(self) -> GuiSession | None:
         """Backward compat: return primary session (s1)."""
         try:

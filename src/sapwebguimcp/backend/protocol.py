@@ -182,6 +182,11 @@ class SapUiInspection(Protocol):
 class SapNavigation(Protocol):
     """Navigation and session lifecycle."""
 
+    @property
+    def backend_type(self) -> str:
+        """Return backend identifier: 'desktop' or 'webgui'."""
+        ...  # pylint: disable=unnecessary-ellipsis
+
     async def login(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         url: str,
