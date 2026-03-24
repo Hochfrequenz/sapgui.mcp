@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from pydantic import Field
@@ -11,10 +10,7 @@ from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.base import ToolResult
 from sapwebguimcp.models.config import get_settings
 
-__all__ = ["DiscoverClientsResult", "parse_clients_from_login_info", "sap_discover_clients_impl"]
-
-# Matches lines like "  100  Produktionsmandant" or "100 Production"
-_CLIENT_RE = re.compile(r"^\s*(\d{3})\s+(.+?)\s*$")
+__all__ = ["DiscoverClientsResult", "sap_discover_clients_impl"]
 
 
 class DiscoverClientsResult(ToolResult):
@@ -29,21 +25,6 @@ class DiscoverClientsResult(ToolResult):
     )
     connection_name: str = Field(default="", description="SAP connection name used")
     info_text: str = Field(default="", description="Raw information text from the login screen")
-
-
-def parse_clients_from_login_info(text: str) -> list[dict[str, str]]:
-    """Parse client list from SAP login screen information text.
-
-    Looks for lines matching ``NNN  description`` where NNN is a 3-digit
-    client number.  Returns a list of ``{"id": ..., "description": ...}``
-    dicts.
-    """
-    result = []
-    for line in text.splitlines():
-        m = _CLIENT_RE.match(line)
-        if m:
-            result.append({"id": m.group(1), "description": m.group(2)})
-    return result
 
 
 async def sap_discover_clients_impl(connection_name: str | None) -> DiscoverClientsResult:
