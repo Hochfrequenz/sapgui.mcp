@@ -11,11 +11,11 @@ import sys
 
 import pytest
 
-from unittests.desktop.conftest import skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
 
-skip_not_sap_machine = skip_not_sap
+skip_not_sap_machine = skip_no_sap
 
 
 # ---------------------------------------------------------------------------
@@ -23,8 +23,8 @@ skip_not_sap_machine = skip_not_sap
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap_machine
+@skip_no_sap
 @pytest.mark.anyio
 async def test_check_popup_returns_none_on_easy_access(backend):
     """No popup on Easy Access screen."""
@@ -32,8 +32,8 @@ async def test_check_popup_returns_none_on_easy_access(backend):
     assert popup is None
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap_machine
+@skip_no_sap
 @pytest.mark.anyio
 async def test_check_popup_detects_modal(backend):
     """Trigger a popup by entering an invalid transaction and check it's detected."""
@@ -55,8 +55,8 @@ async def test_check_popup_detects_modal(backend):
     await backend.press_key("F3")
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap_machine
+@skip_no_sap
 @pytest.mark.anyio
 async def test_dismiss_popup_on_exit_with_changes(backend):
     """dismiss_popup can handle the 'unsaved data' popup when leaving a transaction."""
@@ -90,8 +90,8 @@ async def test_dismiss_popup_on_exit_with_changes(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap_machine
+@skip_no_sap
 @pytest.mark.anyio
 async def test_dismiss_language_dialog_no_op_when_absent(backend):
     """dismiss_language_dialog is a no-op when no language dialog is present."""
@@ -104,8 +104,8 @@ async def test_dismiss_language_dialog_no_op_when_absent(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap_machine
+@skip_no_sap
 @pytest.mark.anyio
 async def test_read_editor_source_returns_none_on_non_editor_screen(backend):
     """read_editor_source returns None when no editor is on screen."""
@@ -114,8 +114,8 @@ async def test_read_editor_source_returns_none_on_non_editor_screen(backend):
     assert result is None
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap_machine
+@skip_no_sap
 @pytest.mark.anyio
 async def test_read_editor_source_on_se38(backend):
     """read_editor_source attempts to read from SE38 editor (may return None due to COM limitation)."""
@@ -149,8 +149,8 @@ async def test_read_editor_source_on_se38(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap_machine
-@skip_no_creds
+@skip_no_sap_machine
+@skip_no_sap
 @pytest.mark.anyio
 async def test_check_and_activate_returns_result(backend):
     """check_and_activate returns a CheckActivateResult even if check fails."""

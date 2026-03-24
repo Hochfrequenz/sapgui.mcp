@@ -7,7 +7,7 @@ import pytest
 
 from sapwebguimcp.models.se11_models import SE11Entry, SE11Error
 from sapwebguimcp.tools.se11_tools import _lookup_se11_desktop
-from unittests.desktop.conftest import TEST_TABLE, go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import TEST_TABLE, go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -18,8 +18,7 @@ async def _navigate_se11(backend) -> None:
     await backend.wait_for_ready()
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se11_lookup_table_t000(backend):
     """SE11: look up T000 (clients table) returns fields with MANDT."""
@@ -41,8 +40,7 @@ async def test_se11_lookup_table_t000(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se11_lookup_nonexistent(backend):
     """SE11: look up ZZZNOTEXIST99 returns SE11Error."""
@@ -54,8 +52,7 @@ async def test_se11_lookup_nonexistent(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se11_lookup_structure_bapiret2(backend):
     """SE11: look up BAPIRET2 structure returns fields."""
@@ -75,8 +72,7 @@ async def test_se11_lookup_structure_bapiret2(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se11_fields_have_types(backend):
     """SE11: all fields should have a non-empty datatype."""

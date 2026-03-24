@@ -207,20 +207,18 @@ In `server.py`, add the import and call `register_se99_tools(mcp)` alongside the
 
 | Category | Examples | Needs SAP? | How to run |
 |----------|----------|-----------|------------|
-| **Root unit tests** | `unittests/test_models.py`, `test_config.py`, `test_catalog.py`, ... | No | `tox -e tests` (auto-runs) |
-| **Desktop unit tests** | `unittests/desktop/test_desktop_backend.py`, `test_com_thread.py`, `test_element_finder.py`, `test_key_mapping.py`, ... | No (mocked) | `tox -e tests` (auto-runs) |
-| **WebGUI parser tests** | `unittests/webgui/test_selectors.py`, `test_se93_parser.py`, `test_se37_parser.py` | No (HTML snapshots) | `tox -e unit_tests` |
+| **Root unit tests** | `unittests/test_models.py`, `test_config.py`, `test_catalog.py`, ... | No | `tox -e unit_tests` |
+| **Desktop unit tests** | `unittests/desktop/test_desktop_backend.py`, `test_com_thread.py`, `test_element_finder.py`, `test_key_mapping.py`, ... | No (mocked) | `tox -e unit_tests` |
 | **Desktop integration** | `unittests/desktop/test_se16_integration.py`, `test_se24_integration.py`, ... | Yes (SAP GUI) | `tox -e integration_tests` |
 | **WebGUI integration** | `unittests/webgui/test_se16_integration.py`, `test_*_exploration.py`, ... | Yes (SAP WebGUI) | `tox -e integration_tests` |
 
-**Note:** `tox -e unit_tests` runs only the 3 WebGUI parser test files (fast offline check). `tox -e tests` runs the full suite — integration tests auto-skip if SAP is not available.
-
 ### Skip Mechanism
 
-Integration tests auto-skip via markers defined in `unittests/desktop/conftest.py`:
+Integration tests auto-skip based on **credential detection** — no hardcoded hostnames or machine lists.
 
-- `skip_not_sap` — skips if the machine hostname is not in the allowed list (`is_sap_integration_test_machine()` in `unittests/conftest.py`)
-- `skip_no_creds` — skips if SAP credentials are not configured in `.env`
+- **Desktop tests** use `skip_no_sap` (defined in `unittests/desktop/conftest.py`): skips when `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, or `SAP_CONNECTION_NAME` are missing
+- **WebGUI tests** use `has_sap_webgui_creds()` (defined in `unittests/conftest.py`): skips when `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, or `SAP_URL` are missing
+- Both check functions are in `unittests/conftest.py` — configure your `.env` file and tests run automatically
 
 Desktop test files include `pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")` to skip on Linux/macOS CI.
 
@@ -228,7 +226,7 @@ Desktop test files include `pytestmark = pytest.mark.skipif(sys.platform != "win
 
 ```bash
 tox -e tests               # Full suite (integration auto-skips without SAP)
-tox -e unit_tests          # WebGUI parser tests only (3 files, fast)
+tox -e unit_tests          # All offline tests (no SAP needed)
 tox -e integration_tests   # SAP integration tests only
 tox -e linting             # pylint
 tox -e type_check          # mypy --strict

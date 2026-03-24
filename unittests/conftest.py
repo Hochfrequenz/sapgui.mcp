@@ -1,7 +1,6 @@
 """Pytest configuration and shared fixtures for all tests."""
 
 import os
-import socket
 from collections.abc import Generator
 
 import pytest
@@ -11,25 +10,31 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # =============================================================================
-# SAP INTEGRATION TEST MACHINE CHECK
+# SAP CREDENTIAL DETECTION
 # =============================================================================
 
-_AUTHORIZED_SAP_TEST_MACHINES = {"HF-KKLEIN3", "HF-MeiskeJ", "HFDACHNERMR"}
+
+def _env_non_empty(*keys: str) -> bool:
+    """Return True if all named env vars are set and non-empty."""
+    return all(os.environ.get(k, "").strip() for k in keys)
 
 
-def is_sap_integration_test_machine() -> bool:
+def has_sap_desktop_creds() -> bool:
+    """Check if SAP desktop integration credentials are configured.
+
+    Returns True when SAP_USER, SAP_PASSWORD, SAP_MANDANT, and
+    SAP_CONNECTION_NAME are all set to non-empty values.
     """
-    Check if the current machine is authorized to run SAP integration tests.
+    return _env_non_empty("SAP_USER", "SAP_PASSWORD", "SAP_MANDANT", "SAP_CONNECTION_NAME")
 
-    SAP integration tests require access to a real SAP Web GUI system,
-    which is only available on specific developer machines. This function
-    checks the hostname to determine if the current machine has SAP access.
 
-    Returns:
-        True if running on a machine with SAP access,
-        False otherwise (CI environments, other dev machines).
+def has_sap_webgui_creds() -> bool:
+    """Check if SAP WebGUI integration credentials are configured.
+
+    Returns True when SAP_USER, SAP_PASSWORD, SAP_MANDANT, and
+    SAP_URL are all set to non-empty values.
     """
-    return socket.gethostname() in _AUTHORIZED_SAP_TEST_MACHINES
+    return _env_non_empty("SAP_USER", "SAP_PASSWORD", "SAP_MANDANT", "SAP_URL")
 
 
 # =============================================================================

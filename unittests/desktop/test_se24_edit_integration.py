@@ -8,7 +8,7 @@ from sapwebguimcp.tools.se24_edit_tools import (
     _edit_check_activate_method,
     _navigate_to_method_editor_desktop,
 )
-from unittests.desktop.conftest import TEST_CLASS, TEST_METHOD, go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import TEST_CLASS, TEST_METHOD, go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -16,8 +16,7 @@ _TEST_CLASS = TEST_CLASS
 _TEST_METHOD = TEST_METHOD
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se24_navigate_and_read_method_source(backend):
     """SE24: navigate to class method and read source code via desktop backend."""
@@ -30,8 +29,7 @@ async def test_se24_navigate_and_read_method_source(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se24_replace_and_revert_method(backend):
     """SE24: replace method source, verify, then revert to original."""
@@ -62,8 +60,7 @@ async def test_se24_replace_and_revert_method(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se24_full_edit_check_activate(backend):
     """SE24: full _edit_check_activate_method workflow preserves working code."""

@@ -7,13 +7,12 @@ import pytest
 
 from sapwebguimcp.models.se37_models import SE37Entry, SE37Error
 from sapwebguimcp.tools.se37_tools import _lookup_fm_desktop
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se37_lookup_rfc_read_table(backend):
     """SE37: look up RFC_READ_TABLE returns parameters and exceptions."""
@@ -31,8 +30,7 @@ async def test_se37_lookup_rfc_read_table(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se37_lookup_nonexistent(backend):
     """SE37: look up ZZZFAKE_FM returns SE37Error."""
@@ -45,8 +43,7 @@ async def test_se37_lookup_nonexistent(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se37_params_have_category(backend):
     """SE37: parameters should have correct category."""

@@ -2,13 +2,11 @@
 
 import pytest
 
-from unittests.conftest import is_sap_integration_test_machine
+from unittests.conftest import has_sap_webgui_creds
 
 from .conftest import call_tool_typed
 
-pytestmark = pytest.mark.skipif(
-    not is_sap_integration_test_machine(), reason="SAP integration tests only run on authorized machines"
-)
+pytestmark = pytest.mark.skipif(not has_sap_webgui_creds(), reason="No SAP WebGUI credentials")
 
 
 class TestSessionSAPIntegration:

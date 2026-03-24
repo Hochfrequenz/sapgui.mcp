@@ -3,7 +3,6 @@
 import base64
 import json
 import os
-import socket
 import sys
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -15,7 +14,7 @@ from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from pydantic import BaseModel
 
-from unittests.conftest import _AUTHORIZED_SAP_TEST_MACHINES, is_sap_integration_test_machine
+from unittests.conftest import has_sap_webgui_creds
 
 # =============================================================================
 # LANGUAGE HANDLING
@@ -276,20 +275,14 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     runs fixture setup and teardown in the same task, which is required for
     proper cancel scope handling.
     """
-    current_host = socket.gethostname()
-    if not is_sap_integration_test_machine():
-        pytest.skip(
-            f"SAP integration tests only run on authorized machines "
-            f"(current: '{current_host}', required: '{_AUTHORIZED_SAP_TEST_MACHINES}')"
-        )
-
     # Reload .env after clean_environment fixture has cleared env vars
     # Use override=False so command-line env vars (like SAP_LANGUAGE=EN) take precedence
     load_dotenv(override=False)
 
-    sap_url = os.environ.get("SAP_URL")
-    if not sap_url:
-        pytest.skip("SAP_URL environment variable not set")
+    if not has_sap_webgui_creds():
+        pytest.skip("SAP WebGUI credentials not configured (need SAP_URL, SAP_USER, SAP_PASSWORD, SAP_MANDANT)")
+
+    sap_url = os.environ["SAP_URL"]
 
     # Use sys.executable with -m to run the server module directly.
     # This works regardless of whether the entry point script is installed,

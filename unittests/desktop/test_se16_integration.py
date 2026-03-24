@@ -7,13 +7,12 @@ import pytest
 
 from sapwebguimcp.models.se16_models import SE16Result
 from sapwebguimcp.tools.se16_tools import _execute_se16_query
-from unittests.desktop.conftest import TEST_TABLE, go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import TEST_TABLE, go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_small_table(backend):
     """SE16: query T000 (clients, ~3-6 rows), verify all returned, not truncated."""
@@ -28,8 +27,7 @@ async def test_se16_small_table(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_medium_table(backend):
     """SE16: query TSTC with max_hits=50, verify pagination/truncation."""
@@ -42,8 +40,7 @@ async def test_se16_medium_table(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_table_not_found(backend):
     """SE16: nonexistent table ZZZNOTEXIST99 returns 0 rows without crashing."""
@@ -54,8 +51,7 @@ async def test_se16_table_not_found(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_table_not_found_returns_failure(backend):
     """SE16: nonexistent table ZZZNOTEXIST99 must report success=False."""
@@ -65,8 +61,7 @@ async def test_se16_table_not_found_returns_failure(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_columns_match_data(backend):
     """SE16: verify row data keys match column headers."""
@@ -80,8 +75,7 @@ async def test_se16_columns_match_data(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_tcode_column_has_values(backend):
     """SE16: verify TCODE column values are non-empty in TSTC table."""
@@ -93,8 +87,7 @@ async def test_se16_tcode_column_has_values(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_model_serializes(backend):
     """SE16Result must JSON-serialize for MCP transport (roundtrip)."""
@@ -111,8 +104,7 @@ async def test_se16_model_serializes(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_max_hits_limits_rows(backend):
     """SE16: max_hits=3 on a large table returns exactly 3 rows.
@@ -129,8 +121,7 @@ async def test_se16_max_hits_limits_rows(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_truncated_flag(backend):
     """SE16: total_hits vs returned_rows are consistent; truncation is reflected.
@@ -155,8 +146,7 @@ async def test_se16_truncated_flag(backend):
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_single_filter(backend):
     """SE16: query TSTC with single filter TCODE='SE16'."""
@@ -168,8 +158,7 @@ async def test_se16_single_filter(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_multiple_filters(backend):
     """SE16: query TSTC with multiple filters."""
@@ -180,8 +169,7 @@ async def test_se16_multiple_filters(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se16_wildcard_filter(backend):
     """SE16: query TSTC with wildcard filter TCODE='SE1*'."""

@@ -7,13 +7,12 @@ import pytest
 
 from sapwebguimcp.models.sm30_models import SM30ViewResult
 from sapwebguimcp.tools.sm30_tools import _lookup_view_desktop
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_sm30_existing_view_v_t005(backend):
     """SM30: looking up V_T005 (Countries) returns well-formed result.
@@ -39,8 +38,7 @@ async def test_sm30_existing_view_v_t005(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_sm30_nonexistent_view(backend):
     """SM30: nonexistent view ZZZNOTEXIST99 returns error, not exception."""
@@ -52,8 +50,7 @@ async def test_sm30_nonexistent_view(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_sm30_model_serializes(backend):
     """SM30ViewResult must JSON-serialize (roundtrip)."""

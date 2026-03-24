@@ -15,7 +15,7 @@ import sys
 import pytest
 
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -25,8 +25,7 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_screen_info_round_trip(backend):
     """get_screen_info returns correct data, serializes as ScreenInfo model."""
@@ -42,16 +41,14 @@ async def test_screen_info_round_trip(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_backend_detected_as_desktop(backend):
     """_is_desktop_backend returns True for DesktopBackend."""
     assert _is_desktop_backend(backend) is True
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_enter_transaction_slash_n_does_not_crash(backend):
     """GH-555: enter_transaction('/n') must succeed, not fail TCode validation."""
@@ -60,8 +57,7 @@ async def test_enter_transaction_slash_n_does_not_crash(backend):
     assert result.tcode == "/N"
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_reset_first_round_trip(backend):
     """GH-555: navigate to SE16, then reset_first back to Easy Access + SE24."""

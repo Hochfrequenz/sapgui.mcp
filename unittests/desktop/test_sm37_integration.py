@@ -8,13 +8,12 @@ import pytest
 
 from sapwebguimcp.models.sm37_models import SM37JobListResult
 from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup, _execute_sm37_lookup_desktop
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_sm37_default_selection(backend):
     """SM37: default params returns well-formed SM37JobListResult."""
@@ -34,8 +33,7 @@ async def test_sm37_default_selection(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_sm37_no_jobs_for_fake_user(backend):
     """SM37: username='ZZZFAKEUSER' returns 0 jobs or structured error.
@@ -58,8 +56,7 @@ async def test_sm37_no_jobs_for_fake_user(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_sm37_model_serializes(backend):
     """SM37JobListResult must JSON-serialize (roundtrip)."""
@@ -82,8 +79,7 @@ async def test_sm37_model_serializes(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_sm37_screen_info(backend):
     """SM37: verify transaction screen is reachable and identified."""
@@ -96,8 +92,7 @@ async def test_sm37_screen_info(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_sm37_with_wildcard_jobname(backend):
     """SM37: job_name='*' returns result or structured error.
@@ -126,8 +121,7 @@ async def test_sm37_with_wildcard_jobname(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_sm37_finished_status_filter(backend):
     """SM37: statuses=['finished'] returns only finished jobs (or 0 jobs)."""
@@ -146,8 +140,7 @@ async def test_sm37_finished_status_filter(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_sm37_with_date_range(backend):
     """SM37: from_date and to_date set to today returns well-formed result."""
@@ -167,8 +160,7 @@ async def test_sm37_with_date_range(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_sm37_include_log_desktop(backend):
     """SM37: include_log=True fetches job log when exactly 1 job matches."""
