@@ -34,7 +34,7 @@ class TableSearchResult:
     match_reason: str
 
 
-def search_tables(
+def search_tables(  # pylint: disable=too-many-branches
     catalog: TableCatalog,
     query: str,
     include_fields: bool = True,

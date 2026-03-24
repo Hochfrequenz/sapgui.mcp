@@ -53,7 +53,7 @@ def tokenize(text: str) -> list[str]:
     return [t for t in tokens if t]
 
 
-def search_transactions(
+def search_transactions(  # pylint: disable=too-many-locals,too-many-branches
     catalog: TransactionCatalog,
     query: str,
     area: str | None = None,

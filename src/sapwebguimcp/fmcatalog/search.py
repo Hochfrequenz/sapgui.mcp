@@ -27,7 +27,7 @@ class FMSearchResult:
     match_reason: str
 
 
-def search_function_modules(
+def search_function_modules(  # pylint: disable=too-many-locals,too-many-branches
     catalog: FMCatalog,
     query: str,
     include_params: bool = True,
