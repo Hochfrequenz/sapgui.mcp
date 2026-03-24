@@ -68,14 +68,18 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             # Single shared DesktopBackend — session routing via ContextVar
             cached = self._backends.get("desktop")
             if cached is not None:
-                _current_session_id.set(session or "s1")  # pylint: disable=possibly-used-before-assignment
-                if isinstance(cached, DesktopBackend):  # pylint: disable=possibly-used-before-assignment
+                _current_session_id.set(
+                    session or "s1"
+                )  # pylint: disable=used-before-assignment,possibly-used-before-assignment
+                if isinstance(
+                    cached, DesktopBackend
+                ):  # pylint: disable=used-before-assignment,possibly-used-before-assignment
                     cached._registry.check_binding(  # pylint: disable=protected-access
                         session or "s1", agent_id, tool_name
                     )
                 return cached
             if self._com_thread is None:
-                self._com_thread = ComThread(  # pylint: disable=possibly-used-before-assignment
+                self._com_thread = ComThread(  # pylint: disable=used-before-assignment,possibly-used-before-assignment
                     min_interval_ms=get_settings().com_min_interval_ms
                 )
             new_backend = DesktopBackend(com_thread=self._com_thread)

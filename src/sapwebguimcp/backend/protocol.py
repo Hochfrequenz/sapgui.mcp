@@ -184,8 +184,8 @@ class SapNavigation(Protocol):
 
     @property
     def backend_type(self) -> str:
-        """Return backend identifier: 'desktop' or 'webgui'."""
-        ...  # pylint: disable=unnecessary-ellipsis
+        """Return backend identifier: ``'desktop'`` or ``'webgui'``."""
+        ...
 
     async def login(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
