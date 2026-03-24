@@ -11,11 +11,10 @@ from sapsucker import SapGui
 
 from sapwebguimcp.backend.desktop import DesktopBackend
 from sapwebguimcp.backend.desktop._com_thread import ComThread
-from unittests.desktop.conftest import skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import skip_no_sap
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_discover_clients_uses_credentials_mapping() -> None:
     """discover_clients resolves credentials from SAP_CREDENTIALS mapping.

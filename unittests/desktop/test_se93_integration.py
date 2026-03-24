@@ -7,13 +7,12 @@ import pytest
 
 from sapwebguimcp.models.se93_models import SE93Entry, SE93Error
 from sapwebguimcp.tools.se93_tools import _lookup_tcode_desktop
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se93_lookup_se16(backend):
     """SE93: look up SE16 returns a dialog transaction with program and screen."""
@@ -33,8 +32,7 @@ async def test_se93_lookup_se16(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se93_lookup_nonexistent(backend):
     """SE93: look up ZZZFAKE99 returns SE93Error."""
@@ -47,8 +45,7 @@ async def test_se93_lookup_nonexistent(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se93_gui_capabilities(backend):
     """SE93: SE16 should report GUI capability flags."""

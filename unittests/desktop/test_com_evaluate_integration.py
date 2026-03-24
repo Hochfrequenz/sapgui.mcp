@@ -7,13 +7,12 @@ import pytest
 
 from sapwebguimcp.models.com_results import ComEvaluateResult, ComOperation
 from sapwebguimcp.tools.com_tools import ComOperationInput, _execute_single_op
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_com_get_window_title(backend):
     """get action reads the main window title."""
@@ -31,8 +30,7 @@ async def test_com_get_window_title(backend):
     assert len(title) > 0, "Window should have a title"
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_com_get_status_bar_text(backend):
     """get action reads status bar text."""
@@ -48,8 +46,7 @@ async def test_com_get_status_bar_text(backend):
     assert result.result is not None
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_com_set_okcode_field(backend):
     """set action writes to the OkCode field."""
@@ -81,8 +78,7 @@ async def test_com_set_okcode_field(backend):
     await backend._com.run(_clear)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_com_call_sendvkey(backend):
     """call action invokes SendVKey (Enter) on the window."""
@@ -106,8 +102,7 @@ async def test_com_call_sendvkey(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_com_element_not_found(backend):
     """get on nonexistent element returns failure."""
@@ -127,8 +122,7 @@ async def test_com_element_not_found(backend):
     assert "not found" in result.error.lower() or "element" in result.error.lower()
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_com_batch_operations(backend):
     """Multiple operations execute sequentially in one COM thread call."""
@@ -157,8 +151,7 @@ async def test_com_batch_operations(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_com_model_roundtrip(backend):
     """ComEvaluateResult must JSON-serialize (roundtrip)."""
@@ -181,8 +174,7 @@ async def test_com_model_roundtrip(backend):
     assert restored.operations[0].element_id == "wnd[0]"
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_com_snapshot_returns_element_tree(backend):
     """sap_com_snapshot returns an element tree with IDs the LLM can use."""
@@ -196,8 +188,7 @@ async def test_com_snapshot_returns_element_tree(backend):
     assert text.count("\n") > 5, "Snapshot should be a multi-line tree"
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_com_snapshot_element_ids_usable(backend):
     """Element IDs from snapshot can be used in sap_com_evaluate."""

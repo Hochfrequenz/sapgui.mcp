@@ -6,13 +6,12 @@ import sys
 
 import pytest
 
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_open_second_session(backend):
     """Open a second SAP session and verify it gets a new ID."""
@@ -26,8 +25,7 @@ async def test_open_second_session(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_parallel_navigation(backend):
     """Two sessions navigate to different transactions concurrently."""
@@ -59,8 +57,7 @@ async def test_parallel_navigation(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_close_session(backend):
     """Close second session and verify s1 still works."""
@@ -75,8 +72,7 @@ async def test_close_session(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_bind_and_check(backend, caplog):
     """Bind s1 to an agent and verify check_binding warns on mismatch."""
@@ -94,8 +90,7 @@ async def test_bind_and_check(backend, caplog):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_list_sessions(backend):
     """list_sessions returns all registered sessions."""

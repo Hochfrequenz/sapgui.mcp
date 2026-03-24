@@ -8,13 +8,12 @@ import pytest
 
 from sapwebguimcp.models.slg1_models import SLG1LogListResult
 from sapwebguimcp.tools.slg1_tools import _slg1_lookup_desktop
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_slg1_with_wildcard(backend):
     """SLG1: object_name='*' returns well-formed result or structured error.
@@ -43,8 +42,7 @@ async def test_slg1_with_wildcard(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_slg1_no_results(backend):
     """SLG1: object_name='ZZZNOTEXIST' returns 0 entries or structured error.
@@ -66,8 +64,7 @@ async def test_slg1_no_results(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_slg1_model_serializes(backend):
     """SLG1LogListResult must JSON-serialize (roundtrip)."""
@@ -90,8 +87,7 @@ async def test_slg1_model_serializes(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_slg1_with_date_filter(backend):
     """SLG1: from_date=today, to_date=today returns well-formed result.

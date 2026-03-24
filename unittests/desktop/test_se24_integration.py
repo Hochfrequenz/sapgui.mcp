@@ -7,13 +7,12 @@ import pytest
 
 from sapwebguimcp.models.se24_models import SE24Entry, SE24Error
 from sapwebguimcp.tools.se24_tools import _lookup_class_desktop
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se24_lookup_class(backend):
     """SE24: look up CL_ABAP_CHAR_UTILITIES returns methods and attributes."""
@@ -31,8 +30,7 @@ async def test_se24_lookup_class(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se24_lookup_nonexistent(backend):
     """SE24: look up ZZZFAKE_CLASS returns SE24Error."""
@@ -45,8 +43,7 @@ async def test_se24_lookup_nonexistent(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se24_methods_have_visibility(backend):
     """SE24: methods should have visibility (public/protected/private)."""

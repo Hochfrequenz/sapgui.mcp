@@ -8,13 +8,12 @@ import pytest
 
 from sapwebguimcp.models.st22_models import ST22DumpListResult
 from sapwebguimcp.tools.st22_tools import _st22_lookup_desktop
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_st22_today(backend):
     """ST22: dump list for today returns ST22DumpListResult."""
@@ -28,8 +27,7 @@ async def test_st22_today(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_st22_model_serializes(backend):
     """ST22DumpListResult must JSON-serialize (roundtrip)."""
@@ -45,8 +43,7 @@ async def test_st22_model_serializes(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_st22_specific_date(backend):
     """ST22: past date returns whatever dumps exist."""
@@ -59,8 +56,7 @@ async def test_st22_specific_date(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_st22_future_date_empty(backend):
     """ST22: far-future date should return 0 dumps.
@@ -75,8 +71,7 @@ async def test_st22_future_date_empty(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_st22_dump_detail(backend):
     """ST22: if today has dumps, fetch detail for dump_index=0."""
@@ -94,8 +89,7 @@ async def test_st22_dump_detail(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_st22_dump_index_out_of_range(backend):
     """ST22: dump_index=9999 returns failure with out-of-range error."""

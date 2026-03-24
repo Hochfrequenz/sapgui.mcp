@@ -5,15 +5,14 @@ import sys
 import pytest
 
 from sapwebguimcp.tools.se38_edit_tools import _edit_check_activate, _navigate_and_open_editor_desktop
-from unittests.desktop.conftest import TEST_REPORT, go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import TEST_REPORT, go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 _TEST_REPORT = TEST_REPORT
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se38_navigate_and_read_source(backend):
     """SE38: navigate to report and read source code via desktop backend."""
@@ -30,8 +29,7 @@ async def test_se38_navigate_and_read_source(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se38_replace_and_revert(backend):
     """SE38: replace source code, verify, then revert to original."""
@@ -62,8 +60,7 @@ async def test_se38_replace_and_revert(backend):
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_se38_full_edit_check_activate(backend):
     """SE38: full _edit_check_activate workflow preserves working code."""

@@ -28,8 +28,8 @@ html_snapshots/
 
 ## How Snapshots Are Captured
 
-Snapshots are automatically captured when running integration tests on an
-authorized machine (HF-KKLEIN3). The `capture_html_snapshot` helper in
+Snapshots are automatically captured when running integration tests on a
+machine with SAP WebGUI credentials configured. The `capture_html_snapshot` helper in
 `test_sap_integration.py` saves the current page HTML with a language suffix
 based on the `SAP_LANGUAGE` environment variable.
 

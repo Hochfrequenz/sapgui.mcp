@@ -11,7 +11,7 @@ import sys
 import pytest
 
 from sapwebguimcp.tools.abapgit_tools import _abapgit_list_repos, _abapgit_pull_via_api
-from unittests.desktop.conftest import go_home, skip_no_creds, skip_not_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -23,8 +23,7 @@ DEFAULT_TRANSPORT = os.environ.get("SAP_TEST_TRANSPORT", "S4UK902008")
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_abapgit_pull_public_repo(backend) -> None:
     """Test pulling a public repository via COM automation."""
@@ -41,8 +40,7 @@ async def test_abapgit_pull_public_repo(backend) -> None:
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_abapgit_pull_returns_status_message(backend) -> None:
     """Verify that pull returns an actual status message, not 'status unknown'."""
@@ -62,8 +60,7 @@ async def test_abapgit_pull_returns_status_message(backend) -> None:
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_abapgit_pull_private_repo_with_pat(backend) -> None:
     """Test pulling a private repository with PAT authentication."""
@@ -84,8 +81,7 @@ async def test_abapgit_pull_private_repo_with_pat(backend) -> None:
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_abapgit_pull_repo_not_found(backend) -> None:
     """Test that pulling a non-existent repository returns a clear error."""
@@ -103,8 +99,7 @@ async def test_abapgit_pull_repo_not_found(backend) -> None:
     await go_home(backend)
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_abapgit_pull_without_trkorr_returns_transport_guidance(backend) -> None:
     """Test that pulling without trkorr returns actionable transport guidance."""
@@ -134,8 +129,7 @@ async def test_abapgit_pull_without_trkorr_returns_transport_guidance(backend) -
 # ---------------------------------------------------------------------------
 
 
-@skip_not_sap
-@skip_no_creds
+@skip_no_sap
 @pytest.mark.anyio
 async def test_abapgit_list_repos(backend) -> None:
     """Test listing registered abapGit repositories via COM screen text reading."""
