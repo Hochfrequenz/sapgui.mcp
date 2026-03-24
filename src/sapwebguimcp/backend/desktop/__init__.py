@@ -263,7 +263,7 @@ class DesktopBackend:
             stripped = base_tcode[2:]
             if stripped:
                 base_tcode = stripped
-            # else: pure navigation command (e.g. /n, /nex) — keep as-is
+            # else: bare navigation command (/n or /o alone) — keep as-is
 
         session = self._require_session()
 
@@ -770,7 +770,7 @@ class DesktopBackend:
                         col_name = str(column)
                         if isinstance(column, int):
                             col_order = cast(Any, grid).column_order
-                            col_name = col_order[column] if isinstance(col_order, list) else str(col_order(column))
+                            col_name = str(col_order[column]) if isinstance(col_order, list) else str(col_order(column))
                         if action in ("dblclick", "double_click"):
                             cast(Any, grid).double_click(row - 1, col_name)
                         else:
@@ -941,7 +941,7 @@ class DesktopBackend:
                         col_name = str(column)
                         if isinstance(column, int):
                             col_order = cast(Any, grid).column_order
-                            col_name = col_order[column] if isinstance(col_order, list) else str(col_order(column))
+                            col_name = str(col_order[column]) if isinstance(col_order, list) else str(col_order(column))
                         cast(Any, grid).set_cell_value(row - 1, col_name, value)
                         return
             raise ValueError("No ALV grid found on screen")
