@@ -176,7 +176,7 @@ class SapWebGuiSettings(BaseSettings):
         return {name: SapSystemCredentials(**entry) for name, entry in raw.items()}
 
     com_min_interval_ms: int = Field(
-        default=50,
+        default=100,
         ge=0,
         le=5000,
         description=(
