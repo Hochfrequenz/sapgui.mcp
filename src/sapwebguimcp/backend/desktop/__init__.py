@@ -13,12 +13,19 @@ import asyncio
 import logging
 import os
 import tempfile
+import time
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
 
 import sapsucker.login as _login_mod
 
+try:
+    from sapsucker.components.grid import GuiGridView
+except ImportError:
+    GuiGridView = None  # type: ignore[misc,assignment]
+
 from sapwebguimcp.backend.desktop._com_thread import ComThread
+from sapwebguimcp.backend.desktop._landscape import _find_landscape_path, _parse_landscape_xml
 from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
 #: Per-async-task session ID — set by BackendManager before each tool call.
@@ -34,14 +41,20 @@ from sapwebguimcp.backend.desktop._element_finder import (
     find_tab_by_label,
 )
 from sapwebguimcp.backend.desktop._key_mapping import key_to_vkey
+from sapwebguimcp.backend.protocol import CheckActivateResult
 from sapwebguimcp.backend.types import ComTreeSnapshot
 from sapwebguimcp.models.alv_models import TableCellClickResult
-from sapwebguimcp.models.base import PopupInfo, ToolResult
+from sapwebguimcp.models.base import PopupButton, PopupInfo, PopupType, ToolResult
+from sapwebguimcp.models.config import get_settings
 from sapwebguimcp.models.sap_results import (
     ButtonInfo,
+    ClosePopupResult,
+    DropdownFillResult,
     FieldFillError,
     FieldInfo,
+    FillFormResult,
     FormField,
+    FormFieldsResult,
     KeyboardResult,
     LoginResult,
     SapFieldType,
@@ -58,14 +71,6 @@ from sapwebguimcp.models.sap_results import (
 
 if TYPE_CHECKING:
     from sapsucker.components.session import GuiSession
-
-    from sapwebguimcp.backend.protocol import CheckActivateResult
-    from sapwebguimcp.models.sap_results import (
-        ClosePopupResult,
-        DropdownFillResult,
-        FillFormResult,
-        FormFieldsResult,
-    )
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +138,11 @@ class DesktopBackend:
         self._registry = DesktopSessionRegistry()
 
     @property
+    def backend_type(self) -> str:
+        """Return backend identifier."""
+        return "desktop"
+
+    @property
     def _session(self) -> GuiSession | None:
         """Backward compat: return primary session (s1)."""
         try:
@@ -177,7 +187,6 @@ class DesktopBackend:
         connection_name: str | None = None,
     ) -> LoginResult:
         """Log into SAP GUI desktop (url is ignored — uses connection_name or SAP_CONNECTION_NAME)."""
-        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
 
         settings = get_settings()
         connection_name = connection_name or settings.sap_connection_name
@@ -210,11 +219,6 @@ class DesktopBackend:
 
     async def list_connections(self) -> list[Any]:
         """List available SAP Logon connections from the landscape file."""
-        from sapwebguimcp.tools.sap_list_connections_impl import (  # pylint: disable=import-outside-toplevel
-            _find_landscape_path,
-            _parse_landscape_xml,
-        )
-
         path = _find_landscape_path()
         if path is None:
             return []
@@ -230,7 +234,6 @@ class DesktopBackend:
         from sapwebguimcp.backend.desktop._discovery import (  # pylint: disable=import-outside-toplevel
             open_and_discover_clients,
         )
-        from sapwebguimcp.models.config import get_settings  # pylint: disable=import-outside-toplevel
 
         settings = get_settings()
         user, password = settings.credentials_for(connection_name)
@@ -571,7 +574,6 @@ class DesktopBackend:
 
     async def get_form_fields(self, *, include_dropdown_options: bool = False) -> FormFieldsResult:
         """Detect form fields with their current values and associated labels."""
-        from sapwebguimcp.models.sap_results import FormFieldsResult  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -696,7 +698,6 @@ class DesktopBackend:
         session = self._require_session()
 
         def _read() -> dict[str, Any]:  # pylint: disable=too-many-locals
-            from sapsucker.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             # Find grid or table in the full window tree (not just usr).
             # SE16N places ALV grids in wnd[0]/shellcont, not wnd[0]/usr.
@@ -757,7 +758,6 @@ class DesktopBackend:
         session = self._require_session()
 
         def _click() -> None:
-            from sapsucker.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             wnd = session.find_by_id("wnd[0]")
             tree = cast(Any, wnd).dump_tree()
@@ -879,7 +879,6 @@ class DesktopBackend:
 
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
         """Fill multiple form fields."""
-        from sapwebguimcp.models.sap_results import FillFormResult  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -926,7 +925,6 @@ class DesktopBackend:
         session = self._require_session()
 
         def _fill() -> None:
-            from sapsucker.components.grid import GuiGridView  # pylint: disable=import-outside-toplevel
 
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree()
@@ -1014,7 +1012,6 @@ class DesktopBackend:
 
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select a dropdown option."""
-        from sapwebguimcp.models.sap_results import DropdownFillResult  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -1176,7 +1173,6 @@ class DesktopBackend:
         session = self._require_session()
 
         def _replace() -> bool:
-            import time  # pylint: disable=import-outside-toplevel
 
             result = DesktopBackend._find_editor_shell_raw(session)
             if result is None:
@@ -1228,7 +1224,6 @@ class DesktopBackend:
         Sends VKey 26 (check), reads status bar, handles "Inactive Objects"
         popup, then sends VKey 27 (activate) and reads status bar again.
         """
-        from sapwebguimcp.backend.protocol import CheckActivateResult  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -1309,7 +1304,6 @@ class DesktopBackend:
         Checks if wnd[1] exists, then reads its title, text content,
         and button labels to build a PopupInfo.
         """
-        from sapwebguimcp.models.base import PopupButton, PopupType  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 
@@ -1368,7 +1362,6 @@ class DesktopBackend:
         If button_label is given, finds and clicks the matching button.
         Otherwise, presses Enter (VKey 0) as default.
         """
-        from sapwebguimcp.models.sap_results import ClosePopupResult  # pylint: disable=import-outside-toplevel
 
         session = self._require_session()
 

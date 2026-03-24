@@ -48,7 +48,7 @@ def test_backend_manager_close_clears_caches() -> None:
     manager._page_ids["s1"] = 12345
 
     with patch(
-        "sapwebguimcp.backend.webgui.browser.close_browser_manager",
+        "sapwebguimcp.backend.manager.close_browser_manager",
         new_callable=AsyncMock,
     ) as mock_close:
         asyncio.run(manager.close())

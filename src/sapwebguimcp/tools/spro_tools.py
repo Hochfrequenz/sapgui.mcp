@@ -6,6 +6,7 @@ for customizing activities by keyword. Returns structured results with
 activity names, parent nodes, and area context.
 """
 
+import asyncio
 import json
 import logging
 from datetime import UTC, datetime
@@ -64,8 +65,6 @@ async def _click_sap_ref_img(backend: "SapUiBackend") -> str | None:
 
     Returns error string or None on success.
     """
-    import asyncio  # pylint: disable=import-outside-toplevel
-
     # Verify we're on the SPRO initial screen before pressing F5
     snapshot = await backend.get_snapshot()
     snapshot_str = str(snapshot)
@@ -156,8 +155,6 @@ async def _wait_for_results(backend: "SapUiBackend") -> ScreenSnapshot:
 
     Returns the ARIA snapshot when results are ready, or the last snapshot on timeout.
     """
-    import asyncio  # pylint: disable=import-outside-toplevel
-
     elapsed_ms = 0
 
     while elapsed_ms < _SEARCH_TIMEOUT_MS:

@@ -11,6 +11,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.quick_report_models import (
     QuickReportResult,
     ScreenClassification,
@@ -413,8 +414,6 @@ def register_quick_report_tools(mcp: FastMCP) -> None:
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent ID for multi-agent session binding.
         """
-        from sapwebguimcp.backend.manager import get_backend  # pylint: disable=import-outside-toplevel
-
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_quick_report")
         except ValueError as exc:

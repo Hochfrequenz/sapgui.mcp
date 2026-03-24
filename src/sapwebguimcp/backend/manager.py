@@ -6,10 +6,14 @@ import logging
 import sys
 from typing import TYPE_CHECKING, Any, get_args
 
+from sapwebguimcp.backend.protocol import SapUiBackend
+from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+from sapwebguimcp.backend.webgui.browser import close_browser_manager, get_browser_manager
 from sapwebguimcp.models.config import BackendType, get_settings
 
-if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
+if sys.platform == "win32" or TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend, _current_session_id
+    from sapwebguimcp.backend.desktop._com_thread import ComThread
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +39,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
         self._page_ids: dict[str, int] = {}  # Track page identity for cache invalidation
         self._com_thread: Any = None  # Lazy-init ComThread for desktop backend
 
-    async def get_or_create(  # pylint: disable=too-many-locals
+    async def get_or_create(  # pylint: disable=too-many-locals,used-before-assignment,possibly-used-before-assignment
         self,
         session: str | None = None,
         agent_id: str | None = None,
@@ -47,11 +51,6 @@ class BackendManager:  # pylint: disable=too-few-public-methods
         if the underlying page is still the same, creates a new one otherwise.
         """
         if self.backend_type == "webgui":
-            from sapwebguimcp.backend.webgui.backend import WebGuiBackend  # pylint: disable=import-outside-toplevel
-            from sapwebguimcp.backend.webgui.browser import (  # pylint: disable=import-outside-toplevel
-                get_browser_manager,
-            )
-
             browser_manager = await get_browser_manager()
             page = await browser_manager.get_or_create_session_page_checked(session, agent_id, tool_name)
             session_key = session or "s1"
@@ -63,12 +62,6 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             self._page_ids[session_key] = id(page)
             return backend
         if self.backend_type == "desktop":
-            from sapwebguimcp.backend.desktop import (  # pylint: disable=import-outside-toplevel
-                DesktopBackend,
-                _current_session_id,
-            )
-            from sapwebguimcp.backend.desktop._com_thread import ComThread  # pylint: disable=import-outside-toplevel
-
             # Single shared DesktopBackend — session routing via ContextVar
             cached = self._backends.get("desktop")
             if cached is not None:
@@ -79,7 +72,8 @@ class BackendManager:  # pylint: disable=too-few-public-methods
                     )
                 return cached
             if self._com_thread is None:
-                self._com_thread = ComThread(min_interval_ms=get_settings().com_min_interval_ms)
+                interval = get_settings().com_min_interval_ms
+                self._com_thread = ComThread(min_interval_ms=interval)
             new_backend = DesktopBackend(com_thread=self._com_thread)
             self._backends["desktop"] = new_backend
             _current_session_id.set(session or "s1")
@@ -89,10 +83,6 @@ class BackendManager:  # pylint: disable=too-few-public-methods
     async def close(self) -> None:
         """Shut down the active backend and release resources."""
         if self.backend_type == "webgui":
-            from sapwebguimcp.backend.webgui.browser import (  # pylint: disable=import-outside-toplevel
-                close_browser_manager,
-            )
-
             await close_browser_manager()
         elif self.backend_type == "desktop":
             if self._com_thread is not None:
