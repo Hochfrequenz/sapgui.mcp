@@ -15,12 +15,12 @@ SCORING ALGORITHM:
 - Field name exact match: 40
 - Field name contains: 30
 - Field description contains: 20
-
-This ensures "MARA" query returns MARA table first, not tables
-that happen to have a MARA-related field.
+- Fuzzy match on description (>= 50): 5-14
 """
 
 from dataclasses import dataclass
+
+from rapidfuzz import fuzz
 
 from sapwebguimcp.tables.models import TableCatalog, TableInfo
 
@@ -97,6 +97,13 @@ def search_tables(
                     score = 20
                     match_reason = f"field {field.name} description contains"
                     break
+
+        # Fuzzy match on table description (catches typos, partial stems)
+        if score == 0 and table.description:
+            fuzzy_score = fuzz.WRatio(query, table.description, score_cutoff=50)
+            if fuzzy_score:
+                score = 5 + int((fuzzy_score - 50) * 9.0 / 50.0)
+                match_reason = "fuzzy description"
 
         if score > 0:
             results.append(TableSearchResult(table=table, score=score, match_reason=match_reason))

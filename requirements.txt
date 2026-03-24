@@ -160,6 +160,8 @@ pyyaml==6.0.3
     # via
     #   fastmcp
     #   jsonschema-path
+rapidfuzz==3.14.3
+    # via sapwebguimcp (pyproject.toml)
 referencing==0.37.0
     # via
     #   jsonschema

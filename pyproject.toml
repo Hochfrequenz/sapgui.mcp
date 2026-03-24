@@ -25,6 +25,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "pywin32>=306; sys_platform == 'win32'",
+    "rapidfuzz>=3.0.0",  # Fuzzy string matching for catalog search
     "sapsucker>=0.0.1",  # Typed SAP GUI Scripting wrapper
 ]
 dynamic = ["readme", "version"]

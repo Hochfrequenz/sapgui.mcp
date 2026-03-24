@@ -5,9 +5,12 @@ SCORING ALGORITHM:
 - Class name prefix match: 80
 - Class name contains: 60
 - Class description contains: 50
+- Fuzzy match on description (>= 50): 5-14
 """
 
 from dataclasses import dataclass
+
+from rapidfuzz import fuzz
 
 from sapwebguimcp.classcatalog.models import ClassCatalog, ClassEntry
 
@@ -63,6 +66,13 @@ def search_classes(
         elif query_upper in desc_upper:
             score = 50
             match_reason = "description contains"
+
+        # Fuzzy match on description
+        if score == 0 and cls.description:
+            fuzzy_score = fuzz.WRatio(query, cls.description, score_cutoff=50)
+            if fuzzy_score:
+                score = 5 + int((fuzzy_score - 50) * 9.0 / 50.0)
+                match_reason = "fuzzy description"
 
         if score > 0:
             results.append(ClassSearchResult(cls=cls, score=score, match_reason=match_reason))

@@ -8,9 +8,12 @@ SCORING ALGORITHM:
 - Parameter name contains: 40
 - Parameter description contains: 30
 - Parameter reference_type contains: 20
+- Fuzzy match on description (>= 50): 5-14
 """
 
 from dataclasses import dataclass
+
+from rapidfuzz import fuzz
 
 from sapwebguimcp.fmcatalog.models import FMCatalog, FunctionModuleEntry
 
@@ -88,6 +91,13 @@ def search_function_modules(
                     score = 20
                     match_reason = f"param {param.name} reference_type"
                     break
+
+        # Fuzzy match on description
+        if score == 0 and fm.description:
+            fuzzy_score = fuzz.WRatio(query, fm.description, score_cutoff=50)
+            if fuzzy_score:
+                score = 5 + int((fuzzy_score - 50) * 9.0 / 50.0)
+                match_reason = "fuzzy description"
 
         if score > 0:
             results.append(FMSearchResult(fm=fm, score=score, match_reason=match_reason))
