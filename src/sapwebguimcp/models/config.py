@@ -228,8 +228,10 @@ class SapWebGuiSettings(BaseSettings):
     # GitHub Settings (optional)
     github_pat: str = Field(
         default="",
-        description="GitHub Personal Access Token for creating issues from feedback "
-        "and authenticating abapGit pulls. Leave empty to disable.",
+        description="GitHub Personal Access Token. Used for two purposes: "
+        "(1) creating GitHub issues from log_feedback, "
+        "(2) authenticating abapGit pulls (unless ABAPGIT_PAT is set). "
+        "Leave empty to disable both.",
         json_schema_extra={"env": "GITHUB_PAT"},
     )
     github_user: str = Field(
@@ -271,13 +273,14 @@ class SapWebGuiSettings(BaseSettings):
     )
 
     # abapGit Integration
-    # For abapGit authentication, ABAPGIT_PAT takes priority over GITHUB_PAT.
-    # Use ABAPGIT_PAT if you need separate tokens for abapGit vs feedback/issues.
-    # The github_user field is used for authentication; defaults to 'x-access-token'.
+    # ABAPGIT_PAT is optional and overrides GITHUB_PAT for abapGit operations only.
+    # Use it when you need a separate token scoped to your ABAP repos,
+    # while GITHUB_PAT remains scoped to feedback/issue creation.
     abapgit_pat: str | None = Field(
         default=None,
-        description="GitHub Personal Access Token for abapGit pull/push operations. "
-        "Required for private repositories or to avoid rate limits.",
+        description="Optional: separate PAT for abapGit pulls, overrides GITHUB_PAT. "
+        "Use this if you want a different token for abapGit than for feedback/issues. "
+        "If not set, GITHUB_PAT is used for both.",
         json_schema_extra={"env": "ABAPGIT_PAT"},
     )
 
