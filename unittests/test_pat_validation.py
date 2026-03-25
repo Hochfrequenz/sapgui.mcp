@@ -128,7 +128,28 @@ class TestStartupPatValidation:
         with caplog.at_level(logging.INFO):
             async with app_lifespan(None):  # type: ignore[arg-type]
                 pass
-        assert "GitHub PAT" not in caplog.text
+        assert "GITHUB_PAT" not in caplog.text
+        assert "ABAPGIT_PAT" not in caplog.text
+
+    @respx.mock
+    @pytest.mark.anyio
+    async def test_startup_logs_github_pat_when_no_abapgit_pat(
+        self, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Startup log identifies GITHUB_PAT when ABAPGIT_PAT is not set."""
+        respx.get("http://localhost:9222/json/version").mock(return_value=Response(200, json={"Browser": "Chrome/120"}))
+        respx.get("https://api.github.com/user").mock(return_value=Response(200, json={"login": "testuser"}))
+        monkeypatch.setenv("ABAPGIT_PAT", "")
+        monkeypatch.setenv("GITHUB_PAT", "ghp_fake_github_token")
+        from sapwebguimcp.models import config as config_mod
+
+        monkeypatch.setattr(config_mod, "_settings", None)
+
+        with caplog.at_level(logging.INFO):
+            async with app_lifespan(None):  # type: ignore[arg-type]
+                pass
+        assert "[OK] GITHUB_PAT validated" in caplog.text
+        assert "testuser" in caplog.text
 
 
 class TestAnalyzePullResultFallback:
