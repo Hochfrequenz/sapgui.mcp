@@ -144,9 +144,9 @@ class DesktopBackend:
 
     @property
     def _session(self) -> GuiSession | None:
-        """Backward compat: return primary session (s1)."""
+        """Backward compat: return primary session."""
         try:
-            return self._registry.get_session("s1")
+            return self._registry.get_session(None)
         except ValueError:
             return None
 
@@ -392,7 +392,7 @@ class DesktopBackend:
                 result.append(
                     SessionInfo(
                         session_id=sid,
-                        is_primary=(sid == "s1"),
+                        is_primary=(sid == self._registry.primary_session),
                         agent_id=self._registry.get_bound_agent(sid),
                         **info,
                     )
@@ -407,7 +407,7 @@ class DesktopBackend:
             return False
         try:
             target = self._registry.get_session(session_id)
-            primary = self._registry.get_session("s1")
+            primary = self._registry.get_session(None)  # primary session
 
             def _close(t: Any = target, p: Any = primary) -> bool:
                 # Get COM ID on the COM thread (Id property requires COM context)

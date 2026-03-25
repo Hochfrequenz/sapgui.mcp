@@ -90,7 +90,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         Raises:
             ValueError: If session not found or page is closed
         """
-        sid = session_id or "s1"
+        sid = session_id or self.registry.primary_session
         self.registry.check_binding(sid, agent_id, tool_name)
         return self.registry.get_page(sid)
 
@@ -114,9 +114,9 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         if session_id is not None:
             return self._registry.get_page(session_id)
 
-        # If session=None and s1 exists, use s1
-        if self._registry.has_session("s1"):
-            return self._registry.get_page("s1")
+        # If session=None and any session exists, use the primary (lowest) one
+        if self._registry._sessions:  # pylint: disable=protected-access
+            return self._registry.get_page(None)
 
         # Backwards compatibility: if no sessions registered, use legacy page
         # This allows tools to work before sap_login() registers s1
@@ -148,9 +148,9 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         if session_id is not None:
             return self._registry.get_page(session_id)
 
-        # If session=None and s1 exists, use s1
-        if self._registry.has_session("s1"):
-            return self._registry.get_page("s1")
+        # If session=None and any session exists, use the primary (lowest) one
+        if self._registry._sessions:  # pylint: disable=protected-access
+            return self._registry.get_page(None)
 
         # Backwards compatibility: if no sessions registered, use legacy get_current_page
         # This creates a page if needed (important for browser_navigate before sap_login)
@@ -178,10 +178,11 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
             self.registry.check_binding(session_id, agent_id, tool_name)
             return self._registry.get_page(session_id)
 
-        # If session=None and s1 exists, use s1 with binding check
-        if self._registry.has_session("s1"):
-            self.registry.check_binding("s1", agent_id, tool_name)
-            return self._registry.get_page("s1")
+        # If session=None and any session exists, use the primary (lowest) with binding check
+        if self._registry._sessions:  # pylint: disable=protected-access
+            sid = self.registry.primary_session
+            self.registry.check_binding(sid, agent_id, tool_name)
+            return self._registry.get_page(sid)
 
         # Backwards compatibility: if no sessions registered, use legacy get_current_page
         # No binding check needed - no sessions exist yet (pre-login scenario)

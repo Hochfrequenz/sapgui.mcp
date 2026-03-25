@@ -114,10 +114,39 @@ class TestSessionRegistryUnit:
         assert len(sessions) == 3
         assert set(sessions) == {"s1", "s2", "s3"}
 
-    def test_primary_session_is_always_s1(self) -> None:
-        """Test that primary_session property returns s1."""
+    def test_primary_session_defaults_to_s1(self) -> None:
+        """Test that primary_session returns s1 when empty or s1 exists."""
         registry = SessionRegistry()
+        # Empty registry defaults to s1 (sentinel)
         assert registry.primary_session == "s1"
+
+        # After registering, s1 is the primary
+        page1 = MagicMock()
+        page1.is_closed.return_value = False
+        registry.register(page1)
+        assert registry.primary_session == "s1"
+
+    def test_primary_session_falls_back_to_lowest(self) -> None:
+        """Test that primary_session returns lowest available when s1 is gone."""
+        registry = SessionRegistry()
+        page1 = MagicMock()
+        page1.is_closed.return_value = False
+        page2 = MagicMock()
+        page2.is_closed.return_value = False
+        page3 = MagicMock()
+        page3.is_closed.return_value = False
+
+        registry.register(page1)  # s1
+        registry.register(page2)  # s2
+        registry.register(page3)  # s3
+
+        # Remove s1 — primary should fall back to s2
+        registry.unregister("s1")
+        assert registry.primary_session == "s2"
+
+        # Remove s2 — primary should fall back to s3
+        registry.unregister("s2")
+        assert registry.primary_session == "s3"
 
     def test_has_session(self) -> None:
         """Test has_session check."""
