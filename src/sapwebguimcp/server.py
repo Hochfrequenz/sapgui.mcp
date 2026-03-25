@@ -45,7 +45,6 @@ from sapwebguimcp.tools import (
     register_spro_tools,
     register_st22_tools,
     register_table_tools,
-    register_workflow_tools,
 )
 from sapwebguimcp.tools.abapgit_tools import validate_github_pat
 
@@ -55,7 +54,12 @@ __all__ = ["main", "mcp"]
 _settings = get_settings()
 
 # Configure logging (including optional Papertrail)
-configure_logging(papertrail_host=_settings.papertrail_host, papertrail_port=_settings.papertrail_port)
+configure_logging(
+    log_format=_settings.log_format,
+    log_level=_settings.log_level,
+    papertrail_host=_settings.papertrail_host,
+    papertrail_port=_settings.papertrail_port,
+)
 logger = logging.getLogger(__name__)
 
 # Note: GitHub issue creation is handled directly in log_feedback tool (async)
@@ -191,15 +195,14 @@ register_class_tools(mcp)
 register_se24_edit_tools(mcp)
 register_se38_edit_tools(mcp)
 
-# Always available: logging and workflows
+# Always available: logging, abapgit
 register_intent_tools(mcp)
 register_feedback_tools(mcp)
-register_workflow_tools(mcp)
+register_abapgit_tools(mcp)
 
-# WebGUI only: browser escape hatches, abapgit (JS-dependent), SE37 editor (no desktop impl)
+# WebGUI only: browser escape hatches, SE37 editor (no desktop impl)
 if _backend == "webgui":
     register_browser_tools(mcp)
-    register_abapgit_tools(mcp)
     register_se37_edit_tools(mcp)
     register_quick_report_tools(mcp)
 

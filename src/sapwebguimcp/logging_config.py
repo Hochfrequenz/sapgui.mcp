@@ -11,14 +11,11 @@ Usage:
     ctx = ToolLogContext(tool="sap_login", session="s1", duration_ms=2340)
     logger.info("Tool completed", extra=ctx.model_dump(mode="json", exclude_none=True))
 
-Environment variables:
-    LOG_FORMAT: Set to "json" for JSON output. Default is human-readable console.
-    LOG_LEVEL: Set log level (DEBUG, INFO, WARNING, ERROR). Default is INFO.
+LOG_FORMAT and LOG_LEVEL are read from SapWebGuiSettings (pydantic-settings).
 """
 
 import json
 import logging
-import os
 import socket
 import ssl
 import time
@@ -251,18 +248,25 @@ class _PapertrailTlsHandler(logging.Handler):
         super().close()
 
 
-def configure_logging(*, papertrail_host: str = "", papertrail_port: int = 0) -> None:
+def configure_logging(
+    *,
+    log_format: str = "",
+    log_level: str = "INFO",
+    papertrail_host: str = "",
+    papertrail_port: int = 0,
+) -> None:
     """Configure root logger with structured formatter.
 
-    Reads LOG_FORMAT and LOG_LEVEL from environment.
     Call once at startup before any log statements.
 
     Args:
+        log_format: Set to "json" for JSON output. Default is human-readable console.
+        log_level: Log level (DEBUG, INFO, WARNING, ERROR). Default is INFO.
         papertrail_host: Papertrail syslog destination host. Empty to disable.
         papertrail_port: Papertrail syslog destination port.
     """
-    json_mode = os.environ.get("LOG_FORMAT", "").lower() == "json"
-    level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
+    json_mode = log_format.lower() == "json"
+    level_name = log_level.upper()
     level = getattr(logging, level_name, logging.INFO)
 
     formatter = StructuredFormatter(json_mode=json_mode)
