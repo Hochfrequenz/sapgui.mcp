@@ -1,6 +1,6 @@
 # pylint: disable=too-many-lines
 """
-abapGit integration tools for SAP Web GUI.
+abapGit integration tools for SAP (WebGUI and desktop backends).
 
 This module provides:
 - List: Enumerate all registered abapGit repositories and their metadata
@@ -165,26 +165,10 @@ def _enrich_transport_error(error_text: str) -> str:
 async def _check_for_error_popup(backend: "SapUiBackend") -> str | None:
     """Check for SAP error popup dialog and extract message text."""
     try:
-        js_code = """
-        () => {
-            const selectors = [
-                '.urMessageBox', '.urPopup', '[id*="PopupWindow"]',
-                '[id*="ModalWindow"]', '.lsPopup', '[role="alertdialog"]',
-                '.urMsgArea', '#MESSAGE_POPUP', '[id*="MESSAGE"]'
-            ];
-            for (const sel of selectors) {
-                const el = document.querySelector(sel);
-                if (!el) continue;
-                const style = window.getComputedStyle(el);
-                if (style.display === 'none' || style.visibility === 'hidden') continue;
-                const text = (el.innerText || '').trim();
-                if (!text) continue;
-                return text;
-            }
-            return null;
-        }
-        """
-        text = await backend.evaluate_javascript(js_code)
+        if _is_desktop_backend(backend):
+            text = await _check_for_error_popup_desktop(backend)
+        else:
+            text = await _check_for_error_popup_webgui(backend)
         if not text:
             return None
         text_lower = text.lower()
@@ -204,10 +188,50 @@ async def _check_for_error_popup(backend: "SapUiBackend") -> str | None:
     return None
 
 
+async def _check_for_error_popup_webgui(backend: "SapUiBackend") -> str | None:
+    """Check for error popup via JavaScript (WebGUI only)."""
+    js_code = """
+    () => {
+        const selectors = [
+            '.urMessageBox', '.urPopup', '[id*="PopupWindow"]',
+            '[id*="ModalWindow"]', '.lsPopup', '[role="alertdialog"]',
+            '.urMsgArea', '#MESSAGE_POPUP', '[id*="MESSAGE"]'
+        ];
+        for (const sel of selectors) {
+            const el = document.querySelector(sel);
+            if (!el) continue;
+            const style = window.getComputedStyle(el);
+            if (style.display === 'none' || style.visibility === 'hidden') continue;
+            const text = (el.innerText || '').trim();
+            if (!text) continue;
+            return text;
+        }
+        return null;
+    }
+    """
+    return await backend.evaluate_javascript(js_code)
+
+
+async def _check_for_error_popup_desktop(backend: "SapUiBackend") -> str | None:
+    """Check for error popup via snapshot (desktop backend)."""
+    snapshot = await backend.get_snapshot()
+    snapshot_text = str(snapshot)
+    # Desktop popups appear as wnd[1]; if no popup window, nothing to detect
+    idx = snapshot_text.find("wnd[1]")
+    if idx < 0:
+        return None
+    # Return only the popup portion to avoid false positives from main window labels
+    return snapshot_text[idx:]
+
+
 async def _check_screen_for_errors(backend: "SapUiBackend") -> str | None:
     """Check the entire screen for error indicators as a fallback."""
     try:
-        body_text = await backend.evaluate_javascript("() => document.body.innerText || ''")
+        if _is_desktop_backend(backend):
+            snapshot = await backend.get_snapshot()
+            body_text = str(snapshot)
+        else:
+            body_text = await backend.evaluate_javascript("() => document.body.innerText || ''")
         body_lower = body_text.lower()
 
         for pattern, message_prefix in ERROR_PATTERNS:
@@ -1013,4 +1037,10 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_read_se38_source")
         except ValueError as e:
             return {"success": False, "error": f"Session error: {e}"}
+        if _is_desktop_backend(backend):
+            return {
+                "success": False,
+                "error": "sap_read_se38_source is not supported on the desktop backend. "
+                "Use sap_se38_edit to open the report in SE38 instead.",
+            }
         return await read_se38_source(backend, program_name)
