@@ -1000,8 +1000,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Discover clickable buttons on the current SAP screen. "
             "Returns buttons with label, selector/ID, shortcut (e.g. F3), and accesskey. "
             "Prefer keyboard shortcuts (sap_keyboard) when available — they're faster and more reliable. "
-            "To press a button: use sap_click_button(label) on both backends, "
-            "or browser_click(selector) on WebGUI, or sap_com_evaluate(element_id, action='call', method='Press') on Desktop. "
+            "To press a discovered button: use browser_click(selector) on WebGUI, "
+            "or sap_com_evaluate(element_id, action='call', method='Press') on Desktop. "
             "For input fields use sap_discover_fields instead.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
@@ -1189,7 +1189,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         Args:
             fields: Dictionary mapping field identifiers to values.
-                    Keys can be visible label text (e.g., 'First Name')
+                    Keys can be visible label text (e.g., 'First Name'),
                     CSS selectors on WebGUI (e.g., '#M0:46:1:1::0:21'),
                     or SAP GUI element names on Desktop (e.g., 'BUT000-NAME_LAST').
             strict: If True, fail if any field is not found.
