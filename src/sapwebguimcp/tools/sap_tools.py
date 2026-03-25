@@ -1239,7 +1239,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Set a single SAP form field by label, CSS selector, or element name. "
+            "Set a single SAP form field by label, selector, or element name. "
             "Finds the field dynamically and fills it with the given value.\n\n"
             "The label parameter can be:\n"
             "- Visible label text (e.g., 'Last Name', 'Nachname') — works on both backends\n"
