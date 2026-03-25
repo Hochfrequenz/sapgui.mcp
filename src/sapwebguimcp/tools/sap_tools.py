@@ -950,9 +950,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Discover input fields on the current SAP screen. "
             "Returns fields with label, name, value, and a selector/ID for targeting the field. "
-            "Use the label with sap_fill_form to fill fields (works on all backends). "
-            "On WebGUI, the 'selector' field is a CSS selector. "
-            "On Desktop, it's a SAP GUI element ID. "
+            "Use the label with sap_fill_form or sap_set_field to fill fields (works on both backends). "
+            "The 'selector' field is a CSS selector on WebGUI or a SAP GUI element ID on Desktop. "
             "For buttons, use sap_discover_buttons instead.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
@@ -977,7 +976,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             DiscoveredFields with list of fields including:
             - field_id: SAP field ID (e.g., 'NAME_FIRST', 'STREET')
             - label: Associated label text (for sap_fill_form)
-            - selector: CSS selector (WebGUI) or element ID (Desktop)
+            - selector: CSS selector on WebGUI, or SAP GUI element ID on Desktop
             - type: Input type (text, checkbox, etc.)
             - value: Current value (if any)
         """
@@ -999,10 +998,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Discover clickable buttons on the current SAP screen. "
-            "Returns buttons with label, selector, shortcut (e.g. F3), and accesskey. "
-            "Prefer keyboard shortcuts (sap_keyboard) when available — they're faster and work on all backends. "
-            "On WebGUI, use the 'selector' field with browser_click. "
-            "On Desktop, use sap_com_evaluate to press buttons by element ID. "
+            "Returns buttons with label, selector/ID, shortcut (e.g. F3), and accesskey. "
+            "Prefer keyboard shortcuts (sap_keyboard) when available — they're faster and more reliable. "
+            "To press a discovered button: use browser_click(selector) on WebGUI, "
+            "or sap_com_evaluate(element_id, action='call', method='Press') on Desktop. "
             "For input fields use sap_discover_fields instead.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
@@ -1155,9 +1154,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Fill multiple SAP form fields in a single call. "
             "Use this when filling 2+ fields on the SAME screen without UI navigation between them.\n\n"
             "Keys can be:\n"
-            "- Visible label text (e.g., 'First Name', 'Straße') — works on all backends\n"
-            "- CSS selectors starting with '#' (WebGUI only, e.g., '#M0:46:1:1::0:21')\n"
-            "- SAP GUI element names (Desktop only, e.g., 'BUT000-NAME_LAST')\n\n"
+            "- Visible label text (e.g., 'First Name', 'Straße') — works on both backends\n"
+            "- CSS selectors starting with '#' (WebGUI, e.g., '#M0:46:1:1::0:21')\n"
+            "- SAP GUI element names (Desktop, e.g., 'BUT000-NAME_LAST')\n\n"
             "When to use:\n"
             "- Filling a form with multiple input fields\n"
             "- All fields visible on current screen\n"
@@ -1181,7 +1180,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Fill multiple SAP form fields in a single call.
 
         This is much faster than filling fields one by one, as it executes
-        all fills in a single browser round-trip.
+        all fills in a single call.
 
         Dropdown fields (ComboBox) are automatically detected and handled:
         the dropdown is opened, the matching option is selected. If the
@@ -1190,8 +1189,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         Args:
             fields: Dictionary mapping field identifiers to values.
-                    Keys can be visible label text (e.g., 'First Name')
-                    or CSS selectors (e.g., '#M0:46:1:1::0:21').
+                    Keys can be visible label text (e.g., 'First Name'),
+                    CSS selectors on WebGUI (e.g., '#M0:46:1:1::0:21'),
+                    or SAP GUI element names on Desktop (e.g., 'BUT000-NAME_LAST').
             strict: If True, fail if any field is not found.
                     If False, skip missing fields and report them.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
@@ -1242,9 +1242,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Set a single SAP form field by label, CSS selector, or element name. "
             "Finds the field dynamically and fills it with the given value.\n\n"
             "The label parameter can be:\n"
-            "- Visible label text (e.g., 'Last Name', 'Nachname') — works on all backends\n"
-            "- CSS selector (WebGUI only, e.g., '#M0:46:1:1::0:21')\n"
-            "- SAP GUI element name (Desktop only, e.g., 'BUT000-NAME_LAST')\n\n"
+            "- Visible label text (e.g., 'Last Name', 'Nachname') — works on both backends\n"
+            "- CSS selector (WebGUI, e.g., '#M0:46:1:1::0:21')\n"
+            "- SAP GUI element name (Desktop, e.g., 'BUT000-NAME_LAST')\n\n"
             "This is simpler than sap_fill_form for single fields.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
@@ -1258,7 +1258,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         agent_id: str | None = None,
     ) -> SetFieldResult:
         """
-        Set a single SAP form field by label, CSS selector, or element name.
+        Set a single SAP form field by label, selector, or element name.
 
         Finds the field dynamically and fills it. Supports both regular
         text inputs and dropdown/combobox fields.
@@ -1268,8 +1268,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         in the dropdown options, returns available_options listing valid choices.
 
         Args:
-            label: Field label text (e.g., 'Last Name'), CSS selector (WebGUI),
-                   or SAP GUI element name (Desktop)
+            label: Field label text (e.g., 'Last Name'),
+                   CSS selector on WebGUI (e.g., '#M0:46:1:1::0:21'),
+                   or SAP GUI element name on Desktop (e.g., 'BUT000-NAME_LAST')
             value: Value to set in the field (for dropdowns: exact option text)
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
