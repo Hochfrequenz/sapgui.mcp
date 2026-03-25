@@ -28,6 +28,11 @@ class DesktopSessionRegistry:
         self._bindings: dict[str, str] = {}  # session_id -> agent_id
         self._counter: int = 0
 
+    @property
+    def primary_session(self) -> str:
+        """Primary session ID: 's1' if present, else lowest available."""
+        return self._default_session_id()
+
     def register(self, session: GuiSession) -> str:
         """Register a session and return its ID (s1, s2, ...)."""
         self._counter += 1
@@ -37,7 +42,12 @@ class DesktopSessionRegistry:
         return session_id
 
     def get_session(self, session_id: str | None) -> GuiSession:
-        """Get the GuiSession for a session ID.  ``None`` defaults to ``'s1'``.
+        """Get the GuiSession for a session ID.
+
+        When *session_id* is ``None`` the registry picks the best default:
+        ``"s1"`` if it exists, otherwise the lowest numbered active session.
+        This avoids hard-coding ``"s1"`` which breaks after sessions are
+        created and closed (counter keeps incrementing).
 
         Raises ``ValueError`` if the session is not found in the registry.
 
@@ -46,11 +56,19 @@ class DesktopSessionRegistry:
         objects outside the COM thread causes ``CoInitialize`` errors.
         Stale sessions are detected when actual COM calls fail.
         """
-        sid = session_id or "s1"
+        sid = session_id or self._default_session_id()
         if sid not in self._sessions:
             available = ", ".join(sorted(self._sessions.keys())) or "(none)"
             raise ValueError(f"Session '{sid}' not found. Active: {available}.")
         return self._sessions[sid]
+
+    def _default_session_id(self) -> str:
+        """Return the best default session: 's1' if present, else lowest available."""
+        if "s1" in self._sessions:
+            return "s1"
+        if self._sessions:
+            return min(self._sessions.keys(), key=lambda k: int(k[1:]))
+        return "s1"  # will raise in caller
 
     def unregister(self, session_id: str) -> None:
         """Remove a session from the registry."""

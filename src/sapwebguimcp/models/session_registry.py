@@ -29,8 +29,16 @@ class SessionRegistry:
 
     @property
     def primary_session(self) -> str:
-        """Primary session ID (always 's1')."""
-        return "s1"
+        """Primary session ID: 's1' if present, else lowest available."""
+        return self._default_session_id()
+
+    def _default_session_id(self) -> str:
+        """Return the best default session: 's1' if present, else lowest available."""
+        if "s1" in self._sessions:
+            return "s1"
+        if self._sessions:
+            return min(self._sessions.keys(), key=lambda k: int(k[1:]))
+        return "s1"  # will raise in caller
 
     def register(self, page: "Page", agent_id: str | None = None) -> str:
         """Register a page and return its session ID.
@@ -86,7 +94,7 @@ class SessionRegistry:
         Raises:
             ValueError: If session not found or page is closed
         """
-        sid = session_id or "s1"
+        sid = session_id or self._default_session_id()
 
         if sid not in self._sessions:
             available = ", ".join(sorted(self._sessions.keys())) or "(none)"
