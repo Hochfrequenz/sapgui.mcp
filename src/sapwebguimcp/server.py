@@ -124,8 +124,8 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
         logger.info("[STOPPED] Server shutdown complete.")
 
 
-# Instructions for the LLM about this MCP server
-SERVER_INSTRUCTIONS = """
+# Instructions for the LLM about this MCP server — backend-specific
+_WEBGUI_INSTRUCTIONS = """
 SAP Web GUI automation server. Controls SAP through a Chrome browser with remote debugging enabled.
 
 BROWSER SETUP:
@@ -147,7 +147,7 @@ Do NOT try to install browsers. Instead, ask the user to verify:
 3. "Is the CDP proxy running?" (docker compose up -d)
 
 COMMON ERROR CAUSES:
-- "Chrome konnte nicht automatisch gefunden werden": Set CHROME_PATH in .env
+- "Chrome not found" / "Chrome konnte nicht ... gefunden werden": Set CHROME_PATH in .env
 - "SAP URL not reachable": VPN not connected
 - Login fails: Check SAP_USER, SAP_PASSWORD, SAP_MANDANT environment variables
 
@@ -156,11 +156,63 @@ WORKFLOW:
 2. Use sap_transaction to navigate to transactions (e.g., VA01, SE16, BP)
 3. Use browser_snapshot to see current screen state
 4. Use browser_fill/browser_click for interactions
+5. Prefer SAP-specific tools (sap_fill_form, sap_click_button) over browser_* tools when available
+
+ESCAPE HATCHES (when SAP-specific tools are insufficient):
+- browser_snapshot: See current DOM/ARIA tree
+- browser_evaluate: Execute arbitrary JavaScript
+- browser_click / browser_fill: Interact with elements by CSS selector
+- browser_navigate: Navigate to a URL (e.g., SAP Help Portal)
 """
 
+_DESKTOP_INSTRUCTIONS = """
+SAP GUI Desktop automation server. Controls SAP GUI for Windows via COM Scripting (ActiveX/OLE).
+
+PREREQUISITES:
+- SAP GUI for Windows installed and running
+- SAP GUI Scripting enabled on the server (RZ11 parameter: sapgui/user_scripting = TRUE)
+- SAP GUI Scripting enabled on the client (SAP GUI Options > Accessibility & Scripting > Enable Scripting)
+- SAP Logon landscape configured with the target connection name
+
+CONNECTION:
+The server connects via SAP_CONNECTION_NAME — the connection entry name from SAP Logon
+(e.g., "HF S/4", "DEV 100", "QA"). This is set in the .env file or passed to sap_login().
+
+IF CONNECTION FAILS:
+Ask the user to verify:
+1. "Is SAP GUI running?" (SAP Logon must be open)
+2. "Is scripting enabled?" (both server-side RZ11 and client-side SAP GUI Options)
+3. "What is the connection name in SAP Logon?" (set SAP_CONNECTION_NAME in .env)
+
+COMMON ERROR CAUSES:
+- RPC_E_DISCONNECTED: SAP GUI closed or session timed out — call sap_login() again
+- "SAP_CONNECTION_NAME not configured": Set SAP_CONNECTION_NAME in .env
+- "Scripting disabled": Enable in SAP GUI Options > Accessibility & Scripting
+- Login fails: Check SAP_USER, SAP_PASSWORD, SAP_MANDANT environment variables
+
+WORKFLOW:
+1. Call sap_login first to open SAP and authenticate
+2. Use sap_transaction to navigate to transactions (e.g., VA01, SE16, BP)
+3. Use sap_com_snapshot to see the SAP GUI element tree with element IDs
+4. Use SAP-specific tools (sap_fill_form, sap_click_button, sap_keyboard) for interactions
+5. Use sap_com_evaluate as escape hatch for operations not covered by SAP-specific tools
+
+ESCAPE HATCHES (when SAP-specific tools are insufficient):
+- sap_com_snapshot: Get element tree with IDs (e.g., wnd[0]/usr/txtFIELD_NAME)
+- sap_com_evaluate: Execute COM operations on elements by ID
+  - action="get": Read a property (e.g., Text, Selected, Value)
+  - action="set": Write a property (args=["value"])
+  - action="call": Invoke a method (e.g., SendVKey on wnd[0], Press on buttons)
+  - Use element IDs from sap_com_snapshot (e.g., "wnd[0]/usr/cmbFIELD")
+  - VKey codes: 0=Enter, 3=F3/Back, 8=F8/Execute, 11=F11/Save, 12=F12/Cancel
+"""
+
+SERVER_INSTRUCTIONS = _DESKTOP_INSTRUCTIONS if _settings.backend_type == "desktop" else _WEBGUI_INSTRUCTIONS
+
 # Create the FastMCP server instance with strict input validation
+_SERVER_NAME = "sap-desktop-mcp" if _settings.backend_type == "desktop" else "sap-webgui-mcp"
 mcp = FastMCP(
-    "sap-webgui-mcp",
+    _SERVER_NAME,
     instructions=SERVER_INSTRUCTIONS,
     lifespan=app_lifespan,
     strict_input_validation=True,

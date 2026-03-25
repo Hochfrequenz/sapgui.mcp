@@ -19,7 +19,8 @@ class TestMcpServer:
 
     def test_mcp_server_has_correct_name(self) -> None:
         """Test that the server has the expected name."""
-        assert mcp.name == "sap-webgui-mcp"
+        expected_name = "sap-desktop-mcp" if _backend_type == "desktop" else "sap-webgui-mcp"
+        assert mcp.name == expected_name
 
     def test_sap_tools_are_registered(self) -> None:
         """Test that SAP-specific tools are registered."""
