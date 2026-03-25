@@ -1431,7 +1431,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                     SessionInfo(
                         session_id=sid,
                         title=title,
-                        is_primary=(sid == "s1"),
+                        is_primary=(sid == registry.primary_session),
                         agent_id=registry.get_bound_agent(sid),
                     )
                 )

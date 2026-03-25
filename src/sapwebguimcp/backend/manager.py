@@ -53,7 +53,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
         if self.backend_type == "webgui":
             browser_manager = await get_browser_manager()
             page = await browser_manager.get_or_create_session_page_checked(session, agent_id, tool_name)
-            session_key = session or "s1"
+            session_key = session or browser_manager.registry.primary_session
             cached = self._backends.get(session_key)
             if cached is not None and self._page_ids.get(session_key) == id(page):
                 return cached
@@ -65,18 +65,18 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             # Single shared DesktopBackend — session routing via ContextVar
             cached = self._backends.get("desktop")
             if cached is not None:
-                _current_session_id.set(session or "s1")
-                if isinstance(cached, DesktopBackend):
-                    cached._registry.check_binding(  # pylint: disable=protected-access
-                        session or "s1", agent_id, tool_name
-                    )
+                assert isinstance(cached, DesktopBackend)
+                effective = session or cached._registry.primary_session  # pylint: disable=protected-access
+                _current_session_id.set(effective)
+                cached._registry.check_binding(effective, agent_id, tool_name)  # pylint: disable=protected-access
                 return cached
             if self._com_thread is None:
                 interval = get_settings().com_min_interval_ms
                 self._com_thread = ComThread(min_interval_ms=interval)
             new_backend = DesktopBackend(com_thread=self._com_thread)
             self._backends["desktop"] = new_backend
-            _current_session_id.set(session or "s1")
+            effective = session or new_backend._registry.primary_session  # pylint: disable=protected-access
+            _current_session_id.set(effective)
             return new_backend
         raise ValueError(f"No implementation for backend '{self.backend_type}'")
 
