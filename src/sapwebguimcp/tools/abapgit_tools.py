@@ -983,8 +983,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             trkorr: Transport request (optional, but error if SAP requires it).
                     If pull fails with "Transport required", retry with trkorr.
             username: GitHub username (optional for public repos)
-            pat: GitHub Personal Access Token (optional for public repos,
-                 falls back to ABAPGIT_PAT or GITHUB_PAT environment variables)
+            pat: GitHub Personal Access Token (optional for public repos).
+                 Falls back to ABAPGIT_PAT env var, then GITHUB_PAT.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 

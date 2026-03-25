@@ -90,7 +90,7 @@ class TestStartupPatValidation:
         with caplog.at_level(logging.INFO):
             async with app_lifespan(None):  # type: ignore[arg-type]
                 pass
-        assert "[OK] GitHub PAT validated" in caplog.text
+        assert "[OK] ABAPGIT_PAT validated" in caplog.text
         assert "hf-kklein" in caplog.text
 
     @respx.mock
