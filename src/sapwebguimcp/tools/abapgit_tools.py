@@ -209,7 +209,8 @@ async def _check_for_error_popup_webgui(backend: "SapUiBackend") -> str | None:
         return null;
     }
     """
-    return await backend.evaluate_javascript(js_code)
+    result: str | None = await backend.evaluate_javascript(js_code)
+    return result
 
 
 async def _check_for_error_popup_desktop(backend: "SapUiBackend") -> str | None:
