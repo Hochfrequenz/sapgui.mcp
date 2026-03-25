@@ -210,9 +210,9 @@ ESCAPE HATCHES (when SAP-specific tools are insufficient):
 SERVER_INSTRUCTIONS = _DESKTOP_INSTRUCTIONS if _settings.backend_type == "desktop" else _WEBGUI_INSTRUCTIONS
 
 # Create the FastMCP server instance with strict input validation
-_server_name = "sap-desktop-mcp" if _settings.backend_type == "desktop" else "sap-webgui-mcp"
+_SERVER_NAME = "sap-desktop-mcp" if _settings.backend_type == "desktop" else "sap-webgui-mcp"
 mcp = FastMCP(
-    _server_name,
+    _SERVER_NAME,
     instructions=SERVER_INSTRUCTIONS,
     lifespan=app_lifespan,
     strict_input_validation=True,
