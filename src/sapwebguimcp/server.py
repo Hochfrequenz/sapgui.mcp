@@ -195,14 +195,14 @@ register_class_tools(mcp)
 register_se24_edit_tools(mcp)
 register_se38_edit_tools(mcp)
 
-# Always available: logging
+# Always available: logging, abapgit
 register_intent_tools(mcp)
 register_feedback_tools(mcp)
+register_abapgit_tools(mcp)
 
-# WebGUI only: browser escape hatches, abapgit (JS-dependent), SE37 editor (no desktop impl)
+# WebGUI only: browser escape hatches, SE37 editor (no desktop impl)
 if _backend == "webgui":
     register_browser_tools(mcp)
-    register_abapgit_tools(mcp)
     register_se37_edit_tools(mcp)
     register_quick_report_tools(mcp)
 
