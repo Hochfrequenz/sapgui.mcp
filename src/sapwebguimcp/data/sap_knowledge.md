@@ -90,93 +90,9 @@ For objects in packages that are **not source-controlled via abapGit**, the edit
 These are fallback options for quick modifications to objects that are not tracked in Git.
 Using Git is always the preferred option — there should be no doubt about it.
 
-### Setup
+**Key rules:** All abapGit filenames MUST be lowercase (e.g., `zcl_my_class.clas.abap`, not `ZCL_MY_CLASS.clas.abap`). Workflow: write locally → push to Git → pull in abapGit → test with MCP → iterate. Use `sap_abapgit_pull` (may need a second call if status is unknown). One Git repo = one ABAP package; use this MCP server to explore objects outside your package.
 
-1. **Install abapGit in SAP** - Follow the [abapGit installation guide](https://docs.abapgit.org/user-guide/getting-started/install.html).
-   See also [abapGit.org](https://abapgit.org/) for an overview.
-2. **Install Claude Code** - Follow the [official documentation](https://docs.anthropic.com/en/docs/claude-code/overview)
-3. **Configure the SAP WebGUI MCP Server** - Add this MCP server to your Claude Code configuration.
-   See [MCP server setup](https://docs.anthropic.com/en/docs/claude-code/mcp-servers)
-4. **Clone your abapGit repository** - Open Claude Code in the local repository directory where your ABAP code lives
-
-### Finding abapGit in SAP
-
-If you don't have a transaction code for abapGit yet:
-
-1. **SE93** - Check if a transaction like `ZABAPGIT` already exists
-2. **SE38** - Search for programs matching `*abap*git*` (e.g., `ZABAPGIT_STANDALONE`)
-3. **Create transaction** - If needed, use SE93 to create a transaction code pointing to the abapGit program
-
-### ⚠️ abapGit File Naming: Lowercase is Required
-
-**All filenames in an abapGit repository MUST be lowercase.** abapGit serializes and expects filenames in lowercase. While ABAP object names are uppercase internally (e.g., `ZCL_MY_CLASS`), the corresponding files must be lowercase (e.g., `zcl_my_class.clas.abap`, `zcl_my_class.clas.xml`).
-
-**Common mistake:** Creating files with uppercase names like `ZCL_MY_CLASS.clas.abap` — abapGit will fail with:
-
-```
-File not found: zcl_my_class.clas.xml
-Import of object ZCL_MY_CLASS failed
-```
-
-**Fix:** Rename all files to lowercase. Use `git mv` to rename (not just the filesystem) so Git tracks the change:
-
-```bash
-git mv src/ZCL_MY_CLASS.clas.abap src/zcl_my_class.clas.abap
-git mv src/ZCL_MY_CLASS.clas.xml src/zcl_my_class.clas.xml
-```
-
-### Development Workflow
-
-1. **Write code in Claude Code** - Let Claude Code generate/modify your ABAP code locally
-2. **Push to Git** - Commit and push your changes to the Git repository
-3. **Pull in abapGit** - In SAP, open abapGit and pull the latest changes from the repository
-4. **Test with MCP** - Use this MCP server to navigate to transactions and test your code
-5. **Iterate** - Fix issues in Claude Code, push, pull, test again
-
-### Known Issue: `sap_abapgit_pull` Returns "Pull status unknown"
-
-The `sap_abapgit_pull` tool may return "Pull status unknown" on the first call because the SAP status bar is empty after navigating to the report.
-**Workaround:** Simply call `sap_abapgit_pull` a second time, or press F8 (Ausführen/Execute) after the first call to actually trigger the pull execution.
-
-### Performance Tip: Use a Separate SAP Window (Modus)
-
-When pulling changes in abapGit, it's helpful to do this in a **separate SAP window (Modus)**.
-This way, the MCP server doesn't need to switch back and forth between abapGit and your test transaction.
-
-To open a new Modus: Use menu **System → Erzeugen Modus** or enter `/o` in the command field.
-
-> **Note:** Multi-session support is now available! See "Multi-Session Support" section below.
-> Each sub-agent can have its own session, allowing parallel work without interference.
-
-### Understanding abapGit Scope: 1 Repository = 1 Package
-
-In abapGit, **one Git repository corresponds to exactly one ABAP package**.
-This means your repository only contains the development objects within that specific package.
-
-However, real-world ABAP development often requires interacting with objects **outside** your package:
-
-- Standard SAP function modules, classes, or tables
-- Objects in other custom packages
-- Data dictionary structures you need to understand
-
-**Use this MCP server to explore these external objects** without guessing.
-You can navigate to the relevant transactions and inspect objects that aren't part of your abapGit repository.
-
-### ABAP Development Transactions
-
-Use these focused transactions for ABAP development.
-Each has a simple, MCP-friendly UI:
-
-| Transaction | Purpose                               | Example Use                                                  |
-| ----------- | ------------------------------------- | ------------------------------------------------------------ |
-| **SE37**    | Function Modules (Funktionsbausteine) | View, edit (sap_se37_edit) signature, parameters, exceptions |
-| **SE38**    | Reports / Programs                    | View, edit (sap_se38_edit), and test ABAP reports            |
-| **SE24**    | Classes (Klassen)                     | View, edit (sap_se24_edit) class methods, attributes         |
-| **SE11**    | Data Dictionary (DDIC)                | View table structures, data elements, domains                |
-| **SE16**    | Table Contents                        | Browse actual data in tables (read-only recommended)         |
-
-> **Avoid SE80** (Object Navigator / Workbench): Its complex tree-based UI is difficult for the MCP server to parse and navigate.
-> Prefer the smaller, focused transactions above.
+**Avoid SE80** — prefer SE37, SE38, SE24, SE11, SE16 for ABAP development (simpler UI, better MCP support).
 
 ## Functional Background
 
@@ -244,19 +160,7 @@ For general-purpose exploration of unknown screens:
 4. Detects end-of-data via first-row key comparison
 5. Handles stuck/empty pages gracefully
 
-**Key Techniques:**
-
-- Focus grid before pagination: `page.locator("[role='grid']").first.click()`
-- Row deduplication via set with composite keys
-- First-row key comparison to detect end
-- Stuck counter (stop after 3 empty pages)
-- ~1 second wait between pages for lazy loading
-
-**Performance:** ~7 rows/second due to pagination overhead.
-
-**Reuse Opportunity:** Consider extracting a reusable `alv_collect_rows()` helper that other transaction tools can use. Currently each tool would need to copy this pattern.
-
-Use `log_feedback` to report if you encounter a transaction that needs pagination support.
+Use `sap_se16_query` which handles pagination automatically. For other transactions with ALV grids, use `log_feedback` to report pagination needs.
 
 ## Multi-Session Support (Parallel Agents)
 
@@ -272,95 +176,9 @@ For bulk operations (create 100 business partners, process many orders, etc.), y
 | `sap_session_bind(session_id, agent_id)`  | Bind a session to an agent for parallel workflows               |
 | `sap_session_release(session_id)`         | Unbind a session from an agent without closing it               |
 
-### Workflow Example
-
-```python
-# Parent agent creates sessions for 3 parallel sub-agents
-sap_transaction("BP", new_window=True)  # Returns session_id="s2"
-sap_session_bind(session_id="s2", agent_id="subagent-1")
-
-sap_transaction("BP", new_window=True)  # Returns session_id="s3"
-sap_session_bind(session_id="s3", agent_id="subagent-2")
-
-sap_transaction("BP", new_window=True)  # Returns session_id="s4"
-sap_session_bind(session_id="s4", agent_id="subagent-3")
-
-# Spawn sub-agents with session assignment:
-# "Your SAP session is 's2'. Pass session='s2' and agent_id='subagent-1' to ALL SAP/browser tools."
-
-# Each sub-agent works independently:
-sap_fill_form({"Name": "Customer 1"}, session="s2", agent_id="subagent-1")
-sap_keyboard("F8", session="s2", agent_id="subagent-1")  # Execute
-```
-
-### Tools Supporting `session` Parameter
-
-All major SAP and browser tools accept an optional `session` parameter:
-
-**SAP Tools:**
-
-- `sap_transaction`, `sap_keyboard`, `sap_get_screen_text`
-- `sap_fill_form`, `sap_set_field`, `sap_get_form_fields`
-- `sap_read_table`, `sap_click_table_cell`
-- `sap_discover_fields`, `sap_discover_buttons`, `sap_get_shortcuts`
-- `sap_close_popup`, `sap_read_status_bar`, `sap_get_screen_info`
-
-**Browser Tools:**
-
-- `browser_click`, `browser_fill`, `browser_keyboard`
-- `browser_snapshot`, `browser_screenshot`, `browser_get_html`
-- `browser_navigate`, `browser_wait`, `browser_evaluate`, `browser_select_option`
-
-**SE\* Tools:**
-
-- `sap_se11_lookup`, `sap_se16_query`, `sap_se24_lookup`, `sap_se37_lookup`, `sap_se93_lookup`
-
-### Instructions for Sub-Agents
-
-If you are a sub-agent working on an SAP task, your parent agent should have given you a `session` and `agent_id`.
-You **must** pass both parameters on **every session-aware** SAP/browser tool call (i.e., those that accept `session` and `agent_id` parameters).
-Session-management tools like `sap_session_release(session_id)` only take `session_id`.
-
-```python
-sap_transaction("VA01", session="s2", agent_id="subagent-orders")
-sap_fill_form({"Customer": "12345"}, session="s2", agent_id="subagent-orders")
-sap_keyboard("Enter", session="s2", agent_id="subagent-orders")
-```
-
-When finished, release your session: `sap_session_release(session_id="s2")`
-
-### Cross-Agent Access
-
-If an agent accesses a session bound to a different agent, a **warning** is logged but the operation **still proceeds**.
-This helps debug cross-talk issues without blocking work.
-
-### Best Practices
-
-- **Use descriptive agent_ids** like `"order-processor"`, not `"agent1"`
-- **Always release sessions** when done to allow reuse
-- **Check `sap_session_list()`** if unsure about session state
-
-### Important Notes
+All major SAP, browser, and SE* tools accept an optional `session` parameter. Sub-agents **must** pass `session` and `agent_id` on every tool call. Use `sap_transaction(tcode, new_window=True)` to open a new session (returns `session_id` — always check it's not `None`). Release sessions when done with `sap_session_release(session_id)`.
 
 - **Primary session "s1"** is created automatically on `sap_login()`
-- **Session limit:** Typically 6 sessions per SAP user (configured in SAP)
-- **Alternative:** Use `sap_transaction("BP", new_window=True)` to open a transaction directly in a new session. This **auto-registers** the new session and returns the `session_id` in the result.
-- **Cleanup:** Sessions are closed automatically when their browser tab closes, or use `sap_session_close(session_id)`
-
-### Using `new_window=True` for Quick Session Creation
-
-```python
-# Open transaction in new session - session is auto-registered
-result = sap_transaction("BP", new_window=True)
-
-# IMPORTANT: Always check if session was created successfully!
-# session_id can be None if SAP session limit reached or timing issues
-if result.session_id is None:
-    # Handle failure - session was not created
-    # Passing None to session= would use primary session (s1) instead!
-    raise RuntimeError("Failed to create new SAP session")
-
-# Use the new session (now guaranteed to be valid)
-sap_fill_form({"Name": "Customer 1"}, session=result.session_id)
-sap_keyboard("Control+s", session=result.session_id)
-```
+- **Session limit:** Typically 6 per SAP user
+- **Cross-agent access:** Logs a warning but still proceeds
+- Use descriptive agent_ids (e.g., `"order-processor"`, not `"agent1"`)
