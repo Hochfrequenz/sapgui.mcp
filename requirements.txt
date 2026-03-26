@@ -39,7 +39,7 @@ click==8.3.1
     # via uvicorn
 colorama==0.4.6
     # via click
-cryptography==46.0.5
+cryptography==46.0.6
     # via
     #   authlib
     #   pyjwt
