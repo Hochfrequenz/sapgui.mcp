@@ -129,7 +129,7 @@ pydantic[email]==2.12.5
     #   pydantic-settings
     #   sapsucker
     #   sapwebguimcp (pyproject.toml)
-pydantic-core==2.41.5
+pydantic-core==2.42.0
     # via pydantic
 pydantic-settings==2.13.1
     # via
