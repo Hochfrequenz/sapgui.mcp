@@ -239,8 +239,9 @@ class CitrixBackend:
         result = await self._call("take_screenshot")
         return base64.b64decode(result["data"])
 
-    # Browser-only Methoden (nicht unterstützt, wie beim DesktopBackend):
-    async def load_js(self, filename: str) -> None:
+    # Browser-only Methoden (nicht unterstützt, wie beim DesktopBackend).
+    # Signaturen matchen exakt das SapUiBackend-Protocol:
+    def load_js(self, filename: str) -> None:  # sync im Protocol
         raise NotImplementedError("load_js is not available via Citrix relay")
 
     async def evaluate_javascript(self, script: str, arg: Any = None) -> Any:
@@ -249,7 +250,7 @@ class CitrixBackend:
     async def fill_element_by_locator(self, locator: str, **kwargs) -> Any:
         raise NotImplementedError("fill_element_by_locator is not available via Citrix relay")
 
-    async def click_element(self, selector: str) -> Any:
+    async def click_element(self, selector: str) -> bool:  # bool im Protocol
         raise NotImplementedError("click_element is not available via Citrix relay")
 
     # Session-Management wird 1:1 an den Relay weitergeleitet.
@@ -269,7 +270,39 @@ class CitrixBackend:
     async def has_session(self, session_id: str) -> bool:
         return await self._call("has_session", session_id=session_id)
 
-    # ... alle weiteren SapUiBackend-Methoden analog als Proxy
+    # Alle weiteren SapUiBackend-Methoden (~40 total) folgen dem gleichen
+    # Proxy-Pattern via _call(). Vollständige Liste der Proxy-Methoden:
+    #
+    # --- SapUiPrimitives (async, proxied) ---
+    # fill_field, fill_main_input, fill_form, fill_grid_cell, click_button,
+    # click_tab, press_key, type_text, set_checkbox, set_radio_button,
+    # select_dropdown, focus_and_type
+    #
+    # --- SapUiInspection (async, proxied) ---
+    # get_status_bar, get_screen_info, get_screen_text, discover_fields,
+    # get_form_fields, discover_buttons, read_table, take_screenshot,
+    # get_snapshot, click_table_cell, get_dropdown_options, get_page_title
+    #
+    # --- SapNavigation (async, proxied) ---
+    # login, enter_transaction, get_session_status, wait_for_ready,
+    # wait_for_sap_ready, wait, start_keepalive, stop_keepalive,
+    # open_new_session, is_page_closed, close_page, bring_to_front,
+    # list_connections, discover_clients
+    # list_sessions, bind_session, release_session, close_session, has_session
+    #
+    # --- SapEditor (async, proxied) ---
+    # read_editor_source, replace_editor_source, check_and_activate
+    #
+    # --- SapPopup (async, proxied) ---
+    # check_popup, dismiss_popup, dismiss_language_dialog
+    #
+    # --- Sync-Methoden (KEIN Proxy via _call, lokal implementiert) ---
+    # backend_type: Property, gibt "citrix" zurück (lokal)
+    # get_session_token: def (sync), wird via synchronen RPC-Call proxied:
+    #   def get_session_token(self) -> str:
+    #       return asyncio.get_event_loop().run_until_complete(
+    #           self._call("get_session_token"))
+    #
 
     async def _call(self, method: str, **args) -> Any:
         self._counter += 1
@@ -502,7 +535,10 @@ if settings.backend_type == "citrix":
 | `config.py` | `BackendType = Literal["webgui", "desktop", "citrix"]` — "citrix" hinzufügen |
 | `config.py` | Neue Settings: `citrix_relay_dir`, `citrix_poll_interval_ms`, `citrix_heartbeat_timeout_s` |
 | `manager.py` | `get_or_create()` um Citrix-Branch erweitern |
-| `tools/*` | Alle `backend_type`-Checks auditieren und ggf. um `"citrix"` erweitern |
+| `tools/_backend_utils.py` | `_is_desktop_backend()` durch `_is_com_backend()` ersetzen: gibt `True` für `"desktop"` und `"citrix"` zurück, da beide COM-basiert sind. Alle Aufrufer (`com_tools.py`, `sap_tools.py`) verwenden den neuen Helper. |
+| `tools/*` | Alle weiteren `backend_type`-Checks auditieren und ggf. um `"citrix"` erweitern |
+| `backend/protocol.py` | `SapNavigation.backend_type` Docstring um `"citrix"` erweitern |
+| `manager.py` | `close()` um Citrix-Branch erweitern (Relay-Dir Cleanup, Shutdown-Signal) |
 | Neues Package | `backend/citrix/` mit `CitrixBackend`, `RelayAgent`, `atomic_write`, `exceptions` |
 
 ### Konfiguration (.env)
