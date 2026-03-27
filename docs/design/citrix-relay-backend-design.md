@@ -140,13 +140,20 @@ Dies ist besonders wichtig für große Payloads wie Screenshots (~700KB JSON).
 
 Alle Responses werden als JSON serialisiert. Typzuordnung:
 
-| Python-Typ | JSON-Serialisierung | Deserialisierung (Client) |
+| Python-Typ | JSON-Serialisierung (Relay) | Deserialisierung (Client) |
 |---|---|---|
-| Pydantic `BaseModel` | `model.model_dump()` → dict | `ModelClass(**result)` |
+| Pydantic `BaseModel` | `model.model_dump()` → dict | Bleibt dict (kein Model-Reconstruct) |
 | `bytes` | `{"_type": "bytes", "data": "<base64>"}` | `base64.b64decode(result["data"])` |
 | `None` | `null` | `None` |
 | `str`, `int`, `float`, `bool` | Direkt | Direkt |
-| `list`, `dict` | Direkt | Direkt |
+| `list[BaseModel]` | Rekursiv: jedes Element via `model_dump()` | `list[dict]` |
+| `tuple` | Rekursiv → JSON-Array | Explizite Tuple-Rekonstruktion wo nötig (z.B. `open_new_session`) |
+| `dict` | Direkt | Direkt |
+
+**Hinweis:** Pydantic-Models werden als raw-dicts zurückgegeben, nicht rekonstruiert.
+Tool-Code der auf CitrixBackend-Rückgaben zugreift muss dict-kompatibel sein
+(`.get("key")` oder `result["key"]` statt `.key`). Dies ist bei den meisten Tools
+bereits der Fall, da sie Ergebnisse direkt weitergeben oder in eigene Models verpacken.
 
 Der Relay kodiert im `_execute()`, der CitrixBackend dekodiert in `_call()`.
 
@@ -232,8 +239,8 @@ class CitrixBackend:
     async def fill_field(self, label: str, value: str) -> None:
         await self._call("fill_field", label=label, value=value)
 
-    async def read_table(self, **kwargs) -> TableData:
-        return await self._call("read_table", **kwargs)
+    async def read_table(self, start_row: int = 1, end_row: int | None = None, max_rows: int = 100) -> TableData:
+        return await self._call("read_table", start_row=start_row, end_row=end_row, max_rows=max_rows)
 
     async def take_screenshot(self) -> bytes:
         result = await self._call("take_screenshot")
@@ -241,16 +248,16 @@ class CitrixBackend:
 
     # Browser-only Methoden (nicht unterstützt, wie beim DesktopBackend).
     # Signaturen matchen exakt das SapUiBackend-Protocol:
-    def load_js(self, filename: str) -> None:  # sync im Protocol
+    def load_js(self, filename: str) -> str:
         raise NotImplementedError("load_js is not available via Citrix relay")
 
     async def evaluate_javascript(self, script: str, arg: Any = None) -> Any:
         raise NotImplementedError("evaluate_javascript is not available via Citrix relay")
 
-    async def fill_element_by_locator(self, locator: str, **kwargs) -> Any:
+    async def fill_element_by_locator(self, locator: str, value: str, delay_ms: int = 30) -> bool:
         raise NotImplementedError("fill_element_by_locator is not available via Citrix relay")
 
-    async def click_element(self, selector: str) -> bool:  # bool im Protocol
+    async def click_element(self, selector: str) -> bool:
         raise NotImplementedError("click_element is not available via Citrix relay")
 
     # Session-Management wird 1:1 an den Relay weitergeleitet.
@@ -258,14 +265,14 @@ class CitrixBackend:
     async def list_sessions(self) -> list:
         return await self._call("list_sessions")
 
-    async def bind_session(self, session_id: str, agent_id: str) -> None:
-        await self._call("bind_session", session_id=session_id, agent_id=agent_id)
+    async def bind_session(self, session_id: str, agent_id: str) -> str | None:
+        return await self._call("bind_session", session_id=session_id, agent_id=agent_id)
 
-    async def release_session(self, agent_id: str) -> None:
-        await self._call("release_session", agent_id=agent_id)
+    async def release_session(self, session_id: str) -> str | None:
+        return await self._call("release_session", session_id=session_id)
 
-    async def close_session(self, session_id: str) -> None:
-        await self._call("close_session", session_id=session_id)
+    async def close_session(self, session_id: str) -> bool:
+        return await self._call("close_session", session_id=session_id)
 
     async def has_session(self, session_id: str) -> bool:
         return await self._call("has_session", session_id=session_id)
@@ -291,17 +298,21 @@ class CitrixBackend:
     # list_sessions, bind_session, release_session, close_session, has_session
     #
     # --- SapEditor (async, proxied) ---
-    # read_editor_source, replace_editor_source, check_and_activate
+    # read_editor_source, replace_editor_source, check_and_activate,
+    # dismiss_language_dialog
     #
     # --- SapPopup (async, proxied) ---
-    # check_popup, dismiss_popup, dismiss_language_dialog
+    # check_popup, dismiss_popup
     #
     # --- Sync-Methoden (KEIN Proxy via _call, lokal implementiert) ---
     # backend_type: Property, gibt "citrix" zurück (lokal)
-    # get_session_token: def (sync), wird via synchronen RPC-Call proxied:
+    # get_session_token: def (sync), wird via run_coroutine_threadsafe proxied.
+    #   Kann NICHT run_until_complete() verwenden, da der MCP-Server bereits
+    #   einen Event-Loop betreibt. Stattdessen: privater Thread-Loop.
     #   def get_session_token(self) -> str:
-    #       return asyncio.get_event_loop().run_until_complete(
-    #           self._call("get_session_token"))
+    #       future = asyncio.run_coroutine_threadsafe(
+    #           self._call("get_session_token"), self._sync_loop)
+    #       return future.result(timeout=60)
     #
 
     async def _call(self, method: str, **args) -> Any:
@@ -314,7 +325,7 @@ class CitrixBackend:
             "token": self._token,
             "method": method,
             "args": args,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         cmd_path = self._relay_dir / "commands" / f"{cmd_id}.json"
         atomic_write_json(cmd_path, cmd)
@@ -343,11 +354,13 @@ class CitrixBackend:
         if not hb_path.exists():
             return  # Noch kein Heartbeat — Relay startet gerade
         hb = json.loads(hb_path.read_text())
-        age = (datetime.utcnow() - datetime.fromisoformat(hb["timestamp"])).total_seconds()
-        if age > 10:
-            raise RelayDisconnectedError(f"Heartbeat ist {age:.0f}s alt")
         if hb.get("status") == "shutdown":
             raise RelayDisconnectedError("Relay wurde beendet")
+        if hb.get("status") == "disconnected":
+            raise RelayDisconnectedError("SAP-Session in Citrix getrennt (COM-Fehler)")
+        age = (datetime.now(timezone.utc) - datetime.fromisoformat(hb["timestamp"])).total_seconds()
+        if age > 10:
+            raise RelayDisconnectedError(f"Heartbeat ist {age:.0f}s alt")
 ```
 
 ### Nicht unterstützte Methoden (Browser-only)
@@ -485,13 +498,19 @@ class RelayAgent:
             }
 
     def _serialize(self, result: Any) -> Any:
-        """Serialisiert Python-Objekte für JSON-Transport."""
+        """Serialisiert Python-Objekte für JSON-Transport.
+
+        Rekursiv für list/tuple, damit z.B. list[SessionInfo] korrekt
+        serialisiert wird. Tuples werden zu JSON-Arrays.
+        """
         if result is None:
             return None
         if isinstance(result, bytes):
             return {"_type": "bytes", "data": base64.b64encode(result).decode()}
         if hasattr(result, "model_dump"):
             return result.model_dump()
+        if isinstance(result, (list, tuple)):
+            return [self._serialize(item) for item in result]
         return result
 ```
 
