@@ -57,18 +57,18 @@ Creating these objects generates **transport requests** owned by the test user (
     - Uncheck "Notify when a script opens a connection"
 - **R/3 only**: Switch ABAP editor to "text-based editor" (SE38 → Hilfsmittel → Einstellungen → ABAP Editor → "Text-basierter Editor"). The source-code-based editor does not fully expose content via COM scripting. See [#442](https://github.com/Hochfrequenz/sapwebgui.mcp/issues/442).
 
-### .env Configuration
+### Credentials Configuration
+
+SAP credentials are configured in `~/.config/sap-mcp/systems.json` (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config)).
+
+`.env` only needs the backend type and language:
 
 ```env
 BACKEND_TYPE=desktop
-SAP_CONNECTION_NAME=Your SAP Logon Entry
-SAP_USER=your_username
-SAP_PASSWORD=your_password
-SAP_MANDANT=100
 SAP_LANGUAGE=DE
 ```
 
-`SAP_CONNECTION_NAME` is the **description text** shown in SAP Logon (the bold text in the list), not the system ID or server address.
+The connection name, user, password, and mandant are read from `systems.json`.
 
 ### Running Desktop Tests
 
@@ -113,14 +113,15 @@ Verify it's working:
 Invoke-WebRequest -Uri 'http://localhost:9222/json/version' -UseBasicParsing
 ```
 
-### .env Configuration
+### Credentials Configuration
+
+SAP credentials are configured in `~/.config/sap-mcp/systems.json` (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config)).
+
+`.env` only needs the backend type, URL, and browser settings:
 
 ```env
 BACKEND_TYPE=webgui
 SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui
-SAP_USER=your_username
-SAP_PASSWORD=your_password
-SAP_MANDANT=100
 SAP_LANGUAGE=DE
 BROWSER_MODE=connect
 CDP_URL=http://localhost:9222

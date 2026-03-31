@@ -216,9 +216,9 @@ In `server.py`, add the import and call `register_se99_tools(mcp)` alongside the
 
 Integration tests auto-skip based on **credential detection** — no hardcoded hostnames or machine lists.
 
-- **Desktop tests** use `skip_no_sap` (defined in `unittests/desktop/conftest.py`): skips when `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, or `SAP_CONNECTION_NAME` are missing
-- **WebGUI tests** use `has_sap_webgui_creds()` (defined in `unittests/conftest.py`): skips when `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, or `SAP_URL` are missing
-- Both check functions are in `unittests/conftest.py` — configure your `.env` file and tests run automatically
+- **Desktop tests** use `skip_no_sap` (defined in `unittests/desktop/conftest.py`): skips when SAP credentials are not configured in `~/.config/sap-mcp/systems.json`
+- **WebGUI tests** use `has_sap_webgui_creds()` (defined in `unittests/conftest.py`): skips when SAP credentials are not configured in `~/.config/sap-mcp/systems.json` or SAP URL is missing
+- Both check functions are in `unittests/conftest.py` — configure your `systems.json` file and tests run automatically
 
 Desktop test files include `pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")` to skip on Linux/macOS CI.
 
@@ -242,20 +242,18 @@ All settings are in `src/sapwebguimcp/models/config.py` and loaded from environm
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `BACKEND_TYPE` | `desktop` or `webgui` | `webgui` |
-| `SAP_USER` | SAP login username | `""` |
-| `SAP_PASSWORD` | SAP login password | `""` |
-| `SAP_MANDANT` | SAP client number (e.g., `100`) | `""` |
 | `SAP_LANGUAGE` | `DE` or `EN` | `EN` |
 
-**Desktop-only:** `SAP_CONNECTION_NAME` — SAP Logon entry name (bold text in SAP Logon list)
+**Desktop-only:** Connection name is configured in `~/.config/sap-mcp/systems.json`
 
 **WebGUI-only:** `SAP_URL` — Web GUI URL (e.g., `https://server/sap/bc/gui/sap/its/webgui`)
+
+SAP credentials (user, password, mandant) are loaded from `~/.config/sap-mcp/systems.json` (or the path set via `SAP_CONFIG_FILE`). See the [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) package.
 
 ### Optional
 
 | Group | Variables | Purpose |
 |-------|-----------|---------|
-| **Multi-system** | `SAP_CREDENTIALS` | JSON mapping connection names to credentials (see README) |
 | **Browser** | `BROWSER_MODE`, `BROWSER_TYPE`, `CDP_URL`, `CHROME_PATH`, `CHROME_USER_DATA_DIR`, `BROWSER_HEADLESS` | Chrome/Playwright configuration |
 | **COM timing** | `COM_MIN_INTERVAL_MS` | Minimum ms between COM calls (desktop, prevents overload) |
 | **GitHub** | `GITHUB_PAT`, `GITHUB_USER`, `GITHUB_REPO`, `ABAPGIT_PAT` | Feedback issue creation, abapGit operations |

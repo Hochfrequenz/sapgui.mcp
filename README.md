@@ -414,14 +414,8 @@ Open `%APPDATA%\Claude\claude_desktop_config.json` and add:
                 "CDP_URL=http://cdp-proxy:9222",
                 "-e",
                 "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
-                "-e",
-                "SAP_USER=your_username",
-                "-e",
-                "SAP_PASSWORD=your_password",
-                "-e",
-                "SAP_MANDANT=100",
-                "-e",
-                "SAP_LANGUAGE=DE",
+                "-v",
+                "~/.config/sap-mcp/systems.json:/root/.config/sap-mcp/systems.json:ro",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
@@ -433,9 +427,9 @@ Open `%APPDATA%\Claude\claude_desktop_config.json` and add:
 
 Replace:
 
-- `your_username` / `your_password` with your SAP credentials
 - `your-sap-server` with your SAP server hostname
 - `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) (optional — see note above)
+- SAP credentials (user, password, mandant, language) are read from `~/.config/sap-mcp/systems.json` which is volume-mounted into the container
 
 #### Option B: Claude Code
 
@@ -458,14 +452,8 @@ Add to `.mcp.json` in your project root:
                 "CDP_URL=http://cdp-proxy:9222",
                 "-e",
                 "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
-                "-e",
-                "SAP_USER=your_username",
-                "-e",
-                "SAP_PASSWORD=your_password",
-                "-e",
-                "SAP_MANDANT=100",
-                "-e",
-                "SAP_LANGUAGE=DE",
+                "-v",
+                "~/.config/sap-mcp/systems.json:/root/.config/sap-mcp/systems.json:ro",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
@@ -720,7 +708,7 @@ docker logs sap-mcp-cdp-proxy-1
 ### SAP login fails
 
 - Check `SAP_URL` is correct and accessible from your browser
-- If using auto-login, verify `SAP_USER`, `SAP_PASSWORD`, and `SAP_MANDANT` are set
+- If using auto-login, verify credentials are configured in `~/.config/sap-mcp/systems.json`
 - Try logging in manually first to verify credentials
 
 ### Transaction input field (OK-Code field) not visible

@@ -19,10 +19,9 @@ services:
       - BROWSER_MODE=connect
       - CDP_URL=http://cdp-proxy:9222
       - SAP_URL=${SAP_URL:-}
-      - SAP_USER=${SAP_USER:-}
-      - SAP_PASSWORD=${SAP_PASSWORD:-}
-      - SAP_MANDANT=${SAP_MANDANT:-}
       - SAP_LANGUAGE=${SAP_LANGUAGE:-EN}
+    volumes:
+      - ~/.config/sap-mcp/systems.json:/root/.config/sap-mcp/systems.json:ro
     depends_on:
       - cdp-proxy
     profiles:
