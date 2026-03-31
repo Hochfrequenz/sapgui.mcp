@@ -21,8 +21,6 @@ class TestSapWebGuiSettings:
 
     def test_default_values(self) -> None:
         """Test that default values are set correctly."""
-        # pydantic-settings reads from .env file directly, so we need to both
-        # clear os.environ AND tell SapWebGuiSettings not to read .env
         with patch.dict(os.environ, {}, clear=True):
             settings = SapWebGuiSettings(_env_file=None)
 
@@ -95,22 +93,21 @@ class TestEnvFiles:
     """Tests for _env_files() helper."""
 
     def test_env_files_no_meipass(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Normal Python (not frozen) — _MEIPASS absent, returns only .env."""
+        """Normal Python (not frozen) -- _MEIPASS absent, returns only .env."""
         if hasattr(sys, "_MEIPASS"):
             pytest.skip("Running in a frozen environment")
-        # Run from a dir without .env.production so the fallback "." doesn't find one
         monkeypatch.chdir(tmp_path)
         result = _env_files()
         assert result == (".env",)
 
     def test_env_files_meipass_without_production(self, tmp_path: Path) -> None:
-        """Frozen exe but .env.production missing from bundle — returns only .env."""
+        """Frozen exe but .env.production missing from bundle -- returns only .env."""
         with patch.object(sys, "_MEIPASS", str(tmp_path), create=True):
             result = _env_files()
         assert result == (".env",)
 
     def test_env_files_meipass_with_production(self, tmp_path: Path) -> None:
-        """Frozen exe with .env.production bundled — returns both files."""
+        """Frozen exe with .env.production bundled -- returns both files."""
         prod_env = tmp_path / ".env.production"
         prod_env.write_text("PAPERTRAIL_HOST=logs5.papertrailapp.com\n")
         with patch.object(sys, "_MEIPASS", str(tmp_path), create=True):
@@ -125,7 +122,6 @@ class TestGetSettings:
 
     def test_returns_settings_instance(self) -> None:
         """Test that get_settings returns a SapWebGuiSettings instance."""
-        # Reset the global settings
         import sapwebguimcp.models.config
 
         sapwebguimcp.models.config._settings = None
@@ -135,7 +131,6 @@ class TestGetSettings:
 
     def test_returns_same_instance(self) -> None:
         """Test that get_settings returns the same instance on subsequent calls."""
-        # Reset the global settings
         import sapwebguimcp.models.config
 
         sapwebguimcp.models.config._settings = None

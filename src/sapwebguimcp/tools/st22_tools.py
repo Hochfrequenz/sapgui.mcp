@@ -31,7 +31,7 @@ from sapwebguimcp.backend.webgui.parsers.st22_parser import (
     parse_st22_initial_screen,
 )
 from sapwebguimcp.models import TableData
-from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.models.config import get_sap_config
 from sapwebguimcp.models.st22_models import (
     ST22Dump,
     ST22DumpDetail,
@@ -146,8 +146,8 @@ async def _execute_search(backend: "SapUiBackend", target_date: str | None) -> s
     1. Try Heute/Gestern quick buttons (preferred - works for all users)
     2. Fall back to clearing user field + filling date + F8
     """
-    settings = get_settings()
-    language: SapLanguage = settings.sap_language
+    sap_cfg = get_sap_config()
+    language: SapLanguage = sap_cfg.get_default().language
 
     # Strategy 1: Quick buttons for today/yesterday
     if await _try_quick_button(backend, target_date):

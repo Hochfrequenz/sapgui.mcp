@@ -1,81 +1,79 @@
-"""Unit tests for SapWebGuiSettings.credentials_for and SapSystemCredentials."""
+"""Unit tests for SapWebGuiSettings.credentials_for using shared sap-mcp-config."""
 
 from unittest.mock import patch
 
 import pytest
-from pydantic import ValidationError
+from pydantic import SecretStr
+from sap_mcp_config import Config, SAPSystem
 
-from sapwebguimcp.models.config import SapSystemCredentials, SapWebGuiSettings
+from sapwebguimcp.models.config import SapWebGuiSettings, get_sap_config
 
 
-def _make_settings(**overrides) -> SapWebGuiSettings:
-    defaults = {
-        "sap_user": "default_user",
-        "sap_password": "default_pass",
-    }
-    defaults.update(overrides)
+def _make_config(**systems: dict) -> Config:
+    """Build a Config with the given systems (first key becomes default)."""
+    sys_map = {}
+    for name, vals in systems.items():
+        sys_map[name] = SAPSystem(
+            host=vals.get("host", "https://example.com"),
+            client=vals.get("client", "100"),
+            user=vals.get("user", ""),
+            password=SecretStr(vals.get("password", "")),
+            language=vals.get("language", "EN"),
+        )
+    default = next(iter(systems))
+    return Config(default_system=default, systems=sys_map)
+
+
+def _make_settings() -> SapWebGuiSettings:
     with patch.dict("os.environ", {}, clear=False):
-        return SapWebGuiSettings(**defaults)
-
-
-class TestSapSystemCredentials:
-    """SapSystemCredentials validates per-system credential entries."""
-
-    def test_valid_credentials(self) -> None:
-        creds = SapSystemCredentials(user="u", password="p")
-        assert creds.user == "u"
-        assert creds.password == "p"
-
-    def test_missing_user_raises(self) -> None:
-        with pytest.raises(ValidationError):
-            SapSystemCredentials(password="p")  # type: ignore[call-arg]
-
-    def test_missing_password_raises(self) -> None:
-        with pytest.raises(ValidationError):
-            SapSystemCredentials(user="u")  # type: ignore[call-arg]
+        return SapWebGuiSettings(_env_file=None)
 
 
 class TestCredentialsFor:
-    """credentials_for resolves per-system credentials with fallback."""
+    """credentials_for resolves per-system credentials via shared config."""
 
-    def test_falls_back_to_global_when_no_mapping(self) -> None:
-        settings = _make_settings()
-        user, password = settings.credentials_for("HFQ")
-        assert user == "default_user"
-        assert password == "default_pass"
+    def test_returns_default_system_when_name_not_found(self) -> None:
+        cfg = _make_config(DEV={"user": "dev_user", "password": "dev_pass"})
+        with patch("sapwebguimcp.models.config._sap_config", cfg):
+            settings = _make_settings()
+            user, password = settings.credentials_for("UNKNOWN")
+        assert user == "dev_user"
+        assert password == "dev_pass"
 
     def test_returns_system_credentials_when_mapped(self) -> None:
-        settings = _make_settings(sap_credentials='{"HFQ": {"user": "hfq_user", "password": "hfq_pass"}}')
-        user, password = settings.credentials_for("HFQ")
+        cfg = _make_config(
+            DEV={"user": "dev_user", "password": "dev_pass"},
+            HFQ={"user": "hfq_user", "password": "hfq_pass"},
+        )
+        with patch("sapwebguimcp.models.config._sap_config", cfg):
+            settings = _make_settings()
+            user, password = settings.credentials_for("HFQ")
         assert user == "hfq_user"
         assert password == "hfq_pass"
 
     def test_falls_back_for_unmapped_system(self) -> None:
-        settings = _make_settings(sap_credentials='{"HFQ": {"user": "hfq_user", "password": "hfq_pass"}}')
-        user, password = settings.credentials_for("S4U")
-        assert user == "default_user"
-        assert password == "default_pass"
+        cfg = _make_config(
+            DEV={"user": "dev_user", "password": "dev_pass"},
+            HFQ={"user": "hfq_user", "password": "hfq_pass"},
+        )
+        with patch("sapwebguimcp.models.config._sap_config", cfg):
+            settings = _make_settings()
+            user, password = settings.credentials_for("S4U")
+        assert user == "dev_user"
+        assert password == "dev_pass"
 
-    def test_incomplete_entry_raises(self) -> None:
-        """Each system must have both user and password."""
-        settings = _make_settings(sap_credentials='{"HFQ": {"user": "hfq_user"}}')
-        with pytest.raises(ValidationError):
-            settings.credentials_for("HFQ")
 
-    def test_invalid_json_raises(self) -> None:
-        """Malformed JSON raises at parse time."""
-        settings = _make_settings(sap_credentials="not valid json")
-        with pytest.raises(Exception):
-            settings.credentials_for("HFQ")
+class TestGetSapConfig:
+    """get_sap_config loads and caches the shared SAP config."""
 
-    def test_empty_string_falls_back(self) -> None:
-        settings = _make_settings(sap_credentials="")
-        user, password = settings.credentials_for("HFQ")
-        assert user == "default_user"
-        assert password == "default_pass"
+    def test_singleton_caching(self, tmp_path: pytest.TempPathFactory) -> None:
+        """get_sap_config returns the same instance on subsequent calls."""
+        import sapwebguimcp.models.config as mod
 
-    def test_empty_mapping_falls_back(self) -> None:
-        settings = _make_settings(sap_credentials="{}")
-        user, password = settings.credentials_for("HFQ")
-        assert user == "default_user"
-        assert password == "default_pass"
+        cfg = _make_config(DEV={"user": "u", "password": "p"})
+        old = mod._sap_config
+        try:
+            mod._sap_config = cfg
+            assert get_sap_config() is cfg
+        finally:
+            mod._sap_config = old

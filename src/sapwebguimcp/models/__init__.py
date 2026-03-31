@@ -29,6 +29,7 @@ from sapwebguimcp.models.config import (
     BrowserMode,
     BrowserType,
     SapWebGuiSettings,
+    get_sap_config,
     get_settings,
 )
 from sapwebguimcp.models.intent_models import (
@@ -178,6 +179,7 @@ __all__ = [
     "BrowserMode",
     "BrowserType",
     "SapWebGuiSettings",
+    "get_sap_config",
     "get_settings",
     # Session registry
     "SessionRegistry",
