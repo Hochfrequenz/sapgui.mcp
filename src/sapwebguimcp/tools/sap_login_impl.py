@@ -46,7 +46,7 @@ async def sap_login_impl(
 
     if not all([user, password, effective_client]):
         return LoginResult.failure(
-            "Credentials not configured. " "Check user/password/client in ~/.config/sap-mcp/systems.json."
+            "Credentials not configured. Check user/password/client in ~/.config/sap-mcp/systems.json."
         )
 
     backend = await get_backend(tool_name="sap_login")
