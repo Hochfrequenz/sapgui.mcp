@@ -83,18 +83,34 @@ Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%A
 > [!TIP]
 > After downloading the `.exe`, note the full path. For example, if you saved `sapwebgui_mcp_windows_1.5.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapwebgui_mcp_windows_1.5.0.exe`. Always use forward slashes (`/`) in the JSON, not backslashes (`\`).
 
+**Step 1:** Create `~/.config/sap-mcp/systems.json` with your SAP credentials (shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) — configure once, use everywhere). The system key must match the **description** shown in SAP Logon (e.g. `"HF S/4"` or `"DEV - ERP Development"`):
+
+```json
+{
+  "default_system": "HF S/4",
+  "systems": {
+    "HF S/4": {
+      "host": "https://your-sap-system:44300",
+      "client": "100",
+      "user": "your_username",
+      "password": "your_password",
+      "language": "DE"
+    }
+  }
+}
+```
+
+See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the full config format reference.
+
+**Step 2:** Add to `claude_desktop_config.json`:
+
 ```json
 {
     "mcpServers": {
         "sap-desktop": {
             "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
             "env": {
-                "BACKEND_TYPE": "desktop",
-                "SAP_CONNECTION_NAME": "Your SAP Logon Entry",
-                "SAP_USER": "your_username",
-                "SAP_PASSWORD": "your_password",
-                "SAP_MANDANT": "100",
-                "SAP_LANGUAGE": "DE"
+                "BACKEND_TYPE": "desktop"
             }
         }
     }
@@ -111,47 +127,48 @@ Add to `.mcp.json` in your project root:
         "sap-desktop": {
             "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
             "env": {
-                "BACKEND_TYPE": "desktop",
-                "SAP_CONNECTION_NAME": "Your SAP Logon Entry",
-                "SAP_USER": "your_username",
-                "SAP_PASSWORD": "your_password",
-                "SAP_MANDANT": "100",
-                "SAP_LANGUAGE": "DE"
+                "BACKEND_TYPE": "desktop"
             }
         }
     }
 }
 ```
 
-Replace:
-
-- `Your SAP Logon Entry` with the **description** shown in SAP Logon — this is the bold text in the list when you open SAP Logon (e.g. `"HF S/4"` or `"DEV - ERP Development"`). It is _not_ the system ID or server address.
-- `your_username` / `your_password` with your SAP credentials
-
 #### Multi-system access (desktop backend only)
 
-By default, the MCP server connects to one SAP system with one set of credentials. With multi-system access, the LLM can switch between different SAP systems and clients on the fly — useful when you work across DEV, QA, and PROD.
+Multi-system support is built into `systems.json` — add multiple systems and the LLM can switch between them:
 
 **How it works:**
 
 1. `sap_list_connections` reads your SAP Logon entries (from `SAPUILandscape.xml`) to show which systems are available.
-2. `sap_login(connection_name="QA System", client="200")` logs into a specific system and client, using credentials from `SAP_CREDENTIALS`.
+2. `sap_login(connection_name="QA System", client="200")` logs into a specific system using credentials from `systems.json`.
 3. `sap_discover_clients(connection_name="QA System")` opens a connection and queries table T000 to list all available clients (Mandanten) on that system. Requires SE16N authorization.
 
-**Configuration:** Add `SAP_CREDENTIALS` to map connection names to their login credentials. Each system can have its own user/password:
+**Configuration:** Add multiple systems to `~/.config/sap-mcp/systems.json`:
 
 ```json
 {
-    "BACKEND_TYPE": "desktop",
-    "SAP_CONNECTION_NAME": "HF S/4",
-    "SAP_USER": "default_user",
-    "SAP_PASSWORD": "default_password",
-    "SAP_MANDANT": "100",
-    "SAP_CREDENTIALS": "{\"DEV System\": {\"user\": \"dev_user\", \"password\": \"dev_pass\"}, \"QA System\": {\"user\": \"qa_user\", \"password\": \"qa_pass\"}}"
+  "default_system": "HF S/4",
+  "systems": {
+    "HF S/4": {
+      "host": "https://dev-sap:44300",
+      "client": "100",
+      "user": "dev_user",
+      "password": "dev_pass",
+      "language": "DE"
+    },
+    "QA System": {
+      "host": "https://qa-sap:44300",
+      "client": "200",
+      "user": "qa_user",
+      "password": "qa_pass",
+      "language": "EN"
+    }
+  }
 }
 ```
 
-When `sap_login(connection_name="DEV System")` is called, it looks up the credentials in `SAP_CREDENTIALS`. If the system is not in the mapping, it falls back to `SAP_USER` / `SAP_PASSWORD`.
+When `sap_login(connection_name="QA System")` is called, it looks up the system in `systems.json`. If not found, it falls back to `default_system`.
 
 No Chrome, no browser setup required.
 
@@ -176,11 +193,28 @@ Automates SAP Web GUI through Chrome browser automation. Works on all platforms.
 >
 > Not sure where Chrome is installed? See [Finding your Chrome path](#finding-your-chrome-path) in the Troubleshooting section below.
 
-#### Step 2: Configure your MCP client
+#### Step 2: Create `systems.json`
 
-**Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
+Create `~/.config/sap-mcp/systems.json` with your SAP credentials (if you haven't already — see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config)):
 
-> `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove it if you don't need these features.
+```json
+{
+  "default_system": "dev",
+  "systems": {
+    "dev": {
+      "host": "https://your-sap-server:44300",
+      "client": "100",
+      "user": "your_username",
+      "password": "your_password",
+      "language": "DE"
+    }
+  }
+}
+```
+
+> The WebGUI URL is derived automatically from `host` as `{host}/sap/bc/gui/sap/its/webgui`. If your SAP system uses a non-standard WebGUI path, set `SAP_URL` in the MCP config below.
+
+#### Step 3: Configure your MCP client
 
 ##### Claude Desktop
 
@@ -192,11 +226,6 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
         "sap-webgui": {
             "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
             "env": {
-                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
-                "SAP_USER": "your_username",
-                "SAP_PASSWORD": "your_password",
-                "SAP_MANDANT": "100",
-                "SAP_LANGUAGE": "DE",
                 "GITHUB_PAT": "your_github_pat"
             }
         }
@@ -214,11 +243,6 @@ Add to `.mcp.json` in your project root:
         "sap-webgui": {
             "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
             "env": {
-                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
-                "SAP_USER": "your_username",
-                "SAP_PASSWORD": "your_password",
-                "SAP_MANDANT": "100",
-                "SAP_LANGUAGE": "DE",
                 "GITHUB_PAT": "your_github_pat"
             }
         }
@@ -363,7 +387,7 @@ docker ps --filter "name=cdp-proxy" --format "table {{.Names}}\t{{.Status}}"
 
 ### Step 3: Configure your MCP client
 
-**Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
+**Required:** `~/.config/sap-mcp/systems.json` with your SAP credentials (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config)). All other env variables are optional. See [Configuration Reference](#configuration-reference) for the full list.
 
 > `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove the `-e GITHUB_PAT=...` line if you don't need these features.
 
@@ -517,7 +541,7 @@ run-sapwebgui-mcp-server
 
 ### Configure your MCP client
 
-**Required:** `SAP_URL`, `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`. All other variables are optional — remove any you don't need. See [Configuration Reference](#configuration-reference) for the full list.
+**Required:** `~/.config/sap-mcp/systems.json` with your SAP credentials (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config)). All other env variables are optional.
 
 > `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove it if you don't need these features.
 
@@ -534,11 +558,6 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
             "command": "C:/path/to/your/venv/Scripts/run-sapwebgui-mcp-server.exe",
             "args": [],
             "env": {
-                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
-                "SAP_USER": "your_username",
-                "SAP_PASSWORD": "your_password",
-                "SAP_MANDANT": "100",
-                "SAP_LANGUAGE": "DE",
                 "BROWSER_MODE": "connect",
                 "CDP_URL": "http://localhost:9222",
                 "GITHUB_PAT": "your_github_pat"
@@ -559,11 +578,6 @@ Add to `.mcp.json` in your project root:
             "command": "C:/path/to/your/venv/Scripts/run-sapwebgui-mcp-server.exe",
             "args": [],
             "env": {
-                "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
-                "SAP_USER": "your_username",
-                "SAP_PASSWORD": "your_password",
-                "SAP_MANDANT": "100",
-                "SAP_LANGUAGE": "DE",
                 "BROWSER_MODE": "connect",
                 "CDP_URL": "http://localhost:9222",
                 "GITHUB_PAT": "your_github_pat"
@@ -594,15 +608,17 @@ Low-level browser escape hatches (`browser_snapshot`, `browser_screenshot`, `bro
 
 ## Configuration Reference
 
+### SAP Credentials (via `systems.json`)
+
+SAP credentials (user, password, client, language, host) are configured in `~/.config/sap-mcp/systems.json`, **not** via environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`.
+
+### Environment Variables (server-specific)
+
 | Variable              | Required                                | Description                                                            | Default                      |
 | --------------------- | --------------------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
 | `BACKEND_TYPE`        | No                                      | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`                     |
-| `SAP_CONNECTION_NAME` | When `BACKEND_TYPE=desktop`             | SAP Logon pad connection entry name (e.g. `"HF S/4"`)                  | —                            |
-| `SAP_URL`             | When `BACKEND_TYPE=webgui` <sup>1</sup> | SAP Web GUI URL                                                        | `""`                         |
-| `SAP_USER`            | **Yes** <sup>1</sup>                    | SAP username for auto-login                                            | `""`                         |
-| `SAP_PASSWORD`        | **Yes** <sup>1</sup>                    | SAP password for auto-login                                            | `""`                         |
-| `SAP_MANDANT`         | **Yes** <sup>1</sup>                    | SAP client (3-digit, e.g., `100`)                                      | `""`                         |
-| `SAP_LANGUAGE`        | No                                      | Login language (`DE` or `EN`)                                          | `EN`                         |
+| `SAP_URL`             | No                                      | Override WebGUI URL (default: derived from `host` in systems.json)      | `""`                         |
+| `SAP_CONFIG_FILE`     | No                                      | Path to systems.json                                                   | `~/.config/sap-mcp/systems.json` |
 | `BROWSER_MODE`        | No                                      | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.     | `connect`                    |
 | `BROWSER_TYPE`        | No                                      | `chromium`, `firefox`, or `webkit`. WebGUI only.                       | `chromium`                   |
 | `BROWSER_HEADLESS`    | No                                      | Run browser in headless mode. WebGUI only.                             | `false`                      |
@@ -611,12 +627,10 @@ Low-level browser escape hatches (`browser_snapshot`, `browser_screenshot`, `bro
 | `GITHUB_USER`         | No                                      | GitHub username for abapGit (falls back to `x-access-token`)           | —                            |
 | `GITHUB_REPO`         | No                                      | Repository for feedback issues                                         | `Hochfrequenz/sapwebgui.mcp` |
 | `ABAPGIT_PAT`         | No                                      | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)               | —                            |
-| `PAPERTRAIL_HOST`     | No                                      | Papertrail syslog host (empty to disable)                              | `""` (off) <sup>2</sup>      |
-| `PAPERTRAIL_PORT`     | No                                      | Papertrail syslog port                                                 | `0` (off) <sup>2</sup>       |
+| `PAPERTRAIL_HOST`     | No                                      | Papertrail syslog host (empty to disable)                              | `""` (off) <sup>1</sup>      |
+| `PAPERTRAIL_PORT`     | No                                      | Papertrail syslog port                                                 | `0` (off) <sup>1</sup>       |
 | `LOG_FORMAT`          | No                                      | Set to `json` for JSON log output                                      | `""` (human-readable)        |
 | `LOG_LEVEL`           | No                                      | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                                 | `INFO`                       |
-
-<sup>1</sup> The server starts without these, but SAP login will fail.
 
 <sup>2</sup> The pre-built `.exe` bundles a `.env.production` file that sets `PAPERTRAIL_HOST=logs5.papertrailapp.com` and `PAPERTRAIL_PORT=35329`, enabling remote logging by default. Override or disable via your own `.env` file or environment variables.
 
