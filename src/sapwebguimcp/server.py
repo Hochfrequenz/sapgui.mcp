@@ -151,7 +151,7 @@ Do NOT try to install browsers. Instead, ask the user to verify:
 COMMON ERROR CAUSES:
 - "Chrome not found" / "Chrome konnte nicht ... gefunden werden": Set CHROME_PATH in .env
 - "SAP URL not reachable": VPN not connected
-- Login fails: Check SAP_USER, SAP_PASSWORD, SAP_MANDANT environment variables
+- Login fails: Check user/password/client in ~/.config/sap-mcp/systems.json
 
 WORKFLOW:
 1. Call sap_login first to open SAP and authenticate
@@ -177,20 +177,20 @@ PREREQUISITES:
 - SAP Logon landscape configured with the target connection name
 
 CONNECTION:
-The server connects via SAP_CONNECTION_NAME — the connection entry name from SAP Logon
-(e.g., "HF S/4", "DEV 100", "QA"). This is set in the .env file or passed to sap_login().
+The server connects using the default_system from ~/.config/sap-mcp/systems.json.
+The system key is the SAP Logon connection entry name (e.g., "HF S/4", "DEV 100").
+Override via the connection_name parameter in sap_login().
 
 IF CONNECTION FAILS:
 Ask the user to verify:
 1. "Is SAP GUI running?" (SAP Logon must be open)
 2. "Is scripting enabled?" (both server-side RZ11 and client-side SAP GUI Options)
-3. "What is the connection name in SAP Logon?" (set SAP_CONNECTION_NAME in .env)
+3. "Does the system key in systems.json match the SAP Logon entry name?"
 
 COMMON ERROR CAUSES:
 - RPC_E_DISCONNECTED: SAP GUI closed or session timed out — call sap_login() again
-- "SAP_CONNECTION_NAME not configured": Set SAP_CONNECTION_NAME in .env
 - "Scripting disabled": Enable in SAP GUI Options > Accessibility & Scripting
-- Login fails: Check SAP_USER, SAP_PASSWORD, SAP_MANDANT environment variables
+- Login fails: Check user/password/client in ~/.config/sap-mcp/systems.json
 
 WORKFLOW:
 1. Call sap_login first to open SAP and authenticate
