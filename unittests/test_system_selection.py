@@ -1,4 +1,4 @@
-"""Unit tests for system selection: connection_name resolution and server instructions."""
+"""Unit tests for system selection: system_key resolution and server instructions."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -52,12 +52,12 @@ def _make_backend() -> AsyncMock:
     return backend
 
 
-class TestConnectionNameResolution:
-    """sap_login passes system.connection_name (SAP Logon entry) to the backend, not the dict key."""
+class TestSystemKeyResolution:
+    """sap_login resolves system_key to SAP Logon entry and passes it to the backend."""
 
     @pytest.mark.anyio
-    async def test_default_system_uses_connection_name(self) -> None:
-        """Default system's connection_name is passed to backend, not the dict key."""
+    async def test_default_system_uses_sap_logon_entry(self) -> None:
+        """Default system's SAP Logon entry is passed to backend, not the dict key."""
         from sapwebguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _multi_system_config()
@@ -76,8 +76,8 @@ class TestConnectionNameResolution:
         assert kwargs["username"] == "dev_user"
 
     @pytest.mark.anyio
-    async def test_explicit_key_uses_that_systems_connection_name(self) -> None:
-        """Passing a dict key resolves to that system's connection_name."""
+    async def test_explicit_key_resolves_to_sap_logon_entry(self) -> None:
+        """Passing a system_key resolves to that system's SAP Logon entry."""
         from sapwebguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _multi_system_config()
@@ -88,7 +88,7 @@ class TestConnectionNameResolution:
             patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
-            await sap_login_impl(connection_name="dev-200")
+            await sap_login_impl(system_key="dev-200")
 
         _, kwargs = backend.login.call_args
         assert kwargs["connection_name"] == "DEV - ERP Development"
@@ -96,8 +96,8 @@ class TestConnectionNameResolution:
         assert kwargs["username"] == "qa_user"
 
     @pytest.mark.anyio
-    async def test_same_connection_name_different_clients(self) -> None:
-        """Two dict keys with the same connection_name but different clients work correctly."""
+    async def test_same_sap_logon_entry_different_clients(self) -> None:
+        """Two system keys sharing the same SAP Logon entry but different clients work correctly."""
         from sapwebguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _multi_system_config()
@@ -109,15 +109,15 @@ class TestConnectionNameResolution:
                 patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
                 patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
             ):
-                await sap_login_impl(connection_name=key)
+                await sap_login_impl(system_key=key)
 
             _, kwargs = backend.login.call_args
             assert kwargs["connection_name"] == "DEV - ERP Development"
             assert kwargs["client"] == expected_client
 
     @pytest.mark.anyio
-    async def test_webgui_backend_receives_connection_name(self) -> None:
-        """WebGUI backend also receives system.connection_name (even though it ignores it)."""
+    async def test_webgui_backend_receives_sap_logon_entry(self) -> None:
+        """WebGUI backend also receives the SAP Logon entry (even though it ignores it)."""
         from sapwebguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _multi_system_config()
@@ -128,10 +128,27 @@ class TestConnectionNameResolution:
             patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
-            await sap_login_impl(connection_name="dev-200")
+            await sap_login_impl(system_key="dev-200")
 
         _, kwargs = backend.login.call_args
         assert kwargs["connection_name"] == "DEV - ERP Development"
+
+    @pytest.mark.anyio
+    async def test_unknown_system_key_returns_error(self) -> None:
+        """Passing an unknown system_key returns a failure instead of silently falling back."""
+        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+
+        cfg = _multi_system_config()
+
+        with (
+            patch(_PATCH_GET_SETTINGS, return_value=_make_settings("desktop")),
+            patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
+        ):
+            result = await sap_login_impl(system_key="nonexistent")
+
+        assert result.success is False
+        assert "nonexistent" in result.error
+        assert "dev-100" in result.error
 
 
 class TestServerInstructions:

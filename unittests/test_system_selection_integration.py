@@ -83,11 +83,11 @@ class TestChooseToolRegistered:
 
 
 class TestSapLoginViaMCP:
-    """sap_login called through MCP protocol passes system.connection_name to the backend."""
+    """sap_login called through MCP protocol resolves system_key to SAP Logon entry."""
 
     @pytest.mark.anyio
     async def test_login_default_system(self, _patch_config, _mock_backend) -> None:
-        """sap_login() with no args uses default system and its connection_name."""
+        """sap_login() with no args uses default system and its SAP Logon entry."""
         from sapwebguimcp.server import mcp
 
         async with Client(mcp) as client:
@@ -101,11 +101,11 @@ class TestSapLoginViaMCP:
 
     @pytest.mark.anyio
     async def test_login_explicit_system_key(self, _patch_config, _mock_backend) -> None:
-        """sap_login(connection_name="qa") resolves to QA system's connection_name."""
+        """sap_login(system_key="qa") resolves to QA system's SAP Logon entry."""
         from sapwebguimcp.server import mcp
 
         async with Client(mcp) as client:
-            result = await client.call_tool("sap_login", {"connection_name": "qa"})
+            result = await client.call_tool("sap_login", {"system_key": "qa"})
 
         _mock_backend.login.assert_called_once()
         _, kwargs = _mock_backend.login.call_args
@@ -119,7 +119,7 @@ class TestSapLoginViaMCP:
         from sapwebguimcp.server import mcp
 
         async with Client(mcp) as client:
-            result = await client.call_tool("sap_login", {"connection_name": "dev"})
+            result = await client.call_tool("sap_login", {"system_key": "dev"})
 
         assert not result.is_error
         assert "success=True" in str(result.data)

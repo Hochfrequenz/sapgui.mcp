@@ -179,14 +179,14 @@ PREREQUISITES:
 
 CONNECTION:
 The server connects using the default_system from ~/.config/sap-mcp/systems.json.
-Each system entry has a connection_name field that identifies the SAP Logon entry.
-Override via the connection_name parameter in sap_login() (pass the system key from the config).
+Each system entry has a sap_logon_entry field (the bold description text in the SAP Logon pad).
+Override via the system_key parameter in sap_login() (pass the dictionary key from systems.json).
 
 IF CONNECTION FAILS:
 Ask the user to verify:
 1. "Is SAP GUI running?" (SAP Logon must be open)
 2. "Is scripting enabled?" (both server-side RZ11 and client-side SAP GUI Options)
-3. "Does the connection_name in systems.json match the SAP Logon entry description?"
+3. "Does the sap_logon_entry in systems.json match the SAP Logon pad description exactly?"
 
 COMMON ERROR CAUSES:
 - RPC_E_DISCONNECTED: SAP GUI closed or session timed out — call sap_login() again
@@ -220,10 +220,10 @@ def _build_instructions() -> str:
         systems_info = (
             f"\nAVAILABLE SYSTEMS (from systems.json):\n"
             f"Default: {default!r}\n"
-            f"All systems: {keys}\n"
+            f"All system keys: {keys}\n"
             f"When multiple systems are configured, use the choose tool to let the user "
             f"pick a system before calling sap_login(). "
-            f"Pass the selected key as connection_name to sap_login().\n"
+            f"Pass the selected key as system_key to sap_login().\n"
         )
         return base + systems_info
     except (FileNotFoundError, ValueError):  # config not found or invalid — don't crash
