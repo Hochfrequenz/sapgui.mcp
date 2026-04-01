@@ -158,23 +158,24 @@ Multi-system support is built into `systems.json` — add multiple systems and t
 **How it works:**
 
 1. `sap_list_connections` reads your SAP Logon entries (from `SAPUILandscape.xml`) to show which systems are available.
-2. `sap_login(connection_name="QA System", client="200")` logs into a specific system using credentials from `systems.json`.
-3. `sap_discover_clients(connection_name="QA System")` opens a connection and queries table T000 to list all available clients (Mandanten) on that system. Requires SE16N authorization.
+2. `sap_login(connection_name="qa")` logs into a specific system using credentials from `systems.json`.
 
-**Configuration:** Add multiple systems to your `systems.json` (remember: keys must match SAP Logon descriptions):
+**Configuration:** Add multiple systems to your `systems.json`. The dictionary key (e.g. `"dev"`, `"qa"`) is used for config lookup. The `connection_name` field must match the SAP Logon entry description:
 
 ```json
 {
-    "default_system": "HF S/4",
+    "default_system": "dev",
     "systems": {
-        "HF S/4": {
+        "dev": {
+            "connection_name": "HF S/4",
             "host": "https://dev-sap:44300",
             "client": "100",
             "user": "dev_user",
             "password": "dev_pass",
             "language": "DE"
         },
-        "QA System": {
+        "qa": {
+            "connection_name": "QA System",
             "host": "https://qa-sap:44300",
             "client": "200",
             "user": "qa_user",
@@ -185,7 +186,7 @@ Multi-system support is built into `systems.json` — add multiple systems and t
 }
 ```
 
-When `sap_login(connection_name="QA System")` is called, it looks up the system in `systems.json`. If not found, it falls back to `default_system`.
+When `sap_login(connection_name="qa")` is called, it looks up the system in `systems.json` and uses the `connection_name` field to open the SAP Logon entry. If not found, it falls back to `default_system`.
 
 No Chrome, no browser setup required.
 
@@ -731,7 +732,7 @@ docker logs sap-mcp-cdp-proxy-1
 
 - Check `SAP_URL` is correct and accessible from your browser
 - If using auto-login, verify credentials are configured in `systems.json` (see [Configuration Reference](#configuration-reference))
-- **Desktop backend:** Make sure the system key in `systems.json` matches the SAP Logon **description** exactly (not the SID). Open SAP Logon and compare.
+- **Desktop backend:** Make sure the `connection_name` field in `systems.json` matches the SAP Logon **description** exactly (not the SID). Open SAP Logon and compare.
 - Try logging in manually first to verify credentials
 
 ### Transaction input field (OK-Code field) not visible

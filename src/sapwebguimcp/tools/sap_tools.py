@@ -55,7 +55,6 @@ from sapwebguimcp.models import (
     get_settings,
 )
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
-from sapwebguimcp.tools.sap_discover_clients_impl import DiscoverClientsResult, sap_discover_clients_impl
 from sapwebguimcp.tools.sap_list_connections_impl import ConnectionListResult, sap_list_connections_impl
 from sapwebguimcp.tools.sap_login_impl import sap_login_impl
 from sapwebguimcp.tools.session_tools import (
@@ -245,7 +244,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "On WebGUI: requires Chrome with --remote-debugging-port=9222 and VPN (if internal SAP). "
             "On Desktop: requires SAP GUI for Windows with scripting enabled. "
             "Credentials are read from ~/.config/sap-mcp/systems.json. "
-            "Use client/connection_name to override the default system."
+            "Use client or connection_name (system key from systems.json) to override the default system."
         )
     )
     async def sap_login(
@@ -264,7 +263,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Args:
             url: SAP Web GUI URL (WebGUI only). If not provided, derived from system host.
             client: SAP client/mandant (3-digit string, e.g. '200'). Overrides config value.
-            connection_name: System key from systems.json (Desktop: SAP Logon entry name).
+            connection_name: System key from systems.json. The connection_name field in the config identifies the SAP Logon entry.
 
         Returns:
             LoginResult indicating login success or what action is needed.
@@ -282,20 +281,6 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     async def sap_list_connections() -> ConnectionListResult:
         """List available SAP Logon connections."""
         return await sap_list_connections_impl()
-
-    @mcp.tool(
-        description=(
-            "Discover all available SAP clients (Mandanten) by logging in and querying table T000. "
-            "Logs in with the default client from the login screen (or via SSO), "
-            "queries SE16N on T000, and returns all clients with descriptions. "
-            "The session is left logged-in — pass the returned session_id to subsequent tool calls. "
-            "Desktop backend only. "
-            "Use this before sap_login when the target client is not yet known."
-        )
-    )
-    async def sap_discover_clients(connection_name: str | None = None) -> DiscoverClientsResult:
-        """Discover available SAP clients (Mandanten) from the login screen."""
-        return await sap_discover_clients_impl(connection_name)
 
     @mcp.tool(
         description=(

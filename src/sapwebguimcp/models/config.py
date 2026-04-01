@@ -249,15 +249,15 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "ABAPGIT_PAT"},
     )
 
-    def credentials_for(self, connection_name: str) -> tuple[str, str]:
-        """Return (user, password) for a connection name.
+    def credentials_for(self, system_key: str) -> tuple[str, str]:
+        """Return (user, password) for a system key.
 
-        Looks up ``connection_name`` in the shared SAP config
+        Looks up ``system_key`` in the shared SAP config
         (``~/.config/sap-mcp/systems.json``).  Falls back to the default
-        system when the name is not found.
+        system when the key is not found.
         """
         sap_cfg = get_sap_config()
-        system = sap_cfg.systems.get(connection_name)
+        system = sap_cfg.systems.get(system_key)
         if system is None:
             system = sap_cfg.get_default()
         return system.user, system.password.get_secret_value()

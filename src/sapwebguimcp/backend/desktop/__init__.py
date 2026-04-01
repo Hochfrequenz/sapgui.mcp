@@ -186,12 +186,10 @@ class DesktopBackend:
         session_id: str | None = None,
         connection_name: str | None = None,
     ) -> LoginResult:
-        """Log into SAP GUI desktop (url is ignored -- uses connection_name or default_system from config)."""
+        """Log into SAP GUI desktop (url is ignored -- uses connection_name from system config)."""
 
-        sap_cfg = get_sap_config()
-        connection_name = connection_name or sap_cfg.default_system
         if not connection_name:
-            return LoginResult(success=False, error="No connection_name and no default_system in config")
+            return LoginResult(success=False, error="No connection_name configured for this system in systems.json")
 
         try:
             session = await self._com.run(
@@ -223,38 +221,6 @@ class DesktopBackend:
         if path is None:
             return []
         return _parse_landscape_xml(path.read_text(encoding="utf-8"))
-
-    async def discover_clients(self, connection_name: str) -> dict[str, Any]:
-        """Open a SAP connection, log in, and query T000 for available clients.
-
-        Logs in with the default client, queries T000 via SE16N, and returns
-        all clients in the system.  The session is left logged-in and registered
-        so that subsequent tool calls can reuse it.
-        """
-        from sapwebguimcp.backend.desktop._discovery import (  # pylint: disable=import-outside-toplevel
-            open_and_discover_clients,
-        )
-
-        sap_cfg = get_sap_config()
-        system = sap_cfg.systems.get(connection_name) or sap_cfg.get_default()
-        user = system.user
-        password = system.password.get_secret_value()
-
-        session, default_client, clients = await self._com.run(
-            lambda: open_and_discover_clients(
-                connection_name=connection_name,
-                user=user,
-                password=password,
-                language=system.language or "EN",
-            )
-        )
-        session_id = self._registry.register(session)
-        return {
-            "session_id": session_id,
-            "default_client": default_client,
-            "clients": clients,
-            "info_text": "",
-        }
 
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Navigate to a transaction code.

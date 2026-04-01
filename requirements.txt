@@ -37,12 +37,11 @@ cffi==2.0.0
     # via cryptography
 click==8.3.1
     # via uvicorn
-colorama==0.4.6
-    # via click
 cryptography==46.0.6
     # via
     #   authlib
     #   pyjwt
+    #   secretstorage
 cyclopts==4.8.0
     # via fastmcp
 dnspython==2.8.0
@@ -85,6 +84,10 @@ jaraco-context==6.1.1
     # via keyring
 jaraco-functools==4.4.0
     # via keyring
+jeepney==0.9.0
+    # via
+    #   keyring
+    #   secretstorage
 jsonref==1.1.0
     # via fastmcp
 jsonschema==4.26.0
@@ -127,6 +130,7 @@ pydantic[email]==2.12.5
     #   mcp
     #   openapi-pydantic
     #   pydantic-settings
+    #   sap-mcp-config
     #   sapsucker
     #   sapwebguimcp (pyproject.toml)
 pydantic-core==2.41.5
@@ -147,19 +151,14 @@ python-dotenv==1.2.2
     # via
     #   fastmcp
     #   pydantic-settings
+    #   sap-mcp-config
 python-multipart==0.0.22
     # via mcp
-pywin32==311 ; sys_platform == "win32"
-    # via
-    #   mcp
-    #   sapsucker
-    #   sapwebguimcp (pyproject.toml)
-pywin32-ctypes==0.2.3
-    # via keyring
 pyyaml==6.0.3
     # via
     #   fastmcp
     #   jsonschema-path
+    #   sap-mcp-config
 rapidfuzz==3.14.3
     # via sapwebguimcp (pyproject.toml)
 referencing==0.37.0
@@ -178,8 +177,12 @@ rpds-py==0.30.0
     # via
     #   jsonschema
     #   referencing
+sap-mcp-config==0.1.0
+    # via sapwebguimcp (pyproject.toml)
 sapsucker==0.0.1
     # via sapwebguimcp (pyproject.toml)
+secretstorage==3.5.0
+    # via keyring
 sse-starlette==3.3.3
     # via mcp
 starlette==1.0.0

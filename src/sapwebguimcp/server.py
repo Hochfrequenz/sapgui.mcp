@@ -178,14 +178,14 @@ PREREQUISITES:
 
 CONNECTION:
 The server connects using the default_system from ~/.config/sap-mcp/systems.json.
-The system key is the SAP Logon connection entry name (e.g., "HF S/4", "DEV 100").
-Override via the connection_name parameter in sap_login().
+Each system entry has a connection_name field that identifies the SAP Logon entry.
+Override via the connection_name parameter in sap_login() (pass the system key from the config).
 
 IF CONNECTION FAILS:
 Ask the user to verify:
 1. "Is SAP GUI running?" (SAP Logon must be open)
 2. "Is scripting enabled?" (both server-side RZ11 and client-side SAP GUI Options)
-3. "Does the system key in systems.json match the SAP Logon entry name?"
+3. "Does the connection_name in systems.json match the SAP Logon entry description?"
 
 COMMON ERROR CAUSES:
 - RPC_E_DISCONNECTED: SAP GUI closed or session timed out — call sap_login() again
