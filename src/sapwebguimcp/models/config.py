@@ -253,13 +253,14 @@ class SapWebGuiSettings(BaseSettings):
         """Return (user, password) for a system key.
 
         Looks up ``system_key`` in the shared SAP config
-        (``~/.config/sap-mcp/systems.json``).  Falls back to the default
-        system when the key is not found.
+        (``~/.config/sap-mcp/systems.json``).  Raises ``KeyError`` when the
+        key is not found.
         """
         sap_cfg = get_sap_config()
         system = sap_cfg.systems.get(system_key)
         if system is None:
-            system = sap_cfg.get_default()
+            available = list(sap_cfg.systems.keys())
+            raise KeyError(f"System key {system_key!r} not found in systems.json. " f"Available: {available}")
         return system.user, system.password.get_secret_value()
 
     def validate_for_browser(self) -> list[str]:

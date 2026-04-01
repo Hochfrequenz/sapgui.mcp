@@ -87,12 +87,12 @@ class TestSapLoginClientOverride:
         assert kwargs["client"] == "200"
 
 
-class TestSapLoginConnectionNameOverride:
-    """sap_login uses default_system by default but accepts an optional connection_name override."""
+class TestSapLoginSystemKeyOverride:
+    """sap_login uses default_system by default but accepts an optional system_key override."""
 
     @pytest.mark.anyio
-    async def test_uses_default_system_connection_name(self) -> None:
-        """When no connection_name arg given, system.connection_name from default_system is passed to backend."""
+    async def test_uses_default_system_sap_logon_entry(self) -> None:
+        """When no system_key given, default system's SAP Logon entry is passed to backend."""
         from sapwebguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
         sap_cfg = _make_sap_config(default_system="HFQ", connection_name="HF S/4")
@@ -104,15 +104,15 @@ class TestSapLoginConnectionNameOverride:
             patch(_PATCH_GET_SAP_CONFIG, return_value=sap_cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
-            await sap_login(connection_name=None)
+            await sap_login(system_key=None)
 
         backend.login.assert_called_once()
         _, kwargs = backend.login.call_args
         assert kwargs["connection_name"] == "HF S/4"
 
     @pytest.mark.anyio
-    async def test_connection_name_param_overrides_config(self) -> None:
-        """When connection_name arg is provided, it overrides default_system from config."""
+    async def test_system_key_param_overrides_default(self) -> None:
+        """When system_key is provided, it selects that system instead of default_system."""
         from sapwebguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
         sap_cfg = Config(
@@ -144,7 +144,7 @@ class TestSapLoginConnectionNameOverride:
             patch(_PATCH_GET_SAP_CONFIG, return_value=sap_cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
-            await sap_login(connection_name="S4U")
+            await sap_login(system_key="S4U")
 
         backend.login.assert_called_once()
         _, kwargs = backend.login.call_args

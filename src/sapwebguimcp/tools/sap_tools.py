@@ -244,13 +244,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "On WebGUI: requires Chrome with --remote-debugging-port=9222 and VPN (if internal SAP). "
             "On Desktop: requires SAP GUI for Windows with scripting enabled. "
             "Credentials are read from ~/.config/sap-mcp/systems.json. "
-            "Use client or connection_name (system key from systems.json) to override the default system."
+            "Use system_key (dictionary key from systems.json) to select a non-default system. "
+            "Call sap_list_connections first to see available system keys."
         )
     )
     async def sap_login(
         url: Optional[str] = None,
         client: Optional[str] = None,
-        connection_name: Optional[str] = None,
+        system_key: Optional[str] = None,
         ctx: Context | None = None,
     ) -> LoginResult:
         """
@@ -263,24 +264,27 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Args:
             url: SAP Web GUI URL (WebGUI only). If not provided, derived from system host.
             client: SAP client/mandant (3-digit string, e.g. '200'). Overrides config value.
-            connection_name: System key from systems.json. The system's connection_name
-                field identifies the SAP Logon entry.
+            system_key: Dictionary key from systems.json (e.g. "dev", "qa").
+                Use sap_list_connections to see available keys. Defaults to default_system.
 
         Returns:
             LoginResult indicating login success or what action is needed.
         """
         session_id = getattr(ctx, "session_id", None) if ctx else None
-        return await sap_login_impl(url=url, client=client, connection_name=connection_name, session_id=session_id)
+        return await sap_login_impl(url=url, client=client, system_key=system_key, session_id=session_id)
 
     @mcp.tool(
         description=(
-            "List available SAP systems from SAP Logon (SAPUILandscape.xml). "
-            "Returns connection names that can be passed to sap_login as connection_name. "
-            "Desktop backend only."
+            "List available SAP systems. Returns two sections: "
+            "'configured_systems' from systems.json (pass the 'key' field as "
+            "system_key to sap_login), and 'connections' from SAP Logon "
+            "(SAPUILandscape.xml, Desktop only). "
+            "IMPORTANT: pass a configured_systems 'key' as system_key to sap_login, "
+            "NOT a SAP Logon entry name."
         )
     )
     async def sap_list_connections() -> ConnectionListResult:
-        """List available SAP Logon connections."""
+        """List configured systems and SAP Logon entries."""
         return await sap_list_connections_impl()
 
     @mcp.tool(

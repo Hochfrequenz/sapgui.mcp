@@ -5,8 +5,10 @@ from textwrap import dedent
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import SecretStr
 
 _PATCH_GET_BACKEND = "sapwebguimcp.tools.sap_list_connections_impl.get_backend"
+_PATCH_GET_SAP_CONFIG = "sapwebguimcp.tools.sap_list_connections_impl.get_sap_config"
 
 _SAMPLE_LANDSCAPE_XML = dedent("""\
     <?xml version="1.0"?>
@@ -79,3 +81,97 @@ class TestSapListConnectionsTool:
         assert result.success is True
         assert len(result.connections) == 2
         assert result.connections[0]["name"] == "HFQ"
+
+
+def _make_sap_config():
+    """Create a mock SapMcpConfig with two systems."""
+    from sap_mcp_config import Config, SAPSystem
+
+    return Config(
+        default_system="HF S/4 Mandant 100",
+        systems={
+            "HF S/4 Mandant 100": SAPSystem(
+                connection_name="HF S/4",
+                host="https://srvhfshana",
+                client="100",
+                user="kleink",
+                password=SecretStr("secret1"),
+                language="DE",
+            ),
+            "HF R3 Mandant 100": SAPSystem(
+                connection_name="HFR3",
+                host="https://srvhfr3",
+                client="100",
+                user="kleink",
+                password=SecretStr("secret2"),
+                language="DE",
+            ),
+        },
+    )
+
+
+class TestConfiguredSystems:
+    """configured_systems exposes systems.json entries without passwords."""
+
+    def test_get_configured_systems_returns_safe_fields(self) -> None:
+        from sapwebguimcp.tools.sap_list_connections_impl import _get_configured_systems
+
+        with patch(_PATCH_GET_SAP_CONFIG, return_value=_make_sap_config()):
+            systems = _get_configured_systems()
+
+        assert len(systems) == 2
+        s4 = next(s for s in systems if s["key"] == "HF S/4 Mandant 100")
+        assert s4["sap_logon_entry"] == "HF S/4"
+        assert s4["host"] == "https://srvhfshana"
+        assert s4["client"] == "100"
+        assert s4["language"] == "DE"
+        assert "password" not in s4
+        assert "user" not in s4
+
+    def test_get_configured_systems_no_config(self) -> None:
+        from sapwebguimcp.tools.sap_list_connections_impl import _get_configured_systems
+
+        with patch(_PATCH_GET_SAP_CONFIG, side_effect=FileNotFoundError):
+            systems = _get_configured_systems()
+
+        assert systems == []
+
+    @pytest.mark.anyio
+    async def test_tool_includes_configured_systems(self) -> None:
+        from sapwebguimcp.tools.sap_list_connections_impl import sap_list_connections_impl
+
+        backend = AsyncMock()
+        backend.list_connections.return_value = [
+            {"name": "HFQ", "type": "SAPGUI", "systemid": "HFQ"},
+        ]
+
+        with (
+            patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
+            patch(_PATCH_GET_SAP_CONFIG, return_value=_make_sap_config()),
+        ):
+            result = await sap_list_connections_impl()
+
+        assert result.success is True
+        assert len(result.connections) == 1
+        assert len(result.configured_systems) == 2
+        keys = [s["key"] for s in result.configured_systems]
+        assert "HF S/4 Mandant 100" in keys
+        assert "HF R3 Mandant 100" in keys
+
+    @pytest.mark.anyio
+    async def test_tool_returns_systems_even_when_backend_fails(self) -> None:
+        from sapwebguimcp.tools.sap_list_connections_impl import sap_list_connections_impl
+
+        with (
+            patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("no backend"))),
+            patch(
+                "sapwebguimcp.tools.sap_list_connections_impl._find_landscape_path",
+                return_value=None,
+            ),
+            patch(_PATCH_GET_SAP_CONFIG, return_value=_make_sap_config()),
+        ):
+            result = await sap_list_connections_impl()
+
+        assert result.success is True
+        assert result.connections == []
+        assert len(result.configured_systems) == 2

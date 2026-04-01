@@ -93,20 +93,28 @@ On **Windows**, open Windows Explorer and paste this into the address bar:
 
 Create the folder if it doesn't exist, then create a file called `systems.json` inside it. On **macOS/Linux**, the path is `~/.config/sap-mcp/systems.json`.
 
-**System key = SAP Logon description, NOT the SID.** The key in `"systems"` (e.g. `"HF S/4"`) must match the **description** shown in SAP Logon — the bold text in the connection list. It is _not_ the 3-character System ID (SID) like `HFQ` or `DEV`.
+There are two distinct identifiers per system — don't mix them up:
 
-| What you see in SAP Logon | Use as system key         | NOT this (SID) |
-| ------------------------- | ------------------------- | -------------- |
-| **HF S/4**                | `"HF S/4"`                | ~~`"HFQ"`~~    |
-| **DEV - ERP Development** | `"DEV - ERP Development"` | ~~`"DEV"`~~    |
+| Concept | Example | Where it's used |
+| --- | --- | --- |
+| **System key** (dictionary key) | `"dev"`, `"qa"` | `sap_login(system_key="qa")` — selects which system to log into |
+| **SAP Logon entry** (`connection_name` field) | `"HF S/4"`, `"DEV - ERP Development"` | Must match the **bold description** in the SAP Logon pad exactly |
 
-If the key doesn't match exactly, you'll get _"SAP Logon connection entry not found"_.
+The SAP Logon entry is _not_ the 3-character System ID (SID):
+
+| What you see in SAP Logon | `connection_name` value     | NOT this (SID) |
+| ------------------------- | --------------------------- | -------------- |
+| **HF S/4**                | `"HF S/4"`                  | ~~`"HFQ"`~~    |
+| **DEV - ERP Development** | `"DEV - ERP Development"`   | ~~`"DEV"`~~    |
+
+If the `connection_name` doesn't match exactly, you'll get _"SAP Logon connection entry not found"_.
 
 ```json
 {
-    "default_system": "HF S/4",
+    "default_system": "dev",
     "systems": {
-        "HF S/4": {
+        "dev": {
+            "connection_name": "HF S/4",
             "host": "https://your-sap-system:44300",
             "client": "100",
             "user": "your_username",
@@ -157,10 +165,10 @@ Multi-system support is built into `systems.json` — add multiple systems and t
 
 **How it works:**
 
-1. `sap_list_connections` reads your SAP Logon entries (from `SAPUILandscape.xml`) to show which systems are available.
-2. `sap_login(connection_name="qa")` logs into a specific system using credentials from `systems.json`.
+1. `sap_list_connections` returns both configured systems (from `systems.json`) and SAP Logon entries (from `SAPUILandscape.xml`).
+2. `sap_login(system_key="qa")` logs into a specific system using credentials from `systems.json`.
 
-**Configuration:** Add multiple systems to your `systems.json`. The dictionary key (e.g. `"dev"`, `"qa"`) is used for config lookup. The `connection_name` field must match the SAP Logon entry description:
+**Configuration:** Add multiple systems to your `systems.json`. The **dictionary key** (e.g. `"dev"`, `"qa"`) is the `system_key` you pass to `sap_login`. The `connection_name` field must match the SAP Logon entry description exactly:
 
 ```json
 {
@@ -186,7 +194,7 @@ Multi-system support is built into `systems.json` — add multiple systems and t
 }
 ```
 
-When `sap_login(connection_name="qa")` is called, it looks up the system in `systems.json` and uses the `connection_name` field to open the SAP Logon entry. If not found, it falls back to `default_system`.
+When `sap_login(system_key="qa")` is called, it looks up `"qa"` in `systems.json`, reads the credentials, and uses the `connection_name` field (`"QA System"`) to open the matching SAP Logon entry. If the system key is not found, an error is returned listing the available keys.
 
 No Chrome, no browser setup required.
 
@@ -732,7 +740,7 @@ docker logs sap-mcp-cdp-proxy-1
 
 - Check `SAP_URL` is correct and accessible from your browser
 - If using auto-login, verify credentials are configured in `systems.json` (see [Configuration Reference](#configuration-reference))
-- **Desktop backend:** Make sure the `connection_name` field in `systems.json` matches the SAP Logon **description** exactly (not the SID). Open SAP Logon and compare.
+- **Desktop backend:** Make sure the `connection_name` field in `systems.json` matches the SAP Logon pad **description** exactly (the bold text, not the SID). Open SAP Logon and compare.
 - Try logging in manually first to verify credentials
 
 ### Transaction input field (OK-Code field) not visible

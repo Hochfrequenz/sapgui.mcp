@@ -19,7 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "fastmcp>=2.14.0,<4.0.0",  # Standalone FastMCP v2.14+, replaces mcp[cli]
+    "fastmcp[apps]>=3.2.0,<4.0.0",  # FastMCP v3.2+ required for Choice provider (fastmcp.apps)
     "httpx>=0.27.0",  # HTTP client for GitHub API (feedback issue handler)
     "playwright>=1.40.0",
     "pydantic>=2.0.0",
