@@ -85,14 +85,14 @@ python -m pytest unittests/desktop/test_com_evaluate_unit.py unittests/desktop/t
 
 ### Troubleshooting (Desktop)
 
-| Problem                                            | Solution                                                               |
-| -------------------------------------------------- | ---------------------------------------------------------------------- |
-| "Scripting is disabled on the server"              | RZ11: set `sapgui/user_scripting = TRUE`, then re-login                |
+| Problem                                            | Solution                                                                            |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| "Scripting is disabled on the server"              | RZ11: set `sapgui/user_scripting = TRUE`, then re-login                             |
 | "SAP Logon connection entry not found"             | Check `default_system` in `systems.json` matches the exact description in SAP Logon |
-| SE38 edit tests read only 1 line                   | Switch to "text-based editor" in SE38 settings (R/3 only)              |
-| SE09 tests fail — no transport requests            | Create the test objects above (generates transports automatically)     |
-| "The 'Sapgui Component' could not be instantiated" | SAP server may be down or unreachable. Check VPN.                      |
-| Ghost connections block login                      | Restart SAP Logon or close stale connections manually                  |
+| SE38 edit tests read only 1 line                   | Switch to "text-based editor" in SE38 settings (R/3 only)                           |
+| SE09 tests fail — no transport requests            | Create the test objects above (generates transports automatically)                  |
+| "The 'Sapgui Component' could not be instantiated" | SAP server may be down or unreachable. Check VPN.                                   |
+| Ghost connections block login                      | Restart SAP Logon or close stale connections manually                               |
 
 ## WebGUI Backend Setup
 
