@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 
 import httpx
 from fastmcp import FastMCP
+from fastmcp.apps.choice import Choice
 from fastmcp.server.middleware.logging import LoggingMiddleware
 
 from sapwebguimcp.backend.manager import close_backend
@@ -219,7 +220,9 @@ def _build_instructions() -> str:
             f"\nAVAILABLE SYSTEMS (from systems.json):\n"
             f"Default: {default!r}\n"
             f"All systems: {keys}\n"
-            f"Pass these keys as connection_name to sap_login() to select a system.\n"
+            f"When multiple systems are configured, use the choose tool to let the user "
+            f"pick a system before calling sap_login(). "
+            f"Pass the selected key as connection_name to sap_login().\n"
         )
         return base + systems_info
     except Exception:  # config not found or invalid — don't crash
@@ -239,6 +242,9 @@ mcp = FastMCP(
 
 # Add logging middleware for tool call sequence analysis
 mcp.add_middleware(ToolCallLoggingMiddleware())
+
+# Add Choice provider so the LLM can present system selection UI to the user
+mcp.add_provider(Choice())
 
 # Add FastMCP built-in logging with payload visibility
 mcp.add_middleware(LoggingMiddleware(include_payloads=True, max_payload_length=1000))
