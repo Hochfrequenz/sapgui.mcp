@@ -263,7 +263,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Args:
             url: SAP Web GUI URL (WebGUI only). If not provided, derived from system host.
             client: SAP client/mandant (3-digit string, e.g. '200'). Overrides config value.
-            connection_name: System key from systems.json. The connection_name field in the config identifies the SAP Logon entry.
+            connection_name: System key from systems.json. The system's connection_name
+                field identifies the SAP Logon entry.
 
         Returns:
             LoginResult indicating login success or what action is needed.
