@@ -415,7 +415,7 @@ Open `%APPDATA%\Claude\claude_desktop_config.json` and add:
                 "-e",
                 "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-v",
-                "~/.config/sap-mcp/systems.json:/root/.config/sap-mcp/systems.json:ro",
+                "~/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
@@ -453,7 +453,7 @@ Add to `.mcp.json` in your project root:
                 "-e",
                 "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-v",
-                "~/.config/sap-mcp/systems.json:/root/.config/sap-mcp/systems.json:ro",
+                "~/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
                 "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
