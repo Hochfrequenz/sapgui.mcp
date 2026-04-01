@@ -93,20 +93,27 @@ On **Windows**, open Windows Explorer and paste this into the address bar:
 
 Create the folder if it doesn't exist, then create a file called `systems.json` inside it. On **macOS/Linux**, the path is `~/.config/sap-mcp/systems.json`.
 
-The system key must match the **description** shown in SAP Logon (e.g. `"HF S/4"` or `"DEV - ERP Development"`):
+**System key = SAP Logon description, NOT the SID.** The key in `"systems"` (e.g. `"HF S/4"`) must match the **description** shown in SAP Logon — the bold text in the connection list. It is _not_ the 3-character System ID (SID) like `HFQ` or `DEV`.
+
+| What you see in SAP Logon | Use as system key         | NOT this (SID) |
+| ------------------------- | ------------------------- | -------------- |
+| **HF S/4**                | `"HF S/4"`                | ~~`"HFQ"`~~    |
+| **DEV - ERP Development** | `"DEV - ERP Development"` | ~~`"DEV"`~~    |
+
+If the key doesn't match exactly, you'll get _"SAP Logon connection entry not found"_.
 
 ```json
 {
-  "default_system": "HF S/4",
-  "systems": {
-    "HF S/4": {
-      "host": "https://your-sap-system:44300",
-      "client": "100",
-      "user": "your_username",
-      "password": "your_password",
-      "language": "DE"
+    "default_system": "HF S/4",
+    "systems": {
+        "HF S/4": {
+            "host": "https://your-sap-system:44300",
+            "client": "100",
+            "user": "your_username",
+            "password": "your_password",
+            "language": "DE"
+        }
     }
-  }
 }
 ```
 
@@ -154,27 +161,27 @@ Multi-system support is built into `systems.json` — add multiple systems and t
 2. `sap_login(connection_name="QA System", client="200")` logs into a specific system using credentials from `systems.json`.
 3. `sap_discover_clients(connection_name="QA System")` opens a connection and queries table T000 to list all available clients (Mandanten) on that system. Requires SE16N authorization.
 
-**Configuration:** Add multiple systems to your `systems.json`:
+**Configuration:** Add multiple systems to your `systems.json` (remember: keys must match SAP Logon descriptions):
 
 ```json
 {
-  "default_system": "HF S/4",
-  "systems": {
-    "HF S/4": {
-      "host": "https://dev-sap:44300",
-      "client": "100",
-      "user": "dev_user",
-      "password": "dev_pass",
-      "language": "DE"
-    },
-    "QA System": {
-      "host": "https://qa-sap:44300",
-      "client": "200",
-      "user": "qa_user",
-      "password": "qa_pass",
-      "language": "EN"
+    "default_system": "HF S/4",
+    "systems": {
+        "HF S/4": {
+            "host": "https://dev-sap:44300",
+            "client": "100",
+            "user": "dev_user",
+            "password": "dev_pass",
+            "language": "DE"
+        },
+        "QA System": {
+            "host": "https://qa-sap:44300",
+            "client": "200",
+            "user": "qa_user",
+            "password": "qa_pass",
+            "language": "EN"
+        }
     }
-  }
 }
 ```
 
@@ -209,16 +216,16 @@ Create the SAP config file if you haven't already (Windows: `%USERPROFILE%\.conf
 
 ```json
 {
-  "default_system": "dev",
-  "systems": {
-    "dev": {
-      "host": "https://your-sap-server:44300",
-      "client": "100",
-      "user": "your_username",
-      "password": "your_password",
-      "language": "DE"
+    "default_system": "dev",
+    "systems": {
+        "dev": {
+            "host": "https://your-sap-server:44300",
+            "client": "100",
+            "user": "your_username",
+            "password": "your_password",
+            "language": "DE"
+        }
     }
-  }
 }
 ```
 
@@ -610,30 +617,30 @@ Low-level browser escape hatches (`browser_snapshot`, `browser_screenshot`, `bro
 
 SAP credentials (user, password, client, language, host) are configured in `systems.json` (or `systems.yaml`), **not** via environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`.
 
-| OS | Default path |
-|----|-------------|
-| Windows | `%USERPROFILE%\.config\sap-mcp\systems.json` |
-| macOS/Linux | `~/.config/sap-mcp/systems.json` |
+| OS          | Default path                                 |
+| ----------- | -------------------------------------------- |
+| Windows     | `%USERPROFILE%\.config\sap-mcp\systems.json` |
+| macOS/Linux | `~/.config/sap-mcp/systems.json`             |
 
 ### Environment Variables (server-specific)
 
-| Variable              | Required                                | Description                                                            | Default                      |
-| --------------------- | --------------------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
-| `BACKEND_TYPE`        | No                                      | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`                     |
-| `SAP_URL`             | No                                      | Override WebGUI URL (default: derived from `host` in systems.json)      | `""`                         |
-| `SAP_CONFIG_FILE`     | No                                      | Path to systems.json (see table above for default per OS)              | (see above)                      |
-| `BROWSER_MODE`        | No                                      | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.     | `connect`                    |
-| `BROWSER_TYPE`        | No                                      | `chromium`, `firefox`, or `webkit`. WebGUI only.                       | `chromium`                   |
-| `BROWSER_HEADLESS`    | No                                      | Run browser in headless mode. WebGUI only.                             | `false`                      |
-| `CDP_URL`             | When `BROWSER_MODE=connect`             | Chrome DevTools Protocol URL. WebGUI only.                             | `http://localhost:9222`      |
-| `GITHUB_PAT`          | No                                      | GitHub PAT for `log_feedback` issues and abapGit auth                  | —                            |
-| `GITHUB_USER`         | No                                      | GitHub username for abapGit (falls back to `x-access-token`)           | —                            |
-| `GITHUB_REPO`         | No                                      | Repository for feedback issues                                         | `Hochfrequenz/sapwebgui.mcp` |
-| `ABAPGIT_PAT`         | No                                      | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)               | —                            |
-| `PAPERTRAIL_HOST`     | No                                      | Papertrail syslog host (empty to disable)                              | `""` (off) <sup>1</sup>      |
-| `PAPERTRAIL_PORT`     | No                                      | Papertrail syslog port                                                 | `0` (off) <sup>1</sup>       |
-| `LOG_FORMAT`          | No                                      | Set to `json` for JSON log output                                      | `""` (human-readable)        |
-| `LOG_LEVEL`           | No                                      | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                                 | `INFO`                       |
+| Variable           | Required                    | Description                                                            | Default                      |
+| ------------------ | --------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
+| `BACKEND_TYPE`     | No                          | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`                     |
+| `SAP_URL`          | No                          | Override WebGUI URL (default: derived from `host` in systems.json)     | `""`                         |
+| `SAP_CONFIG_FILE`  | No                          | Path to systems.json (see table above for default per OS)              | (see above)                  |
+| `BROWSER_MODE`     | No                          | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.     | `connect`                    |
+| `BROWSER_TYPE`     | No                          | `chromium`, `firefox`, or `webkit`. WebGUI only.                       | `chromium`                   |
+| `BROWSER_HEADLESS` | No                          | Run browser in headless mode. WebGUI only.                             | `false`                      |
+| `CDP_URL`          | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL. WebGUI only.                             | `http://localhost:9222`      |
+| `GITHUB_PAT`       | No                          | GitHub PAT for `log_feedback` issues and abapGit auth                  | —                            |
+| `GITHUB_USER`      | No                          | GitHub username for abapGit (falls back to `x-access-token`)           | —                            |
+| `GITHUB_REPO`      | No                          | Repository for feedback issues                                         | `Hochfrequenz/sapwebgui.mcp` |
+| `ABAPGIT_PAT`      | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)               | —                            |
+| `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                              | `""` (off) <sup>1</sup>      |
+| `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                                 | `0` (off) <sup>1</sup>       |
+| `LOG_FORMAT`       | No                          | Set to `json` for JSON log output                                      | `""` (human-readable)        |
+| `LOG_LEVEL`        | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                                 | `INFO`                       |
 
 <sup>2</sup> The pre-built `.exe` bundles a `.env.production` file that sets `PAPERTRAIL_HOST=logs5.papertrailapp.com` and `PAPERTRAIL_PORT=35329`, enabling remote logging by default. Override or disable via your own `.env` file or environment variables.
 
@@ -724,6 +731,7 @@ docker logs sap-mcp-cdp-proxy-1
 
 - Check `SAP_URL` is correct and accessible from your browser
 - If using auto-login, verify credentials are configured in `systems.json` (see [Configuration Reference](#configuration-reference))
+- **Desktop backend:** Make sure the system key in `systems.json` matches the SAP Logon **description** exactly (not the SID). Open SAP Logon and compare.
 - Try logging in manually first to verify credentials
 
 ### Transaction input field (OK-Code field) not visible
