@@ -22,7 +22,7 @@ from sapwebguimcp.backend.webgui.parsers.slg1_parser import (
     parse_slg1_log_list,
 )
 from sapwebguimcp.models import TableData
-from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.models.config import get_sap_config
 from sapwebguimcp.models.slg1_models import (
     SLG1FileSummary,
     SLG1LogEntry,
@@ -57,8 +57,8 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
 ) -> SLG1LogListResult:
     """Desktop-specific SLG1 lookup using read_table instead of ARIA parsing."""
     now = datetime.now(UTC)
-    settings = get_settings()
-    language: SapLanguage = settings.sap_language
+    sap_cfg = get_sap_config()
+    language: SapLanguage = sap_cfg.get_default().language
     logger.info("SLG1 desktop backend path", extra={"object": object_name})
 
     tx_result = await backend.enter_transaction("SLG1")
@@ -180,8 +180,8 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
     if _is_desktop_backend(backend):
         return await _slg1_lookup_desktop(backend, object_name, subobject, external_id, from_date, to_date)
 
-    settings = get_settings()
-    language: SapLanguage = settings.sap_language
+    sap_cfg = get_sap_config()
+    language: SapLanguage = sap_cfg.get_default().language
 
     # Navigate to SLG1
     tx_result = await backend.enter_transaction("SLG1")

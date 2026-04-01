@@ -22,7 +22,7 @@ from sapwebguimcp.backend.webgui.parsers.sm37_parser import (
     parse_sm37_job_log,
 )
 from sapwebguimcp.models import TableData
-from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.models.config import get_sap_config
 from sapwebguimcp.models.sm37_models import SM37Job, SM37JobListResult, SM37JobLog
 from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
@@ -176,8 +176,8 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
 ) -> SM37JobListResult:
     """Desktop-specific SM37 lookup using read_table instead of ARIA parsing."""
     now = datetime.now(UTC)
-    settings = get_settings()
-    language: SapLanguage = settings.sap_language
+    sap_cfg = get_sap_config()
+    language: SapLanguage = sap_cfg.get_default().language
 
     logger.info("SM37 desktop backend path", extra={"job_name": job_name})
 
@@ -408,8 +408,8 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
 ) -> SM37JobListResult:
     """Execute the SM37 lookup workflow on the given backend."""
     now = datetime.now(UTC)
-    settings = get_settings()
-    language: SapLanguage = settings.sap_language
+    sap_cfg = get_sap_config()
+    language: SapLanguage = sap_cfg.get_default().language
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
     if _is_desktop_backend(backend):

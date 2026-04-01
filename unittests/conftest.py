@@ -14,27 +14,28 @@ load_dotenv()
 # =============================================================================
 
 
-def _env_non_empty(*keys: str) -> bool:
-    """Return True if all named env vars are set and non-empty."""
-    return all(os.environ.get(k, "").strip() for k in keys)
+def _has_sap_config() -> bool:
+    """Check if a valid sap-mcp-config systems.json is available."""
+    try:
+        from sapwebguimcp.models.config import get_sap_config
+
+        cfg = get_sap_config()
+        default = cfg.get_default()
+        return bool(default.user and default.password.get_secret_value() and default.client)
+    except Exception:  # pylint: disable=broad-except
+        return False
 
 
 def has_sap_desktop_creds() -> bool:
-    """Check if SAP desktop integration credentials are configured.
-
-    Returns True when SAP_USER, SAP_PASSWORD, SAP_MANDANT, and
-    SAP_CONNECTION_NAME are all set to non-empty values.
-    """
-    return _env_non_empty("SAP_USER", "SAP_PASSWORD", "SAP_MANDANT", "SAP_CONNECTION_NAME")
+    """Check if SAP credentials are configured (via systems.json)."""
+    return _has_sap_config()
 
 
 def has_sap_webgui_creds() -> bool:
-    """Check if SAP WebGUI integration credentials are configured.
-
-    Returns True when SAP_USER, SAP_PASSWORD, SAP_MANDANT, and
-    SAP_URL are all set to non-empty values.
-    """
-    return _env_non_empty("SAP_USER", "SAP_PASSWORD", "SAP_MANDANT", "SAP_URL")
+    """Check if SAP credentials are configured (via systems.json) and SAP_URL is set or host is configured."""
+    if not _has_sap_config():
+        return False
+    return bool(os.environ.get("SAP_URL", "").strip()) or True  # host from systems.json is always available
 
 
 # =============================================================================
@@ -48,8 +49,10 @@ def reset_settings() -> Generator[None, None, None]:
     import sapwebguimcp.models.config
 
     sapwebguimcp.models.config._settings = None
+    sapwebguimcp.models.config._sap_config = None
     yield
     sapwebguimcp.models.config._settings = None
+    sapwebguimcp.models.config._sap_config = None
 
 
 @pytest.fixture(autouse=True)
@@ -61,7 +64,7 @@ def clean_environment() -> Generator[None, None, None]:
         "BROWSER_TYPE",
         "BROWSER_HEADLESS",
         "CDP_URL",
-        "SAP_CONNECTION_NAME",
+        "SAP_CONFIG_FILE",
         "CHROME_PATH",
         "CHROME_USER_DATA_DIR",
     ]

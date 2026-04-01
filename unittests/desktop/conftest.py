@@ -62,14 +62,18 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     end to return to the Easy Access screen.
     """
     load_dotenv()
+    from sapwebguimcp.models.config import get_sap_config
+
+    sap_cfg = get_sap_config()
+    system = sap_cfg.get_default()
     com = ComThread()
     b = DesktopBackend(com_thread=com)
     r = await b.login(
         "x",
-        os.environ["SAP_USER"],
-        os.environ["SAP_PASSWORD"],
-        os.environ["SAP_MANDANT"],
-        os.environ.get("SAP_LANGUAGE", "DE"),
+        system.user,
+        system.password.get_secret_value(),
+        system.client,
+        system.language,
     )
     assert r.success, f"Login failed: {r.error}"
     yield b

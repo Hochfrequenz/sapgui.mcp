@@ -242,12 +242,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Log into SAP. "
-            "On WebGUI: requires SAP_URL, Chrome with --remote-debugging-port=9222, "
-            "and VPN (if internal SAP). "
-            "On Desktop: requires SAP_CONNECTION_NAME (SAP Logon entry) "
-            "and SAP GUI for Windows with scripting enabled. "
-            "Both backends use SAP_USER, SAP_PASSWORD, SAP_MANDANT from environment. "
-            "Use client to override SAP_MANDANT and connection_name to override SAP_CONNECTION_NAME."
+            "On WebGUI: requires Chrome with --remote-debugging-port=9222 and VPN (if internal SAP). "
+            "On Desktop: requires SAP GUI for Windows with scripting enabled. "
+            "Credentials are read from ~/.config/sap-mcp/systems.json. "
+            "Use client/connection_name to override the default system."
         )
     )
     async def sap_login(
@@ -261,13 +259,12 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         On WebGUI, opens the SAP Web GUI URL and automatically logs in.
         On Desktop, connects via SAP Logon and opens a new connection.
-        Both backends use credentials from environment variables
-        (SAP_USER, SAP_PASSWORD, SAP_MANDANT, SAP_LANGUAGE).
+        Credentials are read from ~/.config/sap-mcp/systems.json.
 
         Args:
-            url: SAP Web GUI URL (WebGUI only). If not provided, uses SAP_URL from environment.
-            client: SAP client/mandant (3-digit string, e.g. '200'). Overrides SAP_MANDANT if provided.
-            connection_name: SAP Logon entry name (Desktop only, e.g. 'S4U'). Overrides SAP_CONNECTION_NAME.
+            url: SAP Web GUI URL (WebGUI only). If not provided, derived from system host.
+            client: SAP client/mandant (3-digit string, e.g. '200'). Overrides config value.
+            connection_name: System key from systems.json (Desktop: SAP Logon entry name).
 
         Returns:
             LoginResult indicating login success or what action is needed.

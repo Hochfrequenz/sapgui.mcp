@@ -25,14 +25,14 @@ load configuration from environment variables.
 | Environment Variable | Type | Default                   | Description                               |
 | -------------------- | ---- | ------------------------- | ----------------------------------------- |
 | `SAP_URL`            | str  | `""`                      | Default SAP Web GUI URL                   |
-| `SAP_USER`           | str  | `""`                      | SAP username for automatic login          |
-| `SAP_PASSWORD`       | str  | `""`                      | SAP password for automatic login          |
-| `SAP_MANDANT`        | str  | `""`                      | SAP client/mandant (3-digit, e.g., "100") |
 | `SAP_LANGUAGE`       | enum | `"EN"`                    | SAP login language (`"DE"` or `"EN"`)     |
 | `BROWSER_MODE`       | enum | `"connect"`               | `"connect"` or `"launch"`                 |
 | `BROWSER_TYPE`       | enum | `"chromium"`              | `"chromium"`, `"firefox"`, or `"webkit"`  |
 | `BROWSER_HEADLESS`   | bool | `false`                   | Run browser without GUI                   |
 | `CDP_URL`            | str  | `"http://localhost:9222"` | CDP URL for connect mode                  |
+
+SAP credentials (user, password, mandant) are loaded from `~/.config/sap-mcp/systems.json`
+(or the path set via `SAP_CONFIG_FILE` env var). See the [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) package.
 
 ### Usage
 

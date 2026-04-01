@@ -280,24 +280,20 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     load_dotenv(override=False)
 
     if not has_sap_webgui_creds():
-        pytest.skip("SAP WebGUI credentials not configured (need SAP_URL, SAP_USER, SAP_PASSWORD, SAP_MANDANT)")
-
-    sap_url = os.environ["SAP_URL"]
+        pytest.skip("SAP WebGUI credentials not configured (need systems.json and SAP_URL)")
 
     # Use sys.executable with -m to run the server module directly.
     # This works regardless of whether the entry point script is installed,
     # making tests runnable from any Python environment (PyCharm, tox, etc.)
     #
-    # We explicitly pass SAP-related environment variables to the subprocess
-    # because the clean_environment fixture clears them, and load_dotenv only
-    # restores them in the test process, not in the subprocess environment.
+    # We pass SAP_CONFIG_FILE so the subprocess can find the shared
+    # sap-mcp-config systems.json even after clean_environment clears env vars.
+    config_file = os.environ.get("SAP_CONFIG_FILE", "")
     server_env = {
         **os.environ,  # Inherit current environment
         "SAP_URL": os.environ.get("SAP_URL", ""),
-        "SAP_USER": os.environ.get("SAP_USER", ""),
-        "SAP_PASSWORD": os.environ.get("SAP_PASSWORD", ""),
-        "SAP_MANDANT": os.environ.get("SAP_MANDANT", ""),
         "SAP_LANGUAGE": os.environ.get("SAP_LANGUAGE", "EN"),
+        **({"SAP_CONFIG_FILE": config_file} if config_file else {}),
     }
     server_params = StdioServerParameters(
         command=sys.executable,

@@ -26,6 +26,7 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "pywin32>=306; sys_platform == 'win32'",
     "rapidfuzz>=3.0.0",  # Fuzzy string matching for catalog search
+    "sap-mcp-config>=0.0.3",  # Shared SAP system credentials config
     "sapsucker>=0.0.1",  # Typed SAP GUI Scripting wrapper
 ]
 dynamic = ["readme", "version"]
@@ -82,7 +83,7 @@ target_version = ["py311", "py312", "py313", "py314"]
 [tool.isort]
 line_length = 120
 profile = "black"
-known_third_party = ["sapsucker"]
+known_third_party = ["sap_mcp_config", "sapsucker"]
 
 [tool.pylint."MESSAGES CONTROL"]
 max-line-length = 120
@@ -92,7 +93,7 @@ disable = "fixme,duplicate-code"
 
 [tool.pylint.BASIC]
 # Allow module-level mutable variables (singletons, caches, state)
-good-names = ["_browser_manager", "_settings", "_keepalive_task", "_keepalive_interval"]
+good-names = ["_browser_manager", "_settings", "_sap_config", "_keepalive_task", "_keepalive_interval"]
 
 [mypy]
 truethy-bool = true

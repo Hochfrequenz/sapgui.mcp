@@ -45,7 +45,7 @@ from sapwebguimcp.backend.protocol import CheckActivateResult
 from sapwebguimcp.backend.types import ComTreeSnapshot
 from sapwebguimcp.models.alv_models import TableCellClickResult
 from sapwebguimcp.models.base import PopupButton, PopupInfo, PopupType, ToolResult
-from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.models.config import get_sap_config, get_settings
 from sapwebguimcp.models.sap_results import (
     ButtonInfo,
     ClosePopupResult,
@@ -186,12 +186,12 @@ class DesktopBackend:
         session_id: str | None = None,
         connection_name: str | None = None,
     ) -> LoginResult:
-        """Log into SAP GUI desktop (url is ignored — uses connection_name or SAP_CONNECTION_NAME)."""
+        """Log into SAP GUI desktop (url is ignored -- uses connection_name or default_system from config)."""
 
-        settings = get_settings()
-        connection_name = connection_name or settings.sap_connection_name
+        sap_cfg = get_sap_config()
+        connection_name = connection_name or sap_cfg.default_system
         if not connection_name:
-            return LoginResult(success=False, error="SAP_CONNECTION_NAME not configured")
+            return LoginResult(success=False, error="No connection_name and no default_system in config")
 
         try:
             session = await self._com.run(
@@ -235,15 +235,17 @@ class DesktopBackend:
             open_and_discover_clients,
         )
 
-        settings = get_settings()
-        user, password = settings.credentials_for(connection_name)
+        sap_cfg = get_sap_config()
+        system = sap_cfg.systems.get(connection_name) or sap_cfg.get_default()
+        user = system.user
+        password = system.password.get_secret_value()
 
         session, default_client, clients = await self._com.run(
             lambda: open_and_discover_clients(
                 connection_name=connection_name,
                 user=user,
                 password=password,
-                language=settings.sap_language or "EN",
+                language=system.language or "EN",
             )
         )
         session_id = self._registry.register(session)

@@ -11,9 +11,9 @@ from unittests.desktop.conftest import go_home, skip_no_sap
 @pytest.mark.anyio
 async def test_discover_clients_returns_t000_entries(backend) -> None:
     """discover_clients logs in, queries T000, and returns client list."""
-    import os
+    from sapwebguimcp.models.config import get_sap_config
 
-    connection_name = os.environ.get("SAP_CONNECTION_NAME", "HFQ")
+    connection_name = get_sap_config().default_system
     result = await backend.discover_clients(connection_name)
 
     assert result["session_id"] is not None, "Expected a session_id"

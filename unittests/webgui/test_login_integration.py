@@ -32,8 +32,8 @@ async def test_sap_login_page_capture(sap_mcp_client: ClientSession) -> None:
 async def test_sap_login(sap_mcp_client: ClientSession) -> None:
     """Test that sap_login tool automatically logs in with credentials from environment.
 
-    The sap_login tool reads SAP_USER, SAP_PASSWORD, SAP_MANDANT, SAP_LANGUAGE
-    from environment variables and performs automatic login.
+    The sap_login tool reads credentials from ~/.config/sap-mcp/systems.json
+    and performs automatic login.
 
     Verification:
     - Tool returns success message

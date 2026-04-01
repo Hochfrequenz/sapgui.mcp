@@ -24,18 +24,31 @@ class TestDesktopBackendType:
 class TestDesktopBackendLogin:
     @pytest.mark.anyio
     async def test_login_calls_login_helper(self):
+        from pydantic import SecretStr
+        from sap_mcp_config import Config, SAPSystem
+
         from sapwebguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
-        mock_settings = MagicMock()
-        mock_settings.sap_connection_name = "TEST_CONN"
+        mock_sap_config = Config(
+            default_system="TEST_CONN",
+            systems={
+                "TEST_CONN": SAPSystem(
+                    host="https://sap.example.com",
+                    client="100",
+                    user="user",
+                    password=SecretStr("pass"),
+                    language="EN",
+                ),
+            },
+        )
 
         async def mock_run(fn):
             return fn()
 
         with (
             patch("sapwebguimcp.backend.desktop._login_mod.login", return_value=session),
-            patch("sapwebguimcp.models.config.get_settings", return_value=mock_settings),
+            patch("sapwebguimcp.backend.desktop.get_sap_config", return_value=mock_sap_config),
         ):
             backend = DesktopBackend(com_thread=MagicMock())
             backend._com.run = mock_run

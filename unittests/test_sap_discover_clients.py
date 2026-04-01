@@ -3,9 +3,26 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from pydantic import SecretStr
+from sap_mcp_config import Config, SAPSystem
 
 _PATCH_GET_BACKEND = "sapwebguimcp.tools.sap_discover_clients_impl.get_backend"
-_PATCH_GET_SETTINGS = "sapwebguimcp.tools.sap_discover_clients_impl.get_settings"
+_PATCH_GET_SAP_CONFIG = "sapwebguimcp.tools.sap_discover_clients_impl.get_sap_config"
+
+
+def _make_sap_config(default_system: str = "HFQ") -> Config:
+    return Config(
+        default_system=default_system,
+        systems={
+            default_system: SAPSystem(
+                host="https://sap.example.com",
+                client="100",
+                user="testuser",
+                password=SecretStr("testpass"),
+                language="DE",
+            ),
+        },
+    )
 
 
 class TestSapDiscoverClientsImpl:
@@ -24,7 +41,8 @@ class TestSapDiscoverClientsImpl:
         }
 
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
-            result = await sap_discover_clients_impl("HFQ")
+            with patch(_PATCH_GET_SAP_CONFIG, return_value=_make_sap_config()):
+                result = await sap_discover_clients_impl("HFQ")
 
         backend.discover_clients.assert_called_once_with("HFQ")
         assert result.success is True
@@ -34,7 +52,7 @@ class TestSapDiscoverClientsImpl:
         assert result.connection_name == "HFQ"
 
     @pytest.mark.anyio
-    async def test_uses_settings_when_no_connection_name(self) -> None:
+    async def test_uses_default_system_when_no_connection_name(self) -> None:
         from sapwebguimcp.tools.sap_discover_clients_impl import sap_discover_clients_impl
 
         backend = AsyncMock()
@@ -46,8 +64,7 @@ class TestSapDiscoverClientsImpl:
         }
 
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
-            with patch(_PATCH_GET_SETTINGS) as mock_settings:
-                mock_settings.return_value.sap_connection_name = "HFQ"
+            with patch(_PATCH_GET_SAP_CONFIG, return_value=_make_sap_config("HFQ")):
                 result = await sap_discover_clients_impl(None)
 
         backend.discover_clients.assert_called_once_with("HFQ")
@@ -57,12 +74,15 @@ class TestSapDiscoverClientsImpl:
     async def test_returns_failure_when_no_connection_configured(self) -> None:
         from sapwebguimcp.tools.sap_discover_clients_impl import sap_discover_clients_impl
 
-        with patch(_PATCH_GET_SETTINGS) as mock_settings:
-            mock_settings.return_value.sap_connection_name = ""
+        cfg = Config(
+            default_system="",
+            systems={"": SAPSystem(host="https://x.com", user="u", password=SecretStr("p"))},
+        )
+        with patch(_PATCH_GET_SAP_CONFIG, return_value=cfg):
             result = await sap_discover_clients_impl(None)
 
         assert result.success is False
-        assert "connection" in result.error.lower()
+        assert "connection" in result.error.lower() or "default" in result.error.lower()
 
     @pytest.mark.anyio
     async def test_returns_failure_on_backend_exception(self) -> None:
@@ -72,7 +92,8 @@ class TestSapDiscoverClientsImpl:
         backend.discover_clients.side_effect = RuntimeError("SAP not running")
 
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
-            result = await sap_discover_clients_impl("HFQ")
+            with patch(_PATCH_GET_SAP_CONFIG, return_value=_make_sap_config()):
+                result = await sap_discover_clients_impl("HFQ")
 
         assert result.success is False
         assert "SAP not running" in result.error

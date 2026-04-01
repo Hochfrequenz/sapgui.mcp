@@ -1,26 +1,45 @@
 """
 Configuration models for SAP Web GUI MCP Server.
 
-All settings are loaded from environment variables using pydantic-settings.
+Server-specific settings are loaded from environment variables using pydantic-settings.
+SAP system credentials are loaded from the shared ``sap-mcp-config`` JSON file
+(``~/.config/sap-mcp/systems.json`` by default, or via ``SAP_CONFIG_FILE`` env var).
 """
 
-import json
 import sys
 import tempfile
 from enum import StrEnum
 from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sap_mcp_config import Config as SapMcpConfig
+from sap_mcp_config import load_default as load_sap_config
 
 __all__ = [
     "BackendType",
     "BrowserMode",
     "BrowserType",
     "SapWebGuiSettings",
+    "get_sap_config",
     "get_settings",
 ]
+
+# ---------------------------------------------------------------------------
+# Shared SAP system config (singleton)
+# ---------------------------------------------------------------------------
+
+_sap_config: SapMcpConfig | None = None
+
+
+def get_sap_config() -> SapMcpConfig:
+    """Load the shared SAP system config (singleton)."""
+    global _sap_config  # pylint: disable=global-statement
+    if _sap_config is None:
+        _sap_config = load_sap_config()
+    return _sap_config
+
 
 # Backend type: "webgui" for Playwright browser automation,
 # "desktop" for SAP GUI Scripting (COM) via sapsucker.
@@ -82,18 +101,14 @@ class BrowserType(StrEnum):
     WEBKIT = "webkit"
 
 
-class SapSystemCredentials(BaseModel):
-    """Credentials for a single SAP system in the SAP_CREDENTIALS mapping."""
-
-    user: str
-    password: str
-
-
 class SapWebGuiSettings(BaseSettings):
     """
     Settings for SAP Web GUI MCP Server.
 
-    All settings can be configured via environment variables.
+    Server-specific settings (browser config, logging, GitHub integration) are
+    loaded from environment variables.  SAP system credentials and connection
+    details are loaded from the shared ``sap-mcp-config`` JSON file --
+    see :func:`get_sap_config`.
 
     Example .env file:
         SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui
@@ -125,56 +140,6 @@ class SapWebGuiSettings(BaseSettings):
         description="Default SAP Web GUI URL (can be overridden per call)",
         json_schema_extra={"env": "SAP_URL"},
     )
-
-    # SAP Credentials (for automatic login)
-    sap_user: str = Field(
-        default="",
-        description="SAP username for automatic login",
-        json_schema_extra={"env": "SAP_USER"},
-    )
-    sap_password: str = Field(
-        default="",
-        description="SAP password for automatic login",
-        json_schema_extra={"env": "SAP_PASSWORD"},
-    )
-    sap_mandant: str = Field(
-        default="",
-        description="SAP client/mandant (3-digit string, e.g., '100')",
-        pattern=r"^(\d{3})?$",  # Allow empty string or exactly 3 digits
-        json_schema_extra={"env": "SAP_MANDANT"},
-    )
-    sap_language: Literal["DE", "EN"] = Field(
-        default="EN",
-        description="SAP login language ('DE' or 'EN')",
-        json_schema_extra={"env": "SAP_LANGUAGE"},
-    )
-    sap_connection_name: str = Field(
-        default="",
-        description="SAP Logon connection entry name (e.g. 'HF S/4') for desktop GUI login",
-        json_schema_extra={"env": "SAP_CONNECTION_NAME"},
-    )
-    sap_credentials: str = Field(
-        default="",
-        description=(
-            'Per-system credentials as JSON: {"HFQ": {"user": "...", "password": "..."}, ...}. '
-            "Falls back to SAP_USER / SAP_PASSWORD when the connection name is not in the mapping. "
-            "Empty string or unset is fine."
-        ),
-        json_schema_extra={"env": "SAP_CREDENTIALS"},
-    )
-
-    @property
-    def sap_credentials_parsed(self) -> dict[str, SapSystemCredentials]:
-        """Parse and validate SAP_CREDENTIALS JSON into typed models.
-
-        Returns an empty dict if the field is empty or unset.
-        Raises ValueError with a clear message if the JSON is malformed
-        or entries are missing required fields (user, password).
-        """
-        if not self.sap_credentials:
-            return {}
-        raw = json.loads(self.sap_credentials)  # raises JSONDecodeError if malformed
-        return {name: SapSystemCredentials(**entry) for name, entry in raw.items()}
 
     com_min_interval_ms: int = Field(
         default=100,
@@ -287,15 +252,15 @@ class SapWebGuiSettings(BaseSettings):
     def credentials_for(self, connection_name: str) -> tuple[str, str]:
         """Return (user, password) for a connection name.
 
-        Looks up ``connection_name`` in the ``SAP_CREDENTIALS`` mapping.
-        Falls back to ``SAP_USER`` / ``SAP_PASSWORD`` when the connection name
-        is not in the mapping or the mapping is empty.
+        Looks up ``connection_name`` in the shared SAP config
+        (``~/.config/sap-mcp/systems.json``).  Falls back to the default
+        system when the name is not found.
         """
-        parsed = self.sap_credentials_parsed
-        if parsed and connection_name in parsed:
-            entry = parsed[connection_name]
-            return entry.user, entry.password
-        return self.sap_user, self.sap_password
+        sap_cfg = get_sap_config()
+        system = sap_cfg.systems.get(connection_name)
+        if system is None:
+            system = sap_cfg.get_default()
+        return system.user, system.password.get_secret_value()
 
     def validate_for_browser(self) -> list[str]:
         """Validate settings required for browser connection."""

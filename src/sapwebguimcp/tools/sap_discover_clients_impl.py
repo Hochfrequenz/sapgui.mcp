@@ -8,7 +8,7 @@ from pydantic import Field
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.base import ToolResult
-from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.models.config import get_sap_config
 
 __all__ = ["DiscoverClientsResult", "sap_discover_clients_impl"]
 
@@ -33,10 +33,12 @@ async def sap_discover_clients_impl(connection_name: str | None) -> DiscoverClie
     Leaves the session open at the login screen.  The returned ``session_id``
     can be passed to ``sap_login`` to skip re-opening the connection.
     """
-    settings = get_settings()
-    effective_connection = connection_name or settings.sap_connection_name
+    sap_cfg = get_sap_config()
+    effective_connection = connection_name or sap_cfg.default_system
     if not effective_connection:
-        return DiscoverClientsResult.failure("No connection_name specified and SAP_CONNECTION_NAME not configured")
+        return DiscoverClientsResult.failure(
+            "No connection_name specified and no default_system in ~/.config/sap-mcp/systems.json"
+        )
 
     try:
         backend = await get_backend(tool_name="sap_discover_clients")
