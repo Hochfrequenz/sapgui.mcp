@@ -13,9 +13,7 @@ _PATCH_GET_SETTINGS = "sapwebguimcp.tools.sap_login_impl.get_settings"
 _PATCH_GET_SAP_CONFIG = "sapwebguimcp.tools.sap_login_impl.get_sap_config"
 
 
-def _make_sap_config(
-    default_system: str = "HFQ", client: str = "100", connection_name: str = "HF S/4"
-) -> Config:
+def _make_sap_config(default_system: str = "HFQ", client: str = "100", connection_name: str = "HF S/4") -> Config:
     return Config(
         default_system=default_system,
         systems={

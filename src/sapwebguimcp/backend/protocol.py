@@ -202,7 +202,6 @@ class SapNavigation(Protocol):  # pylint: disable=too-many-public-methods
     async def list_connections(self) -> list[Any]:
         """List available SAP Logon connection entries."""
 
-
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Navigate to a transaction code."""
 
