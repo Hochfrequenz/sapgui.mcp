@@ -13,11 +13,12 @@ _PATCH_GET_SETTINGS = "sapwebguimcp.tools.sap_login_impl.get_settings"
 _PATCH_GET_SAP_CONFIG = "sapwebguimcp.tools.sap_login_impl.get_sap_config"
 
 
-def _make_sap_config(default_system: str = "HFQ", client: str = "100") -> Config:
+def _make_sap_config(default_system: str = "HFQ", client: str = "100", connection_name: str = "HF S/4") -> Config:
     return Config(
         default_system=default_system,
         systems={
             default_system: SAPSystem(
+                connection_name=connection_name,
                 host="https://sap.example.com",
                 client=client,
                 user="testuser",
@@ -90,11 +91,11 @@ class TestSapLoginConnectionNameOverride:
     """sap_login uses default_system by default but accepts an optional connection_name override."""
 
     @pytest.mark.anyio
-    async def test_passes_none_when_no_connection_name_given(self) -> None:
-        """When no connection_name arg given, None is forwarded to backend (backend resolves from config)."""
+    async def test_uses_default_system_connection_name(self) -> None:
+        """When no connection_name arg given, system.connection_name from default_system is passed to backend."""
         from sapwebguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
-        sap_cfg = _make_sap_config(default_system="HFQ")
+        sap_cfg = _make_sap_config(default_system="HFQ", connection_name="HF S/4")
         settings = _make_settings()
         backend = _make_backend()
 
@@ -107,7 +108,7 @@ class TestSapLoginConnectionNameOverride:
 
         backend.login.assert_called_once()
         _, kwargs = backend.login.call_args
-        assert kwargs["connection_name"] is None
+        assert kwargs["connection_name"] == "HF S/4"
 
     @pytest.mark.anyio
     async def test_connection_name_param_overrides_config(self) -> None:
@@ -118,6 +119,7 @@ class TestSapLoginConnectionNameOverride:
             default_system="HFQ",
             systems={
                 "HFQ": SAPSystem(
+                    connection_name="HF S/4",
                     host="https://sap.example.com",
                     client="100",
                     user="testuser",
@@ -125,6 +127,7 @@ class TestSapLoginConnectionNameOverride:
                     language="DE",
                 ),
                 "S4U": SAPSystem(
+                    connection_name="S4 Utility",
                     host="https://s4u.example.com",
                     client="200",
                     user="s4user",
@@ -145,6 +148,6 @@ class TestSapLoginConnectionNameOverride:
 
         backend.login.assert_called_once()
         _, kwargs = backend.login.call_args
-        assert kwargs["connection_name"] == "S4U"
+        assert kwargs["connection_name"] == "S4 Utility"
         assert kwargs["username"] == "s4user"
         assert kwargs["client"] == "200"

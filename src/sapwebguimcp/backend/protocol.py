@@ -202,16 +202,6 @@ class SapNavigation(Protocol):  # pylint: disable=too-many-public-methods
     async def list_connections(self) -> list[Any]:
         """List available SAP Logon connection entries."""
 
-    async def discover_clients(self, connection_name: str) -> dict[str, Any]:
-        """Open an SAP connection and return available clients from the login screen.
-
-        Returns a dict with keys:
-            session_id: str | None  — registered session at login screen
-            default_client: str     — pre-filled client value on the login screen
-            clients: list[dict]     — parsed from the info text, each {"id", "description"}
-            info_text: str          — raw info text from the login screen
-        """
-
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Navigate to a transaction code."""
 

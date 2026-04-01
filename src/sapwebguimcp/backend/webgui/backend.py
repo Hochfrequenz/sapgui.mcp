@@ -341,10 +341,6 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         """WebGUI backend has no SAP Logon entries."""
         return []
 
-    async def discover_clients(self, connection_name: str) -> dict[str, Any]:  # pylint: disable=unused-argument
-        """WebGUI backend has no SAP Logon — client discovery not supported."""
-        return {"session_id": None, "default_client": "", "clients": [], "info_text": ""}
-
     async def enter_transaction(self, tcode: str) -> TransactionResult:
         """Enter a transaction code via the OK-Code field.
 
