@@ -93,20 +93,21 @@ On **Windows**, open Windows Explorer and paste this into the address bar:
 
 Create the folder if it doesn't exist, then create a file called `systems.json` inside it. On **macOS/Linux**, the path is `~/.config/sap-mcp/systems.json`.
 
-**System key = SAP Logon description, NOT the SID.** The key in `"systems"` (e.g. `"HF S/4"`) must match the **description** shown in SAP Logon — the bold text in the connection list. It is _not_ the 3-character System ID (SID) like `HFQ` or `DEV`.
+The dictionary key (e.g. `"dev"`) is just a config lookup identifier. The `connection_name` field must match the **description** shown in SAP Logon — the bold text in the connection list. It is _not_ the 3-character System ID (SID).
 
-| What you see in SAP Logon | Use as system key         | NOT this (SID) |
-| ------------------------- | ------------------------- | -------------- |
-| **HF S/4**                | `"HF S/4"`                | ~~`"HFQ"`~~    |
-| **DEV - ERP Development** | `"DEV - ERP Development"` | ~~`"DEV"`~~    |
+| What you see in SAP Logon | `connection_name` value     | NOT this (SID) |
+| ------------------------- | --------------------------- | -------------- |
+| **HF S/4**                | `"HF S/4"`                  | ~~`"HFQ"`~~    |
+| **DEV - ERP Development** | `"DEV - ERP Development"`   | ~~`"DEV"`~~    |
 
-If the key doesn't match exactly, you'll get _"SAP Logon connection entry not found"_.
+If the `connection_name` doesn't match exactly, you'll get _"SAP Logon connection entry not found"_.
 
 ```json
 {
-    "default_system": "HF S/4",
+    "default_system": "dev",
     "systems": {
-        "HF S/4": {
+        "dev": {
+            "connection_name": "HF S/4",
             "host": "https://your-sap-system:44300",
             "client": "100",
             "user": "your_username",
