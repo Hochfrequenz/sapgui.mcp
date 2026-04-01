@@ -83,7 +83,17 @@ Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%A
 > [!TIP]
 > After downloading the `.exe`, note the full path. For example, if you saved `sapwebgui_mcp_windows_1.5.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapwebgui_mcp_windows_1.5.0.exe`. Always use forward slashes (`/`) in the JSON, not backslashes (`\`).
 
-**Step 1:** Create `~/.config/sap-mcp/systems.json` with your SAP credentials (shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) — configure once, use everywhere). The system key must match the **description** shown in SAP Logon (e.g. `"HF S/4"` or `"DEV - ERP Development"`):
+**Step 1:** Create the SAP config file (shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) — configure once, use everywhere).
+
+On **Windows**, open Windows Explorer and paste this into the address bar:
+
+```
+%USERPROFILE%\.config\sap-mcp
+```
+
+Create the folder if it doesn't exist, then create a file called `systems.json` inside it. On **macOS/Linux**, the path is `~/.config/sap-mcp/systems.json`.
+
+The system key must match the **description** shown in SAP Logon (e.g. `"HF S/4"` or `"DEV - ERP Development"`):
 
 ```json
 {
@@ -100,7 +110,7 @@ Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%A
 }
 ```
 
-See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the full config format reference.
+See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the full config format reference (JSON and YAML supported).
 
 **Step 2:** Add to `claude_desktop_config.json`:
 
@@ -144,7 +154,7 @@ Multi-system support is built into `systems.json` — add multiple systems and t
 2. `sap_login(connection_name="QA System", client="200")` logs into a specific system using credentials from `systems.json`.
 3. `sap_discover_clients(connection_name="QA System")` opens a connection and queries table T000 to list all available clients (Mandanten) on that system. Requires SE16N authorization.
 
-**Configuration:** Add multiple systems to `~/.config/sap-mcp/systems.json`:
+**Configuration:** Add multiple systems to your `systems.json`:
 
 ```json
 {
@@ -195,7 +205,7 @@ Automates SAP Web GUI through Chrome browser automation. Works on all platforms.
 
 #### Step 2: Create `systems.json`
 
-Create `~/.config/sap-mcp/systems.json` with your SAP credentials (if you haven't already — see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config)):
+Create the SAP config file if you haven't already (Windows: `%USERPROFILE%\.config\sap-mcp\systems.json`, macOS/Linux: `~/.config/sap-mcp/systems.json`). See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for details.
 
 ```json
 {
@@ -387,7 +397,7 @@ docker ps --filter "name=cdp-proxy" --format "table {{.Names}}\t{{.Status}}"
 
 ### Step 3: Configure your MCP client
 
-**Required:** `~/.config/sap-mcp/systems.json` with your SAP credentials (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config)). All other env variables are optional. See [Configuration Reference](#configuration-reference) for the full list.
+**Required:** `systems.json` with your SAP credentials (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) and [Configuration Reference](#configuration-reference) for the default path per OS). All other env variables are optional. See [Configuration Reference](#configuration-reference) for the full list.
 
 > `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove the `-e GITHUB_PAT=...` line if you don't need these features.
 
@@ -529,7 +539,7 @@ run-sapwebgui-mcp-server
 
 ### Configure your MCP client
 
-**Required:** `~/.config/sap-mcp/systems.json` with your SAP credentials (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config)). All other env variables are optional.
+**Required:** `systems.json` with your SAP credentials (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) and [Configuration Reference](#configuration-reference) for the default path per OS). All other env variables are optional.
 
 > `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove it if you don't need these features.
 
@@ -598,7 +608,12 @@ Low-level browser escape hatches (`browser_snapshot`, `browser_screenshot`, `bro
 
 ### SAP Credentials (via `systems.json`)
 
-SAP credentials (user, password, client, language, host) are configured in `~/.config/sap-mcp/systems.json`, **not** via environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`.
+SAP credentials (user, password, client, language, host) are configured in `systems.json` (or `systems.yaml`), **not** via environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`.
+
+| OS | Default path |
+|----|-------------|
+| Windows | `%USERPROFILE%\.config\sap-mcp\systems.json` |
+| macOS/Linux | `~/.config/sap-mcp/systems.json` |
 
 ### Environment Variables (server-specific)
 
@@ -606,7 +621,7 @@ SAP credentials (user, password, client, language, host) are configured in `~/.c
 | --------------------- | --------------------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
 | `BACKEND_TYPE`        | No                                      | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`                     |
 | `SAP_URL`             | No                                      | Override WebGUI URL (default: derived from `host` in systems.json)      | `""`                         |
-| `SAP_CONFIG_FILE`     | No                                      | Path to systems.json                                                   | `~/.config/sap-mcp/systems.json` |
+| `SAP_CONFIG_FILE`     | No                                      | Path to systems.json (see table above for default per OS)              | (see above)                      |
 | `BROWSER_MODE`        | No                                      | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.     | `connect`                    |
 | `BROWSER_TYPE`        | No                                      | `chromium`, `firefox`, or `webkit`. WebGUI only.                       | `chromium`                   |
 | `BROWSER_HEADLESS`    | No                                      | Run browser in headless mode. WebGUI only.                             | `false`                      |
@@ -708,7 +723,7 @@ docker logs sap-mcp-cdp-proxy-1
 ### SAP login fails
 
 - Check `SAP_URL` is correct and accessible from your browser
-- If using auto-login, verify credentials are configured in `~/.config/sap-mcp/systems.json`
+- If using auto-login, verify credentials are configured in `systems.json` (see [Configuration Reference](#configuration-reference))
 - Try logging in manually first to verify credentials
 
 ### Transaction input field (OK-Code field) not visible
