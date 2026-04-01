@@ -210,6 +210,7 @@ ESCAPE HATCHES (when SAP-specific tools are insufficient):
   - VKey codes: 0=Enter, 3=F3/Back, 8=F8/Execute, 11=F11/Save, 12=F12/Cancel
 """
 
+
 def _build_instructions() -> str:
     base = _DESKTOP_INSTRUCTIONS if _settings.backend_type == "desktop" else _WEBGUI_INSTRUCTIONS
     try:
