@@ -226,7 +226,7 @@ def _build_instructions() -> str:
             f"Pass the selected key as connection_name to sap_login().\n"
         )
         return base + systems_info
-    except Exception:  # config not found or invalid — don't crash
+    except (FileNotFoundError, ValueError):  # config not found or invalid — don't crash
         return base
 
 
