@@ -11,12 +11,13 @@ from contextlib import asynccontextmanager
 
 import httpx
 from fastmcp import FastMCP
+from fastmcp.apps.choice import Choice
 from fastmcp.server.middleware.logging import LoggingMiddleware
 
 from sapwebguimcp.backend.manager import close_backend
 from sapwebguimcp.logging_config import configure_logging
 from sapwebguimcp.middleware import ToolCallLoggingMiddleware
-from sapwebguimcp.models.config import get_settings
+from sapwebguimcp.models.config import get_sap_config, get_settings
 from sapwebguimcp.prompts import register_prompts
 from sapwebguimcp.resources import register_feedback_resources, register_intent_resources
 from sapwebguimcp.tools import (
@@ -209,7 +210,26 @@ ESCAPE HATCHES (when SAP-specific tools are insufficient):
   - VKey codes: 0=Enter, 3=F3/Back, 8=F8/Execute, 11=F11/Save, 12=F12/Cancel
 """
 
-SERVER_INSTRUCTIONS = _DESKTOP_INSTRUCTIONS if _settings.backend_type == "desktop" else _WEBGUI_INSTRUCTIONS
+def _build_instructions() -> str:
+    base = _DESKTOP_INSTRUCTIONS if _settings.backend_type == "desktop" else _WEBGUI_INSTRUCTIONS
+    try:
+        sap_cfg = get_sap_config()
+        keys = list(sap_cfg.systems.keys())
+        default = sap_cfg.default_system
+        systems_info = (
+            f"\nAVAILABLE SYSTEMS (from systems.json):\n"
+            f"Default: {default!r}\n"
+            f"All systems: {keys}\n"
+            f"When multiple systems are configured, use the choose tool to let the user "
+            f"pick a system before calling sap_login(). "
+            f"Pass the selected key as connection_name to sap_login().\n"
+        )
+        return base + systems_info
+    except Exception:  # config not found or invalid — don't crash
+        return base
+
+
+SERVER_INSTRUCTIONS = _build_instructions()
 
 # Create the FastMCP server instance with strict input validation
 _SERVER_NAME = "sap-desktop-mcp" if _settings.backend_type == "desktop" else "sap-webgui-mcp"
@@ -222,6 +242,9 @@ mcp = FastMCP(
 
 # Add logging middleware for tool call sequence analysis
 mcp.add_middleware(ToolCallLoggingMiddleware())
+
+# Add Choice provider so the LLM can present system selection UI to the user
+mcp.add_provider(Choice())
 
 # Add FastMCP built-in logging with payload visibility
 mcp.add_middleware(LoggingMiddleware(include_payloads=True, max_payload_length=1000))
