@@ -16,7 +16,7 @@ anyio==4.12.1
     #   sse-starlette
     #   starlette
     #   watchfiles
-attrs==25.4.0
+attrs==26.1.0
     # via
     #   cyclopts
     #   jsonschema
