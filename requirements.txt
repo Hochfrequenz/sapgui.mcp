@@ -189,7 +189,7 @@ sapsucker==0.0.1
     # via sapwebguimcp (pyproject.toml)
 secretstorage==3.5.0
     # via keyring
-sse-starlette==3.3.3
+sse-starlette==3.3.4
     # via mcp
 starlette==1.0.0
     # via
