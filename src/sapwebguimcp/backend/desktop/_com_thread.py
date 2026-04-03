@@ -13,6 +13,8 @@ disconnection. Key signals:
 
 - **RPC_E_SERVERCALL_RETRYLATER** (0x80010105): COM is busy — back off.
   This is the leading indicator before a full disconnect.
+- **RPC_S_UNKNOWN_IF** (0x800706B5): Stale COM proxy — the interface
+  reference was invalidated (e.g. by a rapid screen transition). Retryable.
 - **RPC_E_DISCONNECTED** (-2147417848): Connection dead — fatal.
 - **Call latency spikes**: If a call takes 5x longer than the moving
   average, COM is under pressure.
@@ -39,8 +41,9 @@ T = TypeVar("T")
 _RPC_E_DISCONNECTED = -2147417848
 _RPC_E_SERVERCALL_RETRYLATER = -2147417851  # 0x80010105
 _RPC_E_CALL_REJECTED = -2147418111  # 0x80010001
+_RPC_S_UNKNOWN_IF = -2147023179  # 0x800706B5 — "The interface is unknown"
 
-_RETRYABLE_COM_ERRORS = {_RPC_E_SERVERCALL_RETRYLATER, _RPC_E_CALL_REJECTED}
+_RETRYABLE_COM_ERRORS = {_RPC_E_SERVERCALL_RETRYLATER, _RPC_E_CALL_REJECTED, _RPC_S_UNKNOWN_IF}
 
 
 def _get_com_error_code(exc: Exception) -> int | None:
