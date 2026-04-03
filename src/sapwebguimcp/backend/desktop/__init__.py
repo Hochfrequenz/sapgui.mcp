@@ -124,6 +124,44 @@ def _set_field_value(raw_com: Any, value: str) -> None:
         raw_com.Text = value
 
 
+def _discover_fields_from_tree(flat: list[Any]) -> list[dict[str, Any]]:
+    """Extract field info from a flattened element tree.
+
+    Pure function — no COM access. Used by discover_fields() and testable independently.
+    """
+    # Build label map: name -> label text
+    label_map: dict[str, str] = {}
+    for elem in flat:
+        if elem.type_as_number == 30 and elem.text.strip():  # GuiLabel
+            label_map[elem.name] = elem.text.strip()
+
+    fields = []
+    discover_types = {31, 32, 33, 34, 40, 41, 42}
+    for elem in flat:
+        if elem.type_as_number not in discover_types:
+            continue
+        # For buttons, skip those with empty text (toolbar icons)
+        if elem.type_as_number == 40 and not elem.text.strip():
+            continue
+        # Radios, checkboxes, and buttons carry their own label in elem.text;
+        # input fields (31-34) look up their label from adjacent GuiLabel elements.
+        if elem.type_as_number in {40, 41, 42}:
+            label = elem.text.strip() if elem.text.strip() else elem.name
+        else:
+            label = label_map.get(elem.name, elem.name)
+        fields.append(
+            {
+                "id": elem.id,
+                "name": elem.name,
+                "label": label,
+                "type": elem.type,
+                "selector": elem.id,
+                "value": elem.text,
+            }
+        )
+    return fields
+
+
 class DesktopBackend:
     """SapUiBackend implementation using SAP GUI Scripting (COM).
 
@@ -521,39 +559,7 @@ class DesktopBackend:
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree()
             flat = _flatten(tree)
-
-            # Build label map: name -> label text (same logic as get_form_fields)
-            label_map: dict[str, str] = {}
-            for elem in flat:
-                if elem.type_as_number == 30 and elem.text.strip():  # GuiLabel
-                    label_map[elem.name] = elem.text.strip()
-
-            fields = []
-            # Input fields + radio buttons + checkboxes + pushbuttons
-            discover_types = {31, 32, 33, 34, 40, 41, 42}
-            for elem in flat:
-                if elem.type_as_number not in discover_types:
-                    continue
-                # For buttons, skip those with empty text (toolbar icons)
-                if elem.type_as_number == 40 and not elem.text.strip():
-                    continue
-                # Radios, checkboxes, and buttons carry their own label in elem.text;
-                # input fields (31-34) look up their label from adjacent GuiLabel elements.
-                if elem.type_as_number in {40, 41, 42}:
-                    label = elem.text.strip() if elem.text.strip() else elem.name
-                else:
-                    label = label_map.get(elem.name, elem.name)
-                fields.append(
-                    {
-                        "id": elem.id,
-                        "name": elem.name,
-                        "label": label,
-                        "type": elem.type,
-                        "selector": elem.id,
-                        "value": elem.text,
-                    }
-                )
-            return fields
+            return _discover_fields_from_tree(flat)
 
         items = await self._com.run(_discover)
         logger.debug("discover_fields", extra={"count": len(items)})
