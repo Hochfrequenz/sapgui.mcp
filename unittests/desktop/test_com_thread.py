@@ -80,6 +80,28 @@ class TestComThread:
         assert isinstance(exc_info.value.__cause__, FakeComError)
 
     @pytest.mark.anyio
+    async def test_rpc_unknown_if_is_retried(self, com_thread):
+        """RPC_S_UNKNOWN_IF (-2147023179 / 0x800706B5) should be retried, not fatal."""
+
+        class FakeComError(Exception):
+            def __init__(self, hr):
+                super().__init__(hr)
+                self.hresult = hr
+
+        call_count = 0
+
+        def fail_once_then_succeed():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise FakeComError(-2147023179)  # RPC_S_UNKNOWN_IF
+            return "recovered"
+
+        result = await com_thread.run(fail_once_then_succeed)
+        assert result == "recovered"
+        assert call_count == 2, f"Expected 2 calls (1 failure + 1 retry), got {call_count}"
+
+    @pytest.mark.anyio
     async def test_other_exceptions_not_wrapped(self, com_thread):
         """Non-disconnect exceptions propagate unchanged."""
 
