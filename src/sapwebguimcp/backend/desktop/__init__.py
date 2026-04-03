@@ -514,26 +514,45 @@ class DesktopBackend:
         return ScreenText(success=True, **data)
 
     async def discover_fields(self) -> list[FieldInfo]:
-        """Discover input fields on the current screen."""
+        """Discover input fields, radio buttons, checkboxes, and pushbuttons on screen."""
         session = self._require_session()
 
         def _discover() -> list[dict[str, Any]]:
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree()
+            flat = _flatten(tree)
+
+            # Build label map: name -> label text (same logic as get_form_fields)
+            label_map: dict[str, str] = {}
+            for elem in flat:
+                if elem.type_as_number == 30 and elem.text.strip():  # GuiLabel
+                    label_map[elem.name] = elem.text.strip()
+
             fields = []
-            input_types = {31, 32, 33, 34}  # txt, ctxt, pwd, cmb
-            for elem in _flatten(tree):
-                if elem.type_as_number in input_types:
-                    fields.append(
-                        {
-                            "id": elem.id,
-                            "name": elem.name,
-                            "label": None,
-                            "type": elem.type,
-                            "selector": elem.id,
-                            "value": elem.text,
-                        }
-                    )
+            # Input fields + radio buttons + checkboxes + pushbuttons
+            discover_types = {31, 32, 33, 34, 40, 41, 42}
+            for elem in flat:
+                if elem.type_as_number not in discover_types:
+                    continue
+                # For buttons, skip those with empty text (toolbar icons)
+                if elem.type_as_number == 40 and not elem.text.strip():
+                    continue
+                # Radios, checkboxes, and buttons carry their own label in elem.text;
+                # input fields (31-34) look up their label from adjacent GuiLabel elements.
+                if elem.type_as_number in {40, 41, 42}:
+                    label = elem.text.strip() if elem.text.strip() else elem.name
+                else:
+                    label = label_map.get(elem.name, elem.name)
+                fields.append(
+                    {
+                        "id": elem.id,
+                        "name": elem.name,
+                        "label": label,
+                        "type": elem.type,
+                        "selector": elem.id,
+                        "value": elem.text,
+                    }
+                )
             return fields
 
         items = await self._com.run(_discover)
