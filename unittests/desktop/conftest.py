@@ -74,6 +74,7 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
         system.password.get_secret_value(),
         system.client,
         system.language,
+        connection_name=system.connection_name,
     )
     assert r.success, f"Login failed: {r.error}"
     yield b
