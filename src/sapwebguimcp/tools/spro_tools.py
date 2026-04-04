@@ -416,7 +416,7 @@ def register_spro_tools(mcp: FastMCP) -> None:
                 )
         else:
             try:
-                result = await _search_img(cast(WebGuiBackend, backend), query)
+                result = await _search_img(cast("WebGuiBackend", backend), query)
             except Exception as e:  # pylint: disable=broad-exception-caught
                 logger.exception("SPRO search query=%r", query)
                 result = SPROSearchResult.failure(

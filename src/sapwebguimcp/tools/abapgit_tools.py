@@ -169,7 +169,7 @@ async def _check_for_error_popup(backend: "WebGuiBackend | DesktopBackend") -> s
         if backend.backend_type == "desktop":
             text = await _check_for_error_popup_desktop(backend)
         else:
-            text = await _check_for_error_popup_webgui(cast(WebGuiBackend, backend))
+            text = await _check_for_error_popup_webgui(cast("WebGuiBackend", backend))
         if not text:
             return None
         text_lower = text.lower()
@@ -229,7 +229,7 @@ async def _check_screen_for_errors(backend: "WebGuiBackend | DesktopBackend") ->
             snapshot = await backend.get_snapshot()
             body_text = str(snapshot)
         else:
-            body_text = await cast(WebGuiBackend, backend).evaluate_javascript("() => document.body.innerText || ''")
+            body_text = await cast("WebGuiBackend", backend).evaluate_javascript("() => document.body.innerText || ''")
         body_lower = body_text.lower()
 
         for pattern, message_prefix in ERROR_PATTERNS:
@@ -546,7 +546,7 @@ async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> Abap
             all_text = (screen.labels or []) + (screen.main_content or [])
             raw_output = "\n".join(all_text)
         else:
-            raw_output = await cast(WebGuiBackend, backend).evaluate_javascript("""
+            raw_output = await cast("WebGuiBackend", backend).evaluate_javascript("""
                 () => {
                     const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
                     return body.innerText || body.textContent || '';
