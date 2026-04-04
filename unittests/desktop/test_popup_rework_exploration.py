@@ -209,7 +209,84 @@ async def test_03_se38_create_popup(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_04_baseline_no_popup(backend):
+async def test_04_fill_popup_field_e2e(backend):
+    """End-to-end: fill a field INSIDE a popup dialog via fill_form.
+
+    This proves #609 is fixed: fill_form targets the active window (wnd[1]).
+    """
+    await backend.enter_transaction("SE21")
+    await backend.wait_for_ready()
+
+    # Open the create popup
+    form = await backend.get_form_fields()
+    text_fields = [f for f in form.fields if str(f.field_type) == "text"]
+    await backend.fill_form({text_fields[0].label: "ZTEST_POPUP_XYZ99"})
+    await backend.wait(300)
+    await backend.press_key("F5")
+    await backend.wait(500)
+
+    # Popup should be open — get_form_fields should return wnd[1] fields
+    popup_form = await backend.get_form_fields()
+    assert len(popup_form.fields) > 0, "Should see popup fields"
+    print(f"\n=== Popup fields: {[f.label for f in popup_form.fields]} ===")
+
+    # Find the "Kurzbeschreibung" (short description) field and fill it
+    desc_fields = [f for f in popup_form.fields if "Kurzbeschreibung" in (f.label or "")]
+    assert desc_fields, "Should find Kurzbeschreibung field in popup"
+
+    # THIS is the critical test: fill_form targeting a popup field
+    result = await backend.fill_form({"Kurzbeschreibung": "Test popup fill"})
+    print(f"\n=== fill_form result: filled={result.filled}, not_found={result.not_found} ===")
+    assert result.success, f"fill_form in popup should succeed, got: {result.error}"
+    assert "Kurzbeschreibung" in result.filled, "Kurzbeschreibung should be in filled list"
+
+    # Verify the value was actually set by re-reading
+    popup_form2 = await backend.get_form_fields()
+    desc_field = [f for f in popup_form2.fields if "Kurzbeschreibung" in (f.label or "")][0]
+    assert (
+        desc_field.current_value == "Test popup fill"
+    ), f"Field value should be 'Test popup fill', got '{desc_field.current_value}'"
+    print(f"  Verified: Kurzbeschreibung = '{desc_field.current_value}'")
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_05_press_key_closes_popup(backend):
+    """End-to-end: press Escape on popup closes it, active_window returns to wnd[0].
+
+    This proves #609 is fixed: keyboard targets the active window.
+    """
+    await backend.enter_transaction("SE21")
+    await backend.wait_for_ready()
+
+    # Open the create popup
+    form = await backend.get_form_fields()
+    text_fields = [f for f in form.fields if str(f.field_type) == "text"]
+    await backend.fill_form({text_fields[0].label: "ZTEST_POPUP_XYZ99"})
+    await backend.wait(300)
+    await backend.press_key("F5")
+    await backend.wait(500)
+
+    # Verify popup is open
+    popup = await backend.check_popup()
+    assert popup is not None, "Popup should be open"
+
+    # Press Escape — should close the popup and return to wnd[0]
+    result = await backend.press_key("Escape")
+    assert result.success, f"Escape should succeed, got: {result.error}"
+    print(f"\n=== After Escape: active_window={result.active_window} ===")
+    assert (
+        result.active_window == "wnd[0]"
+    ), f"After closing popup, active_window should be wnd[0], got {result.active_window}"
+
+    # Verify popup is gone
+    popup_after = await backend.check_popup()
+    assert popup_after is None, "Popup should be closed after Escape"
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_06_baseline_no_popup(backend):
     """Baseline: verify check_popup returns None on a normal screen."""
     await backend.enter_transaction("SE38")
     await backend.wait_for_ready()
