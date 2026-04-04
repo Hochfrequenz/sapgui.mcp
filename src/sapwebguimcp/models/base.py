@@ -72,6 +72,11 @@ class ToolResult(BaseModel):
         default=None,
         description="Present when a popup dialog is active on screen",
     )
+    active_window: str | None = Field(
+        default=None,
+        description="Which window was operated on (e.g., 'wnd[0]', 'wnd[1]'). "
+        "If 'wnd[1]' or higher, a modal dialog is open.",
+    )
 
     @model_validator(mode="after")
     def validate_success_error_consistency(self) -> Self:

@@ -162,6 +162,18 @@ def _discover_fields_from_tree(flat: list[Any]) -> list[dict[str, Any]]:
     return fields
 
 
+def _active_window_id(session: Any) -> str:
+    """Return the element ID of the topmost open window.
+
+    SAP GUI enforces strict modal stacking: wnd[2] cannot exist without wnd[1].
+    We scan top-down to find the highest existing window.
+    """
+    for i in (3, 2, 1):
+        if session.find_by_id(f"wnd[{i}]", raise_error=False) is not None:
+            return f"wnd[{i}]"
+    return "wnd[0]"
+
+
 class DesktopBackend:
     """SapUiBackend implementation using SAP GUI Scripting (COM).
 
