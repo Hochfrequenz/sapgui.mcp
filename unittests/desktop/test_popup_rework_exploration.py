@@ -135,11 +135,11 @@ async def test_02_se21_trigger_popup(backend):
     fields2 = await backend.discover_fields()
     print(f"  discover_fields: {len(fields2)} fields")
 
-    # Document the bug
+    # Verify the fix: tools now see popup fields
     assert popup is not None, "Expected SE21 create to open a popup"
     assert wnd1_data is not None, "Expected wnd[1] to exist"
-    assert len(form2.fields) == 0, "Current bug: get_form_fields returns 0 fields when popup is open"
-    assert len(fields2) == 0, "Current bug: discover_fields returns 0 fields when popup is open"
+    assert len(form2.fields) > 0, "get_form_fields should see wnd[1] fields"
+    assert len(fields2) > 0, "discover_fields should see wnd[1] fields"
 
 
 @skip_no_sap
