@@ -652,8 +652,18 @@ class DesktopBackend:
             tree = cast(Any, wnd).dump_tree()
             buttons: list[dict[str, Any]] = []
             for elem in _flatten(tree):
-                if elem.type_as_number == 40 and elem.text.strip():  # GuiButton
-                    buttons.append({"label": elem.text.strip(), "id": elem.id, "selector": elem.id})
+                if elem.type_as_number != 40:  # GuiButton
+                    continue
+                label = elem.text.strip()
+                if not label:
+                    # Toolbar buttons often have empty text; read tooltip from COM
+                    try:
+                        btn_com = session.find_by_id(elem.id)
+                        label = str(cast(Any, btn_com).tooltip).strip()
+                    except Exception:
+                        pass
+                if label:
+                    buttons.append({"label": label, "id": elem.id, "selector": elem.id})
             return buttons
 
         items = await self._com.run(_discover)
@@ -1359,8 +1369,18 @@ class DesktopBackend:
             flat = _flatten(tree)
             buttons: list[dict[str, str | None]] = []
             for elem in flat:
-                if elem.type_as_number == 40 and elem.text.strip():  # GuiButton
-                    buttons.append({"label": elem.text.strip(), "id": elem.id})
+                if elem.type_as_number != 40:  # GuiButton
+                    continue
+                label = elem.text.strip()
+                if not label:
+                    # Toolbar buttons often have empty text; read tooltip from COM
+                    try:
+                        btn_com = session.find_by_id(elem.id)
+                        label = str(cast(Any, btn_com).tooltip).strip()
+                    except Exception:
+                        pass
+                if label:
+                    buttons.append({"label": label, "id": elem.id})
             # Collect text content (labels and text fields)
             texts: list[str] = []
             for elem in flat:
