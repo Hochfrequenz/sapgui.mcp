@@ -162,6 +162,18 @@ def _discover_fields_from_tree(flat: list[Any]) -> list[dict[str, Any]]:
     return fields
 
 
+def _active_window_id(session: Any) -> str:
+    """Return the element ID of the topmost open window.
+
+    SAP GUI enforces strict modal stacking: wnd[2] cannot exist without wnd[1].
+    We scan top-down to find the highest existing window.
+    """
+    for i in (3, 2, 1):
+        if session.find_by_id(f"wnd[{i}]", raise_error=False) is not None:
+            return f"wnd[{i}]"
+    return "wnd[0]"
+
+
 class DesktopBackend:
     """SapUiBackend implementation using SAP GUI Scripting (COM).
 
@@ -485,7 +497,10 @@ class DesktopBackend:
         session = self._require_session()
 
         def _read() -> tuple[str, str]:
-            sbar = session.find_by_id("wnd[0]/sbar")
+            wnd_id = _active_window_id(session)
+            sbar = session.find_by_id(f"{wnd_id}/sbar", raise_error=False)
+            if sbar is None:
+                return "", ""
             return str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
 
         text, msg_type = await self._com.run(_read)
@@ -498,8 +513,9 @@ class DesktopBackend:
         session = self._require_session()
 
         def _read() -> dict[str, Any]:
+            wnd_id = _active_window_id(session)
             info = session.info
-            wnd = session.find_by_id("wnd[0]")
+            wnd = session.find_by_id(wnd_id)
             return {
                 "transaction": str(info.transaction),
                 "title": str(cast(Any, wnd).text),
@@ -517,10 +533,11 @@ class DesktopBackend:
         session = self._require_session()
 
         def _read() -> dict[str, Any]:
-            wnd = session.find_by_id("wnd[0]")
+            wnd_id = _active_window_id(session)
+            wnd = session.find_by_id(wnd_id)
             title = str(cast(Any, wnd).text)
-            sbar = session.find_by_id("wnd[0]/sbar")
-            sbar_text = str(cast(Any, sbar).text)
+            sbar = session.find_by_id(f"{wnd_id}/sbar", raise_error=False)
+            sbar_text = str(cast(Any, sbar).text) if sbar is not None else ""
             tree = cast(Any, wnd).dump_tree()
 
             labels, buttons, tabs, content = [], [], [], []
@@ -556,7 +573,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _discover() -> list[dict[str, Any]]:
-            usr = session.find_by_id("wnd[0]/usr")
+            wnd_id = _active_window_id(session)
+            usr = session.find_by_id(f"{wnd_id}/usr")
             tree = cast(Any, usr).dump_tree()
             flat = _flatten(tree)
             return _discover_fields_from_tree(flat)
@@ -570,8 +588,9 @@ class DesktopBackend:
 
         session = self._require_session()
 
-        def _discover() -> list[dict[str, Any]]:
-            usr = session.find_by_id("wnd[0]/usr")
+        def _discover() -> tuple[list[dict[str, Any]], str]:
+            wnd_id = _active_window_id(session)
+            usr = session.find_by_id(f"{wnd_id}/usr")
             tree = cast(Any, usr).dump_tree()
             flat = _flatten(tree)
 
@@ -606,9 +625,9 @@ class DesktopBackend:
                 if field_type in ("checkbox", "radio"):
                     field_dict["checked"] = bool(elem.text)
                 fields.append(field_dict)
-            return fields
+            return fields, wnd_id
 
-        items = await self._com.run(_discover)
+        items, active_wnd = await self._com.run(_discover)
         logger.debug("get_form_fields", extra={"count": len(items)})
 
         fields = [FormField(**item) for item in items]
@@ -620,6 +639,7 @@ class DesktopBackend:
         return FormFieldsResult(
             success=True,
             fields=fields,
+            active_window=active_wnd,
         )
 
     async def discover_buttons(self) -> list[ButtonInfo]:
@@ -627,7 +647,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _discover() -> list[dict[str, Any]]:
-            wnd = session.find_by_id("wnd[0]")
+            wnd_id = _active_window_id(session)
+            wnd = session.find_by_id(wnd_id)
             tree = cast(Any, wnd).dump_tree()
             buttons: list[dict[str, Any]] = []
             for elem in _flatten(tree):
@@ -649,7 +670,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _dump() -> str:
-            wnd = session.find_by_id("wnd[0]")
+            wnd_id = _active_window_id(session)
+            wnd = session.find_by_id(wnd_id)
             tree = cast(Any, wnd).dump_tree()
             lines = []
             for elem in _flatten(tree):
@@ -665,7 +687,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _screenshot() -> bytes:
-            wnd = session.find_by_id("wnd[0]")
+            wnd_id = _active_window_id(session)
+            wnd = session.find_by_id(wnd_id)
             tmp = os.path.join(tempfile.gettempdir(), "sapgui_screenshot.png")
             cast(Any, wnd).hard_copy(tmp, 2)  # 2 = PNG
             with open(tmp, "rb") as f:
@@ -694,7 +717,8 @@ class DesktopBackend:
 
             # Find grid or table in the full window tree (not just usr).
             # SE16N places ALV grids in wnd[0]/shellcont, not wnd[0]/usr.
-            wnd = session.find_by_id("wnd[0]")
+            wnd_id = _active_window_id(session)
+            wnd = session.find_by_id(wnd_id)
             tree = cast(Any, wnd).dump_tree()
             grid_id = None
             for elem in _flatten(tree):
@@ -752,7 +776,8 @@ class DesktopBackend:
 
         def _click() -> None:
 
-            wnd = session.find_by_id("wnd[0]")
+            wnd_id = _active_window_id(session)
+            wnd = session.find_by_id(wnd_id)
             tree = cast(Any, wnd).dump_tree()
             for elem in _flatten(tree):
                 if elem.type_as_number == 122:
@@ -786,7 +811,8 @@ class DesktopBackend:
 
         def _read_options() -> list[str]:
             try:
-                cmb = find_combobox_by_label(session, label)
+                wnd_id = _active_window_id(session)
+                cmb = find_combobox_by_label(session, label, wnd_id=wnd_id)
                 if cmb is None:
                     return []
                 return [f"{e.key} - {e.value}" for e in cmb.entries]
@@ -799,7 +825,12 @@ class DesktopBackend:
     async def get_page_title(self) -> str:
         """Get the current window title."""
         session = self._require_session()
-        return await self._com.run(lambda: str(cast(Any, session.find_by_id("wnd[0]")).text))
+
+        def _title() -> str:
+            wnd_id = _active_window_id(session)
+            return str(cast(Any, session.find_by_id(wnd_id)).text)
+
+        return await self._com.run(_title)
 
     # ---- SapUiPrimitives (only press_key in Phase 1) ----
 
@@ -811,15 +842,20 @@ class DesktopBackend:
         except KeyError:
             return KeyboardResult(success=False, key=key, error=f"Unknown key: {key}")
 
-        def _press() -> tuple[str, str, str]:
-            wnd = session.find_by_id("wnd[0]")
+        def _press() -> tuple[str, str, str, str]:
+            wnd_id = _active_window_id(session)
+            wnd = session.find_by_id(wnd_id)
             cast(Any, wnd).send_v_key(vkey)
-            title = str(cast(Any, session.find_by_id("wnd[0]")).text)
-            sbar = session.find_by_id("wnd[0]/sbar")
-            return title, str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
+            # Re-detect active window after the key press (may have opened/closed a popup)
+            post_wnd = _active_window_id(session)
+            title = str(cast(Any, session.find_by_id(post_wnd)).text)
+            sbar = session.find_by_id(f"{post_wnd}/sbar", raise_error=False)
+            if sbar is None:
+                return title, "", "", post_wnd
+            return title, str(cast(Any, sbar).text), str(cast(Any, sbar).message_type), post_wnd
 
         try:
-            title, sbar_text, sbar_type = await self._com.run(_press)
+            title, sbar_text, sbar_type, active_wnd = await self._com.run(_press)
             resolved_type: StatusBarType = (
                 cast(StatusBarType, sbar_type) if sbar_type in ("S", "E", "W", "I", "A") else "none"
             )
@@ -831,6 +867,7 @@ class DesktopBackend:
                 status_bar_read=True,
                 status_bar_type=resolved_type,
                 status_bar_message=sbar_text,
+                active_window=active_wnd,
             )
         except Exception as e:
             return KeyboardResult(success=False, key=key, error=str(e))
@@ -846,7 +883,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _fill() -> None:
-            field = find_field_by_label(session, label)
+            wnd_id = _active_window_id(session)
+            field = find_field_by_label(session, label, wnd_id=wnd_id)
             if field is None:
                 raise ValueError(f"Field not found: {label}")
             _set_field_value(_unwrap_com(field), value)
@@ -859,8 +897,9 @@ class DesktopBackend:
         session = self._require_session()
 
         def _fill() -> bool:
+            wnd_id = _active_window_id(session)
             for lbl in labels:
-                field = find_field_by_label(session, lbl)
+                field = find_field_by_label(session, lbl, wnd_id=wnd_id)
                 if field is not None:
                     _set_field_value(_unwrap_com(field), value)
                     return True
@@ -876,12 +915,13 @@ class DesktopBackend:
         session = self._require_session()
 
         def _fill() -> dict[str, Any]:
+            wnd_id = _active_window_id(session)
             filled: list[str] = []
             not_found: list[str] = []
             errors: list[dict[str, str]] = []
             for label, value in fields.items():
                 try:
-                    field = find_field_by_label(session, label)
+                    field = find_field_by_label(session, label, wnd_id=wnd_id)
                     if field is None:
                         not_found.append(label)
                         continue
@@ -889,7 +929,7 @@ class DesktopBackend:
                     filled.append(label)
                 except Exception as exc:  # pylint: disable=broad-exception-caught
                     errors.append({"field": label, "error": str(exc)})
-            return {"filled": filled, "not_found": not_found, "errors": errors}
+            return {"filled": filled, "not_found": not_found, "errors": errors, "wnd_id": wnd_id}
 
         data = await self._com.run(_fill)
         logger.info(
@@ -911,6 +951,7 @@ class DesktopBackend:
             filled=data["filled"],
             not_found=data["not_found"],
             errors=[FieldFillError(**e) for e in data["errors"]],
+            active_window=data["wnd_id"],
         )
 
     async def fill_grid_cell(self, row: int, column: int | str, value: str) -> None:
@@ -918,8 +959,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _fill() -> None:
-
-            usr = session.find_by_id("wnd[0]/usr")
+            wnd_id = _active_window_id(session)
+            usr = session.find_by_id(f"{wnd_id}/usr")
             tree = cast(Any, usr).dump_tree()
             for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
@@ -941,7 +982,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _click() -> None:
-            btn = find_button_by_label(session, label)
+            wnd_id = _active_window_id(session)
+            btn = find_button_by_label(session, label, wnd_id=wnd_id)
             if btn is None:
                 raise ValueError(f"Button not found: {label}")
             cast(Any, btn).press()
@@ -954,7 +996,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _click() -> None:
-            tab = find_tab_by_label(session, label)
+            wnd_id = _active_window_id(session)
+            tab = find_tab_by_label(session, label, wnd_id=wnd_id)
             if tab is None:
                 raise ValueError(f"Tab not found: {label}")
             cast(Any, tab).select()
@@ -967,7 +1010,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _type() -> None:
-            wnd = session.find_by_id("wnd[0]")
+            wnd_id = _active_window_id(session)
+            wnd = session.find_by_id(wnd_id)
             focus_elem = cast(Any, wnd).focused_element
             if focus_elem is not None:
                 focus_elem.text = text
@@ -982,7 +1026,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _set() -> None:
-            chk = find_checkbox_by_label(session, label)
+            wnd_id = _active_window_id(session)
+            chk = find_checkbox_by_label(session, label, wnd_id=wnd_id)
             if chk is None:
                 raise ValueError(f"Checkbox not found: {label}")
             cast(Any, chk).selected = checked
@@ -995,7 +1040,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _set() -> None:
-            rad = find_radio_by_label(session, label)
+            wnd_id = _active_window_id(session)
+            rad = find_radio_by_label(session, label, wnd_id=wnd_id)
             if rad is None:
                 raise ValueError(f"Radio button not found: {label}")
             cast(Any, rad).selected = True
@@ -1009,10 +1055,11 @@ class DesktopBackend:
         session = self._require_session()
 
         def _select() -> dict[str, Any]:
-            cmb = find_combobox_by_label(session, label)
+            wnd_id = _active_window_id(session)
+            cmb = find_combobox_by_label(session, label, wnd_id=wnd_id)
             if cmb is None:
                 # Also try find_field_by_label as fallback
-                cmb = find_field_by_label(session, label)
+                cmb = find_field_by_label(session, label, wnd_id=wnd_id)
             if cmb is None:
                 return {"success": False, "error_message": f"Dropdown not found: {label}"}
             try:
@@ -1037,10 +1084,11 @@ class DesktopBackend:
         session = self._require_session()
 
         def _type() -> bool:
+            wnd_id = _active_window_id(session)
             # Strategy 1: try direct find_by_id with common prefixes (fast)
             for prefix in ("txt", "ctxt", "pwd", "cmb"):
                 try:
-                    field = session.find_by_id(f"wnd[0]/usr/{prefix}{accessible_name}", raise_error=False)
+                    field = session.find_by_id(f"{wnd_id}/usr/{prefix}{accessible_name}", raise_error=False)
                     if field is not None:
                         _set_field_value(_unwrap_com(field), text)
                         logger.debug(
@@ -1054,7 +1102,7 @@ class DesktopBackend:
                         extra={"field_name": accessible_name, "prefix": prefix, "error": str(exc)},
                     )
             # Strategy 2: label-based search (slower)
-            field = find_field_by_label(session, accessible_name)
+            field = find_field_by_label(session, accessible_name, wnd_id=wnd_id)
             if field is None:
                 return False
             _set_field_value(_unwrap_com(field), text)
@@ -1090,8 +1138,9 @@ class DesktopBackend:
         Uses raw COM ``FindById`` to avoid sapsucker wrapper issues
         with ``GuiAbapEditor`` property access.
         """
+        wnd_id = _active_window_id(session)
         raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
-        usr = session.find_by_id("wnd[0]/usr")
+        usr = session.find_by_id(f"{wnd_id}/usr")
         tree = cast(Any, usr).dump_tree()
         for elem in _flatten(tree):
             if elem.type_as_number == 122:  # GuiShell

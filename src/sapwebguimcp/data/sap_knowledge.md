@@ -62,6 +62,33 @@ So if you search say for a report in se38 which starts with "Z" and contains "en
 4. **Reset to Easy Access first** - If inputs seem stuck or fields aren't being picked up, use `sap_transaction("YOUR_TCODE", reset_first=True)`. This navigates to SAP Easy Access (`/n`) first, clearing all residual state (popups, error messages, field values) before opening the transaction. This is the most reliable way to recover from state bleeding.
 5. **Start over** - Either by restarting the transaction or using sap_login again (changes will be lost)
 
+## Working with Modal Dialogs (Popups)
+
+SAP often opens modal dialogs (popups) for confirmations, data entry forms,
+transport prompts, and error messages. These appear at `wnd[1]` or `wnd[2]`.
+
+**All tools automatically operate on the active window.** When a popup is open,
+`sap_discover_fields`, `sap_get_form_fields`, `sap_fill_form`, `sap_keyboard`,
+and other tools target the popup — not the main window behind it.
+
+**How to detect a popup opened:**
+- Check the `active_window` field in tool results. `"wnd[0]"` means the main
+  window; `"wnd[1]"` or higher means a modal dialog is open.
+- After actions that change screen state (`sap_keyboard`, `sap_fill_form`),
+  always note the `active_window` value.
+
+**Typical workflow:**
+1. `sap_keyboard(key="F5")` → result has `active_window="wnd[1]"` (dialog opened)
+2. `sap_discover_fields()` → shows fields in the dialog
+3. `sap_fill_form({...})` → fills dialog fields
+4. `sap_keyboard(key="Enter")` → result has `active_window="wnd[0]"` (dialog closed)
+
+**To dismiss a dialog you don't need:** Use `sap_close_popup(close=True)` or
+`sap_keyboard(key="Escape")`.
+
+**Cannot navigate while a dialog is open:** `sap_transaction()` will fail if a
+modal dialog is present — dismiss it first.
+
 ### State Bleeding Between Transactions
 
 SAP WebGUI can "bleed" state between sequential transactions. Symptoms:

@@ -370,7 +370,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         popup = await backend.check_popup()
         if popup:
             return TransactionResult.failure(
-                f"Popup blocking: {popup.message or 'confirmation required'}",
+                f"Cannot navigate: a modal dialog is open (dismiss it first with sap_close_popup). "
+                f"Dialog: {popup.message or 'confirmation required'}",
                 tcode=tcode,
                 popup=popup,
             )
@@ -386,7 +387,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
                 # Check if a popup appeared after navigation
                 popup = await backend.check_popup()
-                if popup:
+                if popup and not _is_desktop_backend(backend):
                     return TransactionResult.failure(
                         f"Popup blocking: {popup.message or 'confirmation required'}",
                         tcode=tcode,
@@ -400,7 +401,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             # Check if a popup appeared after navigation
             popup = await backend.check_popup()
-            if popup:
+            if popup and not _is_desktop_backend(backend):
                 return TransactionResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
                     tcode=tcode,
@@ -528,8 +529,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
-            KeyboardResult with the key sent, page title, and status bar (for shortcuts).
-            Status bar is auto-read for F-keys and Ctrl+* since SAP often shows feedback there.
+            KeyboardResult with the key sent, page title, status bar, and active_window.
+            Check active_window: if it changed to 'wnd[1]', a dialog opened after the keystroke.
+            If it returned to 'wnd[0]', a dialog was closed (e.g., after pressing Escape or Enter).
         """
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keyboard")
@@ -538,14 +540,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         try:
             # Fast popup check (~5ms) - only blocks if popup exists BEFORE keystroke
-            popup = await backend.check_popup()
-            if popup:
-                logger.debug("Popup already present before keystroke", extra={"key": key})
-                return KeyboardResult.failure(
-                    f"Popup blocking: {popup.message or 'confirmation required'}",
-                    key=key,
-                    popup=popup,
-                )
+            if not _is_desktop_backend(backend):
+                popup = await backend.check_popup()
+                if popup:
+                    logger.debug("Popup already present before keystroke", extra={"key": key})
+                    return KeyboardResult.failure(
+                        f"Popup blocking: {popup.message or 'confirmation required'}",
+                        key=key,
+                        popup=popup,
+                    )
 
             # Send the keystroke (backend handles bring_to_front, networkidle, status bar)
             result = await backend.press_key(key)
@@ -554,14 +557,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             await backend.wait(300)
 
             # Check if a popup appeared after the keystroke
-            popup_after = await backend.check_popup()
-            if popup_after:
-                logger.debug("Popup appeared after keystroke", extra={"key": key})
-                return KeyboardResult.failure(
-                    f"Popup blocking: {popup_after.message or 'confirmation required'}",
-                    key=key,
-                    popup=popup_after,
-                )
+            if not _is_desktop_backend(backend):
+                popup_after = await backend.check_popup()
+                if popup_after:
+                    logger.debug("Popup appeared after keystroke", extra={"key": key})
+                    return KeyboardResult.failure(
+                        f"Popup blocking: {popup_after.message or 'confirmation required'}",
+                        key=key,
+                        popup=popup_after,
+                    )
 
             return result
 
@@ -620,8 +624,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Discover fillable form fields on the current SAP screen. "
+            "Discover fillable form fields on the current SAP screen (or active popup dialog). "
             "Returns field IDs, labels, types (text/dropdown/checkbox/radio), and current values. "
+            "Automatically targets the active window — if a popup is open, shows popup fields. "
             "Use include_dropdown_options=True to also fetch available options for dropdown fields.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
@@ -935,8 +940,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Discover input fields on the current SAP screen. "
+            "Discover input fields on the current SAP screen (or active popup dialog). "
             "Returns fields with label, name, value, and a selector/ID for targeting the field. "
+            "Automatically targets the active window — if a popup is open, shows popup fields. "
             "Use the label with sap_fill_form or sap_set_field to fill fields (works on both backends). "
             "The 'selector' field is a CSS selector on WebGUI or a SAP GUI element ID on Desktop. "
             "For buttons, use sap_discover_buttons instead.\n\n"
@@ -1097,9 +1103,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Close an active popup dialog by clicking a button. "
-            "Use after a tool returns popup info. "
-            "Note: Not all popups are errors - F4 help dialogs are expected behavior. "
-            "For F4 help popups, consider reading the values first before closing. "
+            "Use when active_window shows 'wnd[1]' or higher and you want to dismiss the dialog. "
+            "Note: Not all popups need closing - if the popup is a form you need to fill, "
+            "use sap_discover_fields and sap_fill_form instead (they automatically target the active window). "
             "Specify button by label ('Ja', 'Nein') or accesskey ('J', 'N'), "
             "or use close=True to click the X button if available.\n\n"
             "**Session parameter:**\n"
@@ -1186,8 +1192,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         Returns:
             FillFormResult with lists of filled, not_found, and errored fields.
-            If a popup appears after filling (e.g., role change confirmation),
-            it's returned in popup.
+            Check active_window to see which window was operated on (wnd[0] or wnd[1]).
         """
         if not fields:
             return FillFormResult.failure("fields cannot be empty")
@@ -1199,12 +1204,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         try:
             # Fast popup check (~5ms)
-            popup = await backend.check_popup()
-            if popup:
-                return FillFormResult.failure(
-                    f"Popup blocking: {popup.message or 'confirmation required'}",
-                    popup=popup,
-                )
+            if not _is_desktop_backend(backend):
+                popup = await backend.check_popup()
+                if popup:
+                    return FillFormResult.failure(
+                        f"Popup blocking: {popup.message or 'confirmation required'}",
+                        popup=popup,
+                    )
 
             result = await backend.fill_form(fields)
 
@@ -1276,14 +1282,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         try:
             # Fast popup check (~5ms)
-            popup = await backend.check_popup()
-            if popup:
-                return SetFieldResult.failure(
-                    f"Popup blocking: {popup.message or 'confirmation required'}",
-                    label=label,
-                    value=value,
-                    popup=popup,
-                )
+            if not _is_desktop_backend(backend):
+                popup = await backend.check_popup()
+                if popup:
+                    return SetFieldResult.failure(
+                        f"Popup blocking: {popup.message or 'confirmation required'}",
+                        label=label,
+                        value=value,
+                        popup=popup,
+                    )
 
             await backend.fill_field(label, value)
             # selector_used is unavailable via the backend protocol (fill_field returns None)
@@ -1324,14 +1331,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SetFieldResult.failure(str(e), label=label, value=str(checked))
 
         try:
-            popup = await backend.check_popup()
-            if popup:
-                return SetFieldResult.failure(
-                    f"Popup blocking: {popup.message or 'confirmation required'}",
-                    label=label,
-                    value=str(checked),
-                    popup=popup,
-                )
+            if not _is_desktop_backend(backend):
+                popup = await backend.check_popup()
+                if popup:
+                    return SetFieldResult.failure(
+                        f"Popup blocking: {popup.message or 'confirmation required'}",
+                        label=label,
+                        value=str(checked),
+                        popup=popup,
+                    )
             await backend.set_checkbox(label, checked)
             await backend.wait_for_ready()
             return SetFieldResult(label=label, value=str(checked))
@@ -1367,14 +1375,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SetFieldResult.failure(str(e), label=label, value="selected")
 
         try:
-            popup = await backend.check_popup()
-            if popup:
-                return SetFieldResult.failure(
-                    f"Popup blocking: {popup.message or 'confirmation required'}",
-                    label=label,
-                    value="selected",
-                    popup=popup,
-                )
+            if not _is_desktop_backend(backend):
+                popup = await backend.check_popup()
+                if popup:
+                    return SetFieldResult.failure(
+                        f"Popup blocking: {popup.message or 'confirmation required'}",
+                        label=label,
+                        value="selected",
+                        popup=popup,
+                    )
             await backend.set_radio_button(label)
             await backend.wait_for_ready()
             return SetFieldResult(label=label, value="selected")
