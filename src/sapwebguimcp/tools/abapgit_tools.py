@@ -214,15 +214,11 @@ async def _check_for_error_popup_webgui(backend: "SapUiBackend") -> str | None:
 
 
 async def _check_for_error_popup_desktop(backend: "SapUiBackend") -> str | None:
-    """Check for error popup via snapshot (desktop backend)."""
-    snapshot = await backend.get_snapshot()
-    snapshot_text = str(snapshot)
-    # Desktop popups appear as wnd[1]; if no popup window, nothing to detect
-    idx = snapshot_text.find("wnd[1]")
-    if idx < 0:
+    """Check for error popup via check_popup (desktop backend)."""
+    popup = await backend.check_popup()
+    if popup is None:
         return None
-    # Return only the popup portion to avoid false positives from main window labels
-    return snapshot_text[idx:]
+    return popup.message
 
 
 async def _check_screen_for_errors(backend: "SapUiBackend") -> str | None:
@@ -457,16 +453,18 @@ async def _run_pull_and_check_errors(backend: "SapUiBackend", repo: str) -> Abap
         logger.warning("networkidle timeout after F8 -- pull may still be running")
 
     # SAP may show an "Inaktive Objekte" / "Inactive Objects" popup after pull.
-    # The old bare Enter accidentally dismissed it; now we detect it explicitly.
-    snapshot = await backend.get_snapshot()
-    if "Inaktive Objekte" in str(snapshot) or "Inactive Objects" in str(snapshot):
-        logger.info("Detected inactive objects popup, confirming with Enter")
-        await backend.press_key("Enter")
-        await backend.wait(2000)
-        try:
-            await backend.wait_for_ready(timeout_ms=30_000)
-        except Exception:  # pylint: disable=broad-exception-caught
-            pass
+    # Detect via check_popup() instead of parsing snapshot text.
+    popup = await backend.check_popup()
+    if popup and popup.message:
+        msg_lower = popup.message.lower()
+        if "inaktive objekte" in msg_lower or "inactive objects" in msg_lower:
+            logger.info("Detected inactive objects popup, confirming with Enter")
+            await backend.press_key("Enter")
+            await backend.wait(2000)
+            try:
+                await backend.wait_for_ready(timeout_ms=30_000)
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass
 
     return await _handle_popup_error(backend, repo)
 
