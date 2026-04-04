@@ -717,7 +717,8 @@ class DesktopBackend:
 
             # Find grid or table in the full window tree (not just usr).
             # SE16N places ALV grids in wnd[0]/shellcont, not wnd[0]/usr.
-            wnd = session.find_by_id("wnd[0]")
+            wnd_id = _active_window_id(session)
+            wnd = session.find_by_id(wnd_id)
             tree = cast(Any, wnd).dump_tree()
             grid_id = None
             for elem in _flatten(tree):
@@ -775,7 +776,8 @@ class DesktopBackend:
 
         def _click() -> None:
 
-            wnd = session.find_by_id("wnd[0]")
+            wnd_id = _active_window_id(session)
+            wnd = session.find_by_id(wnd_id)
             tree = cast(Any, wnd).dump_tree()
             for elem in _flatten(tree):
                 if elem.type_as_number == 122:
@@ -809,7 +811,8 @@ class DesktopBackend:
 
         def _read_options() -> list[str]:
             try:
-                cmb = find_combobox_by_label(session, label)
+                wnd_id = _active_window_id(session)
+                cmb = find_combobox_by_label(session, label, wnd_id=wnd_id)
                 if cmb is None:
                     return []
                 return [f"{e.key} - {e.value}" for e in cmb.entries]
