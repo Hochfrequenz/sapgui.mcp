@@ -5,11 +5,13 @@ Provides a read-only tool to list background jobs from SM37
 with status/date/user filters, and optionally retrieve job logs.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -24,12 +26,8 @@ from sapwebguimcp.backend.webgui.parsers.sm37_parser import (
 from sapwebguimcp.models import TableData
 from sapwebguimcp.models.config import get_sap_config
 from sapwebguimcp.models.sm37_models import SM37Job, SM37JobListResult, SM37JobLog
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 from sapwebguimcp.utils import SapLanguage, format_sap_date
-
-if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +39,7 @@ _ALL_STATUSES = ["scheduled", "released", "ready", "active", "finished", "cancel
 
 
 async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
-    backend: "SapUiBackend",
+    backend: "WebGuiBackend | DesktopBackend",
     job_name: str,
     username: str | None,
     statuses: list[str] | None,
@@ -124,7 +122,7 @@ def _is_job_log_screen(snapshot: str) -> bool:
     return _JOB_LOG_HEADING_DE in snapshot or _JOB_LOG_HEADING_EN in snapshot
 
 
-async def _fetch_job_log(backend: "SapUiBackend", language: SapLanguage) -> SM37JobLog | None:
+async def _fetch_job_log(backend: "WebGuiBackend | DesktopBackend", language: SapLanguage) -> SM37JobLog | None:
     """
     Select the first job row and fetch its job log.
 
@@ -167,7 +165,7 @@ async def _fetch_job_log(backend: "SapUiBackend", language: SapLanguage) -> SM37
 
 
 async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches,too-many-statements
-    backend: "SapUiBackend",
+    backend: "WebGuiBackend | DesktopBackend",
     job_name: str,
     username: str | None,
     statuses: list[str] | None,
@@ -341,7 +339,7 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
     )
 
 
-async def _fetch_job_log_desktop(backend: "SapUiBackend", language: SapLanguage) -> SM37JobLog | None:
+async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", language: SapLanguage) -> SM37JobLog | None:
     """Desktop-specific: select the first job row and fetch its job log.
 
     Clicks the first row in the ALV grid, clicks the Job-Log button,
@@ -398,7 +396,7 @@ async def _fetch_job_log_desktop(backend: "SapUiBackend", language: SapLanguage)
 
 
 async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
-    backend: "SapUiBackend",
+    backend: "WebGuiBackend | DesktopBackend",
     job_name: str,
     username: str | None,
     statuses: list[str] | None,
@@ -412,7 +410,7 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
     language: SapLanguage = sap_cfg.get_default().language
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
-    if _is_desktop_backend(backend):
+    if backend.backend_type == "desktop":
         result = await _execute_sm37_lookup_desktop(backend, job_name, username, statuses, from_date, to_date)
         if include_log and result.success and len(result.jobs) == 1:
             desktop_log = await _fetch_job_log_desktop(backend, language)

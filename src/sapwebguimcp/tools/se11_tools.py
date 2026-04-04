@@ -5,6 +5,8 @@ This module provides a fast, single-call tool to retrieve table/structure
 metadata from SE11, returning strongly-typed Pydantic models.
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
@@ -18,7 +20,6 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.lang import (
     SE11_DATA_TYPE_DE,
     SE11_DATA_TYPE_EN,
@@ -54,7 +55,6 @@ from sapwebguimcp.models import (
     SE11ObjectType,
     SE11Result,
 )
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 from sapwebguimcp.tools.table_helpers import read_table_control_all_rows
@@ -231,7 +231,7 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
 # =============================================================================
 
 
-async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11Error | None:
+async def _wait_for_se11_table_screen(backend: WebGuiBackend | DesktopBackend, name: str) -> SE11Error | None:
     """Wait for SE11 table screen and select the table radio. Returns error or None."""
     now = datetime.now(UTC)
 
@@ -269,7 +269,7 @@ async def _wait_for_se11_table_screen(backend: SapUiBackend, name: str) -> SE11E
     return None
 
 
-async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> SE11Error | None:
+async def _wait_for_se11_structure_screen(backend: WebGuiBackend | DesktopBackend, name: str) -> SE11Error | None:
     """Wait for SE11 structure screen and select the data type radio. Returns error or None."""
     now = datetime.now(UTC)
 
@@ -307,7 +307,7 @@ async def _wait_for_se11_structure_screen(backend: SapUiBackend, name: str) -> S
     return None
 
 
-async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error | None:
+async def _fill_table_name_field(backend: WebGuiBackend | DesktopBackend, name: str) -> SE11Error | None:
     """Fill the table name field in SE11 using real keyboard events. Returns error or None."""
     now = datetime.now(UTC)
     labels = [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]
@@ -323,7 +323,7 @@ async def _fill_table_name_field(backend: SapUiBackend, name: str) -> SE11Error 
     )
 
 
-async def _fill_structure_name_field(backend: SapUiBackend, name: str) -> SE11Error | None:
+async def _fill_structure_name_field(backend: WebGuiBackend | DesktopBackend, name: str) -> SE11Error | None:
     """Fill the structure/data type name field in SE11 using real keyboard events. Returns error or None."""
     now = datetime.now(UTC)
     labels = [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]
@@ -339,7 +339,7 @@ async def _fill_structure_name_field(backend: SapUiBackend, name: str) -> SE11Er
     )
 
 
-async def _click_display_button(backend: SapUiBackend, name: str) -> None:
+async def _click_display_button(backend: WebGuiBackend | DesktopBackend, name: str) -> None:
     """Click the Display button or fall back to F7."""
     # Try DE and EN display button labels
     for label in [SE11_DISPLAY_BUTTON_DE, SE11_DISPLAY_BUTTON_EN]:
@@ -356,7 +356,7 @@ async def _click_display_button(backend: SapUiBackend, name: str) -> None:
     await backend.wait_for_ready()
 
 
-async def _check_object_not_found(backend: SapUiBackend, name: str, object_type: SE11ObjectType) -> SE11Error | None:
+async def _check_object_not_found(backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType) -> SE11Error | None:
     """Check if the status bar shows 'object not found'. Returns error or None."""
     now = datetime.now(UTC)
     status = await backend.get_status_bar()
@@ -378,7 +378,7 @@ async def _check_object_not_found(backend: SapUiBackend, name: str, object_type:
 
 
 async def _lookup_object_on_initial_screen(  # pylint: disable=too-many-return-statements
-    backend: SapUiBackend, name: str, object_type: SE11ObjectType
+    backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType
 ) -> SE11Entry | SE11Error:
     """Look up a table or structure assuming we're already on the SE11 initial screen.
 
@@ -500,7 +500,7 @@ def _parse_se11_table_rows(rows: list[dict[str, str]]) -> list[SE11Field]:
 
 
 async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-return-statements,too-many-statements
-    backend: SapUiBackend, name: str, object_type: SE11ObjectType
+    backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType
 ) -> SE11Entry | SE11Error:
     """Desktop-specific SE11 lookup using COM table control reading."""
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
@@ -523,7 +523,7 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
     if not isinstance(backend, DesktopBackend):
         return SE11Error(name=name, object_type=object_type, error="Requires DesktopBackend", retrieved_at=now)
 
-    session = backend._require_session()  # pylint: disable=protected-access
+    session = backend.require_session()
 
     def _select_and_fill() -> str | None:
         """Select radio + fill field via raw COM.
@@ -556,7 +556,7 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
             return f"Could not fill field: {exc}"
         return None
 
-    com = backend._com  # pylint: disable=protected-access
+    com = backend.com
     fill_error = await com.run(_select_and_fill)
     if fill_error:
         return SE11Error(name=name, object_type=object_type, error=fill_error, retrieved_at=now)
@@ -617,7 +617,7 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
 
 
 async def _lookup_batch_se11_desktop(
-    backend: SapUiBackend, name_list: list[str], object_type: SE11ObjectType
+    backend: WebGuiBackend | DesktopBackend, name_list: list[str], object_type: SE11ObjectType
 ) -> SE11Result:
     """Run SE11 lookups for a batch of names on the desktop backend."""
     entries: list[SE11Entry] = []
@@ -733,7 +733,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
             return SE11Result.failure(f"Session error: {e}")
 
         # Route to desktop or WebGUI batch lookup
-        if _is_desktop_backend(backend):
+        if backend.backend_type == "desktop":
             final_result = await _lookup_batch_se11_desktop(backend, name_list, object_type)
         else:
             entries: list[SE11Entry] = []

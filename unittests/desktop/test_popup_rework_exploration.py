@@ -58,7 +58,7 @@ async def test_02_se21_trigger_popup(backend):
     await backend.enter_transaction("SE21")
     await backend.wait_for_ready()
 
-    session = backend._require_session()
+    session = backend.require_session()
 
     # Fill package name via fill_form (discovered label from test_01)
     form = await backend.get_form_fields()
@@ -110,7 +110,7 @@ async def test_02_se21_trigger_popup(backend):
             ],
         }
 
-    wnd1_data = await backend._com.run(_explore_wnd1)
+    wnd1_data = await backend.com.run(_explore_wnd1)
     if wnd1_data:
         print(f"\n=== wnd[1] contents (what tools MISS) ===")
         print(f"  title: {wnd1_data['title']}")
@@ -149,7 +149,7 @@ async def test_03_se38_create_popup(backend):
     await backend.enter_transaction("SE38")
     await backend.wait_for_ready()
 
-    session = backend._require_session()
+    session = backend.require_session()
 
     # Fill report name directly via COM
     async def _fill_report():
@@ -160,7 +160,7 @@ async def test_03_se38_create_popup(backend):
             field.text = "ZTEST_POPUP_NONEXIST_99"
             return True
 
-        return await backend._com.run(_do)
+        return await backend.com.run(_do)
 
     ok = await _fill_report()
     if not ok:
@@ -198,7 +198,7 @@ async def test_03_se38_create_popup(backend):
             for e in _flatten(tree)
         ]
 
-    elems = await backend._com.run(_explore)
+    elems = await backend.com.run(_explore)
     if elems:
         print(f"\n=== wnd[1] elements ===")
         for e in elems:

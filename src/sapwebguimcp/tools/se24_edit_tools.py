@@ -8,6 +8,8 @@ Unlike SE38/SE37 which edit entire program/FM source, SE24 edits
 individual method source code within a class.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from typing import Any, cast
@@ -15,9 +17,7 @@ from typing import Any, cast
 from fastmcp import FastMCP
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models.se24_edit_models import SE24EditResult
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard, toggle_to_change_mode
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 _SE24_LABELS = ("Objekttyp", "Object Type")
 
 
-async def _fill_class_field(backend: SapUiBackend, class_name: str, attempt: int) -> bool:
+async def _fill_class_field(backend: WebGuiBackend | DesktopBackend, class_name: str, attempt: int) -> bool:
     """Fill the SE24 class name field. attempt==0 uses JS, retries use keyboard."""
     if attempt == 0:
         for label in _SE24_LABELS:
@@ -38,7 +38,7 @@ async def _fill_class_field(backend: SapUiBackend, class_name: str, attempt: int
     return await fill_field_with_keyboard(backend, _SE24_LABELS, class_name)
 
 
-async def _open_class_in_change_mode(backend: SapUiBackend, class_name: str) -> str | None:
+async def _open_class_in_change_mode(backend: WebGuiBackend | DesktopBackend, class_name: str) -> str | None:
     """Navigate to SE24, display class via F7, and toggle to change mode.
 
     Returns error message or None on success.
@@ -77,7 +77,7 @@ async def _open_class_in_change_mode(backend: SapUiBackend, class_name: str) -> 
     return await toggle_to_change_mode(backend)
 
 
-async def _select_method_and_open_source(backend: SapUiBackend, class_name: str, method_name: str) -> str | None:
+async def _select_method_and_open_source(backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str) -> str | None:
     """Select method in methods grid and open its source editor.
 
     Returns error message or None on success.
@@ -126,7 +126,7 @@ async def _select_method_and_open_source(backend: SapUiBackend, class_name: str,
     return None
 
 
-async def _open_class_in_change_mode_desktop(backend: SapUiBackend, class_name: str) -> str | None:
+async def _open_class_in_change_mode_desktop(backend: WebGuiBackend | DesktopBackend, class_name: str) -> str | None:
     """Desktop-specific: navigate to SE24, display class, toggle to change mode."""
     await backend.enter_transaction("SE24")
     await backend.wait_for_ready()
@@ -163,7 +163,7 @@ async def _open_class_in_change_mode_desktop(backend: SapUiBackend, class_name: 
 
 
 async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-return-statements
-    backend: SapUiBackend, class_name: str, method_name: str
+    backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str
 ) -> str | None:
     """Desktop-specific: find method in table control and open its source editor."""
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
@@ -181,8 +181,8 @@ async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-re
         except Exception:  # pylint: disable=broad-exception-caught
             continue
 
-    session = backend._require_session()  # pylint: disable=protected-access
-    com = backend._com  # pylint: disable=protected-access
+    session = backend.require_session()
+    com = backend.com
 
     def _select_method_row() -> str | None:
         """Find the method row in the table control and select it."""
@@ -238,7 +238,7 @@ async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-re
     return "Could not find 'Quelltext'/'Sourcecode' button"
 
 
-async def _navigate_to_method_editor_desktop(backend: SapUiBackend, class_name: str, method_name: str) -> str | None:
+async def _navigate_to_method_editor_desktop(backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str) -> str | None:
     """Desktop: navigate to SE24, open class in change mode, select method, open source."""
     error = await _open_class_in_change_mode_desktop(backend, class_name)
     if error:
@@ -246,7 +246,7 @@ async def _navigate_to_method_editor_desktop(backend: SapUiBackend, class_name: 
     return await _select_method_and_open_source_desktop(backend, class_name, method_name)
 
 
-async def _navigate_to_method_editor(backend: SapUiBackend, class_name: str, method_name: str) -> str | None:
+async def _navigate_to_method_editor(backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str) -> str | None:
     """Navigate to SE24, open class in change mode, select method, open source editor.
 
     Returns error message or None on success.
@@ -258,10 +258,10 @@ async def _navigate_to_method_editor(backend: SapUiBackend, class_name: str, met
 
 
 async def _edit_check_activate_method(
-    backend: SapUiBackend, class_name: str, method_name: str, new_source: str
+    backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str, new_source: str
 ) -> SE24EditResult:
     """Core edit logic: navigate, read backup, replace, check, activate, revert on failure."""
-    if _is_desktop_backend(backend):
+    if backend.backend_type == "desktop":
         nav_error = await _navigate_to_method_editor_desktop(backend, class_name, method_name)
     else:
         nav_error = await _navigate_to_method_editor(backend, class_name, method_name)

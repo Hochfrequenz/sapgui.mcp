@@ -12,12 +12,13 @@ ST22 flow:
 4. Optionally double-click a dump row to get detail text
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import re
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -38,11 +39,7 @@ from sapwebguimcp.models.st22_models import (
     ST22DumpDetailResult,
     ST22DumpListResult,
 )
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.utils import SapLanguage, format_sap_date
-
-if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +51,7 @@ __all__ = ["register_st22_tools"]
 # =============================================================================
 
 
-async def _navigate_to_st22(backend: "SapUiBackend") -> str | None:
+async def _navigate_to_st22(backend: "WebGuiBackend | DesktopBackend") -> str | None:
     """Navigate to ST22. Returns error message or None on success."""
     tx_result = await backend.enter_transaction("ST22")
     if not tx_result.success:
@@ -64,7 +61,7 @@ async def _navigate_to_st22(backend: "SapUiBackend") -> str | None:
     return None
 
 
-async def _clear_user_field(backend: "SapUiBackend") -> None:
+async def _clear_user_field(backend: "WebGuiBackend | DesktopBackend") -> None:
     """Clear the Benutzer/User field to search for all users.
 
     ST22 pre-fills the user field with the current user.
@@ -85,7 +82,7 @@ async def _clear_user_field(backend: "SapUiBackend") -> None:
     logger.debug("User field not found for clearing")
 
 
-async def _fill_date_field(backend: "SapUiBackend", target_date: str, language: SapLanguage) -> str | None:
+async def _fill_date_field(backend: "WebGuiBackend | DesktopBackend", target_date: str, language: SapLanguage) -> str | None:
     """Fill the date field with a formatted date. Returns error or None."""
     try:
         formatted = format_sap_date(target_date, language)
@@ -110,7 +107,7 @@ async def _fill_date_field(backend: "SapUiBackend", target_date: str, language: 
     return "Could not find date field"
 
 
-async def _try_quick_button(backend: "SapUiBackend", target_date: str | None) -> bool:
+async def _try_quick_button(backend: "WebGuiBackend | DesktopBackend", target_date: str | None) -> bool:
     """Try to use Heute/Today or Gestern/Yesterday quick buttons.
 
     These buttons navigate directly to the dump list for all users,
@@ -139,7 +136,7 @@ async def _try_quick_button(backend: "SapUiBackend", target_date: str | None) ->
     return False
 
 
-async def _execute_search(backend: "SapUiBackend", target_date: str | None) -> str | None:
+async def _execute_search(backend: "WebGuiBackend | DesktopBackend", target_date: str | None) -> str | None:
     """Execute the ST22 search. Returns error or None.
 
     Strategy:
@@ -170,7 +167,7 @@ async def _execute_search(backend: "SapUiBackend", target_date: str | None) -> s
     return None
 
 
-async def _select_dump_by_index(backend: "SapUiBackend", dump_index: int, dump_count: int) -> str | None:
+async def _select_dump_by_index(backend: "WebGuiBackend | DesktopBackend", dump_index: int, dump_count: int) -> str | None:
     """Select a dump from the list by double-clicking the row via click_table_cell.
 
     Returns error message or None on success.
@@ -189,7 +186,7 @@ async def _select_dump_by_index(backend: "SapUiBackend", dump_index: int, dump_c
         return f"Could not find row at index {dump_index}: {e}"
 
 
-async def _capture_full_detail(backend: "SapUiBackend") -> str:
+async def _capture_full_detail(backend: "WebGuiBackend | DesktopBackend") -> str:
     """Capture the full dump detail by scrolling and collecting snapshots.
 
     ST22 detail is a long scrollable text. Scroll down and concatenate
@@ -215,7 +212,7 @@ async def _capture_full_detail(backend: "SapUiBackend") -> str:
     return "\n".join(snapshots)
 
 
-async def _capture_desktop_detail(backend: "SapUiBackend") -> str:
+async def _capture_desktop_detail(backend: "WebGuiBackend | DesktopBackend") -> str:
     """Capture full ST22 dump detail text by scrolling through the detail screen.
 
     The detail screen is a long scrollable text. Read screen text, scroll down,
@@ -297,7 +294,7 @@ def _parse_desktop_detail_text(full_text: str, source_dump: "ST22Dump") -> "ST22
 
 
 async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
-    backend: "SapUiBackend",
+    backend: "WebGuiBackend | DesktopBackend",
     target_date: str | None,
     dump_index: int | None,
 ) -> ST22DumpListResult | ST22DumpDetailResult:
@@ -419,7 +416,7 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
 
 
 async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-locals,too-many-branches
-    backend: "SapUiBackend",
+    backend: "WebGuiBackend | DesktopBackend",
     target_date: str | None,
     dump_index: int | None,
 ) -> ST22DumpListResult | ST22DumpDetailResult:
@@ -428,7 +425,7 @@ async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-l
     date_str = target_date or date.today().isoformat()
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
-    if _is_desktop_backend(backend):
+    if backend.backend_type == "desktop":
         return await _st22_lookup_desktop(backend, target_date, dump_index)
 
     # Navigate to ST22

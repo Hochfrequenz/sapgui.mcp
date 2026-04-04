@@ -11,7 +11,6 @@ into a single ``SelectionScreenState``.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
 from sapwebguimcp.backend.webgui.parsers.screen_state_parser import parse_selection_screen_state
 from sapwebguimcp.models.screen_state import (
@@ -20,16 +19,13 @@ from sapwebguimcp.models.screen_state import (
     StateChange,
 )
 
-if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
-
 logger = logging.getLogger(__name__)
 
 __all__ = ["bilingual_target", "ensure_screen_state"]
 
 
 async def _apply_changes(
-    backend: SapUiBackend,
+    backend: WebGuiBackend | DesktopBackend,
     current: SelectionScreenState,
     target: SelectionScreenState,
     diff: ScreenStateDiff,
@@ -109,7 +105,7 @@ def _verify_state(
 
 
 async def ensure_screen_state(
-    backend: SapUiBackend,
+    backend: WebGuiBackend | DesktopBackend,
     target: SelectionScreenState,
 ) -> ScreenStateDiff:
     """Read current screen state, diff against target, apply changes, verify.

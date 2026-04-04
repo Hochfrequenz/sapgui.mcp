@@ -1,8 +1,7 @@
-"""Desktop backend — SAP GUI Scripting (COM) implementation of SapUiBackend.
+"""Desktop backend — SAP GUI Scripting (COM) automation.
 
 Bridges the async MCP protocol to synchronous COM calls via a dedicated
-ComThread. Methods that don't apply to desktop (JS, CSS selectors) raise
-NotImplementedError.
+ComThread.
 """
 
 # pylint: disable=broad-exception-caught,too-many-public-methods,too-many-lines
@@ -41,7 +40,7 @@ from sapwebguimcp.backend.desktop._element_finder import (
     find_tab_by_label,
 )
 from sapwebguimcp.backend.desktop._key_mapping import key_to_vkey
-from sapwebguimcp.backend.protocol import CheckActivateResult
+from sapwebguimcp.backend.types import CheckActivateResult
 from sapwebguimcp.backend.types import ComTreeSnapshot
 from sapwebguimcp.models.alv_models import TableCellClickResult
 from sapwebguimcp.models.base import PopupButton, PopupInfo, PopupType, ToolResult
@@ -175,7 +174,7 @@ def _active_window_id(session: Any) -> str:
 
 
 class DesktopBackend:
-    """SapUiBackend implementation using SAP GUI Scripting (COM).
+    """SAP GUI Scripting (COM) backend.
 
     Manages multiple GuiSession objects via ``DesktopSessionRegistry``.
     A ``ContextVar`` (set by ``BackendManager``) determines which session
@@ -184,8 +183,8 @@ class DesktopBackend:
     """
 
     def __init__(self, com_thread: ComThread | None = None) -> None:
-        self._com = com_thread or ComThread()
-        self._registry = DesktopSessionRegistry()
+        self.com = com_thread or ComThread()
+        self.registry = DesktopSessionRegistry()
 
     @property
     def backend_type(self) -> str:
@@ -196,7 +195,7 @@ class DesktopBackend:
     def _session(self) -> GuiSession | None:
         """Backward compat: return primary session."""
         try:
-            return self._registry.get_session(None)
+            return self.registry.get_session(None)
         except ValueError:
             return None
 
@@ -207,22 +206,22 @@ class DesktopBackend:
         Handles the case where ``__init__`` was skipped (e.g. tests
         using ``DesktopBackend.__new__``).
         """
-        if not hasattr(self, "_registry"):
-            self._registry = DesktopSessionRegistry()
+        if not hasattr(self, "registry"):
+            self.registry = DesktopSessionRegistry()
         if value is None:
-            for sid in list(self._registry.list_sessions()):
-                self._registry.unregister(sid)
-        elif not self._registry.has_session("s1"):
-            self._registry.register(value)
+            for sid in list(self.registry.list_sessions()):
+                self.registry.unregister(sid)
+        elif not self.registry.has_session("s1"):
+            self.registry.register(value)
 
-    def _require_session(self) -> GuiSession:
+    def require_session(self) -> GuiSession:
         """Return the session for the current async context.
 
         Reads ``_current_session_id`` ContextVar to determine which session.
         Defaults to ``'s1'`` if no ContextVar is set (backward compat).
         """
         session_id = _current_session_id.get()
-        return self._registry.get_session(session_id)  # None → "s1"
+        return self.registry.get_session(session_id)  # None → "s1"
 
     # ---- SapNavigation ----
 
@@ -242,7 +241,7 @@ class DesktopBackend:
             return LoginResult(success=False, error="No connection_name configured for this system in systems.json")
 
         try:
-            session = await self._com.run(
+            session = await self.com.run(
                 lambda: _login_mod.login(
                     connection_name=connection_name,
                     client=client,
@@ -251,8 +250,8 @@ class DesktopBackend:
                     language=language,
                 )
             )
-            self._registry.register(session)  # → "s1"
-            user_name = await self._com.run(lambda: str(session.info.user))
+            self.registry.register(session)  # → "s1"
+            user_name = await self.com.run(lambda: str(session.info.user))
             logger.info(
                 "login",
                 extra={"connection": connection_name, "user": user_name, "success": True},
@@ -286,7 +285,7 @@ class DesktopBackend:
                 base_tcode = stripped
             # else: bare navigation command (/n or /o alone) — keep as-is
 
-        session = self._require_session()
+        session = self.require_session()
 
         def _enter() -> str:
             okcd = session.find_by_id("wnd[0]/tbar[0]/okcd")
@@ -300,7 +299,7 @@ class DesktopBackend:
             return str(cast(Any, session.find_by_id("wnd[0]")).text)
 
         try:
-            title = await self._com.run(_enter)
+            title = await self.com.run(_enter)
             logger.info("transaction", extra={"tcode": base_tcode, "title": title, "success": True})
             return TransactionResult(
                 success=True,
@@ -317,17 +316,17 @@ class DesktopBackend:
             return SessionStatus(success=True, status="logged_off", message="Not logged in")
         session = self._session
         try:
-            user = await self._com.run(lambda: str(session.info.user))
+            user = await self.com.run(lambda: str(session.info.user))
             return SessionStatus(success=True, status="active", message=f"Logged in as {user}")
         except Exception:
             return SessionStatus(success=True, status="unknown", message="Session not responsive")
 
     async def wait_for_ready(self, timeout_ms: int = 15000) -> None:
         """Wait until the session is no longer busy."""
-        session = self._require_session()
+        session = self.require_session()
         deadline = asyncio.get_running_loop().time() + timeout_ms / 1000
         while asyncio.get_running_loop().time() < deadline:
-            busy = await self._com.run(lambda: bool(session.busy))
+            busy = await self.com.run(lambda: bool(session.busy))
             if not busy:
                 return
             await asyncio.sleep(0.2)
@@ -337,8 +336,8 @@ class DesktopBackend:
 
     async def bring_to_front(self) -> None:
         """Bring the SAP GUI window to the foreground."""
-        session = self._require_session()
-        await self._com.run(
+        session = self.require_session()
+        await self.com.run(
             lambda: (
                 cast(Any, session.find_by_id("wnd[0]")).iconify(),
                 cast(Any, session.find_by_id("wnd[0]")).restore(),
@@ -362,10 +361,10 @@ class DesktopBackend:
         Returns ``(registry_session_id, session_count, page_title)``.
         The session ID is a registry ID like ``'s2'``, not a COM path.
         """
-        session = self._require_session()
+        session = self.require_session()
 
         try:
-            await self._com.run(session.create_session)
+            await self.com.run(session.create_session)
             await asyncio.sleep(1)
 
             def _navigate() -> tuple[Any, int, str | None]:
@@ -383,10 +382,10 @@ class DesktopBackend:
                 title = str(new_ses_com.FindById("wnd[0]").Text)
                 return new_gui_session, count, title
 
-            result_session, count, title = await self._com.run(_navigate)
+            result_session, count, title = await self.com.run(_navigate)
             if result_session is None:
                 return None, count, None
-            session_id = self._registry.register(result_session)
+            session_id = self.registry.register(result_session)
             logger.info("open_session", extra={"tcode": tcode, "session_id": session_id, "count": count})
             return session_id, count, title
         except Exception:
@@ -396,9 +395,9 @@ class DesktopBackend:
     async def list_sessions(self) -> list[SessionInfo]:
         """List all sessions from the registry with their COM properties."""
         result: list[SessionInfo] = []
-        for sid in self._registry.list_sessions():
+        for sid in self.registry.list_sessions():
             try:
-                ses = self._registry.get_session(sid)
+                ses = self.registry.get_session(sid)
 
                 def _info(s: Any = ses) -> dict[str, str]:
                     return {
@@ -406,12 +405,12 @@ class DesktopBackend:
                         "title": str(s.com.FindById("wnd[0]").Text),
                     }
 
-                info = await self._com.run(_info)
+                info = await self.com.run(_info)
                 result.append(
                     SessionInfo(
                         session_id=sid,
-                        is_primary=(sid == self._registry.primary_session),
-                        agent_id=self._registry.get_bound_agent(sid),
+                        is_primary=(sid == self.registry.primary_session),
+                        agent_id=self.registry.get_bound_agent(sid),
                         **info,
                     )
                 )
@@ -421,11 +420,11 @@ class DesktopBackend:
 
     async def close_session(self, session_id: str) -> bool:
         """Close a session by registry ID (e.g. 's2')."""
-        if not self._registry.has_session(session_id):
+        if not self.registry.has_session(session_id):
             return False
         try:
-            target = self._registry.get_session(session_id)
-            primary = self._registry.get_session(None)  # primary session
+            target = self.registry.get_session(session_id)
+            primary = self.registry.get_session(None)  # primary session
 
             def _close(t: Any = target, p: Any = primary) -> bool:
                 # Get COM ID on the COM thread (Id property requires COM context)
@@ -434,28 +433,28 @@ class DesktopBackend:
                 conn.CloseSession(com_id)
                 return True
 
-            result = await self._com.run(_close)
+            result = await self.com.run(_close)
         except Exception:  # pylint: disable=broad-exception-caught
             result = False
-        self._registry.unregister(session_id)
+        self.registry.unregister(session_id)
         logger.info("close_session", extra={"session_id": session_id, "success": result})
         return result
 
     async def bind_session(self, session_id: str, agent_id: str) -> str | None:
         """Bind an agent to a session."""
-        prev = self._registry.get_bound_agent(session_id)
-        self._registry.bind(session_id, agent_id)
+        prev = self.registry.get_bound_agent(session_id)
+        self.registry.bind(session_id, agent_id)
         return prev
 
     async def release_session(self, session_id: str) -> str | None:
         """Release agent binding from a session."""
-        prev = self._registry.get_bound_agent(session_id)
-        self._registry.release(session_id)
+        prev = self.registry.get_bound_agent(session_id)
+        self.registry.release(session_id)
         return prev
 
     async def has_session(self, session_id: str) -> bool:
         """Check whether a session exists in the registry."""
-        return self._registry.has_session(session_id)
+        return self.registry.has_session(session_id)
 
     async def is_page_closed(self) -> bool:
         """Check whether the session has been closed."""
@@ -463,7 +462,7 @@ class DesktopBackend:
             return True
         session = self._session  # capture to local for closure safety
         try:
-            await self._com.run(lambda: session.info.user)
+            await self.com.run(lambda: session.info.user)
             return False
         except Exception:
             logger.debug("session_closed")
@@ -475,13 +474,13 @@ class DesktopBackend:
             return
         try:
             session = self._session
-            await self._com.run(
+            await self.com.run(
                 lambda: cast(Any, session).com.Parent.CloseConnection()  # pylint: disable=unnecessary-lambda
             )
         except Exception:
             pass
-        for sid in list(self._registry.list_sessions()):
-            self._registry.unregister(sid)
+        for sid in list(self.registry.list_sessions()):
+            self.registry.unregister(sid)
         logger.info("close_connection")
 
     def get_session_token(self) -> str:
@@ -494,7 +493,7 @@ class DesktopBackend:
 
     async def get_status_bar(self) -> StatusBarInfo:
         """Read the SAP status bar."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _read() -> tuple[str, str]:
             wnd_id = _active_window_id(session)
@@ -503,14 +502,14 @@ class DesktopBackend:
                 return "", ""
             return str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
 
-        text, msg_type = await self._com.run(_read)
+        text, msg_type = await self.com.run(_read)
         bar_type: StatusBarType = cast(StatusBarType, msg_type) if msg_type in ("S", "E", "W", "I", "A") else "none"
         logger.debug("status_bar", extra={"type": bar_type, "message": text})
         return StatusBarInfo(success=True, type=bar_type, message=text)
 
     async def get_screen_info(self) -> ScreenInfo:
         """Get technical screen information."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _read() -> dict[str, Any]:
             wnd_id = _active_window_id(session)
@@ -523,14 +522,14 @@ class DesktopBackend:
                 "dynpro": str(info.screen_number),
             }
 
-        data = await self._com.run(_read)
+        data = await self.com.run(_read)
         return ScreenInfo(success=True, url="desktop://sap", **data)
 
     async def get_screen_text(  # pylint: disable=unused-argument
         self, include_dropdown_options: bool = False
     ) -> ScreenText:
         """Get readable text from the current screen via dump_tree."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _read() -> dict[str, Any]:
             wnd_id = _active_window_id(session)
@@ -565,12 +564,12 @@ class DesktopBackend:
                 "main_content": content,
             }
 
-        data = await self._com.run(_read)
+        data = await self.com.run(_read)
         return ScreenText(success=True, **data)
 
     async def discover_fields(self) -> list[FieldInfo]:
         """Discover input fields, radio buttons, checkboxes, and pushbuttons on screen."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _discover() -> list[dict[str, Any]]:
             wnd_id = _active_window_id(session)
@@ -579,14 +578,14 @@ class DesktopBackend:
             flat = _flatten(tree)
             return _discover_fields_from_tree(flat)
 
-        items = await self._com.run(_discover)
+        items = await self.com.run(_discover)
         logger.debug("discover_fields", extra={"count": len(items)})
         return [FieldInfo(**item) for item in items]
 
     async def get_form_fields(self, *, include_dropdown_options: bool = False) -> FormFieldsResult:
         """Detect form fields with their current values and associated labels."""
 
-        session = self._require_session()
+        session = self.require_session()
 
         def _discover() -> tuple[list[dict[str, Any]], str]:
             wnd_id = _active_window_id(session)
@@ -627,7 +626,7 @@ class DesktopBackend:
                 fields.append(field_dict)
             return fields, wnd_id
 
-        items, active_wnd = await self._com.run(_discover)
+        items, active_wnd = await self.com.run(_discover)
         logger.debug("get_form_fields", extra={"count": len(items)})
 
         fields = [FormField(**item) for item in items]
@@ -644,7 +643,7 @@ class DesktopBackend:
 
     async def discover_buttons(self) -> list[ButtonInfo]:
         """Discover clickable buttons on the current screen."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _discover() -> list[dict[str, Any]]:
             wnd_id = _active_window_id(session)
@@ -661,7 +660,7 @@ class DesktopBackend:
                     buttons.append({"label": label, "id": elem.id, "selector": elem.id})
             return buttons
 
-        items = await self._com.run(_discover)
+        items = await self.com.run(_discover)
         logger.debug("discover_buttons", extra={"count": len(items)})
         return [ButtonInfo(**item) for item in items]
 
@@ -688,7 +687,7 @@ class DesktopBackend:
             truncate_tree,
         )
 
-        session = self._require_session()
+        session = self.require_session()
 
         def _dump() -> tuple[str, int, int]:
             wnd_id = _active_window_id(session)
@@ -716,12 +715,12 @@ class DesktopBackend:
 
             return "\n".join(lines), max_depth_found, elements_hidden
 
-        text, max_depth_found, elements_hidden = await self._com.run(_dump)
+        text, max_depth_found, elements_hidden = await self.com.run(_dump)
         return ComTreeSnapshot(text), max_depth_found, elements_hidden
 
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the SAP GUI window."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _screenshot() -> bytes:
             wnd_id = _active_window_id(session)
@@ -734,7 +733,7 @@ class DesktopBackend:
             return data
 
         try:
-            result = await self._com.run(_screenshot)
+            result = await self.com.run(_screenshot)
             logger.debug("screenshot", extra={"bytes": len(result)})
             return result
         except Exception:
@@ -748,7 +747,7 @@ class DesktopBackend:
         max_rows: int = 100,
     ) -> TableData:
         """Read data from an ALV grid or table control."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _read() -> dict[str, Any]:  # pylint: disable=too-many-locals
 
@@ -796,7 +795,7 @@ class DesktopBackend:
             return {"headers": [], "rows": [], "total_rows": 0, "start_row": 1}
 
         try:
-            data = await self._com.run(_read)
+            data = await self.com.run(_read)
         except Exception:
             logger.exception("read_table")
             raise
@@ -809,7 +808,7 @@ class DesktopBackend:
 
     async def click_table_cell(self, row: int, column: int | str, action: str = "click") -> TableCellClickResult:
         """Click a cell in an ALV grid table."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _click() -> None:
 
@@ -832,7 +831,7 @@ class DesktopBackend:
             raise ValueError("No ALV grid found on screen")
 
         try:
-            await self._com.run(_click)
+            await self.com.run(_click)
             return TableCellClickResult(success=True, row=row, column=str(column), selector_used="com")
         except Exception as e:
             return TableCellClickResult(success=False, row=row, column=str(column), selector_used="com", error=str(e))
@@ -844,7 +843,7 @@ class DesktopBackend:
         the webgui backend format) or an empty list if the field is not
         found or is not a combobox.
         """
-        session = self._require_session()
+        session = self.require_session()
 
         def _read_options() -> list[str]:
             try:
@@ -857,23 +856,23 @@ class DesktopBackend:
                 logger.warning("Failed to read dropdown options", extra={"label": label})
                 return []
 
-        return await self._com.run(_read_options)
+        return await self.com.run(_read_options)
 
     async def get_page_title(self) -> str:
         """Get the current window title."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _title() -> str:
             wnd_id = _active_window_id(session)
             return str(cast(Any, session.find_by_id(wnd_id)).text)
 
-        return await self._com.run(_title)
+        return await self.com.run(_title)
 
     # ---- SapUiPrimitives (only press_key in Phase 1) ----
 
     async def press_key(self, key: str) -> KeyboardResult:
         """Send a keyboard shortcut via SAP VKey."""
-        session = self._require_session()
+        session = self.require_session()
         try:
             vkey = key_to_vkey(key)
         except KeyError:
@@ -892,7 +891,7 @@ class DesktopBackend:
             return title, str(cast(Any, sbar).text), str(cast(Any, sbar).message_type), post_wnd
 
         try:
-            title, sbar_text, sbar_type, active_wnd = await self._com.run(_press)
+            title, sbar_text, sbar_type, active_wnd = await self.com.run(_press)
             resolved_type: StatusBarType = (
                 cast(StatusBarType, sbar_type) if sbar_type in ("S", "E", "W", "I", "A") else "none"
             )
@@ -917,7 +916,7 @@ class DesktopBackend:
         Detects GuiComboBox fields and sets them by matching the display text
         against the dropdown entries, setting the Key property instead of Text.
         """
-        session = self._require_session()
+        session = self.require_session()
 
         def _fill() -> None:
             wnd_id = _active_window_id(session)
@@ -926,12 +925,12 @@ class DesktopBackend:
                 raise ValueError(f"Field not found: {label}")
             _set_field_value(_unwrap_com(field), value)
 
-        await self._com.run(_fill)
+        await self.com.run(_fill)
         logger.info("fill_field", extra={"label": label, "value": value})
 
     async def fill_main_input(self, value: str, labels: list[str]) -> bool:
         """Fill the main form input — try each label, fill first match."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _fill() -> bool:
             wnd_id = _active_window_id(session)
@@ -942,14 +941,14 @@ class DesktopBackend:
                     return True
             return False
 
-        result = await self._com.run(_fill)
+        result = await self.com.run(_fill)
         logger.info("fill_main_input", extra={"value": value, "found": result})
         return result
 
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
         """Fill multiple form fields."""
 
-        session = self._require_session()
+        session = self.require_session()
 
         def _fill() -> dict[str, Any]:
             wnd_id = _active_window_id(session)
@@ -968,7 +967,7 @@ class DesktopBackend:
                     errors.append({"field": label, "error": str(exc)})
             return {"filled": filled, "not_found": not_found, "errors": errors, "wnd_id": wnd_id}
 
-        data = await self._com.run(_fill)
+        data = await self.com.run(_fill)
         logger.info(
             "fill_form",
             extra={"filled": len(data["filled"]), "not_found": len(data["not_found"]), "errors": len(data["errors"])},
@@ -993,7 +992,7 @@ class DesktopBackend:
 
     async def fill_grid_cell(self, row: int, column: int | str, value: str) -> None:
         """Fill a grid/table cell."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _fill() -> None:
             wnd_id = _active_window_id(session)
@@ -1011,12 +1010,12 @@ class DesktopBackend:
                         return
             raise ValueError("No ALV grid found on screen")
 
-        await self._com.run(_fill)
+        await self.com.run(_fill)
         logger.info("fill_grid_cell", extra={"row": row, "column": column, "value": value})
 
     async def click_button(self, label: str) -> None:
         """Click a button by label."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _click() -> None:
             wnd_id = _active_window_id(session)
@@ -1025,12 +1024,12 @@ class DesktopBackend:
                 raise ValueError(f"Button not found: {label}")
             cast(Any, btn).press()
 
-        await self._com.run(_click)
+        await self.com.run(_click)
         logger.info("click_button", extra={"label": label})
 
     async def click_tab(self, label: str) -> None:
         """Click a tab by label."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _click() -> None:
             wnd_id = _active_window_id(session)
@@ -1039,12 +1038,12 @@ class DesktopBackend:
                 raise ValueError(f"Tab not found: {label}")
             cast(Any, tab).select()
 
-        await self._com.run(_click)
+        await self.com.run(_click)
         logger.info("click_tab", extra={"label": label})
 
     async def type_text(self, text: str) -> None:
         """Type text into the focused element."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _type() -> None:
             wnd_id = _active_window_id(session)
@@ -1055,12 +1054,12 @@ class DesktopBackend:
             else:
                 raise ValueError("No focused element found")
 
-        await self._com.run(_type)
+        await self.com.run(_type)
         logger.info("type_text", extra={"length": len(text)})
 
     async def set_checkbox(self, label: str, checked: bool) -> None:
         """Set a checkbox by label."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _set() -> None:
             wnd_id = _active_window_id(session)
@@ -1069,12 +1068,12 @@ class DesktopBackend:
                 raise ValueError(f"Checkbox not found: {label}")
             cast(Any, chk).selected = checked
 
-        await self._com.run(_set)
+        await self.com.run(_set)
         logger.info("set_checkbox", extra={"label": label, "checked": checked})
 
     async def set_radio_button(self, label: str) -> None:
         """Select a radio button by label."""
-        session = self._require_session()
+        session = self.require_session()
 
         def _set() -> None:
             wnd_id = _active_window_id(session)
@@ -1083,13 +1082,13 @@ class DesktopBackend:
                 raise ValueError(f"Radio button not found: {label}")
             cast(Any, rad).selected = True
 
-        await self._com.run(_set)
+        await self.com.run(_set)
         logger.info("set_radio_button", extra={"label": label})
 
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select a dropdown option."""
 
-        session = self._require_session()
+        session = self.require_session()
 
         def _select() -> dict[str, Any]:
             wnd_id = _active_window_id(session)
@@ -1105,7 +1104,7 @@ class DesktopBackend:
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 return {"success": False, "error_message": str(exc)}
 
-        data = await self._com.run(_select)
+        data = await self.com.run(_select)
         logger.info("select_dropdown", extra={"label": label, "option": option, "success": data["success"]})
         return DropdownFillResult(**data)
 
@@ -1118,7 +1117,7 @@ class DesktopBackend:
         1. Direct find_by_id with common prefixes (fast, works for field names like GD-TAB)
         2. find_field_by_label (label text matching, slower)
         """
-        session = self._require_session()
+        session = self.require_session()
 
         def _type() -> bool:
             wnd_id = _active_window_id(session)
@@ -1145,25 +1144,9 @@ class DesktopBackend:
             _set_field_value(_unwrap_com(field), text)
             return True
 
-        result = await self._com.run(_type)
+        result = await self.com.run(_type)
         logger.info("focus_and_type", extra={"field_name": accessible_name, "found": result})
         return result
-
-    async def fill_element_by_locator(self, locator: str, value: str, delay_ms: int = 30) -> bool:
-        """Fill element by CSS selector — not supported on desktop."""
-        raise NotImplementedError("CSS selectors not supported on desktop SAP GUI")
-
-    async def click_element(self, selector: str) -> bool:
-        """Click element by CSS selector — not supported on desktop."""
-        raise NotImplementedError("CSS selectors not supported on desktop SAP GUI")
-
-    def load_js(self, filename: str) -> str:
-        """Load JavaScript helper — not supported on desktop."""
-        raise NotImplementedError("JavaScript not supported on desktop SAP GUI")
-
-    async def evaluate_javascript(self, script: str, arg: Any = None) -> Any:
-        """Evaluate JavaScript — not supported on desktop."""
-        raise NotImplementedError("JavaScript not supported on desktop SAP GUI")
 
     # ---- SapEditor ----
 
@@ -1201,7 +1184,7 @@ class DesktopBackend:
         and reads all lines via the raw COM ``GetLineCount`` / ``GetLineText``
         interface.
         """
-        session = self._require_session()
+        session = self.require_session()
 
         def _read() -> str | None:
             result = DesktopBackend._find_editor_shell_raw(session)
@@ -1239,7 +1222,7 @@ class DesktopBackend:
                 )
             return None
 
-        source = await self._com.run(_read)
+        source = await self.com.run(_read)
         logger.info("read_editor_source", extra={"found": source is not None})
         return source
 
@@ -1249,7 +1232,7 @@ class DesktopBackend:
         For ``GuiAbapEditor``: SelectRange + Delete + InsertText.
         For ``GuiTextedit``: sets the ``Text`` property directly.
         """
-        session = self._require_session()
+        session = self.require_session()
 
         def _replace() -> bool:
 
@@ -1293,7 +1276,7 @@ class DesktopBackend:
                 )
             return False
 
-        replaced = await self._com.run(_replace)
+        replaced = await self.com.run(_replace)
         logger.info("replace_editor_source", extra={"success": replaced, "length": len(code)})
         return replaced
 
@@ -1304,7 +1287,7 @@ class DesktopBackend:
         popup, then sends VKey 27 (activate) and reads status bar again.
         """
 
-        session = self._require_session()
+        session = self.require_session()
 
         def _check_activate() -> tuple[list[str], bool]:
             wnd = session.find_by_id("wnd[0]")
@@ -1344,7 +1327,7 @@ class DesktopBackend:
             return messages, activated
 
         try:
-            messages, activated = await self._com.run(_check_activate)
+            messages, activated = await self.com.run(_check_activate)
             logger.info(
                 "check_and_activate",
                 extra={"activated": activated, "message_count": len(messages)},
@@ -1360,7 +1343,7 @@ class DesktopBackend:
         Checks for modal wnd[1] containing "originalsprache" or "original"/"language"
         text, and presses Enter to confirm.
         """
-        session = self._require_session()
+        session = self.require_session()
 
         def _dismiss() -> bool:
             popup = session.find_by_id("wnd[1]", raise_error=False)
@@ -1372,7 +1355,7 @@ class DesktopBackend:
                 return True
             return False
 
-        dismissed = await self._com.run(_dismiss)
+        dismissed = await self.com.run(_dismiss)
         logger.info("dismiss_language_dialog", extra={"dismissed": dismissed})
 
     # ---- SapPopup ----
@@ -1384,7 +1367,7 @@ class DesktopBackend:
         and button labels to build a PopupInfo.
         """
 
-        session = self._require_session()
+        session = self.require_session()
 
         def _check() -> dict[str, Any] | None:
             popup = session.find_by_id("wnd[1]", raise_error=False)
@@ -1411,7 +1394,7 @@ class DesktopBackend:
             message = " ".join(texts) if texts else title
             return {"title": title, "message": message, "buttons": buttons}
 
-        data = await self._com.run(_check)
+        data = await self.com.run(_check)
         if data is None:
             logger.debug("check_popup", extra={"found": False})
             return None
@@ -1447,7 +1430,7 @@ class DesktopBackend:
         Otherwise, presses Enter (VKey 0) as default.
         """
 
-        session = self._require_session()
+        session = self.require_session()
 
         def _dismiss() -> dict[str, Any]:
             popup = session.find_by_id("wnd[1]", raise_error=False)
@@ -1474,7 +1457,7 @@ class DesktopBackend:
             return {"dismissed": True, "button_clicked": None}
 
         try:
-            data = await self._com.run(_dismiss)
+            data = await self.com.run(_dismiss)
             # Read status bar after dismissal
             sbar_text = ""
             sbar_type: StatusBarType = "none"
@@ -1485,7 +1468,7 @@ class DesktopBackend:
                         sbar = session.find_by_id("wnd[0]/sbar")
                         return str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
 
-                    sbar_text, raw_type = await self._com.run(_read_sbar)
+                    sbar_text, raw_type = await self.com.run(_read_sbar)
                     if raw_type == "A":
                         raw_type = "E"  # map Abort to Error
                     if raw_type in ("S", "E", "W", "I"):

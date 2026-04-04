@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -18,11 +17,7 @@ from sapwebguimcp.models.quick_report_models import (
 )
 from sapwebguimcp.models.sap_results import StatusBarInfo, TableData
 from sapwebguimcp.models.screen_state import SelectionScreenState
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.screen_state_helpers import ensure_screen_state
-
-if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +41,7 @@ _EASY_ACCESS_TITLES: tuple[str, ...] = (
 
 
 async def classify_result_screen(  # pylint: disable=too-many-return-statements
-    backend: SapUiBackend,
+    backend: WebGuiBackend | DesktopBackend,
 ) -> tuple[ScreenClassification, StatusBarInfo]:
     """Classify the current screen after F8.
 
@@ -119,7 +114,7 @@ _EXECUTE_BUTTON_LABELS: tuple[str, ...] = (
 )
 
 
-async def _press_f8(backend: SapUiBackend, tcode: str, attempt: int) -> None:
+async def _press_f8(backend: WebGuiBackend | DesktopBackend, tcode: str, attempt: int) -> None:
     """Execute the report by clicking the Ausführen button or pressing F8.
 
     Prefers a direct DOM click on the Execute button (reliable across all
@@ -149,7 +144,7 @@ async def _press_f8(backend: SapUiBackend, tcode: str, attempt: int) -> None:
 
 
 async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
-    backend: SapUiBackend,
+    backend: WebGuiBackend | DesktopBackend,
     tcode: str,
     fields: dict[str, str] | None = None,
     checkboxes: dict[str, bool] | None = None,
@@ -170,7 +165,7 @@ async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-
         )
 
     # 1. Runtime guard: desktop backend
-    if _is_desktop_backend(backend):
+    if backend.backend_type == "desktop":
         return QuickReportResult.failure(
             error="sap_quick_report requires WebGUI backend. Use individual tools on desktop.",
             tcode=tcode,
@@ -199,7 +194,7 @@ async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-
 
 
 async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches,too-many-statements
-    backend: SapUiBackend,
+    backend: WebGuiBackend | DesktopBackend,
     tcode: str,
     fields: dict[str, str] | None,
     checkboxes: dict[str, bool] | None,

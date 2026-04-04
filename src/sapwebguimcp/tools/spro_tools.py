@@ -6,12 +6,14 @@ for customizing activities by keyword. Returns structured results with
 activity names, parent nodes, and area context.
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -30,10 +32,6 @@ from sapwebguimcp.lang import (
     SPRO_SEARCH_BUTTON_EN,
 )
 from sapwebguimcp.models.spro_models import SPROActivity, SPROFileSummary, SPROSearchResult
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
-
-if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +54,7 @@ _SPRO_TREE_ID = "wnd[0]/usr/cntlTREE_CONTROL_CONTAINER/shellcont/shell"
 # =============================================================================
 
 
-async def _click_sap_ref_img(backend: "SapUiBackend") -> str | None:
+async def _click_sap_ref_img(backend: "WebGuiBackend | DesktopBackend") -> str | None:
     """Click 'SAP Referenz-IMG' / 'SAP Reference IMG' button via F5.
 
     On the SPRO initial screen, F5 triggers the SAP Reference IMG view.
@@ -86,7 +84,7 @@ async def _click_sap_ref_img(backend: "SapUiBackend") -> str | None:
     return "Failed to enter IMG tree (heading not found after F5)"
 
 
-async def _open_search_dialog(backend: "SapUiBackend") -> str | None:
+async def _open_search_dialog(backend: "WebGuiBackend | DesktopBackend") -> str | None:
     """Open the SPRO search dialog by clicking the search button.
 
     Ctrl+F is intercepted by the browser, so we click the button directly
@@ -105,7 +103,7 @@ async def _open_search_dialog(backend: "SapUiBackend") -> str | None:
     return "Could not find search button in IMG toolbar"
 
 
-async def _fill_search_and_execute(backend: "SapUiBackend", query: str) -> str | None:
+async def _fill_search_and_execute(backend: "WebGuiBackend | DesktopBackend", query: str) -> str | None:
     """Fill the search term in the dialog and press Enter.
 
     The search dialog textbox is a ct='CBS' field that requires real
@@ -146,7 +144,7 @@ async def _fill_search_and_execute(backend: "SapUiBackend", query: str) -> str |
     return None
 
 
-async def _wait_for_results(backend: "SapUiBackend") -> ScreenSnapshot:
+async def _wait_for_results(backend: "WebGuiBackend | DesktopBackend") -> ScreenSnapshot:
     """Wait for SPRO search results dialog to appear.
 
     Polls for the results dialog title which appears when search completes.
@@ -187,7 +185,7 @@ async def _wait_for_results(backend: "SapUiBackend") -> ScreenSnapshot:
 
 
 async def _search_img_desktop(  # pylint: disable=too-many-locals
-    backend: "SapUiBackend", query: str
+    backend: "WebGuiBackend | DesktopBackend", query: str
 ) -> SPROSearchResult:
     """Desktop-specific SPRO IMG search using tree control node reading.
 
@@ -223,8 +221,8 @@ async def _search_img_desktop(  # pylint: disable=too-many-locals
             retrieved_at=now,
         )
 
-    session = backend._require_session()  # pylint: disable=protected-access
-    com = backend._com  # pylint: disable=protected-access
+    session = backend.require_session()
+    com = backend.com
 
     def _read_and_search() -> list[dict[str, str]]:
         """Expand top-level nodes, read children, filter by query."""
@@ -286,7 +284,7 @@ async def _search_img_desktop(  # pylint: disable=too-many-locals
     )
 
 
-async def _search_img(backend: "SapUiBackend", query: str) -> SPROSearchResult:
+async def _search_img(backend: "WebGuiBackend | DesktopBackend", query: str) -> SPROSearchResult:
     """Execute a full SPRO IMG search."""
     now = datetime.now(UTC)
 
@@ -399,7 +397,7 @@ def register_spro_tools(mcp: FastMCP) -> None:
             )
 
         # Desktop backend: use tree control reading instead of ARIA parsing
-        if _is_desktop_backend(backend):
+        if backend.backend_type == "desktop":
             try:
                 result = await _search_img_desktop(backend, query)
             except Exception as e:  # pylint: disable=broad-exception-caught

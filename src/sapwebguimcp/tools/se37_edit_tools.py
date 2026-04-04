@@ -5,13 +5,14 @@ Provides sap_se37_edit for modifying existing function modules with
 syntax check, activation, and auto-revert on failure.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 
 from fastmcp import FastMCP
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.models.se37_edit_models import SE37EditResult
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard, toggle_to_change_mode
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 _SE37_LABELS = ("Funktionsbaustein", "Function Module", "Function module")
 
 
-async def _fill_fm_field(backend: SapUiBackend, function_module: str, attempt: int) -> bool:
+async def _fill_fm_field(backend: WebGuiBackend | DesktopBackend, function_module: str, attempt: int) -> bool:
     """Fill the SE37 function module name field. attempt==0 uses JS, retries use keyboard."""
     if attempt == 0:
         for label in _SE37_LABELS:
@@ -33,7 +34,7 @@ async def _fill_fm_field(backend: SapUiBackend, function_module: str, attempt: i
     return await fill_field_with_keyboard(backend, _SE37_LABELS, function_module)
 
 
-async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -> str | None:
+async def _open_fm_in_change_mode(backend: WebGuiBackend | DesktopBackend, function_module: str) -> str | None:
     """Navigate to SE37, display FM via F7, and toggle to change mode.
 
     Returns error message or None on success.
@@ -68,7 +69,7 @@ async def _open_fm_in_change_mode(backend: SapUiBackend, function_module: str) -
     return await toggle_to_change_mode(backend)
 
 
-async def _click_source_tab(backend: SapUiBackend) -> str | None:
+async def _click_source_tab(backend: WebGuiBackend | DesktopBackend) -> str | None:
     """Click the source code tab in SE37. Returns error or None on success."""
     for tab_name in ("Quelltext", "Source Code", "Source code", "Source text"):
         try:
@@ -81,7 +82,7 @@ async def _click_source_tab(backend: SapUiBackend) -> str | None:
     return f"Could not find source code tab. Page: {str(snapshot)[:500]}"
 
 
-async def _navigate_to_fm_editor(backend: SapUiBackend, function_module: str) -> str | None:
+async def _navigate_to_fm_editor(backend: WebGuiBackend | DesktopBackend, function_module: str) -> str | None:
     """Navigate to SE37, open FM in change mode, click source tab.
 
     Returns error message or None on success.
@@ -92,7 +93,7 @@ async def _navigate_to_fm_editor(backend: SapUiBackend, function_module: str) ->
     return await _click_source_tab(backend)
 
 
-async def _edit_check_activate_fm(backend: SapUiBackend, function_module: str, new_source: str) -> SE37EditResult:
+async def _edit_check_activate_fm(backend: WebGuiBackend | DesktopBackend, function_module: str, new_source: str) -> SE37EditResult:
     """Core edit logic: navigate, read backup, replace, check, activate, revert on failure."""
     nav_error = await _navigate_to_fm_editor(backend, function_module)
     if nav_error:

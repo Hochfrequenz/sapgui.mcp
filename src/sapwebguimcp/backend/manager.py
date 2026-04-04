@@ -6,7 +6,6 @@ import logging
 import sys
 from typing import TYPE_CHECKING, Any, get_args
 
-from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.backend.webgui.backend import WebGuiBackend
 from sapwebguimcp.backend.webgui.browser import close_browser_manager, get_browser_manager
 from sapwebguimcp.models.config import BackendType, get_settings
@@ -21,10 +20,7 @@ _VALID_BACKEND_TYPES: set[str] = set(get_args(BackendType))
 
 
 class BackendManager:  # pylint: disable=too-few-public-methods
-    """Manages SapUiBackend instances across sessions.
-
-    Wraps the existing BrowserManager/SessionRegistry for WebGUI.
-    """
+    """Manages backend instances across sessions."""
 
     def __init__(self, backend_type: BackendType = "webgui") -> None:
         if backend_type not in _VALID_BACKEND_TYPES:
@@ -35,7 +31,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
                 "On macOS/Linux, use BACKEND_TYPE=webgui (the default) instead."
             )
         self.backend_type = backend_type
-        self._backends: dict[str, SapUiBackend] = {}  # Cache by session ID
+        self._backends: dict[str, WebGuiBackend | DesktopBackend] = {}  # Cache by session ID
         self._page_ids: dict[str, int] = {}  # Track page identity for cache invalidation
         self._com_thread: Any = None  # Lazy-init ComThread for desktop backend
 
@@ -44,7 +40,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
         session: str | None = None,
         agent_id: str | None = None,
         tool_name: str = "",
-    ) -> SapUiBackend:
+    ) -> WebGuiBackend | DesktopBackend:
         """Get or create a backend instance for the given session.
 
         Caches WebGuiBackend instances by session ID. Returns cached instance
@@ -66,16 +62,16 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             cached = self._backends.get("desktop")
             if cached is not None:
                 assert isinstance(cached, DesktopBackend)
-                effective = session or cached._registry.primary_session  # pylint: disable=protected-access
+                effective = session or cached.registry.primary_session
                 _current_session_id.set(effective)
-                cached._registry.check_binding(effective, agent_id, tool_name)  # pylint: disable=protected-access
+                cached.registry.check_binding(effective, agent_id, tool_name)
                 return cached
             if self._com_thread is None:
                 interval = get_settings().com_min_interval_ms
                 self._com_thread = ComThread(min_interval_ms=interval)
             new_backend = DesktopBackend(com_thread=self._com_thread)
             self._backends["desktop"] = new_backend
-            effective = session or new_backend._registry.primary_session  # pylint: disable=protected-access
+            effective = session or new_backend.registry.primary_session
             _current_session_id.set(effective)
             return new_backend
         raise ValueError(f"No implementation for backend '{self.backend_type}'")
@@ -112,13 +108,35 @@ async def get_backend(
     session: str | None = None,
     agent_id: str | None = None,
     tool_name: str = "",
-) -> SapUiBackend:
+) -> WebGuiBackend | DesktopBackend:
     """Convenience: get a backend instance for the given session.
 
     This is the primary entry point for all tools.
     """
     manager = get_backend_manager()
     return await manager.get_or_create(session, agent_id, tool_name)
+
+
+async def get_desktop_backend(
+    session: str | None = None,
+    agent_id: str | None = None,
+    tool_name: str = "",
+) -> DesktopBackend:
+    """Get a DesktopBackend instance. Asserts backend_type is desktop."""
+    backend = await get_backend(session, agent_id, tool_name)
+    assert isinstance(backend, DesktopBackend)
+    return backend
+
+
+async def get_webgui_backend(
+    session: str | None = None,
+    agent_id: str | None = None,
+    tool_name: str = "",
+) -> WebGuiBackend:
+    """Get a WebGuiBackend instance. Asserts backend_type is webgui."""
+    backend = await get_backend(session, agent_id, tool_name)
+    assert isinstance(backend, WebGuiBackend)
+    return backend
 
 
 async def close_backend() -> None:

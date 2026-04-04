@@ -85,7 +85,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         except ValueError as e:
             return SnapshotResult.failure(str(e), selector=selector)
 
-        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+        page = backend._page  # type: ignore[attr-defined]
 
         try:
             if selector:
@@ -144,7 +144,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                 selector=selector,
             )
 
-        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+        page = backend._page  # type: ignore[attr-defined]
 
         try:
             if selector:
@@ -196,7 +196,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         except ValueError as e:
             return ClickResult.failure(str(e), selector=selector)
 
-        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+        page = backend._page  # type: ignore[attr-defined]
         escaped_selector = escape_css_selector(selector)
 
         try:
@@ -236,7 +236,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         except ValueError as e:
             return FillResult.failure(str(e), selector=selector, value=value)
 
-        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+        page = backend._page  # type: ignore[attr-defined]
         escaped_selector = escape_css_selector(selector)
 
         try:
@@ -277,7 +277,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         except ValueError as e:
             return BrowserKeyboardResult.failure(str(e), key=key, text=text)
 
-        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+        page = backend._page  # type: ignore[attr-defined]
 
         try:
             if key:
@@ -317,7 +317,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         except ValueError as e:
             return NavigateResult.failure(str(e), url=url)
 
-        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+        page = backend._page  # type: ignore[attr-defined]
 
         try:
             await page.goto(url)
@@ -358,7 +358,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         except ValueError as e:
             return EvaluateResult.failure(str(e), script_snippet=script_snippet)
 
-        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+        page = backend._page  # type: ignore[attr-defined]
 
         try:
             result = await page.evaluate(script)
@@ -407,7 +407,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         except ValueError as e:
             return WaitResult.failure(str(e), selector=selector, state=state, timeout=timeout_td)
 
-        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+        page = backend._page  # type: ignore[attr-defined]
 
         try:
             if selector:
@@ -451,7 +451,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         except ValueError as e:
             return HtmlResult.failure(str(e), selector=selector, outer=outer)
 
-        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+        page = backend._page  # type: ignore[attr-defined]
 
         try:
             if selector:
@@ -519,7 +519,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
         except ValueError as e:
             return SelectOptionResult.failure(str(e), selector=selector)
 
-        page = backend._page  # type: ignore[attr-defined]  # pylint: disable=protected-access
+        page = backend._page  # type: ignore[attr-defined]
         escaped_selector = escape_css_selector(selector)
 
         try:

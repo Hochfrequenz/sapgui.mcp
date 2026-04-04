@@ -5,11 +5,12 @@ This module provides a tool to display SM30 table maintenance views,
 returning structured data with dynamically-parsed columns and rows.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -25,10 +26,6 @@ from sapwebguimcp.lang import (
 )
 from sapwebguimcp.models import TableData
 from sapwebguimcp.models.sm30_models import SM30FileSummary, SM30Row, SM30ViewResult
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
-
-if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +37,7 @@ __all__ = ["register_sm30_tools"]
 # =============================================================================
 
 
-async def _fill_view_field(backend: "SapUiBackend", view_name: str) -> str | None:
+async def _fill_view_field(backend: "WebGuiBackend | DesktopBackend", view_name: str) -> str | None:
     """Fill the view name field in SM30. Returns error string or None."""
     for label in [SM30_TABLE_VIEW_DE, SM30_TABLE_VIEW_EN]:
         try:
@@ -52,7 +49,7 @@ async def _fill_view_field(backend: "SapUiBackend", view_name: str) -> str | Non
     return "Could not find Table/View field in SM30"
 
 
-async def _click_display_button(backend: "SapUiBackend") -> str | None:
+async def _click_display_button(backend: "WebGuiBackend | DesktopBackend") -> str | None:
     """
     Click the Anzeigen/Display button in SM30.
 
@@ -73,7 +70,7 @@ async def _click_display_button(backend: "SapUiBackend") -> str | None:
     return "Could not find Anzeigen/Display button in SM30"
 
 
-async def _lookup_view_desktop(backend: "SapUiBackend", view_name: str) -> SM30ViewResult:
+async def _lookup_view_desktop(backend: "WebGuiBackend | DesktopBackend", view_name: str) -> SM30ViewResult:
     """Desktop-specific SM30 lookup using read_table instead of ARIA parsing."""
     now = datetime.now(UTC)
     logger.info("SM30 desktop backend path", extra={"view_name": view_name})
@@ -147,12 +144,12 @@ async def _lookup_view_desktop(backend: "SapUiBackend", view_name: str) -> SM30V
     )
 
 
-async def _lookup_view(backend: "SapUiBackend", view_name: str) -> SM30ViewResult:
+async def _lookup_view(backend: "WebGuiBackend | DesktopBackend", view_name: str) -> SM30ViewResult:
     """Look up a single SM30 view."""
     now = datetime.now(UTC)
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
-    if _is_desktop_backend(backend):
+    if backend.backend_type == "desktop":
         return await _lookup_view_desktop(backend, view_name)
 
     # Navigate to SM30
