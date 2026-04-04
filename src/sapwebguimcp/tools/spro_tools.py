@@ -13,7 +13,7 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -415,13 +415,8 @@ def register_spro_tools(mcp: FastMCP) -> None:
                     retrieved_at=now,
                 )
         else:
-            from sapwebguimcp.backend.webgui.backend import (
-                WebGuiBackend as _WG,  # pylint: disable=import-outside-toplevel
-            )
-
-            assert isinstance(backend, _WG)
             try:
-                result = await _search_img(backend, query)
+                result = await _search_img(cast(WebGuiBackend, backend), query)
             except Exception as e:  # pylint: disable=broad-exception-caught
                 logger.exception("SPRO search query=%r", query)
                 result = SPROSearchResult.failure(
