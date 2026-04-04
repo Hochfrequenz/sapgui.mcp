@@ -14,7 +14,6 @@ import sys
 
 import pytest
 
-
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

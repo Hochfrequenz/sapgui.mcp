@@ -12,11 +12,10 @@ type the value — ensuring SAP registers the change.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import asyncio
 import logging
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sapwebguimcp.backend.desktop import DesktopBackend

@@ -7,10 +7,9 @@ syntax check, activation, and auto-revert on failure.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import asyncio
 import logging
+from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 

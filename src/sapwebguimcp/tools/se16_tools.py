@@ -1,13 +1,12 @@
 # pylint: disable=too-many-lines
-
-from __future__ import annotations
-
 """
 SE16 (Data Browser) query tool for SAP table data.
 
 This module provides a tool to query SAP table data via SE16N transaction,
 returning structured row data with automatic pagination for large result sets.
 """
+
+from __future__ import annotations
 
 import json
 import logging

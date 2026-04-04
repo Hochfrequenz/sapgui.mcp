@@ -416,8 +416,8 @@ def register_spro_tools(mcp: FastMCP) -> None:
                 )
         else:
             from sapwebguimcp.backend.webgui.backend import (
-                WebGuiBackend as _WG,
-            )  # pylint: disable=import-outside-toplevel
+                WebGuiBackend as _WG,  # pylint: disable=import-outside-toplevel
+            )
 
             assert isinstance(backend, _WG)
             try:

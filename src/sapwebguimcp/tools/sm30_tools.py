@@ -7,12 +7,11 @@ returning structured data with dynamically-parsed columns and rows.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations

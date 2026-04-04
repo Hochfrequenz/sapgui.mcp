@@ -170,8 +170,8 @@ async def _check_for_error_popup(backend: "WebGuiBackend | DesktopBackend") -> s
             text = await _check_for_error_popup_desktop(backend)
         else:
             from sapwebguimcp.backend.webgui.backend import (
-                WebGuiBackend as _WG,
-            )  # pylint: disable=import-outside-toplevel
+                WebGuiBackend as _WG,  # pylint: disable=import-outside-toplevel
+            )
 
             assert isinstance(backend, _WG)
             text = await _check_for_error_popup_webgui(backend)
@@ -235,8 +235,8 @@ async def _check_screen_for_errors(backend: "WebGuiBackend | DesktopBackend") ->
             body_text = str(snapshot)
         else:
             from sapwebguimcp.backend.webgui.backend import (
-                WebGuiBackend as _WG,
-            )  # pylint: disable=import-outside-toplevel
+                WebGuiBackend as _WG,  # pylint: disable=import-outside-toplevel
+            )
 
             assert isinstance(backend, _WG)
             body_text = await backend.evaluate_javascript("() => document.body.innerText || ''")
@@ -557,8 +557,8 @@ async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> Abap
             raw_output = "\n".join(all_text)
         else:
             from sapwebguimcp.backend.webgui.backend import (
-                WebGuiBackend as _WG,
-            )  # pylint: disable=import-outside-toplevel
+                WebGuiBackend as _WG,  # pylint: disable=import-outside-toplevel
+            )
 
             assert isinstance(backend, _WG)
             raw_output = await backend.evaluate_javascript("""
