@@ -186,7 +186,7 @@ class TestRunPullAndCheckErrors:
         """Create a mock backend that returns no inactive objects popup."""
         mock_backend = AsyncMock()
         mock_backend.press_key = AsyncMock()
-        mock_backend.get_snapshot = AsyncMock(return_value="- main: selection screen")
+        mock_backend.check_popup = AsyncMock(return_value=None)
         return mock_backend
 
     @pytest.mark.anyio
