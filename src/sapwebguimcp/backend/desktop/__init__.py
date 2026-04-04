@@ -588,7 +588,7 @@ class DesktopBackend:
 
         session = self._require_session()
 
-        def _discover() -> list[dict[str, Any]]:
+        def _discover() -> tuple[list[dict[str, Any]], str]:
             wnd_id = _active_window_id(session)
             usr = session.find_by_id(f"{wnd_id}/usr")
             tree = cast(Any, usr).dump_tree()
@@ -625,9 +625,9 @@ class DesktopBackend:
                 if field_type in ("checkbox", "radio"):
                     field_dict["checked"] = bool(elem.text)
                 fields.append(field_dict)
-            return fields
+            return fields, wnd_id
 
-        items = await self._com.run(_discover)
+        items, active_wnd = await self._com.run(_discover)
         logger.debug("get_form_fields", extra={"count": len(items)})
 
         fields = [FormField(**item) for item in items]
@@ -639,6 +639,7 @@ class DesktopBackend:
         return FormFieldsResult(
             success=True,
             fields=fields,
+            active_window=active_wnd,
         )
 
     async def discover_buttons(self) -> list[ButtonInfo]:
@@ -838,7 +839,7 @@ class DesktopBackend:
         except KeyError:
             return KeyboardResult(success=False, key=key, error=f"Unknown key: {key}")
 
-        def _press() -> tuple[str, str, str]:
+        def _press() -> tuple[str, str, str, str]:
             wnd_id = _active_window_id(session)
             wnd = session.find_by_id(wnd_id)
             cast(Any, wnd).send_v_key(vkey)
@@ -847,11 +848,11 @@ class DesktopBackend:
             title = str(cast(Any, session.find_by_id(post_wnd)).text)
             sbar = session.find_by_id(f"{post_wnd}/sbar", raise_error=False)
             if sbar is None:
-                return title, "", ""
-            return title, str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
+                return title, "", "", post_wnd
+            return title, str(cast(Any, sbar).text), str(cast(Any, sbar).message_type), post_wnd
 
         try:
-            title, sbar_text, sbar_type = await self._com.run(_press)
+            title, sbar_text, sbar_type, active_wnd = await self._com.run(_press)
             resolved_type: StatusBarType = (
                 cast(StatusBarType, sbar_type) if sbar_type in ("S", "E", "W", "I", "A") else "none"
             )
@@ -863,6 +864,7 @@ class DesktopBackend:
                 status_bar_read=True,
                 status_bar_type=resolved_type,
                 status_bar_message=sbar_text,
+                active_window=active_wnd,
             )
         except Exception as e:
             return KeyboardResult(success=False, key=key, error=str(e))
@@ -924,7 +926,7 @@ class DesktopBackend:
                     filled.append(label)
                 except Exception as exc:  # pylint: disable=broad-exception-caught
                     errors.append({"field": label, "error": str(exc)})
-            return {"filled": filled, "not_found": not_found, "errors": errors}
+            return {"filled": filled, "not_found": not_found, "errors": errors, "wnd_id": wnd_id}
 
         data = await self._com.run(_fill)
         logger.info(
@@ -946,6 +948,7 @@ class DesktopBackend:
             filled=data["filled"],
             not_found=data["not_found"],
             errors=[FieldFillError(**e) for e in data["errors"]],
+            active_window=data["wnd_id"],
         )
 
     async def fill_grid_cell(self, row: int, column: int | str, value: str) -> None:
