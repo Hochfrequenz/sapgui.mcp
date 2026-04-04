@@ -96,9 +96,9 @@ def _find_by_label_text(session: Any, label: str, wnd_id: str = "wnd[0]") -> Any
     return None
 
 
-def _find_by_readonly_textfield_label(
+def _find_by_readonly_textfield_label(  # pylint: disable=too-many-locals
     session: Any, label: str, wnd_id: str = "wnd[0]"
-) -> Any | None:  # pylint: disable=too-many-locals
+) -> Any | None:
     """Strategy 3: Non-changeable GuiTextField acting as visual label.
 
     SAP address screens use read-only GuiTextField (type 31, changeable=False) as

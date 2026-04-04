@@ -240,11 +240,15 @@ class TestRunPullAndCheckErrors:
         """When 'Inaktive Objekte' popup appears after pull, it should be confirmed."""
         from unittest.mock import call, patch
 
+        from sapwebguimcp.models.base import PopupInfo, PopupType
         from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
         mock_backend = AsyncMock()
         mock_backend.press_key = AsyncMock()
-        mock_backend.get_snapshot = AsyncMock(return_value="- dialog: Inaktive Objekte")
+        # check_popup returns a PopupInfo with "Inaktive Objekte" in the message
+        mock_backend.check_popup = AsyncMock(
+            return_value=PopupInfo(popup_type=PopupType.UNKNOWN, message="Inaktive Objekte")
+        )
 
         with patch(
             "sapwebguimcp.tools.abapgit_tools._handle_popup_error",
