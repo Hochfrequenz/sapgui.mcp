@@ -529,8 +529,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
-            KeyboardResult with the key sent, page title, and status bar (for shortcuts).
-            Status bar is auto-read for F-keys and Ctrl+* since SAP often shows feedback there.
+            KeyboardResult with the key sent, page title, status bar, and active_window.
+            Check active_window: if it changed to 'wnd[1]', a dialog opened after the keystroke.
+            If it returned to 'wnd[0]', a dialog was closed (e.g., after pressing Escape or Enter).
         """
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keyboard")
@@ -623,8 +624,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Discover fillable form fields on the current SAP screen. "
+            "Discover fillable form fields on the current SAP screen (or active popup dialog). "
             "Returns field IDs, labels, types (text/dropdown/checkbox/radio), and current values. "
+            "Automatically targets the active window — if a popup is open, shows popup fields. "
             "Use include_dropdown_options=True to also fetch available options for dropdown fields.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
@@ -938,8 +940,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(
         description=(
-            "Discover input fields on the current SAP screen. "
+            "Discover input fields on the current SAP screen (or active popup dialog). "
             "Returns fields with label, name, value, and a selector/ID for targeting the field. "
+            "Automatically targets the active window — if a popup is open, shows popup fields. "
             "Use the label with sap_fill_form or sap_set_field to fill fields (works on both backends). "
             "The 'selector' field is a CSS selector on WebGUI or a SAP GUI element ID on Desktop. "
             "For buttons, use sap_discover_buttons instead.\n\n"
@@ -1100,9 +1103,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Close an active popup dialog by clicking a button. "
-            "Use after a tool returns popup info. "
-            "Note: Not all popups are errors - F4 help dialogs are expected behavior. "
-            "For F4 help popups, consider reading the values first before closing. "
+            "Use when active_window shows 'wnd[1]' or higher and you want to dismiss the dialog. "
+            "Note: Not all popups need closing - if the popup is a form you need to fill, "
+            "use sap_discover_fields and sap_fill_form instead (they automatically target the active window). "
             "Specify button by label ('Ja', 'Nein') or accesskey ('J', 'N'), "
             "or use close=True to click the X button if available.\n\n"
             "**Session parameter:**\n"
@@ -1189,8 +1192,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         Returns:
             FillFormResult with lists of filled, not_found, and errored fields.
-            If a popup appears after filling (e.g., role change confirmation),
-            it's returned in popup.
+            Check active_window to see which window was operated on (wnd[0] or wnd[1]).
         """
         if not fields:
             return FillFormResult.failure("fields cannot be empty")
