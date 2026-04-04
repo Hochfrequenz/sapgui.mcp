@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import logging
 import re
 from pathlib import Path
@@ -18,6 +20,11 @@ from sapwebguimcp.models.quick_report_models import (
 from sapwebguimcp.models.sap_results import StatusBarInfo, TableData
 from sapwebguimcp.models.screen_state import SelectionScreenState
 from sapwebguimcp.tools.screen_state_helpers import ensure_screen_state
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 

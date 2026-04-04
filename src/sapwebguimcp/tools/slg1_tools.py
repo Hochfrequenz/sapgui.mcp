@@ -7,6 +7,8 @@ returning strongly-typed Pydantic models with log entries.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import json
 import logging
 from datetime import UTC, datetime
@@ -30,6 +32,11 @@ from sapwebguimcp.models.slg1_models import (
     SLG1LogListResult,
 )
 from sapwebguimcp.utils import SapLanguage, format_sap_date
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 

@@ -7,6 +7,8 @@ returning strongly-typed Pydantic models with method and attribute details.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import json
 import logging
 from datetime import UTC, datetime
@@ -27,6 +29,11 @@ from sapwebguimcp.models import (
 from sapwebguimcp.models.se24_models import SE24Attribute, SE24Method, SE24ObjectType, SE24Visibility
 from sapwebguimcp.tools.field_helpers import fill_and_display
 from sapwebguimcp.tools.table_helpers import read_table_control_all_rows
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -258,7 +265,9 @@ async def _fill_and_display(backend: WebGuiBackend | DesktopBackend, class_name:
     return None
 
 
-async def _lookup_class_on_initial_screen(backend: WebGuiBackend | DesktopBackend, class_name: str) -> SE24Entry | SE24Error:
+async def _lookup_class_on_initial_screen(
+    backend: WebGuiBackend | DesktopBackend, class_name: str
+) -> SE24Entry | SE24Error:
     """Look up a class assuming we're already on the SE24 initial screen.
 
     After a successful lookup, the browser will be on the class detail screen.

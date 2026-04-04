@@ -14,7 +14,7 @@ import re
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -58,6 +58,11 @@ from sapwebguimcp.models import (
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 from sapwebguimcp.tools.table_helpers import read_table_control_all_rows
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -356,7 +361,9 @@ async def _click_display_button(backend: WebGuiBackend | DesktopBackend, name: s
     await backend.wait_for_ready()
 
 
-async def _check_object_not_found(backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType) -> SE11Error | None:
+async def _check_object_not_found(
+    backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType
+) -> SE11Error | None:
     """Check if the status bar shows 'object not found'. Returns error or None."""
     now = datetime.now(UTC)
     status = await backend.get_status_bar()

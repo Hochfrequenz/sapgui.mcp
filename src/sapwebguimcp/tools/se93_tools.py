@@ -7,6 +7,8 @@ returning strongly-typed Pydantic models with transaction details.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import json
 import logging
 from datetime import UTC, datetime
@@ -26,6 +28,11 @@ from sapwebguimcp.models import (
 )
 from sapwebguimcp.models.se93_models import SE93TransactionType
 from sapwebguimcp.tools.field_helpers import fill_and_display
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 

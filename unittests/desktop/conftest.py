@@ -91,9 +91,9 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     except Exception:
         pass
     # Clear registry to avoid stale session references
-    if hasattr(b, "_registry"):
-        for sid in list(b._registry.list_sessions()):
-            b._registry.unregister(sid)
+    if hasattr(b, "registry"):
+        for sid in list(b.registry.list_sessions()):
+            b.registry.unregister(sid)
     faulthandler.disable()
     com.shutdown()
     faulthandler.enable()

@@ -15,7 +15,7 @@ import re
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -30,6 +30,11 @@ from sapwebguimcp.lang import (
 from sapwebguimcp.models.se09_models import TransportListResult, TransportObject, TransportRequest, TransportTask
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
+
 logger = logging.getLogger(__name__)
 
 __all__ = ["register_se09_tools"]
@@ -40,7 +45,7 @@ __all__ = ["register_se09_tools"]
 # =============================================================================
 
 
-async def _click_display_button(backend: "WebGuiBackend | DesktopBackend") -> None:
+async def _click_display_button(backend: "WebGuiBackend") -> None:
     """Click the Anzeigen/Display button to execute the search.
 
     Uses JS to click the button by its element ID, which is more reliable
@@ -103,7 +108,7 @@ _JS_CLICK_NEXT_EXPAND = """(skip) => {
 }"""
 
 
-async def _expand_transport_nodes(backend: "WebGuiBackend | DesktopBackend") -> int:
+async def _expand_transport_nodes(backend: "WebGuiBackend") -> int:
     """Expand all transport request/task nodes in the SE09 tree.
 
     Clicks the expand button next to each transport number, one at a time,
@@ -122,7 +127,7 @@ async def _expand_transport_nodes(backend: "WebGuiBackend | DesktopBackend") -> 
     return len(expanded)
 
 
-async def _extract_tree_text_lines(backend: "WebGuiBackend | DesktopBackend") -> list[str]:
+async def _extract_tree_text_lines(backend: "WebGuiBackend") -> list[str]:
     """Extract all text content from the SE09 tree region via JS.
 
     Reads text from all children of the region element. Because the ABAP LIST
@@ -172,7 +177,9 @@ async def _extract_tree_text_lines(backend: "WebGuiBackend | DesktopBackend") ->
     return [item["text"] for item in all_items if item["text"]]
 
 
-async def _set_checkbox_bilingual(backend: "WebGuiBackend | DesktopBackend", de_label: str, en_label: str, checked: bool) -> None:
+async def _set_checkbox_bilingual(
+    backend: "WebGuiBackend | DesktopBackend", de_label: str, en_label: str, checked: bool
+) -> None:
     """Set a checkbox trying DE then EN label, warn if neither found."""
     for label in [de_label, en_label]:
         try:
@@ -462,6 +469,10 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
     # Desktop backend: use label parsing instead of ARIA snapshot parsing
     if backend.backend_type == "desktop":
         return await _lookup_transports_desktop(backend, username, request_type, status, include_objects)
+
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend as _WG  # pylint: disable=import-outside-toplevel
+
+    assert isinstance(backend, _WG)
 
     # Navigate to SE09 using session-aware helper
     tx_result = await backend.enter_transaction("SE09")

@@ -13,7 +13,7 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -32,6 +32,11 @@ from sapwebguimcp.lang import (
     SPRO_SEARCH_BUTTON_EN,
 )
 from sapwebguimcp.models.spro_models import SPROActivity, SPROFileSummary, SPROSearchResult
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +108,7 @@ async def _open_search_dialog(backend: "WebGuiBackend | DesktopBackend") -> str 
     return "Could not find search button in IMG toolbar"
 
 
-async def _fill_search_and_execute(backend: "WebGuiBackend | DesktopBackend", query: str) -> str | None:
+async def _fill_search_and_execute(backend: "WebGuiBackend", query: str) -> str | None:
     """Fill the search term in the dialog and press Enter.
 
     The search dialog textbox is a ct='CBS' field that requires real
@@ -284,7 +289,7 @@ async def _search_img_desktop(  # pylint: disable=too-many-locals
     )
 
 
-async def _search_img(backend: "WebGuiBackend | DesktopBackend", query: str) -> SPROSearchResult:
+async def _search_img(backend: "WebGuiBackend", query: str) -> SPROSearchResult:
     """Execute a full SPRO IMG search."""
     now = datetime.now(UTC)
 
@@ -410,6 +415,11 @@ def register_spro_tools(mcp: FastMCP) -> None:
                     retrieved_at=now,
                 )
         else:
+            from sapwebguimcp.backend.webgui.backend import (
+                WebGuiBackend as _WG,
+            )  # pylint: disable=import-outside-toplevel
+
+            assert isinstance(backend, _WG)
             try:
                 result = await _search_img(backend, query)
             except Exception as e:  # pylint: disable=broad-exception-caught

@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 from fastmcp import FastMCP
@@ -30,6 +30,11 @@ from mcp.types import ToolAnnotations
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
 from sapwebguimcp.models.config import get_settings
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +169,11 @@ async def _check_for_error_popup(backend: "WebGuiBackend | DesktopBackend") -> s
         if backend.backend_type == "desktop":
             text = await _check_for_error_popup_desktop(backend)
         else:
+            from sapwebguimcp.backend.webgui.backend import (
+                WebGuiBackend as _WG,
+            )  # pylint: disable=import-outside-toplevel
+
+            assert isinstance(backend, _WG)
             text = await _check_for_error_popup_webgui(backend)
         if not text:
             return None
@@ -184,7 +194,7 @@ async def _check_for_error_popup(backend: "WebGuiBackend | DesktopBackend") -> s
     return None
 
 
-async def _check_for_error_popup_webgui(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+async def _check_for_error_popup_webgui(backend: "WebGuiBackend") -> str | None:
     """Check for error popup via JavaScript (WebGUI only)."""
     js_code = """
     () => {
@@ -224,6 +234,11 @@ async def _check_screen_for_errors(backend: "WebGuiBackend | DesktopBackend") ->
             snapshot = await backend.get_snapshot()
             body_text = str(snapshot)
         else:
+            from sapwebguimcp.backend.webgui.backend import (
+                WebGuiBackend as _WG,
+            )  # pylint: disable=import-outside-toplevel
+
+            assert isinstance(backend, _WG)
             body_text = await backend.evaluate_javascript("() => document.body.innerText || ''")
         body_lower = body_text.lower()
 
@@ -432,7 +447,9 @@ async def _execute_pull_transaction(
     return None
 
 
-async def _run_pull_and_check_errors(backend: "WebGuiBackend | DesktopBackend", repo: str) -> AbapGitActionResult | None:
+async def _run_pull_and_check_errors(
+    backend: "WebGuiBackend | DesktopBackend", repo: str
+) -> AbapGitActionResult | None:
     """Execute F8 and wait for SAP to finish processing. Returns error if found."""
     await backend.press_key("F8")
 
@@ -539,6 +556,11 @@ async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> Abap
             all_text = (screen.labels or []) + (screen.main_content or [])
             raw_output = "\n".join(all_text)
         else:
+            from sapwebguimcp.backend.webgui.backend import (
+                WebGuiBackend as _WG,
+            )  # pylint: disable=import-outside-toplevel
+
+            assert isinstance(backend, _WG)
             raw_output = await backend.evaluate_javascript("""
                 () => {
                     const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
@@ -600,7 +622,7 @@ async def _abapgit_pull_via_api(
 # =============================================================================
 
 
-async def _fill_se38_program_field(backend: "WebGuiBackend | DesktopBackend", program_name: str) -> bool:
+async def _fill_se38_program_field(backend: "WebGuiBackend", program_name: str) -> bool:
     """Fill the program name field in SE38 using various strategies."""
     input_selectors = [
         "input[name*='PROGRAM']",
@@ -664,7 +686,7 @@ def _is_actual_abap_source(text: str) -> bool:
     return sum([has_report, has_data, has_write, has_if]) >= 1
 
 
-async def _navigate_to_se38(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+async def _navigate_to_se38(backend: "WebGuiBackend") -> str | None:
     """Navigate to SE38 and return error message if failed, None if OK."""
     await backend.bring_to_front()
     await backend.press_key("Escape")
@@ -689,7 +711,7 @@ async def _navigate_to_se38(backend: "WebGuiBackend | DesktopBackend") -> str | 
     return None if tx_result.success else f"Failed to open SE38: {tx_result.error}"
 
 
-async def _find_source_code(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+async def _find_source_code(backend: "WebGuiBackend") -> str | None:
     """Try various methods to find ABAP source code on the page via JavaScript."""
     # Single comprehensive JS that searches SE38 selectors, editor elements,
     # iframes, table cells, and text nodes — mirrors the old multi-function approach.
@@ -827,7 +849,7 @@ async def _find_source_code(backend: "WebGuiBackend | DesktopBackend") -> str | 
     return None
 
 
-async def read_se38_source(backend: "WebGuiBackend | DesktopBackend", program_name: str) -> dict[str, Any]:
+async def read_se38_source(backend: "WebGuiBackend", program_name: str) -> dict[str, Any]:
     """Read ABAP report source code from SE38."""
     try:
         nav_error = await _navigate_to_se38(backend)
@@ -874,7 +896,7 @@ async def read_se38_source(backend: "WebGuiBackend | DesktopBackend", program_na
         return {"success": False, "error": str(e)}
 
 
-async def verify_abap_report_content(backend: "WebGuiBackend | DesktopBackend", program_name: str, expected_text: str) -> dict[str, Any]:
+async def verify_abap_report_content(backend: "WebGuiBackend", program_name: str, expected_text: str) -> dict[str, Any]:
     """Verify that an ABAP report contains expected text."""
     result = await read_se38_source(backend, program_name)
 
@@ -1038,4 +1060,7 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
                 "error": "sap_read_se38_source is not supported on the desktop backend. "
                 "Use sap_se38_edit to open the report in SE38 instead.",
             }
+        from sapwebguimcp.backend.webgui.backend import WebGuiBackend  # pylint: disable=import-outside-toplevel
+
+        assert isinstance(backend, WebGuiBackend)
         return await read_se38_source(backend, program_name)

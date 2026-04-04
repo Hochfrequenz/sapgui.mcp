@@ -1,6 +1,7 @@
 # pylint: disable=too-many-lines
 
 from __future__ import annotations
+
 """
 SE16 (Data Browser) query tool for SAP table data.
 
@@ -12,7 +13,7 @@ import json
 import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
@@ -23,6 +24,11 @@ from sapwebguimcp.backend.webgui.parsers.se16_parser import parse_se16_columns, 
 from sapwebguimcp.lang import SE16_NO_ENTRIES_DE, SE16_NO_ENTRIES_EN
 from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row, TableData
 from sapwebguimcp.tools.se11_tools import _lookup_object_on_initial_screen
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +182,7 @@ async def _type_table_name_with_validation(backend: WebGuiBackend | DesktopBacke
     return None
 
 
-async def _wait_for_grid_rows(backend: WebGuiBackend | DesktopBackend, timeout_seconds: int = 5) -> bool:
+async def _wait_for_grid_rows(backend: WebGuiBackend, timeout_seconds: int = 5) -> bool:
     """
     Wait for SE16N selection criteria grid to populate with data rows.
 
@@ -231,7 +237,7 @@ async def _fill_se16n_max_hits(backend: WebGuiBackend | DesktopBackend, max_hits
 
 
 async def _fill_filter_by_locator(
-    backend: WebGuiBackend | DesktopBackend, element_id: str | None, selector: str | None, value: str, field_name: str
+    backend: WebGuiBackend, element_id: str | None, selector: str | None, value: str, field_name: str
 ) -> bool:
     """
     Fill a filter field using element-targeted input via protocol methods.
@@ -264,7 +270,7 @@ async def _fill_filter_by_locator(
 
 
 async def _fill_filter_by_index(
-    backend: WebGuiBackend | DesktopBackend, find_js: str, field_name: str, value: str, row_index: int
+    backend: WebGuiBackend, find_js: str, field_name: str, value: str, row_index: int
 ) -> str | None:
     """
     Fill a single filter field using index-based approach.
@@ -308,7 +314,7 @@ async def _fill_filter_by_index(
 
 
 async def _fill_se16n_filters(  # pylint: disable=too-many-locals
-    backend: WebGuiBackend | DesktopBackend, filters: dict[str, str] | None, field_order: dict[str, int] | None
+    backend: WebGuiBackend, filters: dict[str, str] | None, field_order: dict[str, int] | None
 ) -> list[str]:
     """
     Fill filter values in SE16N selection criteria grid using row indices.
@@ -322,7 +328,7 @@ async def _fill_se16n_filters(  # pylint: disable=too-many-locals
     2. Protocol's fill_element_by_locator clicks + types the value (triggers proper SAP events)
 
     Args:
-        backend: WebGuiBackend | DesktopBackend instance
+        backend: WebGuiBackend instance
         filters: Dict of {field_name: value} to filter on.
                  Field names should be technical names (e.g., "TCODE", "PGMNA").
         field_order: Dict mapping field names to row indices from SE11.
@@ -422,7 +428,7 @@ def _check_selection_screen_columns(columns: list[str]) -> bool:
     return de_matches >= 2 or en_matches >= 2
 
 
-async def _focus_grid(backend: WebGuiBackend | DesktopBackend) -> None:
+async def _focus_grid(backend: WebGuiBackend) -> None:
     """Focus the ALV grid for pagination (required for PageDown to work)."""
     try:
         await backend.click_element("[role='grid']")
@@ -432,7 +438,7 @@ async def _focus_grid(backend: WebGuiBackend | DesktopBackend) -> None:
 
 
 async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
-    backend: WebGuiBackend | DesktopBackend,
+    backend: WebGuiBackend,
     total_hits: int,
     columns: list[str],
     ctx: Context | None = None,
@@ -444,7 +450,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
     rows from each page until all are collected or no new rows found.
 
     Args:
-        backend: WebGuiBackend | DesktopBackend instance
+        backend: WebGuiBackend instance
         total_hits: Expected total rows (from "Number of Hits")
         columns: Column names for row parsing
         ctx: FastMCP context for progress reporting (optional)
@@ -790,6 +796,10 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     # Desktop backend: use read_table instead of ARIA snapshot parsing
     if backend.backend_type == "desktop":
         return await _execute_se16_query_desktop(backend, table, filters, max_hits, now, ctx)
+
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend as _WG  # pylint: disable=import-outside-toplevel
+
+    assert isinstance(backend, _WG)
 
     # If filters are provided, get field order from SE11 FIRST
     # (before navigating to SE16N, since SE11 lookup changes the screen)

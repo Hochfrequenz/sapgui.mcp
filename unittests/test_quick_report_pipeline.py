@@ -215,9 +215,7 @@ class TestQuickReportPipeline:
             call_log.append("ensure_screen_state")
             return ScreenStateDiff()
 
-        with patch(
-            "sapwebguimcp.tools.quick_report_tools.ensure_screen_state", side_effect=track_ensure_screen_state
-        ):
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", side_effect=track_ensure_screen_state):
             await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
 
         assert call_log[0] == "enter_transaction"
@@ -465,9 +463,7 @@ class TestPostF8Keys:
             output_path = f.name
 
         try:
-            with patch(
-                "sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock
-            ) as mock_ess:
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff()
                 result = await _execute_quick_report(
                     backend,

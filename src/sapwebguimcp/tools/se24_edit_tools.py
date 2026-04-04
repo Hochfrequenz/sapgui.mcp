@@ -12,13 +12,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from fastmcp import FastMCP
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.se24_edit_models import SE24EditResult
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard, toggle_to_change_mode
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +82,9 @@ async def _open_class_in_change_mode(backend: WebGuiBackend | DesktopBackend, cl
     return await toggle_to_change_mode(backend)
 
 
-async def _select_method_and_open_source(backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str) -> str | None:
+async def _select_method_and_open_source(
+    backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str
+) -> str | None:
     """Select method in methods grid and open its source editor.
 
     Returns error message or None on success.
@@ -238,7 +245,9 @@ async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-re
     return "Could not find 'Quelltext'/'Sourcecode' button"
 
 
-async def _navigate_to_method_editor_desktop(backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str) -> str | None:
+async def _navigate_to_method_editor_desktop(
+    backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str
+) -> str | None:
     """Desktop: navigate to SE24, open class in change mode, select method, open source."""
     error = await _open_class_in_change_mode_desktop(backend, class_name)
     if error:
@@ -246,7 +255,9 @@ async def _navigate_to_method_editor_desktop(backend: WebGuiBackend | DesktopBac
     return await _select_method_and_open_source_desktop(backend, class_name, method_name)
 
 
-async def _navigate_to_method_editor(backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str) -> str | None:
+async def _navigate_to_method_editor(
+    backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str
+) -> str | None:
     """Navigate to SE24, open class in change mode, select method, open source editor.
 
     Returns error message or None on success.

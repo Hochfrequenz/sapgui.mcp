@@ -14,6 +14,8 @@ ST22 flow:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import json
 import logging
 import re
@@ -40,6 +42,11 @@ from sapwebguimcp.models.st22_models import (
     ST22DumpListResult,
 )
 from sapwebguimcp.utils import SapLanguage, format_sap_date
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +89,9 @@ async def _clear_user_field(backend: "WebGuiBackend | DesktopBackend") -> None:
     logger.debug("User field not found for clearing")
 
 
-async def _fill_date_field(backend: "WebGuiBackend | DesktopBackend", target_date: str, language: SapLanguage) -> str | None:
+async def _fill_date_field(
+    backend: "WebGuiBackend | DesktopBackend", target_date: str, language: SapLanguage
+) -> str | None:
     """Fill the date field with a formatted date. Returns error or None."""
     try:
         formatted = format_sap_date(target_date, language)
@@ -167,7 +176,9 @@ async def _execute_search(backend: "WebGuiBackend | DesktopBackend", target_date
     return None
 
 
-async def _select_dump_by_index(backend: "WebGuiBackend | DesktopBackend", dump_index: int, dump_count: int) -> str | None:
+async def _select_dump_by_index(
+    backend: "WebGuiBackend | DesktopBackend", dump_index: int, dump_count: int
+) -> str | None:
     """Select a dump from the list by double-clicking the row via click_table_cell.
 
     Returns error message or None on success.

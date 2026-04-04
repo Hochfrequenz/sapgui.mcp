@@ -12,9 +12,15 @@ type the value — ensuring SAP registers the change.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import asyncio
 import logging
 from collections.abc import Sequence
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
 
 
 logger = logging.getLogger(__name__)
@@ -69,7 +75,8 @@ async def fill_field_with_keyboard(
         True if the field was found and filled, False otherwise.
     """
     labels_js = "[" + ",".join(f'"{lbl}"' for lbl in labels) + "]"
-    found = await backend.evaluate_javascript(f"""(() => {{
+    _eval = backend.evaluate_javascript  # type: ignore[union-attr]
+    found = await _eval(f"""(() => {{
             const labels = {labels_js};
 
             function isUsableInput(input) {{

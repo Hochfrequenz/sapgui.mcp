@@ -7,6 +7,8 @@ syntax check, activation, and auto-revert on failure.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import asyncio
 import logging
 
@@ -15,6 +17,11 @@ from fastmcp import FastMCP
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.se38_edit_models import SE38EditResult
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +48,7 @@ async def _fill_program_field_js(backend: WebGuiBackend | DesktopBackend, progra
     return await backend.fill_main_input(program_name, ["Programm", "Program"])
 
 
-async def _fill_program_field_keyboard(backend: WebGuiBackend | DesktopBackend, program_name: str) -> bool:
+async def _fill_program_field_keyboard(backend: WebGuiBackend, program_name: str) -> bool:
     """Fill the program name using real keyboard events (works after state resets).
 
     Uses JavaScript to locate and focus the CBS field, then types with
@@ -97,7 +104,7 @@ async def _navigate_and_open_editor_desktop(backend: WebGuiBackend | DesktopBack
     return None
 
 
-async def _navigate_and_open_editor(backend: WebGuiBackend | DesktopBackend, program_name: str) -> str | None:
+async def _navigate_and_open_editor(backend: WebGuiBackend, program_name: str) -> str | None:
     """Navigate to SE38 on the given page, fill program name, enter change mode, return error or None."""
     await backend.enter_transaction("SE38")
 
@@ -129,12 +136,17 @@ async def _navigate_and_open_editor(backend: WebGuiBackend | DesktopBackend, pro
     return "Could not find or fill program name field after retries"
 
 
-async def _edit_check_activate(backend: WebGuiBackend | DesktopBackend, program_name: str, new_source: str) -> SE38EditResult:
+async def _edit_check_activate(
+    backend: WebGuiBackend | DesktopBackend, program_name: str, new_source: str
+) -> SE38EditResult:
     """Core edit logic: read backup, replace, check, activate, revert on failure."""
     # Navigate and open editor — use desktop or WebGUI path
     if backend.backend_type == "desktop":
         nav_error = await _navigate_and_open_editor_desktop(backend, program_name)
     else:
+        from sapwebguimcp.backend.webgui.backend import WebGuiBackend as _WG  # pylint: disable=import-outside-toplevel
+
+        assert isinstance(backend, _WG)
         nav_error = await _navigate_and_open_editor(backend, program_name)
     if nav_error:
         return SE38EditResult.failure(error=nav_error, program_name=program_name, backup_source="", activated=False)

@@ -1060,6 +1060,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 titles = await _get_button_tooltips_desktop(backend)
             else:
                 # WebGUI: get all title attributes via JavaScript
+                from sapwebguimcp.backend.webgui.backend import WebGuiBackend  # pylint: disable=import-outside-toplevel
+
+                assert isinstance(backend, WebGuiBackend)
                 titles = await backend.evaluate_javascript("""() => {
                         const elements = document.querySelectorAll('[title]');
                         return Array.from(elements).map(el => el.title).filter(Boolean);

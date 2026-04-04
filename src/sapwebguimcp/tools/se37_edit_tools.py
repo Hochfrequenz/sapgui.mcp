@@ -7,6 +7,8 @@ syntax check, activation, and auto-revert on failure.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import asyncio
 import logging
 
@@ -15,6 +17,11 @@ from fastmcp import FastMCP
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.se37_edit_models import SE37EditResult
 from sapwebguimcp.tools.field_helpers import fill_field_with_keyboard, toggle_to_change_mode
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +100,9 @@ async def _navigate_to_fm_editor(backend: WebGuiBackend | DesktopBackend, functi
     return await _click_source_tab(backend)
 
 
-async def _edit_check_activate_fm(backend: WebGuiBackend | DesktopBackend, function_module: str, new_source: str) -> SE37EditResult:
+async def _edit_check_activate_fm(
+    backend: WebGuiBackend | DesktopBackend, function_module: str, new_source: str
+) -> SE37EditResult:
     """Core edit logic: navigate, read backup, replace, check, activate, revert on failure."""
     nav_error = await _navigate_to_fm_editor(backend, function_module)
     if nav_error:

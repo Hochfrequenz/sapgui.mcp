@@ -7,6 +7,8 @@ returning structured data with dynamically-parsed columns and rows.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import json
 import logging
 from datetime import UTC, datetime
@@ -26,6 +28,11 @@ from sapwebguimcp.lang import (
 )
 from sapwebguimcp.models import TableData
 from sapwebguimcp.models.sm30_models import SM30FileSummary, SM30Row, SM30ViewResult
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 

@@ -10,6 +10,8 @@ into a single ``SelectionScreenState``.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import logging
 
 from sapwebguimcp.backend.webgui.parsers.screen_state_parser import parse_selection_screen_state
@@ -18,6 +20,10 @@ from sapwebguimcp.models.screen_state import (
     SelectionScreenState,
     StateChange,
 )
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
 
 logger = logging.getLogger(__name__)
 

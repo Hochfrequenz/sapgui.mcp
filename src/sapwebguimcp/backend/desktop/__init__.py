@@ -28,7 +28,7 @@ from sapwebguimcp.backend.desktop._landscape import _find_landscape_path, _parse
 from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
 #: Per-async-task session ID — set by BackendManager before each tool call.
-#: MUST be read on the async side (in _require_session), NEVER inside a ComThread lambda.
+#: MUST be read on the async side (in require_session), NEVER inside a ComThread lambda.
 _current_session_id: ContextVar[str | None] = ContextVar("_current_session_id", default=None)
 from sapwebguimcp.backend.desktop._element_finder import (
     _flatten,
