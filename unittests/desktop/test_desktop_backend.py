@@ -374,7 +374,7 @@ class TestDesktopBackendFillForm:
         field2.com = field2
         field2.Type = "GuiTextField"
 
-        def mock_find(session, label):
+        def mock_find(session, label, **kwargs):
             return {"Material": field1, "Plant": field2}.get(label)
 
         session = make_mock_session()
