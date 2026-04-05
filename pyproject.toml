@@ -27,7 +27,7 @@ dependencies = [
     "pywin32>=306; sys_platform == 'win32'",
     "rapidfuzz>=3.0.0",  # Fuzzy string matching for catalog search
     "sap-mcp-config>=0.1.0",  # Shared SAP system credentials config
-    "sapsucker>=0.0.1",  # Typed SAP GUI Scripting wrapper
+    "sapsucker>=0.2.0",  # Typed SAP GUI Scripting wrapper
 ]
 dynamic = ["readme", "version"]
 

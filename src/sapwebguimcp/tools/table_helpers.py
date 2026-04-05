@@ -27,7 +27,7 @@ def _find_table_control_info(session: Any, flatten_fn: Any) -> tuple[str, list[s
     or ``None`` if no table control is found.
     """
     wnd = session.find_by_id("wnd[0]")
-    tree = cast(Any, wnd).dump_tree(max_depth=8)
+    tree = cast(Any, wnd).dump_tree()
     flat = flatten_fn(tree)
 
     for elem in flat:

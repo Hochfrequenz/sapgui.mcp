@@ -183,20 +183,11 @@ async def _get_button_tooltips_desktop(backend: Any) -> list[str]:
 
     def _read_tooltips() -> list[str]:
         wnd = session.find_by_id("wnd[0]")
-        tree = cast(Any, wnd).dump_tree(max_depth=3)
+        tree = cast(Any, wnd).dump_tree()
         tooltips: list[str] = []
         for elem in _flatten(tree):
-            if elem.type_as_number == 40:  # GuiButton
-                try:
-                    btn = session.find_by_id(elem.id)
-                    if btn is None:
-                        continue
-                    raw = btn.com
-                    tooltip = str(getattr(raw, "Tooltip", ""))
-                    if tooltip:
-                        tooltips.append(tooltip)
-                except Exception:  # pylint: disable=broad-exception-caught
-                    logger.debug("tooltip_read_failed", extra={"element_id": elem.id})
+            if elem.type_as_number == 40 and elem.tooltip:  # GuiButton
+                tooltips.append(elem.tooltip)
         return tooltips
 
     return await backend._com.run(_read_tooltips)  # pylint: disable=protected-access
