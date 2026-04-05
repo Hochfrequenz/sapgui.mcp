@@ -129,7 +129,7 @@ async def test_set_checkbox_on_sm37(backend):
                     checkboxes[elem.text.strip()] = bool(cast(Any, chk).selected)
             return checkboxes
 
-        return await backend._com.run(_read)
+        return await backend.com.run(_read)
 
     # Read initial states
     states_before = await get_checkbox_states()

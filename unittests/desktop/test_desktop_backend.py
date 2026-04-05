@@ -51,7 +51,7 @@ class TestDesktopBackendLogin:
             patch("sapwebguimcp.backend.desktop.get_sap_config", return_value=mock_sap_config),
         ):
             backend = DesktopBackend(com_thread=MagicMock())
-            backend._com.run = mock_run
+            backend.com.run = mock_run
             result = await backend.login("ignored", "user", "pass", "100", "EN")
             assert result.success is True
             assert result.user == "TESTUSER"
@@ -70,8 +70,8 @@ class TestDesktopBackendEnterTransaction:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         result = await backend.enter_transaction("SE16")
         assert result.success is True
@@ -89,8 +89,8 @@ class TestDesktopBackendEnterTransaction:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         result = await backend.enter_transaction("/n")
         assert result.success is True
@@ -108,8 +108,8 @@ class TestDesktopBackendEnterTransaction:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         result = await backend.enter_transaction("/nSE24")
         assert result.success is True
@@ -128,8 +128,8 @@ class TestDesktopBackendSessionStatus:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         result = await backend.get_session_status()
         assert result.success is True
@@ -150,8 +150,8 @@ class TestDesktopBackendPressKey:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         result = await backend.press_key("Enter")
         assert result.success is True
@@ -171,8 +171,8 @@ class TestDesktopBackendPressKey:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         result = await backend.press_key("F5")
         wnd.send_v_key.assert_called_once_with(5)
@@ -188,8 +188,8 @@ def _make_backend_with_finder(session, finder_patch_target, finder_return):
     async def mock_run(fn):
         return fn()
 
-    backend._com = MagicMock()
-    backend._com.run = mock_run
+    backend.com = MagicMock()
+    backend.com.run = mock_run
     return backend
 
 
@@ -209,8 +209,8 @@ class TestDesktopBackendFillField:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         with patch(
             "sapwebguimcp.backend.desktop.find_field_by_label",
@@ -230,8 +230,8 @@ class TestDesktopBackendFillField:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         with patch(
             "sapwebguimcp.backend.desktop.find_field_by_label",
@@ -255,8 +255,8 @@ class TestDesktopBackendClickButton:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         with patch(
             "sapwebguimcp.backend.desktop.find_button_by_label",
@@ -276,8 +276,8 @@ class TestDesktopBackendClickButton:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         with patch(
             "sapwebguimcp.backend.desktop.find_button_by_label",
@@ -301,8 +301,8 @@ class TestDesktopBackendClickTab:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         with patch(
             "sapwebguimcp.backend.desktop.find_tab_by_label",
@@ -326,8 +326,8 @@ class TestDesktopBackendSetCheckbox:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         with patch(
             "sapwebguimcp.backend.desktop.find_checkbox_by_label",
@@ -351,8 +351,8 @@ class TestDesktopBackendSetRadioButton:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         with patch(
             "sapwebguimcp.backend.desktop.find_radio_by_label",
@@ -384,8 +384,8 @@ class TestDesktopBackendFillForm:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         with patch(
             "sapwebguimcp.backend.desktop.find_field_by_label",
@@ -408,8 +408,8 @@ class TestDesktopBackendFillForm:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         with patch(
             "sapwebguimcp.backend.desktop.find_field_by_label",
@@ -433,8 +433,8 @@ def _make_backend(session):
     async def mock_run(fn):
         return fn()
 
-    backend._com = MagicMock()
-    backend._com.run = mock_run
+    backend.com = MagicMock()
+    backend.com.run = mock_run
     return backend
 
 
@@ -634,8 +634,8 @@ class TestDesktopBackendReadTable:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         result = await backend.read_table(start_row=1, max_rows=2)
 
@@ -684,8 +684,8 @@ class TestDesktopBackendReadTable:
         async def mock_run(fn):
             return fn()
 
-        backend._com = MagicMock()
-        backend._com.run = mock_run
+        backend.com = MagicMock()
+        backend.com.run = mock_run
 
         result = await backend.read_table(start_row=1, max_rows=1)
 

@@ -6,6 +6,8 @@ The tool navigates to SE09, applies filters, clicks Anzeigen (Display),
 and parses the flat text list from the ARIA snapshot.
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
@@ -26,11 +28,12 @@ from sapwebguimcp.lang import (
     SE09_DISPLAY_BUTTON_EN,
 )
 from sapwebguimcp.models.se09_models import TransportListResult, TransportObject, TransportRequest, TransportTask
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 
 if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +45,7 @@ __all__ = ["register_se09_tools"]
 # =============================================================================
 
 
-async def _click_display_button(backend: "SapUiBackend") -> None:
+async def _click_display_button(backend: "WebGuiBackend") -> None:
     """Click the Anzeigen/Display button to execute the search.
 
     Uses JS to click the button by its element ID, which is more reliable
@@ -105,7 +108,7 @@ _JS_CLICK_NEXT_EXPAND = """(skip) => {
 }"""
 
 
-async def _expand_transport_nodes(backend: "SapUiBackend") -> int:
+async def _expand_transport_nodes(backend: "WebGuiBackend") -> int:
     """Expand all transport request/task nodes in the SE09 tree.
 
     Clicks the expand button next to each transport number, one at a time,
@@ -124,7 +127,7 @@ async def _expand_transport_nodes(backend: "SapUiBackend") -> int:
     return len(expanded)
 
 
-async def _extract_tree_text_lines(backend: "SapUiBackend") -> list[str]:
+async def _extract_tree_text_lines(backend: "WebGuiBackend") -> list[str]:
     """Extract all text content from the SE09 tree region via JS.
 
     Reads text from all children of the region element. Because the ABAP LIST
@@ -174,7 +177,9 @@ async def _extract_tree_text_lines(backend: "SapUiBackend") -> list[str]:
     return [item["text"] for item in all_items if item["text"]]
 
 
-async def _set_checkbox_bilingual(backend: "SapUiBackend", de_label: str, en_label: str, checked: bool) -> None:
+async def _set_checkbox_bilingual(
+    backend: "WebGuiBackend | DesktopBackend", de_label: str, en_label: str, checked: bool
+) -> None:
     """Set a checkbox trying DE then EN label, warn if neither found."""
     for label in [de_label, en_label]:
         try:
@@ -186,7 +191,7 @@ async def _set_checkbox_bilingual(backend: "SapUiBackend", de_label: str, en_lab
 
 
 async def _set_se09_selection_screen(
-    backend: "SapUiBackend",
+    backend: "WebGuiBackend | DesktopBackend",
     username: str | None,
     request_type: str,
     status: str,
@@ -257,7 +262,7 @@ def _parse_labels_to_requests(labels: list[str], default_owner: str) -> list[Tra
     return requests
 
 
-async def _expand_request_node_desktop(backend: "SapUiBackend", request_number: str) -> bool:
+async def _expand_request_node_desktop(backend: "WebGuiBackend | DesktopBackend", request_number: str) -> bool:
     """Focus on a transport request label and expand it via Edit > Expand.
 
     Returns True if the expand was performed, False if the label wasn't found.
@@ -267,8 +272,8 @@ async def _expand_request_node_desktop(backend: "SapUiBackend", request_number: 
     if not isinstance(backend, DesktopBackend):
         return False
 
-    session = backend._require_session()  # pylint: disable=protected-access
-    com = backend._com  # pylint: disable=protected-access
+    session = backend.require_session()
+    com = backend.com
 
     def _focus_expand() -> bool:
         try:
@@ -303,15 +308,15 @@ async def _expand_request_node_desktop(backend: "SapUiBackend", request_number: 
     return result
 
 
-async def _collapse_request_node_desktop(backend: "SapUiBackend", request_number: str) -> None:
+async def _collapse_request_node_desktop(backend: "WebGuiBackend | DesktopBackend", request_number: str) -> None:
     """Focus on a transport request label and collapse it via Edit > Compress."""
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
     if not isinstance(backend, DesktopBackend):
         return
 
-    session = backend._require_session()  # pylint: disable=protected-access
-    com = backend._com  # pylint: disable=protected-access
+    session = backend.require_session()
+    com = backend.com
 
     def _focus_collapse() -> None:
         try:
@@ -388,7 +393,7 @@ def _parse_tasks_from_expanded_labels(
 
 
 async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
-    backend: "SapUiBackend",
+    backend: "WebGuiBackend | DesktopBackend",
     username: str | None,
     request_type: str,
     status: str,
@@ -452,7 +457,7 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
 
 
 async def _lookup_transports(  # pylint: disable=too-many-locals
-    backend: "SapUiBackend",
+    backend: "WebGuiBackend | DesktopBackend",
     username: str | None,
     request_type: str,
     status: str,
@@ -462,8 +467,12 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
     now = datetime.now(UTC)
 
     # Desktop backend: use label parsing instead of ARIA snapshot parsing
-    if _is_desktop_backend(backend):
+    if backend.backend_type == "desktop":
         return await _lookup_transports_desktop(backend, username, request_type, status, include_objects)
+
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend as _WG  # pylint: disable=import-outside-toplevel
+
+    assert isinstance(backend, _WG)
 
     # Navigate to SE09 using session-aware helper
     tx_result = await backend.enter_transaction("SE09")

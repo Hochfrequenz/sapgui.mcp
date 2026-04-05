@@ -18,8 +18,8 @@ async def test_open_second_session(backend):
     sid, count, title = await backend.open_new_session("SE00")
     assert sid is not None and sid != "s1", f"Expected new session ID, got '{sid}'"
     assert count >= 2
-    assert backend._registry.has_session("s1")
-    assert backend._registry.has_session(sid)
+    assert backend.registry.has_session("s1")
+    assert backend.registry.has_session(sid)
     # Cleanup
     await backend.close_session(sid)
     await go_home(backend)
@@ -65,8 +65,8 @@ async def test_close_session(backend):
     assert sid2 is not None and sid2 != "s1"
     closed = await backend.close_session(sid2)
     assert closed
-    assert not backend._registry.has_session(sid2)
-    assert backend._registry.has_session("s1")
+    assert not backend.registry.has_session(sid2)
+    assert backend.registry.has_session("s1")
     info = await backend.get_screen_info()
     assert info.success
     await go_home(backend)
@@ -76,17 +76,17 @@ async def test_close_session(backend):
 @pytest.mark.anyio
 async def test_bind_and_check(backend, caplog):
     """Bind s1 to an agent and verify check_binding warns on mismatch."""
-    backend._registry.bind("s1", "agent_a")
+    backend.registry.bind("s1", "agent_a")
     # Matching agent — no warning
     with caplog.at_level(logging.WARNING):
-        backend._registry.check_binding("s1", "agent_a", "test_tool")
+        backend.registry.check_binding("s1", "agent_a", "test_tool")
     assert "Cross-agent" not in caplog.text
     caplog.clear()
     # Mismatching agent — should warn
     with caplog.at_level(logging.WARNING):
-        backend._registry.check_binding("s1", "agent_b", "test_tool")
+        backend.registry.check_binding("s1", "agent_b", "test_tool")
     assert "Cross-agent" in caplog.text
-    backend._registry.release("s1")
+    backend.registry.release("s1")
     await go_home(backend)
 
 

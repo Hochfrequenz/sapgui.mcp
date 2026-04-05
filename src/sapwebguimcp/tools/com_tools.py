@@ -10,7 +10,7 @@ sap_com_evaluate with operations on those elements.
 
 import json
 import logging
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -18,7 +18,6 @@ from pydantic import BaseModel, Field
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.com_results import ComEvaluateResult, ComOperation, ComSnapshotResult
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +207,9 @@ def register_com_tools(mcp: FastMCP) -> None:
             "Returns an indented tree of all elements on the current screen. "
             "Each line shows: type, name, and text value. "
             "Use the element paths as element_id in sap_com_evaluate.\n\n"
+            "**depth** controls how many tree levels to return (default 3). "
+            "Increase depth to see deeper nested elements. "
+            "When truncated, the response shows how many elements were hidden.\n\n"
             "Example output:\n"
             "```\n"
             "GuiMainWindow[wnd[0]]: 'SAP Easy Access'\n"
@@ -218,6 +220,7 @@ def register_com_tools(mcp: FastMCP) -> None:
         ),
     )
     async def sap_com_snapshot(
+        depth: Annotated[int, Field(ge=1)] = 3,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> ComSnapshotResult:
@@ -225,24 +228,34 @@ def register_com_tools(mcp: FastMCP) -> None:
         Get the SAP GUI element tree with element IDs.
 
         Args:
+            depth: Number of tree levels to return (default 3).
+                Increase to see deeper nested elements.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
-            ComSnapshotResult with the element tree as text.
+            ComSnapshotResult with the element tree as text and truncation metadata.
         """
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_com_snapshot")
         except ValueError as e:
             return ComSnapshotResult.failure(str(e))
 
-        if not _is_desktop_backend(backend):
+        if not backend.backend_type == "desktop":
             return ComSnapshotResult.failure(
                 "sap_com_snapshot is only available on the desktop backend. " + "Use browser_snapshot for WebGUI."
             )
 
-        snapshot = await backend.get_snapshot()
-        return ComSnapshotResult(snapshot=str(snapshot))
+        from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+        assert isinstance(backend, DesktopBackend)  # Guaranteed by _is_desktop_backend check above
+        snapshot, max_depth_found, elements_hidden = await backend.get_snapshot_with_depth(depth=depth)
+        return ComSnapshotResult(
+            snapshot=str(snapshot),
+            depth_shown=depth,
+            max_depth_found=max_depth_found or None,
+            elements_hidden=elements_hidden or None,
+        )
 
     @mcp.tool(
         annotations=ToolAnnotations(
@@ -326,7 +339,7 @@ def register_com_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return ComEvaluateResult.failure(f"Session error: {e}")
 
-        if not _is_desktop_backend(backend):
+        if not backend.backend_type == "desktop":
             return ComEvaluateResult.failure(
                 "sap_com_evaluate is only available on the desktop backend. " + "Use browser_evaluate for WebGUI."
             )
@@ -334,8 +347,8 @@ def register_com_tools(mcp: FastMCP) -> None:
         from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
         assert isinstance(backend, DesktopBackend)  # noqa: S101
-        desktop_session = backend._require_session()  # pylint: disable=protected-access
-        com = backend._com  # pylint: disable=protected-access
+        desktop_session = backend.require_session()
+        com = backend.com
 
         def _run_all() -> list[ComOperation]:
             results: list[ComOperation] = []

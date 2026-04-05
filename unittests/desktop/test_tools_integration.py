@@ -14,7 +14,6 @@ import sys
 
 import pytest
 
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
@@ -44,8 +43,8 @@ async def test_screen_info_round_trip(backend):
 @skip_no_sap
 @pytest.mark.anyio
 async def test_backend_detected_as_desktop(backend):
-    """_is_desktop_backend returns True for DesktopBackend."""
-    assert _is_desktop_backend(backend) is True
+    """backend_type property returns 'desktop' for DesktopBackend."""
+    assert backend.backend_type == "desktop"
 
 
 @skip_no_sap

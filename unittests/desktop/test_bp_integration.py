@@ -47,7 +47,7 @@ async def test_bp_com_evaluate_find_by_name_read(backend):
     await backend.enter_transaction("BP")
     await backend.press_key("F5")
 
-    session = backend._require_session()
+    session = backend.require_session()
     op = ComOperationInput(
         element_id="wnd[0]/usr",
         action="get",
@@ -55,7 +55,7 @@ async def test_bp_com_evaluate_find_by_name_read(backend):
         find_by_name=FindByNameRef(name="BUT000-NAME_LAST", type_name="GuiTextField"),
     )
 
-    result = await backend._com.run(lambda: _execute_single_op(session, op))
+    result = await backend.com.run(lambda: _execute_single_op(session, op))
     assert result.success, f"FindByName read failed: {result.error}"
     await go_home(backend)
 
@@ -68,7 +68,7 @@ async def test_bp_com_evaluate_find_by_name_write(backend):
     await backend.enter_transaction("BP")
     await backend.press_key("F5")
 
-    session = backend._require_session()
+    session = backend.require_session()
     op = ComOperationInput(
         element_id="wnd[0]/usr",
         action="set",
@@ -77,7 +77,7 @@ async def test_bp_com_evaluate_find_by_name_write(backend):
         find_by_name=FindByNameRef(name="BUT000-NAME_LAST", type_name="GuiTextField"),
     )
 
-    result = await backend._com.run(lambda: _execute_single_op(session, op))
+    result = await backend.com.run(lambda: _execute_single_op(session, op))
     assert result.success, f"FindByName write failed: {result.error}"
     assert '"TestName"' in (result.result or ""), f"Value not written back: {result.result}"
     await go_home(backend)

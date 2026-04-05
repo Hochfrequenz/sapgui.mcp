@@ -65,7 +65,7 @@ async def test_single_session_rapid_fire(backend):
     """Baseline: 50 rapid COM calls on a single session. Should not crash."""
     stats = await _rapid_fire_reads(backend, "s1", num_calls=50)
     print(f"\nSingle session rapid fire: {stats}")
-    print(f"COM thread interval: {backend._com.current_interval_ms}ms")
+    print(f"COM thread interval: {backend.com.current_interval_ms}ms")
 
     assert stats["errors"] == 0, f"Got {stats['errors']} errors: {stats['error_codes']}"
     assert stats["successes"] == 50
@@ -113,7 +113,7 @@ async def test_multi_session_parallel_stress(backend):
                 total_errors += r["errors"]
 
         print(f"\nTotal: {total_successes}/{len(all_sessions) * calls_per_session} ok, {total_errors} errors")
-        print(f"Final COM interval: {backend._com.current_interval_ms}ms")
+        print(f"Final COM interval: {backend.com.current_interval_ms}ms")
 
         # Success criteria: zero COM disconnections
         # RETRYLATER errors are acceptable (they get retried internally)

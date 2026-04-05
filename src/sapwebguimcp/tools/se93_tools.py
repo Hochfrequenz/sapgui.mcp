@@ -5,16 +5,18 @@ This module provides a tool to look up transaction metadata from SE93,
 returning strongly-typed Pydantic models with transaction details.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.se93_parser import parse_se93_snapshot
 from sapwebguimcp.models import (
@@ -24,8 +26,12 @@ from sapwebguimcp.models import (
     SE93Result,
 )
 from sapwebguimcp.models.se93_models import SE93TransactionType
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_and_display
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,14 +54,14 @@ _TCODE_FIELD_LABELS = [
 ]
 
 
-async def _read_checkbox(backend: SapUiBackend, sap_name: str) -> bool:
+async def _read_checkbox(backend: WebGuiBackend | DesktopBackend, sap_name: str) -> bool:
     """Read a checkbox's selected state by SAP element name. Returns False on error."""
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
     if not isinstance(backend, DesktopBackend):
         return False
-    session = backend._require_session()  # pylint: disable=protected-access
-    com = backend._com  # pylint: disable=protected-access
+    session = backend.require_session()
+    com = backend.com
 
     def _read() -> bool:
         from sapsucker.components.base import GuiVContainer  # pylint: disable=import-outside-toplevel
@@ -73,7 +79,7 @@ async def _read_checkbox(backend: SapUiBackend, sap_name: str) -> bool:
 
 
 async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
-    backend: SapUiBackend, tcode: str
+    backend: WebGuiBackend | DesktopBackend, tcode: str
 ) -> SE93Entry | SE93Error:
     """Desktop-specific SE93 lookup using field reading instead of ARIA parsing."""
     now = datetime.now(UTC)
@@ -143,7 +149,7 @@ async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
     )
 
 
-async def _lookup_tcode_on_initial_screen(backend: SapUiBackend, tcode: str) -> SE93Entry | SE93Error:
+async def _lookup_tcode_on_initial_screen(backend: WebGuiBackend | DesktopBackend, tcode: str) -> SE93Entry | SE93Error:
     """Look up a transaction code assuming we're already on the SE93 initial screen.
 
     The caller handles navigation (``enter_transaction``) and state reset
@@ -168,7 +174,7 @@ async def _lookup_tcode_on_initial_screen(backend: SapUiBackend, tcode: str) -> 
     return parse_se93_snapshot(snapshot, tcode)
 
 
-async def _lookup_batch_webgui(backend: SapUiBackend, tcode_list: list[str]) -> SE93Result:
+async def _lookup_batch_webgui(backend: WebGuiBackend | DesktopBackend, tcode_list: list[str]) -> SE93Result:
     """Run SE93 lookups for a batch of tcodes on the WebGUI backend."""
     entries: list[SE93Entry] = []
     errors: list[SE93Error] = []
@@ -202,7 +208,7 @@ async def _lookup_batch_webgui(backend: SapUiBackend, tcode_list: list[str]) -> 
     return SE93Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
 
 
-async def _lookup_batch_desktop(backend: SapUiBackend, tcode_list: list[str]) -> SE93Result:
+async def _lookup_batch_desktop(backend: WebGuiBackend | DesktopBackend, tcode_list: list[str]) -> SE93Result:
     """Run SE93 lookups for a batch of tcodes on the desktop backend."""
     entries: list[SE93Entry] = []
     errors: list[SE93Error] = []
@@ -286,7 +292,7 @@ def register_se93_tools(mcp: FastMCP) -> None:
             return SE93Result.failure(f"Session error: {e}")
 
         # Desktop backend: use field reading instead of ARIA parsing
-        if _is_desktop_backend(backend):
+        if backend.backend_type == "desktop":
             final_result = await _lookup_batch_desktop(backend, tcode_list)
         else:
             final_result = await _lookup_batch_webgui(backend, tcode_list)

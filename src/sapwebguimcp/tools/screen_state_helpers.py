@@ -21,7 +21,8 @@ from sapwebguimcp.models.screen_state import (
 )
 
 if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ __all__ = ["bilingual_target", "ensure_screen_state"]
 
 
 async def _apply_changes(
-    backend: SapUiBackend,
+    backend: WebGuiBackend | DesktopBackend,
     current: SelectionScreenState,
     target: SelectionScreenState,
     diff: ScreenStateDiff,
@@ -109,7 +110,7 @@ def _verify_state(
 
 
 async def ensure_screen_state(
-    backend: SapUiBackend,
+    backend: WebGuiBackend | DesktopBackend,
     target: SelectionScreenState,
 ) -> ScreenStateDiff:
     """Read current screen state, diff against target, apply changes, verify.

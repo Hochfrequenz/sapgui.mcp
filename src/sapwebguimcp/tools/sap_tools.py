@@ -54,7 +54,6 @@ from sapwebguimcp.models import (
     TransactionResult,
     get_settings,
 )
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.sap_list_connections_impl import ConnectionListResult, sap_list_connections_impl
 from sapwebguimcp.tools.sap_login_impl import sap_login_impl
 from sapwebguimcp.tools.session_tools import (
@@ -179,27 +178,18 @@ async def _get_button_tooltips_desktop(backend: Any) -> list[str]:
 
     if not isinstance(backend, DesktopBackend):
         return []
-    session = backend._require_session()  # pylint: disable=protected-access
+    session = backend.require_session()
 
     def _read_tooltips() -> list[str]:
         wnd = session.find_by_id("wnd[0]")
-        tree = cast(Any, wnd).dump_tree(max_depth=3)
+        tree = cast(Any, wnd).dump_tree()
         tooltips: list[str] = []
         for elem in _flatten(tree):
-            if elem.type_as_number == 40:  # GuiButton
-                try:
-                    btn = session.find_by_id(elem.id)
-                    if btn is None:
-                        continue
-                    raw = btn.com
-                    tooltip = str(getattr(raw, "Tooltip", ""))
-                    if tooltip:
-                        tooltips.append(tooltip)
-                except Exception:  # pylint: disable=broad-exception-caught
-                    logger.debug("tooltip_read_failed", extra={"element_id": elem.id})
+            if elem.type_as_number == 40 and elem.tooltip:  # GuiButton
+                tooltips.append(elem.tooltip)
         return tooltips
 
-    return await backend._com.run(_read_tooltips)  # pylint: disable=protected-access
+    return await backend.com.run(_read_tooltips)
 
 
 def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements,too-many-locals
@@ -387,7 +377,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
                 # Check if a popup appeared after navigation
                 popup = await backend.check_popup()
-                if popup and not _is_desktop_backend(backend):
+                if popup and not backend.backend_type == "desktop":
                     return TransactionResult.failure(
                         f"Popup blocking: {popup.message or 'confirmation required'}",
                         tcode=tcode,
@@ -401,7 +391,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
             # Check if a popup appeared after navigation
             popup = await backend.check_popup()
-            if popup and not _is_desktop_backend(backend):
+            if popup and not backend.backend_type == "desktop":
                 return TransactionResult.failure(
                     f"Popup blocking: {popup.message or 'confirmation required'}",
                     tcode=tcode,
@@ -540,7 +530,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         try:
             # Fast popup check (~5ms) - only blocks if popup exists BEFORE keystroke
-            if not _is_desktop_backend(backend):
+            if not backend.backend_type == "desktop":
                 popup = await backend.check_popup()
                 if popup:
                     logger.debug("Popup already present before keystroke", extra={"key": key})
@@ -557,7 +547,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             await backend.wait(300)
 
             # Check if a popup appeared after the keystroke
-            if not _is_desktop_backend(backend):
+            if not backend.backend_type == "desktop":
                 popup_after = await backend.check_popup()
                 if popup_after:
                     logger.debug("Popup appeared after keystroke", extra={"key": key})
@@ -1065,11 +1055,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return ShortcutsResult.failure(str(e))
 
         try:
-            if _is_desktop_backend(backend):
+            if backend.backend_type == "desktop":
                 # Desktop: read Tooltip property from all buttons via COM
                 titles = await _get_button_tooltips_desktop(backend)
             else:
                 # WebGUI: get all title attributes via JavaScript
+                from sapwebguimcp.backend.webgui.backend import WebGuiBackend  # pylint: disable=import-outside-toplevel
+
+                assert isinstance(backend, WebGuiBackend)
                 titles = await backend.evaluate_javascript("""() => {
                         const elements = document.querySelectorAll('[title]');
                         return Array.from(elements).map(el => el.title).filter(Boolean);
@@ -1204,7 +1197,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         try:
             # Fast popup check (~5ms)
-            if not _is_desktop_backend(backend):
+            if not backend.backend_type == "desktop":
                 popup = await backend.check_popup()
                 if popup:
                     return FillFormResult.failure(
@@ -1282,7 +1275,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         try:
             # Fast popup check (~5ms)
-            if not _is_desktop_backend(backend):
+            if not backend.backend_type == "desktop":
                 popup = await backend.check_popup()
                 if popup:
                     return SetFieldResult.failure(
@@ -1331,7 +1324,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SetFieldResult.failure(str(e), label=label, value=str(checked))
 
         try:
-            if not _is_desktop_backend(backend):
+            if not backend.backend_type == "desktop":
                 popup = await backend.check_popup()
                 if popup:
                     return SetFieldResult.failure(
@@ -1375,7 +1368,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SetFieldResult.failure(str(e), label=label, value="selected")
 
         try:
-            if not _is_desktop_backend(backend):
+            if not backend.backend_type == "desktop":
                 popup = await backend.check_popup()
                 if popup:
                     return SetFieldResult.failure(
