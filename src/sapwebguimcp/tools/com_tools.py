@@ -248,7 +248,7 @@ def register_com_tools(mcp: FastMCP) -> None:
 
         from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
-        assert isinstance(backend, DesktopBackend)  # Guaranteed by _is_desktop_backend check above
+        assert isinstance(backend, DesktopBackend)  # Guaranteed by backend_type check above
         snapshot, max_depth_found, elements_hidden = await backend.get_snapshot_with_depth(depth=depth)
         return ComSnapshotResult(
             snapshot=str(snapshot),

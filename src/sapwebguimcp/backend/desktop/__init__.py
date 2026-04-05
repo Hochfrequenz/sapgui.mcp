@@ -663,8 +663,13 @@ class DesktopBackend:
         logger.debug("discover_buttons", extra={"count": len(items)})
         return [ButtonInfo(**item) for item in items]
 
-    async def get_snapshot(self) -> ComTreeSnapshot:
+    async def get_snapshot(self, depth: int | None = None) -> ComTreeSnapshot:
         """Get a text dump of the SAP GUI element tree.
+
+        Args:
+            depth: If given, truncate the tree to this many levels.
+                   The returned snapshot will include a summary of hidden
+                   elements when truncation occurs.
 
         Returns ComTreeSnapshot — an indented tree of element types, names,
         and text values from dump_tree(). This is NOT an ARIA snapshot.
