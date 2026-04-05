@@ -81,8 +81,9 @@ async def fill_field_with_keyboard(
                 return True
         return False
 
+    # After the desktop guard above, only WebGuiBackend reaches here.
     labels_js = "[" + ",".join(f'"{lbl}"' for lbl in labels) + "]"
-    _eval = backend.evaluate_javascript
+    _eval = getattr(backend, "evaluate_javascript")
     found = await _eval(f"""(() => {{
             const labels = {labels_js};
 
