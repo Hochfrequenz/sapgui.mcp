@@ -343,6 +343,7 @@ def register_se37_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Look up function module metadata from SE37 (Function Builder). "
+            "If sap-adt is available, prefer its get_source tool for reading FM source code. "
             "USE THIS instead of sap_transaction('SE37') - faster and returns structured data. "
             "Returns function module signature including import/export/changing/tables parameters "
             "and exceptions. Supports single FM or list of FMs. "
