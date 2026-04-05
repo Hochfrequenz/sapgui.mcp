@@ -15,6 +15,10 @@ This module contains tools for:
 - sap_get_screen_info: Get technical screen information
 - sap_lookup_fields: Look up known field selectors for a transaction
 - sap_discover_fields: Discover input fields on current screen
+- sap_click_button: Click a button by label text
+- sap_select_tab: Select a tab by label text
+- sap_select_dropdown: Select a dropdown option by label and value
+- sap_screenshot: Take a screenshot of the current SAP screen
 """
 
 import json
@@ -24,10 +28,12 @@ from importlib import resources
 from typing import Any, Optional
 
 from fastmcp import Context, FastMCP
+from fastmcp.utilities.types import Image
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models import (
     CapabilitiesResult,
+    ClickButtonResult,
     ClosePopupResult,
     DiscoveredButtons,
     DiscoveredFields,
@@ -39,6 +45,8 @@ from sapwebguimcp.models import (
     LoginResult,
     ScreenInfo,
     ScreenText,
+    SelectDropdownResult,
+    SelectTabResult,
     SessionBindResult,
     SessionCloseResult,
     SessionListResult,
@@ -1385,6 +1393,179 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Setting radio button")
             return SetFieldResult.failure(f"Error setting radio button: {e}", label=label, value="selected")
+
+    # =========================================================================
+    # Button, Tab, and Dropdown Tools
+    # =========================================================================
+
+    @mcp.tool(
+        annotations={"readOnlyHint": False, "openWorldHint": False},
+        description=(
+            "Click a button on the current SAP screen by its label text.\n\n"
+            "Use sap_discover_buttons first to see available buttons. "
+            "Prefer sap_keyboard with keyboard shortcuts (F-keys, Ctrl+*) when available — "
+            "they are faster and more reliable. Use this tool when no shortcut exists.\n\n"
+            "Args:\n"
+            "- label: Button label text (e.g., 'Execute', 'Save', 'Ausführen')\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session'
+        ),
+    )
+    async def sap_click_button(
+        label: str,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> ClickButtonResult:
+        """Click a button by label text on the current SAP screen."""
+        if not label:
+            return ClickButtonResult.failure("label cannot be empty", label="")
+
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_click_button")
+        except ValueError as e:
+            return ClickButtonResult.failure(str(e), label=label)
+
+        try:
+            if not backend.backend_type == "desktop":
+                popup = await backend.check_popup()
+                if popup:
+                    return ClickButtonResult.failure(
+                        f"Popup blocking: {popup.message or 'confirmation required'}",
+                        label=label,
+                        popup=popup,
+                    )
+            await backend.click_button(label)
+            await backend.wait_for_ready()
+            return ClickButtonResult(label=label)
+        except ValueError as e:
+            return ClickButtonResult.failure(str(e), label=label)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Clicking button")
+            return ClickButtonResult.failure(f"Error clicking button: {e}", label=label)
+
+    @mcp.tool(
+        annotations={"readOnlyHint": False, "openWorldHint": False},
+        description=(
+            "Select a tab on the current SAP screen by its label text.\n\n"
+            "Use sap_get_screen_text to see available tab labels on the current screen.\n\n"
+            "Args:\n"
+            "- label: Tab label text (e.g., 'Address', 'Details', 'Allgemeine Daten')\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session'
+        ),
+    )
+    async def sap_select_tab(
+        label: str,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> SelectTabResult:
+        """Select a tab by label text on the current SAP screen."""
+        if not label:
+            return SelectTabResult.failure("label cannot be empty", label="")
+
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_select_tab")
+        except ValueError as e:
+            return SelectTabResult.failure(str(e), label=label)
+
+        try:
+            if not backend.backend_type == "desktop":
+                popup = await backend.check_popup()
+                if popup:
+                    return SelectTabResult.failure(
+                        f"Popup blocking: {popup.message or 'confirmation required'}",
+                        label=label,
+                        popup=popup,
+                    )
+            await backend.click_tab(label)
+            await backend.wait_for_ready()
+            return SelectTabResult(label=label)
+        except ValueError as e:
+            return SelectTabResult.failure(str(e), label=label)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Selecting tab")
+            return SelectTabResult.failure(f"Error selecting tab: {e}", label=label)
+
+    @mcp.tool(
+        annotations={"readOnlyHint": False, "openWorldHint": False},
+        description=(
+            "Select a value from a dropdown (combobox) field on the current SAP screen.\n\n"
+            "Use sap_get_form_fields(include_dropdown_options=True) first to see available "
+            "dropdown fields and their options.\n\n"
+            "Unlike sap_set_field which auto-detects field type, this tool is specifically "
+            "for dropdown selection and returns available_options on failure.\n\n"
+            "Args:\n"
+            "- label: Dropdown field label text (e.g., 'Country', 'Language', 'Buchungskreis')\n"
+            "- value: Exact option text to select from the dropdown\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session'
+        ),
+    )
+    async def sap_select_dropdown(
+        label: str,
+        value: str,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> SelectDropdownResult:
+        """Select a value from a dropdown field."""
+        if not label:
+            return SelectDropdownResult.failure("label cannot be empty", label="", value=value)
+
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_select_dropdown")
+            if not backend.backend_type == "desktop":
+                popup = await backend.check_popup()
+                if popup:
+                    return SelectDropdownResult.failure(
+                        f"Popup blocking: {popup.message or 'confirmation required'}",
+                        label=label,
+                        value=value,
+                        popup=popup,
+                    )
+            result = await backend.select_dropdown(label, value)
+            if not result.success:
+                return SelectDropdownResult.failure(
+                    result.error_message or "Dropdown selection failed",
+                    label=label,
+                    value=value,
+                    available_options=result.available_options,
+                )
+            await backend.wait_for_ready()
+            return SelectDropdownResult(label=label, value=value)
+        except ValueError as e:
+            return SelectDropdownResult.failure(str(e), label=label, value=value)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Selecting dropdown")
+            return SelectDropdownResult.failure(f"Error selecting dropdown: {e}", label=label, value=value)
+
+    @mcp.tool(
+        annotations={"readOnlyHint": True, "openWorldHint": False},
+        description=(
+            "Take a screenshot of the current SAP screen.\n\n"
+            "Returns a PNG screenshot as an image. Works on both WebGUI and Desktop backends.\n"
+            "⚠️ Screenshots consume significant context tokens. "
+            "Prefer sap_get_screen_text or sap_get_form_fields for reading screen content.\n"
+            "Use screenshots only for visual debugging or when the user explicitly requests one.\n\n"
+            "**Session parameter:**\n"
+            '- session=None (default): Uses primary session ("s1")\n'
+            '- session="s2": Targets specific session'
+        ),
+    )
+    async def sap_screenshot(
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> Image:
+        """Take a screenshot of the current SAP screen."""
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_screenshot")
+        except ValueError as e:
+            raise ValueError(f"Cannot take screenshot: {e}") from e
+
+        screenshot_bytes = await backend.take_screenshot()
+        return Image(data=screenshot_bytes, format="png")
 
     # =========================================================================
     # Session Management Tools
