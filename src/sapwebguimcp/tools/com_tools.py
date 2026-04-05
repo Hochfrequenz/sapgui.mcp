@@ -10,7 +10,7 @@ sap_com_evaluate with operations on those elements.
 
 import json
 import logging
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -221,7 +221,7 @@ def register_com_tools(mcp: FastMCP) -> None:
         ),
     )
     async def sap_com_snapshot(
-        depth: int = 3,
+        depth: Annotated[int, Field(ge=1)] = 3,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> ComSnapshotResult:
@@ -247,14 +247,15 @@ def register_com_tools(mcp: FastMCP) -> None:
                 "sap_com_snapshot is only available on the desktop backend. " + "Use browser_snapshot for WebGUI."
             )
 
-        snapshot = await backend.get_snapshot(depth=depth)
-        max_depth_found = getattr(snapshot, "_max_depth_found", None)
-        elements_hidden = getattr(snapshot, "_elements_hidden", None)
+        from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+        assert isinstance(backend, DesktopBackend)  # Guaranteed by _is_desktop_backend check above
+        snapshot, max_depth_found, elements_hidden = await backend.get_snapshot_with_depth(depth=depth)
         return ComSnapshotResult(
             snapshot=str(snapshot),
             depth_shown=depth,
-            max_depth_found=max_depth_found if max_depth_found else None,
-            elements_hidden=elements_hidden if elements_hidden else None,
+            max_depth_found=max_depth_found or None,
+            elements_hidden=elements_hidden or None,
         )
 
     @mcp.tool(

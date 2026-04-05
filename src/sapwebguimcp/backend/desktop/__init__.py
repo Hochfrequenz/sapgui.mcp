@@ -665,17 +665,24 @@ class DesktopBackend:
         logger.debug("discover_buttons", extra={"count": len(items)})
         return [ButtonInfo(**item) for item in items]
 
-    async def get_snapshot(self, depth: int | None = None) -> ComTreeSnapshot:
+    async def get_snapshot(self) -> ComTreeSnapshot:
         """Get a text dump of the SAP GUI element tree.
-
-        Args:
-            depth: If given, truncate the tree to this many levels.
-                   The returned snapshot will include a summary of hidden
-                   elements when truncation occurs.
 
         Returns ComTreeSnapshot — an indented tree of element types, names,
         and text values from dump_tree(). This is NOT an ARIA snapshot.
         Used for LLM context, not structured parsing.
+        """
+        snapshot, _, _ = await self.get_snapshot_with_depth()
+        return snapshot
+
+    async def get_snapshot_with_depth(self, depth: int | None = None) -> tuple[ComTreeSnapshot, int, int]:
+        """Get a text dump with optional truncation and metadata.
+
+        Args:
+            depth: If given, truncate the tree to this many levels.
+
+        Returns:
+            (snapshot, max_depth_found, elements_hidden)
         """
         from sapwebguimcp.backend.desktop._truncation import (  # pylint: disable=import-outside-toplevel
             truncate_tree,
@@ -710,11 +717,7 @@ class DesktopBackend:
             return "\n".join(lines), max_depth_found, elements_hidden
 
         text, max_depth_found, elements_hidden = await self._com.run(_dump)
-        snapshot = ComTreeSnapshot(text)
-        # Attach truncation metadata for callers that need it
-        snapshot._max_depth_found = max_depth_found  # type: ignore[attr-defined]
-        snapshot._elements_hidden = elements_hidden  # type: ignore[attr-defined]
-        return snapshot
+        return ComTreeSnapshot(text), max_depth_found, elements_hidden
 
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the SAP GUI window."""
