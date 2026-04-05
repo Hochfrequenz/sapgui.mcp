@@ -47,7 +47,7 @@ class TestDesktopBackendLogin:
             return fn()
 
         with (
-            patch("sapwebguimcp.backend.desktop._login_mod.login", return_value=session),
+            patch("sapwebguimcp.backend.desktop._sapsucker_login", return_value=session),
             patch("sapwebguimcp.backend.desktop.get_sap_config", return_value=mock_sap_config),
         ):
             backend = DesktopBackend(com_thread=MagicMock())
