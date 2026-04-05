@@ -621,7 +621,8 @@ def register_se09_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Look up transport requests from SE09 (Transport Organizer). "
-            "USE THIS instead of sap_transaction('SE09') - faster and returns structured data. "
+            "If sap-adt is available, prefer its get_transport_requests for listing transports. "
+            "USE THIS for transport release on ECC (ADT release silently fails on ECC) or when ADT is unavailable. "
             "Returns transport requests with owner, description, status, type, and target system. "
             "By default shows only modifiable requests for the current user. "
             "Supports filtering by username, request type (workbench/customizing), and status "
