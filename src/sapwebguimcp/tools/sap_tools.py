@@ -1516,10 +1516,6 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_select_dropdown")
-        except ValueError as e:
-            return SelectDropdownResult.failure(str(e), label=label, value=value)
-
-        try:
             if not backend.backend_type == "desktop":
                 popup = await backend.check_popup()
                 if popup:
