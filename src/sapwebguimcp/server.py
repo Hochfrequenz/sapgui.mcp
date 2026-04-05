@@ -172,14 +172,16 @@ _CROSS_SERVER_GUIDANCE = """
 WHEN TO USE THIS SERVER vs sap-adt MCP:
 If sap-adt (SAP ADT MCP) tools are available, prefer them for:
 - Reading/writing ABAP source code (get_source, patch_source, set_source_from_file)
-- Creating ABAP objects (create_object: PROG, CLAS, INTF, FUGR, MSAG)
+- Creating ABAP objects (create_object: PROG, CLAS, INTF, FUGR, MSAG, DDLS, TABL, DTEL, DOMA)
 - Transport management (get_transport_requests, create_transport, release_transport on S4)
 - Activation, syntax checks, ATC checks, unit tests
+- Code completion, pretty printing, refactoring
+- Debugging (breakpoints, stepping, variable inspection)
 - DDIC lookups (get_object_info, get_ddic_info)
 
 Use THIS server (sap-desktop/sap-webgui) for:
 - Customizing transactions (SPRO, SM30, SM34)
-- Transport release on ECC (SE09 — ADT release endpoint does not work on ECC)
+- Transport release on ECC (SE09 — ADT release may silently fail on ECC)
 - Complex GUI interactions (popups, drag-and-drop, tree navigation)
 - Transactions without ADT endpoints (SE21 on ECC, SM37, SLG1, ST22, SQVI)
 - Visual verification of screen state
