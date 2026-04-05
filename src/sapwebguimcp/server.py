@@ -168,6 +168,30 @@ ESCAPE HATCHES (when SAP-specific tools are insufficient):
 - browser_navigate: Navigate to a URL (e.g., SAP Help Portal)
 """
 
+_CROSS_SERVER_GUIDANCE = """
+WHEN TO USE THIS SERVER vs sap-adt MCP:
+If sap-adt (SAP ADT MCP) tools are available, prefer them for:
+- Reading/writing ABAP source code (get_source, patch_source, set_source_from_file)
+- Creating ABAP objects (create_object: PROG, CLAS, INTF, FUGR, MSAG, DDLS, TABL, DTEL, DOMA)
+- Transport management (get_transport_requests, create_transport, release_transport on S4)
+- Activation, syntax checks, ATC checks, unit tests
+- Code completion, pretty printing, refactoring
+- Debugging (breakpoints, stepping, variable inspection)
+- DDIC lookups (get_object_info, get_ddic_info)
+
+Use THIS server (sap-desktop/sap-webgui) for:
+- Customizing transactions (SPRO, SM30, SM34)
+- Transport release on ECC (SE09 — ADT release may silently fail on ECC)
+- Complex GUI interactions (popups, drag-and-drop, tree navigation)
+- Transactions without ADT endpoints (SE21 on ECC, SM37, SLG1, ST22, SQVI)
+- Visual verification of screen state
+- abapGit operations via SAP GUI (SE80 > abapGit)
+
+TRANSACTION SELECTION:
+- Prefer dedicated transactions (SE38, SE24, SE37, SE21) over SE80
+- SE80 has a complex split-screen layout that tools struggle to parse
+"""
+
 _DESKTOP_INSTRUCTIONS = """
 SAP GUI Desktop automation server. Controls SAP GUI for Windows via COM Scripting (ActiveX/OLE).
 
@@ -213,6 +237,7 @@ ESCAPE HATCHES (when SAP-specific tools are insufficient):
 
 def _build_instructions() -> str:
     base = _DESKTOP_INSTRUCTIONS if _settings.backend_type == "desktop" else _WEBGUI_INSTRUCTIONS
+    base = _CROSS_SERVER_GUIDANCE + base
     try:
         sap_cfg = get_sap_config()
         keys = list(sap_cfg.systems.keys())
