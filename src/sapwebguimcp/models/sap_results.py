@@ -92,6 +92,9 @@ class SessionInfo(BaseModel):
     title: str | None = Field(default=None, description="Current screen title")
     is_primary: bool = Field(default=False, description="True if this is the primary session ('s1')")
     agent_id: str | None = Field(default=None, description="Agent bound to this session, if any")
+    system_name: str | None = Field(default=None, description="SAP system ID (e.g., 'S4U', 'HFQ')")
+    client: str | None = Field(default=None, description="SAP client number (e.g., '100')")
+    user: str | None = Field(default=None, description="Logged-in SAP user")
 
 
 class SessionListResult(ToolResult):
@@ -191,6 +194,9 @@ class ScreenInfo(ToolResult):
     url: str = Field(description="Current URL")
     program: str | None = Field(default=None, description="ABAP program name")
     dynpro: str | None = Field(default=None, description="Screen number")
+    system_name: str | None = Field(default=None, description="SAP system ID (e.g., 'S4U', 'HFQ')")
+    client: str | None = Field(default=None, description="SAP client number (e.g., '100')")
+    user: str | None = Field(default=None, description="Logged-in SAP user")
 
 
 class ScreenText(ToolResult):

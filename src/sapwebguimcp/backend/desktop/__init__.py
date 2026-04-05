@@ -399,9 +399,13 @@ class DesktopBackend:
                 ses = self.registry.get_session(sid)
 
                 def _info(s: Any = ses) -> dict[str, str]:
+                    info = s.com.Info
                     return {
-                        "tcode": str(s.com.Info.Transaction),
+                        "tcode": str(info.Transaction),
                         "title": str(s.com.FindById("wnd[0]").Text),
+                        "system_name": str(info.SystemName),
+                        "client": str(info.Client),
+                        "user": str(info.User),
                     }
 
                 info = await self.com.run(_info)
@@ -413,7 +417,7 @@ class DesktopBackend:
                         **info,
                     )
                 )
-            except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+            except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning("Skipping session %s in listing (COM error)", sid)
         return result
 
@@ -519,6 +523,9 @@ class DesktopBackend:
                 "title": str(cast(Any, wnd).text),
                 "program": str(info.program),
                 "dynpro": str(info.screen_number),
+                "system_name": str(info.system_name),
+                "client": str(info.client),
+                "user": str(info.user),
             }
 
         data = await self.com.run(_read)
