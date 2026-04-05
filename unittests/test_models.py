@@ -236,6 +236,25 @@ class TestModelSerialization:
         assert data["title"] == "Data Browser"
         assert data["program"] == "SAPLSETB"
         assert data["dynpro"] == "0100"
+        # New fields default to None when not provided
+        assert data["system_name"] is None
+        assert data["client"] is None
+        assert data["user"] is None
+
+    def test_screen_info_with_system_info(self) -> None:
+        """Test ScreenInfo with system_name, client, user (#593)."""
+        result = ScreenInfo(
+            transaction="SE38",
+            title="ABAP Editor",
+            url="desktop://sap",
+            system_name="S4U",
+            client="100",
+            user="KLEINK",
+        )
+        data = result.model_dump()
+        assert data["system_name"] == "S4U"
+        assert data["client"] == "100"
+        assert data["user"] == "KLEINK"
 
     def test_field_info_json(self) -> None:
         """Test FieldInfo serializes correctly."""
@@ -452,6 +471,27 @@ class TestSessionModels:
         assert info.session_id == "s1"
         assert info.tcode == "VA01"
         assert info.is_primary is True
+        # New fields default to None
+        assert info.system_name is None
+        assert info.client is None
+        assert info.user is None
+
+    def test_session_info_with_system_info(self) -> None:
+        """Test SessionInfo with system_name, client, user (#593)."""
+        from sapwebguimcp.models import SessionInfo
+
+        info = SessionInfo(
+            session_id="s1",
+            tcode="SE38",
+            title="ABAP Editor",
+            is_primary=True,
+            system_name="S4U",
+            client="100",
+            user="KLEINK",
+        )
+        assert info.system_name == "S4U"
+        assert info.client == "100"
+        assert info.user == "KLEINK"
 
     def test_session_list_result(self) -> None:
         """Test SessionListResult with multiple sessions."""
