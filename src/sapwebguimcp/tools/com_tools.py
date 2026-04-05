@@ -208,6 +208,9 @@ def register_com_tools(mcp: FastMCP) -> None:
             "Returns an indented tree of all elements on the current screen. "
             "Each line shows: type, name, and text value. "
             "Use the element paths as element_id in sap_com_evaluate.\n\n"
+            "**depth** controls how many tree levels to return (default 3). "
+            "Increase depth to see deeper nested elements. "
+            "When truncated, the response shows how many elements were hidden.\n\n"
             "Example output:\n"
             "```\n"
             "GuiMainWindow[wnd[0]]: 'SAP Easy Access'\n"
@@ -218,6 +221,7 @@ def register_com_tools(mcp: FastMCP) -> None:
         ),
     )
     async def sap_com_snapshot(
+        depth: int = 3,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> ComSnapshotResult:
@@ -225,11 +229,13 @@ def register_com_tools(mcp: FastMCP) -> None:
         Get the SAP GUI element tree with element IDs.
 
         Args:
+            depth: Number of tree levels to return (default 3).
+                Increase to see deeper nested elements.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
-            ComSnapshotResult with the element tree as text.
+            ComSnapshotResult with the element tree as text and truncation metadata.
         """
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_com_snapshot")
@@ -241,8 +247,15 @@ def register_com_tools(mcp: FastMCP) -> None:
                 "sap_com_snapshot is only available on the desktop backend. " + "Use browser_snapshot for WebGUI."
             )
 
-        snapshot = await backend.get_snapshot()
-        return ComSnapshotResult(snapshot=str(snapshot))
+        snapshot = await backend.get_snapshot(depth=depth)
+        max_depth_found = getattr(snapshot, "_max_depth_found", None)
+        elements_hidden = getattr(snapshot, "_elements_hidden", None)
+        return ComSnapshotResult(
+            snapshot=str(snapshot),
+            depth_shown=depth,
+            max_depth_found=max_depth_found if max_depth_found else None,
+            elements_hidden=elements_hidden if elements_hidden else None,
+        )
 
     @mcp.tool(
         annotations=ToolAnnotations(

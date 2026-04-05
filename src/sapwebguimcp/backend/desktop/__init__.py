@@ -656,12 +656,7 @@ class DesktopBackend:
                     continue
                 label = elem.text.strip()
                 if not label:
-                    # Toolbar buttons often have empty text; read tooltip from COM
-                    try:
-                        btn_com = session.find_by_id(elem.id)
-                        label = str(cast(Any, btn_com).tooltip).strip()
-                    except Exception:
-                        pass
+                    label = elem.tooltip.strip()
                 if label:
                     buttons.append({"label": label, "id": elem.id, "selector": elem.id})
             return buttons
@@ -670,27 +665,56 @@ class DesktopBackend:
         logger.debug("discover_buttons", extra={"count": len(items)})
         return [ButtonInfo(**item) for item in items]
 
-    async def get_snapshot(self) -> ComTreeSnapshot:
+    async def get_snapshot(self, depth: int | None = None) -> ComTreeSnapshot:
         """Get a text dump of the SAP GUI element tree.
+
+        Args:
+            depth: If given, truncate the tree to this many levels.
+                   The returned snapshot will include a summary of hidden
+                   elements when truncation occurs.
 
         Returns ComTreeSnapshot — an indented tree of element types, names,
         and text values from dump_tree(). This is NOT an ARIA snapshot.
         Used for LLM context, not structured parsing.
         """
+        from sapwebguimcp.backend.desktop._truncation import (  # pylint: disable=import-outside-toplevel
+            truncate_tree,
+        )
+
         session = self._require_session()
 
-        def _dump() -> str:
+        def _dump() -> tuple[str, int, int]:
             wnd_id = _active_window_id(session)
             wnd = session.find_by_id(wnd_id)
             tree = cast(Any, wnd).dump_tree()
+
+            max_depth_found = 0
+            elements_hidden = 0
+
+            if depth is not None:
+                tree, max_depth_found, elements_hidden = truncate_tree(tree, depth)
+
             lines = []
             for elem in _flatten(tree):
                 indent = "  " * elem.id.count("/")
                 lines.append(f"{indent}{elem.type}[{elem.name}]: {elem.text!r}")
-            return "\n".join(lines)
 
-        text = await self._com.run(_dump)
-        return ComTreeSnapshot(text)
+            if elements_hidden > 0:
+                lines.append(
+                    f"\n[Truncated at depth {depth}: "
+                    f"{elements_hidden} elements hidden. "
+                    f"Full tree depth is {max_depth_found}. "
+                    f"Use depth={max_depth_found} to see everything.]"
+                )
+
+            return "\n".join(lines), max_depth_found, elements_hidden
+
+        text, max_depth_found, elements_hidden = await self._com.run(_dump)
+        snapshot = ComTreeSnapshot(text)
+        # Attach truncation metadata for callers that need it
+        snapshot._max_depth_found = max_depth_found  # type: ignore[attr-defined]
+        snapshot._elements_hidden = elements_hidden  # type: ignore[attr-defined]
+        return snapshot
 
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the SAP GUI window."""
@@ -1365,7 +1389,7 @@ class DesktopBackend:
                 return None
             title = str(cast(Any, popup).text)
             # Collect elements from the popup
-            tree = cast(Any, popup).dump_tree(max_depth=2)
+            tree = cast(Any, popup).dump_tree()
             flat = _flatten(tree)
             buttons: list[dict[str, str | None]] = []
             for elem in flat:
@@ -1373,12 +1397,7 @@ class DesktopBackend:
                     continue
                 label = elem.text.strip()
                 if not label:
-                    # Toolbar buttons often have empty text; read tooltip from COM
-                    try:
-                        btn_com = session.find_by_id(elem.id)
-                        label = str(cast(Any, btn_com).tooltip).strip()
-                    except Exception:
-                        pass
+                    label = elem.tooltip.strip()
                 if label:
                     buttons.append({"label": label, "id": elem.id})
             # Collect text content (labels and text fields)
@@ -1438,9 +1457,11 @@ class DesktopBackend:
 
             if button_label:
                 # Find button by label in popup
-                tree = cast(Any, popup).dump_tree(max_depth=2)
+                tree = cast(Any, popup).dump_tree()
                 for elem in _flatten(tree):
-                    if elem.type_as_number == 40 and button_label.lower() in elem.text.lower():
+                    if elem.type_as_number == 40 and (
+                        button_label.lower() in elem.text.lower() or button_label.lower() in elem.tooltip.lower()
+                    ):
                         btn = session.find_by_id(elem.id)
                         cast(Any, btn).press()
                         return {"dismissed": True, "button_clicked": elem.text.strip()}

@@ -187,7 +187,7 @@ async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-re
     def _select_method_row() -> str | None:
         """Find the method row in the table control and select it."""
         wnd = session.find_by_id("wnd[0]")
-        tree = cast(Any, wnd).dump_tree(max_depth=8)
+        tree = cast(Any, wnd).dump_tree()
         flat = _flatten(tree)
 
         for elem in flat:

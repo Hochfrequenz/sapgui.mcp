@@ -26,3 +26,6 @@ class ComSnapshotResult(ToolResult):
     snapshot: str | None = Field(
         default=None, description="Indented element tree. Each line: Type[path]: 'text'. Use path as element_id."
     )
+    depth_shown: int | None = Field(default=None, description="Tree depth shown in this response")
+    max_depth_found: int | None = Field(default=None, description="Maximum depth in the full tree")
+    elements_hidden: int | None = Field(default=None, description="Elements beyond depth cutoff not shown")
