@@ -383,6 +383,29 @@ class ClosePopupResult(ToolResult):
     status_bar_message: str = Field(default="", description="Status bar text after closing popup")
 
 
+class ClickButtonResult(ToolResult):
+    """Result from sap_click_button tool."""
+
+    label: str = Field(description="Button label that was clicked")
+
+
+class SelectTabResult(ToolResult):
+    """Result from sap_select_tab tool."""
+
+    label: str = Field(description="Tab label that was selected")
+
+
+class SelectDropdownResult(ToolResult):
+    """Result from sap_select_dropdown tool."""
+
+    label: str = Field(description="Dropdown field label")
+    value: str = Field(description="Option value that was selected")
+    available_options: list[str] | None = Field(
+        default=None,
+        description="Available options if selection failed (e.g., value not found)",
+    )
+
+
 class DropdownFillResult(BaseModel):
     """Internal result from filling a dropdown field."""
 

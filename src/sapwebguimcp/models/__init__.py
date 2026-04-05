@@ -45,6 +45,7 @@ from sapwebguimcp.models.quick_report_models import (
 from sapwebguimcp.models.sap_results import (
     ButtonInfo,
     CapabilitiesResult,
+    ClickButtonResult,
     ClosePopupResult,
     DiscoveredButtons,
     DiscoveredFields,
@@ -63,6 +64,8 @@ from sapwebguimcp.models.sap_results import (
     SapFieldType,
     ScreenInfo,
     ScreenText,
+    SelectDropdownResult,
+    SelectTabResult,
     SessionBindResult,
     SessionCloseResult,
     SessionInfo,
@@ -189,6 +192,7 @@ __all__ = [
     # SAP results
     "ButtonInfo",
     "CapabilitiesResult",
+    "ClickButtonResult",
     "DiscoveredButtons",
     "DiscoveredFields",
     "ClosePopupResult",
@@ -207,6 +211,8 @@ __all__ = [
     "SapFieldType",
     "ScreenInfo",
     "ScreenText",
+    "SelectDropdownResult",
+    "SelectTabResult",
     "SessionBindResult",
     "SessionCloseResult",
     "SessionInfo",
