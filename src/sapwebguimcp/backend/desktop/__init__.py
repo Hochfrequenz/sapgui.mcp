@@ -16,7 +16,7 @@ import time
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
 
-import sapsucker.login as _login_mod
+from sapsucker.login import discover_saplogon_path, login as _sapsucker_login
 
 try:
     from sapsucker.components.grid import GuiGridView
@@ -241,12 +241,13 @@ class DesktopBackend:
 
         try:
             session = await self.com.run(
-                lambda: _login_mod.login(
+                lambda: _sapsucker_login(
                     connection_name=connection_name,
                     client=client,
                     user=username,
                     password=password,
                     language=language,
+                    saplogon_exe_path=discover_saplogon_path(),
                 )
             )
             self.registry.register(session)  # → "s1"
