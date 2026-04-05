@@ -73,8 +73,17 @@ async def fill_field_with_keyboard(
     Returns:
         True if the field was found and filled, False otherwise.
     """
+    # Desktop backend uses COM — no JavaScript available.
+    # Fall back to focus_and_type which uses COM field resolution.
+    if backend.backend_type == "desktop":
+        for lbl in labels:
+            if await backend.focus_and_type(lbl, value):
+                return True
+        return False
+
+    # After the desktop guard above, only WebGuiBackend reaches here.
     labels_js = "[" + ",".join(f'"{lbl}"' for lbl in labels) + "]"
-    _eval = backend.evaluate_javascript  # type: ignore[union-attr]
+    _eval = getattr(backend, "evaluate_javascript")
     found = await _eval(f"""(() => {{
             const labels = {labels_js};
 
