@@ -93,15 +93,14 @@ class TestQuickReportPipeline:
     async def test_happy_path_table(self) -> None:
         """TX → fill → F8 → TABLE with rows."""
         backend = _make_backend()
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                result = await _execute_quick_report(
-                    backend,
-                    tcode="VA05",
-                    fields={"Auftraggeber": "*"},
-                    max_rows=30,
-                )
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            result = await _execute_quick_report(
+                backend,
+                tcode="VA05",
+                fields={"Auftraggeber": "*"},
+                max_rows=30,
+            )
         assert result.success is True
         assert result.screen_type == ScreenClassification.TABLE
         assert result.table is not None
@@ -110,24 +109,22 @@ class TestQuickReportPipeline:
     async def test_desktop_backend_rejected(self) -> None:
         """Desktop backend → immediate failure."""
         backend = _make_backend()
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=True):
-            result = await _execute_quick_report(backend, tcode="VA05")
+        backend.backend_type = "desktop"
+        result = await _execute_quick_report(backend, tcode="VA05")
         assert result.success is False
         assert "WebGUI" in result.error
 
     async def test_max_rows_zero_rejected(self) -> None:
         """max_rows=0 → immediate failure."""
         backend = _make_backend()
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            result = await _execute_quick_report(backend, tcode="VA05", max_rows=0)
+        result = await _execute_quick_report(backend, tcode="VA05", max_rows=0)
         assert result.success is False
         assert "max_rows" in result.error
 
     async def test_tx_not_found(self) -> None:
         """Transaction not found → failure."""
         backend = _make_backend(tx_success=False, tx_error="Transaction ZZZZZ does not exist")
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            result = await _execute_quick_report(backend, tcode="ZZZZZ")
+        result = await _execute_quick_report(backend, tcode="ZZZZZ")
         assert result.success is False
         assert "ZZZZZ" in result.error or "does not exist" in result.error
 
@@ -138,10 +135,9 @@ class TestQuickReportPipeline:
             status_message="Keine Daten gefunden",
             snapshot="- document 'SAP'",
         )
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                result = await _execute_quick_report(backend, tcode="ME2M")
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            result = await _execute_quick_report(backend, tcode="ME2M")
         assert result.success is True
         assert result.screen_type == ScreenClassification.EMPTY
         assert result.table is None
@@ -153,10 +149,9 @@ class TestQuickReportPipeline:
             status_message="Werk XXXX existiert nicht",
             snapshot="- document 'SAP'",
         )
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                result = await _execute_quick_report(backend, tcode="ME2M")
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            result = await _execute_quick_report(backend, tcode="ME2M")
         assert result.success is True
         assert result.screen_type == ScreenClassification.ERROR
         assert result.status_bar_type == "E"
@@ -169,10 +164,9 @@ class TestQuickReportPipeline:
             snapshot="- document 'SAP'\n  - dialog 'Variantenauswahl'",
             screen_title="Variantenauswahl",
         )
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                result = await _execute_quick_report(backend, tcode="ZCUSTOM01")
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            result = await _execute_quick_report(backend, tcode="ZCUSTOM01")
         assert result.success is True
         assert result.screen_type == ScreenClassification.UNKNOWN
         assert result.screen_text is not None
@@ -181,14 +175,13 @@ class TestQuickReportPipeline:
     async def test_field_not_found_continues(self) -> None:
         """Field not found → warning, but F8 still executed."""
         backend = _make_backend()
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff(warnings=["Label 'FakeField' not found on screen"])
-                result = await _execute_quick_report(
-                    backend,
-                    tcode="VA05",
-                    fields={"FakeField": "x"},
-                )
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff(warnings=["Label 'FakeField' not found on screen"])
+            result = await _execute_quick_report(
+                backend,
+                tcode="VA05",
+                fields={"FakeField": "x"},
+            )
         assert result.success is True
         assert "FakeField" in result.warnings[0]
         # F8 was executed (via click_button or press_key)
@@ -222,11 +215,8 @@ class TestQuickReportPipeline:
             call_log.append("ensure_screen_state")
             return ScreenStateDiff()
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch(
-                "sapwebguimcp.tools.quick_report_tools.ensure_screen_state", side_effect=track_ensure_screen_state
-            ):
-                await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", side_effect=track_ensure_screen_state):
+            await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
 
         assert call_log[0] == "enter_transaction"
         # F8 executed via click_button (primary) or press_key (fallback)
@@ -261,10 +251,9 @@ class TestQuickReportPipeline:
         backend.click_button = track_click_button
         backend.press_key = track_press_key
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
 
         # wait_for_sap_ready must appear AFTER enter_transaction and BEFORE F8 execution
         idx_sap_ready = call_log.index("wait_for_sap_ready")
@@ -305,10 +294,9 @@ class TestF8Retry:
         backend.get_snapshot = evolving_snapshot
         backend.get_status_bar = evolving_status_bar
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                result = await _execute_quick_report(backend, tcode="SM37")
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            result = await _execute_quick_report(backend, tcode="SM37")
 
         assert result.screen_type == ScreenClassification.TABLE
         assert f8_count["n"] == 3  # needed 3 attempts
@@ -327,10 +315,9 @@ class TestF8Retry:
 
         backend.click_button = counting_click_button
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                result = await _execute_quick_report(backend, tcode="SM37")
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            result = await _execute_quick_report(backend, tcode="SM37")
 
         assert result.screen_type == ScreenClassification.ERROR
         assert f8_count["n"] == 1  # no retry on real error
@@ -375,14 +362,13 @@ class TestPostF8Keys:
 
         backend.get_status_bar = evolving_status_bar
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                result = await _execute_quick_report(
-                    backend,
-                    tcode="FBL1N",
-                    post_f8_keys=["Enter"],
-                )
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            result = await _execute_quick_report(
+                backend,
+                tcode="FBL1N",
+                post_f8_keys=["Enter"],
+            )
 
         assert result.success is True
         assert result.screen_type == ScreenClassification.TABLE
@@ -391,14 +377,13 @@ class TestPostF8Keys:
         """Only first 3 keys are executed, 4th produces warning."""
         backend = _make_backend()
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                result = await _execute_quick_report(
-                    backend,
-                    tcode="VA05",
-                    post_f8_keys=["Enter", "Enter", "Enter", "Enter"],
-                )
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            result = await _execute_quick_report(
+                backend,
+                tcode="VA05",
+                post_f8_keys=["Enter", "Enter", "Enter", "Enter"],
+            )
 
         assert any("max" in w.lower() or "3" in w for w in result.warnings)
 
@@ -406,14 +391,13 @@ class TestPostF8Keys:
         """post_f8_keys=[] behaves like None."""
         backend = _make_backend()
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                result = await _execute_quick_report(
-                    backend,
-                    tcode="VA05",
-                    post_f8_keys=[],
-                )
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            result = await _execute_quick_report(
+                backend,
+                tcode="VA05",
+                post_f8_keys=[],
+            )
 
         assert result.success is True
         assert result.screen_type == ScreenClassification.TABLE
@@ -455,14 +439,13 @@ class TestPostF8Keys:
         backend.get_snapshot = evolving_snapshot
         backend.get_status_bar = evolving_status_bar
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                result = await _execute_quick_report(
-                    backend,
-                    tcode="VA05",
-                    post_f8_keys=["Enter", "F5"],
-                )
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            result = await _execute_quick_report(
+                backend,
+                tcode="VA05",
+                post_f8_keys=["Enter", "F5"],
+            )
 
         assert result.screen_type == ScreenClassification.TABLE
         # F8 was executed (via click_button or press_key)
@@ -480,16 +463,13 @@ class TestPostF8Keys:
             output_path = f.name
 
         try:
-            with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-                with patch(
-                    "sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock
-                ) as mock_ess:
-                    mock_ess.return_value = ScreenStateDiff()
-                    result = await _execute_quick_report(
-                        backend,
-                        tcode="VA05",
-                        output_file=output_path,
-                    )
+            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+                mock_ess.return_value = ScreenStateDiff()
+                result = await _execute_quick_report(
+                    backend,
+                    tcode="VA05",
+                    output_file=output_path,
+                )
 
             assert result.success is True
             content = Path(output_path).read_text(encoding="utf-8")
@@ -503,8 +483,7 @@ class TestPostF8Keys:
         backend = _make_backend()
         backend.enter_transaction = AsyncMock(side_effect=RuntimeError("Browser disconnected"))
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            result = await _execute_quick_report(backend, tcode="VA05")
+        result = await _execute_quick_report(backend, tcode="VA05")
 
         assert result.success is False
         assert "Pipeline error" in result.error
@@ -515,10 +494,9 @@ class TestPostF8Keys:
         backend = _make_backend()
         backend.read_table = AsyncMock(side_effect=RuntimeError("Parse error"))
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
-                mock_ess.return_value = ScreenStateDiff()
-                result = await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
+        with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            mock_ess.return_value = ScreenStateDiff()
+            result = await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
 
         assert result.success is True
         assert result.screen_type == ScreenClassification.TABLE

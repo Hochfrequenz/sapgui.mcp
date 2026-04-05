@@ -5,17 +5,18 @@ This module provides a tool to look up function module metadata from SE37,
 returning strongly-typed Pydantic models with parameter and exception details.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.se37_parser import SE37TabSnapshots, parse_se37_snapshot
 from sapwebguimcp.models import (
@@ -25,9 +26,13 @@ from sapwebguimcp.models import (
     SE37Result,
 )
 from sapwebguimcp.models.se37_models import SE37Exception, SE37Parameter, SE37ParameterCategory, SE37TypingMethod
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_and_display
 from sapwebguimcp.tools.table_helpers import read_table_control
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +55,7 @@ _FM_FIELD_LABELS = [
 ]
 
 
-async def _click_tab_bilingual(backend: SapUiBackend, de_label: str, en_label: str) -> None:
+async def _click_tab_bilingual(backend: WebGuiBackend | DesktopBackend, de_label: str, en_label: str) -> None:
     """Click a tab trying DE then EN label."""
     for label in [de_label, en_label]:
         try:
@@ -95,8 +100,8 @@ def _parse_se37_params(rows: list[dict[str, str]], category: SE37ParameterCatego
     return params
 
 
-async def _lookup_fm_desktop(  # pylint: disable=protected-access,too-many-locals
-    backend: SapUiBackend, fm_name: str
+async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
+    backend: WebGuiBackend | DesktopBackend, fm_name: str
 ) -> SE37Entry | SE37Error:
     """Desktop-specific SE37 lookup using tab navigation and table control reading."""
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
@@ -138,8 +143,8 @@ async def _lookup_fm_desktop(  # pylint: disable=protected-access,too-many-local
     if not isinstance(backend, DesktopBackend):
         return SE37Error(function_module=fm_name, error="Requires DesktopBackend", retrieved_at=now)
 
-    session = backend._require_session()
-    com = backend._com
+    session = backend.require_session()
+    com = backend.com
 
     # Read Import tab: try reading first (default tab), click only if table is empty.
     # SAP lazily instantiates tab subscreen controls — the table control may not
@@ -192,7 +197,7 @@ async def _lookup_fm_desktop(  # pylint: disable=protected-access,too-many-local
     )
 
 
-async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | None:
+async def _capture_tab_snapshot(backend: WebGuiBackend | DesktopBackend, tab_name: str) -> str | None:
     """Click a tab and capture its snapshot. Returns snapshot or None."""
     # Try German and English tab names
     tab_names = {
@@ -215,7 +220,7 @@ async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | N
     return None
 
 
-async def _lookup_fm_on_initial_screen(backend: SapUiBackend, fm_name: str) -> SE37Entry | SE37Error:
+async def _lookup_fm_on_initial_screen(backend: WebGuiBackend | DesktopBackend, fm_name: str) -> SE37Entry | SE37Error:
     """Look up a function module assuming we're already on the SE37 initial screen.
 
     The caller handles navigation (``enter_transaction``) and state reset
@@ -259,7 +264,7 @@ async def _lookup_fm_on_initial_screen(backend: SapUiBackend, fm_name: str) -> S
     )
 
 
-async def _lookup_batch_se37_webgui(backend: SapUiBackend, fm_list: list[str]) -> SE37Result:
+async def _lookup_batch_se37_webgui(backend: WebGuiBackend | DesktopBackend, fm_list: list[str]) -> SE37Result:
     """Run SE37 lookups for a batch of function modules on the WebGUI backend."""
     entries: list[SE37Entry] = []
     errors: list[SE37Error] = []
@@ -291,7 +296,7 @@ async def _lookup_batch_se37_webgui(backend: SapUiBackend, fm_list: list[str]) -
     return SE37Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
 
 
-async def _lookup_batch_se37_desktop(backend: SapUiBackend, fm_list: list[str]) -> SE37Result:
+async def _lookup_batch_se37_desktop(backend: WebGuiBackend | DesktopBackend, fm_list: list[str]) -> SE37Result:
     """Run SE37 lookups for a batch of function modules on the desktop backend."""
     entries: list[SE37Entry] = []
     errors: list[SE37Error] = []
@@ -377,7 +382,7 @@ def register_se37_tools(mcp: FastMCP) -> None:
             return SE37Result.failure(f"Session error: {e}")
 
         # Route to desktop or WebGUI batch lookup
-        if _is_desktop_backend(backend):
+        if backend.backend_type == "desktop":
             final_result = await _lookup_batch_se37_desktop(backend, fm_list)
         else:
             final_result = await _lookup_batch_se37_webgui(backend, fm_list)

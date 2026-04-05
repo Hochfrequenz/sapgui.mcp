@@ -5,16 +5,18 @@ This module provides a tool to look up class/interface metadata from SE24,
 returning strongly-typed Pydantic models with method and attribute details.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.protocol import SapUiBackend
 from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.se24_parser import SE24TabSnapshots, parse_se24_snapshot
 from sapwebguimcp.models import (
@@ -24,9 +26,13 @@ from sapwebguimcp.models import (
     SE24Result,
 )
 from sapwebguimcp.models.se24_models import SE24Attribute, SE24Method, SE24ObjectType, SE24Visibility
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.tools.field_helpers import fill_and_display
 from sapwebguimcp.tools.table_helpers import read_table_control_all_rows
+
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +108,7 @@ def _parse_attributes(rows: list[dict[str, str]]) -> list[SE24Attribute]:
     return attributes
 
 
-async def _click_tab_bilingual(backend: SapUiBackend, de_label: str, en_label: str) -> None:
+async def _click_tab_bilingual(backend: WebGuiBackend | DesktopBackend, de_label: str, en_label: str) -> None:
     """Click a tab trying DE then EN label."""
     for label in [de_label, en_label]:
         try:
@@ -113,8 +119,8 @@ async def _click_tab_bilingual(backend: SapUiBackend, de_label: str, en_label: s
             continue
 
 
-async def _lookup_class_desktop(  # pylint: disable=too-many-locals,protected-access,too-many-statements
-    backend: SapUiBackend, class_name: str
+async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-statements
+    backend: WebGuiBackend | DesktopBackend, class_name: str
 ) -> SE24Entry | SE24Error:
     """Desktop-specific SE24 lookup using tab navigation and table control reading."""
     from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
@@ -160,8 +166,8 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,protected-ac
     if not isinstance(backend, DesktopBackend):
         return SE24Error(class_name=class_name, error="Requires DesktopBackend", retrieved_at=now)
 
-    session = backend._require_session()
-    com = backend._com
+    session = backend.require_session()
+    com = backend.com
 
     def _read_tc() -> list[dict[str, str]]:
         return read_table_control_all_rows(session, _flatten)
@@ -203,7 +209,7 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,protected-ac
     )
 
 
-async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | None:
+async def _capture_tab_snapshot(backend: WebGuiBackend | DesktopBackend, tab_name: str) -> str | None:
     """Click a tab and capture its snapshot. Returns snapshot or None.
 
     After clicking, verifies the tab is actually ``[selected]`` in the ARIA
@@ -242,7 +248,7 @@ async def _capture_tab_snapshot(backend: SapUiBackend, tab_name: str) -> str | N
     return None
 
 
-async def _fill_and_display(backend: SapUiBackend, class_name: str) -> SE24Error | None:
+async def _fill_and_display(backend: WebGuiBackend | DesktopBackend, class_name: str) -> SE24Error | None:
     """Fill the class field and press F7 (Display). Returns error or None.
 
     Delegates to the shared ``fill_and_display`` helper which uses real
@@ -258,7 +264,9 @@ async def _fill_and_display(backend: SapUiBackend, class_name: str) -> SE24Error
     return None
 
 
-async def _lookup_class_on_initial_screen(backend: SapUiBackend, class_name: str) -> SE24Entry | SE24Error:
+async def _lookup_class_on_initial_screen(
+    backend: WebGuiBackend | DesktopBackend, class_name: str
+) -> SE24Entry | SE24Error:
     """Look up a class assuming we're already on the SE24 initial screen.
 
     After a successful lookup, the browser will be on the class detail screen.
@@ -294,7 +302,7 @@ async def _lookup_class_on_initial_screen(backend: SapUiBackend, class_name: str
     )
 
 
-async def _lookup_batch_se24_webgui(backend: SapUiBackend, class_list: list[str]) -> SE24Result:
+async def _lookup_batch_se24_webgui(backend: WebGuiBackend | DesktopBackend, class_list: list[str]) -> SE24Result:
     """Run SE24 lookups for a batch of classes on the WebGUI backend."""
     entries: list[SE24Entry] = []
     errors: list[SE24Error] = []
@@ -332,7 +340,7 @@ async def _lookup_batch_se24_webgui(backend: SapUiBackend, class_list: list[str]
     return SE24Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
 
 
-async def _lookup_batch_se24_desktop(backend: SapUiBackend, class_list: list[str]) -> SE24Result:
+async def _lookup_batch_se24_desktop(backend: WebGuiBackend | DesktopBackend, class_list: list[str]) -> SE24Result:
     """Run SE24 lookups for a batch of classes on the desktop backend."""
     entries: list[SE24Entry] = []
     errors: list[SE24Error] = []
@@ -419,7 +427,7 @@ def register_se24_tools(mcp: FastMCP) -> None:
             return SE24Result.failure(f"Session error: {e}")
 
         # Route to desktop or WebGUI batch lookup
-        if _is_desktop_backend(backend):
+        if backend.backend_type == "desktop":
             final_result = await _lookup_batch_se24_desktop(backend, class_list)
         else:
             final_result = await _lookup_batch_se24_webgui(backend, class_list)

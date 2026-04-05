@@ -18,7 +18,6 @@ from pydantic import BaseModel, Field
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.com_results import ComEvaluateResult, ComOperation, ComSnapshotResult
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 
 logger = logging.getLogger(__name__)
 
@@ -242,7 +241,7 @@ def register_com_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return ComSnapshotResult.failure(str(e))
 
-        if not _is_desktop_backend(backend):
+        if not backend.backend_type == "desktop":
             return ComSnapshotResult.failure(
                 "sap_com_snapshot is only available on the desktop backend. " + "Use browser_snapshot for WebGUI."
             )
@@ -340,7 +339,7 @@ def register_com_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return ComEvaluateResult.failure(f"Session error: {e}")
 
-        if not _is_desktop_backend(backend):
+        if not backend.backend_type == "desktop":
             return ComEvaluateResult.failure(
                 "sap_com_evaluate is only available on the desktop backend. " + "Use browser_evaluate for WebGUI."
             )
@@ -348,8 +347,8 @@ def register_com_tools(mcp: FastMCP) -> None:
         from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
         assert isinstance(backend, DesktopBackend)  # noqa: S101
-        desktop_session = backend._require_session()  # pylint: disable=protected-access
-        com = backend._com  # pylint: disable=protected-access
+        desktop_session = backend.require_session()
+        com = backend.com
 
         def _run_all() -> list[ComOperation]:
             results: list[ComOperation] = []

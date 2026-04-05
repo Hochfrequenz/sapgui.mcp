@@ -2,7 +2,7 @@
 """WebGUI backend implementation using Playwright/CDP.
 
 Each ``WebGuiBackend`` instance wraps a single Playwright ``Page``
-(one SAP session) and implements the ``SapUiBackend`` protocol.
+(one SAP session).
 """
 
 from __future__ import annotations
@@ -17,8 +17,7 @@ from urllib.parse import urlparse
 
 from playwright.async_api import Error as PlaywrightError
 
-from sapwebguimcp.backend.protocol import CheckActivateResult
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.types import AriaSnapshot, CheckActivateResult
 from sapwebguimcp.backend.webgui.browser import get_browser_manager
 from sapwebguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils
 from sapwebguimcp.middleware.logging import set_sap_identity
@@ -107,7 +106,7 @@ def _parse_toolbar_note(snapshot_text: str) -> tuple[bool, str]:
 
 
 class WebGuiBackend:  # pylint: disable=too-many-public-methods
-    """SapUiBackend implementation using Playwright browser automation.
+    """WebGUI backend using Playwright browser automation.
 
     Each instance wraps a single Playwright ``Page`` (one SAP session).
     """

@@ -1,6 +1,12 @@
 """Type definitions for the backend abstraction layer."""
 
+from __future__ import annotations
+
 from typing import Union
+
+from pydantic import Field
+
+from sapwebguimcp.models.base import ToolResult
 
 
 class AriaSnapshot(str):
@@ -28,3 +34,16 @@ WebGUI returns AriaSnapshot, desktop returns ComTreeSnapshot. Tools that
 pass snapshots to the LLM should accept ScreenSnapshot. Parsers that need
 a specific format should accept the concrete type (AriaSnapshot).
 """
+
+
+class CheckActivateResult(ToolResult):
+    """Result of a check-and-activate editor operation."""
+
+    messages: list[str] = Field(
+        default_factory=list,
+        description="Check and activate status messages",
+    )
+    activated: bool = Field(
+        default=False,
+        description="Whether the object was successfully activated",
+    )

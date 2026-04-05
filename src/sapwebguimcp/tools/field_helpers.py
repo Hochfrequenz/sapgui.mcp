@@ -10,11 +10,17 @@ target field, then ``type_text`` (real Playwright keyboard events) to
 type the value — ensuring SAP registers the change.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
-from sapwebguimcp.backend.protocol import SapUiBackend
+if TYPE_CHECKING:
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +35,7 @@ _NOT_FOUND_MSGS = frozenset(
 _TOGGLE_LABELS = ("Anzeigen <-> Ändern", "Display <-> Change")
 
 
-async def toggle_to_change_mode(backend: SapUiBackend) -> str | None:
+async def toggle_to_change_mode(backend: WebGuiBackend | DesktopBackend) -> str | None:
     """Click Display<->Change toggle button. Retries once after 1s wait.
 
     The toggle button may not be rendered immediately after F7 navigation,
@@ -53,7 +59,7 @@ async def toggle_to_change_mode(backend: SapUiBackend) -> str | None:
 
 
 async def fill_field_with_keyboard(
-    backend: SapUiBackend,
+    backend: WebGuiBackend | DesktopBackend,
     labels: Sequence[str],
     value: str,
 ) -> bool:
@@ -68,7 +74,8 @@ async def fill_field_with_keyboard(
         True if the field was found and filled, False otherwise.
     """
     labels_js = "[" + ",".join(f'"{lbl}"' for lbl in labels) + "]"
-    found = await backend.evaluate_javascript(f"""(() => {{
+    _eval = backend.evaluate_javascript  # type: ignore[union-attr]
+    found = await _eval(f"""(() => {{
             const labels = {labels_js};
 
             function isUsableInput(input) {{
@@ -120,7 +127,7 @@ async def fill_field_with_keyboard(
 
 
 async def fill_and_display(
-    backend: SapUiBackend,
+    backend: WebGuiBackend | DesktopBackend,
     labels: Sequence[str],
     name: str,
     *,

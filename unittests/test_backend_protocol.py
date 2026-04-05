@@ -1,29 +1,6 @@
-"""Tests for the SapUiBackend protocol hierarchy."""
+"""Tests for CheckActivateResult and backend structure."""
 
-from sapwebguimcp.backend.protocol import (
-    CheckActivateResult,
-    SapEditor,
-    SapNavigation,
-    SapPopup,
-    SapUiBackend,
-    SapUiInspection,
-    SapUiPrimitives,
-)
-
-
-def test_all_sub_protocols_are_runtime_checkable() -> None:
-    """All five sub-protocols must be @runtime_checkable."""
-    for proto in (
-        SapUiPrimitives,
-        SapUiInspection,
-        SapNavigation,
-        SapEditor,
-        SapPopup,
-        SapUiBackend,
-    ):
-        assert hasattr(proto, "__protocol_attrs__") or hasattr(
-            proto, "__abstractmethods__"
-        ), f"{proto.__name__} is not a Protocol"
+from sapwebguimcp.backend.types import CheckActivateResult
 
 
 def test_check_activate_result_is_tool_result() -> None:
@@ -52,13 +29,9 @@ def test_check_activate_result_with_values() -> None:
     assert len(result.messages) == 2
 
 
-def test_webgui_backend_implements_protocol() -> None:
-    """WebGuiBackend must satisfy the SapUiBackend protocol.
-
-    Note: issubclass() cannot be used because SapUiBackend has non-method
-    members (backend_type).  We verify key protocol attributes instead.
-    """
+def test_webgui_backend_has_expected_methods() -> None:
+    """WebGuiBackend must have the core backend methods."""
     from sapwebguimcp.backend.webgui.backend import WebGuiBackend
 
     for attr in ("backend_type", "login", "enter_transaction", "get_screen_info", "press_key"):
-        assert hasattr(WebGuiBackend, attr), f"WebGuiBackend missing protocol member: {attr}"
+        assert hasattr(WebGuiBackend, attr), f"WebGuiBackend missing: {attr}"

@@ -5,6 +5,8 @@ This module provides a tool to search and read SAP application logs via SLG1,
 returning strongly-typed Pydantic models with log entries.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from datetime import UTC, datetime
@@ -28,11 +30,12 @@ from sapwebguimcp.models.slg1_models import (
     SLG1LogEntry,
     SLG1LogListResult,
 )
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
 from sapwebguimcp.utils import SapLanguage, format_sap_date
 
 if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
+    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +51,7 @@ def _safe_int(value: str | None) -> int:
 
 
 async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
-    backend: "SapUiBackend",
+    backend: "WebGuiBackend | DesktopBackend",
     object_name: str,
     subobject: str | None = None,
     external_id: str | None = None,
@@ -166,7 +169,7 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
 
 
 async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
-    backend: "SapUiBackend",
+    backend: "WebGuiBackend | DesktopBackend",
     object_name: str,
     subobject: str | None = None,
     external_id: str | None = None,
@@ -177,7 +180,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
     now = datetime.now(UTC)
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
-    if _is_desktop_backend(backend):
+    if backend.backend_type == "desktop":
         return await _slg1_lookup_desktop(backend, object_name, subobject, external_id, from_date, to_date)
 
     sap_cfg = get_sap_config()

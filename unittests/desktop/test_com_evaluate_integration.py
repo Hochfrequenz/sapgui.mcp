@@ -16,13 +16,13 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 @pytest.mark.anyio
 async def test_com_get_window_title(backend):
     """get action reads the main window title."""
-    session = backend._require_session()
+    session = backend.require_session()
 
     def _run():
         op = ComOperationInput(element_id="wnd[0]", action="get", property_or_method="Text")
         return _execute_single_op(session, op)
 
-    result = await backend._com.run(_run)
+    result = await backend.com.run(_run)
     assert result.success, f"Failed: {result.error}"
     assert result.result is not None
     title = json.loads(result.result)
@@ -34,13 +34,13 @@ async def test_com_get_window_title(backend):
 @pytest.mark.anyio
 async def test_com_get_status_bar_text(backend):
     """get action reads status bar text."""
-    session = backend._require_session()
+    session = backend.require_session()
 
     def _run():
         op = ComOperationInput(element_id="wnd[0]/sbar", action="get", property_or_method="Text")
         return _execute_single_op(session, op)
 
-    result = await backend._com.run(_run)
+    result = await backend.com.run(_run)
     assert result.success, f"Failed: {result.error}"
     # Status bar text may be empty, but the property should be readable
     assert result.result is not None
@@ -50,7 +50,7 @@ async def test_com_get_status_bar_text(backend):
 @pytest.mark.anyio
 async def test_com_set_okcode_field(backend):
     """set action writes to the OkCode field."""
-    session = backend._require_session()
+    session = backend.require_session()
 
     def _run():
         op = ComOperationInput(
@@ -61,7 +61,7 @@ async def test_com_set_okcode_field(backend):
         )
         return _execute_single_op(session, op)
 
-    result = await backend._com.run(_run)
+    result = await backend.com.run(_run)
     assert result.success, f"Failed: {result.error}"
     assert json.loads(result.result) == "SE16"
 
@@ -75,7 +75,7 @@ async def test_com_set_okcode_field(backend):
         )
         return _execute_single_op(session, op)
 
-    await backend._com.run(_clear)
+    await backend.com.run(_clear)
 
 
 @skip_no_sap
@@ -86,7 +86,7 @@ async def test_com_call_sendvkey(backend):
     await backend.enter_transaction("SE16N")
     await backend.wait_for_ready()
 
-    session = backend._require_session()
+    session = backend.require_session()
 
     def _run():
         op = ComOperationInput(
@@ -97,7 +97,7 @@ async def test_com_call_sendvkey(backend):
         )
         return _execute_single_op(session, op)
 
-    result = await backend._com.run(_run)
+    result = await backend.com.run(_run)
     assert result.success, f"Failed: {result.error}"
     await go_home(backend)
 
@@ -106,7 +106,7 @@ async def test_com_call_sendvkey(backend):
 @pytest.mark.anyio
 async def test_com_element_not_found(backend):
     """get on nonexistent element returns failure."""
-    session = backend._require_session()
+    session = backend.require_session()
 
     def _run():
         op = ComOperationInput(
@@ -116,7 +116,7 @@ async def test_com_element_not_found(backend):
         )
         return _execute_single_op(session, op)
 
-    result = await backend._com.run(_run)
+    result = await backend.com.run(_run)
     assert not result.success
     assert result.error is not None
     assert "not found" in result.error.lower() or "element" in result.error.lower()
@@ -129,7 +129,7 @@ async def test_com_batch_operations(backend):
     await backend.enter_transaction("SE93")
     await backend.wait_for_ready()
 
-    session = backend._require_session()
+    session = backend.require_session()
 
     def _run():
         ops = [
@@ -141,7 +141,7 @@ async def test_com_batch_operations(backend):
             results.append(_execute_single_op(session, op))
         return results
 
-    results = await backend._com.run(_run)
+    results = await backend.com.run(_run)
     assert len(results) == 2
     assert results[0].success
     assert results[1].success
@@ -155,13 +155,13 @@ async def test_com_batch_operations(backend):
 @pytest.mark.anyio
 async def test_com_model_roundtrip(backend):
     """ComEvaluateResult must JSON-serialize (roundtrip)."""
-    session = backend._require_session()
+    session = backend.require_session()
 
     def _run():
         op = ComOperationInput(element_id="wnd[0]", action="get", property_or_method="Text")
         return _execute_single_op(session, op)
 
-    op_result = await backend._com.run(_run)
+    op_result = await backend.com.run(_run)
     eval_result = ComEvaluateResult(operations=[op_result])
 
     json_str = eval_result.model_dump_json()
@@ -198,11 +198,11 @@ async def test_com_snapshot_element_ids_usable(backend):
     assert "sbar" in snapshot
 
     # Use the ID to read the status bar text
-    session = backend._require_session()
+    session = backend.require_session()
 
     def _run():
         op = ComOperationInput(element_id="wnd[0]/sbar", action="get", property_or_method="Text")
         return _execute_single_op(session, op)
 
-    result = await backend._com.run(_run)
+    result = await backend.com.run(_run)
     assert result.success, f"Failed to read status bar: {result.error}"
