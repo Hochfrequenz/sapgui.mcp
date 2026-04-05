@@ -574,6 +574,7 @@ def register_st22_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Look up ABAP short dumps (runtime errors) from ST22. "
+            "If sap-adt is available, prefer its list_short_dumps/get_short_dump_details tools. "
             "USE THIS instead of sap_transaction('ST22') - faster and returns structured data. "
             "Two-step workflow: call once without dump_index to list dumps, "
             "then call again with dump_index=N to read a specific dump's detail. "

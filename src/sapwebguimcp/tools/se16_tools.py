@@ -940,7 +940,7 @@ def register_se16_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Query SAP table data via SE16N (Data Browser). "
-            "If sap-adt is available, prefer its run_query tool for simple queries — it returns structured data without GUI navigation. "
+            "If sap-adt is available, prefer its run_query tool for simple queries. "
             "USE THIS for complex queries with dynamic filtering or when ADT is unavailable.\n\n"
             "**Performance:** ~7 rows/second due to pagination.\n"
             "- 100 rows: ~14 seconds\n"

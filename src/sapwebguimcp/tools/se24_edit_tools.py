@@ -347,7 +347,8 @@ def register_se24_edit_tools(mcp: FastMCP) -> None:
     @mcp.tool(
         description=(
             "Edit an existing class method in SE24 (Class Builder). "
-            "If sap-adt is available, prefer its patch_source or set_source_from_file tools — they're faster and don't need GUI navigation.\n\n"
+            "If sap-adt is available, prefer its patch_source or "
+            "set_source_from_file tools — faster, no GUI needed.\n\n"
             "Replaces the method's source code, runs syntax check (Ctrl+F2), "
             "and activates (Ctrl+F3). Auto-reverts if check or activation fails.\n\n"
             "**Important:** Only for EXISTING classes and methods. To create new ones, use abapGit.\n\n"

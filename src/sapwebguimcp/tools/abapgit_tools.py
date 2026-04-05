@@ -1012,6 +1012,7 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Read ABAP report source code from SE38. "
+            "If sap-adt is available, prefer its get_source tool. "
             "Navigates to SE38, enters the program name, and displays the source code. "
             "Useful for verifying abapGit pull operations."
         ),
