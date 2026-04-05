@@ -9,7 +9,10 @@ import pytest
 
 from unittests.desktop.conftest import go_home, skip_no_sap
 
-pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
+pytestmark = [
+    pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only"),
+    skip_no_sap,
+]
 
 
 # ============================================================================
@@ -17,7 +20,6 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is 
 # ============================================================================
 
 
-@skip_no_sap
 @pytest.mark.anyio
 async def test_click_button_on_se38(backend) -> None:
     """click_button clicks 'Anzeigen'/'Display' on SE38 initial screen."""
@@ -35,7 +37,6 @@ async def test_click_button_on_se38(backend) -> None:
     await go_home(backend)
 
 
-@skip_no_sap
 @pytest.mark.anyio
 async def test_click_button_nonexistent(backend) -> None:
     """click_button raises ValueError for non-existent button."""
@@ -50,7 +51,6 @@ async def test_click_button_nonexistent(backend) -> None:
 # ============================================================================
 
 
-@skip_no_sap
 @pytest.mark.anyio
 async def test_click_tab_nonexistent(backend) -> None:
     """click_tab raises ValueError for non-existent tab."""
@@ -65,7 +65,6 @@ async def test_click_tab_nonexistent(backend) -> None:
 # ============================================================================
 
 
-@skip_no_sap
 @pytest.mark.anyio
 async def test_select_dropdown_nonexistent_field(backend) -> None:
     """select_dropdown returns failure for non-existent field."""
@@ -82,7 +81,6 @@ async def test_select_dropdown_nonexistent_field(backend) -> None:
 # ============================================================================
 
 
-@skip_no_sap
 @pytest.mark.anyio
 async def test_take_screenshot_returns_bytes(backend) -> None:
     """take_screenshot returns non-empty PNG bytes."""
@@ -93,7 +91,6 @@ async def test_take_screenshot_returns_bytes(backend) -> None:
     assert screenshot[:4] == b"\x89PNG", f"Not a PNG: {screenshot[:8]!r}"
 
 
-@skip_no_sap
 @pytest.mark.anyio
 async def test_take_screenshot_after_navigation(backend) -> None:
     """take_screenshot works after navigating to a transaction."""

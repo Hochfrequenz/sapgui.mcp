@@ -12,7 +12,6 @@ from mcp import ClientSession
 from sapwebguimcp.models import (
     ClickButtonResult,
     LoginResult,
-    ScreenText,
     SelectDropdownResult,
     SelectTabResult,
     TransactionResult,
