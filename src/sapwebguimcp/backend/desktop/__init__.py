@@ -417,7 +417,7 @@ class DesktopBackend:
                         **info,
                     )
                 )
-            except (ValueError, Exception):  # pylint: disable=broad-exception-caught
+            except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning("Skipping session %s in listing (COM error)", sid)
         return result
 
