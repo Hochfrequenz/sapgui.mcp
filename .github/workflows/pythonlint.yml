@@ -17,6 +17,14 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: 3.14
+          # Cache pip's HTTP downloads. tox creates a fresh venv per run
+          # but its inner ``pip install`` reuses ``~/.cache/pip``, so caching
+          # here also speeds up the tox env build (see #629 for the incident
+          # where a single virtualenv download stalled CI for 13 minutes).
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            pyproject.toml
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
