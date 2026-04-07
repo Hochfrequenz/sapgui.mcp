@@ -404,3 +404,117 @@ class TestDumpFlatTree:
         flat = _dump_flat_tree(session, wnd_id="wnd[1]")
         assert len(flat) == 1
         assert flat[0].name == "POPUPLBL"
+
+
+class TestFillFormDumpTreeCount:
+    """Regression for #627: fill_form must call dump_tree at most once per call.
+
+    The bug was that desktop.fill_form looped over fields and each call to
+    find_field_by_label internally re-dumped the tree (up to 2x via Strategies
+    2 and 3). For ~7 BP fields that was ~14 dumps in one synchronous COM
+    closure, blowing past the MCP client timeout. The fix hoists dump_tree
+    out of the loop. This test asserts the hoist stays hoisted.
+    """
+
+    def test_fill_form_dumps_tree_once_for_many_fields(self):
+        # Build a tree with 5 labels that all match Strategy 2 (label text)
+        labels_and_fields = [
+            ("Vorname", "FIRSTNAME"),
+            ("Nachname", "LASTNAME"),
+            ("Land", "COUNTRY"),
+            ("Strasse", "STREET"),
+            ("Ort", "CITY"),
+        ]
+        tree_elems = []
+        find_by_id_extras = {}
+        for label_text, name in labels_and_fields:
+            tree_elems.append(
+                _make_elem(
+                    type_as_number=30,
+                    name=name,
+                    text=label_text,
+                    elem_id=f"wnd[0]/usr/lbl{name}",
+                )
+            )
+            field_mock = MagicMock()
+            find_by_id_extras[f"wnd[0]/usr/txt{name}"] = field_mock
+
+        session = _make_session_with_tree(tree_elems, find_by_id_extras=find_by_id_extras)
+        usr = session.find_by_id("wnd[0]/usr")
+        # Reset the call count after construction-time access
+        usr.dump_tree.reset_mock()
+
+        # Call find_field_by_label five times the way fill_form does it:
+        # one shared flat_tree, reused across iterations.
+        flat_tree = _dump_flat_tree(session)
+        for label_text, _ in labels_and_fields:
+            result = find_field_by_label(session, label_text, flat_tree)
+            assert result is not None, f"Did not find {label_text}"
+
+        assert usr.dump_tree.call_count == 1, (
+            f"Expected dump_tree to be called exactly once when fill_form-style "
+            f"hoisting is used; got {usr.dump_tree.call_count} calls. This is the "
+            f"#627 regression: per-field dump_tree calls cause MCP client timeouts."
+        )
+
+    def test_desktop_fill_form_dumps_tree_once_for_many_fields(self):
+        """Production-layer regression: DesktopBackend.fill_form must call
+        dump_tree at most once per call. Complements the helper-layer test
+        above by exercising the real caller in src/.../desktop/__init__.py.
+        """
+        import asyncio
+
+        from sapwebguimcp.backend.desktop import DesktopBackend
+
+        labels_and_fields = [
+            ("Vorname", "FIRSTNAME"),
+            ("Nachname", "LASTNAME"),
+            ("Land", "COUNTRY"),
+            ("Strasse", "STREET"),
+            ("Ort", "CITY"),
+        ]
+        tree_elems = []
+        find_by_id_extras = {}
+        for label_text, name in labels_and_fields:
+            tree_elems.append(
+                _make_elem(
+                    type_as_number=30,
+                    name=name,
+                    text=label_text,
+                    elem_id=f"wnd[0]/usr/lbl{name}",
+                )
+            )
+            field_mock = MagicMock()
+            # _set_field_value writes to .text — make the mock accept it
+            field_mock.text = ""
+            find_by_id_extras[f"wnd[0]/usr/txt{name}"] = field_mock
+
+        session = _make_session_with_tree(tree_elems, find_by_id_extras=find_by_id_extras)
+        usr = session.find_by_id("wnd[0]/usr")
+        usr.dump_tree.reset_mock()
+
+        # Stub Com.run so it just executes the closure synchronously in this thread.
+        com = MagicMock()
+
+        async def fake_run(callable_):
+            return callable_()
+
+        com.run = fake_run
+
+        backend = DesktopBackend.__new__(DesktopBackend)  # bypass __init__
+        backend.com = com
+        backend._session = session  # noqa: SLF001 — direct assignment for test
+        backend.require_session = lambda: session
+
+        payload = {label: "value" for label, _ in labels_and_fields}
+        result = asyncio.run(backend.fill_form(payload))
+
+        assert usr.dump_tree.call_count == 1, (
+            f"DesktopBackend.fill_form called dump_tree {usr.dump_tree.call_count} "
+            f"times for {len(payload)} fields — should be exactly 1. This is the "
+            f"#627 regression at the production-caller layer."
+        )
+        assert len(result.filled) == len(payload), (
+            f"Expected all {len(payload)} fields filled, got {result.filled}; "
+            f"not_found={result.not_found}, errors={result.errors}"
+        )
