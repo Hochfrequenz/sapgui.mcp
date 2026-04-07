@@ -389,7 +389,7 @@ For each line below, change `find_field_by_label(session, "...")` to `find_field
 | 113 | `test_finds_field_via_label_text` | `find_field_by_label(session, "Material")` | `[label_elem]` |
 | 128 | `test_case_insensitive_label_match` | `find_field_by_label(session, "company code")` | `[label_elem]` |
 | 141 | `test_finds_via_find_by_name` | `find_field_by_label(session, "SOME_FIELD")` | `[]` |
-| 275 | `test_composite_full_label_resolves_to_first_field` | `find_field_by_label(session, "Straße/Hausnummer")` | `[label, street, house]` |
+| 275 | `test_full_composite_label_resolves_to_first_field` | `find_field_by_label(session, "Straße/Hausnummer")` | `[label, street, house]` |
 | 306 | `test_composite_part_resolves_to_correct_field` | `find_field_by_label(session, "Hausnummer")` | `[label, street, house]` |
 | 330 | `test_non_composite_readonly_label` | `find_field_by_label(session, "Bemerkungen")` | `[label, field]` |
 | 346 | `test_no_following_inputs_returns_none` | `find_field_by_label(session, "Hinweis")` | `[label]` |
@@ -686,17 +686,99 @@ class TestFillFormDumpTreeCount:
         )
 ```
 
-- [ ] **Step 3: Run the test**
+- [ ] **Step 3: Run the helper-layer test**
+
+```bash
+python -m pytest unittests/desktop/test_element_finder.py::TestFillFormDumpTreeCount::test_fill_form_dumps_tree_once_for_many_fields -v
+```
+
+Expected: passes. (First green-bar moment — proves 5 lookups against a shared `flat_tree` produce exactly 1 `dump_tree` call.)
+
+If the test FAILS, the most likely cause is that one of the strategy helpers in Task 3 or Task 4 still has a `dump_tree` call hiding in it. Re-read those files.
+
+- [ ] **Step 4: Add the production-caller-layer test**
+
+The Step 2 test only proves the *helpers* hoist correctly. It does NOT exercise `desktop.fill_form` itself, so a future regression that re-fetches `flat_tree` *inside* the loop in `desktop/__init__.py` would slip past it. Add a second test that calls the real `DesktopBackend.fill_form` against a mocked COM session and asserts the same invariant at the production-caller layer.
+
+Append to the same `TestFillFormDumpTreeCount` class in `unittests/desktop/test_element_finder.py`:
+
+```python
+    def test_desktop_fill_form_dumps_tree_once_for_many_fields(self):
+        """Production-layer regression: DesktopBackend.fill_form must call
+        dump_tree at most once per call. Complements the helper-layer test
+        above by exercising the real caller in src/.../desktop/__init__.py.
+        """
+        import asyncio
+
+        from sapwebguimcp.backend.desktop import DesktopBackend
+
+        labels_and_fields = [
+            ("Vorname", "FIRSTNAME"),
+            ("Nachname", "LASTNAME"),
+            ("Land", "COUNTRY"),
+            ("Strasse", "STREET"),
+            ("Ort", "CITY"),
+        ]
+        tree_elems = []
+        find_by_id_extras = {}
+        for label_text, name in labels_and_fields:
+            tree_elems.append(
+                _make_elem(
+                    type_as_number=30,
+                    name=name,
+                    text=label_text,
+                    elem_id=f"wnd[0]/usr/lbl{name}",
+                )
+            )
+            field_mock = MagicMock()
+            # _set_field_value writes to .text — make the mock accept it
+            field_mock.text = ""
+            find_by_id_extras[f"wnd[0]/usr/txt{name}"] = field_mock
+
+        session = _make_session_with_tree(tree_elems, find_by_id_extras=find_by_id_extras)
+        usr = session.find_by_id("wnd[0]/usr")
+        usr.dump_tree.reset_mock()
+
+        # Stub Com.run so it just executes the closure synchronously in this thread.
+        com = MagicMock()
+
+        async def fake_run(callable_):
+            return callable_()
+
+        com.run = fake_run
+
+        backend = DesktopBackend.__new__(DesktopBackend)  # bypass __init__
+        backend.com = com
+        backend._session = session  # noqa: SLF001 — direct assignment for test
+        backend.require_session = lambda: session
+
+        payload = {label: "value" for label, _ in labels_and_fields}
+        result = asyncio.get_event_loop().run_until_complete(backend.fill_form(payload))
+
+        assert usr.dump_tree.call_count == 1, (
+            f"DesktopBackend.fill_form called dump_tree {usr.dump_tree.call_count} "
+            f"times for {len(payload)} fields — should be exactly 1. This is the "
+            f"#627 regression at the production-caller layer."
+        )
+        assert len(result.filled) == len(payload), (
+            f"Expected all {len(payload)} fields filled, got {result.filled}; "
+            f"not_found={result.not_found}, errors={result.errors}"
+        )
+```
+
+**Note for the implementer:** the exact attribute name for the cached session on `DesktopBackend` (used in `backend._session = session`) may differ — verify by reading `src/sapwebguimcp/backend/desktop/__init__.py` for how `require_session` is implemented and assign whichever attribute it reads. If the codebase uses a different mechanism for backend construction in tests (e.g. a `conftest.py` fixture or a factory), prefer that over `__new__` + manual attribute assignment.
+
+If `DesktopBackend.__init__` requires non-trivial wiring that makes `__new__`-based construction fragile, fall back to: keep only the helper-layer test from Step 2 and add a comment at the top of `TestFillFormDumpTreeCount` documenting that the production-caller layer is covered indirectly via the `skip_no_sap` integration test in Task 10.
+
+- [ ] **Step 5: Run both regression tests**
 
 ```bash
 python -m pytest unittests/desktop/test_element_finder.py::TestFillFormDumpTreeCount -v
 ```
 
-Expected: passes. (This is the green-bar moment for the perf fix — proof that 5 lookups → 1 dump.)
+Expected: both tests pass.
 
-If the test FAILS, the most likely cause is that one of the strategy helpers in Task 3 or Task 4 still has a `dump_tree` call hiding in it. Re-read those files.
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add unittests/desktop/test_element_finder.py
