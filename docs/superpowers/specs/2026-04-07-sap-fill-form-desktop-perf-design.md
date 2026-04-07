@@ -150,11 +150,14 @@ For `fill_form` and `fill_main_input`, the win is that the same tree is
 reused across the loop. `fill_form` is the user-visible fix; `fill_main_input`
 gets the same treatment for free because they share the helper.
 
-A small private helper in `_element_finder.py` keeps the dump-and-flatten
-idiom in one place:
+A small helper added to
+`src/sapwebguimcp/backend/desktop/_element_finder.py` keeps the
+dump-and-flatten idiom in one place. It is a module-private helper named
+with a leading underscore, matching the existing `_flatten` convention in
+the same file:
 
 ```python
-def dump_flat_tree(session: Any, wnd_id: str = "wnd[0]") -> list[Any]:
+def _dump_flat_tree(session: Any, wnd_id: str = "wnd[0]") -> list[Any]:
     """Dump and flatten the usr subtree of the given window."""
     usr = session.find_by_id(f"{wnd_id}/usr")
     return _flatten(usr.dump_tree())
@@ -165,7 +168,7 @@ Each caller becomes:
 ```python
 def _fill() -> None:
     wnd_id = _active_window_id(session)
-    flat_tree = dump_flat_tree(session, wnd_id)
+    flat_tree = _dump_flat_tree(session, wnd_id)
     field = find_field_by_label(session, label, flat_tree, wnd_id=wnd_id)
     ...
 ```
