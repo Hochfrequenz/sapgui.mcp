@@ -345,3 +345,59 @@ class TestFindByReadonlyTextfieldLabel:
         usr.find_by_name.return_value = None
         result = find_field_by_label(session, "Hinweis")
         assert result is None
+
+
+class TestDumpFlatTree:
+    """Helper that dumps and flattens the usr subtree."""
+
+    def test_returns_flat_list_from_session(self):
+        from sapwebguimcp.backend.desktop._element_finder import _dump_flat_tree
+
+        child = _make_elem(
+            type_as_number=30,
+            name="CHILD",
+            text="Child",
+            elem_id="wnd[0]/usr/sub/lblCHILD",
+        )
+        parent = _make_elem(
+            type_as_number=30,
+            name="PARENT",
+            text="Parent",
+            elem_id="wnd[0]/usr/lblPARENT",
+            children=[child],
+        )
+        session = _make_session_with_tree([parent])
+
+        flat = _dump_flat_tree(session)
+
+        # Both parent and child should appear in the flat list
+        assert len(flat) == 2
+        assert flat[0].name == "PARENT"
+        assert flat[1].name == "CHILD"
+
+    def test_uses_given_wnd_id(self):
+        from sapwebguimcp.backend.desktop._element_finder import _dump_flat_tree
+
+        # Build a session whose wnd[1]/usr returns a single element
+        session = MagicMock()
+        usr1 = MagicMock()
+        elem = _make_elem(
+            type_as_number=30,
+            name="POPUPLBL",
+            text="PopupLabel",
+            elem_id="wnd[1]/usr/lblPOPUPLBL",
+        )
+        usr1.dump_tree.return_value = [elem]
+
+        def find_by_id(element_id, raise_error=True):
+            if element_id == "wnd[1]/usr":
+                return usr1
+            if not raise_error:
+                return None
+            raise Exception(f"Element not found: {element_id}")
+
+        session.find_by_id = find_by_id
+
+        flat = _dump_flat_tree(session, wnd_id="wnd[1]")
+        assert len(flat) == 1
+        assert flat[0].name == "POPUPLBL"

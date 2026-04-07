@@ -43,6 +43,18 @@ def _flatten(tree: list[Any]) -> list[Any]:
     return result
 
 
+def _dump_flat_tree(session: Any, wnd_id: str = "wnd[0]") -> list[Any]:
+    """Dump and flatten the ``usr`` subtree of the given window.
+
+    Centralises the ``find_by_id(...)/dump_tree()/_flatten()`` idiom so that
+    callers in the desktop backend can compute the flat tree once and pass it
+    into ``find_field_by_label`` (and its tree-using strategy helpers) without
+    each helper redundantly re-dumping the tree.
+    """
+    usr = session.find_by_id(f"{wnd_id}/usr")
+    return _flatten(usr.dump_tree())
+
+
 def _extract_container_path(label_id: str, wnd_id: str = "wnd[0]") -> str:
     """Extract container path from a label's full ID.
 
