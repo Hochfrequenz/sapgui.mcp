@@ -459,7 +459,13 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SessionStatus(status="unknown", message=f"Session error: {e}")
 
         try:
-            return await backend.get_session_status()
+            # Pass the session ID through explicitly. Both backends now accept
+            # an optional ``session_id`` parameter (issue #640) — desktop falls
+            # back to ``require_session()`` (which reads the ContextVar
+            # ``get_backend`` already set), webgui resolves the page from its
+            # registry. Without the explicit pass, the desktop side worked via
+            # the ContextVar but webgui silently probed the wrong session.
+            return await backend.get_session_status(session_id=session)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Checking session status")
             return SessionStatus(status="unknown", message=f"Error checking status: {e}")

@@ -134,20 +134,28 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     # ---- private helpers ----
 
-    async def _find_okcode_field(self) -> Any | None:
-        """Find the OK-Code field on the page.
+    async def _find_okcode_field(self, page: Any | None = None) -> Any | None:
+        """Find the OK-Code field on the (given or current) page.
 
         Returns a Playwright Locator (lazy, re-evaluates on each action) instead
         of an ElementHandle to avoid stale DOM references when tests run
         back-to-back and the page is mid-rebuild.
+
+        Args:
+            page: Optional explicit Playwright Page. If ``None``, defaults to
+                ``self._page`` (the backend's primary page). Used by
+                ``get_session_status(session_id=...)`` to probe a specific
+                session's page from the registry without mutating
+                ``self._page``.
         """
+        target = page if page is not None else self._page
         for selector in [
             "#ToolbarOkCode",
             "input[id*='OkCode']",
             "input[lsdata*='OKCODE']",
             "#M0\\:46\\:11\\:1",
         ]:
-            loc = self._page.locator(selector).first
+            loc = target.locator(selector).first
             if await loc.count() > 0 and await loc.is_visible():
                 return loc
         return None
@@ -646,24 +654,46 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
         return await self._register_new_window_session(pages_before, tcode=tcode)
 
-    async def get_session_status(self) -> SessionStatus:
-        """Check session health."""
+    # pylint: disable-next=too-many-return-statements
+    async def get_session_status(self, session_id: str | None = None) -> SessionStatus:
+        """Check session health for the given session.
+
+        Args:
+            session_id: Explicit registry session ID (e.g. ``"s2"``) to probe.
+                If ``None``, defaults to the registry's primary session
+                (``s1`` if present, else lowest active). Pass an explicit ID
+                to probe a specific window from the registry — bypasses
+                ``self._page``, which always points at the backend's primary.
+
+        Fixes #640: previously this method only ever probed ``self._page``,
+        so calls like ``sap_session_status(session="s2")`` silently reported
+        on the primary session instead.
+        """
+        # Single try block for both registry resolution AND page probing.
+        # ValueError from registry.get_page() (session not found) and any other
+        # exception from the page probes share two terminal handlers below,
+        # which keeps the function under pylint's too-many-return-statements
+        # threshold.
         try:
-            if self._page.is_closed():
+            registry = await self._get_registry()
+            target_id = session_id or registry.primary_session
+            page = registry.get_page(target_id)
+
+            if page.is_closed():
                 return SessionStatus(status="no_page", message="Browser page is closed.")
 
-            okcode_field = await self._find_okcode_field()
+            okcode_field = await self._find_okcode_field(page=page)
             if okcode_field:
                 return SessionStatus(status="active", message="SAP session is alive and responsive.")
 
-            login_form = await self._page.query_selector('input[type="password"], input[id*="sap-user" i], #sap-user')
+            login_form = await page.query_selector('input[type="password"], input[id*="sap-user" i], #sap-user')
             if login_form:
                 return SessionStatus(
                     status="logged_off",
                     message="Login page detected. Please use sap_login to log in again.",
                 )
 
-            page_content = await self._page.content()
+            page_content = await page.content()
             timeout_indicators = [
                 "session timeout",
                 "sitzung abgelaufen",
@@ -682,6 +712,9 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 status="unknown",
                 message="Cannot determine session status. Please check browser window.",
             )
+        except ValueError as e:
+            # Registry lookup failed — the requested session ID doesn't exist.
+            return SessionStatus(status="no_page", message=f"Session not found: {e}")
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Checking session status")
             return SessionStatus(status="unknown", message=f"Error checking status: {e}")
