@@ -113,6 +113,75 @@ class TestUnregister:
 
 
 # ---------------------------------------------------------------------------
+# clear (issue #633)
+# ---------------------------------------------------------------------------
+
+
+class TestClear:
+    def test_clear_empty_registry_is_noop(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.clear()
+        assert reg.list_sessions() == []
+
+    def test_clear_drops_all_sessions(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.register(_make_mock_session())
+        reg.register(_make_mock_session())
+        reg.clear()
+        assert reg.list_sessions() == []
+        assert not reg.has_session("s1")
+        assert not reg.has_session("s2")
+        assert not reg.has_session("s3")
+
+    def test_clear_drops_all_bindings(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.register(_make_mock_session())
+        reg.bind("s1", "agent_a")
+        reg.bind("s2", "agent_b")
+        reg.clear()
+        assert reg.get_bound_agent("s1") is None
+        assert reg.get_bound_agent("s2") is None
+
+    def test_clear_resets_counter_so_next_register_is_s1(self) -> None:
+        """Regression for #633: re-login must produce a clean s1.
+
+        Without resetting the counter, ``register`` after ``clear`` would
+        produce ``s4`` (or whatever the high-water mark was), and
+        ``primary_session`` would still resolve to ``s1`` if anything tried
+        to look it up. Resetting the counter keeps the registry's contract
+        that the first session after a reset is always ``s1``.
+        """
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.register(_make_mock_session())
+        reg.register(_make_mock_session())
+        reg.clear()
+        assert reg.register(_make_mock_session()) == "s1"
+
+    def test_clear_then_register_makes_primary_session_resolve_to_new(self) -> None:
+        """The full #633 scenario at the registry level.
+
+        Before the fix: registry has dead s1, login adds fresh s2, but
+        primary_session returns "s1" → callers get the dead session.
+        After the fix: registry.clear() drops the dead s1 first, then
+        register() adds the fresh session as s1, and primary_session
+        correctly resolves to the new session.
+        """
+        reg = DesktopSessionRegistry()
+        dead = _make_mock_session(transaction="DEAD")
+        reg.register(dead)
+        # Simulate a re-login: clear, then register the fresh one.
+        fresh = _make_mock_session(transaction="FRESH")
+        reg.clear()
+        reg.register(fresh)
+        assert reg.primary_session == "s1"
+        assert reg.get_session(reg.primary_session) is fresh
+        assert reg.get_session(None) is fresh  # default also resolves to fresh
+
+
+# ---------------------------------------------------------------------------
 # binding
 # ---------------------------------------------------------------------------
 

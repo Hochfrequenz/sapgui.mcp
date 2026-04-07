@@ -76,6 +76,24 @@ class DesktopSessionRegistry:
         self._bindings.pop(session_id, None)
         logger.info("Unregistered desktop session", extra={"session": session_id})
 
+    def clear(self) -> None:
+        """Drop every session and binding, and reset the ID counter to 0.
+
+        Used by ``DesktopBackend.login()`` to ensure a re-login produces a
+        clean ``s1`` rather than incrementing into ``s2``, ``s3``, etc.
+        Without this, the old (now-dead) ``s1`` lingers and ``primary_session``
+        keeps resolving to it — see issue #633 for the failure mode.
+
+        Multi-session state from ``open_new_session`` is also dropped:
+        re-login is treated as a desktop reset, not an addition.
+        """
+        had_sessions = bool(self._sessions)
+        self._sessions.clear()
+        self._bindings.clear()
+        self._counter = 0
+        if had_sessions:
+            logger.info("Cleared desktop session registry")
+
     def bind(self, session_id: str, agent_id: str) -> None:
         """Bind a session to an agent."""
         self._bindings[session_id] = agent_id
