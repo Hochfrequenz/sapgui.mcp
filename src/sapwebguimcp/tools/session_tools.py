@@ -8,6 +8,7 @@ from sapwebguimcp.models import (
     SessionCloseResult,
     SessionListResult,
     SessionReleaseResult,
+    SessionResetResult,
 )
 
 __all__ = [
@@ -15,6 +16,7 @@ __all__ = [
     "sap_session_close_impl",
     "sap_session_bind_impl",
     "sap_session_release_impl",
+    "sap_session_reset_to_primary_impl",
 ]
 
 logger = logging.getLogger(__name__)
@@ -130,3 +132,38 @@ async def sap_session_release_impl(session_id: str) -> SessionReleaseResult:
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("Releasing session", extra={"session_id": session_id})
         return SessionReleaseResult.failure(f"Error releasing session: {e}")
+
+
+async def sap_session_reset_to_primary_impl() -> SessionResetResult:
+    """Close every SAP session except the primary one (s1).
+
+    Use this when parallel agents have left the session set drifted from the
+    real GUI window state — typically after a batch of failed/retried tool
+    calls. Behaviour:
+
+    - Reconciles the registry first (drops dead sessions, see issue #637)
+    - Iterates the surviving non-primary sessions and closes each one
+    - Reports which sessions were closed, which remain, and which agent
+      bindings were severed in the process
+
+    Agents listed in ``killed_agents`` MUST rebind to a different session
+    via ``sap_session_bind`` before their next call, otherwise their next
+    tool call will fail with "session not found".
+
+    Returns:
+        SessionResetResult
+    """
+    try:
+        backend = await get_backend()
+        # Both WebGuiBackend and DesktopBackend implement reset_to_primary;
+        # the BackendManager union type enforces this. No defensive guard.
+        report = await backend.reset_to_primary()
+        return SessionResetResult(
+            closed_sessions=report.get("closed", []),
+            remaining_sessions=report.get("remaining", []),
+            killed_agents=report.get("killed_agents", []),
+            errors=report.get("errors", []),
+        )
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.exception("Resetting sessions to primary")
+        return SessionResetResult.failure(f"Error resetting sessions: {e}")

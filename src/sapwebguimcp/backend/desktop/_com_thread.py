@@ -87,7 +87,13 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         self._last_success_at: float | None = None
         self._last_error_at: float | None = None
         self._last_error_repr: str | None = None
-        self._queue: queue.Queue[tuple[Callable[[], Any], concurrent.futures.Future[Any]] | None] = queue.Queue()
+        # Each work item carries an optional per-call max_retries override.
+        # ``None`` means "use ``self._max_retries``"; ``0`` means "fail fast on
+        # retryable errors" — used by liveness probes where ``RPC_S_UNKNOWN_IF``
+        # signals "this session is dead", not "try again".
+        self._queue: queue.Queue[tuple[Callable[[], Any], concurrent.futures.Future[Any], int | None] | None] = (
+            queue.Queue()
+        )
         self._thread = threading.Thread(target=self._run, daemon=True, name="sapgui-com-worker")
         self._thread.start()
         logger.info(
@@ -107,8 +113,11 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 item = self._queue.get()
                 if item is None:
                     break
-                fn, cf_future = item
-                self._execute_with_retry(fn, cf_future, last_call)
+                fn, cf_future, retries_override = item
+                # Resolve the per-call retry budget here so _execute_with_retry
+                # stays under the local-variable cap (pylint too-many-locals).
+                max_retries = self._max_retries if retries_override is None else retries_override
+                self._execute_with_retry(fn, cf_future, last_call, max_retries)
                 last_call = time.monotonic()
         except Exception:
             # Forensic snapshot — without this, we can't tell *why* the worker
@@ -152,9 +161,15 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         fn: Callable[[], Any],
         cf_future: concurrent.futures.Future[Any],
         last_call: float,
+        max_retries: int,
     ) -> None:
-        """Execute a COM call with adaptive throttling and retry on transient errors."""
-        for attempt in range(self._max_retries + 1):
+        """Execute a COM call with adaptive throttling and retry on transient errors.
+
+        ``max_retries`` is the per-call retry budget — the caller resolves it
+        from ``self._max_retries`` or a per-call override (``0`` is used by
+        reconciliation probes that must fail fast on ``RPC_S_UNKNOWN_IF``).
+        """
+        for attempt in range(max_retries + 1):
             # Throttle: wait at least current_interval since last call
             elapsed = time.monotonic() - last_call
             if elapsed < self._current_interval_s:
@@ -187,7 +202,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 self._last_error_at = time.monotonic()
                 self._last_error_repr = repr(exc)[:200]
 
-                if error_code in _RETRYABLE_COM_ERRORS and attempt < self._max_retries:
+                if error_code in _RETRYABLE_COM_ERRORS and attempt < max_retries:
                     # COM is busy — back off and retry
                     backoff = self._current_interval_s * (2**attempt)
                     self._increase_interval("com_busy", backoff)
@@ -240,8 +255,16 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             # Decay slowly: reduce by 10%
             self._current_interval_s = max(self._current_interval_s * 0.9, self._min_interval_s)
 
-    async def run(self, fn: Callable[[], T]) -> T:
-        """Submit a callable to the COM thread and await its result."""
+    async def run(self, fn: Callable[[], T], *, max_retries: int | None = None) -> T:
+        """Submit a callable to the COM thread and await its result.
+
+        Args:
+            fn: Callable to execute on the dedicated COM thread.
+            max_retries: Per-call override of the retry budget. ``None`` uses
+                the default ``self._max_retries``. Pass ``0`` for liveness
+                probes where retryable errors like ``RPC_S_UNKNOWN_IF`` mean
+                "this session is dead", not "transient — try again".
+        """
         if not self._thread.is_alive():
             # Pair this with ``com_thread_crashed`` from ``_run`` to bracket
             # the failure. ``s_since_last_success`` and ``last_error_repr``
@@ -255,7 +278,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 "cannot be revived. The BackendManager must rebuild it."
             )
         cf_future: concurrent.futures.Future[T] = concurrent.futures.Future()
-        self._queue.put((fn, cf_future))
+        self._queue.put((fn, cf_future, max_retries))
         return await asyncio.wrap_future(cf_future)
 
     @property

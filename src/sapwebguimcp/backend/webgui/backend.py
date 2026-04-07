@@ -1472,3 +1472,50 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         """Check whether a session exists."""
         registry = await self._get_registry()
         return registry.has_session(session_id)
+
+    async def reset_to_primary(self) -> dict[str, list[str]]:
+        """Close every session except the primary one.
+
+        WebGUI parity for the desktop backend's reset (issue #637). The
+        WebGUI registry already drops sessions on page close, so we just
+        iterate the non-primary IDs and call ``close_session`` on each.
+
+        Returns ``{"closed": [...], "remaining": [...], "killed_agents":
+        [...], "errors": [...]}`` to match the desktop backend's shape.
+        """
+        registry = await self._get_registry()
+        primary = registry.primary_session
+        victims = [sid for sid in registry.list_sessions() if sid != primary]
+        closed: list[str] = []
+        errors: list[str] = []
+        killed_agents: list[str] = []
+        for sid in victims:
+            bound = registry.get_bound_agent(sid)
+            try:
+                ok = await self.close_session(sid)
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                errors.append(f"{sid}: {exc}")
+                continue
+            if ok:
+                closed.append(sid)
+                if bound:
+                    killed_agents.append(bound)
+            else:
+                errors.append(f"{sid}: close returned False")
+        remaining = registry.list_sessions()
+        logger.info(
+            "reset_to_primary",
+            extra={
+                "primary": primary,
+                "closed": closed,
+                "remaining": remaining,
+                "killed_agents": killed_agents,
+                "errors": errors,
+            },
+        )
+        return {
+            "closed": closed,
+            "remaining": remaining,
+            "killed_agents": killed_agents,
+            "errors": errors,
+        }

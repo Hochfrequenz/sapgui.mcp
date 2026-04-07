@@ -51,6 +51,7 @@ from sapwebguimcp.models import (
     SessionCloseResult,
     SessionListResult,
     SessionReleaseResult,
+    SessionResetResult,
     SessionStatus,
     SetFieldResult,
     ShortcutInfo,
@@ -69,6 +70,7 @@ from sapwebguimcp.tools.session_tools import (
     sap_session_close_impl,
     sap_session_list_impl,
     sap_session_release_impl,
+    sap_session_reset_to_primary_impl,
 )
 
 __all__ = ["register_sap_tools", "SELECTORS", "parse_shortcut_from_title"]
@@ -1633,3 +1635,26 @@ Args:
             SessionReleaseResult
         """
         return await sap_session_release_impl(session_id)
+
+    @mcp.tool(
+        description=(
+            "Bulk-close every SAP session except the primary one (s1). "
+            "Use this when parallel agents have left orphaned/extra windows "
+            "and you want to return to a known-clean state with only s1 open. "
+            "Reconciles the registry first (drops any sessions that died "
+            "externally), then closes the rest. "
+            "WARNING: if you call this from a non-primary session, your own "
+            "session will be closed and you will appear in killed_agents — "
+            "your next tool call will fail until you rebind to s1 (or another "
+            "surviving session) via sap_session_bind. "
+            "See issue #637 for the parallel-agent drift scenario this addresses."
+        )
+    )
+    async def sap_session_reset_to_primary() -> SessionResetResult:
+        """Close every session except the primary (s1).
+
+        Returns:
+            SessionResetResult with closed_sessions, remaining_sessions,
+            killed_agents (agents that must rebind), and per-session errors.
+        """
+        return await sap_session_reset_to_primary_impl()

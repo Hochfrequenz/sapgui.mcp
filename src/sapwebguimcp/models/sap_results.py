@@ -132,6 +132,36 @@ class SessionReleaseResult(ToolResult):
     released_agent: str | None = Field(default=None, description="Agent that was unbound, if any")
 
 
+class SessionResetResult(ToolResult):
+    """Result from sap_session_reset_to_primary tool.
+
+    Reports the outcome of bulk-closing every session except the primary
+    one. ``killed_agents`` lists agents whose bound sessions were closed
+    — those agents must rebind to a different session before their next
+    call. See issue #637 for the parallel-agent drift scenario.
+    """
+
+    closed_sessions: list[str] = Field(
+        default_factory=list,
+        description="Session IDs that were closed (e.g. ['s2', 's3', 's4'])",
+    )
+    remaining_sessions: list[str] = Field(
+        default_factory=list,
+        description="Session IDs still active after the reset (typically just ['s1'])",
+    )
+    killed_agents: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Agent IDs whose bound sessions were closed by this reset. "
+            "These agents must call sap_session_bind on a different session before continuing."
+        ),
+    )
+    errors: list[str] = Field(
+        default_factory=list,
+        description="Per-session error strings, one per failed close attempt",
+    )
+
+
 class KeyboardResult(ToolResult):
     """Result from sap_keyboard tool.
 

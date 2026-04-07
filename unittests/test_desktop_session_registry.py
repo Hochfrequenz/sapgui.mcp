@@ -242,3 +242,61 @@ class TestListAndHas:
         reg.register(_make_mock_session())
         assert reg.has_session("s1")
         assert not reg.has_session("s2")
+
+
+# ---------------------------------------------------------------------------
+# prune (issue #637)
+# ---------------------------------------------------------------------------
+
+
+class TestPrune:
+    """Sync ``prune()`` removes a batch of dead session IDs in one pass.
+
+    Used by ``DesktopBackend.reconcile()`` after a round of liveness probes.
+    No COM access — that's the backend's job, see the class-level docstring.
+    """
+
+    def test_prune_removes_listed_sessions(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.register(_make_mock_session())
+        reg.register(_make_mock_session())
+        removed = reg.prune(["s1", "s3"])
+        assert sorted(removed) == ["s1", "s3"]
+        assert reg.list_sessions() == ["s2"]
+
+    def test_prune_returns_only_actually_removed(self) -> None:
+        """IDs that weren't in the registry must not appear in the return."""
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        removed = reg.prune(["s1", "s99", "snever"])
+        assert removed == ["s1"]
+
+    def test_prune_clears_bindings_for_removed_sessions(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.register(_make_mock_session())
+        reg.bind("s1", "agent_a")
+        reg.bind("s2", "agent_b")
+        reg.prune(["s1"])
+        assert reg.get_bound_agent("s1") is None
+        # s2 binding must be untouched
+        assert reg.get_bound_agent("s2") == "agent_b"
+
+    def test_prune_empty_iterable_is_noop(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        assert reg.prune([]) == []
+        assert reg.list_sessions() == ["s1"]
+
+    def test_prune_logs_bound_agent_for_removed(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Removing a bound session should log the agent for orphan correlation."""
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.bind("s1", "agent_a")
+        with caplog.at_level(logging.INFO):
+            reg.prune(["s1"])
+        # Find the prune log entry and check the agent is captured.
+        records = [r for r in caplog.records if "Pruned" in r.message]
+        assert records, "expected a Pruned log entry"
+        assert getattr(records[0], "bound_to", None) == "agent_a"
