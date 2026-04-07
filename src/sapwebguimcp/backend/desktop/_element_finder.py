@@ -119,7 +119,6 @@ def _find_by_readonly_textfield_label(  # pylint: disable=too-many-locals
     session: Any,
     label: str,
     flat_tree: list[Any],
-    wnd_id: str = "wnd[0]",
 ) -> Any | None:
     """Strategy 3: Non-changeable ``GuiTextField`` acting as visual label.
 
@@ -225,7 +224,7 @@ def find_field_by_label(
         return field
 
     # Strategy 3: read-only text field label (composite labels like "Straße/Hausnummer")
-    field = _find_by_readonly_textfield_label(session, label, flat_tree, wnd_id=wnd_id)
+    field = _find_by_readonly_textfield_label(session, label, flat_tree)
     if field is not None:
         logger.debug("find_field", extra={"label": label, "strategy": "readonly_textfield_label"})
         return field
