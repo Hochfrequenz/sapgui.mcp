@@ -8,7 +8,7 @@ a COM probe (no close-event mechanism exists for SAP GUI COM).
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
 if TYPE_CHECKING:
     from sapsucker.components.session import GuiSession
@@ -75,6 +75,30 @@ class DesktopSessionRegistry:
         self._sessions.pop(session_id, None)
         self._bindings.pop(session_id, None)
         logger.info("Unregistered desktop session", extra={"session": session_id})
+
+    def prune(self, dead_ids: Iterable[str]) -> list[str]:
+        """Remove a set of session IDs from the registry in one pass.
+
+        Used by ``DesktopBackend.reconcile()`` after a batch of liveness
+        probes has identified which sessions are no longer alive on the SAP
+        side. Returns the IDs that were actually removed (i.e. were present
+        in ``_sessions`` before the call) so the caller can log/report them.
+
+        This is intentionally synchronous and COM-free — the registry has
+        no COM access (see the class-level docstring) and the actual probes
+        are performed by ``DesktopBackend`` on the COM thread.
+        """
+        removed: list[str] = []
+        for sid in dead_ids:
+            agent = self._bindings.get(sid)
+            if self._sessions.pop(sid, None) is not None:
+                removed.append(sid)
+                self._bindings.pop(sid, None)
+                logger.info(
+                    "Pruned dead desktop session",
+                    extra={"session": sid, "bound_to": agent},
+                )
+        return removed
 
     def clear(self) -> None:
         """Drop every session and binding, and reset the ID counter to 0.

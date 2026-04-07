@@ -16,6 +16,8 @@ def _make_backend(**overrides: Any) -> AsyncMock:
     backend.close_session.return_value = overrides.get("close_session", True)
     backend.bind_session.return_value = overrides.get("bind_session", None)
     backend.release_session.return_value = overrides.get("release_session", None)
+    if "reset_to_primary" in overrides:
+        backend.reset_to_primary.return_value = overrides["reset_to_primary"]
     return backend
 
 
@@ -238,6 +240,86 @@ class TestSessionRelease:
 
         assert result.success is False
         assert "connection lost" in result.error
+
+
+class TestSessionResetToPrimary:
+    """Tests for sap_session_reset_to_primary_impl (issue #637)."""
+
+    @pytest.mark.anyio
+    async def test_success_with_killed_agents(self) -> None:
+        """Backend report flows through to the result, including killed agents."""
+        from sapwebguimcp.tools.session_tools import sap_session_reset_to_primary_impl
+
+        backend = _make_backend(
+            reset_to_primary={
+                "closed": ["s2", "s3", "s4"],
+                "remaining": ["s1"],
+                "killed_agents": ["agent-b", "agent-c"],
+                "errors": [],
+            },
+        )
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_reset_to_primary_impl()
+
+        assert result.success is True
+        assert result.closed_sessions == ["s2", "s3", "s4"]
+        assert result.remaining_sessions == ["s1"]
+        assert result.killed_agents == ["agent-b", "agent-c"]
+        assert result.errors == []
+
+    @pytest.mark.anyio
+    async def test_partial_failure_returns_errors_in_result(self) -> None:
+        """Per-session close errors are surfaced via the errors list."""
+        from sapwebguimcp.tools.session_tools import sap_session_reset_to_primary_impl
+
+        backend = _make_backend(
+            reset_to_primary={
+                "closed": ["s2"],
+                "remaining": ["s1", "s3"],
+                "killed_agents": [],
+                "errors": ["s3: COM busy"],
+            },
+        )
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_reset_to_primary_impl()
+
+        # Partial failure is still success=True at the tool level — the
+        # errors field carries the per-session detail. The agent decides
+        # whether to retry.
+        assert result.success is True
+        assert result.closed_sessions == ["s2"]
+        assert "s3: COM busy" in result.errors
+
+    @pytest.mark.anyio
+    async def test_already_at_primary_is_noop(self) -> None:
+        """Empty victim list returns an empty closed list, not an error."""
+        from sapwebguimcp.tools.session_tools import sap_session_reset_to_primary_impl
+
+        backend = _make_backend(
+            reset_to_primary={
+                "closed": [],
+                "remaining": ["s1"],
+                "killed_agents": [],
+                "errors": [],
+            },
+        )
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_reset_to_primary_impl()
+
+        assert result.success is True
+        assert result.closed_sessions == []
+        assert result.remaining_sessions == ["s1"]
+
+    @pytest.mark.anyio
+    async def test_backend_exception(self) -> None:
+        """Backend exception is caught and returned as failure."""
+        from sapwebguimcp.tools.session_tools import sap_session_reset_to_primary_impl
+
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("boom"))):
+            result = await sap_session_reset_to_primary_impl()
+
+        assert result.success is False
+        assert "boom" in result.error
 
 
 class TestRegisterNewWindowSession:

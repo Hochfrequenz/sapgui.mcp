@@ -185,6 +185,13 @@ class DesktopBackend:
     def __init__(self, com_thread: ComThread | None = None) -> None:
         self.com = com_thread or ComThread()
         self.registry = DesktopSessionRegistry()
+        # Mutation lock — serialises high-level operations that read or modify
+        # the session set: list_sessions (reconciles), open_new_session (resolves
+        # the new COM child by sibling index, must not race), close_session,
+        # and reset_to_primary. Without this, parallel agents racing through
+        # these paths can pre-resolve stale COM IDs or close newly-spawned
+        # sessions mid-iteration. See issue #637 for the failure mode.
+        self._mutation_lock: asyncio.Lock = asyncio.Lock()
 
     @property
     def backend_type(self) -> str:
@@ -366,7 +373,18 @@ class DesktopBackend:
 
         Returns ``(registry_session_id, session_count, page_title)``.
         The session ID is a registry ID like ``'s2'``, not a COM path.
+
+        Reconciles the registry first so that any dead sessions left over
+        from prior failures don't inflate the count or hold session IDs.
+        Serialised through ``_mutation_lock`` so concurrent agents can't
+        race against ``Children.Count`` / ``Children(count - 1)``.
         """
+        async with self._mutation_lock:
+            await self._reconcile_locked()
+            return await self._open_new_session_locked(tcode)
+
+    async def _open_new_session_locked(self, tcode: str) -> tuple[str | None, int, str | None]:
+        """``open_new_session`` body — caller must hold ``_mutation_lock``."""
         session = self.require_session()
 
         try:
@@ -399,7 +417,20 @@ class DesktopBackend:
             return None, 1, None
 
     async def list_sessions(self) -> list[SessionInfo]:
-        """List all sessions from the registry with their COM properties."""
+        """List all sessions from the registry with their COM properties.
+
+        Reconciles the registry first so the returned list reflects reality
+        — dead sessions are pruned, never silently included or silently
+        skipped. Serialised through ``_mutation_lock`` so concurrent
+        ``open_new_session`` / ``close_session`` cannot leave the snapshot
+        and the underlying COM tree out of sync.
+        """
+        async with self._mutation_lock:
+            await self._reconcile_locked()
+            return await self._list_sessions_locked()
+
+    async def _list_sessions_locked(self) -> list[SessionInfo]:
+        """``list_sessions`` body — caller must hold ``_mutation_lock``."""
         result: list[SessionInfo] = []
         for sid in self.registry.list_sessions():
             try:
@@ -425,11 +456,28 @@ class DesktopBackend:
                     )
                 )
             except Exception:  # pylint: disable=broad-exception-caught
+                # Reconcile already ran above, so a COM error here is a
+                # transient hiccup; skip the row but keep the session in
+                # the registry. The next list_sessions call will reconcile
+                # again and prune it if it really is gone.
                 logger.warning("Skipping session %s in listing (COM error)", sid)
         return result
 
     async def close_session(self, session_id: str) -> bool:
         """Close a session by registry ID (e.g. 's2')."""
+        async with self._mutation_lock:
+            return await self._close_session_locked(session_id)
+
+    async def _close_session_locked(self, session_id: str) -> bool:
+        """``close_session`` body — caller must hold ``_mutation_lock``.
+
+        Resolves the target's COM ``.Id`` *inside* the same COM lambda that
+        calls ``CloseSession`` so the index is fresh: closing a session
+        causes SAP to renumber the remaining ``ses[N]`` indices, so any
+        pre-resolved IDs would point at the wrong window after the first
+        close. The Python registry is updated regardless of the COM result
+        — even on failure we drop the dead reference to avoid drift.
+        """
         if not self.registry.has_session(session_id):
             return False
         try:
@@ -449,6 +497,165 @@ class DesktopBackend:
         self.registry.unregister(session_id)
         logger.info("close_session", extra={"session_id": session_id, "success": result})
         return result
+
+    # ---- Reconciliation & bulk cleanup (issue #637) ----
+
+    async def reconcile(self) -> dict[str, list[str]]:
+        """Probe every tracked session and prune dead ones from the registry.
+
+        Returns ``{"alive": [...], "removed": [...]}``. ``alive`` lists the
+        registry IDs that successfully responded to a liveness probe;
+        ``removed`` lists the IDs that were pruned because the probe raised.
+
+        The probe touches the live UI tree (``FindById('wnd[0]').Type``)
+        instead of the cached ``Info`` sub-object — ``Info`` is a fast-path
+        cache that returns the *last known* values for a dead window, so
+        a dead session can probe as alive. ``FindById`` forces a real COM
+        round-trip and surfaces stale-proxy errors immediately.
+
+        The probe call uses ``max_retries=0`` so the COM thread does NOT
+        retry on ``RPC_S_UNKNOWN_IF`` — a stale-interface error on a probe
+        means "this session is dead", not "transient — try again".
+        """
+        async with self._mutation_lock:
+            return await self._reconcile_locked()
+
+    #: Per-probe timeout, in seconds. Reconciliation must not block forever
+    #: on a wedged COM thread — that would deadlock the very recovery path
+    #: agents reach for when COM is misbehaving.  ``asyncio.wait_for`` raises
+    #: ``TimeoutError`` past this point and the session is treated as dead.
+    _RECONCILE_PROBE_TIMEOUT_S: float = 2.0
+
+    async def _reconcile_locked(self) -> dict[str, list[str]]:
+        """``reconcile`` body — caller must hold ``_mutation_lock``."""
+        snapshot = list(self.registry.list_sessions())
+        alive: list[str] = []
+        dead: list[str] = []
+        for sid in snapshot:
+            try:
+                ses = self.registry.get_session(sid)
+            except ValueError:
+                # Vanished between snapshot and lookup — already gone.
+                dead.append(sid)
+                continue
+
+            def _probe(s: Any = ses) -> str:
+                # FindById on wnd[0] forces a real COM round-trip — Info
+                # would happily return cached values for a dead window.
+                return str(s.com.FindById("wnd[0]").Type)
+
+            try:
+                await asyncio.wait_for(
+                    self.com.run(_probe, max_retries=0),
+                    timeout=self._RECONCILE_PROBE_TIMEOUT_S,
+                )
+                alive.append(sid)
+            except (TimeoutError, asyncio.TimeoutError) as exc:
+                # Wedged COM thread → can't prove the session is alive,
+                # treat it as dead so recovery can proceed.
+                logger.warning(
+                    "reconcile_probe_timeout",
+                    extra={
+                        "session_id": sid,
+                        "bound_to": self.registry.get_bound_agent(sid),
+                        "timeout_s": self._RECONCILE_PROBE_TIMEOUT_S,
+                        "error": repr(exc)[:200],
+                    },
+                )
+                dead.append(sid)
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                logger.info(
+                    "reconcile_dead_session",
+                    extra={
+                        "session_id": sid,
+                        "bound_to": self.registry.get_bound_agent(sid),
+                        "error": repr(exc)[:200],
+                    },
+                )
+                dead.append(sid)
+
+        removed = self.registry.prune(dead)
+        if removed:
+            logger.info(
+                "reconcile_complete",
+                extra={"alive": alive, "removed": removed},
+            )
+        return {"alive": alive, "removed": removed}
+
+    async def reset_to_primary(self) -> dict[str, list[str]]:
+        """Close every session except the primary one.
+
+        Reconciles first so we don't try to close already-dead sessions,
+        then iterates the surviving non-primary sessions and closes them
+        one at a time (each ``CloseSession`` may renumber sibling indices,
+        so we resolve+close inside a single COM lambda per victim).
+
+        Returns a dict with:
+          - ``closed``        — registry IDs successfully closed
+          - ``remaining``     — registry IDs still active afterwards
+          - ``killed_agents`` — agent IDs that had been bound to closed
+                                sessions; their next call will fail and
+                                they should re-bind to a new session
+          - ``errors``        — human-readable error strings, one per
+                                failed close attempt
+        """
+        async with self._mutation_lock:
+            await self._reconcile_locked()
+            primary = self.registry.primary_session
+            victims = [sid for sid in self.registry.list_sessions() if sid != primary]
+            closed: list[str] = []
+            errors: list[str] = []
+            killed_agents: list[str] = []
+            for sid in victims:
+                bound = self.registry.get_bound_agent(sid)
+                try:
+                    ok = await self._close_session_locked(sid)
+                except Exception as exc:  # pylint: disable=broad-exception-caught
+                    errors.append(f"{sid}: {exc}")
+                    # _close_session_locked unregisters even on exception,
+                    # but a raise here means we never reached that line —
+                    # double-check and prune if needed.
+                    if self.registry.has_session(sid):
+                        self.registry.prune([sid])
+                    continue
+                # ``_close_session_locked`` always unregisters before
+                # returning — even when CloseSession raised internally.
+                # So "registry slot freed" is the right success signal,
+                # not the COM-level boolean. ``ok=False`` just means COM
+                # complained on the way out; we still mark it as closed
+                # AND record the COM warning so the agent can see the
+                # backend chatter without misreading "still pending".
+                slot_freed = not self.registry.has_session(sid)
+                if slot_freed:
+                    closed.append(sid)
+                    if bound:
+                        killed_agents.append(bound)
+                    if not ok:
+                        errors.append(f"{sid}: closed but COM CloseSession returned False")
+                else:
+                    # The slot survived — that's a real failure. The
+                    # session is still in the registry and a follow-up
+                    # call may try to use it.
+                    errors.append(f"{sid}: close failed and registry slot is still occupied")
+            # Final reconcile in case CloseSession left anything behind.
+            await self._reconcile_locked()
+            remaining = list(self.registry.list_sessions())
+            logger.info(
+                "reset_to_primary",
+                extra={
+                    "primary": primary,
+                    "closed": closed,
+                    "remaining": remaining,
+                    "killed_agents": killed_agents,
+                    "errors": errors,
+                },
+            )
+            return {
+                "closed": closed,
+                "remaining": remaining,
+                "killed_agents": killed_agents,
+                "errors": errors,
+            }
 
     async def bind_session(self, session_id: str, agent_id: str) -> str | None:
         """Bind an agent to a session."""
