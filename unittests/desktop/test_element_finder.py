@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from sapwebguimcp.backend.desktop._element_finder import (
+    _dump_flat_tree,
     find_button_by_label,
     find_checkbox_by_label,
     find_combobox_by_label,
@@ -351,8 +352,6 @@ class TestDumpFlatTree:
     """Helper that dumps and flattens the usr subtree."""
 
     def test_returns_flat_list_from_session(self):
-        from sapwebguimcp.backend.desktop._element_finder import _dump_flat_tree
-
         child = _make_elem(
             type_as_number=30,
             name="CHILD",
@@ -376,8 +375,6 @@ class TestDumpFlatTree:
         assert flat[1].name == "CHILD"
 
     def test_uses_given_wnd_id(self):
-        from sapwebguimcp.backend.desktop._element_finder import _dump_flat_tree
-
         # Build a session whose wnd[1]/usr returns a single element
         session = MagicMock()
         usr1 = MagicMock()
