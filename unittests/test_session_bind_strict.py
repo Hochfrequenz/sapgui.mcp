@@ -163,6 +163,48 @@ class TestWebGuiRegistryBindStrict:
         reg.bind("s1", "agent_b", force=True)
         assert reg.get_bound_agent("s1") == "agent_b"
 
+    def test_force_on_unbound_is_a_no_op_extra(self) -> None:
+        """force=True on an unbound session is just a regular bind.
+
+        Parity test for ``TestDesktopRegistryBindStrict.test_force_on_unbound_is_a_no_op_extra``.
+        Without this, a future bug in the webgui registry's bind() that
+        mishandled the ``current is None`` branch could go unnoticed.
+        """
+        reg = SessionRegistry()
+        reg.register(_make_mock_page())
+        reg.bind("s1", "agent_a", force=True)
+        assert reg.get_bound_agent("s1") == "agent_a"
+
+    def test_release_then_rebind_different_agent(self) -> None:
+        """After release, a different agent can bind without force.
+
+        Parity test for the desktop equivalent. Verifies ``release`` is a
+        real release (not a soft-mark that still trips the strict check).
+        """
+        reg = SessionRegistry()
+        reg.register(_make_mock_page())
+        reg.bind("s1", "agent_a")
+        reg.release("s1")
+        reg.bind("s1", "agent_b")  # no conflict, should succeed
+        assert reg.get_bound_agent("s1") == "agent_b"
+
+    def test_unregister_clears_binding_implicitly(self) -> None:
+        """Webgui contract: unregister() clears the binding as a side effect.
+
+        Parallel to ``DesktopSessionRegistry.prune()``'s auto-clear contract
+        (the desktop registry uses ``prune`` for batch removal; the webgui
+        registry uses ``unregister`` directly via the page-close listener).
+        Both must drop bindings on session removal so future re-registers
+        of the same SID start clean. Verified at
+        ``models/session_registry.py:82`` (``self._bindings.pop(session_id, None)``
+        inside the unregister body).
+        """
+        reg = SessionRegistry()
+        reg.register(_make_mock_page())
+        reg.bind("s1", "agent_a")
+        reg.unregister("s1")
+        assert reg.get_bound_agent("s1") is None
+
 
 # ---------------------------------------------------------------------------
 # Backend bind_session wrappers
