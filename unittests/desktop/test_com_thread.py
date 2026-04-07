@@ -148,3 +148,26 @@ class TestComThread:
         assert thread._thread.is_alive()
         thread.shutdown()
         assert not thread._thread.is_alive()
+
+    def test_is_alive_property(self):
+        """Public is_alive property tracks worker thread liveness."""
+        thread = ComThread(init_com=False)
+        assert thread.is_alive is True
+        thread.shutdown()
+        assert thread.is_alive is False
+
+    @pytest.mark.anyio
+    async def test_run_after_shutdown_raises_neutral_message(self):
+        """Dead-worker error must not lie about sap_login being a fix.
+
+        Regression for issue #628: the previous message told users to
+        "call sap_login to reconnect", but the dead ComThread instance
+        cannot be revived in place — only BackendManager can rebuild it.
+        """
+        thread = ComThread(init_com=False)
+        thread.shutdown()
+        assert not thread.is_alive
+        with pytest.raises(RuntimeError, match="cannot be revived") as exc_info:
+            await thread.run(lambda: 42)
+        # The old, misleading guidance must be gone.
+        assert "call sap_login" not in str(exc_info.value)

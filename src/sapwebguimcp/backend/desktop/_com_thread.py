@@ -77,6 +77,16 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         self._max_retries = max_retries
         # Latency tracking (exponential moving average)
         self._avg_latency_s = 0.01  # initial estimate: 10ms
+        # Forensic counters/state — populated by ``_execute_with_retry`` and
+        # surfaced when the worker dies. Without these, ``com_thread_crashed``
+        # logs are blind: we can't correlate the death with what was happening
+        # right before. See issue #628 for the motivating incident.
+        self._created_at = time.monotonic()
+        self._calls_succeeded = 0
+        self._calls_failed = 0
+        self._last_success_at: float | None = None
+        self._last_error_at: float | None = None
+        self._last_error_repr: str | None = None
         self._queue: queue.Queue[tuple[Callable[[], Any], concurrent.futures.Future[Any]] | None] = queue.Queue()
         self._thread = threading.Thread(target=self._run, daemon=True, name="sapgui-com-worker")
         self._thread.start()
@@ -101,12 +111,41 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 self._execute_with_retry(fn, cf_future, last_call)
                 last_call = time.monotonic()
         except Exception:
-            logger.exception("com_thread_crashed")
+            # Forensic snapshot — without this, we can't tell *why* the worker
+            # died (issue #628). Pair this with ``com_thread_dead_call_attempted``
+            # in ``run()`` to bracket the failure window.
+            logger.exception(
+                "com_thread_crashed",
+                extra=self._forensic_snapshot(last_call),
+            )
         finally:
             if self._init_com:
                 import pythoncom  # pylint: disable=import-outside-toplevel
 
                 pythoncom.CoUninitialize()  # pylint: disable=no-member
+
+    def _forensic_snapshot(self, last_call: float = 0.0) -> dict[str, Any]:
+        """Return a dict of operational state for crash/dead-thread logs.
+
+        All times are absolute monotonic seconds, not wall clock — meaningful
+        for relative ordering only. Use ``age_s`` for the worker's lifetime
+        and ``s_since_last_*`` to bracket the failure window.
+        """
+        now = time.monotonic()
+        return {
+            "age_s": round(now - self._created_at, 3),
+            "calls_succeeded": self._calls_succeeded,
+            "calls_failed": self._calls_failed,
+            "queue_depth": self._queue.qsize(),
+            "current_interval_ms": int(self._current_interval_s * 1000),
+            "avg_latency_ms": int(self._avg_latency_s * 1000),
+            "s_since_last_success": (
+                round(now - self._last_success_at, 3) if self._last_success_at is not None else None
+            ),
+            "s_since_last_error": (round(now - self._last_error_at, 3) if self._last_error_at is not None else None),
+            "s_since_last_call": round(now - last_call, 3) if last_call else None,
+            "last_error_repr": self._last_error_repr,
+        }
 
     def _execute_with_retry(
         self,
@@ -137,12 +176,16 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 else:
                     self._decrease_interval()
 
+                self._calls_succeeded += 1
+                self._last_success_at = time.monotonic()
                 cf_future.set_result(result)
                 return
 
             except Exception as exc:
                 duration = time.monotonic() - start
                 error_code = _get_com_error_code(exc)
+                self._last_error_at = time.monotonic()
+                self._last_error_repr = repr(exc)[:200]
 
                 if error_code in _RETRYABLE_COM_ERRORS and attempt < self._max_retries:
                     # COM is busy — back off and retry
@@ -161,6 +204,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                     last_call = time.monotonic()
                     continue
 
+                self._calls_failed += 1
                 if error_code == _RPC_E_DISCONNECTED:
                     wrapped = RuntimeError(
                         "SAP GUI COM connection lost (RPC_E_DISCONNECTED). "
@@ -199,10 +243,30 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
     async def run(self, fn: Callable[[], T]) -> T:
         """Submit a callable to the COM thread and await its result."""
         if not self._thread.is_alive():
-            raise RuntimeError("COM worker thread is dead — call sap_login to reconnect")
+            # Pair this with ``com_thread_crashed`` from ``_run`` to bracket
+            # the failure. ``s_since_last_success`` and ``last_error_repr``
+            # are usually the most useful fields for diagnosis (issue #628).
+            logger.error(
+                "com_thread_dead_call_attempted",
+                extra=self._forensic_snapshot(),
+            )
+            raise RuntimeError(
+                "COM worker thread is dead — the worker exited and this ComThread instance "
+                "cannot be revived. The BackendManager must rebuild it."
+            )
         cf_future: concurrent.futures.Future[T] = concurrent.futures.Future()
         self._queue.put((fn, cf_future))
         return await asyncio.wrap_future(cf_future)
+
+    @property
+    def is_alive(self) -> bool:
+        """Whether the underlying worker thread is still running.
+
+        Returns False after the thread crashed or was shut down. A dead
+        ``ComThread`` cannot be revived — callers must construct a new
+        instance (the ``BackendManager`` does this transparently).
+        """
+        return self._thread.is_alive()
 
     @property
     def current_interval_ms(self) -> int:
