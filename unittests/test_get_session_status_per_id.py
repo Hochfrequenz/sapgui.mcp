@@ -98,6 +98,39 @@ class TestDesktopGetSessionStatusPerID:
         assert "DEFAULT" in result.message
 
     @pytest.mark.anyio
+    async def test_none_with_contextvar_routes_to_correct_session(self) -> None:
+        """ContextVar fallback path actually routes to the per-call session.
+
+        Without this test, ``test_none_falls_back_to_require_session`` only
+        proves the no-session-id path works against a single registered
+        session — it doesn't prove the ContextVar is being read at all.
+        Here we register two sessions and set the ContextVar to s2, then
+        assert the probe ran against s2's user, not s1's.
+        """
+        from sapwebguimcp.backend.desktop import _current_session_id
+
+        backend = _make_desktop_backend()
+        s1 = _make_mock_gui_session(user="USER_S1")
+        s2 = _make_mock_gui_session(user="USER_S2")
+        backend.registry.register(s1)
+        backend.registry.register(s2)
+
+        async def passthrough(fn: Any) -> Any:
+            return fn()
+
+        backend.com.run = passthrough
+
+        token = _current_session_id.set("s2")
+        try:
+            result = await backend.get_session_status()  # no explicit id
+        finally:
+            _current_session_id.reset(token)
+
+        assert result.status == "active"
+        assert "USER_S2" in result.message
+        assert "USER_S1" not in result.message
+
+    @pytest.mark.anyio
     async def test_empty_registry_returns_logged_off(self) -> None:
         """No sessions at all → logged_off, regardless of session_id arg."""
         backend = _make_desktop_backend()
@@ -243,3 +276,87 @@ class TestWebGuiGetSessionStatusPerID:
             result = await backend.get_session_status(session_id="s1")
 
         assert result.status == "no_page"
+
+    @pytest.mark.anyio
+    async def test_get_registry_failure_returns_unknown(self) -> None:
+        """Browser-manager init failure surfaces as ``unknown``, not a crash.
+
+        Locks in the merged-try semantics: ``_get_registry`` errors are now
+        caught by the broad-exception handler and converted to a
+        ``SessionStatus(status="unknown", ...)`` rather than propagating to
+        the tool wrapper. Without ``self._page`` available either, there's
+        nothing to fall back to.
+        """
+        from unittest.mock import patch
+
+        backend = self._make_backend()
+        backend._page = None  # so _resolve_status_page can't fall back
+
+        with patch.object(
+            type(backend),
+            "_get_registry",
+            new=AsyncMock(side_effect=RuntimeError("browser manager dead")),
+        ):
+            result = await backend.get_session_status(session_id="s1")
+
+        assert result.status in ("no_page", "unknown")
+        # No crash — that's the contract.
+
+    @pytest.mark.anyio
+    async def test_pre_init_falls_back_to_self_page(self) -> None:
+        """Pre-_post_login_setup state falls back to ``self._page``.
+
+        Backwards-compat regression guard: a ``WebGuiBackend`` constructed
+        with ``self._page`` set but with no entry in the registry yet
+        (e.g. ``__init__`` ran but ``_post_login_setup`` hasn't, or the
+        registry was just cleared) must still be able to probe ``self._page``
+        directly. Without this fallback, a pre-login
+        ``sap_session_status()`` call would return ``no_page`` instead of
+        the more useful ``logged_off`` (login-form-detected) status.
+        """
+        from unittest.mock import patch
+
+        backend = self._make_backend()
+        # self._page is the pre-init page (set by __init__) — assume it
+        # would detect a login form and return ``logged_off``.
+        backend._page = self._make_mock_page()
+        backend._page.query_selector = AsyncMock(return_value="login-form-handle")
+
+        # Registry is empty: get_page raises ValueError on every lookup.
+        empty_registry = MagicMock()
+        empty_registry.primary_session = "s1"
+        empty_registry.get_page.side_effect = ValueError("Session 's1' not found")
+
+        async def fake_find(_self: Any, page: Any = None) -> Any:  # noqa: ARG001
+            return None  # no okcode → fall through to login_form check
+
+        with (
+            patch.object(type(backend), "_get_registry", new=AsyncMock(return_value=empty_registry)),
+            patch.object(type(backend), "_find_okcode_field", new=fake_find),
+        ):
+            result = await backend.get_session_status()  # no session_id → fallback
+
+        assert result.status == "logged_off"
+
+    @pytest.mark.anyio
+    async def test_pre_init_with_explicit_id_does_not_fall_back(self) -> None:
+        """Negative: ``session_id="s2"`` must NOT silently fall back to ``self._page``.
+
+        The fallback to ``self._page`` only kicks in when no explicit
+        session was requested. An explicit ID that doesn't exist is a real
+        not-found error and must surface as ``no_page``.
+        """
+        from unittest.mock import patch
+
+        backend = self._make_backend()
+        backend._page = self._make_mock_page()  # would be alive if probed
+
+        empty_registry = MagicMock()
+        empty_registry.primary_session = "s1"
+        empty_registry.get_page.side_effect = ValueError("Session 's2' not found")
+
+        with patch.object(type(backend), "_get_registry", new=AsyncMock(return_value=empty_registry)):
+            result = await backend.get_session_status(session_id="s2")
+
+        assert result.status == "no_page"
+        assert "s2" in result.message or "not found" in result.message

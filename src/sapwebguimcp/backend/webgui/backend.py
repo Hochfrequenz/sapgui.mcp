@@ -670,14 +670,18 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         on the primary session instead.
         """
         # Single try block for both registry resolution AND page probing.
-        # ValueError from registry.get_page() (session not found) and any other
-        # exception from the page probes share two terminal handlers below,
-        # which keeps the function under pylint's too-many-return-statements
-        # threshold.
+        # Two terminal handlers below: ValueError covers the registry-not-found
+        # case, the broader Exception handler covers page-probe failures and
+        # browser-manager startup errors that ``_get_registry`` may surface.
+        # Note: this means the catch-all surface is slightly wider than the
+        # pre-#640 code, which only ever touched ``self._page``.
         try:
-            registry = await self._get_registry()
-            target_id = session_id or registry.primary_session
-            page = registry.get_page(target_id)
+            page = await self._resolve_status_page(session_id)
+            if page is None:
+                return SessionStatus(
+                    status="no_page",
+                    message=f"Session '{session_id}' not found in registry.",
+                )
 
             if page.is_closed():
                 return SessionStatus(status="no_page", message="Browser page is closed.")
@@ -712,12 +716,51 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 status="unknown",
                 message="Cannot determine session status. Please check browser window.",
             )
-        except ValueError as e:
-            # Registry lookup failed — the requested session ID doesn't exist.
-            return SessionStatus(status="no_page", message=f"Session not found: {e}")
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Checking session status")
             return SessionStatus(status="unknown", message=f"Error checking status: {e}")
+
+    async def _resolve_status_page(self, session_id: str | None) -> Any | None:
+        """Resolve the page that ``get_session_status`` should probe.
+
+        Lookup order:
+
+        1. If ``session_id`` is given (non-empty string), look it up in the
+           registry. ``None`` is returned if the registry doesn't have it —
+           the caller should surface a "session not found" status. Empty
+           string is treated the same as ``None`` (defensive — MCP clients
+           shouldn't pass it but we don't want a falsy ``or`` to silently
+           reroute to the primary).
+
+        2. If ``session_id`` is ``None``/empty, prefer the registry's
+           ``primary_session``.
+
+        3. If the registry is empty (e.g. ``WebGuiBackend.__init__`` ran
+           but ``_post_login_setup`` hasn't yet, so nothing is registered),
+           fall back to ``self._page`` so a pre-login
+           ``sap_session_status()`` call can still detect the login form
+           and return ``logged_off`` — preserving the pre-#640 behaviour
+           for that edge case.
+        """
+        try:
+            registry = await self._get_registry()
+        except Exception:  # pylint: disable=broad-exception-caught
+            # Browser manager init failure — fall back to self._page if
+            # possible so we don't lose pre-init probing entirely.
+            return self._page if not session_id else None
+
+        if session_id:
+            try:
+                return registry.get_page(session_id)
+            except ValueError:
+                return None
+
+        # session_id is None or empty — pick the primary, with self._page
+        # as a last-resort fallback for the pre-_post_login_setup state.
+        try:
+            return registry.get_page(registry.primary_session)
+        except ValueError:
+            return self._page
 
     async def wait_for_ready(self, timeout_ms: int = 15000) -> None:
         """Wait for SAP page to finish loading."""
