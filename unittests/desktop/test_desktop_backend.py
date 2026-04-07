@@ -212,12 +212,13 @@ class TestDesktopBackendFillField:
         backend.com = MagicMock()
         backend.com.run = mock_run
 
-        with patch(
-            "sapwebguimcp.backend.desktop.find_field_by_label",
-            return_value=field_mock,
-        ):
-            await backend.fill_field("Material", "123")
-            assert field_mock.Text == "123"
+        with patch("sapwebguimcp.backend.desktop._dump_flat_tree", return_value=[]):
+            with patch(
+                "sapwebguimcp.backend.desktop.find_field_by_label",
+                return_value=field_mock,
+            ):
+                await backend.fill_field("Material", "123")
+                assert field_mock.Text == "123"
 
     @pytest.mark.anyio
     async def test_fill_field_raises_when_not_found(self):
@@ -233,12 +234,13 @@ class TestDesktopBackendFillField:
         backend.com = MagicMock()
         backend.com.run = mock_run
 
-        with patch(
-            "sapwebguimcp.backend.desktop.find_field_by_label",
-            return_value=None,
-        ):
-            with pytest.raises(ValueError, match="Field not found"):
-                await backend.fill_field("Missing", "val")
+        with patch("sapwebguimcp.backend.desktop._dump_flat_tree", return_value=[]):
+            with patch(
+                "sapwebguimcp.backend.desktop.find_field_by_label",
+                return_value=None,
+            ):
+                with pytest.raises(ValueError, match="Field not found"):
+                    await backend.fill_field("Missing", "val")
 
 
 class TestDesktopBackendClickButton:
@@ -374,7 +376,7 @@ class TestDesktopBackendFillForm:
         field2.com = field2
         field2.Type = "GuiTextField"
 
-        def mock_find(session, label, **kwargs):
+        def mock_find(session, label, flat_tree, **kwargs):
             return {"Material": field1, "Plant": field2}.get(label)
 
         session = make_mock_session()
@@ -387,15 +389,16 @@ class TestDesktopBackendFillForm:
         backend.com = MagicMock()
         backend.com.run = mock_run
 
-        with patch(
-            "sapwebguimcp.backend.desktop.find_field_by_label",
-            side_effect=mock_find,
-        ):
-            result = await backend.fill_form({"Material": "123", "Plant": "1000"})
-            assert result.success is True
-            assert result.filled == ["Material", "Plant"]
-            assert field1.Text == "123"
-            assert field2.Text == "1000"
+        with patch("sapwebguimcp.backend.desktop._dump_flat_tree", return_value=[]):
+            with patch(
+                "sapwebguimcp.backend.desktop.find_field_by_label",
+                side_effect=mock_find,
+            ):
+                result = await backend.fill_form({"Material": "123", "Plant": "1000"})
+                assert result.success is True
+                assert result.filled == ["Material", "Plant"]
+                assert field1.Text == "123"
+                assert field2.Text == "1000"
 
     @pytest.mark.anyio
     async def test_fill_form_reports_not_found(self):
@@ -411,13 +414,14 @@ class TestDesktopBackendFillForm:
         backend.com = MagicMock()
         backend.com.run = mock_run
 
-        with patch(
-            "sapwebguimcp.backend.desktop.find_field_by_label",
-            return_value=None,
-        ):
-            result = await backend.fill_form({"Missing": "val"})
-            assert result.success is False
-            assert "Missing" in result.not_found
+        with patch("sapwebguimcp.backend.desktop._dump_flat_tree", return_value=[]):
+            with patch(
+                "sapwebguimcp.backend.desktop.find_field_by_label",
+                return_value=None,
+            ):
+                result = await backend.fill_form({"Missing": "val"})
+                assert result.success is False
+                assert "Missing" in result.not_found
 
 
 # ---- Phase 3: Editor + Popup ----

@@ -43,6 +43,18 @@ def _flatten(tree: list[Any]) -> list[Any]:
     return result
 
 
+def _dump_flat_tree(session: Any, wnd_id: str = "wnd[0]") -> list[Any]:
+    """Dump and flatten the ``usr`` subtree of the given window.
+
+    Centralises the ``find_by_id(...)/dump_tree()/_flatten()`` idiom so that
+    callers in the desktop backend can compute the flat tree once and pass it
+    into ``find_field_by_label`` (and its tree-using strategy helpers) without
+    each helper redundantly re-dumping the tree.
+    """
+    usr = session.find_by_id(f"{wnd_id}/usr")
+    return _flatten(usr.dump_tree())
+
+
 def _extract_container_path(label_id: str, wnd_id: str = "wnd[0]") -> str:
     """Extract container path from a label's full ID.
 
@@ -67,18 +79,25 @@ def _find_by_name_prefix(session: Any, label_name: str, path_prefix: str = "wnd[
     return None
 
 
-def _find_by_label_text(session: Any, label: str, wnd_id: str = "wnd[0]") -> Any | None:
-    """Strategy 2: Walk usr subtree, find label matching text, then find field via name prefix.
+def _find_by_label_text(
+    session: Any,
+    label: str,
+    flat_tree: list[Any],
+    wnd_id: str = "wnd[0]",
+) -> Any | None:
+    """Strategy 2: Find a field via a matching ``GuiLabel`` in ``flat_tree``.
+
+    The caller is responsible for providing a flat tree (typically via
+    :func:`_dump_flat_tree`). This helper no longer fetches its own tree so
+    that batch callers like ``desktop.fill_form`` can share one tree across
+    many label lookups.
 
     Prefers exact match (after stripping) over substring match.
     """
-    usr = session.find_by_id(f"{wnd_id}/usr")
-    tree = usr.dump_tree()
-    flat = _flatten(tree)
     needle = label.strip().lower()
 
     # First pass: exact match
-    for elem in flat:
+    for elem in flat_tree:
         if elem.type_as_number == _TYPE_LABEL and elem.text.strip().lower() == needle:
             path_prefix = _extract_container_path(elem.id, wnd_id=wnd_id)
             field = _find_by_name_prefix(session, elem.name, path_prefix)
@@ -86,7 +105,7 @@ def _find_by_label_text(session: Any, label: str, wnd_id: str = "wnd[0]") -> Any
                 return field
 
     # Second pass: substring match
-    for elem in flat:
+    for elem in flat_tree:
         if elem.type_as_number == _TYPE_LABEL and needle in elem.text.strip().lower():
             path_prefix = _extract_container_path(elem.id, wnd_id=wnd_id)
             field = _find_by_name_prefix(session, elem.name, path_prefix)
@@ -97,26 +116,30 @@ def _find_by_label_text(session: Any, label: str, wnd_id: str = "wnd[0]") -> Any
 
 
 def _find_by_readonly_textfield_label(  # pylint: disable=too-many-locals
-    session: Any, label: str, wnd_id: str = "wnd[0]"
+    session: Any,
+    label: str,
+    flat_tree: list[Any],
 ) -> Any | None:
-    """Strategy 3: Non-changeable GuiTextField acting as visual label.
+    """Strategy 3: Non-changeable ``GuiTextField`` acting as visual label.
 
-    SAP address screens use read-only GuiTextField (type 31, changeable=False) as
-    labels. Examples: "Straße/Hausnummer", "Postleitzahl/Ort".
+    SAP address screens use read-only ``GuiTextField`` (type 31,
+    ``changeable=False``) as labels. Examples: "Straße/Hausnummer",
+    "Postleitzahl/Ort".
 
-    For composite labels containing "/", the label text is split and each part is
-    matched to the consecutive changeable input fields that follow the label in the
-    flat tree. Example: "Straße" → ADDR2_DATA-STREET, "Hausnummer" → ADDR2_DATA-HOUSE_NUM1.
+    For composite labels containing ``"/"``, the label text is split and each
+    part is matched to the consecutive changeable input fields that follow the
+    label in the flat tree. Example: "Straße" → ``ADDR2_DATA-STREET``,
+    "Hausnummer" → ``ADDR2_DATA-HOUSE_NUM1``.
 
-    Also supports the full composite text (e.g. "Straße/Hausnummer" → first field).
+    Also supports the full composite text (e.g. "Straße/Hausnummer" → first
+    field).
+
+    The caller provides ``flat_tree``; this helper no longer dumps its own.
     """
-    usr = session.find_by_id(f"{wnd_id}/usr")
-    tree = usr.dump_tree()
-    flat = _flatten(tree)
     needle = label.strip().lower()
     input_types = {_TYPE_TEXT_FIELD, _TYPE_CTEXT_FIELD, _TYPE_PASSWORD_FIELD, _TYPE_COMBOBOX}
 
-    for i, elem in enumerate(flat):
+    for i, elem in enumerate(flat_tree):
         # Only consider non-changeable text fields as labels
         if elem.type_as_number != _TYPE_TEXT_FIELD or elem.changeable:
             continue
@@ -126,8 +149,8 @@ def _find_by_readonly_textfield_label(  # pylint: disable=too-many-locals
 
         # Collect consecutive changeable input fields that follow this label
         following_inputs: list[Any] = []
-        for j in range(i + 1, len(flat)):
-            sibling = flat[j]
+        for j in range(i + 1, len(flat_tree)):
+            sibling = flat_tree[j]
             if sibling.type_as_number in input_types and sibling.changeable:
                 following_inputs.append(sibling)
             elif sibling.type_as_number in input_types and not sibling.changeable:
@@ -165,16 +188,28 @@ def _find_by_sap_name(session: Any, label: str, wnd_id: str = "wnd[0]") -> Any |
     return None
 
 
-def find_field_by_label(session: Any, label: str, wnd_id: str = "wnd[0]") -> Any | None:
+def find_field_by_label(
+    session: Any,
+    label: str,
+    flat_tree: list[Any],
+    wnd_id: str = "wnd[0]",
+) -> Any | None:
     """Find an input field by its associated label text.
 
+    The caller must provide a ``flat_tree`` (typically obtained via
+    :func:`_dump_flat_tree`). Strategies 2 and 3 walk this list directly
+    instead of dumping their own tree, so a batch caller like
+    ``desktop.fill_form`` can hoist the dump out of its per-field loop.
+
     Strategies (tried in order):
-    1. Name-prefix convention: label lblFOO -> try txtFOO, ctxtFOO, pwdFOO, cmbFOO
-    2. Recursive label text match: walk usr subtree, find label matching text,
-       then find associated field via name prefix
-    3. Read-only text field label: non-changeable GuiTextField as visual label,
-       supports composite labels like "Straße/Hausnummer"
-    4. find_by_name fallback: use SAP's native FindByName
+
+    1. Name-prefix convention: label ``lblFOO`` -> try ``txtFOO``, ``ctxtFOO``,
+       ``pwdFOO``, ``cmbFOO``
+    2. Recursive label text match: walk ``flat_tree``, find label matching
+       text, then find associated field via name prefix
+    3. Read-only text field label: non-changeable ``GuiTextField`` as visual
+       label, supports composite labels like "Straße/Hausnummer"
+    4. ``find_by_name`` fallback: use SAP's native ``FindByName``
     """
     # Strategy 1: direct name prefix
     field = _find_by_name_prefix(session, label, path_prefix=f"{wnd_id}/usr/")
@@ -183,13 +218,13 @@ def find_field_by_label(session: Any, label: str, wnd_id: str = "wnd[0]") -> Any
         return field
 
     # Strategy 2: label text match (GuiLabel type 30)
-    field = _find_by_label_text(session, label, wnd_id=wnd_id)
+    field = _find_by_label_text(session, label, flat_tree, wnd_id=wnd_id)
     if field is not None:
         logger.debug("find_field", extra={"label": label, "strategy": "label_text"})
         return field
 
     # Strategy 3: read-only text field label (composite labels like "Straße/Hausnummer")
-    field = _find_by_readonly_textfield_label(session, label, wnd_id=wnd_id)
+    field = _find_by_readonly_textfield_label(session, label, flat_tree)
     if field is not None:
         logger.debug("find_field", extra={"label": label, "strategy": "readonly_textfield_label"})
         return field

@@ -1161,7 +1161,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "- Need to click buttons between fills\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
-            '- session="s2": Targets specific session (for parallel agents)'
+            '- session="s2": Targets specific session (for parallel agents)\n\n'
+            "**Example payload:**\n"
+            '`{"fields": {"Vorname": "Mario", "Nachname": "Rossi"}, "strict": false}`'
         )
     )
     async def sap_fill_form(

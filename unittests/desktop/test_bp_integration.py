@@ -127,6 +127,56 @@ async def test_bp_fill_form_with_dropdown(backend):
 
 
 @pytest.mark.anyio
+async def test_bp_fill_form_seven_fields_under_timeout(backend):
+    """Regression for #627: fill_form with 7 BP fields completes in one call.
+
+    Before the dump_tree hoist fix, this exact scenario timed out on the MCP
+    client because each find_field_by_label call re-dumped the GUI tree.
+    With the fix it should complete in well under 5 seconds wall-clock.
+    """
+    import time
+
+    await backend.enter_transaction("BP")
+    await backend.press_key("F5")  # Create person
+    await backend.wait(1000)
+    await backend.press_key("Enter")
+    await backend.wait(1000)
+
+    # Seven labelled fields — the size that triggered #627. Mix of plain
+    # labels and dropdown. Field labels are German because that's the
+    # original repro language.
+    payload = {
+        "Anrede": "Herr",
+        "Vorname": "Mario",
+        "Nachname": "Rossi",
+        "Land": "DE",
+        "Strasse": "Hauptstraße 1",
+        "Postleitzahl": "10115",
+        "Ort": "Berlin",
+    }
+
+    start = time.monotonic()
+    result = await backend.fill_form(payload)
+    elapsed = time.monotonic() - start
+
+    # Soft wall-clock assertion — generous to absorb CI host load. Pre-fix
+    # this scenario regularly took >> 30s and timed out the MCP client.
+    assert elapsed < 5.0, (
+        f"fill_form took {elapsed:.2f}s for 7 fields — likely a regression of "
+        f"#627 (dump_tree no longer hoisted out of the per-field loop)."
+    )
+
+    # Most fields should land. Some labels (e.g. Anrede as dropdown) may
+    # vary by SAP version — assert the perf invariant first, behaviour
+    # second.
+    assert result.success or len(result.filled) >= 5, (
+        f"Expected at least 5 of 7 fields filled, got: filled={result.filled}, "
+        f"not_found={result.not_found}, errors={result.errors}"
+    )
+    await go_home(backend)
+
+
+@pytest.mark.anyio
 async def test_bp_get_dropdown_options_anrede(backend):
     """get_dropdown_options returns Anrede options, and setting one changes the snapshot."""
     await backend.enter_transaction("BP")
