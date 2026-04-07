@@ -78,6 +78,7 @@ async def sap_session_close_impl(session_id: str) -> SessionCloseResult:
 async def sap_session_bind_impl(
     session_id: str,
     agent_id: str,
+    *,
     force: bool = False,
 ) -> SessionBindResult:
     """Bind a session to an agent.
