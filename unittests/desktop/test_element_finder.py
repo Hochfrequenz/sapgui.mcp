@@ -75,7 +75,7 @@ class TestFindFieldByLabelNamePrefix:
             [],
             find_by_id_extras={"wnd[0]/usr/txtMATNR": txt_field},
         )
-        result = find_field_by_label(session, "MATNR")
+        result = find_field_by_label(session, "MATNR", [])
         assert result is txt_field
 
     def test_finds_ctext_field_by_name(self):
@@ -84,7 +84,7 @@ class TestFindFieldByLabelNamePrefix:
             [],
             find_by_id_extras={"wnd[0]/usr/ctxtMATNR": ctxt_field},
         )
-        result = find_field_by_label(session, "MATNR")
+        result = find_field_by_label(session, "MATNR", [])
         assert result is ctxt_field
 
     def test_returns_none_when_no_match(self):
@@ -92,7 +92,7 @@ class TestFindFieldByLabelNamePrefix:
         # Make find_by_name raise so strategy 4 also fails
         usr = session.find_by_id("wnd[0]/usr")
         usr.find_by_name.side_effect = Exception("not found")
-        result = find_field_by_label(session, "NONEXISTENT")
+        result = find_field_by_label(session, "NONEXISTENT", [])
         assert result is None
 
 
@@ -107,11 +107,12 @@ class TestFindFieldByLabelText:
             elem_id="wnd[0]/usr/lblMATNR",
         )
         txt_field = MagicMock()
+        flat_tree = [label_elem]
         session = _make_session_with_tree(
-            [label_elem],
+            flat_tree,
             find_by_id_extras={"wnd[0]/usr/txtMATNR": txt_field},
         )
-        result = find_field_by_label(session, "Material")
+        result = find_field_by_label(session, "Material", flat_tree)
         assert result is txt_field
 
     def test_case_insensitive_label_match(self):
@@ -122,11 +123,12 @@ class TestFindFieldByLabelText:
             elem_id="wnd[0]/usr/lblBUKRS",
         )
         ctxt_field = MagicMock()
+        flat_tree = [label_elem]
         session = _make_session_with_tree(
-            [label_elem],
+            flat_tree,
             find_by_id_extras={"wnd[0]/usr/ctxtBUKRS": ctxt_field},
         )
-        result = find_field_by_label(session, "company code")
+        result = find_field_by_label(session, "company code", flat_tree)
         assert result is ctxt_field
 
 
@@ -139,7 +141,7 @@ class TestFindFieldByLabelSapName:
         usr = session.find_by_id("wnd[0]/usr")
         usr.find_by_name.return_value = field_mock
 
-        result = find_field_by_label(session, "SOME_FIELD")
+        result = find_field_by_label(session, "SOME_FIELD", [])
         assert result is field_mock
 
 
@@ -269,11 +271,12 @@ class TestFindByReadonlyTextfieldLabel:
             changeable=True,
         )
         street_mock = MagicMock()
+        flat_tree = [label, street, house]
         session = _make_session_with_tree(
-            [label, street, house],
+            flat_tree,
             find_by_id_extras={"wnd[0]/usr/ctxtADDR2_DATA-STREET": street_mock},
         )
-        result = find_field_by_label(session, "Straße/Hausnummer")
+        result = find_field_by_label(session, "Straße/Hausnummer", flat_tree)
         assert result is street_mock
 
     def test_composite_part_resolves_to_correct_field(self):
@@ -300,11 +303,12 @@ class TestFindByReadonlyTextfieldLabel:
             changeable=True,
         )
         house_mock = MagicMock()
+        flat_tree = [label, street, house]
         session = _make_session_with_tree(
-            [label, street, house],
+            flat_tree,
             find_by_id_extras={"wnd[0]/usr/txtADDR2_DATA-HOUSE_NUM1": house_mock},
         )
-        result = find_field_by_label(session, "Hausnummer")
+        result = find_field_by_label(session, "Hausnummer", flat_tree)
         assert result is house_mock
 
     def test_non_composite_readonly_label(self):
@@ -324,11 +328,12 @@ class TestFindByReadonlyTextfieldLabel:
             changeable=True,
         )
         field_mock = MagicMock()
+        flat_tree = [label, field]
         session = _make_session_with_tree(
-            [label, field],
+            flat_tree,
             find_by_id_extras={"wnd[0]/usr/txtREMARK": field_mock},
         )
-        result = find_field_by_label(session, "Bemerkungen")
+        result = find_field_by_label(session, "Bemerkungen", flat_tree)
         assert result is field_mock
 
     def test_no_following_inputs_returns_none(self):
@@ -340,11 +345,12 @@ class TestFindByReadonlyTextfieldLabel:
             elem_id="wnd[0]/usr/txtLABEL1",
             changeable=False,
         )
-        session = _make_session_with_tree([label])
+        flat_tree = [label]
+        session = _make_session_with_tree(flat_tree)
         # Ensure Strategy 4 (FindByName) also returns nothing
         usr = session.find_by_id("wnd[0]/usr")
         usr.find_by_name.return_value = None
-        result = find_field_by_label(session, "Hinweis")
+        result = find_field_by_label(session, "Hinweis", flat_tree)
         assert result is None
 
 
