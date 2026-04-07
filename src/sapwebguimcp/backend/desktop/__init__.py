@@ -31,6 +31,7 @@ from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistr
 #: MUST be read on the async side (in require_session), NEVER inside a ComThread lambda.
 _current_session_id: ContextVar[str | None] = ContextVar("_current_session_id", default=None)
 from sapwebguimcp.backend.desktop._element_finder import (
+    _dump_flat_tree,
     _flatten,
     find_button_by_label,
     find_checkbox_by_label,
@@ -926,7 +927,8 @@ class DesktopBackend:
 
         def _fill() -> None:
             wnd_id = _active_window_id(session)
-            field = find_field_by_label(session, label, wnd_id=wnd_id)
+            flat_tree = _dump_flat_tree(session, wnd_id)
+            field = find_field_by_label(session, label, flat_tree, wnd_id=wnd_id)
             if field is None:
                 raise ValueError(f"Field not found: {label}")
             _set_field_value(_unwrap_com(field), value)
@@ -940,8 +942,9 @@ class DesktopBackend:
 
         def _fill() -> bool:
             wnd_id = _active_window_id(session)
+            flat_tree = _dump_flat_tree(session, wnd_id)
             for lbl in labels:
-                field = find_field_by_label(session, lbl, wnd_id=wnd_id)
+                field = find_field_by_label(session, lbl, flat_tree, wnd_id=wnd_id)
                 if field is not None:
                     _set_field_value(_unwrap_com(field), value)
                     return True
@@ -958,12 +961,13 @@ class DesktopBackend:
 
         def _fill() -> dict[str, Any]:
             wnd_id = _active_window_id(session)
+            flat_tree = _dump_flat_tree(session, wnd_id)
             filled: list[str] = []
             not_found: list[str] = []
             errors: list[dict[str, str]] = []
             for label, value in fields.items():
                 try:
-                    field = find_field_by_label(session, label, wnd_id=wnd_id)
+                    field = find_field_by_label(session, label, flat_tree, wnd_id=wnd_id)
                     if field is None:
                         not_found.append(label)
                         continue
@@ -1101,7 +1105,8 @@ class DesktopBackend:
             cmb = find_combobox_by_label(session, label, wnd_id=wnd_id)
             if cmb is None:
                 # Also try find_field_by_label as fallback
-                cmb = find_field_by_label(session, label, wnd_id=wnd_id)
+                flat_tree = _dump_flat_tree(session, wnd_id)
+                cmb = find_field_by_label(session, label, flat_tree, wnd_id=wnd_id)
             if cmb is None:
                 return {"success": False, "error_message": f"Dropdown not found: {label}"}
             try:
@@ -1144,7 +1149,8 @@ class DesktopBackend:
                         extra={"field_name": accessible_name, "prefix": prefix, "error": str(exc)},
                     )
             # Strategy 2: label-based search (slower)
-            field = find_field_by_label(session, accessible_name, wnd_id=wnd_id)
+            flat_tree = _dump_flat_tree(session, wnd_id)
+            field = find_field_by_label(session, accessible_name, flat_tree, wnd_id=wnd_id)
             if field is None:
                 return False
             _set_field_value(_unwrap_com(field), text)
