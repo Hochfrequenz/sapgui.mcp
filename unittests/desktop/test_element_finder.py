@@ -444,8 +444,9 @@ class TestFillFormDumpTreeCount:
         # Reset the call count after construction-time access
         usr.dump_tree.reset_mock()
 
-        # Call find_field_by_label five times the way fill_form does it:
-        # one shared flat_tree, reused across iterations.
+        # Verifies the helper contract: find_field_by_label must not call
+        # dump_tree when given a pre-built flat_tree. (The production caller
+        # in desktop/__init__.py is covered separately by the next test.)
         flat_tree = _dump_flat_tree(session)
         for label_text, _ in labels_and_fields:
             result = find_field_by_label(session, label_text, flat_tree)
@@ -493,7 +494,10 @@ class TestFillFormDumpTreeCount:
         usr = session.find_by_id("wnd[0]/usr")
         usr.dump_tree.reset_mock()
 
-        # Stub Com.run so it just executes the closure synchronously in this thread.
+        # Stub Com.run so it just executes the closure synchronously in this
+        # thread. com is a MagicMock so `com.run = fake_run` replaces the
+        # bound-method binding entirely — fake_run sees the callable as its
+        # only positional argument (no implicit self).
         com = MagicMock()
 
         async def fake_run(callable_):
@@ -501,7 +505,11 @@ class TestFillFormDumpTreeCount:
 
         com.run = fake_run
 
-        backend = DesktopBackend.__new__(DesktopBackend)  # bypass __init__
+        # Bypass DesktopBackend.__init__ to avoid spawning a real ComThread
+        # and DesktopSessionRegistry. fill_form only reads three attributes
+        # from self: `com` (for run), `_session` (via require_session), and
+        # `require_session` itself. We provide all three directly.
+        backend = DesktopBackend.__new__(DesktopBackend)
         backend.com = com
         backend._session = session  # noqa: SLF001 — direct assignment for test
         backend.require_session = lambda: session
