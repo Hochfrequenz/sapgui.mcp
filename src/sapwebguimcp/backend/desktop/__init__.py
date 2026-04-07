@@ -250,6 +250,12 @@ class DesktopBackend:
                     language=language,
                 )
             )
+            # Drop any prior sessions before registering. If the user closed
+            # SAP GUI externally and re-logged in, the old GuiSession proxy
+            # in the registry is dead but ``primary_session`` would still
+            # resolve to it (issue #633). Treating re-login as a reset gives
+            # us a fresh ``s1`` and unblocks every subsequent tool call.
+            self.registry.clear()
             self.registry.register(session)  # → "s1"
             user_name = await self.com.run(lambda: str(session.info.user))
             logger.info(
