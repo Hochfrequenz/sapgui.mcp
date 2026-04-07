@@ -10,6 +10,7 @@ from sapwebguimcp.models import (
     SessionReleaseResult,
     SessionResetResult,
 )
+from sapwebguimcp.models.session_registry import SessionBindConflictError
 
 __all__ = [
     "sap_session_list_impl",
@@ -74,12 +75,24 @@ async def sap_session_close_impl(session_id: str) -> SessionCloseResult:
         return SessionCloseResult.failure(f"Error closing session: {e}")
 
 
-async def sap_session_bind_impl(session_id: str, agent_id: str) -> SessionBindResult:
+async def sap_session_bind_impl(
+    session_id: str,
+    agent_id: str,
+    force: bool = False,
+) -> SessionBindResult:
     """Bind a session to an agent.
+
+    Strict by default (#643): if the session is already bound to a different
+    agent, the bind fails with a clear error and the LLM can either pick a
+    different session or retry with ``force=True``. Re-binding the same agent
+    is idempotent (no-op success).
 
     Args:
         session_id: Session to bind (e.g., "s2")
         agent_id: Agent identifier
+        force: Take over the binding even if another agent currently holds
+            it. Use only for crash recovery — prefer the strict default
+            otherwise so the conflict is surfaced to the LLM.
 
     Returns:
         SessionBindResult
@@ -92,7 +105,7 @@ async def sap_session_bind_impl(session_id: str, agent_id: str) -> SessionBindRe
             available = ", ".join(s.session_id for s in sessions) or "(none)"
             return SessionBindResult.failure(f"Session '{session_id}' not found. Active: {available}.")
 
-        old_agent = await backend.bind_session(session_id, agent_id)
+        old_agent = await backend.bind_session(session_id, agent_id, force=force)
 
         return SessionBindResult(
             session_id=session_id,
@@ -100,6 +113,14 @@ async def sap_session_bind_impl(session_id: str, agent_id: str) -> SessionBindRe
             previous_agent=old_agent,
         )
 
+    except SessionBindConflictError as conflict:
+        # Strict-bind conflict — surface a helpful message that points the
+        # LLM at the two recovery paths (different session, or force=True).
+        return SessionBindResult.failure(
+            f"Session '{conflict.session_id}' is already bound to agent "
+            f"'{conflict.current_agent}'. Pick a different session via "
+            f"sap_session_list, or retry with force=true to take over the binding."
+        )
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("Binding session", extra={"session_id": session_id, "agent_id": agent_id})
         return SessionBindResult.failure(f"Error binding session: {e}")

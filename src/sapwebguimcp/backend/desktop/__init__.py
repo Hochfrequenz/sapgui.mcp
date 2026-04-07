@@ -673,10 +673,15 @@ class DesktopBackend:
                 "errors": errors,
             }
 
-    async def bind_session(self, session_id: str, agent_id: str) -> str | None:
-        """Bind an agent to a session."""
+    async def bind_session(self, session_id: str, agent_id: str, *, force: bool = False) -> str | None:
+        """Bind an agent to a session.
+
+        Strict by default (#643): raises ``SessionBindConflictError`` if the
+        session is bound to a different agent. Pass ``force=True`` to take
+        over.
+        """
         prev = self.registry.get_bound_agent(session_id)
-        self.registry.bind(session_id, agent_id)
+        self.registry.bind(session_id, agent_id, force=force)
         return prev
 
     async def release_session(self, session_id: str) -> str | None:
