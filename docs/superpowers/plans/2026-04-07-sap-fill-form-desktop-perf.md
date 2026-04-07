@@ -49,7 +49,7 @@ Expected: all tests pass on the unmodified code. If they don't, stop and investi
 - [ ] **Step 3: Run the existing desktop backend tests as baseline**
 
 ```bash
-python -m pytest unittests/desktop/ -v --tb=short -k "not skip_no_sap"
+python -m pytest unittests/desktop/ -v --tb=short -k "not integration and not exploration and not stress"
 ```
 
 Expected: all non-`skip_no_sap` tests pass. (The integration tests under `skip_no_sap` won't run unless an SAP session is available — that's fine.)
@@ -582,13 +582,13 @@ Same reasoning as Step 5: only compute the tree when we actually need it, not un
 - [ ] **Step 7: Run the desktop unit tests**
 
 ```bash
-python -m pytest unittests/desktop/test_element_finder.py unittests/desktop/test_general_tools_integration.py -v --tb=short -k "not skip_no_sap"
+python -m pytest unittests/desktop/test_element_finder.py unittests/desktop/test_general_tools_integration.py -v --tb=short -k "not integration and not exploration and not stress"
 ```
 
 Expected: all pass. If something else in `unittests/desktop/` was already importing or calling these methods, run a broader sweep:
 
 ```bash
-python -m pytest unittests/desktop/ -v --tb=short -k "not skip_no_sap"
+python -m pytest unittests/desktop/ -v --tb=short -k "not integration and not exploration and not stress"
 ```
 
 Expected: all non-`skip_no_sap` tests pass.
@@ -941,7 +941,7 @@ only runs when an SAP session is available."
 - [ ] **Step 1: Run the entire desktop unit suite**
 
 ```bash
-python -m pytest unittests/desktop/ -v --tb=short -k "not skip_no_sap"
+python -m pytest unittests/desktop/ -v --tb=short -k "not integration and not exploration and not stress"
 ```
 
 Expected: all non-`skip_no_sap` tests pass.
@@ -949,7 +949,7 @@ Expected: all non-`skip_no_sap` tests pass.
 - [ ] **Step 2: Run the broader sapwebguimcp test suite that doesn't need SAP**
 
 ```bash
-python -m pytest unittests/ -v --tb=short -k "not skip_no_sap" -x
+python -m pytest unittests/ -v --tb=short -k "not integration and not exploration and not stress" -x
 ```
 
 Expected: no failures. The `-x` flag stops on the first failure so a regression is loud and immediate.
@@ -1054,7 +1054,7 @@ Print the PR URL returned by `gh pr create` and stop. **Do not merge.** The user
 ## Done criteria
 
 - [ ] All steps in Tasks 1–12 complete
-- [ ] `python -m pytest unittests/desktop/ -v -k "not skip_no_sap"` is green
+- [ ] `python -m pytest unittests/desktop/ -v -k "not integration and not exploration and not stress"` is green
 - [ ] `TestFillFormDumpTreeCount::test_fill_form_dumps_tree_once_for_many_fields` is green
 - [ ] PR open against `main`, not yet merged
 - [ ] Code reviewer agent has approved (or all flagged issues addressed)

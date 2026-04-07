@@ -526,3 +526,85 @@ class TestFillFormDumpTreeCount:
             f"Expected all {len(payload)} fields filled, got {result.filled}; "
             f"not_found={result.not_found}, errors={result.errors}"
         )
+
+    def test_strategy3_composite_label_does_not_dump_either(self):
+        """Strategy 3 (read-only-textfield-as-label) must also honor the
+        flat_tree contract — it was historically the worse offender (#627
+        commit 2fd35e8c added the second per-field dump). Without an
+        explicit Strategy 3 sub-test, a regression that re-introduces a
+        dump_tree call inside _find_by_readonly_textfield_label could slip
+        past the Strategy-2 tests above. Two composite-label fields here
+        force Strategy 3, not Strategy 2.
+        """
+        # Two composite labels, each acting as a Strategy 3 read-only label
+        # for a pair of address fields. The labels themselves have type
+        # _TYPE_TEXT_FIELD (31) with changeable=False, which is what makes
+        # Strategy 3 — not Strategy 2 — handle them.
+        street_label = _make_elem(
+            type_as_number=31,
+            name="ADDR2_KEYW-STREET",
+            text="Straße/Hausnummer",
+            elem_id="wnd[0]/usr/txtADDR2_KEYW-STREET",
+            changeable=False,
+        )
+        street_input = _make_elem(
+            type_as_number=32,
+            name="ADDR2_DATA-STREET",
+            text="",
+            elem_id="wnd[0]/usr/ctxtADDR2_DATA-STREET",
+            changeable=True,
+        )
+        house_input = _make_elem(
+            type_as_number=31,
+            name="ADDR2_DATA-HOUSE_NUM1",
+            text="",
+            elem_id="wnd[0]/usr/txtADDR2_DATA-HOUSE_NUM1",
+            changeable=True,
+        )
+        plz_label = _make_elem(
+            type_as_number=31,
+            name="ADDR2_KEYW-PLZ",
+            text="Postleitzahl/Ort",
+            elem_id="wnd[0]/usr/txtADDR2_KEYW-PLZ",
+            changeable=False,
+        )
+        plz_input = _make_elem(
+            type_as_number=32,
+            name="ADDR2_DATA-POST_CODE1",
+            text="",
+            elem_id="wnd[0]/usr/ctxtADDR2_DATA-POST_CODE1",
+            changeable=True,
+        )
+        ort_input = _make_elem(
+            type_as_number=32,
+            name="ADDR2_DATA-CITY1",
+            text="",
+            elem_id="wnd[0]/usr/ctxtADDR2_DATA-CITY1",
+            changeable=True,
+        )
+
+        flat_tree = [street_label, street_input, house_input, plz_label, plz_input, ort_input]
+        street_mock = MagicMock()
+        plz_mock = MagicMock()
+        session = _make_session_with_tree(
+            flat_tree,
+            find_by_id_extras={
+                "wnd[0]/usr/ctxtADDR2_DATA-STREET": street_mock,
+                "wnd[0]/usr/ctxtADDR2_DATA-POST_CODE1": plz_mock,
+            },
+        )
+        usr = session.find_by_id("wnd[0]/usr")
+        usr.dump_tree.reset_mock()
+
+        # Two Strategy 3 lookups against the same shared flat_tree.
+        for label_text in ("Straße/Hausnummer", "Postleitzahl/Ort"):
+            result = find_field_by_label(session, label_text, flat_tree)
+            assert result is not None, f"Strategy 3 did not find {label_text}"
+
+        assert usr.dump_tree.call_count == 0, (
+            f"_find_by_readonly_textfield_label called dump_tree "
+            f"{usr.dump_tree.call_count} times — should be 0 when given a "
+            f"pre-built flat_tree. This is the #627 regression in Strategy 3, "
+            f"which was historically the worse offender (the second per-field "
+            f"dump that turned a slow function into one that timed out)."
+        )
