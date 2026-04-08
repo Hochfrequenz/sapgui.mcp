@@ -1607,22 +1607,34 @@ Args:
 
     @mcp.tool(
         description=(
-            "Bind a session to an agent for parallel workflow management. "
-            "When bound, other agents using this session trigger warnings. "
-            "Use for transfer of session ownership between agents."
+            "Claim exclusive ownership of a SAP session for the calling agent. "
+            "Strict by default (#643): if the session is already bound to a "
+            "different agent, the call fails — pick a different session via "
+            "sap_session_list, or retry with force=true to take over (use only "
+            "for crash recovery, otherwise prefer leaving the existing binding "
+            "intact). Re-binding the same agent is a no-op success."
         )
     )
-    async def sap_session_bind(session_id: str, agent_id: str) -> SessionBindResult:
+    async def sap_session_bind(
+        session_id: str,
+        agent_id: str,
+        force: bool = False,
+    ) -> SessionBindResult:
         """Bind or rebind a session to an agent.
 
         Args:
             session_id: Session ID to bind (e.g., "s2")
             agent_id: Agent identifier claiming the session
+            force: Take over the binding even if another agent currently
+                holds it. Default False — strict bind. Use True only for
+                crash-recovery scenarios where you know the previous holder
+                is gone.
 
         Returns:
-            SessionBindResult with binding info
+            SessionBindResult with binding info, or .failure(...) if the
+            session is already bound to a different agent and force=False.
         """
-        return await sap_session_bind_impl(session_id, agent_id)
+        return await sap_session_bind_impl(session_id, agent_id, force=force)
 
     @mcp.tool(
         description=(

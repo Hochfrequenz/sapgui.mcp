@@ -1530,11 +1530,16 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         registry.unregister(session_id)
         return True
 
-    async def bind_session(self, session_id: str, agent_id: str) -> str | None:
-        """Bind an agent to a session. Returns previous agent_id or None."""
+    async def bind_session(self, session_id: str, agent_id: str, *, force: bool = False) -> str | None:
+        """Bind an agent to a session. Returns previous agent_id or None.
+
+        Strict by default (#643): raises ``SessionBindConflictError`` if the
+        session is bound to a different agent. Pass ``force=True`` to take
+        over.
+        """
         registry = await self._get_registry()
         old = registry.get_bound_agent(session_id)
-        registry.bind(session_id, agent_id)
+        registry.bind(session_id, agent_id, force=force)
         return old
 
     async def release_session(self, session_id: str) -> str | None:
