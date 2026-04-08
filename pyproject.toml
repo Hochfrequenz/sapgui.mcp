@@ -27,7 +27,7 @@ dependencies = [
     "pywin32>=306; sys_platform == 'win32'",
     "rapidfuzz>=3.0.0",  # Fuzzy string matching for catalog search
     "sap-mcp-config>=0.1.0",  # Shared SAP system credentials config
-    "sapsucker>=0.4.0",  # Typed SAP GUI Scripting wrapper (>=0.4.0 for GuiSession.GetObjectTree fast-path dump_tree, ~50x speedup)
+    "sapsucker>=0.5.1",  # Typed SAP GUI Scripting wrapper. >=0.5.1 for post-login client/user verification + parallel-multi-mandant safe behaviour (Hochfrequenz/sapsucker#24, #27); historically >=0.4.0 was required for GuiSession.GetObjectTree fast-path dump_tree (~50x speedup, used in 18 places).
 ]
 dynamic = ["readme", "version"]
 
