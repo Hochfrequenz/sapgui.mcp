@@ -157,14 +157,14 @@ python-dotenv==1.2.2
     #   fastmcp
     #   pydantic-settings
     #   sap-mcp-config
-python-multipart==0.0.22
+python-multipart==0.0.24
     # via mcp
 pyyaml==6.0.3
     # via
     #   fastmcp
     #   jsonschema-path
     #   sap-mcp-config
-rapidfuzz==3.14.3
+rapidfuzz==3.14.5
     # via sapwebguimcp (pyproject.toml)
 referencing==0.37.0
     # via
