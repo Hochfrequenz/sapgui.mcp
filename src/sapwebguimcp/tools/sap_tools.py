@@ -242,7 +242,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Log into SAP. "
             "On WebGUI: requires Chrome with --remote-debugging-port=9222 and VPN (if internal SAP). "
-            "On Desktop: requires SAP GUI for Windows with scripting enabled. "
+            "On Desktop: opens a NEW parallel session each call — re-login does NOT replace prior "
+            "logins. You can be logged into the same SAP Logon entry as multiple distinct "
+            "(client, user) tuples concurrently. The returned LoginResult.session_id is the registry "
+            "ID ('s1', 's2', ...) you pass on subsequent tool calls to address THIS specific login. "
+            "Use sap_session_list to see all currently active sessions. "
             "Credentials are read from ~/.config/sap-mcp/systems.json. "
             "Use system_key (dictionary key from systems.json) to select a non-default system. "
             "Call sap_list_connections first to see available system keys."
@@ -258,8 +262,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Log into SAP.
 
         On WebGUI, opens the SAP Web GUI URL and automatically logs in.
-        On Desktop, connects via SAP Logon and opens a new connection.
-        Credentials are read from ~/.config/sap-mcp/systems.json.
+        On Desktop, opens a NEW parallel session — see the tool description
+        above for the multi-session contract. Credentials are read from
+        ~/.config/sap-mcp/systems.json.
 
         Args:
             url: SAP Web GUI URL (WebGUI only). If not provided, derived from system host.
@@ -268,7 +273,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 Use sap_list_connections to see available keys. Defaults to default_system.
 
         Returns:
-            LoginResult indicating login success or what action is needed.
+            LoginResult with ``session_id`` set to the registry ID of the
+            new session ('s1', 's2', ...). Subsequent tools that take a
+            ``session`` / ``session_id`` parameter can use that ID to
+            address this specific login when multiple sessions are active.
         """
         session_id = getattr(ctx, "session_id", None) if ctx else None
         return await sap_login_impl(url=url, client=client, system_key=system_key, session_id=session_id)
@@ -1583,11 +1591,14 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
     @mcp.tool(description="""List all active SAP sessions.
 
-Returns session IDs, current transaction, and screen title for each.
-Use this to see what sessions exist before targeting one.
+Returns session IDs, current transaction, screen title, client, user, and
+system_name for each. Use this to see what sessions exist before targeting one.
 
-Primary session ("s1") is created on sap_login().
-Additional sessions created via sap_transaction(tcode, new_window=True).
+The first sap_login() registers "s1". Additional sessions come from:
+- repeated sap_login() calls (parallel multi-mandant — each new login adds
+  a session alongside the existing ones, not replacing them — see #671)
+- sap_transaction(tcode, new_window=True) (a /o sub-session of an existing
+  connection, sharing its login)
 """)
     async def sap_session_list() -> SessionListResult:
         """List all active sessions."""
@@ -1595,11 +1606,15 @@ Additional sessions created via sap_transaction(tcode, new_window=True).
 
     @mcp.tool(description="""Close a SAP session.
 
-Closes the browser tab and removes the session from the registry.
-Cannot close primary session ("s1") - use sap_login() to start fresh.
+Closes the underlying SAP GUI session/tab and removes it from the registry.
+Any session ID can be closed, including "s1". With the parallel-multi-mandant
+contract (#671), the registry can hold multiple concurrent logins and you may
+legitimately want to close any of them — including the lowest-numbered one.
+If you close the only remaining session, the next tool call will fail with
+a clear "no session" error and you should call sap_login() again.
 
 Args:
-    session_id: Session to close (e.g., "s2")
+    session_id: Session to close (e.g. "s1", "s2", ...)
 """)
     async def sap_session_close(session_id: str) -> SessionCloseResult:
         """Close a specific session."""

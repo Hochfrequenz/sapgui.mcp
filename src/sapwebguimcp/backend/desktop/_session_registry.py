@@ -115,13 +115,17 @@ class DesktopSessionRegistry:
     def clear(self) -> None:
         """Drop every session and binding, and reset the ID counter to 0.
 
-        Used by ``DesktopBackend.login()`` to ensure a re-login produces a
-        clean ``s1`` rather than incrementing into ``s2``, ``s3``, etc.
-        Without this, the old (now-dead) ``s1`` lingers and ``primary_session``
-        keeps resolving to it — see issue #633 for the failure mode.
+        **Not used by ``DesktopBackend.login()`` anymore** — issue #671
+        replaced the production "drop everything on re-login" path with
+        ``DesktopBackend._reconcile_locked()``, which probes every tracked
+        session and prunes only the dead ones. That preserves issue #633's
+        dead-session recovery contract while leaving live sessions intact
+        for the parallel-multi-mandant topology.
 
-        Multi-session state from ``open_new_session`` is also dropped:
-        re-login is treated as a desktop reset, not an addition.
+        ``clear()`` is still here as a test-only utility (and as the
+        backward-compat path for the ``DesktopBackend._session = None``
+        setter, which a few legacy tests use to reset state). Production
+        code should call :meth:`prune` via ``_reconcile_locked()`` instead.
         """
         had_sessions = bool(self._sessions)
         self._sessions.clear()
