@@ -38,10 +38,35 @@ def _multi_system_config() -> Config:
     )
 
 
-def _make_settings(backend_type: str = "desktop") -> MagicMock:
+def _two_host_config() -> Config:
+    """Config with two systems on *different* hosts (for URL-precedence tests)."""
+    return Config(
+        default_system="dev-100",
+        systems={
+            "dev-100": SAPSystem(
+                connection_name="DEV",
+                host="https://dev-sap.example.com:44300",
+                client="100",
+                user="dev_user",
+                password=SecretStr("dev_pass"),
+                language="DE",
+            ),
+            "prod-200": SAPSystem(
+                connection_name="PROD",
+                host="https://prod-sap.example.com:44300",
+                client="200",
+                user="prod_user",
+                password=SecretStr("prod_pass"),
+                language="EN",
+            ),
+        },
+    )
+
+
+def _make_settings(backend_type: str = "desktop", sap_url: str = "") -> MagicMock:
     settings = MagicMock()
     settings.backend_type = backend_type
-    settings.sap_url = ""
+    settings.sap_url = sap_url
     return settings
 
 
@@ -149,6 +174,142 @@ class TestSystemKeyResolution:
         assert result.success is False
         assert "nonexistent" in result.error
         assert "dev-100" in result.error
+
+
+class TestUrlPrecedenceForNonDefaultSystem:
+    """Regression coverage for issue #659.
+
+    Symptom: when ``SAP_URL`` is set in the environment (legacy single-system
+    setup) and the user picks a non-default system via ``system_key``, the
+    login navigates to the *default* system's URL but fills the form with the
+    chosen system's user/password/client. The end result is a session in the
+    default Mandant — never in the requested one.
+
+    Fix: when the resolved system has a ``host`` configured, that host wins
+    over ``settings.sap_url``. The explicit ``url`` argument still has the
+    highest priority.
+    """
+
+    @pytest.mark.anyio
+    async def test_system_host_wins_over_env_sap_url_for_explicit_key(self) -> None:
+        """system.host must win over settings.sap_url when system_key is given."""
+        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+
+        cfg = _two_host_config()
+        settings = _make_settings(
+            "webgui",
+            sap_url="https://dev-sap.example.com:44300/sap/bc/gui/sap/its/webgui?sap-client=100",
+        )
+        backend = _make_backend()
+
+        with (
+            patch(_PATCH_GET_SETTINGS, return_value=settings),
+            patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
+            patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
+        ):
+            await sap_login_impl(system_key="prod-200")
+
+        _, kwargs = backend.login.call_args
+        assert "prod-sap.example.com" in kwargs["url"], (
+            f"Expected prod-sap host, got {kwargs['url']!r}. "
+            "settings.sap_url is leaking through and overriding the chosen system's host."
+        )
+        assert kwargs["username"] == "prod_user"
+        assert kwargs["client"] == "200"
+
+    @pytest.mark.anyio
+    async def test_system_host_wins_over_env_sap_url_for_default_too(self) -> None:
+        """Even for the default system, the system's host should be authoritative.
+
+        This keeps URL resolution consistent: systems.json is the source of
+        truth, and ``SAP_URL`` is only a legacy fallback for systems that have
+        no ``host`` configured.
+        """
+        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+
+        cfg = _two_host_config()
+        settings = _make_settings(
+            "webgui",
+            sap_url="https://stale-legacy.example.com/sap/bc/gui/sap/its/webgui",
+        )
+        backend = _make_backend()
+
+        with (
+            patch(_PATCH_GET_SETTINGS, return_value=settings),
+            patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
+            patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
+        ):
+            await sap_login_impl()
+
+        _, kwargs = backend.login.call_args
+        assert "dev-sap.example.com" in kwargs["url"]
+        assert "stale-legacy" not in kwargs["url"]
+
+    @pytest.mark.anyio
+    async def test_explicit_url_argument_still_wins(self) -> None:
+        """An explicit ``url`` argument keeps top priority — it's the manual escape hatch."""
+        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+
+        cfg = _two_host_config()
+        settings = _make_settings(
+            "webgui",
+            sap_url="https://dev-sap.example.com:44300/sap/bc/gui/sap/its/webgui",
+        )
+        backend = _make_backend()
+
+        manual = "https://manual-override.example.com/sap/bc/gui/sap/its/webgui"
+        with (
+            patch(_PATCH_GET_SETTINGS, return_value=settings),
+            patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
+            patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
+        ):
+            await sap_login_impl(url=manual, system_key="prod-200")
+
+        _, kwargs = backend.login.call_args
+        assert kwargs["url"] == manual
+
+    @pytest.mark.anyio
+    async def test_env_sap_url_used_when_system_has_no_host(self) -> None:
+        """``settings.sap_url`` is the legacy fallback when ``host`` is empty.
+
+        Some users may still rely on ``SAP_URL`` from a pre-systems.json setup.
+        We must not break that path — only stop it from overriding a real host.
+        """
+        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+
+        cfg = Config(
+            default_system="legacy",
+            systems={
+                "legacy": SAPSystem(
+                    connection_name="LEGACY",
+                    host="https://legacy.example.com",  # required by Config validator
+                    client="100",
+                    user="legacy_user",
+                    password=SecretStr("legacy_pass"),
+                    language="DE",
+                ),
+            },
+        )
+        # The Config validator rejects an empty ``host`` at construction time,
+        # so we strip it on a copy to simulate the legacy fallback path.
+        legacy_system_no_host = cfg.systems["legacy"].model_copy(update={"host": ""})
+        cfg = cfg.model_copy(update={"systems": {"legacy": legacy_system_no_host}})
+
+        settings = _make_settings(
+            "webgui",
+            sap_url="https://from-env.example.com/sap/bc/gui/sap/its/webgui",
+        )
+        backend = _make_backend()
+
+        with (
+            patch(_PATCH_GET_SETTINGS, return_value=settings),
+            patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
+            patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
+        ):
+            await sap_login_impl()
+
+        _, kwargs = backend.login.call_args
+        assert kwargs["url"] == "https://from-env.example.com/sap/bc/gui/sap/its/webgui"
 
 
 class TestServerInstructions:
