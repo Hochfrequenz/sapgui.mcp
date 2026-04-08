@@ -1,0 +1,1820 @@
+SPRO Tree: Branchenkomponente Versorgungsindustrie (S/4 Utilities)
+Parsed from expanded SPRO HTML on 2026-04-08
+Total nodes: 1814
+Max depth: 8
+================================================================================
+
+Branchenkomponente Versorgungsindustrie
+  Kundenbeziehungen
+    Allgemeine Funktionen
+      Formulare definieren
+      Aktionsprofile definieren
+      Kontextmenü definieren
+      Generischen Interaction Layer/Object Layer erweitern
+      Utilities Business Layer Objekte definieren
+      Formulardefinition übersteuern
+      Definition der Aktionsprofile übersteuern
+      Definition der Utilities Business Layer Objekte übersteuern
+      Vorlagen für Utilities Geschäftspartnerbeziehungen definieren
+    Identifikation
+      Suchoptionen für Freitextsuche zum Geschäftspartner
+      Identifikationsprofile definieren
+      Anzahl der durch ein IC-Ereignis ausgelösten Ergebnisse einschränken
+      BAdI: Identifikation und Stammdaten
+    Technische Objekte
+      Zuordnung Stammdatenvorlage für technische Objekte
+    Geschäftspartnerübersicht
+      Define Time Line
+      Baumprofile zu Geschäftspartnerübersicht zuordnen
+      Vordefinierte Suchen nach Kontaktdaten pflegen
+      BAdI: Vordefinierte Suchen nach Kontaktdaten definieren
+    Einstellungen für Objekt-Workbench
+      Define Refresh Actions
+      Objekt-Workbench-Profile definieren
+      Objekthierarchie und Objektattribute definieren
+    Rechnungskorrektur
+      Funktionsprofil für Fakturierung einrichten
+      Abrechnungsprofil einrichten
+    Klärungsfälle
+      Parameter zum Anlegen von Klärungsfällen pflegen
+      BAdI zur Ermittlung von Hauptobjekt/Schlüssel
+    Vertriebsvertragsmanagement
+      Steuerung von Zeitperioden
+      BAdI: SD-Integration für Verkaufsvertrag
+      BAdI: SD-Integration
+      Grundlegende Prozessdefinition
+      Anpassung der Prozessdefinition (mandantenspezifisch)
+      Einstellungen für IS-U Vertragsintegration
+      Settings for Sales and Distribution Integration
+  Grundeinstellungen/Unternehmensstruktur
+    Buchungskreise - Sparten zuordnen
+    Sparten - Spartentypen zuordnen
+    Hilfsbuchungskreis - Buchungskreis zuordnen
+    Systemparameter für IS-U definieren
+    Vorschlagslayout für Register festlegen
+    Deregulierungseinstellungen festlegen
+    Deregulierung: Erweiterte Berechtigungsprüfung festlegen
+    Mengenermittlungsverfahren festlegen
+    Country/Region-Specific Functions
+  Grundfunktionen
+    Regionalstruktur
+      Postalische Regionalstruktur
+        Regionalstrukturgruppen definieren
+        Regionalstrukturbereiche
+          Regionalstrukturbereiche rollenspezifisch definieren
+          Regionalstrukturgruppen zu RegionalstrkBereichen zuordnen
+        Wasserdruckgebiete definieren
+        Wasserhärtegebiete definieren
+        Postleitzahlen
+          Notizen für Postleitzahlen definieren
+        Orte
+          Notizen für Orte definieren
+        Straßen
+          Notizen für Straßen definieren
+      Politische Regionalstruktur
+        Nummernkreise der politischen Regionalstruktur definieren
+        Politische Hierarchie definieren
+    Portionierung und Terminsteuerung
+      Steuerungsparameter der Terminsteuerung definieren
+      Suchhilfe für Parametersätze definieren
+      Parametersätze für Portionen definieren
+      Suchhilfe für Portionen definieren
+      Portionen definieren
+      Suchhilfe für Ableseeinheiten definieren
+      Ableseeinheiten definieren
+      Terminsätze generieren
+      Dynamische Terminsteuerung
+        Steuerungsparameter der dyn. Terminsteuerung definieren
+    Sachbearbeiterfindung
+      Aufbauorganisation bearbeiten
+      Aufgaben für Sachbearbeiterfindung zuordnen
+      Ersatzaufgaben für Sachbearbeiterfindung definieren
+  Stammdaten
+    Grundeinstellungen
+      Strukturkennzeichen und Typ der Technischen Plätze definier.
+      Berechtigungsobjektgruppe definieren
+      Berechtigungsgruppen definieren
+    Geschäftspartner
+      Einstellungen zum Anlegen von Standardkunden
+        Parameter zum Anlegen Musterkunde im Standard pflegen
+      Vertragspartner
+        Kontoklassen definieren
+        Bearbeiter-ID definieren
+      Installateur
+        Arten der Installationsfirmen definieren
+        Arbeitsfelder der Installationsfirmen definieren
+        Zulassungsarten der Installateure definieren
+        Status der Installateure definieren
+        Hauptversorgungsunternehmen definieren
+    Versorgungsvertrag
+      Nummernkreise für Versorgungsverträge definieren
+      Suchhilfe für Versorgungsverträge definieren
+      Register für Versorgungsverträge konfigurieren
+      Notizen für Versorgungsverträge definieren
+      Feldauswahl für Versorgungsverträge definieren
+      Bearbeitungsstatus definieren
+      Vertragsklasse definieren
+    Anschlussobjekt
+      Nummernkreise für Anschlussobjekte / Geräteplätze definieren
+      Suchhilfe für Anschlussobjekte definieren
+      Notizen für Anschlussobjekte definieren
+      Feldauswahl für Anschlussobjekte definieren
+      Feldauswahl für Adressdaten definieren
+    Verbrauchsstelle
+      Nummernkreise für Verbrauchsstellen definieren
+      Suchhilfe für Verbrauchsstellen definieren
+      Notizen für Verbrauchsstellen definieren
+      Feldauswahl für Verbrauchsstellen definieren
+      Verbrauchsstellenarten definieren
+      Zuordnung von Sparten zu Equipmenttypen vornehmen
+    Versorgungsanlage
+      Nummernkreise für Versorgunganlagen definieren
+      Suchhilfe für Versorgungsanlagen definieren
+      Notizen für Versorgungsanlagen definieren
+      Feldauswahl für Versorgungsanlagen definieren
+      Versorgungssicherheitsgründe definieren
+      Anlagenarten definieren
+      Spannungsebenen definieren
+      Gruppierungsarten von Anlagegruppen definieren
+      Anlagenrollen definieren
+      Anlagenrollen den Gruppierungsarten zuordnen
+    Zählpunkt
+      Nummernkreise für Zählpunktbezeichnungen definieren
+      Art des Zählpunkts definieren
+      Struktur der Zählpunktbezeichnung definieren
+      Zählpunktgruppen definieren
+      Vorbelegungslogik für die Zuordnung der Zählpunktgruppen definieren
+      Verwendungskontexte definieren
+    Geräteplatz
+      Suchhilfe für Geräteplätze definieren
+      Notizen für Geräteplätze definieren
+      Feldauswahl für Geräteplätze definieren
+  Geräteverwaltung
+    Technik
+      Grundeinstellungen
+        Kombination Gerätegrundtypen definieren
+        Sortierung Grundtypen im Gerätetyp/auf Arbeitsliste def.
+      Zählwerksgruppe
+        Nummernkreise für Zählwerksgruppen definieren
+        Suchhilfe für Zählwerksgruppen definieren
+        Anzeigearten der Zählwerke definieren
+        Zählwerkskennungen definieren
+        Zählwerksarten definieren
+        Maßeinheiten zu Zählwerkstypen zuordnen
+        Suchbegriffe für Zählwerksgruppen definieren
+        Erlaubte Werte für Zählwerkskennziffer definieren
+      Eingangs-/Ausgangsgruppe
+        Nummernkreise für Eingangs-/Ausgangsgruppen definieren
+        Suchhilfe für Eingangs-/Ausgangsgruppen definieren
+        Eingabe-/Ausgabetypen definieren
+        Funktionsarten definieren
+        Eingabe-/Ausgabewerte definieren
+        Eingabe-/Ausgabeanschlüsse definieren
+        Suchbegriffe für Eingangs-/Ausgangsgruppen definieren
+      Kommando und Kommandogruppe
+        Nummernkreise für Kommandogruppen definieren
+        Suchhilfe für Kommandogruppen definieren
+        Suchbegriffe für Kommandogruppen definieren
+      Wicklungsgruppe
+        Nummernkreise für Wicklungsgruppen definieren
+        Suchhilfe für Wicklungsgruppen definieren
+        Systemparameter für Wicklungsgruppen definieren
+        Güteklassen definieren
+        Wicklungsarten definieren
+        Wicklungsleistungen definieren
+        Suchbegriffe für Wicklungsgruppen definieren
+        Werte für Nennspannung definieren
+      Gerätetyp
+        Suchhilfe für Gerätetypen definieren
+        Notizen für Gerätetypen definieren
+        Hilfstabelle zur Angabe der Materialvorlage definieren
+        Funktionsklassen definieren
+        Bauklassen definieren
+        Hersteller definieren
+        Vorauskassezähler definieren
+        Zuordnung Hersteller/Typenbezeichnung zu Prüfnummer def.
+        Kombinationen von Hersteller/Herst.Typenbez. und G-Typ def.
+        Verlustbestimmungsgruppe für Transformatoren definieren
+        Kombination aus Nennleistung, Primär- u. Sekundärspannung definieren
+      Gerät
+        Suchhilfe für Geräte definieren
+        Gerät parametrieren
+        IS-U Equipmenttypen definieren
+        IS-U Equipmenttypen Klassenart zuordnen
+    Installation
+      Grundeinstellungen
+        Nummernkreise für logische Gerätenummern definieren
+        Nummernkreise für logische Zählwerksnummern definieren
+        Einbau/Ausbau/Wechselgründe definieren
+        Systemparameter für Einbau/Ausbau/Wechsel definieren
+      Geräteinfosatz
+        Systemparameter Geräteinfosatz definieren
+      Gerätegruppierung
+        Nummernkreise für Gerätegruppe definieren
+        Notizen für Gerätegruppen definieren
+        Gruppenarten definieren
+        Gruppenarten den Sparten zuordnen
+      Einbau
+        Abrechnungstechnisch
+          Zulässigkeit des abrechnungstechnischen Einbaus definieren
+      Umbau
+        Umbaugründe definieren
+      Anlagenstruktur
+        Zählwerksbeziehungen
+          Nummernkreise für Indexnummern Zählwerksbeziehungen def.
+        Vorschlag für Zuordnung logischer Zählwerke definieren
+    Ablesung
+      Grundeinstellungen
+        Techn. Steuerungsparameter Ablesedatenbearbeitung definieren
+        Steuerungsparameter Ablesedatenbearbeitung definieren
+        Ablesesteuerung definieren
+        Steuergrp für die zeitvar. Ableseauftragserstellg definieren
+        Ablesegruppe definieren
+        Maschinelle Überwachung von Ablesedaten definieren
+      Plausibilitätsprüfungen
+        Unabhängige Plausibilitätsprüfungen
+          Prüfklassen definieren
+          Unabh. Plausibilitätsprüfungen den Prüfklassen zuordnen
+          Prüfparameter für die Prüfklassen definieren
+          Toleranzgrenzen für die Prüfklassen definieren
+          Parameter Festabweichungsprüfung für Geräte ohne Anl.zuordn.
+        Abhängige Plausibilitätsprüfungen
+          Abhängige Plausibilitätsprüfungen definieren
+      Gewichtungsverfahren
+        Zeiträume für linear zu gewichtende &nbsp;Verbrauchsanteile definieren
+        Gewichtungsschlüssel definieren
+        Einspeisegewichtung
+          Durchschnittliche monatliche Einspeisung definieren
+          Einspeisungen pro Zeitraum definieren
+        Gradtagsgewichtung
+          Temperaturgebiete definieren
+          Durchschnittliche Gradtagszahlen definieren
+          Tagesgenaue Gradtagszahlen definieren
+        Allgemeine Gewichtung
+          Gewichtungseinheiten definieren
+      Gasfaktorenermittlung
+      Ableseorganisation
+        Ablesereihenfolge
+          Formular für Ablesereihenfolge definieren
+      Ableseauftrag
+        Auftragserstellung
+          Steuerungsparameter für Auftragserstellung definieren
+          Nummernkreise für Ableseaufträge definieren
+          Ableser definieren
+          Formulargruppe der Hinweise an den Aussendienst definieren
+          Dynamische Hinweise an den Außendienst definieren
+          Statische Hinweise an den Außendienst definieren
+          Ablesesperrgründe definieren
+          Priorität der Ablesegründe für die Ablesekarenzprüfung definieren
+          Automatische Ableitung für Ablesegründe definieren
+        Auftragsausgabe
+          Formular für Ablesedeckblatt definieren
+          Formular für Ablesebeleg definieren
+          Formular für MDE Download definieren
+          Formular für Kundenselbstablesung definieren
+      Ableseergebnis
+        Erfassung
+          Benutzerdefinierte Ableseart für Erfassung definieren
+          Hinweise vom Ableser definieren
+        Änderung
+          Änderungsprozess für Ablesedaten definieren
+        Schätzung
+          Schätzparameter Ableseergebniserfassung definieren
+    Prüfung
+      Grundeinstellungen
+        Parameter Stichprobe/Beglaubigung definieren
+      Stichprobenverfahren
+        Nummernkreise für Lose definieren
+        Suchhilfe für Lose definieren
+        Notizen für Lose definieren
+        Ermittlung der Losprüflinge definieren
+        Verlängerungszeiten amtlicher Stichprobenlose definieren
+        Prüfrelevanz von Geräten definieren
+        Länderbezogene Einstellungen Belgien/Niederlande
+          Plombenkategorie definieren
+          Plombencode Stichprobenlos definieren
+          Vorgaben für Loszusammenstellung definieren
+        Länderbezogene Einstellungen Kanada
+          Verfahren zur Ermittlung der Zufallszahlen festlegen
+          Ermittlung der Losprüflinge definieren
+      Turnuswechselliste
+        Allgemeine Informationen zur Turnuswechselliste
+        Notizen für Turnuswechselliste definieren
+        Steuerungsparameter für Turnuswechselliste definieren
+      Arbeitsaufträge/Meldungen
+        Steuerungsparameter für Aufträge/Meldungen definieren
+      Geräteprüfdaten
+        Bewegungsarten für Loserzeugung definieren
+      Beglaubigung
+        Beglaubigungsart definieren
+  Energiedaten-Management
+    Grundeinstellungen
+      Profilart
+        Profilarten definieren
+        Zulässigkeit der Intervalllänge je Profilart definieren
+      Saisonblock
+        Saisonarten definieren
+        Saisonblöcke definieren
+      Tagesblock
+        Tagesarten definieren
+        Ausnahmen zu Tagesarten definieren
+        Tagesblöcke definieren
+        Ausnahmen zu Tagesblöcken zuordnen
+      Tageszeitblock
+        Tageszeitarten definieren
+        Tageszeitblöcke definieren
+      Anwenderstatus
+        Anwenderstatus definieren
+        Anwenderstatusschema Profilwerten zuordnen
+      Statuspriorität
+        Priorität für wertbezog. Status bei größerer Intervalllänge festlegen
+        Priorität für zust.bez. Status bei größerer IntervLänge festlegen
+        Priorität für Anwenderstatus bei größerer Intervalllänge festlegen
+      Tagesoffset definieren
+      Nummernkreise für Herkunftssystem definieren
+      Änderungsbelege zum Status von Profilen aktivieren
+    Profilverwaltung
+      Nummernkreise für Profile definieren
+      Maßeinheiten für Sparten-/Profilwertetyp definieren
+      Profilzuordnung
+        Rollen für Profilzuordnung definieren
+        Operand Rolle zuordnen
+      Profilversionen
+        Erstellungsgrund Profilversionen definieren
+        Erstellung einer Profilversion definieren
+      Anzeigefunktion
+        Allgemeine Informationen zur Profilwerteanzeige
+        Anzeige des Systemstatus von Profilwerten definieren
+        Anzeige des Anwenderstatus von Profilwerten definieren
+      Ersatzwertbildung
+        Allgemeine Informationen zur Ersatzwertbildung
+        Ersatzwertverfahren definieren
+        Ersatzwertverfahrensgruppe definieren
+      Formelprofile
+        Nummernkreise für Formelzuordnungen definieren
+        Profilberechnung
+          Nummernkreise für Berechnungslaufnummer definieren
+          Statusgruppe und Status zur Statusgruppe definieren
+      Synthetische Profile
+        Dynamisierungsfaktoren generieren
+    Bilanzierung
+      Allgemeine Informationen zur Bilanzierung
+      Bilanzierungssichten definieren
+      Nummernkreis für Bilanzierungsbeleg definieren
+      Nummernkreis für temporäre Profile definieren
+      Prüfungsarten definieren
+      Bilanzierungsverfahren definieren
+    Schnittstelle zu externen Systemen
+      Nummernkreise für Profilimportbeleg definieren
+      Statuskonvertierung definieren
+      Importprüfung
+        Konsistenzprüfungen für Profilwerteimport definieren
+        Konsistenzprüfgruppen für Profilwerteimport definieren
+    Schnittstelle zur RTP-Abrechnung
+      Allgemeine Informationen zur RTP-Schnittstelle
+      RTP-Komponente definieren
+      RTP-Schnittstelle definieren
+    AMI: Time-of-Use-Schnittstelle
+      Formelgruppen für TOU-Formeln definieren
+      Ausnahmegruppe für TOU-Schnittstelle definieren
+      Ausnahmetage zur Ausnahmegruppe für TOU-Schnittstelle definieren
+      Saisonblock
+        Saisonarten definieren
+        Saisonblöcke definieren
+      TOU-Formel bearbeiten
+      TOU-Schnittstelle bearbeiten
+      Time-of-Use-Ausnahmeprogramm definieren
+      Verbrauchsverhalten definieren
+  Vertragsabrechnung
+    Abrechnungsstammdaten
+      Abrechnungsklassen definieren
+      Anzeigemodus für Abrechnungsstichdatum aktivieren
+      Werksangehörige
+        Versorgungsunternehmen definieren
+        Art der Werksangehörigkeit definieren
+        Klassifikation der Werksangehörigen definieren
+      Tarifgestaltung
+        Tarifanalyse durchführen
+        Auswertung Variantenprogramme durchführen
+        Tarifarten definieren
+        Operanden
+          Bezugsgrößen
+            Notizen für Bezugsgrößen definieren
+            Register für Bezugsgrößen konfigurieren
+            Lagen für Bezugsgrößen definieren
+          Heizungsanlagen
+            Bauformen für Heizungsanlagen definieren
+            Aufladesteuerung für Heizungsanlagen definieren
+            Bearbeitungsstatus Sondervereinbarungen definieren
+            Vertragstypen für Heizungsanlagen definieren
+          Beleuchtung
+            Betriebsarten von Beleuchtungen definieren
+            Art der Brennstundenkalenderpflege festlegen
+            Brennstundenkalender pflegen
+            Brennstundenkalender kopieren
+          Verbrauchsarten definieren
+          Operandengruppen definieren
+          Operanden definieren
+          Verwendungsart von Operanden des Rahmensvertrags festlegen
+        Preise
+          Notizen für Preise definieren
+          Verrechnungspreise
+            Preisklassen definieren
+            Preisstufen definieren
+          Preisgleitklauseln
+            Notizen für Preisgleitklauseln definieren
+            Preisgleitklauseln definieren
+          Nummernkreise für Preise defnieren
+          Preise definieren
+        Tarife
+          Nummernkreise für logische Nr. der Tarifschritte definieren
+          Suchhilfe für Tarife definieren
+          Notizen für Tarife definieren
+          Zeitraumsteuerung
+            Zeitanteile
+            Basisberechnungsverfahren
+              Tagesgenaue Berechnung
+              Monatsbezogene Berechnung mit Stichtag
+                Berechnung im Ein- bzw. Auszugsfall [ACT]
+              Monatsbezogene Berechnung mit Karenz
+                Typ des Erweiterten Karenzverfahrens definieren [ACT]
+                Art des Erweiterten Karenzverfahrens definieren [ACT]
+                Zusätzliche Werte für Erweitertes Karenzverfahren definieren [ACT]
+                Berechnung im Ein- bzw. Auszugsfall [ACT]
+                Tagesgenaue Berechnung bei unterperiodischen Änderungen [ACT]
+                Bezugstage für die Umrechnung von Tagesanteilen in Monaten [ACT]
+            Schalttagsverwendung
+            Zeitraumsteuerung definieren
+          Tariffaktengruppen definieren
+          Tarife definieren
+          Teilvorgänge für Tarife überprüfen
+        Schemata
+          Dynamische Periodensteuerung
+            Informationen zur dynamischen Periodensteuerung
+            Dynamische Periodensteuerung definieren
+            Dynamische Nachberechnungsgruppen definieren
+          Suchhilfe für Schemata definieren
+          Notizen für Schemata definieren
+          Nachberechnungsgruppen definieren
+          Schemata definieren
+        Tariftypen
+          Suchhilfe für Tariftypen definieren
+          Notizen für Tariftypen definieren
+          Tariftypen definieren
+        Tariffindung definieren
+        Abrechnungsstammdaten auf Konsistenz überprüfen
+        Abrechnungregeln für Anlagengruppen definieren
+      Rabatte/Zuschläge
+        Nummernkreise für Rabatte/Zuschläge definieren
+        Suchhilfe für Rabatte/Zuschläge definieren
+        Notizen für Rabatte/Zuschläge definieren
+        Rabatte/Zuschläge definieren
+      Losses - Russia
+        BAdI: Transformer and Grid Losses
+      Activate Additional Dialogs in Period Consumption - Russia and Ukraine
+      Define Reference Day for Usage Factor Determination - Russia
+      Losses - Ukraine
+        Define Voltage Levels
+        Define Line Type and Maintain its Attributes
+        Maintain Specific Reactive Charge Power For CL and OL
+        Maintain Attributes of Two-Winding Transformers
+        Maintain Attributes of Three-Winding Transformers
+        Maintain Attributes of Reactor and Shunt Reactor
+        Loss Elements
+          Define Types of Connection Sides for Loss Elements
+          Define Element Categories
+        BAdI:Calculate Installation Not Connected Time
+        Define Number Range for Metering Areas
+      AMI: Time-of-Use-Schnittstelle
+        Formelgruppen für TOU-Formeln definieren
+        Ausnahmegruppe für TOU-Schnittstelle definieren
+        Ausnahmetage zur Ausnahmegruppe für TOU-Schnittstelle definieren
+        Saisonblock
+          Saisonarten definieren
+          Saisonblöcke definieren
+        TOU-Formel bearbeiten
+        TOU-Schnittstelle bearbeiten
+        Time-of-Use-Ausnahmeprogramm definieren
+        Verbrauchsverhalten definieren
+    Time-of-Use-Ausnahmen
+      Nummernkreis für Time-of-Use-Ausnahmen definieren
+    Integration Berichtswesen
+      Integration Ergebnis- und Marktsegmentrechnung
+        Ist-Buchung nach Verbrauchsmonaten aktivieren
+        Ist-Buchung nach Verbrauchsmonaten f. CO-Kurzkontierung aktivieren
+        Merkmalsableitungen für Ist-Buchungen definieren
+        Statistikgruppen Beträge für Wertefelderableitung definieren
+        Statistikgruppen Mengen für Wertefelderableitung definieren
+      Integration Massensimulation
+        Simulationsarten definieren
+    Sonderfunktionen
+      Gasabrechnung
+        Besonderheiten in der Gasabrechnung
+          Gasrelevante Daten im Zählwerk
+        Zustandszahl
+          Temperatur
+            Gemessene tägliche Gastemperaturen pflegen
+            Gemessene monatliche Gastemperaturen pflegen
+            Festtemperaturschlüssel definieren
+            Festtemperaturwerte pflegen
+            Schlüssel für Druck-Temperatur-Verhältnis Joule-Thomson definieren
+            Werte für Druck-Temperatur-Verhältnis Joule-Thomson pflegen
+          Messdruck
+            Messdrücke definieren
+            Druckstufen Gas definieren
+            Gasdruckgebiete definieren
+            Gasdruck je Gasdruckgebiet definieren
+          Luftdruck
+            Luftdruckgebiete definieren
+            Gemessene tägliche Luftdrücke pflegen
+            Gemessene monatliche Luftdrücke pflegen
+            Gemessene jährliche Luftdrücke pflegen
+            Luftdruck bezogen auf geografische Höhe
+          Kompressibilitätszahl
+            Kompressibilitätszahl je Messdruck und Temperatur definieren
+          Festgelegte Zustandszahlen definieren
+          Zustandszahlverfahren
+            Sonderverfahren zum Zustandszahlverfahren
+            Zustandszahlverfahren definieren
+        Brennwert
+          Brennwertbezirke definieren
+          Tägliche Brennwerte je Brennwertbezirk pflegen
+          Monatliche Brennwerte je Brennwertbezirk pflegen
+          Einspeisungen je Brennwertbezirk pflegen
+          Durchschnittliche Einspeisungen je Brennwertbezirk pflegen
+          Brennwertverfahren definieren
+          Abrechnungsbrennwerte pflegen
+        Gasverfahren definieren
+        Zuordnungsdaten Gas definieren
+        Zugriffszeitpunkte
+        Abgrenzung
+        Gasdatum
+      Konzessionsvertrag
+        Nummernkreise für Konzessionsverträge definieren
+        Suchhilfe für Konzessionsverträge definieren
+        Notizen für Konzessionsverträge definieren
+        Vertragsarten zum Konzessionsvertrag definieren
+        Konzessionsabgabegruppen definieren
+      Berechnung von Transformatorverlusten
+        Transformatorverluste nach Verbrauchszonen
+        Parameter für formelbasierte Transformatorverlustberechnung
+      Leistungsfaktor-Anpassungsverhältnis
+    Abrechnungsdurchführung
+      Aufbau der Verbrauchshistorie
+        Findung der Rechnungszeilen definieren
+        Findung der Anlagefakten definieren
+      Abrechnungsbelege
+        Suchhilfe für Abrechnungsbelege definieren
+        Nummernkreise den Belegarten zuordnen
+      Maschinelle Abrechnung und Simulation
+        Abrechnungssperren
+          Abrechnungssperrgründe definieren
+          Abrechnungsfreigabegründe definieren
+        Nummernkreis für Abrechnungslauf definieren
+        Nummernkreise für Rechnungsbelege definieren
+        Belegartentypen für Verbrauchsabr. u. Schlussabr. definieren
+        Nummernkreise für Simulationsbelege definieren
+        Belegarten für Simulationsbelege definieren
+        Belegartentyp für Simulationsbelege definieren
+        Abgrenzgründe definieren
+      Manuelle Abrechnung
+        Nummernkreise für manuelle Abrechnungsbelege definieren
+        Belegartentyp für manuelle Abrechnungsbelege definieren
+        Verfahren der Konzessionsabgabe in manueller Abrechnung def.
+      Aussteuerung für Abrechnung
+        Aussteuerungsprüfgruppen für Abrechnung definieren
+        Prüfungen pro Aussteuerungsprüfgruppe für Abrechnung def.
+        Manuelle Rechnungsaussteuerung für Abrechnung definieren
+      Abrechnungsstorno
+        Stornogründe definieren
+      Steuerung der Rechnungskorrektur pflegen
+      Simulationsszenarien definieren
+    SAP EEG Billing for German Energy Feed
+      Grundeinstellungen
+        Vergütungsmodelle definieren
+        Energietypen definieren
+        Steuerung zu Variantenprogrammen definieren
+      Einstellungen zur Erzeugungseinheit
+        Nummernkreise für Erzeugungseinheiten definieren
+        Erzeugungsklassen definieren
+        Einspeisemanagement definieren
+        Messkonzepte definieren
+        Attribute für Erzeugungseinheiten definieren
+        Konsistenzprüfungen definieren
+        UI-Einstellungen
+          UI-Komponenten definieren
+          Einstellungen zur Überwachung von Erzeugungseinheiten definieren
+        Archivierung
+          Archivinfostruktur aktivieren
+          Residenzzeit definieren
+      Einstellungen zur Einspeisevergütung
+        Operandenzuordnungen definieren
+        Gruppen zur Operandenzuordnung definieren
+        Abrechnungsmerkmale definieren
+        Abrechnungsmodelle definieren
+        Energiearten definieren
+        Spezielle Einstellungen zur Einspeisevergütung
+          Monatliche Marktwerte definieren
+          Jährliche Marktwerte für Solarenergie definieren
+          Netzbezogene Preise und Preisbestandteile definieren
+      Einstellungen zu Vergütungspositionen
+        Serviceanbieter zuordnen/definieren
+        Nummernkreise für Vorgangsnummern definieren
+      Integration in die Branchenkomponente Versorgungsindustrie
+        Tariftypzuordnung zum Abrechnungsmodell definieren
+        Operanden zuordnen
+        Abgrenzgründe definieren
+      Business Add-Ins
+        Erzeugungseinheit
+          BAdI: Erzeugungseinheit im IS-U-Umfeld anzeigen
+          BAdI: DB-Layer der Erzeugungseinheit erweitern
+          BAdI: UI der Erzeugungseinheit erweitern
+          BAdI: Überwachungstransaktion erweitern
+          BAdI: Verarbeitungs-Layer der Erzeugungseinheit erweitern
+          BAdI: Zusätzliche Daten zur Erzeugungseinheit anlegen/ändern
+        Migration
+          BAdI: Excel-Struktur nach EMIGALL-Struktur mappen
+          BAdI: Erzeugungseinheiten anlegen
+        Abrechnung
+          BAdI: Endabrechnungsaufträge in der IS-U-Abrechnung anpassen
+          BAdI: Zählpunktattribute für Vergütungsabrechnung ermitteln
+        Vergütungspositionen
+          BAdI: Handling von ausgesteuerten Vergütungspositionen anpassen
+          Serviceanbieter zuordnen/definieren
+          BAdI: Instanz zur Verarbeitung von Vergütungspositionen erzeugen
+          BAdI: Anzeige von Vergütungspositionen erweitern
+        BAdI: Konfigurationszugriff steuern
+        BAdI-Implementierungen aktivieren
+          Implementierung aktivieren im BAdI: Kundendaten im Abrechnungsobjekt füllen
+          Implementierung aktivieren im BAdI: Abgrenzungen
+          Implementierung aktivieren im BAdI: Daten für Update vorbereiten u. sichern
+          Implementierung aktivieren im BAdI: Fkt.bausteinname zum Variantenprogramm
+          Implementierung aktivieren im BAdI: Update im Storno
+          Implementierung aktivieren im BAdI: Erweiterung CIC-Datenumfeld Navigation
+      S/4 Erweiterungen
+        Testcockpit
+          Nummernkreise für Abrechnungstestläufe definieren
+          Vergleichsgruppen definieren
+          Testcontainer definieren
+          Business Add-Ins
+            BAdI: Unzulässige Felder für Vergleichsgruppen definieren
+            BAdI: Anpassung der zu prüfenden Abr.-/Druckbelegzeilen
+        ÜNB-Meldung
+          Zuordnung ÜNB zu EEG-Billing Service ID
+          Business Add-Ins
+            BAdI: Instanz zur Prozessierung von VG-Positionen erzeugen
+            BAdI: Anpassungen zu Stammdatenmeldungen
+        Außerordentliche Vergütung
+          Art der außerordentlichen Vergütung pflegen
+          Business Add-Ins
+            BAdI: Erweiterungen zur Abrechnungsausführung der außerordent. Vergütung
+        Business Add-Ins
+          Erzeugungseinheit
+            BAdI: Deaktiv./Aktiv. Daten zur ErzE beim Anlegen/Ändern ermitteln
+            BAdI: Deaktiv./Aktiv. Erzeugungseinheit Verarbeitungs-Layer anpassen
+          Abrechnung
+            BAdI: Deaktiv./Aktiv. Zählpunktattribute für Vergütungsabrechnung ermitteln
+          Integration
+            Implementierung aktivieren: Verwendung der ErzE als technische Ressource
+    Länder/Regionenspezifische Funktionen
+      Brazil - Micro and Mini Generation
+        Define Global TOU
+        Maintain TOU Compensation Sequence Groups and Relationships
+        Define TOU Distribution Proportion Group
+        Define Distribution Proportion
+        Maintain Compensation Groups and Relationships
+        Define Validity for Energy Credit
+        Define Number Range for Credit Transaction
+        Preference of ICMS Credits in Compensation
+        Define Contract Specific Settings
+        Define Compensation Factor
+        BAdI
+          BAdI: Prepare and Save Data for Update
+          BAdI: Prepare and Save Data for Reversal
+          BAdI: Rounding of Quantities during Manual Updation of Credits
+      Japan
+        Abrechnungszeiträume für den japanischen Markt
+          Leistungsfaktor für Abrechnung (Japan)
+          Abrechnungszeiträume definieren
+        Knotentext wurde nicht gefunden
+    Produktintegration
+      Knotentext wurde nicht gefunden
+      Zuordnung d. Commodity-Produktattribute zu Abrechnungsstammdaten definieren
+      Abrechnungssimulationspositionen für Produkte definieren
+      Preisschlüssel und Rabattschlüssel in einem Transportauftrag kombinieren
+      Benutzerdefinierte Texte zu Nachrichten zuordnen
+      Standardattribute der Referenzprodukte definieren
+      Business Add-Ins (BAdIs)
+        Hinweise zur Implementierung
+        BAdI: Vorbereitung der Anlagefakten
+        BAdI: Aktualisierung der Anlagenstruktur
+        Implementierung: Aktualisierung der Anlagenstruktur
+        Implementierung: Vorbereitung der Anlagefakten
+  Fakturierung
+    Grundeinstellungen
+      Vor-Ort-Abrechnung
+        Vor-Ort-Abrechnungsgruppen definieren
+        Prozess für Vor-Ort-Abrechnung festlegen
+      Concessions
+        Grundeinstellungen definieren
+        Concession-Arten definieren
+        Concession-Card-Arten definieren
+        Ausgabestelle für Concession Card definieren
+        Deregulierungseinstellungen für Concessions definieren
+      Grundeinstellungen für Brasilien definieren
+        Einstellungen für brasilianische Steuerberechnung
+        Steuergruppierung für dynamische Steuersatzermittlung definieren
+        Erlösbuchung von PIS/COFINS
+        Erlösbuchung als Brutto
+        Business Add-Ins (BAdI)
+          Manage Brazilian Taxes in TAXBRJ Tax Procedure
+      Grundeinstellungen für Indien definieren
+        BAdI: Calculate Tax Collected at Source (TCS)
+      Grundeinstellungen Fakturierung definieren
+      Grundeinstellungen Online Rechnungsdruck definieren
+      Grundeinstellungen Stornierung definieren
+      Steuerermittlungsverfahren pro Buchungskreisgr. definieren
+    Fakturabearbeitung
+      Nummernkreise für Druckbelege definieren
+      Belegarten für Druckbelege definieren
+      Belegarten den Druckbelegen zuordnen
+      Steuerung der Fakturierungszusatzfunktionen definieren
+      Vorgaben für Rückzahlwegleiste/Zahlungsträger pflegen
+      Steuerung der Rechnungsfälligkeit definieren
+      Steuerung Abschläge in der Fakturierung definieren
+      Regeln für Rechnungsrundung definieren
+      Rundungsgrenzen für Rechnungsrundung definieren
+      Sperrgründe für Fakturierung definieren
+      Postenauswahl in der Fakturierung
+        Postenauswahl für die Kontenpflege/untere Positionen definieren
+      Aussteuerung für Fakturierung
+        Aussteuerungsprüfgruppen für Fakturierung definieren
+        Prüfungen pro Aussteuerungsprüfgruppe für Fakturierung def.
+        Manuelle Rechnungsaussteuerung für Fakturierung definieren
+      Gebühren in der Fakturierung
+        Gebühren definieren
+        Gebühren für überfällige Posten in Fakturierung hinterlegen
+    Integration mit Convergent Invoicing
+      Fakturierung von Quellbelegen aus Convergent Invoicing
+        Fakturierungsprozesse den Erstellungsgründen zuordnen
+        Belegzeilenarten den Arten der Fakturierungsposition zuordnen
+      Erzeugung von abrechenbaren Positionen in Convergent Invoicing
+        Integrationstypen pflegen
+        Kontierungen für abrechenbare Positionen pflegen
+        Vorgangsfindung für abrechenbare Positionen pflegen
+        Zuordnung Belegzeilenart zur Art der abrechenbaren Position
+    eFakturierung
+      Länderspezifische Funktionen
+        eInvoicing - Italy
+          eDocument-Art festlegen
+          Belegart der eDocument-Art zuordnen
+        eInvoicing - Saudi-Arabien
+          Assign eDocument Type to Contract Accounting Document Type
+          Activate Dummy Invoice Line for Zero Invoiced Amount
+        eInvoicing – Brazil
+          Business Add-Ins
+            Map Non-Standard NF3-e Fields
+            eDocument Creation
+            Cancellation Event Mapping
+            Cancellation Event Request
+          Define Identification Type for BP ID Number
+          Contingency for On-Site Billing
+            Activate/Deactivate Contigency
+            Define Contigency Reason
+        eInvoicing - Slovakia
+          Assign eDocument Type to Contract Accounting Document Type
+    Rechnungsdruck
+      Suchhilfe für Druckbelege definieren
+      Sortierkriterien für Rechnungsdruck definieren
+      Rechnungsformular definieren
+      Klassifikationskriterien für Abrechnungszeile definieren
+      Steuerungsparameter für Rechnungsdruck definieren
+      Anwendungsformular für Rechnungssimulation übersteuern
+      Kriterien für Zusammenfassung von Teilrechnungspositionen definieren
+      Print Document Tax Adjustment (Slovakia)
+        BAdI: Adjustment of Print Document Subtotal Lines
+    Abschlagsplan
+      Grundeinstellungen
+        Abschlagsverfahren definieren
+        Abschlagsformular definieren
+        Suchhilfe für Abschlagsplan definieren
+        Änderungsgründe für IC WebClient definieren
+      Statistisches und Teilrechnungsverfahren
+        Grundeinstellungen
+          Steuerungsparameter definieren
+          Steuerungsparameter zu Expresstransaktion definieren
+          Notizen definieren
+        Betragsermittlung
+          Mindestbetrag / Betragsgrenzen definieren
+          Rundungsparameter definieren
+          Generellen Betragsanpassungsfaktor definieren
+        Jahresvorausleistung (nur für statistisches Abschlagsverfahren)
+          Steuerungsparameter für Jahresvorausleistung definieren
+          Zinsrechenregel für Jahresvorausleistung zuordnen
+      Zahlungsplan
+        Zahlungsplanarten (AMB/BBP) definieren
+        Druckparameter für Zahlungsplan definieren
+        Vorgaben für Differenzbetrag anpassen
+        Notizen definieren
+        Steuerungsparameter für Zahlungsplan im IC WebClient
+      Zahlungsschema
+        Grundeinstellungen
+          Steuerungsparameter für das Zahlungsschema definieren
+          Zahlungsschematyp definieren
+          Deaktivierungsgrund definieren
+          Nummernkreis für Zahlungsschema definieren
+          Nummernkreis dem Nummernkreisobjekt Zahlungsschema zuordnen
+        Betragsermittlung und Betragsänderung
+          Rundungsparameter definieren
+          Betrags-/ProzGrenzen für ZS-Anpassung bei Fakturierung definieren
+          Prozentgrenzen für manuelle ZS-Änderungen definieren
+    Länderspezifische Funktionen
+      Penalty Localization for Ukraine
+        Define Main and Sub Transaction for Penalty Calculation
+      IS-U Invoicing Brazil
+        Loss Management
+          Define General Configuration
+          Maintain Calculation Method
+          Define Number Range Process ID
+          Define Number Range Log ID
+          Define the Administration Fee
+          Define Monetary Correction
+          Determine Installation Facts for Fraud/Defect Consumptions
+          Define Process Status for Processes
+          Business Add-Ins (BAdIs)
+            Define Consumption History Implementation Logic
+            Validate Analyze Consumption
+            Calculated Consumption
+            Create Billing
+            Handle Invoice
+            Fill in Values for Print Document
+        Billing Simulator
+          Configure Invoicing Simulation Scenarios
+        Subsequent Actions for Meter Reading
+          Initial Configuration
+            Activation Control
+            Maintain Categories
+            Maintain Actions
+            Define Number Range Inernal ID
+          Trigger for Subsequent Actions
+            Maintain the Triggers
+            Define Group of Subsequent Actions
+          Meter Reading Note for Subsequent Actions
+            Define Group and Sub-Group for Meter Reading Note
+            Link MRN Group to the Triggers
+            Maintain Message
+            Link Message to the Meter Reading Note
+          Independent Validation for Subsequent Actions
+            Define Group and Sub-Group for IV
+            Link Group IV to the Triggers
+        Meter Reading - Download &amp; Upload
+          Basic Configuration
+          Define Number Range Object ID
+        Third Party Services
+          Basic Configuration
+          Define Movement Code
+          Define Number Range File Number ID
+          Business Add-Ins (BAdIs)
+            Customer Fields in File Generation
+        Devices Sequence
+          Define Rules for Device Sequence
+          Define Run Order of Rules
+          Define API Key to Access Maps
+          Activate Loss Alerts
+        Average Service Time
+          Define Target Service Time for AVG Service Time
+        Dynamic Schedule Service
+          Define Number Range Simulation ID
+          Check Cycles Limits
+          Maintain Workflow Activation
+          Configure Settings for Sending E-mail for Schedule Simulation
+        Fixed Dates for Payment Terms
+          Define Fixed Date
+        On-Site Billing Block
+          Maintain Master Data Blocks
+          Maintain Authorization Groups
+    Korrigieren Rechnung
+      Länderspezifische Funktionen
+        Corrective Invoice - Russia
+          Define Service Name
+          Define Grouping for Invoice Form
+  Kundenservice
+    CRM-Integration
+      Vorschlagsprodukte definieren
+      Grundeinstellungen definieren
+      Stammdatenvorl. zur Generierung techn. Obj. zu CRM-Produkten definieren
+      Stammdatenvorl. Objektenfamilien für d. Upload der techn. Objekte zuordnen
+      Verbindung zu CRM-Organisationsdaten definieren
+      Verbindung zu CRM-Vorgangsarten definieren
+      Zeitverzögerten Neustart im IS-U-Fehlermonitor einstellen
+      Nachrichtentabelle verzögerter Neustart IS-U-Fehlermonitor pflegen
+      Front-Office-Prozesse definieren
+      Front-Office-Editorschritte definieren
+      Datenumfeld für Kundenübersicht definieren
+      Kontaktreplikation
+        Zentrale Mapping-Einstellungen vornehmen
+        Abbildung der Kontaktrichtung festlegen
+        Abbildung der Kontaktpriorität festlegen
+        Abbildung der Text-ID festlegen
+      Massenproduktwechsel
+        Einzelverträge für Massenproduktwechsel konfigurieren
+        Aktionen für Durchführung des Massenproduktwechsels definieren
+        Attributswerte für konfigurierbares Produkt hinterlegen
+      Produktvorschlag
+        Simulation Produktkatalog
+        Kundenverbrauchssegment definieren
+        Zulässige Dimensionen für Spartentyp definieren
+      Zählerstandserfassung
+        Parameter für die Änderbarkeit von Ableseergebnissen definieren
+      BAdIs für Zugriff auf Objekte
+        Account-Übersicht: BAdI für Klärungsfälle
+        Verbrauchsstellenübersicht: BAdI für Ablesehistorie
+        Verbrauchsstellenübersicht: BAdI f. Verbrauchsstellenobjekte
+        VerbrStÜbersicht: BAdI für Verbrauchstabelle und -diagramm
+    Stammdatengenerator
+      Stammdatenvorlage definieren
+    Vorgangsbearbeitung
+      Eigentümerzuordnung
+        Nummernkreise für Eigentümerzuordnung definieren
+        Feldauswahl für Eigentümerzuordnung definieren
+        Art der Eigentümerzuordnung definieren
+        Zusatzaktionen zum automatischen Eigentümereinzug definieren
+      Umzug
+        Informationsprotokoll definieren
+        Spezielle Bearbeitungsvarianten für Umzug definieren
+        Generelle Bearbeitungsvarianten für Umzug definieren
+        Bearbeitungsvarianten zuordnen
+        Systemparameter für Einzug und Auszug definieren
+        Gründe für Vertragswechsel definieren
+        Gründe für Debitorenwechsel definieren
+        Feldauswahl für Einstiegsbild Umzugsbearbeitung definieren
+        Geschäftspartnerfelder für Einzugs- und Auszugsbild auswählen
+        Vertragskontofelder für Einzugs- und Auszugsbild auswählen
+        Schnellerfassung
+          Nummernkreise für Vorerfassungsbelege definieren
+          Zulässige Vertragsmuster definieren
+          Vorerfassungsvarianten definieren
+          Vorerfassungsvarianten zuordnen
+          Zeitverzögerten Neustart im IS-U-Fehlermonitor einstellen
+          Nachrichtentabelle verzögerter Neustart IS-U-Fehlermonitor pflegen
+        Einzug
+          Nummernkreise für Einzugsbelege definieren
+          Suchhilfe für Einzugsbelege definieren
+          Register für Einzugsbild konfigurieren
+          Notizen für Einzug definieren
+          Feldauswahl für Einzug Vertragsdaten definieren
+          Begrüssungsschreiben Einzug definieren
+          Steuerungsparameter Einzug auf Belegebene definieren
+          Steuerungsparameter Einzug auf Vertragsebene definieren
+          Gründe für Befreiung von Sicherheitsleistung definieren
+        Auszug
+          Nummernkreise für Auszugsbelege definieren
+          Suchhilfe für Auszugsbelege definieren
+          Register für Auszugsbild konfigurieren
+          Notizen für Auszug definieren
+          Auszugsbestätigungsschreiben definieren
+          Steuerungsparameter Auszug auf Belegebene definieren
+          Steuerungsparameter Auszug auf Vertragsebene definieren
+          Gründe für Auszug ohne Einzug definieren
+      Sperren/Wiederinbetriebnahme
+        Nummernkreise für Sperrbelege definieren
+        Suchhilfe für Sperrbelege definieren
+        Notizen für Sperrung definieren
+        Rückmeldestatus definieren
+        Bearbeitungsvarianten für Sperrbelege definieren
+        Absperrarten definieren
+        Arbeitslisten und Workitems
+          Workitem-Kategorien definieren
+          Wiedervorlagegründe für Workitems hinterlegen
+          Gründe für die Zuordnung von Workitems hinterlegen
+          Ergebniscodes definieren
+          Bewertungsregeln f. Bearbeitung v. Arbeitslisten definieren
+          Vorgaben für die Schnellsuche hinterlegen
+          Substatus pflegen
+          Aktionsprofil pflegen
+          Aktionen pflegen
+          Aktionsprofil Aktionen zuordnen
+      Vorauskasse
+        Einträge für Vorauskassezähler pflegen
+        Beschwerdegrund pflegen
+    Kundenauskunft
+      Datenumfeldanzeige konfigurieren
+    SAP Multichannel Foundation for Utilities
+      Biller Direct
+        Grundeinstellungen für das Kundenportal im Internet
+        Business Add-Ins
+          BAdI: Ermittlung der Rechnungsdetails
+      Ablesung
+        Steuerungsparameter Ablesedatenbearbeitung definieren
+        Hinweise vom Ableser definieren
+      Benutzerdefinierte Texte zu Nachrichten zuordnen
+      Einstellungen für Geschäftsprozesse pflegen
+      Business Add-Ins
+        BAdI: OData-Services für SAP Multichannel Foundation for Utilities
+        BAdI: Kommunikationskanal-Mapping des Geschäftspartnerkontakts
+        BAdI: Betriebswirtschaftliche Einstellungen
+        BAdI: SAP Multichannel Foundation for FI-CA Utilities: Betriebswirt. Einst.
+        BAdI: Abgerechneter Verbrauch für SAP Multichannel Foundation for Utilities
+        BAdI: EDM für SAP Multichannel Foundation for Utilities
+    Objektpräsentation definieren
+    Länderspezifische Funktionen
+      Indien
+    Marketing-Integration
+      Replikation
+        Replikation von Anlagefakten
+          Operanden (Anlagefakten) für Replikation angeben
+      Business Add-Ins
+        Hinweise zur Implementierung
+        BAdI: IS-U-Vertragsdaten für kundeneigene Logik
+        BAdI: IS-U-Interaktionsdaten für kundeneigene Logik
+        BAdI: Allgemeine IS-U-Daten für kundeneigene Logik
+        BAdI: IS-U-Verbrauchsstellendaten für kundeneigene Logik
+        BAdI: IS-U-Score für finanzielle Solidität von Tarif-Vertragskontodaten
+        BAdI: IS-U-Anlagendaten für kundeneigene Logik
+        BAdI: IS-U-Vertriebsvertragsdaten für kundeneigene Logik
+        Implementierung: BAdI IS-U-Vertragskontodaten für kundeneigene Logik
+        Implementierung: BAdI Allgemeine IS-U-Daten für kundeneigene Logik
+        Implementierung: BAdI IS-U-Verbrauchsstellendaten für kundeneigene Logik
+        Implementierung: BAdI IS-U-Vertragsdaten für kundeneigene Logik
+        Implementierung: BAdI IS-U-Score f. finanz. Solidität f. kundeneigene Logik
+        Implementierung: BAdI IS-U-Anlagendaten für kundeneigene Logik
+        Implementierung: BAdI IS-U-Vertriebsvertragsdaten für kundeneigene Logik
+  Work Management
+    Stammdaten
+      Serviceobjekte definieren
+      Setebenen für Serviceobjekte definieren
+      Serviceobjekte zu Sparte und Setebene zuordnen
+    Abwicklung
+      Aufträge
+        Auftragscodes definieren
+        Serviceobjekte den Auftragscodes zuordnen
+        Werks- und Arbeitsplatzfindung für Aufträge definieren
+        Partnerrollen u. Ablesehinweise f. Objektverantwortliche festlegen
+        Terminrasterprofile definieren
+        Terminrasterprofile zu Arbeitsplätzen zuordnen
+      Meldungen
+        Meldungscodes definieren
+        Aktivitätenschema definieren
+        Meldungsprofile definieren
+        Meldungsprofile den Meldungscodes zuordnen
+        Werksfindung für Meldungen definieren
+      Druck von Aufträgen/Meldungen mit IS-U-Daten vorbereiten
+      Hausanschlussabwicklung
+        Einstellungen für Hausanschlussabwicklung vornehmen
+        Steuerungsparameter Disaggregation Vertrieb/Kundenservice definieren
+      Inspektionen
+        Steuerungsparameter für Inspektionen definieren
+        Inspektionsperioden für techn. Installationen definieren
+        Inspektionsperioden für Equipments definieren
+        Equi in Datenumfeld Verbrauchsstelle u. Anschlussobjekt aufnehmen
+        Inspektionsdaten in Equipment einblenden
+      Versorgungsgenehmigungsabwicklung
+        Katalog, Codegruppe und Code zu Genehmigung zuordnen
+        Genehmigungsfindung definieren
+        Codegruppen und Codes für Störfallmeldungen definieren
+    Schnittstellen
+      IDoc-Typen zu Funktionsbausteinen zuordnen
+  Informationssystem
+    Business Information Warehouse
+    Statistik
+      Verkaufsstatistik
+        Datenbasis
+          Kommunikationsstrukturen
+            Kommunikationsstruktur erweitern
+          Feldkataloge
+            Feldkataloge definieren
+          Informationsstrukturen
+            Informationsstrukturen definieren
+            Generierungsprotokoll zu Informationsstrukturen anzeigen
+          Werkzeuge
+            Neuaufbau von Statistikdaten
+        Fortschreibung
+          Fortschreibungsdefinition
+            Grobdefinition über Fortschreibungsgruppen
+              Fortschreibungsgruppen definieren
+            Feindefinition über Fortschreibungsregeln
+              Fortschreibungsregeln definieren
+              Bedingungen definieren
+              Formeln definieren
+              Generierungsprotokoll zu Fortschreibungsregeln anzeigen
+          Fortschreibungssteuerung
+            Fortschreibung aktivieren
+            Statistikgruppen
+              Statistikgruppen Tariftyp definieren
+              Statistikgruppen Vertrag definieren
+              Statistikgruppen Mengen definieren
+              Statistikgruppen Beträge definieren
+            Fortschreibungsgruppe
+              Fortschreibungsgruppenfindung definieren
+            Statistikwährung je Buchungskreis festlegen
+            Abrechnungsmaßeinheit zu Statistikmaßeinheit zuordnen
+            Fortschreibungskontrolle
+              Fortschreibungsprotokoll anzeigen
+              Fortschreibung simulieren
+        Berichtswesen
+          Standardanalysen
+            Einstellungen ändern
+  Unternehmensübergreifender Datenaustausch
+    Grundeinstellungen
+      Kontrollparameter definieren
+      Servicegebiet definieren
+      Codeliste für externe ID definieren
+    Services
+      Servicearten definieren
+    Datenaustausch-Prozesse
+      Datenaustausch-Prozesse definieren
+      Versionen des Übertragungsformats definieren
+      IDoc-Versandart definieren
+    Serviceanbieter
+      Typ der externen ID des Serviceanbieters definieren
+    Serviceanbietervereinbarungen
+      Arten der Serviceanbietervereinbarung festlegen
+      Position der Parameter in der Parameterkonfiguration festlegen
+    Versorgungsszenarien
+      Versorgungsszenarien definieren
+    Kommunikationssteuerung
+      Nummernkreise für IDocs definieren
+      Nummernkreise für Referenznummern definieren
+      Kommunikationsereignisse aktivieren
+      Zulässige Funktionsbausteine je Kommunikationsereignis definieren
+      Kommunikationssteuerung eingehender Nachrichten
+        Zählwerksart zuordnen
+        Maßeinheiten zuordnen
+        Belegzeilenarten zuordnen
+      Kommunikationssteuerung ausgehender Nachrichten
+        Kommunikationsrelevante Belegzeilenarten definieren
+        Kommunikationsrelevante Kontokorrentpositionen definieren
+    Freigabestatus
+      Informationsfreigabestatus f. Geschäftspartner definieren
+      Deregulierungsstatus definieren
+      Informationsfreigabestatus für Anlagen definieren
+    Prozessbearbeitung
+      Verwendung der Prozessvarianten für Identifikation der Zählpkte festlegen
+      Vertragsabschluss
+        Workflow
+          Statusmanagement
+            Betriebswirtschaftlichen Status für Workflowprozesse definieren
+            Technischen Status für Workflowprozesse definieren
+          Nummernkreise f. Workflowprozesse zum Serviceanb.-Vertragsabschluss def.
+          Nummernkreise f. Workflowfunktionen zum Serviceanb.-Vertragsabschluss def.
+        Vertragsabschlussart definieren
+        Vertragsabschlussart bestimmen
+      Lieferantenwechsel
+        Nummernkreise für Wechselbelegnummer definieren
+        Fristenarten definieren
+        Workflow pro Wechselsicht definieren
+        Wechselbelegaktivitäten zu BPEM-Nachrichten zuordnen
+        Ausnahmebehandlung für Prüfungen definieren
+        Verwendung der Mussfeldprüfung festlegen
+        Kündigungskonditionen für Prüfung der Mindestvertragslaufzeit definieren
+    Rechnungsstellung (aggregiert)
+      Ausgangsrechnungen
+        Vorgaben zur Erstellung aggr. Rechnung
+        Vorgaben bei Regulierung über dritten Serviceanbieter definieren
+        Vertragskontotyp für fakturierende Serviceanbieter festlegen
+        Gruppierungsmerkmal aggr. Vertragskonto definieren
+        Vorgaben für aggr. Buchung augehender Zahlungen definieren
+      Eingangsrechnungen
+        Grundeinstellungen für aggr. Buchung von Eingangsrechnungen
+        Vorgaben für aggr. Buchung von Eingangsrechnungen definieren
+    Rechnungs-/Avisbearbeitung
+      Grundeinstellungen vornehmen
+      Prozesssteuerung definieren (Teil 1)
+      Prozesssteuerung definieren (Teil 2)
+      Kennzeichnung Rechnungs-/Avisbestandteile definieren
+      Differenzgründe definieren
+      Stornogründe definieren
+      Prüfparameter definieren
+    Zahlungssteuerung
+      Zahlungshäufigkeit
+        Zahlungshäufigkeit definieren
+        Fabrikkalender für Soll-Datum der Zahlung pflegen
+      Zahlungsklassen definieren
+      Abführungsrelevante Vorgänge definieren
+      Rechnungstypen definieren
+      Parameter für die Verteilung aggregierter Zahlungen definieren
+      Algorithmen für die Interpretation von Avispositionen angeben
+    Globale Add-On-Lösungen für die Versorgungsindustrie
+      Systemvorbereitung
+        Business Add-Ins
+          BAdI: SDÄ anstoßen
+          BAdI: Bilanzierungseinheit
+          BAdI: Bestimmung von Serviceanbietern
+          BAdI: Vertragskonto: Datenanreicherung
+          BAdI: Zugriff auf ISU-Anlage
+          BAdI: Connector für Outbound-Datenaustauschprozesse
+          BAdI: Konnektor für ausgehende Datenaustauschprozesse 002
+          BAdI: Erweiterung der Massenaktivität
+          BAdI: Zugriff auf ZP-Stammdaten
+          BAdI: Prüfungen für ZP-Beziehung
+          BAdI: Daten in UI-Komponenten der ZP-Beziehung
+          BAdI: Anpassungen der Anlagenrolle für die Geräteablesung
+          BAdI: Geräteeinbau
+          BAdI: Ausnahmenverarbeitung
+          BAdI: Gasfaktor ermitteln
+          BAdI: Mengenermittlungsverfahren
+          Implementierungen
+            Implementierung: Anzeige des Namens des Servieceanbieters mit ILN-Nummer
+            Implementierung: ILM - Referenzdatum für Ansprechpartner für Ablesungen
+            Implementierung: ILM - Wertermittlung für Ansprechpartner für Ablesungen
+      Energiedaten-Management
+        Customizing für Bilanzierungsprofilerstellung
+      Stammdaten
+        Zählpunkt
+          Nummernkreise für ZP-Projekt definieren
+          Zählpunktbeziehungsarten angeben
+          UI-Komponenten des ZP-Beziehungsmonitors konfigurieren
+        Geräteverwaltung
+      Stammdatenänderungs-Framework (MDX)
+        Nummernkreise festlegen
+        Allgemeine Einstellungen definieren
+        Konvertierungseinstellungen definieren
+        Ausgangseinstellungen definieren
+        Eingangseinstellungen definieren
+        BAdI: Stammdatenaustausch-Framework
+      Adapter für die Messkonzeptverwaltung
+        MKV: Grundkonfiguration und Zuordnung
+          MCM-Clientkonfigurationen definieren
+          MKV-Prozesskonfigurationen definieren
+          Variablenschlüsselfeld und Zugriffslogik
+          Lokationsidentifikatoren definieren
+          Lokationskategoriecodes definieren
+          Lokationsklassifikationen definieren
+          Sperren und Blockierungen definieren
+          Berechnungsformeln definieren und zuordnen
+          IS-U Sparten-Mapping
+          Berechtigungsgruppe definieren
+          Spannungsebenen- und Netzebenen-Mapping definieren
+          ZP-Beziehungs-Mapping definieren
+          Validierungsregeln für Instanzen definieren
+          Buchungskreiszuordnung definieren
+          Mapping von Energieträgern definieren
+          Prognosecodes definieren
+        MKV-UI: Konfiguration
+          MKV-UI: Konfiguration definieren
+          Zuordnung für Verwendungs- und Testfall-ID definieren
+          MKV-UI: Registerkartenkonfiguration für Detailseite definieren
+        API-Konfiguration für Event Mesh und Utilities Cloud
+        Messkonzeptmodelle definieren
+        Zählpunktermittlung und -attribute definieren
+        Geräteermittlungs- und -vorschlagsregeln definieren
+        Versorgungsanlagen-, Geräte- und Zählwerksattribute definieren
+        Versorgungsszenario-Ermittlungsregeln definieren
+        Lastprofilzuordnung definieren
+        Profilkopfattribute und Zuordnungsregeln definieren
+        Business Add-Ins (BAdIs)
+          BAdI: Konfigurationszugriffsklasse
+          BAdI: Datenzugriff
+          BAdI: Datenvalidierung
+          BAdI: Zählpunktbezeichnung
+          BAdI: Stilllegungsszenario
+          BAdI: Versorgungsszenario
+          BAdI: Testdaten lesen und simulieren
+          BAdI: Transformation von Cloud-Daten
+          BAdI: ermittelte Stammdatenobjekte validieren
+          BAdI: Geräteeinbauoperation des ZP ermitteln
+          BAdI: Geräteeinbau
+          BAdI: Daten für Migration ableiten
+          BAdI: Datenzugriff optionaler Prozess
+          BAdI: Erneuerbare Energien
+          BAdI: RTP-Komponente aktivieren
+          BAdI: Prüfen, ob ÜDOK angestoßen werden soll
+          BAdI: Stammdaten Verbraucherakteur
+          BAdI: Datumsermittlung
+          BAdI: auto. Datenvorbereitung Stammdatenobjekte
+      Messung
+        MaKo-Ablesetyp für Ableseart konfigurieren
+        Systemparameter definieren
+      Abrechnung
+      Fakturierung und Zahlung
+    Lösungen für die Versorgungsindustrie (Deutschland)
+      Allgemein
+        Zuordnung des Zählzeitregisters definieren
+        Artikel-ID definieren
+        Ressourcenattribute definieren
+      Business Add-Ins
+        BAdI: Fristenart
+        BAdI: Wechselbelegattribute aus Prozessdokument abrufen
+        BAdI: Erweiterungen für die Ausnahmenverwaltung
+        BAdI: Ermitteln, ob Kundenerweiterung aktiv ist
+        BAdI: Geschäftsprüfung
+        BAdI: Business Process Exception Management
+        BAdI: GPKE-Datenzugriff
+        BAdI: Aktive BPEM-Fälle für abgeschlossene Prozesse schließen
+        Implementierungen
+          Implementierung für BAdI: EMMA_CASE
+          Implementierung: Bestimmung von Transaktionsattributen
+          Implementierung: Erweiterung für Konfigurations-ID
+          Implementierung: Erweiterung für Konfigurations-ID (Massenv.)
+          Implementierung: zusätzliche Geräteattribute
+      Intelligent Metering
+        Allgemeine Einstellungen
+          Intervalle definieren
+          Sichten für Messprodukte und Messinstanzen definieren
+          Gründe für die Ausführung von Prozessen definieren
+          Parametrierungskategorie definieren
+          Business Add-Ins
+            BAdI: Einrichtung von iMS / Wechsel von Geräten in iMS
+            BAdI: Parametrierungsinstanz
+            BAdI: Zählerberechnung
+        Geräte
+          Kommunikationstechnologien für Geräte definieren
+          AMI-Daten für Gerätetyp definieren
+          Kommunikationsprofile definieren
+          Abrechnungsdaten für den Geräteeinbau definieren
+          Bei Geräteaktionen zu ignorierende Ablesegründe definieren
+          Gerätetyp für Geräteinfosatz festlegen
+          Business Add-Ins
+            BAdI: Zuordnung von Lastprofil festlegen
+            BAdI: Prozesse für klassische und moderne Messeinrichtungen
+            BAdI: logische Zählwerke im Prozess für intelligente Messeinrichtung
+            BAdI: Geräteeinbau, -wechsel oder -ausbau in passiver Rolle
+        Tarifanwendungsfälle
+          Tarifanwendungsfälle definieren
+          OBIS-Kennzahlen für Tarifanwendungsfälle definieren
+          Messprodukte zu Tarifanwendungsfällen zuordnen
+        Messprodukte
+          Nummernkreise für Messprodukte definieren
+          Typen von Messproduktgruppen definieren
+          Business Add-Ins
+            BAdI: Messprodukt (MSB)
+            BAdI: Messprodukt (VNB)
+        Parametrierungsinstanzen
+          Nummernkreise für Messinstanzen definieren
+          Versandzeitsteuerung
+            Versandgruppen definieren
+            Versandintervalle definieren
+            Maximale Anzahl an Meldungen festlegen
+            Versandzeitfenster definieren
+          Business Add-Ins
+            BAdI: Parametrierungsinstanz
+        Montagerückmeldungen
+          Business Add-Ins
+            BAdI: Prüfung der Montagerückmeldung für fehlenden Wandler
+            BAdI: Ermittlungen Montagerückmeldung
+        Elektronische Lieferscheine
+          XML-Mapping definieren
+          Material zu Herstellernummer zuordnen
+        Web-Services
+          Business Add-Ins
+            BAdI: Web-Service-Erweiterung für Auswertungs- und Kommunikationsprofil
+            BAdI: Web-Service-Erweiterung zum Anlegen und Ändern von Geräten
+            BAdI: Web-Service-Erweiterung für Geräteprofil
+            BAdI: Webservice-Erweiterung für Parametrierungsprofil
+            BAdI-Implementierungen aktivieren
+              Implementierung: Ablesung
+              Implementierung: Zählwerksanlageanforderung/-bestätigung
+              Implementierung: Zählwerksänderungsanforderung/-bestätigung
+              Knotentext wurde nicht gefunden
+      Erweiterungen für die Abrechnung
+        Erweiterung für Convergent-Invoicing-Zeitpunkt definieren
+        Rechnungs-/Avisbearbeitung
+          Systemvorbereitung
+            BAdI: Zahlungsabwicklung
+            Implementierungen
+              Implementierung: interne Prüfungen während Belegverarbeitung
+              Implementierung: Zusätzliche Daten für Rechnungsbeleg und Avis
+              Implementierung: Zusätzliche INVMON-Selektionsparameter
+              Implementierung: Archivierung zusätzl. Daten für Rechnungsbelege und Avise
+              Implementierung: Zusätzliche Funktionen für die Rechnungsbelegverarbeitung
+              Implementierung: Pflege zusätzlicher Belegdaten für Rechnungen
+              Implementierung: Pflege zusätzlicher Belegdaten für Avise
+              Implementierung: Verarbeitung zusätzl. Funktionen u. Daten für Einzelposten
+          Rechnungsart und Belegtyp zur Abrechnungslösung zuordnen
+          Rechnungsbelegart und Zahlungsavisart zu Avisart zuordnen
+          Quelle von Crossreferenz zu Abrechnungslösung zuordnen
+          Erweiterung für FI-CA-Zahlungsereignis definieren
+          Codes für Ablehnungsgründe definieren
+          Reklamationsgründe definieren
+          Gründe für Handelsunstimmigkeit definieren
+          Ermittlung von EBD-Codeliste für Reklamationsgründe
+          Codes für Ablehnungsgründe zu Code für "Anderer Grund (28)" zuordnen
+          Fehlercodes für Handelsunstimmigkeit definieren
+          Steuerung der Ausgangsverarbeitung von Nullsummenzahlungsavisen definieren
+        Netznutzungsabrechnung für deutsche Strom- und Gasversorger
+          Artikel-ID für Netznutzungsabrechnungsposition ermitteln
+          Abrechnungs-Artikel-ID zu UTILMD-Artikel-ID zuordnen
+          Zusätzliche Abrechnungszeile für Artikel-ID zuordnen
+          Preiskatalog definieren
+          Bescheinigung für Netznutzungssonderabrechnung definieren
+          Systemvorbereitung
+            Business Add-Ins (BAdIs)
+              BAdI: Lieferscheinprozess
+              BAdI: Rechnung EBD-Prüfung
+              BAdI: Ermittlung der Netznutzungsabrechnung
+              Implementierungen
+                Implementierung: Daten für die Aktualisierung vorbereiten und sichern [ACT]
+                Implementierung: Aggregierte Massenausbuchung [ACT]
+                Implementierung: Abgrenzung [ACT]
+                Implementierung: Abschlagsperiode ermitteln [ACT]
+            Anpassungen für EBD-Prüfungen
+              Tariftyp für Direktkunden definieren
+              Steuersätze pflegen
+              Toleranzen für Jahresverbrauchsprognose definieren
+              Toleranzen für Rabatte definieren
+              Artikel-IDs zu Preisen zuordnen
+              Toleranzen für Steuer definieren
+              Toleranzen für Summe definieren
+              Toleranzen für Fälligkeitsdatum definieren
+              Toleranzen für Menge definieren
+              Knotentext wurde nicht gefunden
+          Integration von Energiemengen
+            Energiemengenoperand zuordnen
+          Lieferschein
+            Senden
+              Einstellungen für Stornolieferschein konfigurieren
+              Zeilenart definieren
+              Freitext von Handelsunstimmigkeiten definieren
+            Empfangen
+              Mengentoleranzen für EBD-Prüfung des Lieferscheins definieren
+              Toleranzwerte für Lieferscheinmenge definieren
+          Ausbuchung von Akontozahlungen
+            Allgemeine Einstellungen
+        Messstellenbetreiber-Abrechnung für deutsche Strom- und Gasversorger
+          Systemvorbereitung
+            Business Add-Ins
+              BAdI: Bestimmung von Messstellenbetreiber-Vertrag
+              Implementierung: Ausschreibungen für Abrechnungssicht des Einbaus
+              BAdI: Validierung von Messstellenbetreiber-Vertrag
+              Implementierungen
+                Implementierung: Massenaktivität für Zeitscheibenänderung [ACT]
+                Implementierung: Massenaktivität für Preisänderung [ACT]
+                Implementierung: MSB-Verträge für Abrechnungssicht der Anlage [ACT]
+                Implementierung: Angebote für Abrechnungssicht der Anlage [ACT]
+                Implementierung: Ausschreibungen für Abrechnungssicht des Einbaus [ACT]
+            Anpassungen für EBD-Prüfungen
+              Steuersätze pflegen
+              Toleranzen für Steuer definieren
+              Toleranzen für Summe definieren
+          Alternative Vertragsarten aktivieren
+          Konto für MSB-Abrechnung an VNB pflegen
+          Vertragsart definieren
+          Abrechnungsplanart definieren
+          Abrechnungsplanpositionsart definieren
+          Sperrgründe für Abrechnungsplan definieren
+          Abrechnungszyklus definieren
+          Bestimmung der Geräteklassifikation festlegen
+          Geräteklassifikation definieren
+          Preisklassifikation definieren
+          Preiskatalog definieren
+          Preisschlüsselstamm definieren
+          Nummernkreisintervalle für Vertrags-ID definieren
+          Nummernkreisintervalle für Zeitscheiben-ID definieren
+          Art der Abgrenzungsbuchung definieren
+          Konfiguration für kopierte Geschäftspartner pflegen
+          Verbrauchsermittlungsregeln verwalten
+          POG-Fristenart pflegen
+          Internen Beendigungsgrund zu externem Anforderungsgrund zuordnen
+          Operand für MSB-Abrechnung definieren
+          Integrationsprozess
+            Termin für Stammdatenaktualisierung aktivieren
+            SDÄ-Prozess für Integration von Messstellenbetreiber-Verträgen aktivieren
+        Overtake and Undertake Quantities Billing for German Energy Utilities
+          Senden
+            Systemvorbereitung
+              BAdI: Bestimmung der Mehr- und Mindermengenabrechnung
+              BAdI: Validierung der Mehr- und Mindermengenabrechnung
+              Implementierungen
+                Implementierung: Daten für die Aktualisierung vorbereiten und sichern [ACT]
+                Implementierung: Stornoaktualisierung [ACT]
+                Implementierung: Kundenspezifische Abrechnungsparameter [ACT]
+                Implementierung: Überschreiben des Namens des aufgeruf. Funktionsbausteins [ACT]
+                Implementierung: Anzeige der MeMi-Belege in der Abrechnungssicht [ACT]
+                Implementierung: Massenstorno von MeMi-Belegen [ACT]
+                Implementierung: Massenberechnung von MeMi-Daten [ACT]
+            Allgemeine Einstellungen für MeMi-Belege konfigurieren
+            Nummernkreisintervalle für MeMi-Belege definieren
+            Belegstatus definieren
+            Status des Eintrages konfigurieren
+            MeMi-Beleg simulieren
+            Belegzeilenart definieren
+            Parameter zum Anlegen abrechenbarer Positionen bestimmen
+            Identifikationsarten für Reverse Charges definieren
+            Reverse-Charge-Typen bestimmen
+            Reverse-Charge-Typen von MGV ermitteln
+            Identifikationsarten für relevante Energiesteuern definieren
+            Toleranzprüfung für MeMi-Belegmenge definieren
+          Empfangen
+            BAdI: Definition für Empfang von MeMi-Bilanzierungsmengen
+            Toleranzprüfung für bilanzierte Mengen definieren
+        WiM-Abrechnung für deutsche Strom- und Gasversorger
+          Parameter zum Anlegen abrechenbarer Positionen bestimmen
+        Abrechnung zusätzlicher Services für deutsche Strom- und Gasversorger
+          Preiskatalog definieren
+          Abrechnung von Sperrung und Entsperrung
+            Gebührenart für Sperrung und Entsperrung Serviceklassifikation zuordnen
+            Klasse abrechenbarer Positionen pflegen
+          Mahnkostenabrechnung
+            Klasse abrechenbarer Positionen pflegen
+        Konfiguration Abrechnung für deutsche Strom- und Gasversorger
+          Preiskatalog definieren
+          Klasse abrechenbarer Positionen pflegen
+        Abrechnung von Technik für deutsche Strom- und Gasversorger
+          Konto für MSB-Abrechnung an VNB pflegen
+          Preiskatalog definieren
+          Klasse abrechenbarer Positionen pflegen
+      Stammdatenaktualisierungen
+        Systemvorbereitung
+          Business Add-Ins
+            BAdI: Wiederinbetriebnahme-Auftrag senden
+            BAdI: Sperrauftrag senden
+            BAdI: Sperrbeleg LF
+            BAdI: Schließen von Sperrbeleg durch Auszug
+            BAdI: Stornoauftrag Sperre/Wiederinbetriebnahme
+            Knotentext wurde nicht gefunden
+            BAdI: WiM-Prozess
+            BAdI: Erweiterungen für Bilanzierungseinheit
+            BAdI: Erweiterungen für Zählpunkttermine
+            BAdI: Erweiterungen für ZP-Antwort
+            BAdI: Prozessname und -adresse
+            BAdI: Generierung von Stammdaten
+            BAdI: Stammdatenaustausch-Framework
+            BAdI: SDÄ-Prozess
+            BAdI: Zählverfahren (US4G)
+            BAdI: Datenabruf für Gasbestandliste
+            BAdI: Abmeldung Versorgung für GPKE (Sicht LFA)
+            BAdI: Abmeldung Versorgung für MPES (Sicht LFA)
+            BAdI: Kündigung der Belieferung für GPKE (Sicht LFA)
+            BAdI: Kündigung der Belieferung für MPES (Sicht LFA)
+            BAdI: Erweiterungen für Gebühreninformationen
+            BAdI: Prüfung f. ungült. ZP, d. aus Bestandsl. v. VNB an LF empfangen wurde
+            BAdI: allgemeine Sperrbelegerweiterungen
+            BAdI: Zusatzdaten für Sperrung
+            BAdI: Zuordnungen in Zählzeitdefinitionen
+            BAdI: Sperrauftrag
+            BAdI: Sperrbeleg
+            BAdI: Wiederinbetriebnahmeaufträge
+            BAdI: Prozess Versorgungsszenario
+            BAdI: Zählerwerte
+            BAdI: Energiemengen
+            BAdI: Energiemengen und Höchstleistung
+            BAdI: Profilwertaktualisierungen
+            BAdI: Berechnungsformeln
+            BAdI: UBP-Prozess
+            BAdI: Zählverfahren
+            BAdI: Beginn der Grund- oder Ersatzversorgung
+            Knotentext wurde nicht gefunden
+            Implementierungen
+              Implementierung: EEDMSETTLUI erweitern
+              Implementierung: Mengenermittlung von Korrekturmenge
+              Implementierung: Zuordnung von Gasfaktor zu Ablesebeleg
+              Implementierung: geschätzte Werte für Ermittlung von Gasfaktor verwenden
+        Stammdatenänderung
+          Ereignistypen und zugehörigen Prozess definieren
+        Adapter für die Messkonzeptverwaltung
+          Konfiguration von MKV-Mandant für den deutschen Markt
+          Mapping für technische Ressource definieren
+          Mapping des Messmodells für die Einspeisung
+          Regeln für die Anlage von Messstellenbetreiber-Verträgen definieren
+          Messproduktfindung definieren
+          Bilanzierungsdaten für Marktlokationen definieren
+          Lastprofilzuordnung definieren
+          Business Add-Ins (BAdIs)
+            BAdI: Konfigurationszugriffsklasse
+            BAdI: Datenzugriff
+            BAdI: Datenzugriff Marktprozess
+        Energiemengenbilanzierung
+          Systemvorbereitung
+            Klasse für MaBiS-Factory-Instanzereignis zuordnen
+            Business Add-Ins (BAdIs)
+              BAdI: MaBiS-ZP
+              BAdI: GUI-Erweiterungen für MaBis-ZP-Monitor
+              BAdI: Erweiterung für ZP-Zuordnung
+              BAdI: Erweiterung für Lieferantenclearingliste
+              BAdI: Erweiterung für Clearingliste Korrektur ÜNB
+              BAdI: Ausgleichsenergiepreis sichern
+              BAdI: Erweiterung für Prozesse MaBiS-SLP, PSET, TEP
+          MaBiS-ZP-Sichten definieren
+          Zeitreihentypen definieren
+          Grund für das Anlegen von Zeitreihenversion definieren
+          Gerätetyp für MaBiS-ZP definieren
+          Operatives Profil für MaBiS-ZP bestimmen
+          Netzebene (IS-U) Netzebene (MaBiS) zuordnen
+          Paketgröße für Aufteilung definieren
+          Größe des aufgeteilten Pakets für Redispatch definieren
+          Zuordnung für Selektionsart für Bilanzierung und Zeitreihentyp definieren
+        Energiedaten-Management
+          Systemvorbereitung
+            Klasse für EDM-Factory-Instanzereignis zuordnen
+            BAdI: Aktualisierungen der Profildefinition
+          Referenzdatenmodell: Profilrollen und Identifikation
+          Temperaturmessstelle und Klimazone definieren
+          Prüfungstyp für Profildefinition definieren
+        Redispatch
+          Systemvorbereitung
+            Klasse für Redispatch-Factory-Instanzereignis zuordnen
+        Geräteverwaltung
+          Gerätetypschlüssel definieren
+          Zählwerksdaten für Gerät definieren
+            Daten zur OBIS-Kennzahl definieren
+            Verbrauchsdaten definieren
+            Konzessionsabgabe und Steuerinformationen definieren
+          Zählerstände
+            Ableseart und Statuszusatzinformationen zuordnen
+            IS-U-Ablesegründe den GDV-Ablesegründen zuordnen
+            Ablesegründe für iMS konfigurieren
+            Framework für Ableseprozess konfigurieren
+            Abgrenzungsenergiemengen aktivieren
+            Abgrenzungsdatum angeben
+            Neue RLM-Stammdaten aktivieren
+            Benutzerdef. Logik für Verarbeitung von diskreten Ableseergebn. aktivieren
+            Zuordnung von Gasfaktor zu Ablesebeleg aktivieren
+            Toleranzen für Ableseschätzung definieren
+        Zählpunkt
+          Nummernkreisintervalle für steuerbare Ressource definieren
+          Nummernkreisintervalle für Netzlokation definieren
+          Nummernkreisintervalle für technische Ressource definieren
+          Nummernkreisintervalle für Ressourcen definieren
+          Nummernkreisintervalle für Ressourcen zuordnen
+          Nummernkreisintervalle für Marktlokationen definieren
+          Nummernkreisintervalle für Marktlokationen zuweisen
+        Datenzuordnung für Marktkommunikation
+          Verwendungskontext für Zuordnung Kundenanlage definieren
+          BAdI: Erweiterungen für Artikel-ID
+          Artikel-ID-Zuordnung definieren
+            Abrechnungsvariantenabhängige Artikel-ID-Zuordnung definieren
+              Operand für Abrechnungsvariante definieren
+              Operanden für EnWG-Szenarios definieren (Entgelt für Netznutzung senken)
+              Abrechnungsvariantenabhängige Artikel-ID-Zuordnung definieren
+              EnWG-Szenarios definieren (Entgelt für Netznutzung senken)
+              Zuordnung von Zählzeitkennziffer für EnWG-Modul 3 definieren
+            Abrechnungsvariantenunabhängige Artikel-ID-Zuordnung definieren
+              Irrelevant für Artikel-ID Messdienstleistungen
+              Anlagefaktenoperand für Konzessionsabgabengruppe abrufen
+              Operand für Netzkapazitätsreserve definieren
+              Operand für Befreiung von der Kostenumlage definieren
+              Operand für EnFG-Szenario definieren
+              Operand für Gemeinderabatt definieren
+              Operand für Abrechnungsressource definieren
+              Konzessionsabgabe und Steuerinfo definieren
+              Messdienstleistungen definieren
+              Netzkapazitätsreserve definieren
+          Bilanzierungssicht für asynchrone Bilanzierungseinheiten-Ermittlung pflegen
+          Namen für zusätzliche Einstellungen für Messprodukt definieren
+          Messproduktdetails pflegen
+          Ableseeinheit für Aktualisierung von Ablesedatum zuordnen
+          Serviceanbieter-Abo zu Serviceart zuordnen
+          IS-U-Spannungsebenen-Codes zu GDV-Werten zuordnen
+          IS-U-Druckstufen-Codes GDV-Werten zuordnen
+          Anlagefaktenoperand für Konzessionsabgabengruppe abrufen
+          Konzessionsabgabe und Steuerinfo definieren
+        Sperrung und Entsperrung
+          Spartenattribute für Sperrprozess definieren
+          Parameter für Verarbeitungsvariante
+          Kontaktinformationen hinterlegen
+          Aktivitäten definieren
+          Zusatzfunktionen definieren
+          Antwortparameter pflegen
+  Cloud for Customer - Versorgungswirtschaft
+    Großen Account definieren
+    Währungsumrechnung aktivieren
+    Alert-Framework konfigurieren
+    FOP-Startobjekte pflegen
+    FOP-Profil konfigurieren
+    Objekthierarchie konfigurieren
+    Stammdatenvorlage konfigurieren
+  Advanced-Metering-Infrastruktur
+    Grundeinstellungen
+      Advanced-Meter-Funktionen definieren
+      Status-Codes definieren
+      Externe VEE-Codes definieren
+      Aktivierungsgruppen für AMI-Funktionen definieren
+      Vereinfachte Stammdaten-Synchronisation definieren
+    Versenden von Nachrichten
+      Textnachrichten definieren
+    Event-Management
+      Einstellungen für Event-Management definieren
+      Selektionskriterien für Event-Management definieren
+    Hilfsmittel
+      Selektionskriterien für Überwachung definieren
+    Time-of-Use-Schnittstelle
+      Formelgruppen für TOU-Formeln definieren
+      Ausnahmegruppe für TOU-Schnittstelle definieren
+      Ausnahmetage zur Ausnahmegruppe für TOU-Schnittstelle definieren
+      Saisonblock
+        Saisonarten definieren
+        Saisonblöcke definieren
+      TOU-Formel bearbeiten
+      TOU-Schnittstelle bearbeiten
+      Time-of-Use-Ausnahmeprogramm definieren
+      Verbrauchsverhalten definieren
+    Time-of-Use-Ausnahmen
+      Nummernkreis für Time-of-Use-Ausnahmen definieren
+  Werkzeuge
+    Reporting - Localization Russia
+      Legal Forms
+        Sprachen für Notizen festlegen
+        Notizarten definieren
+        Benötigte Steuernummerntypen hinterlegen
+    Überwachung von Massenläufen
+      Überwachung von Massenläufen aktivieren
+      Business-Objekte den Meldungen zuweisen
+    Migration
+      Einstellungen für IS-U Migration vornehmen
+    Transport
+      Abrechnungsstammdaten transportieren
+    Archivierung
+      Archivinfostrukturen aktivieren
+      Residenzzeit für Archivierungsobjekte definieren
+      Residenzzeit für Rechnungs-/Avisdaten definieren
+      Steuerungsparameter der Archivierung definieren
+      Steuerungsparameter der Archivierung von MDUS-Anfragedaten definieren
+      Archiving for the SAP IS-UT CEE Add-On
+        Define Retention Period for Social Benefits
+        Define Retention Period for Seals Data
+        Define Retention Period for Subsidy Master Data
+    Systemanpassung
+      SAP-Erweiterungen
+        SAP-Erweiterungen definieren
+      Business Add-Ins
+        Übersicht der verfügbaren Business Add-Ins (Definitionspflege)
+        Business Add-Ins implementieren (Implementierungspflege)
+        BAdIs für Advanced-Metering-Infrastruktur
+          Zählwerksgruppe als Attribut in Services aktivieren
+      Feldauswahl
+        Felder auswählen
+      Funktionsüberblick
+      Kundeneigene Funktionserweiterung für Gerätezuordnungen
+        Arten von Gerätezuordnungen definieren
+      Kundeneigene Funktionserweiterung für Zählwerksbeziehungen
+        Arten von Zählwerksbeziehungen definieren
+        Zulässige Zählwerksbeziehungen je Spartentyp definieren
+        Operationscode innerhalb einer Zählwerksbeziehung definieren
+        Operationscode je Zählwerksbeziehung definieren
+      Kundeneigene Plausibilitätsprüfungen
+        Kundeneigene unabhängige Plausibilitätsprüfungen
+          Kundeneigene unabhängige Plausibilitätsprüfung definieren
+          Kundeneigene Plausibilitätsprüfung den FuBas zuordnen
+          Kundeneigene unabh. PlausiPrüfungen den Prüfklassen zuordnen
+        Kundeneigene abhängige Plausibilitätsprüfungen
+          Kundeneigene abhängige Plausibilitätsprüfung definieren
+          Kundeneigene Plausibilitätsprüfung den FuBas zuordnen
+          Kundeneigene abh. PlausiPrüfungen den Prüfgruppen zuordnen
+      Kundeneigene Funktionserweiterung f. Energiedaten-Management
+        Herkunftssysteme
+          Nummernkreise für Herkunftssystem definieren
+          Herkunftssysteme definieren
+        Intervalllängen
+          Intervalllängen definieren
+        Profilzuordnung
+          Kontext für Profilzuordnung definieren
+        Formeln
+          Berechnungsmodus definieren
+          Findungsmethode für Variablen definieren
+          Vorschlagswerte definieren
+          Formel definieren
+        Ergebnisfunktionen
+          Ergebnisfunktionen definieren
+          Informationsarten definieren
+        Dynamisierungsfunktionen für synthetische Profile
+          Funktionen z.Berechnung v.Dynamisierungsfaktoren definieren
+        Bilanzierung
+          Typ der Bilanzierungseinheit definieren
+          Bilanzierungsparameter definieren
+          Bilanzierungsschritte definieren
+          Bilanzierungsverfahren definieren
+          Selektionsarten definieren
+          Länderspezifische Einstellungen
+            Indien
+              Parameter für Bilanzierungseinheiten
+        Analysen
+          Analysefunktion zur Deregulierung
+      Kundeneigene Funktionserweiterung für Abrechnung
+        Kundeneigene Variantenprogramme
+          Belegzeilenarten definieren
+          Variantenprogramme definieren
+        Framework zur vereinfachten Belegzeilenkorrektur
+          Grundeinstellungen (Aktivierung der Funktionalität)
+          Definition individueller Korrekturmethoden
+        Kundeneigene Typen der Simulationsszenarien
+        Prüfungsvorrat für Abrechnung definieren
+      Kundeneigene Funktionserweiterung für Fakturierung
+        Prüfungsvorrat für Fakturierung definieren
+      Kundeneigene Funktionserweiterung für IDE
+        Netzebenenarten definieren
+        Datenaustausch Basisprozesse definieren
+        Datenaustausch-Basisprozess für servicebasierte Komm. (eSOA) definieren
+        Übertragungsformate definieren
+        Deregulierungsprozesse definieren
+        Prozessvarianten für Identifikation der Zählpunkte definieren
+        Versorgungsszenarien
+          Findungsmethode zum Serviceanbieter definieren
+        Lieferantenwechsel
+          Wechselarten definieren
+          Wechselsichten definieren
+          Aktivitäten des Lieferantenwechsels definieren
+          Status des Lieferantenwechsels definieren
+          Prüfungen definieren
+          Nachrichtendaten
+            Bearbeitungsstatus festlegen
+            Antwortstatus festlegen
+            Zählverfahren festlegen
+            Kategorie festlegen
+            Transaktionsgrund festlegen
+            Feldprüfung festlegen
+        Kommunikationsereignisse definieren
+        Konditionsarten definieren
+      Kundeneigene Felder
+        Kundeneigene Felder in Ort und Strasse definieren
+  Berechtigungsverwaltung
+    Berechtigungen definieren
