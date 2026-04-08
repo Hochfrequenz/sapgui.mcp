@@ -106,7 +106,7 @@ mcp==1.26.0
     # via fastmcp
 mdurl==0.1.2
     # via markdown-it-py
-more-itertools==10.8.0
+more-itertools==11.0.1
     # via
     #   jaraco-classes
     #   jaraco-functools
