@@ -213,7 +213,7 @@ typing-inspection==0.4.2
     #   mcp
     #   pydantic
     #   pydantic-settings
-uncalled-for==0.2.0
+uncalled-for==0.3.1
     # via fastmcp
 uvicorn==0.42.0
     # via
