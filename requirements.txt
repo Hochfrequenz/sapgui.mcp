@@ -122,7 +122,7 @@ platformdirs==4.9.4
     # via fastmcp
 playwright==1.58.0
     # via sapwebguimcp (pyproject.toml)
-prefab-ui==0.18.1
+prefab-ui==0.18.5
     # via fastmcp
 py-key-value-aio[filetree,keyring,memory]==0.4.4
     # via fastmcp
