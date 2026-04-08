@@ -157,7 +157,7 @@ python-dotenv==1.2.2
     #   fastmcp
     #   pydantic-settings
     #   sap-mcp-config
-python-multipart==0.0.22
+python-multipart==0.0.24
     # via mcp
 pyyaml==6.0.3
     # via
