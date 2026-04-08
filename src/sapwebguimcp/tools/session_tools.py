@@ -42,16 +42,20 @@ async def sap_session_list_impl() -> SessionListResult:
 async def sap_session_close_impl(session_id: str) -> SessionCloseResult:
     """Close a SAP session.
 
+    Any session ID can be closed, including ``s1``. With the parallel-
+    multi-mandant contract (#671), the registry can hold multiple
+    concurrent logins, and the LLM may legitimately want to close any
+    of them — including the lowest-numbered one. If the closed session
+    was the only one in the registry, subsequent tool calls will fail
+    with a clear "no session" error and the LLM should call
+    ``sap_login`` again.
+
     Args:
-        session_id: Session to close (cannot be 's1')
+        session_id: Session to close (e.g. "s1", "s2", ...)
 
     Returns:
         SessionCloseResult
     """
-    # Protect primary session (tool-level policy)
-    if session_id == "s1":
-        return SessionCloseResult.failure("Cannot close primary session 's1'. Use sap_login() to start fresh.")
-
     try:
         backend = await get_backend()
 

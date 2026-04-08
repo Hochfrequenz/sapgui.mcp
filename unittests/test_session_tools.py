@@ -74,15 +74,25 @@ class TestSessionClose:
     """Tests for sap_session_close_impl."""
 
     @pytest.mark.anyio
-    async def test_rejects_primary(self) -> None:
-        """Closing s1 is rejected without calling the backend."""
+    async def test_can_close_primary(self) -> None:
+        """Closing s1 is allowed (#671): the LLM may legitimately want to close
+        the primary session when multiple parallel sessions are active. The
+        old paternalistic protection was tied to the single-session-only
+        contract that #671 lifted.
+        """
         from sapwebguimcp.tools.session_tools import sap_session_close_impl
 
-        with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=AssertionError("should not be called"))):
+        backend = _make_backend(has_session=True, close_session=True)
+        # After close, no sessions remain.
+        backend.list_sessions.return_value = []
+
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
             result = await sap_session_close_impl("s1")
 
-        assert result.success is False
-        assert "s1" in result.error
+        assert result.success is True
+        assert result.session_id == "s1"
+        assert result.remaining_sessions == 0
+        backend.close_session.assert_awaited_once_with("s1")
 
     @pytest.mark.anyio
     async def test_unknown_session(self) -> None:

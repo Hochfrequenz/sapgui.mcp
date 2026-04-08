@@ -60,6 +60,16 @@ class LoginResult(ToolResult):
         default=None,
         description="Recommended next action after login (e.g., call sap_get_capabilities)",
     )
+    session_id: str | None = Field(
+        default=None,
+        description=(
+            "Registry session ID assigned to the new login (e.g. 's1', 's2'). "
+            "Pass this as the 'session' / 'session_id' parameter on subsequent "
+            "tool calls to address this specific login when multiple parallel "
+            "sessions are active. Desktop backend only — webgui currently runs "
+            "a single session."
+        ),
+    )
 
 
 class TransactionResult(ToolResult):

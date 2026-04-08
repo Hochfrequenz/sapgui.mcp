@@ -188,9 +188,12 @@ class DesktopBackend:
         # Mutation lock — serialises high-level operations that read or modify
         # the session set: list_sessions (reconciles), open_new_session (resolves
         # the new COM child by sibling index, must not race), close_session,
-        # and reset_to_primary. Without this, parallel agents racing through
-        # these paths can pre-resolve stale COM IDs or close newly-spawned
-        # sessions mid-iteration. See issue #637 for the failure mode.
+        # reset_to_primary, and login (#671: holds the lock for the entire
+        # login flow so two parallel sap_login calls don't race on the
+        # registry counter or each other's reconcile output). Without this,
+        # parallel agents racing through these paths can pre-resolve stale
+        # COM IDs or close newly-spawned sessions mid-iteration. See issue
+        # #637 for the original failure mode.
         self._mutation_lock: asyncio.Lock = asyncio.Lock()
 
     @property
@@ -242,49 +245,80 @@ class DesktopBackend:
         session_id: str | None = None,
         connection_name: str | None = None,
     ) -> LoginResult:
-        """Log into SAP GUI desktop (url is ignored -- uses connection_name from system config)."""
+        """Log into SAP GUI desktop, opening a NEW parallel session each call.
+
+        ``url`` is ignored — desktop uses ``connection_name`` from system config.
+
+        **Parallel-multi-mandant contract** (issue #671): each successful
+        ``login()`` adds a fresh session to the registry **without dropping any
+        existing live sessions**. Re-login is no longer a "reset". The LLM can
+        be logged into the same SAP Logon entry as multiple distinct
+        ``(client, user)`` tuples concurrently — they all coexist in the
+        registry as ``s1``, ``s2``, ``s3``, ... and tools address them via
+        the ``session_id`` parameter. Use :meth:`list_sessions` to discover
+        them.
+
+        Stale sessions (e.g. after an external SAP GUI death) are still
+        cleaned up: every login first runs :meth:`_reconcile_locked` which
+        probes every tracked session and prunes only the dead ones. This
+        preserves the issue #633 recovery contract — the dead pre-existing
+        ``s1`` is pruned before the new session is registered, so the new
+        login isn't shadowed by a dead proxy.
+        """
 
         if not connection_name:
             return LoginResult(success=False, error="No connection_name configured for this system in systems.json")
 
-        try:
-            # sapsucker.login.login() (>=0.5.1) opens a NEW parallel
-            # connection per call without disturbing any existing
-            # connection on the same connection_name, and verifies
-            # session.info.client / .user against the requested values
-            # post-login, raising SapConnectionError on mismatch — see
-            # Hochfrequenz/sapsucker#24 / #27 for the history. The except
-            # block below catches that and surfaces it as
-            # LoginResult.failure.
-            session = await self.com.run(
-                lambda: _sapsucker_login(
-                    connection_name=connection_name,
-                    client=client,
-                    user=username,
-                    password=password,
-                    language=language,
+        # Hold the mutation lock for the entire login flow so two parallel
+        # ``sap_login`` calls don't race on the registry counter or stomp
+        # each other's reconcile output. Login is rare and expensive — the
+        # serialization cost is negligible.
+        async with self._mutation_lock:
+            try:
+                # sapsucker.login.login() (>=0.5.1) opens a NEW parallel COM
+                # connection per call without disturbing any existing
+                # connection on the same connection_name, and verifies
+                # session.info.client / .user against the requested values,
+                # raising SapConnectionError on mismatch — see
+                # Hochfrequenz/sapsucker#24 / #27 for the history. The except
+                # block below catches that and surfaces it as
+                # LoginResult.failure.
+                session = await self.com.run(
+                    lambda: _sapsucker_login(
+                        connection_name=connection_name,
+                        client=client,
+                        user=username,
+                        password=password,
+                        language=language,
+                    )
                 )
-            )
 
-            # Drop any prior sessions before registering. If the user closed
-            # SAP GUI externally and re-logged in, the old GuiSession proxy
-            # in the registry is dead but ``primary_session`` would still
-            # resolve to it (issue #633). Treating re-login as a reset gives
-            # us a fresh ``s1`` and unblocks every subsequent tool call.
-            self.registry.clear()
-            self.registry.register(session)  # → "s1"
-            user_name = await self.com.run(lambda: str(session.info.user))
-            logger.info(
-                "login",
-                extra={"connection": connection_name, "user": user_name, "success": True},
-            )
-            return LoginResult(success=True, user=user_name)
-        except Exception as e:
-            logger.warning(
-                "login",
-                extra={"connection": connection_name, "user": username, "success": False, "error": str(e)},
-            )
-            return LoginResult(success=False, error=str(e))
+                # Reconcile: prune any sessions whose underlying COM proxy
+                # has died (e.g. external SAP GUI close, network drop). Live
+                # sessions survive — that's what enables the parallel-multi-
+                # mandant topology this PR unlocks. The previous behaviour
+                # called ``self.registry.clear()`` here, which dropped *every*
+                # session indiscriminately and broke parallel logins (#671).
+                await self._reconcile_locked()
+
+                new_session_id = self.registry.register(session)
+                user_name = await self.com.run(lambda: str(session.info.user))
+                logger.info(
+                    "login",
+                    extra={
+                        "connection": connection_name,
+                        "user": user_name,
+                        "session_id": new_session_id,
+                        "success": True,
+                    },
+                )
+                return LoginResult(success=True, user=user_name, session_id=new_session_id)
+            except Exception as e:
+                logger.warning(
+                    "login",
+                    extra={"connection": connection_name, "user": username, "success": False, "error": str(e)},
+                )
+                return LoginResult(success=False, error=str(e))
 
     async def list_connections(self) -> list[Any]:
         """List available SAP Logon connections from the landscape file."""

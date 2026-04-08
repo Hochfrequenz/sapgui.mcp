@@ -224,6 +224,16 @@ WORKFLOW:
 4. Use SAP-specific tools (sap_fill_form, sap_click_button, sap_keyboard) for interactions
 5. Use sap_com_evaluate as escape hatch for operations not covered by SAP-specific tools
 
+MULTI-SESSION SUPPORT (#671):
+sap_login() opens a NEW parallel session each call — re-login does NOT
+replace prior logins. You can be logged in as multiple distinct
+(client, user) tuples on the same SAP Logon entry concurrently. The
+LoginResult.session_id field carries the registry ID ('s1', 's2', ...)
+of the new session; pass that as the `session` / `session_id` parameter
+on subsequent tool calls to address THIS specific login. Use
+sap_session_list to see all currently active sessions, and
+sap_session_close to close any of them (including 's1' if you want).
+
 ESCAPE HATCHES (when SAP-specific tools are insufficient):
 - sap_com_snapshot: Get element tree with IDs (e.g., wnd[0]/usr/txtFIELD_NAME)
 - sap_com_evaluate: Execute COM operations on elements by ID
