@@ -6,9 +6,41 @@ from typing import TYPE_CHECKING, Callable
 if TYPE_CHECKING:
     from playwright.async_api import BrowserContext, Page
 
-__all__ = ["SessionRegistry"]
+__all__ = ["SessionRegistry", "SessionBindConflictError"]
 
 logger = logging.getLogger(__name__)
+
+
+class SessionBindConflictError(Exception):
+    """Raised when ``bind()`` is called on a session bound to a different agent.
+
+    Issue #643 made session bindings strict by default to prevent two agents
+    from silently sharing a session. The previous behaviour (silent overwrite,
+    warn-only ``check_binding``) was a real footgun in parallel-agent
+    workflows.
+
+    Caught by the ``sap_session_bind`` tool wrapper and surfaced as a
+    ``SessionBindResult.failure(...)`` with a useful message that tells the
+    caller they can either pick a different session or pass ``force=True``.
+
+    Re-binding the same agent (idempotent) does NOT raise. Binding an
+    unbound session does NOT raise. Only the agent-A → agent-B transition
+    is rejected.
+
+    Attributes:
+        session_id: The session whose binding was attempted.
+        current_agent: The agent currently holding the binding.
+        requested_agent: The agent that tried to bind.
+    """
+
+    def __init__(self, session_id: str, current_agent: str, requested_agent: str) -> None:
+        self.session_id = session_id
+        self.current_agent = current_agent
+        self.requested_agent = requested_agent
+        super().__init__(
+            f"Session '{session_id}' is already bound to agent '{current_agent}'; "
+            f"agent '{requested_agent}' cannot rebind without force=True."
+        )
 
 
 class SessionRegistry:
@@ -134,15 +166,46 @@ class SessionRegistry:
         """
         return self._bindings.get(session_id)
 
-    def bind(self, session_id: str, agent_id: str) -> None:
+    def bind(self, session_id: str, agent_id: str, *, force: bool = False) -> None:
         """Bind a session to an agent.
+
+        Strict by default (issue #643): if the session is already bound to a
+        *different* agent, raises :class:`SessionBindConflictError`.
+        Re-binding the same agent is a no-op (idempotent). Binding an
+        unbound session always succeeds.
 
         Args:
             session_id: Session to bind
             agent_id: Agent identifier
+            force: If True, take over the binding from any other agent.
+                Use this only when you know the previous binder is gone
+                (e.g. agent crash recovery) — otherwise prefer the strict
+                default and let the caller resolve the conflict.
+
+        Raises:
+            SessionBindConflictError: when ``force=False`` and the session
+                is already bound to a different agent.
         """
+        current = self._bindings.get(session_id)
+        if current is not None and current != agent_id and not force:
+            raise SessionBindConflictError(
+                session_id=session_id,
+                current_agent=current,
+                requested_agent=agent_id,
+            )
         self._bindings[session_id] = agent_id
-        logger.info("Bound session to agent", extra={"session": session_id, "agent_id": agent_id})
+        if current is not None and current != agent_id:
+            # Force-take-over: log distinctly so operators can correlate.
+            logger.info(
+                "Replaced session binding (force=True)",
+                extra={
+                    "session": session_id,
+                    "previous_agent": current,
+                    "agent_id": agent_id,
+                },
+            )
+        else:
+            logger.info("Bound session to agent", extra={"session": session_id, "agent_id": agent_id})
 
     def release(self, session_id: str) -> None:
         """Release agent binding from a session.

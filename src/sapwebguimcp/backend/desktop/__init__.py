@@ -323,11 +323,27 @@ class DesktopBackend:
             logger.warning("transaction", extra={"tcode": base_tcode, "success": False, "error": str(e)})
             return TransactionResult(success=False, tcode=base_tcode, error=str(e))
 
-    async def get_session_status(self) -> SessionStatus:
-        """Check whether the SAP session is logged in and responsive."""
-        if self._session is None:
+    async def get_session_status(self, session_id: str | None = None) -> SessionStatus:
+        """Check whether the SAP session is logged in and responsive.
+
+        Args:
+            session_id: Explicit registry session ID (e.g. ``"s2"``) to probe.
+                If ``None``, falls back to ``require_session()`` which reads
+                the per-call ``_current_session_id`` ContextVar set by
+                ``BackendManager.get_backend(session=...)``. Pass an explicit
+                ID to bypass the ContextVar (useful in tests).
+
+        Fixes #640: previously this method only ever probed ``self._session``
+        (the primary session via the property), so calls like
+        ``sap_session_status(session="s2")`` silently reported on s1.
+        """
+        try:
+            if session_id is not None:
+                session = self.registry.get_session(session_id)
+            else:
+                session = self.require_session()
+        except ValueError:
             return SessionStatus(success=True, status="logged_off", message="Not logged in")
-        session = self._session
         try:
             user = await self.com.run(lambda: str(session.info.user))
             return SessionStatus(success=True, status="active", message=f"Logged in as {user}")
@@ -657,10 +673,15 @@ class DesktopBackend:
                 "errors": errors,
             }
 
-    async def bind_session(self, session_id: str, agent_id: str) -> str | None:
-        """Bind an agent to a session."""
+    async def bind_session(self, session_id: str, agent_id: str, *, force: bool = False) -> str | None:
+        """Bind an agent to a session.
+
+        Strict by default (#643): raises ``SessionBindConflictError`` if the
+        session is bound to a different agent. Pass ``force=True`` to take
+        over.
+        """
         prev = self.registry.get_bound_agent(session_id)
-        self.registry.bind(session_id, agent_id)
+        self.registry.bind(session_id, agent_id, force=force)
         return prev
 
     async def release_session(self, session_id: str) -> str | None:

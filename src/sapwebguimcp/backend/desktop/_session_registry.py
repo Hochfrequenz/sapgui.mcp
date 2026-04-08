@@ -10,6 +10,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Iterable
 
+# Reuse the conflict error from the webgui registry so callers can catch
+# a single class regardless of which backend produced it. Cross-import is
+# safe — ``models/session_registry.py`` only imports stdlib.
+from sapwebguimcp.models.session_registry import SessionBindConflictError
+
 if TYPE_CHECKING:
     from sapsucker.components.session import GuiSession
 
@@ -84,6 +89,13 @@ class DesktopSessionRegistry:
         side. Returns the IDs that were actually removed (i.e. were present
         in ``_sessions`` before the call) so the caller can log/report them.
 
+        **Auto-clears bindings.** Any agent bindings on the pruned sessions
+        are dropped as a side effect — the binding contract from #643 says
+        a binding has the same lifetime as its underlying session. Agents
+        whose sessions were pruned will appear in the
+        ``reset_to_primary``-style ``killed_agents`` reports and must
+        re-bind to a different session before continuing.
+
         This is intentionally synchronous and COM-free — the registry has
         no COM access (see the class-level docstring) and the actual probes
         are performed by ``DesktopBackend`` on the COM thread.
@@ -118,10 +130,33 @@ class DesktopSessionRegistry:
         if had_sessions:
             logger.info("Cleared desktop session registry")
 
-    def bind(self, session_id: str, agent_id: str) -> None:
-        """Bind a session to an agent."""
+    def bind(self, session_id: str, agent_id: str, *, force: bool = False) -> None:
+        """Bind a session to an agent.
+
+        Strict by default (issue #643): raises
+        :class:`SessionBindConflictError` if the session is already bound
+        to a different agent. Re-binding the same agent is idempotent.
+        Pass ``force=True`` to take over.
+        """
+        current = self._bindings.get(session_id)
+        if current is not None and current != agent_id and not force:
+            raise SessionBindConflictError(
+                session_id=session_id,
+                current_agent=current,
+                requested_agent=agent_id,
+            )
         self._bindings[session_id] = agent_id
-        logger.info("Bound session", extra={"session": session_id, "agent_id": agent_id})
+        if current is not None and current != agent_id:
+            logger.info(
+                "Replaced desktop session binding (force=True)",
+                extra={
+                    "session": session_id,
+                    "previous_agent": current,
+                    "agent_id": agent_id,
+                },
+            )
+        else:
+            logger.info("Bound session", extra={"session": session_id, "agent_id": agent_id})
 
     def release(self, session_id: str) -> None:
         """Release agent binding from a session."""
