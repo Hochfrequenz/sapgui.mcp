@@ -27,7 +27,8 @@ async def sap_login_impl(
     Log into SAP.
 
     Args:
-        url: SAP Web GUI URL (WebGUI only). If not provided, derives from shared config or SAP_URL.
+        url: SAP Web GUI URL (WebGUI only). If not provided, derives from the
+            selected system's ``host`` in systems.json, falling back to ``SAP_URL``.
         client: SAP client/mandant (3-digit string). If not provided, uses shared config.
         system_key: Dictionary key from systems.json (e.g. "dev-100"). Overrides default_system.
         session_id: Session ID for multi-session support.
