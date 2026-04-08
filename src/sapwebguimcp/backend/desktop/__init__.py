@@ -16,6 +16,8 @@ import time
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
 
+from sapsucker import SapGui
+from sapsucker._errors import SapConnectionError
 from sapsucker.login import login as _sapsucker_login
 
 try:
@@ -77,6 +79,45 @@ logger = logging.getLogger(__name__)
 def _unwrap_com(field: Any) -> Any:
     """Get the raw COM dispatch object from a sapsucker wrapper."""
     return getattr(field, "com", getattr(field, "_com", field))
+
+
+def _close_existing_connections(connection_name: str) -> int:
+    """Close every open SAP GUI connection whose description matches *connection_name*.
+
+    Must run on the COM thread (callers wrap this in ``self.com.run``).
+
+    Background: ``OpenConnection(name)`` in SAP GUI Scripting reuses an
+    already-open connection by description instead of opening a fresh one.
+    When two ``systems.json`` entries share the same ``connection_name`` —
+    a supported topology since #590, e.g. one entry per Mandant on the same
+    SAP system — calling ``sap_login`` for the second entry would otherwise
+    return the first entry's already-logged-in session, leaving the user
+    silently routed to the wrong client (issue #659).
+
+    By closing existing matches first we force ``OpenConnection`` to land on
+    the SAPMSYST login dynpro so sapsucker can fill in the requested
+    credentials. Returns the number of connections closed (0 if SAP GUI is
+    not running yet, which is fine — the upcoming login will start it).
+    """
+    try:
+        app = SapGui.connect()
+    except SapConnectionError:
+        return 0  # SAP GUI not running yet — nothing to clean up.
+
+    closed = 0
+    children = app.com.Children
+    # Reverse iteration: the COM Children collection mutates on close, so
+    # closing from the end avoids skipping entries (same idiom sapsucker
+    # uses in ``GuiApplication.__exit__`` and ``cleanup_ghost_connections``).
+    for i in range(children.Count - 1, -1, -1):
+        try:
+            conn = children(i)
+            if str(conn.Description) == connection_name:
+                conn.CloseConnection()
+                closed += 1
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass  # best-effort: never let cleanup mask the real login error
+    return closed
 
 
 def _set_field_value(raw_com: Any, value: str) -> None:
@@ -248,6 +289,17 @@ class DesktopBackend:
             return LoginResult(success=False, error="No connection_name configured for this system in systems.json")
 
         try:
+            # Close any pre-existing connection that shares this entry's
+            # ``connection_name`` so ``OpenConnection`` lands on a fresh
+            # SAPMSYST login dynpro instead of returning the prior session
+            # in the wrong client (issue #659). See ``_close_existing_connections``.
+            closed = await self.com.run(lambda: _close_existing_connections(connection_name))
+            if closed:
+                logger.info(
+                    "login_closed_existing_connection",
+                    extra={"connection": connection_name, "closed": closed},
+                )
+
             session = await self.com.run(
                 lambda: _sapsucker_login(
                     connection_name=connection_name,
@@ -257,6 +309,33 @@ class DesktopBackend:
                     language=language,
                 )
             )
+
+            # Defensive: confirm the new session is actually in the requested
+            # client. If sapsucker silently landed somewhere else (e.g. an
+            # SSO/SNC auto-login or a future regression in the credential-fill
+            # path) we'd rather fail loudly here than misroute every subsequent
+            # tool call into the wrong Mandant.
+            actual_client = await self.com.run(lambda: str(session.info.client))
+            if actual_client != client:
+                logger.warning(
+                    "login_client_mismatch",
+                    extra={
+                        "connection": connection_name,
+                        "requested_client": client,
+                        "actual_client": actual_client,
+                    },
+                )
+                return LoginResult(
+                    success=False,
+                    error=(
+                        f"Login landed in client {actual_client!r} but {client!r} was requested. "
+                        f"This usually means the SAP Logon entry {connection_name!r} was already "
+                        "open in a different client and the per-call credential override did not "
+                        "take effect. Close the connection in SAP GUI and retry, or check whether "
+                        "SSO/SNC is bypassing the explicit credentials."
+                    ),
+                )
+
             # Drop any prior sessions before registering. If the user closed
             # SAP GUI externally and re-logged in, the old GuiSession proxy
             # in the registry is dead but ``primary_session`` would still
