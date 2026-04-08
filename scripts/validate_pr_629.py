@@ -266,18 +266,54 @@ async def test_2b_synthetic_worker_death() -> bool:
 
 
 async def test_3_concurrent_recovery() -> bool:
-    """Synthetic worker death (via shutdown()), then 5 parallel sap_login calls.
+    """Synthetic worker death (via shutdown()), then 2 parallel sap_login calls.
 
-    Verifies the PR's asyncio.Lock serializes recovery: all 5 logins should
-    succeed AND ``desktop_com_thread_dead_rebuilding`` should appear EXACTLY
-    ONCE in the log (not 5 times).
+    This is a real-SAP **smoke test** for the end-to-end recovery path:
+    synthetic worker death → concurrent recovery → both logins succeed →
+    fresh ComThread is alive. It does NOT serve as the primary verification
+    of PR #629's lock semantics — those are covered by faster, more
+    isolated unit tests on Linux/CI:
 
-    Why synthetic: T2 showed that killing saplogon.exe externally does not
-    actually kill the COM worker thread — exceptions are caught inside
-    _execute_with_retry. To exercise the PR's recovery path the worker must
-    actually be dead, so we shut it down explicitly.
+    * ``unittests/test_backend_manager.py::test_recover_desktop_if_dead_concurrent_only_clears_once``
+      — uses mocked dead threads to assert ``desktop_com_thread_dead_rebuilding``
+      fires exactly once under ``asyncio.gather`` recovery, no SAP needed.
+    * ``unittests/test_backend_manager.py::test_recover_desktop_if_dead_blocks_when_lock_held``
+      — pre-acquires the recovery lock externally and proves the second
+      caller actually waits, instead of relying on coincidental ordering.
+
+    The unit tests are stronger than this harness test because they
+    isolate the property under verification (lock-fires-once) without
+    depending on real SAP server-side state. This harness test
+    complements them by exercising the *integration* — actual ComThread
+    rebuild + DesktopBackend re-cache + real ``_sapsucker_login`` calls.
+
+    Why 2 logins, not 5: cumulative real-SAP logins accumulate user
+    sessions on the SAP server (the multiple-logon-popup handler chooses
+    "continue without ending other sessions"). Past 3-4 rapid logins,
+    ``OpenConnection`` starts hitting RPC errors that take several
+    minutes to clear server-side. 2 is the minimum for a meaningful
+    concurrency test (two coroutines racing for the lock) and dramatically
+    reduces the SAP-side state pressure compared to the previous 5-login
+    flood. See issue #635 for the original flakiness investigation.
+
+    Why synthetic worker death: T2 showed that killing saplogon.exe
+    externally does not actually kill the COM worker thread — exceptions
+    are caught inside ``_execute_with_retry``. To exercise the PR's
+    recovery path the worker must actually be dead, so we shut it down
+    explicitly via ``com.shutdown()``.
+
+    Known limitations / how to run reliably:
+
+    * Run against a SAP user that has no other active sessions. SM04 in
+      another window can show you the current session count for your user.
+    * If T3 starts failing with ``Could not open connection`` or
+      ``RPC_S_UNKNOWN_IF``, wait several minutes for SAP to prune idle
+      sessions, OR log in via SAP GUI manually and close all your sessions.
+    * The unit tests above run on every PR in CI and catch regressions to
+      the lock semantics — this harness test is for once-per-PR manual
+      smoke testing only.
     """
-    print("\n--- Test 3: Concurrent recovery (5 parallel logins) ---")
+    print("\n--- Test 3: Concurrent recovery (2 parallel logins, smoke test) ---")
     reset_backend_manager()
 
     # Establish working state
@@ -299,8 +335,10 @@ async def test_3_concurrent_recovery() -> bool:
         print("FAIL — worker still alive after shutdown()")
         return False
 
-    # Step 3: 5 parallel sap_login calls
-    print("\n=== launching 5 parallel sap_login calls ===")
+    # Step 3: 2 parallel sap_login calls — minimum for a meaningful
+    # concurrency test, and small enough to keep SAP-side session
+    # accumulation manageable across repeated harness runs.
+    print("\n=== launching 2 parallel sap_login calls ===")
 
     async def one_login(i: int):
         try:
@@ -309,7 +347,7 @@ async def test_3_concurrent_recovery() -> bool:
         except Exception as exc:
             return (i, False, f"{type(exc).__name__}: {exc}")
 
-    results = await asyncio.gather(*(one_login(i) for i in range(5)))
+    results = await asyncio.gather(*(one_login(i) for i in range(2)))
     for i, success, err in results:
         print(f"login[{i}]: success={success} error={err!r}")
 
@@ -322,7 +360,10 @@ async def test_3_concurrent_recovery() -> bool:
 
     # Note: counting `desktop_com_thread_dead_rebuilding` log lines from
     # within the test would require a custom handler. The caller will grep
-    # the log file after the run to count occurrences.
+    # the log file after the run to count occurrences. The unit tests
+    # cited in this function's docstring assert this exactly via
+    # patch.object(logger, 'warning'); refer to those for the canonical
+    # count check.
 
     return all_succeeded and new_com.is_alive and new_com is not com
 
