@@ -185,7 +185,7 @@ rpds-py==0.30.0
     #   referencing
 sap-mcp-config==0.1.0
     # via sapwebguimcp (pyproject.toml)
-sapsucker==0.4.0
+sapsucker==0.4.1
     # via sapwebguimcp (pyproject.toml)
 secretstorage==3.5.0
     # via keyring
