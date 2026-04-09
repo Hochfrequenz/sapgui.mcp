@@ -95,7 +95,7 @@ async def test_sap_read_table_from_sm37_no_jobs(sap_mcp_client: ClientSession) -
     )
     assert fill_result.success, f"Failed to fill JOBNAME field: {fill_result.error}"
 
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Check status bar for "no jobs" message
@@ -153,7 +153,7 @@ async def test_sap_read_table_from_sm37_all_jobs(sap_mcp_client: ClientSession) 
     await assert_fill_success(result, f"TO_DATE={to_date}")
 
     # Execute (F8) and wait for list output to complete (can take a while with many jobs)
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 30000})
 
     # Capture table results HTML for unit tests

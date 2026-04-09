@@ -47,7 +47,7 @@ async def test_explore_se16n_small_table(sap_mcp_client: ClientSession) -> None:
     print(f"\nSet field result: {text[:200]}")
 
     # Execute with F8
-    result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    result = await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     text = _get_content_text(result.content[0])
     print(f"\nF8 result: {text[:200]}")
 
@@ -90,7 +90,7 @@ async def test_explore_se16n_larger_table(sap_mcp_client: ClientSession) -> None
     print(f"\nSet max hits result: {text[:200]}")
 
     # Execute with F8
-    result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    result = await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
 
     await asyncio.sleep(2)
 
@@ -135,11 +135,11 @@ async def test_explore_se16n_clipboard(sap_mcp_client: ClientSession) -> None:
     # Navigate to SE16N and query T000
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16N"})
     await sap_mcp_client.call_tool("sap_set_field", {"label": "Table", "value": "T000"})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await asyncio.sleep(1)
 
     # Try to select all (Ctrl+A)
-    result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "Control+a"})
+    result = await sap_mcp_client.call_tool("sap_press_key", {"key": "Control+a"})
     text = _get_content_text(result.content[0])
     print(f"\nCtrl+A result: {text[:200]}")
 
@@ -151,7 +151,7 @@ async def test_explore_se16n_clipboard(sap_mcp_client: ClientSession) -> None:
     (SNAPSHOTS_DIR / "se16n_after_select_all.yaml").write_text(snapshot, encoding="utf-8")
 
     # Try Ctrl+C to copy
-    result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "Control+c"})
+    result = await sap_mcp_client.call_tool("sap_press_key", {"key": "Control+c"})
     text = _get_content_text(result.content[0])
     print(f"\nCtrl+C result: {text[:200]}")
 
@@ -179,7 +179,7 @@ async def test_explore_se16n_export_button(sap_mcp_client: ClientSession) -> Non
     # Navigate to SE16N and query T000
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16N"})
     await sap_mcp_client.call_tool("sap_set_field", {"label": "Table", "value": "T000"})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await asyncio.sleep(1)
 
     # Click Export button
@@ -220,7 +220,7 @@ async def test_explore_se16n_scroll(sap_mcp_client: ClientSession) -> None:
     await sap_mcp_client.call_tool("sap_set_field", {"label": "Table", "value": "TSTC"})
 
     # Execute
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await asyncio.sleep(2)
 
     # Get initial results
@@ -230,7 +230,7 @@ async def test_explore_se16n_scroll(sap_mcp_client: ClientSession) -> None:
     print(f"\nInitial rows in snapshot: {row_count1}")
 
     # Try Page Down
-    result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "PageDown"})
+    result = await sap_mcp_client.call_tool("sap_press_key", {"key": "PageDown"})
     await asyncio.sleep(1)
 
     result = await sap_mcp_client.call_tool("browser_snapshot", {})
@@ -246,7 +246,7 @@ async def test_explore_se16n_scroll(sap_mcp_client: ClientSession) -> None:
         print("Content same after PageDown - may be showing all data or pagination different")
 
     # Try Ctrl+End to go to last page
-    result = await sap_mcp_client.call_tool("sap_keyboard", {"key": "Control+End"})
+    result = await sap_mcp_client.call_tool("sap_press_key", {"key": "Control+End"})
     await asyncio.sleep(1)
 
     result = await sap_mcp_client.call_tool("browser_snapshot", {})
@@ -275,7 +275,7 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
     # Navigate to SE16N and query TSTC
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16N"})
     await sap_mcp_client.call_tool("sap_set_field", {"label": "Table", "value": "TSTC"})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await asyncio.sleep(3)  # Longer initial wait
 
     def parse_snapshot(raw: str) -> str:
@@ -314,7 +314,7 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
     except Exception as e:
         print(f"Grid click failed: {e}")
 
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "PageDown"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "PageDown"})
     await asyncio.sleep(3)  # Longer wait
 
     result = await sap_mcp_client.call_tool("browser_snapshot", {})
@@ -331,7 +331,7 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
     # Strategy 2: Multiple PageDown presses with waits between
     print("\n=== Strategy 2: 5x PageDown with 2s waits ===")
     for i in range(5):
-        await sap_mcp_client.call_tool("sap_keyboard", {"key": "PageDown"})
+        await sap_mcp_client.call_tool("sap_press_key", {"key": "PageDown"})
         await asyncio.sleep(2)
         print(f"  PageDown {i+1} done")
 
@@ -349,7 +349,7 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
     # Strategy 3: Arrow Down repeatedly (navigate row by row)
     print("\n=== Strategy 3: 50x ArrowDown ===")
     for i in range(50):
-        await sap_mcp_client.call_tool("sap_keyboard", {"key": "ArrowDown"})
+        await sap_mcp_client.call_tool("sap_press_key", {"key": "ArrowDown"})
         if i % 10 == 9:
             await asyncio.sleep(0.5)
             print(f"  ArrowDown {i+1} done")
@@ -368,7 +368,7 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
 
     # Strategy 4: Ctrl+End with very long wait
     print("\n=== Strategy 4: Ctrl+End + 5s wait ===")
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "Control+End"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "Control+End"})
     await asyncio.sleep(5)
 
     result = await sap_mcp_client.call_tool("browser_snapshot", {})
@@ -388,7 +388,7 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
 
     # Strategy 5: Go back to start and try JavaScript scroll
     print("\n=== Strategy 5: Ctrl+Home + JS scroll ===")
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "Control+Home"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "Control+Home"})
     await asyncio.sleep(2)
 
     # Try using evaluate to scroll the grid - use IIFE to allow return
@@ -447,7 +447,7 @@ async def test_explore_se16n_collect_100_rows(sap_mcp_client: ClientSession) -> 
     # Navigate to SE16N and query TSTC
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16N"})
     await sap_mcp_client.call_tool("sap_set_field", {"label": "Table", "value": "TSTC"})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await asyncio.sleep(2)
 
     def parse_snapshot(raw: str) -> str:
@@ -548,7 +548,7 @@ async def test_explore_se16n_collect_100_rows(sap_mcp_client: ClientSession) -> 
             break
 
         # Navigate to next page - use longer wait
-        await sap_mcp_client.call_tool("sap_keyboard", {"key": "PageDown"})
+        await sap_mcp_client.call_tool("sap_press_key", {"key": "PageDown"})
         await asyncio.sleep(2)
         page_num += 1
 
@@ -595,7 +595,7 @@ async def test_explore_se16n_verify_no_gaps(sap_mcp_client: ClientSession) -> No
     # Navigate to SE16N and query TSTC
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16N"})
     await sap_mcp_client.call_tool("sap_set_field", {"label": "Table", "value": "TSTC"})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await asyncio.sleep(2)
 
     def parse_snapshot(raw: str) -> str:
@@ -679,7 +679,7 @@ async def test_explore_se16n_verify_no_gaps(sap_mcp_client: ClientSession) -> No
         if len(all_rows) >= 100:
             break
 
-        await sap_mcp_client.call_tool("sap_keyboard", {"key": "PageDown"})
+        await sap_mcp_client.call_tool("sap_press_key", {"key": "PageDown"})
         await asyncio.sleep(2)
         page_num += 1
 
@@ -725,7 +725,7 @@ async def test_explore_se16n_collect_all_with_limit(sap_mcp_client: ClientSessio
     await sap_mcp_client.call_tool("sap_set_field", {"label": "Table", "value": "TSTC"})
     # Set max hits to 50 - small enough to collect all
     await sap_mcp_client.call_tool("sap_set_field", {"label": "Max. Number of Hits", "value": "50"})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await asyncio.sleep(2)
 
     def parse_snapshot(raw: str) -> str:
@@ -822,7 +822,7 @@ async def test_explore_se16n_collect_all_with_limit(sap_mcp_client: ClientSessio
             print(f"  Collected all {total_hits} rows!")
             break
 
-        await sap_mcp_client.call_tool("sap_keyboard", {"key": "PageDown"})
+        await sap_mcp_client.call_tool("sap_press_key", {"key": "PageDown"})
         await asyncio.sleep(1.5)
         page_num += 1
 
@@ -852,7 +852,7 @@ async def test_explore_se16n_stress_test_5000_rows(sap_mcp_client: ClientSession
     await sap_mcp_client.call_tool("sap_set_field", {"label": "Table", "value": "TSTC"})
     # Set max hits to 5000
     await sap_mcp_client.call_tool("sap_set_field", {"label": "Max. Number of Hits", "value": "5000"})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await asyncio.sleep(5)  # Longer wait for large query
 
     def parse_snapshot(raw: str) -> str:
@@ -1018,7 +1018,7 @@ async def test_explore_se16n_stress_test_5000_rows(sap_mcp_client: ClientSession
             break
 
         # Navigate to next page
-        await sap_mcp_client.call_tool("sap_keyboard", {"key": "PageDown"})
+        await sap_mcp_client.call_tool("sap_press_key", {"key": "PageDown"})
         await asyncio.sleep(1)  # Slightly faster for stress test
         page_num += 1
 

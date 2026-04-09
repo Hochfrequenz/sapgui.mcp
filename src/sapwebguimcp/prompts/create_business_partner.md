@@ -6,7 +6,7 @@ description: Create a business partner (person or organization) by composing gen
 
 ## Overview
 
-This recipe demonstrates how to automate a complete SAP workflow by composing generic tools. There is no dedicated "create BP" tool -- instead, you combine `sap_transaction`, `sap_keyboard`, `sap_fill_form`, and `sap_read_status_bar` to create a business partner from scratch.
+This recipe demonstrates how to automate a complete SAP workflow by composing generic tools. There is no dedicated "create BP" tool -- instead, you combine `sap_transaction`, `sap_press_key`, `sap_fill_form`, and `sap_read_status_bar` to create a business partner from scratch.
 
 This pattern works for **any SAP transaction**, not just BP.
 
@@ -31,13 +31,13 @@ Verify the screen shows "Geschaeftspartner pflegen" (DE) or "Maintain Business P
 For a **person** (natural person):
 
 ```
-sap_keyboard("F5")
+sap_press_key("F5")
 ```
 
 For an **organization** (company):
 
 ```
-sap_keyboard("F6")
+sap_press_key("F6")
 ```
 
 A popup may appear asking to confirm the BP type. If so, confirm it.
@@ -85,7 +85,7 @@ sap_fill_form({
 ### Step 5: Save
 
 ```
-sap_keyboard("Control+S")
+sap_press_key("Control+S")
 ```
 
 ### Step 6: Check the Result
@@ -118,7 +118,7 @@ If save fails with "Pflichtfeld nicht gefuellt" (required field not filled):
 
 4. Try saving again:
     ```
-    sap_keyboard("Control+S")
+    sap_press_key("Control+S")
     sap_read_status_bar()
     ```
 
@@ -171,4 +171,4 @@ Do NOT try to navigate back -- just restart the transaction.
 
 ## Key Takeaway
 
-This workflow uses only generic tools: `sap_transaction`, `sap_keyboard`, `sap_fill_form`, `sap_read_status_bar`, `sap_get_screen_text`, and `sap_se16_query`. The same pattern applies to **any** SAP transaction -- open it, fill fields, save, check the result.
+This workflow uses only generic tools: `sap_transaction`, `sap_press_key`, `sap_fill_form`, `sap_read_status_bar`, `sap_get_screen_text`, and `sap_se16_query`. The same pattern applies to **any** SAP transaction -- open it, fill fields, save, check the result.

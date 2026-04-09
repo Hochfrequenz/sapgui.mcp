@@ -313,9 +313,9 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
             try:
                 # Dismiss any open popups
                 for _ in range(3):
-                    await session.call_tool("sap_keyboard", {"key": "Escape"})
+                    await session.call_tool("sap_press_key", {"key": "Escape"})
                 # Press Back (F3) multiple times to return to main menu
                 for _ in range(5):
-                    await session.call_tool("sap_keyboard", {"key": "F3"})
+                    await session.call_tool("sap_press_key", {"key": "F3"})
             except Exception:  # pylint: disable=broad-exception-caught
                 pass  # Best effort — don't fail teardown

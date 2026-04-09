@@ -97,7 +97,7 @@ async def test_se38_edit_01_display_report(sap_mcp_client: ClientSession) -> Non
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Press F7 to display source code
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F7 failed: {keyboard.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -143,12 +143,12 @@ async def test_se38_edit_02_switch_to_edit_mode(sap_mcp_client: ClientSession) -
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Press F7 to display first
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     assert keyboard.success, f"F7 failed: {keyboard.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Now try to switch to edit mode with Ctrl+F1 (Change/Display toggle)
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Control+F1"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Control+F1"}, KeyboardResult)
     assert keyboard.success, f"Ctrl+F1 failed: {keyboard.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
@@ -193,7 +193,7 @@ async def test_se38_edit_03_direct_change_mode(sap_mcp_client: ClientSession) ->
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Press F6 to go directly into change mode (instead of F7 for display)
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F6"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F6"}, KeyboardResult)
     assert keyboard.success, f"F6 failed: {keyboard.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
@@ -237,7 +237,7 @@ async def test_se38_edit_04_read_editor_content(sap_mcp_client: ClientSession) -
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Go into change mode
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F6"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F6"}, KeyboardResult)
     assert keyboard.success, f"F6 failed: {keyboard.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
@@ -335,13 +335,13 @@ async def test_se38_edit_05_check_and_activate(sap_mcp_client: ClientSession) ->
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Go into change mode
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F6"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F6"}, KeyboardResult)
     assert keyboard.success, f"F6 failed: {keyboard.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Try syntax check (Ctrl+F2)
     print("--- Attempting Ctrl+F2 (Syntax Check) ---")
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Control+F2"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Control+F2"}, KeyboardResult)
     assert keyboard.success, f"Ctrl+F2 failed: {keyboard.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
@@ -352,7 +352,7 @@ async def test_se38_edit_05_check_and_activate(sap_mcp_client: ClientSession) ->
 
     # Try activate (Ctrl+F3)
     print("\n--- Attempting Ctrl+F3 (Activate) ---")
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Control+F3"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Control+F3"}, KeyboardResult)
     assert keyboard.success, f"Ctrl+F3 failed: {keyboard.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
@@ -396,7 +396,7 @@ async def test_se38_edit_06_select_all_and_replace(sap_mcp_client: ClientSession
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Go into change mode
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F6"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F6"}, KeyboardResult)
     assert keyboard.success, f"F6 failed: {keyboard.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
@@ -409,12 +409,12 @@ async def test_se38_edit_06_select_all_and_replace(sap_mcp_client: ClientSession
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     # Select all text (Ctrl+A)
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Control+a"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Control+a"}, KeyboardResult)
     print(f"Ctrl+A result: {keyboard.success}")
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     # Delete selected text
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Delete"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Delete"}, KeyboardResult)
     print(f"Delete result: {keyboard.success}")
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
@@ -423,8 +423,8 @@ async def test_se38_edit_06_select_all_and_replace(sap_mcp_client: ClientSession
     # We need to use browser_fill or browser_keyboard to type text
     # Try typing via keyboard
     for line in new_source.split("\n"):
-        keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": line}, KeyboardResult)
-        keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Enter"}, KeyboardResult)
+        keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": line}, KeyboardResult)
+        keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Enter"}, KeyboardResult)
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 

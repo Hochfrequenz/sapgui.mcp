@@ -173,7 +173,7 @@ class SessionResetResult(ToolResult):
 
 
 class KeyboardResult(ToolResult):
-    """Result from sap_keyboard tool.
+    """Result from sap_press_key tool.
 
     For shortcut keys (F-keys or Ctrl+*), the status bar is automatically read
     after the keystroke since SAP often displays feedback there.

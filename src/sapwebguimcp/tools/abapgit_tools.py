@@ -959,7 +959,7 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "If SAP requires a transport request, the tool returns an error with guidance. "
             "Look up an open transport (e.g. via SE09/SE10), then retry with trkorr=... "
             "If the tool reports 'status unknown', the pull may have succeeded. "
-            "Call sap_read_status_bar() to check, or retry with sap_keyboard('F8') "
+            "Call sap_read_status_bar() to check, or retry with sap_press_key('F8') "
             "then sap_read_status_bar()."
         ),
     )
