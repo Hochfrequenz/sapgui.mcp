@@ -6,8 +6,12 @@
 [![Formatting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
 
 An MCP (Model Context Protocol) server for SAP automation.
-Control SAP through Claude Desktop or Claude Code — via **SAP GUI desktop** or **SAP Web GUI** (browser).
+Control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) — via **SAP GUI desktop** or **SAP Web GUI** (browser).
+Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation** — tasks a pure REST-API client cannot do.
 The MCP works with both SAP R/3 and S/4 (because some might even say "they are the same system" with just some different names and labels).
+
+> [!TIP]
+> **Pairs with [`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `mcp-server-abap` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
 
 > **Developer?** See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured, request flow diagrams, and how to add new transaction tools.
 
@@ -19,8 +23,9 @@ Choose one of these three approaches:
 
 - **Claude Code** — add to `.mcp.json` in your project root (per-project config)
 - **Claude Desktop** — add to `claude_desktop_config.json` (global config, path varies by OS — shown in each section below)
+- **[opencode](https://opencode.ai)** — add to `opencode.json` in your project root. opencode's schema differs slightly from Claude's (`"mcp"` instead of `"mcpServers"`, plus `"type": "local"`, `"command"` as an array, and `"environment"` instead of `"env"`) — see [opencode's MCP docs](https://opencode.ai/docs/mcp-servers) and adapt the Claude Code snippets below.
 
-All three setup approaches below show you how to configure both.
+All three setup approaches below show Claude Desktop and Claude Code snippets; opencode users translate the schema as described.
 
 > [!WARNING]
 > **Special characters in passwords:** If your SAP password contains `"` or `\` characters, you must escape them in the JSON config files: `"` becomes `\"` and `\` becomes `\\`. For example, `pass"word` becomes `"pass\"word"` and `do\main` becomes `"do\\main"`. Unescaped special characters will silently break the JSON and the MCP server will fail to start.
@@ -607,18 +612,32 @@ Add to `.mcp.json` in your project root:
 
 ### SAP Tools
 
-| Tool                  | Description                                                               |
-| --------------------- | ------------------------------------------------------------------------- |
-| `sap_login`           | Logs into SAP (WebGUI: opens login page; Desktop: connects via SAP Logon) |
-| `sap_transaction`     | Enters and executes a transaction code                                    |
-| `sap_keepalive_start` | Prevents session timeout (pings every 5 minutes)                          |
-| `sap_keepalive_stop`  | Stops the keepalive task                                                  |
-| `log_intent`          | Log what you're doing for accountability                                  |
-| `log_feedback`        | Report issues (creates GitHub issues if `GITHUB_PAT` is set)              |
+| Tool                     | Description                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| `sap_login`              | Logs into SAP (WebGUI: opens login page; Desktop: connects via SAP Logon)              |
+| `sap_transaction`        | Enters and executes a transaction code                                                 |
+| `sap_keepalive_start`    | Prevents session timeout (pings every 5 minutes)                                       |
+| `sap_keepalive_stop`     | Stops the keepalive task                                                               |
+| `sap_abapgit_list_repos` | List all registered abapGit repos (names, Git URLs, packages, branches, last pull)    |
+| `sap_abapgit_pull`       | Pull a registered abapGit repo (uses the `Z_ABAPGIT_PULL_MCP_SHORTCUT` SAP-side report) |
+| `log_intent`             | Log what you're doing for accountability                                               |
+| `log_feedback`           | Report issues (creates GitHub issues if `GITHUB_PAT` is set)                           |
+
+#### abapGit integration
+
+`sap_abapgit_pull` and `sap_abapgit_list_repos` require the [`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT) ABAP report installed on the SAP system.
+The report calls the abapGit ABAP API directly instead of automating the UI, which makes pulls much more reliable.
+If the tools fail with `"transaction not found"` or similar, install the report from that repo first.
+For private git repositories, set `GITHUB_PAT` or `ABAPGIT_PAT` (the latter overrides the former) in the MCP server's environment — without a PAT, pulls from private repos will fail.
 
 ### Browser Tools (WebGUI only)
 
-Low-level browser escape hatches (`browser_snapshot`, `browser_screenshot`, `browser_click`, `browser_fill`, `browser_keyboard`, etc.) are available when using the WebGUI backend. These are fallbacks — the SAP-specific tools above handle most interactions.
+Low-level browser escape hatches available when using the WebGUI backend:
+
+- **`browser_screenshot`** — capture a PNG of the current SAP Web GUI view. Useful for documentation, visual validation, and showing reviewers what a workflow actually looks like on screen.
+- **`browser_snapshot`**, **`browser_click`**, **`browser_fill`**, **`browser_keyboard`**, etc. — fallbacks for SAP screens the typed SAP tools above do not yet cover.
+
+The SAP-specific tools above handle most interactions; reach for the browser tools when you need pixel-level control.
 
 ## Configuration Reference
 
@@ -843,6 +862,17 @@ graph BT
     Claude -- "MCP (stdio)" --> MCP
     MCP -- "COM (pywin32)" --> SAP
 ```
+
+## Related projects
+
+This server is part of a small ecosystem of SAP + AI tooling:
+
+- **[`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap)** — complementary MCP server that talks to SAP via the ADT REST API (read/write source, activate, syntax-check, run unit tests, manage transports). Where `sapwebgui.mcp` drives SAP through its UI, `mcp-server-abap` talks directly to the ABAP Development Tools HTTP API. The two are designed to coexist and share `~/.config/sap-mcp/systems.json`.
+- **[`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY)** — GitHub template for AI-driven ABAP vibe-coding projects. Documents the two-agent pattern (dev via `mcp-server-abap`, test / documentation / screenshots via `sapwebgui.mcp`) end-to-end.
+- **[`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT)** — SAP-side ABAP report that `sap_abapgit_pull` calls to pull abapGit repos through the ABAP API. Install it on any SAP system where you want the abapGit pull tools to work.
+- **[`sap-mcp-config`](https://github.com/Hochfrequenz/sap-mcp-config)** — shared config schema for `systems.json`, consumed by both `sapwebgui.mcp` (Python) and `mcp-server-abap` (Go).
+
+**Hochfrequenz colleagues:** internal setup docs — including combined `.mcp.json` / `opencode.json` examples that register both MCPs together in one project — live at <https://brain.hochfrequenz.de/books/ki-tools-bei-hochfrequenz/chapter/sap-mcps>.
 
 ## Contributing
 
