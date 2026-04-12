@@ -50,7 +50,6 @@ async def test_enter_transaction_returns_new_title_after_slow_navigation():
     # Bypass __init__ -- update attribute list below if constructor changes
     backend = WebGuiBackend.__new__(WebGuiBackend)
     backend._page = page
-    backend._session_token = "test-token"
     backend._keepalive_task = None
 
     # Mock _find_okcode_field to return a locator-like mock directly
@@ -78,7 +77,6 @@ async def test_poll_title_change_returns_on_timeout():
 
     backend = WebGuiBackend.__new__(WebGuiBackend)
     backend._page = page
-    backend._session_token = "test-token"
     backend._keepalive_task = None
 
     # Use short timeout to keep test fast

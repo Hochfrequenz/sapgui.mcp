@@ -19,15 +19,6 @@ class AlvCellInfo(BaseModel):
     hotspot: bool = Field(default=False, description="Whether this is a navigation hotspot")
 
 
-class AlvColumn(BaseModel):
-    """Information about a single ALV grid column."""
-
-    index: int = Field(ge=0, description="Column index (0-based)")
-    header: str = Field(description="Column header text")
-    is_hotspot: bool = Field(default=False, description="Whether this column contains clickable hotspots")
-    is_selection: bool = Field(default=False, description="Whether this is the selection column")
-
-
 class AlvMetadata(BaseModel):
     """Grid-level metadata for an ALV table."""
 

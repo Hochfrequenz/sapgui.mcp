@@ -7,7 +7,6 @@ This module contains Pydantic models and configuration classes.
 from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
 from sapwebguimcp.models.alv_models import (
     AlvCellInfo,
-    AlvColumn,
     AlvMetadata,
     TableCellClickResult,
 )
@@ -56,7 +55,6 @@ from sapwebguimcp.models.sap_results import (
     FieldLookupResult,
     FillFormResult,
     FormField,
-    FormFieldsProcessResult,
     FormFieldsResult,
     KeepaliveResult,
     KeyboardResult,
@@ -176,7 +174,6 @@ __all__ = [
     "ToolResult",
     # ALV models
     "AlvCellInfo",
-    "AlvColumn",
     "AlvMetadata",
     "TableCellClickResult",
     # Config models
@@ -204,7 +201,6 @@ __all__ = [
     "FieldLookupResult",
     "FillFormResult",
     "FormField",
-    "FormFieldsProcessResult",
     "FormFieldsResult",
     "KeepaliveResult",
     "KeyboardResult",
