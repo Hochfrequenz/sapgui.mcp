@@ -5,9 +5,9 @@ from datetime import timedelta
 import pytest
 from pydantic import ValidationError
 
+from sapwebguimcp.backend.webgui.models.browser_results import ClickResult, WaitResult
 from sapwebguimcp.models import (
     CapabilitiesResult,
-    ClickResult,
     DiscoveredFields,
     FieldInfo,
     KeepaliveResult,
@@ -19,7 +19,6 @@ from sapwebguimcp.models import (
     ToolInfo,
     ToolResult,
     TransactionResult,
-    WaitResult,
 )
 
 

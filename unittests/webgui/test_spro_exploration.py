@@ -22,12 +22,8 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import (
-    KeyboardResult,
-    LoginResult,
-    SnapshotResult,
-    TransactionResult,
-)
+from sapwebguimcp.backend.webgui.models.browser_results import SnapshotResult
+from sapwebguimcp.models import KeyboardResult, LoginResult, TransactionResult
 
 from .conftest import call_tool_typed
 
@@ -157,7 +153,7 @@ async def test_spro_capture_search_via_button_click(sap_mcp_client: ClientSessio
 
     # Click "Suchen (Strg+F)" / "Find (Ctrl+F)" button via JS
     # SAP WebGUI buttons may use various HTML elements with title/aria-label
-    from sapwebguimcp.models import EvaluateResult
+    from sapwebguimcp.backend.webgui.models.browser_results import EvaluateResult
 
     # First, discover what elements contain "Suchen" or "Find"
     discovery = await call_tool_typed(
@@ -241,7 +237,8 @@ async def test_spro_capture_search_results(sap_mcp_client: ClientSession) -> Non
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Click search button
-    from sapwebguimcp.models import EvaluateResult, FillFormResult
+    from sapwebguimcp.backend.webgui.models.browser_results import EvaluateResult
+    from sapwebguimcp.models import FillFormResult
 
     await call_tool_typed(
         sap_mcp_client,
@@ -321,8 +318,7 @@ async def test_spro_capture_search_results_country(sap_mcp_client: ClientSession
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Click search button
-    from sapwebguimcp.backend.webgui.models.browser_results import BrowserKeyboardResult, ClickResult
-    from sapwebguimcp.models import EvaluateResult
+    from sapwebguimcp.backend.webgui.models.browser_results import BrowserKeyboardResult, ClickResult, EvaluateResult
 
     await call_tool_typed(
         sap_mcp_client,

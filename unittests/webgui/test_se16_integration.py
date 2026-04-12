@@ -13,16 +13,15 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
+from sapwebguimcp.backend.webgui.models.browser_results import FillResult, SnapshotResult
 from sapwebguimcp.models import (
     FillFormResult,
-    FillResult,
     KeyboardResult,
     LoginResult,
     ScreenInfo,
     ScreenText,
     SE16FileSummary,
     SE16Result,
-    SnapshotResult,
     TableData,
     TransactionResult,
 )

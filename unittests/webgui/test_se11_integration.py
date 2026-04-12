@@ -13,14 +13,13 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
+from sapwebguimcp.backend.webgui.models.browser_results import ClickResult, SnapshotResult
 from sapwebguimcp.models import (
-    ClickResult,
     FillFormResult,
     KeyboardResult,
     LoginResult,
     SE11FileSummary,
     SE11Result,
-    SnapshotResult,
     StatusBarInfo,
     TransactionResult,
 )

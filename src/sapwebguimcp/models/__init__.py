@@ -11,26 +11,6 @@ See also: ``backend/webgui/types.py`` (AriaSnapshot),
 ``backend/desktop/types.py`` (ComTreeSnapshot).
 """
 
-# TODO(split): these re-exports are for backward compat — canonical location
-# is now backend/webgui/models/ and backend/desktop/models/ respectively.
-from sapwebguimcp.backend.desktop.models.com_results import (  # noqa: F401
-    ComEvaluateResult,
-    ComOperation,
-    ComSnapshotResult,
-)
-from sapwebguimcp.backend.webgui.models.browser_results import (  # noqa: F401
-    BrowserKeyboardResult,
-    ClickResult,
-    EvaluateResult,
-    FillResult,
-    HtmlResult,
-    NavigateResult,
-    ScreenshotResult,
-    SelectOptionResult,
-    SnapshotResult,
-    WaitResult,
-)
-from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry  # noqa: F401
 from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
 from sapwebguimcp.models.alv_models import (
     AlvCellInfo,

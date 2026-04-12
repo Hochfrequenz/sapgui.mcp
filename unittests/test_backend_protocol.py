@@ -1,6 +1,6 @@
 """Tests for CheckActivateResult and backend structure."""
 
-from sapwebguimcp.backend.types import CheckActivateResult
+from sapwebguimcp.models.base import CheckActivateResult
 
 
 def test_check_activate_result_is_tool_result() -> None:

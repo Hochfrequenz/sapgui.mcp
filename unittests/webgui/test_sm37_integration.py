@@ -8,14 +8,8 @@ They auto-skip if not on an authorized machine.
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import (
-    FillResult,
-    KeyboardResult,
-    LoginResult,
-    StatusBarInfo,
-    TableData,
-    TransactionResult,
-)
+from sapwebguimcp.backend.webgui.models.browser_results import FillResult
+from sapwebguimcp.models import KeyboardResult, LoginResult, StatusBarInfo, TableData, TransactionResult
 from sapwebguimcp.models.sm37_models import SM37JobListResult
 
 from .conftest import call_tool_typed

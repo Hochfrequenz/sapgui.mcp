@@ -11,7 +11,7 @@ class TestAgentBindingIntegration:
 
     def test_cross_agent_access_logs_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that cross-agent access logs warning."""
-        from sapwebguimcp.models.browser import BrowserManager
+        from sapwebguimcp.backend.webgui.browser import BrowserManager
 
         manager = BrowserManager()
 
@@ -45,7 +45,7 @@ class TestAgentBindingIntegration:
 
     def test_unbound_session_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that unbound session doesn't warn."""
-        from sapwebguimcp.models.browser import BrowserManager
+        from sapwebguimcp.backend.webgui.browser import BrowserManager
 
         manager = BrowserManager()
 
@@ -64,7 +64,7 @@ class TestAgentBindingIntegration:
 
     def test_matching_agent_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that matching agent doesn't warn."""
-        from sapwebguimcp.models.browser import BrowserManager
+        from sapwebguimcp.backend.webgui.browser import BrowserManager
 
         manager = BrowserManager()
 
@@ -83,7 +83,7 @@ class TestAgentBindingIntegration:
 
     def test_none_agent_on_bound_session_warns(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that None agent on bound session logs warning."""
-        from sapwebguimcp.models.browser import BrowserManager
+        from sapwebguimcp.backend.webgui.browser import BrowserManager
 
         manager = BrowserManager()
 
