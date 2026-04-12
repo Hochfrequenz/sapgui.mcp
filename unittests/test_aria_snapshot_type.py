@@ -1,6 +1,6 @@
 """Tests for the AriaSnapshot type alias."""
 
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 
 
 def test_aria_snapshot_is_str_subtype() -> None:

@@ -17,12 +17,12 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.slg1_parser import (
     is_slg1_initial_screen,
     is_slg1_no_results,
     parse_slg1_log_list,
 )
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.models import TableData
 from sapwebguimcp.models.config import get_sap_config
 from sapwebguimcp.models.slg1_models import (

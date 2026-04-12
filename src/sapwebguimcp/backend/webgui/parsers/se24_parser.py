@@ -13,7 +13,7 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE24_CLASS_BUILDER_DE,
     SE24_CLASS_BUILDER_EN,

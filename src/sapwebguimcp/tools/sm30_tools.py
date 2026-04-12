@@ -17,8 +17,8 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.sm30_parser import parse_sm30_snapshot
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SM30_DISPLAY_BUTTON_DE,
     SM30_DISPLAY_BUTTON_EN,

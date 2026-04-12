@@ -25,13 +25,13 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.st22_parser import (
     is_no_dumps_message,
     parse_st22_dump_detail,
     parse_st22_dump_list,
     parse_st22_initial_screen,
 )
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.models import TableData
 from sapwebguimcp.models.config import get_sap_config
 from sapwebguimcp.models.st22_models import (

@@ -18,8 +18,8 @@ from fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.lang import SE16_NO_ENTRIES_DE, SE16_NO_ENTRIES_EN
 from sapwebguimcp.models import SE16FileSummary, SE16Result, SE16Row, TableData
 from sapwebguimcp.tools.se11_tools import _lookup_object_on_initial_screen

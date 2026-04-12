@@ -17,12 +17,12 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.sm37_parser import (
     is_no_jobs_found,
     parse_sm37_job_list,
     parse_sm37_job_log,
 )
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.models import TableData
 from sapwebguimcp.models.config import get_sap_config
 from sapwebguimcp.models.sm37_models import SM37Job, SM37JobListResult, SM37JobLog

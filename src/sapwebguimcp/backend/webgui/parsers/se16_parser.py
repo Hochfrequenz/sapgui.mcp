@@ -13,7 +13,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE16_COLUMN_SELECTION_DE,
     SE16_COLUMN_SELECTION_EN,
