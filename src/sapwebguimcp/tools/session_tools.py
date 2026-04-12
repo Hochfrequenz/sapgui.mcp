@@ -10,7 +10,7 @@ from sapwebguimcp.models import (
     SessionReleaseResult,
     SessionResetResult,
 )
-from sapwebguimcp.models.session_registry import SessionBindConflictError
+from sapwebguimcp.models.base import SessionBindConflictError
 
 __all__ = [
     "sap_session_list_impl",

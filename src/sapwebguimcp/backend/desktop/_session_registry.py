@@ -11,9 +11,8 @@ import logging
 from typing import TYPE_CHECKING, Iterable
 
 # Reuse the conflict error from the webgui registry so callers can catch
-# a single class regardless of which backend produced it. Cross-import is
-# safe — ``models/session_registry.py`` only imports stdlib.
-from sapwebguimcp.models.session_registry import SessionBindConflictError
+# a single class regardless of which backend produced it.
+from sapwebguimcp.models.base import SessionBindConflictError
 
 if TYPE_CHECKING:
     from sapsucker.components.session import GuiSession
