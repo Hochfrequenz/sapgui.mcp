@@ -128,3 +128,16 @@ class ToolResult(BaseModel):
     def failure(cls, error: str, **kwargs: Any) -> Self:
         """Factory method to create a failed result."""
         return cls(success=False, error=error, **kwargs)
+
+
+class CheckActivateResult(ToolResult):
+    """Result of a check-and-activate editor operation."""
+
+    messages: list[str] = Field(
+        default_factory=list,
+        description="Check and activate status messages",
+    )
+    activated: bool = Field(
+        default=False,
+        description="Whether the object was successfully activated",
+    )

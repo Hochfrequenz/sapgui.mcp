@@ -16,14 +16,13 @@ from urllib.parse import urlparse
 
 from playwright.async_api import Error as PlaywrightError
 
-from sapwebguimcp.backend.types import CheckActivateResult
 from sapwebguimcp.backend.webgui.browser import get_browser_manager
 from sapwebguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils
 from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.utils import escape_css_selector, is_sap_shortcut
 from sapwebguimcp.middleware.logging import set_sap_identity
 from sapwebguimcp.models.alv_models import AlvCellInfo, AlvMetadata, TableCellClickResult
-from sapwebguimcp.models.base import PopupButton, PopupInfo
+from sapwebguimcp.models.base import CheckActivateResult, PopupButton, PopupInfo
 from sapwebguimcp.models.middleware import SapIdentity
 from sapwebguimcp.models.sap_results import (
     ButtonInfo,

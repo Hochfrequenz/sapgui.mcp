@@ -1,7 +1,14 @@
 """
-Data models for SAP Web GUI MCP Server.
+Shared data models — the contract between desktop and webgui backends.
 
-This module contains Pydantic models and configuration classes.
+Both projects depend on these models after the split. Backend-specific
+models live in their respective packages:
+
+- ``backend/webgui/models/`` — browser_results, session_registry
+- ``backend/desktop/models/`` — com_results
+
+See also: ``backend/webgui/types.py`` (AriaSnapshot),
+``backend/desktop/types.py`` (ComTreeSnapshot).
 """
 
 # TODO(split): these re-exports are for backward compat — canonical location
