@@ -455,16 +455,6 @@ class DropdownFillResult(BaseModel):
     popup_after: PopupInfo | None = Field(default=None, description="Popup that appeared after selection")
 
 
-class FormFieldsProcessResult(BaseModel):
-    """Internal result from processing form fields before batch fill."""
-
-    filled: list[str] = Field(default_factory=list, description="Fields filled successfully (dropdowns)")
-    not_found: list[str] = Field(default_factory=list, description="Fields not found on page")
-    errors: list[FieldFillError] = Field(default_factory=list, description="Fields that errored")
-    regular_fields: dict[str, str] = Field(default_factory=dict, description="Non-dropdown fields to batch fill")
-    popup: PopupInfo | None = Field(default=None, description="Popup that appeared after dropdown selection")
-
-
 class ToolInfo(BaseModel):
     """Information about a single MCP tool."""
 

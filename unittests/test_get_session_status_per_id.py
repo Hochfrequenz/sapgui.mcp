@@ -176,7 +176,6 @@ class TestWebGuiGetSessionStatusPerID:
 
         backend = WebGuiBackend.__new__(WebGuiBackend)
         backend._page = MagicMock()
-        backend._session_token = "test-token"
         backend._keepalive_task = None
         return backend
 

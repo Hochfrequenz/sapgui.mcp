@@ -43,8 +43,7 @@ from sapwebguimcp.backend.desktop._element_finder import (
 from sapwebguimcp.backend.desktop._key_mapping import key_to_vkey
 from sapwebguimcp.backend.types import CheckActivateResult, ComTreeSnapshot
 from sapwebguimcp.models.alv_models import TableCellClickResult
-from sapwebguimcp.models.base import PopupButton, PopupInfo, PopupType, ToolResult
-from sapwebguimcp.models.config import get_sap_config, get_settings
+from sapwebguimcp.models.base import PopupButton, PopupInfo, PopupType
 from sapwebguimcp.models.sap_results import (
     ButtonInfo,
     ClosePopupResult,
@@ -737,39 +736,6 @@ class DesktopBackend:
         """Check whether a session exists in the registry."""
         return self.registry.has_session(session_id)
 
-    async def is_page_closed(self) -> bool:
-        """Check whether the session has been closed."""
-        if self._session is None:
-            return True
-        session = self._session  # capture to local for closure safety
-        try:
-            await self.com.run(lambda: session.info.user)
-            return False
-        except Exception:
-            logger.debug("session_closed")
-            return True
-
-    async def close_page(self) -> None:
-        """Close the connection."""
-        if self._session is None:
-            return
-        try:
-            session = self._session
-            await self.com.run(
-                lambda: cast(Any, session).com.Parent.CloseConnection()  # pylint: disable=unnecessary-lambda
-            )
-        except Exception:
-            pass
-        for sid in list(self.registry.list_sessions()):
-            self.registry.unregister(sid)
-        logger.info("close_connection")
-
-    def get_session_token(self) -> str:
-        """Return opaque token identifying the session."""
-        if self._session is None:
-            return ""
-        return str(self._session.id)
-
     # ---- SapUiInspection ----
 
     async def get_status_bar(self) -> StatusBarInfo:
@@ -1276,29 +1242,6 @@ class DesktopBackend:
             errors=[FieldFillError(**e) for e in data["errors"]],
             active_window=data["wnd_id"],
         )
-
-    async def fill_grid_cell(self, row: int, column: int | str, value: str) -> None:
-        """Fill a grid/table cell."""
-        session = self.require_session()
-
-        def _fill() -> None:
-            wnd_id = _active_window_id(session)
-            usr = session.find_by_id(f"{wnd_id}/usr")
-            tree = cast(Any, usr).dump_tree()
-            for elem in _flatten(tree):
-                if elem.type_as_number in (122, 80):
-                    grid = session.find_by_id(elem.id)
-                    if isinstance(grid, GuiGridView):
-                        col_name = str(column)
-                        if isinstance(column, int):
-                            col_order = cast(Any, grid).column_order
-                            col_name = str(col_order[column]) if isinstance(col_order, list) else str(col_order(column))
-                        cast(Any, grid).set_cell_value(row - 1, col_name, value)
-                        return
-            raise ValueError("No ALV grid found on screen")
-
-        await self.com.run(_fill)
-        logger.info("fill_grid_cell", extra={"row": row, "column": column, "value": value})
 
     async def click_button(self, label: str) -> None:
         """Click a button by label."""

@@ -8,7 +8,6 @@ Each ``WebGuiBackend`` instance wraps a single Playwright ``Page``
 from __future__ import annotations
 
 import asyncio
-import itertools
 import logging
 import re
 import time
@@ -54,8 +53,6 @@ if TYPE_CHECKING:
     from sapwebguimcp.models.session_registry import SessionRegistry
 
 logger = logging.getLogger(__name__)
-
-_token_counter = itertools.count(1)
 
 # ---------------------------------------------------------------------------
 # Helpers private to WebGuiBackend
@@ -116,17 +113,12 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     def __init__(self, page: Page) -> None:
         self._page = page
-        self._session_token = f"webgui-{next(_token_counter)}"
         self._keepalive_task: asyncio.Task[None] | None = None
 
     @property
     def backend_type(self) -> str:
         """Return backend identifier."""
         return "webgui"
-
-    def get_session_token(self) -> str:
-        """Return opaque token identifying the underlying session."""
-        return self._session_token
 
     def load_js(self, filename: str) -> str:
         """Load a bundled JavaScript helper file by name and return its source text."""
@@ -787,15 +779,6 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         """Wait for a fixed duration."""
         await self._page.wait_for_timeout(timeout_ms)
 
-    async def is_page_closed(self) -> bool:
-        """Check whether the page has been closed."""
-        return self._page.is_closed()
-
-    async def close_page(self) -> None:
-        """Close the page."""
-        if not self._page.is_closed():
-            await self._page.close()
-
     # ===================================================================
     # SapUiPrimitives
     # ===================================================================
@@ -867,18 +850,6 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Filling form fields")
             return FillFormResult.failure(f"Error filling form fields: {e}")
-
-    async def fill_grid_cell(self, row: int, column: int | str, value: str) -> None:
-        """Fill a grid/table cell by row and column (e.g. SE16 filter fields)."""
-        # Use the SE16 filter filling JS pattern
-        result = await self._page.evaluate(
-            load_js("fill_se16_filter.js"),
-            {"row": row, "column": column, "value": value},
-        )
-        if not result.get("success"):
-            raise ValueError(
-                f"Could not fill grid cell row={row} column={column}: " f"{result.get('error', 'Unknown error')}"
-            )
 
     async def focus_and_type(self, accessible_name: str, text: str, delay_ms: int = 0) -> bool:
         """Find a textbox by accessible name, clear it, and type text with optional delay."""

@@ -349,7 +349,6 @@ class TestRegisterNewWindowSession:
 
         backend = WebGuiBackend.__new__(WebGuiBackend)
         backend._page = mock_page  # pylint: disable=protected-access
-        backend._session_token = "test-token"  # pylint: disable=protected-access
         backend._keepalive_task = None  # pylint: disable=protected-access
         return backend
 
