@@ -357,7 +357,7 @@ class TestRegisterNewWindowSession:
         """Test that new page is registered when page count increases."""
         from unittest.mock import MagicMock
 
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
 
@@ -383,7 +383,7 @@ class TestRegisterNewWindowSession:
         """Test that None is returned when page count doesn't increase."""
         from unittest.mock import MagicMock
 
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
         backend = self._make_backend_with_context(registry, [MagicMock()])
@@ -402,7 +402,7 @@ class TestRegisterNewWindowSession:
         import logging
         from unittest.mock import MagicMock
 
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
         backend = self._make_backend_with_context(registry, [MagicMock()])
@@ -425,7 +425,7 @@ class TestRegisterNewWindowSession:
         """Test that the last page is registered when multiple pages are created simultaneously."""
         from unittest.mock import MagicMock
 
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
 

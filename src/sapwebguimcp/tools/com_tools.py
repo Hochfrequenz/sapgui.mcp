@@ -16,8 +16,8 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 
+from sapwebguimcp.backend.desktop.models.com_results import ComEvaluateResult, ComOperation, ComSnapshotResult
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.models.com_results import ComEvaluateResult, ComOperation, ComSnapshotResult
 
 logger = logging.getLogger(__name__)
 

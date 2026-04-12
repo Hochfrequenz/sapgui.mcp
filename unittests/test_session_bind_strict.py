@@ -22,8 +22,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
+from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 from sapwebguimcp.models.base import SessionBindConflictError
-from sapwebguimcp.models.session_registry import SessionRegistry
 
 
 def _make_mock_gui_session() -> MagicMock:

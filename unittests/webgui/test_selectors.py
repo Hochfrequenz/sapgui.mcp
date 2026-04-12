@@ -34,10 +34,9 @@ import pytest
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
-from sapwebguimcp.tools.sap_tools import SELECTORS, parse_shortcut_from_title
-
 # Import the selectors we want to test
-from sapwebguimcp.utils import escape_css_selector
+from sapwebguimcp.backend.webgui.utils import escape_css_selector
+from sapwebguimcp.tools.sap_tools import SELECTORS, parse_shortcut_from_title
 
 
 @pytest.fixture

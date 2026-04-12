@@ -1,7 +1,7 @@
 """Tests for WebGuiBackend helper functions."""
 
 from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note
-from sapwebguimcp.utils import escape_css_selector
+from sapwebguimcp.backend.webgui.utils import escape_css_selector
 
 
 def test_parse_toolbar_note_success_de() -> None:
