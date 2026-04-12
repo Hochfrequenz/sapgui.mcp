@@ -66,6 +66,10 @@ def _env_files() -> tuple[str, ...]:
     return tuple(files)
 
 
+# TODO(split): BrowserMode and BrowserType are webgui-only — move to webgui
+# project's own config when splitting.
+
+
 class BrowserMode(StrEnum):
     """
     Browser connection mode.
@@ -127,19 +131,22 @@ class SapWebGuiSettings(BaseSettings):
         extra="ignore",
     )
 
-    # Backend Selection
+    # --- Shared fields (used by both backends) ---
+
     backend_type: BackendType = Field(
         default="webgui",
         description="Backend type: 'webgui' (browser) or 'desktop' (SAP GUI COM)",
         json_schema_extra={"env": "BACKEND_TYPE"},
     )
 
-    # SAP Connection Settings
     sap_url: str = Field(
         default="",
         description="Default SAP Web GUI URL (can be overridden per call)",
         json_schema_extra={"env": "SAP_URL"},
     )
+
+    # --- Desktop-only fields ---
+    # TODO(split): move to desktop project's own Settings class
 
     com_min_interval_ms: int = Field(
         default=100,
@@ -152,7 +159,9 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "COM_MIN_INTERVAL_MS"},
     )
 
-    # Browser Configuration
+    # --- WebGUI-only fields ---
+    # TODO(split): move to webgui project's own Settings class
+
     browser_mode: BrowserMode = Field(
         default=BrowserMode.CONNECT,
         description=(
@@ -170,15 +179,11 @@ class SapWebGuiSettings(BaseSettings):
         description="Run browser in headless mode (not recommended for SAP)",
         json_schema_extra={"env": "BROWSER_HEADLESS"},
     )
-
-    # CDP Connection (for connect mode)
     cdp_url: str = Field(
         default="http://localhost:9222",
         description="Chrome DevTools Protocol URL for connecting to existing browser",
         json_schema_extra={"env": "CDP_URL"},
     )
-
-    # Chrome auto-launch (for connect mode on Windows)
     chrome_path: str = Field(
         default="",
         description="Explicit path to chrome.exe. If empty, Chrome is auto-detected via registry/known paths.",
@@ -189,6 +194,8 @@ class SapWebGuiSettings(BaseSettings):
         description="User data directory for auto-launched Chrome (separate from default profile).",
         json_schema_extra={"env": "CHROME_USER_DATA_DIR"},
     )
+
+    # --- Shared infrastructure fields ---
 
     # GitHub Settings (optional)
     github_pat: str = Field(
