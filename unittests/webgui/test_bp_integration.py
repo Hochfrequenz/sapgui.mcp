@@ -9,8 +9,8 @@ import os
 import pytest
 from mcp import ClientSession
 
+from sapwebguimcp.backend.webgui.models.browser_results import ClickResult, WaitResult
 from sapwebguimcp.models import (
-    ClickResult,
     FillFormResult,
     FormFieldsResult,
     KeyboardResult,
@@ -18,7 +18,6 @@ from sapwebguimcp.models import (
     ScreenText,
     SetFieldResult,
     TransactionResult,
-    WaitResult,
 )
 
 from .conftest import call_tool_typed

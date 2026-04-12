@@ -9,7 +9,7 @@ from pathlib import Path
 
 from mcp import ClientSession
 
-from sapwebguimcp.models import WaitResult
+from sapwebguimcp.backend.webgui.models.browser_results import WaitResult
 
 from .conftest import call_tool_typed, get_html_content
 

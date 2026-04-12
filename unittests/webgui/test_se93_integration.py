@@ -12,16 +12,8 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import (
-    FillFormResult,
-    FillResult,
-    KeyboardResult,
-    LoginResult,
-    SnapshotResult,
-    StatusBarInfo,
-    TableData,
-    TransactionResult,
-)
+from sapwebguimcp.backend.webgui.models.browser_results import FillResult, SnapshotResult
+from sapwebguimcp.models import FillFormResult, KeyboardResult, LoginResult, StatusBarInfo, TableData, TransactionResult
 
 from .conftest import call_tool_typed
 from .integration_helpers import (
