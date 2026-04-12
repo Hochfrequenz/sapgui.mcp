@@ -21,8 +21,8 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.se09_parser import parse_se09_transport_list
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SE09_DISPLAY_BUTTON_DE,
     SE09_DISPLAY_BUTTON_EN,

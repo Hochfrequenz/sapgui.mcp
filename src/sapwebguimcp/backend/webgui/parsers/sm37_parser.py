@@ -15,7 +15,7 @@ Column headers appear as buttons: "Jobname", "Status", "Startdatum", etc.
 import logging
 import re
 
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.lang import SM37_STATUS_MAP_DE, SM37_STATUS_MAP_EN
 from sapwebguimcp.models.sm37_models import SM37Job, SM37JobLog
 

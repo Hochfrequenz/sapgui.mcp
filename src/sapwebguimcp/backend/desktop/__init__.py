@@ -41,7 +41,8 @@ from sapwebguimcp.backend.desktop._element_finder import (
     find_tab_by_label,
 )
 from sapwebguimcp.backend.desktop._key_mapping import key_to_vkey
-from sapwebguimcp.backend.types import CheckActivateResult, ComTreeSnapshot
+from sapwebguimcp.backend.desktop.types import ComTreeSnapshot
+from sapwebguimcp.backend.types import CheckActivateResult
 from sapwebguimcp.models.alv_models import TableCellClickResult
 from sapwebguimcp.models.base import PopupButton, PopupInfo, PopupType
 from sapwebguimcp.models.sap_results import (

@@ -19,8 +19,8 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.types import AriaSnapshot, ScreenSnapshot
 from sapwebguimcp.backend.webgui.parsers.spro_parser import parse_spro_search_results
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SPRO_IMG_HEADING_DE,
     SPRO_IMG_HEADING_EN,
@@ -149,7 +149,7 @@ async def _fill_search_and_execute(backend: "WebGuiBackend", query: str) -> str 
     return None
 
 
-async def _wait_for_results(backend: "WebGuiBackend | DesktopBackend") -> ScreenSnapshot:
+async def _wait_for_results(backend: "WebGuiBackend | DesktopBackend") -> str:
     """Wait for SPRO search results dialog to appear.
 
     Polls for the results dialog title which appears when search completes.

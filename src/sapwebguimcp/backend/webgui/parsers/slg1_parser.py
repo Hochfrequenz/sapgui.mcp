@@ -27,7 +27,7 @@ import logging
 import re
 from datetime import UTC, datetime
 
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SLG1_INITIAL_SCREEN_DE,
     SLG1_INITIAL_SCREEN_EN,

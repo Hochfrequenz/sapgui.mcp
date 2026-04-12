@@ -17,7 +17,7 @@ ST22 structure (DE/EN):
 import logging
 import re
 
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.lang import (
     ST22_ERROR_ANALYSIS_DE,
     ST22_ERROR_ANALYSIS_EN,

@@ -13,7 +13,7 @@ import logging
 import re
 from datetime import UTC, datetime
 
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.lang import (
     SM30_ROW_SELECT_HINT_DE,
     SM30_ROW_SELECT_HINT_EN,

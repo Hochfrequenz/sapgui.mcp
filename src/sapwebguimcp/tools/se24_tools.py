@@ -17,8 +17,8 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.backend.types import AriaSnapshot
 from sapwebguimcp.backend.webgui.parsers.se24_parser import SE24TabSnapshots, parse_se24_snapshot
+from sapwebguimcp.backend.webgui.types import AriaSnapshot
 from sapwebguimcp.models import (
     SE24Entry,
     SE24Error,
