@@ -19,8 +19,8 @@ from sapwebguimcp.backend.webgui.chrome_finder import (
     launch_chrome,
     wait_for_cdp,
 )
+from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 from sapwebguimcp.models.config import BrowserMode, SapWebGuiSettings, get_settings
-from sapwebguimcp.models.session_registry import SessionRegistry
 
 __all__ = [
     "BrowserManager",

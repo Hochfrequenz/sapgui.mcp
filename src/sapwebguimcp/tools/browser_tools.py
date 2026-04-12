@@ -24,7 +24,7 @@ from fastmcp import FastMCP
 from fastmcp.utilities.types import File, Image
 
 from sapwebguimcp.backend.manager import get_webgui_backend
-from sapwebguimcp.models import (
+from sapwebguimcp.backend.webgui.models.browser_results import (
     BrowserKeyboardResult,
     ClickResult,
     EvaluateResult,
@@ -36,7 +36,7 @@ from sapwebguimcp.models import (
     SnapshotResult,
     WaitResult,
 )
-from sapwebguimcp.utils import escape_css_selector
+from sapwebguimcp.backend.webgui.utils import escape_css_selector
 
 __all__ = ["register_browser_tools"]
 

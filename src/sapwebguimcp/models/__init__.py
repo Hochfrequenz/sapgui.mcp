@@ -4,14 +4,14 @@ Data models for SAP Web GUI MCP Server.
 This module contains Pydantic models and configuration classes.
 """
 
-from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
-from sapwebguimcp.models.alv_models import (
-    AlvCellInfo,
-    AlvMetadata,
-    TableCellClickResult,
+# TODO(split): these re-exports are for backward compat — canonical location
+# is now backend/webgui/models/ and backend/desktop/models/ respectively.
+from sapwebguimcp.backend.desktop.models.com_results import (  # noqa: F401
+    ComEvaluateResult,
+    ComOperation,
+    ComSnapshotResult,
 )
-from sapwebguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, SessionId, TCode, ToolResult
-from sapwebguimcp.models.browser_results import (
+from sapwebguimcp.backend.webgui.models.browser_results import (  # noqa: F401
     BrowserKeyboardResult,
     ClickResult,
     EvaluateResult,
@@ -23,7 +23,14 @@ from sapwebguimcp.models.browser_results import (
     SnapshotResult,
     WaitResult,
 )
-from sapwebguimcp.models.com_results import ComEvaluateResult, ComOperation, ComSnapshotResult
+from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry  # noqa: F401
+from sapwebguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
+from sapwebguimcp.models.alv_models import (
+    AlvCellInfo,
+    AlvMetadata,
+    TableCellClickResult,
+)
+from sapwebguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, SessionId, TCode, ToolResult
 from sapwebguimcp.models.config import (
     BrowserMode,
     BrowserType,
@@ -130,7 +137,6 @@ from sapwebguimcp.models.se93_models import (
     SE93Result,
     SE93TransactionType,
 )
-from sapwebguimcp.models.session_registry import SessionRegistry
 from sapwebguimcp.models.slg1_models import (
     SLG1FileSummary,
     SLG1LogEntry,
@@ -182,8 +188,6 @@ __all__ = [
     "SapWebGuiSettings",
     "get_sap_config",
     "get_settings",
-    # Session registry
-    "SessionRegistry",
     # Quick report models
     "QuickReportResult",
     "ScreenClassification",
@@ -225,17 +229,6 @@ __all__ = [
     "TableRow",
     "ToolInfo",
     "TransactionResult",
-    # Browser results
-    "BrowserKeyboardResult",
-    "ClickResult",
-    "EvaluateResult",
-    "FillResult",
-    "HtmlResult",
-    "NavigateResult",
-    "ScreenshotResult",
-    "SelectOptionResult",
-    "SnapshotResult",
-    "WaitResult",
     # Intent and feedback models
     "FeedbackEntry",
     "FeedbackLogResult",

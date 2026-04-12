@@ -38,7 +38,7 @@ class TestSessionRegistryIntegration:
     @pytest.mark.anyio
     async def test_register_real_page(self, browser_context) -> None:
         """Test registering a real Playwright page."""
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
         page = await browser_context.new_page()
@@ -51,7 +51,7 @@ class TestSessionRegistryIntegration:
     @pytest.mark.anyio
     async def test_page_close_auto_unregisters(self, browser_context) -> None:
         """Test that closing page triggers auto-unregister."""
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
         page = await browser_context.new_page()
@@ -69,7 +69,7 @@ class TestSessionRegistryIntegration:
     @pytest.mark.anyio
     async def test_multiple_pages_independent(self, browser_context) -> None:
         """Test multiple pages are tracked independently."""
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
 
@@ -91,7 +91,7 @@ class TestSessionRegistryIntegration:
     @pytest.mark.anyio
     async def test_get_page_none_returns_primary(self, browser_context) -> None:
         """Test get_page(None) returns primary session."""
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
         page = await browser_context.new_page()
@@ -102,7 +102,7 @@ class TestSessionRegistryIntegration:
     @pytest.mark.anyio
     async def test_closed_page_raises_and_cleans(self, browser_context) -> None:
         """Test accessing closed page raises ValueError and cleans up."""
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
         page = await browser_context.new_page()

@@ -20,6 +20,7 @@ from sapwebguimcp.backend.types import CheckActivateResult
 from sapwebguimcp.backend.webgui.browser import get_browser_manager
 from sapwebguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils
 from sapwebguimcp.backend.webgui.types import AriaSnapshot
+from sapwebguimcp.backend.webgui.utils import escape_css_selector, is_sap_shortcut
 from sapwebguimcp.middleware.logging import set_sap_identity
 from sapwebguimcp.models.alv_models import AlvCellInfo, AlvMetadata, TableCellClickResult
 from sapwebguimcp.models.base import PopupButton, PopupInfo
@@ -46,12 +47,11 @@ from sapwebguimcp.models.sap_results import (
     TableRow,
     TransactionResult,
 )
-from sapwebguimcp.utils import escape_css_selector, is_sap_shortcut
 
 if TYPE_CHECKING:
     from playwright.async_api import Page
 
-    from sapwebguimcp.models.session_registry import SessionRegistry
+    from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 
 logger = logging.getLogger(__name__)
 

@@ -258,7 +258,7 @@ async def test_spro_capture_search_results(sap_mcp_client: ClientSession) -> Non
 
     # Use browser_click to focus the search input, browser_keyboard to type,
     # then Enter to submit. This is the most SAP-friendly input approach.
-    from sapwebguimcp.models.browser_results import BrowserKeyboardResult, ClickResult
+    from sapwebguimcp.backend.webgui.models.browser_results import BrowserKeyboardResult, ClickResult
 
     # Click the input field to focus it
     click_input = await call_tool_typed(
@@ -321,8 +321,8 @@ async def test_spro_capture_search_results_country(sap_mcp_client: ClientSession
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Click search button
+    from sapwebguimcp.backend.webgui.models.browser_results import BrowserKeyboardResult, ClickResult
     from sapwebguimcp.models import EvaluateResult
-    from sapwebguimcp.models.browser_results import BrowserKeyboardResult, ClickResult
 
     await call_tool_typed(
         sap_mcp_client,

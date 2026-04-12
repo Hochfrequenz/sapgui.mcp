@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sapwebguimcp.models.session_registry import SessionRegistry
+from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
 
 
 class TestSessionRegistryUnit:
