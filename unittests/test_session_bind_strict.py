@@ -22,7 +22,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
-from sapwebguimcp.models.session_registry import SessionBindConflictError, SessionRegistry
+from sapwebguimcp.models.base import SessionBindConflictError
+from sapwebguimcp.models.session_registry import SessionRegistry
 
 
 def _make_mock_gui_session() -> MagicMock:
@@ -40,9 +41,9 @@ def test_session_bind_conflict_error_is_single_class() -> None:
     a separate copy in the desktop module, this test fails immediately.
     """
     from sapwebguimcp.backend.desktop._session_registry import SessionBindConflictError as Desktop
-    from sapwebguimcp.models.session_registry import SessionBindConflictError as WebGui
+    from sapwebguimcp.models.base import SessionBindConflictError as Base
 
-    assert Desktop is WebGui
+    assert Desktop is Base
 
 
 def _make_mock_page() -> MagicMock:
