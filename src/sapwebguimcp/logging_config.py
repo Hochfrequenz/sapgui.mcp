@@ -14,6 +14,7 @@ Usage:
 LOG_FORMAT and LOG_LEVEL are read from SapWebGuiSettings (pydantic-settings).
 """
 
+import importlib.metadata
 import json
 import logging
 import socket
@@ -32,7 +33,14 @@ __all__ = [
     "QueryLogContext",
     "BrowserLogContext",
     "configure_logging",
+    "build_info",
 ]
+
+# Sentinel returned by build_info when no commit identifier can be derived
+# from the installed package version (e.g. wheel built without VCS metadata,
+# or running from a source tree without hatch-vcs).
+COMMIT_UNKNOWN = "unknown"
+VERSION_UNKNOWN = "dev"
 
 # Standard LogRecord attributes to exclude from extra fields
 _LOGRECORD_ATTRS = frozenset(
@@ -72,6 +80,63 @@ class ToolLogContext(BaseModel):
     agent_id: str | None = None
     duration_ms: int | None = None
     error: str | None = None
+    request_id: str | None = None
+
+
+def build_info() -> tuple[str, str]:
+    """Return (version, commit) for the installed sapwebguimcp package.
+
+    The version string emitted by hatch-vcs has the shape
+    ``<base>+g<sha>.d<date>`` for dev/dirty builds and just ``<base>`` for
+    tagged releases. We split on the first ``+`` to recover the base
+    version, then look for a ``g<sha>`` segment to recover the commit
+    short-SHA. The presence of any ``d<date>`` segment marks the working
+    tree as dirty.
+
+    Falls back to ``("dev", "unknown")`` when the package isn't installed
+    (e.g. running tests from a source tree without an editable install)
+    or when the version string carries no local segment.
+    """
+    try:
+        full = importlib.metadata.version("sapwebguimcp")
+    except importlib.metadata.PackageNotFoundError:
+        return (VERSION_UNKNOWN, COMMIT_UNKNOWN)
+    if "+" not in full:
+        return (full, COMMIT_UNKNOWN)
+    base, local = full.split("+", 1)
+    commit = COMMIT_UNKNOWN
+    dirty = False
+    for part in local.split("."):
+        if part.startswith("g") and len(part) > 1:
+            commit = part[1:]
+            if len(commit) > 7:
+                commit = commit[:7]
+        elif part.startswith("d") and len(part) > 1:
+            dirty = True
+    if dirty and commit != COMMIT_UNKNOWN:
+        commit += "+dirty"
+    return (base, commit)
+
+
+class _BuildContextFilter(logging.Filter):  # pylint: disable=too-few-public-methods
+    """Inject build version+commit into every log record passing through.
+
+    Attached to handlers (not loggers) in ``configure_logging`` so that
+    records propagated up from child loggers also receive the fields —
+    Python only runs logger-level filters for records emitted directly
+    on that logger, while handler-level filters apply to everything the
+    handler emits.
+    """
+
+    def __init__(self, version: str, commit: str) -> None:
+        super().__init__()
+        self._version = version
+        self._commit = commit
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.version = self._version
+        record.commit = self._commit
+        return True
 
 
 class TransactionLogContext(ToolLogContext):
@@ -273,6 +338,11 @@ def configure_logging(
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
 
+    # Build-context filter: attaches version+commit to every log record so
+    # remote bug reports identify the build from a single line.
+    build_filter = _BuildContextFilter(*build_info())
+    handler.addFilter(build_filter)
+
     root = logging.getLogger()
     # Only replace exact StreamHandlers; preserve subclasses (e.g., FileHandler)
     root.handlers = [
@@ -295,8 +365,16 @@ def configure_logging(
             "[OK] Papertrail logging configured (TLS): %s:%d", papertrail_host, papertrail_port
         )
         tls_handler = _PapertrailTlsHandler(papertrail_host, papertrail_port)
+        # Filter MUST be added before the formatter renders, since
+        # %(version)s/%(commit)s in the format string would KeyError if the
+        # attributes weren't set on the record yet. Python runs handler
+        # filters before the formatter, so this ordering is correct.
+        tls_handler.addFilter(build_filter)
         syslog_formatter = logging.Formatter(
-            fmt=f"{socket.gethostname()} sapwebguimcp: %(name)s [%(levelname)s] %(message)s",
+            fmt=(
+                f"{socket.gethostname()} sapwebguimcp: %(name)s [%(levelname)s] "
+                "version=%(version)s commit=%(commit)s %(message)s"
+            ),
         )
         tls_handler.setFormatter(syslog_formatter)
         root.addHandler(tls_handler)

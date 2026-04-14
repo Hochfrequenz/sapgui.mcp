@@ -23,7 +23,9 @@ Example log output (with StructuredFormatter):
 """
 
 import logging
+import secrets
 import time
+import uuid
 from datetime import timedelta
 from typing import Any
 
@@ -31,9 +33,26 @@ from fastmcp.server.middleware import Middleware, MiddlewareContext
 
 from sapwebguimcp.models.middleware import SapIdentity, SessionStats, ToolCall
 
-__all__ = ["ToolCallLoggingMiddleware", "set_sap_identity"]
+__all__ = ["ToolCallLoggingMiddleware", "new_request_id", "set_sap_identity"]
 
 _logger = logging.getLogger(__name__)
+
+
+def new_request_id() -> str:
+    """Generate a UUID v7 string for use as a per-tool-call correlation ID.
+
+    UUID v7 is time-ordered (RFC 9562): the high 48 bits encode the unix
+    timestamp in milliseconds, so log entries cluster naturally by emission
+    time when sorted lexically. We implement v7 inline rather than pull in
+    a third-party library since CPython only added uuid7 in 3.13 and the
+    package supports >=3.11.
+    """
+    ts_ms = (time.time_ns() // 1_000_000) & ((1 << 48) - 1)
+    rand_a = secrets.randbits(12)
+    rand_b = secrets.randbits(62)
+    n = (ts_ms << 80) | (0x7 << 76) | (rand_a << 64) | (0b10 << 62) | rand_b
+    return str(uuid.UUID(int=n))
+
 
 # Module-level reference for cross-boundary communication (tools -> middleware).
 _sessions_ref: dict[str, SessionStats] = {}
@@ -86,6 +105,7 @@ class ToolCallLoggingMiddleware(Middleware):
 
     async def on_call_tool(self, context: MiddlewareContext, call_next: Any) -> Any:  # pylint: disable=too-many-locals
         """Log tool call with per-session timing."""
+        request_id = new_request_id()
         tool_name = context.message.name
         args = self._format_args(getattr(context.message, "arguments", None) or {})
         start = time.perf_counter()
@@ -109,6 +129,7 @@ class ToolCallLoggingMiddleware(Middleware):
             session.total_duration += duration
             session.call_count += 1
             extra = {
+                "request_id": request_id,
                 "tool": tool_name,
                 "session": session_id,
                 "duration_ms": int(duration.total_seconds() * 1000),
@@ -126,6 +147,7 @@ class ToolCallLoggingMiddleware(Middleware):
         session.call_count += 1
 
         extra = {
+            "request_id": request_id,
             "tool": tool_name,
             "session": session_id,
             "duration_ms": int(duration.total_seconds() * 1000),

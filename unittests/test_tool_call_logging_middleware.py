@@ -1,6 +1,7 @@
 """Tests for tool call logging middleware identity injection."""
 
 import asyncio
+import uuid
 from dataclasses import dataclass
 from typing import Any
 
@@ -9,6 +10,7 @@ import pytest
 from sapwebguimcp.middleware.logging import (
     ToolCallLoggingMiddleware,
     _sessions_ref,
+    new_request_id,
     set_sap_identity,
 )
 
@@ -153,3 +155,70 @@ def test_on_call_tool_without_identity_omits_fields(caplog):
     assert not hasattr(rec, "sap_user")
     assert not hasattr(rec, "sap_host")
     assert not hasattr(rec, "sap_mandant")
+
+
+# ---------------------------------------------------------------------------
+# request_id: per-call correlation
+# ---------------------------------------------------------------------------
+
+
+def test_new_request_id_returns_valid_uuid_v7():
+    """new_request_id must produce a parseable UUID with version bits = 7."""
+    raw = new_request_id()
+    parsed = uuid.UUID(raw)
+    assert parsed.version == 7
+
+
+def test_new_request_id_is_unique_across_calls():
+    """Two consecutive calls must yield distinct IDs (collision practically impossible)."""
+    a = new_request_id()
+    b = new_request_id()
+    assert a != b
+
+
+def test_on_call_tool_success_includes_request_id(caplog):
+    """The success log record must carry a UUID v7 request_id."""
+    mw = ToolCallLoggingMiddleware()
+
+    async def _call_next(_ctx):
+        return "ok"
+
+    with caplog.at_level("INFO", logger=_LOGGER_NAME):
+        asyncio.run(mw.on_call_tool(_make_context(), _call_next))
+
+    assert len(caplog.records) == 1
+    rec = caplog.records[0]
+    parsed = uuid.UUID(rec.request_id)
+    assert parsed.version == 7
+
+
+def test_on_call_tool_failure_includes_request_id(caplog):
+    """Failure path must also emit a request_id on the warning record."""
+    mw = ToolCallLoggingMiddleware()
+
+    async def _call_next(_ctx):
+        raise RuntimeError("boom")
+
+    with caplog.at_level("WARNING", logger=_LOGGER_NAME):
+        with pytest.raises(RuntimeError, match="boom"):
+            asyncio.run(mw.on_call_tool(_make_context(), _call_next))
+
+    assert len(caplog.records) == 1
+    rec = caplog.records[0]
+    parsed = uuid.UUID(rec.request_id)
+    assert parsed.version == 7
+
+
+def test_on_call_tool_request_id_distinct_across_calls(caplog):
+    """Two consecutive tool calls must produce two distinct request_ids in log records."""
+    mw = ToolCallLoggingMiddleware()
+
+    async def _call_next(_ctx):
+        return "ok"
+
+    with caplog.at_level("INFO", logger=_LOGGER_NAME):
+        asyncio.run(mw.on_call_tool(_make_context(), _call_next))
+        asyncio.run(mw.on_call_tool(_make_context(), _call_next))
+
+    assert len(caplog.records) == 2
+    assert caplog.records[0].request_id != caplog.records[1].request_id

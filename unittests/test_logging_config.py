@@ -1,5 +1,6 @@
 """Tests for logging configuration and structured formatter."""
 
+import importlib.metadata as _md
 import json
 import logging
 import os
@@ -8,12 +9,15 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sapwebguimcp.logging_config import (
+    COMMIT_UNKNOWN,
     BrowserLogContext,
     QueryLogContext,
     StructuredFormatter,
     ToolLogContext,
     TransactionLogContext,
+    _BuildContextFilter,
     _PapertrailTlsHandler,
+    build_info,
     configure_logging,
 )
 
@@ -430,3 +434,97 @@ class TestPapertrailTlsHandler:
         record = self._make_record()
         record.levelno = 99
         assert handler._priority(record) == 14  # 1*8+6
+
+
+class TestBuildInfo:
+    """Tests for the package version + commit parser used in canonical events."""
+
+    @pytest.mark.parametrize(
+        "raw,want",
+        [
+            # Tagged release: no local segment.
+            ("0.9.12", ("0.9.12", "unknown")),
+            # hatch-vcs dev build with commit only.
+            ("0.9.12.dev3+gabc1234", ("0.9.12.dev3", "abc1234")),
+            # hatch-vcs dev + dirty: commit gets +dirty suffix.
+            ("0.9.12.dev3+gabc1234.d20260408", ("0.9.12.dev3", "abc1234+dirty")),
+            # Long SHA: truncated to 7 chars.
+            ("1.0.0+gf41a95d34abcdef", ("1.0.0", "f41a95d")),
+            # Local segment present but no g-prefix part: commit stays unknown.
+            ("1.0.0+localmod", ("1.0.0", "unknown")),
+        ],
+    )
+    def test_build_info_parses_hatch_vcs_format(self, raw: str, want: tuple[str, str]) -> None:
+        """build_info splits hatch-vcs version strings into (base, short-SHA[+dirty])."""
+        with patch("sapwebguimcp.logging_config.importlib.metadata.version", return_value=raw):
+            assert build_info() == want
+
+    def test_build_info_falls_back_when_package_not_installed(self) -> None:
+        """When the package isn't installed, build_info returns ('dev', 'unknown')."""
+        with patch(
+            "sapwebguimcp.logging_config.importlib.metadata.version",
+            side_effect=_md.PackageNotFoundError("sapwebguimcp"),
+        ):
+            assert build_info() == ("dev", COMMIT_UNKNOWN)
+
+
+class TestBuildContextFilter:
+    """Tests for the logging filter that injects version+commit on every record."""
+
+    def test_filter_sets_attributes_on_record(self) -> None:
+        """filter() sets version and commit attrs on the record and returns True."""
+        flt = _BuildContextFilter("v1.2.3", "abcdef0")
+        record = logging.LogRecord("x", logging.INFO, "", 0, "msg", (), None)
+        assert flt.filter(record) is True
+        assert getattr(record, "version") == "v1.2.3"
+        assert getattr(record, "commit") == "abcdef0"
+
+    def test_configure_logging_attaches_filter_to_stream_handler(self) -> None:
+        """The StreamHandler installed by configure_logging carries the build filter."""
+        with patch("sapwebguimcp.logging_config.build_info", return_value=("v9.9.9", "deadbee")):
+            configure_logging()
+        stream_handlers = [
+            h
+            for h in logging.getLogger().handlers
+            if type(h) is logging.StreamHandler  # pylint: disable=unidiomatic-typecheck
+        ]
+        assert stream_handlers, "expected exactly one StreamHandler after configure_logging"
+        filters = [f for f in stream_handlers[0].filters if isinstance(f, _BuildContextFilter)]
+        assert len(filters) == 1
+        # Verify the filter was constructed with the patched values by triggering
+        # filter() and reading the attrs it sets — avoids poking at private state.
+        probe = logging.LogRecord("x", logging.INFO, "", 0, "msg", (), None)
+        filters[0].filter(probe)
+        assert getattr(probe, "version") == "v9.9.9"
+        assert getattr(probe, "commit") == "deadbee"
+
+    def test_papertrail_format_includes_version_and_commit(self) -> None:
+        """Records emitted to the Papertrail handler must render version+commit in the syslog payload.
+
+        Regression guard for the gap where the build filter set the attrs on
+        the record but the syslog format string ignored them — making remote
+        Papertrail logs unable to identify the build.
+        """
+        with patch("sapwebguimcp.logging_config.build_info", return_value=("v2.3.4", "abc1234")):
+            configure_logging(papertrail_host="localhost", papertrail_port=15514)
+        tls_handlers = [h for h in logging.getLogger().handlers if isinstance(h, _PapertrailTlsHandler)]
+        assert len(tls_handlers) == 1
+        record = logging.LogRecord("sapwebguimcp.x", logging.INFO, "", 0, "hello", (), None)
+        for f in tls_handlers[0].filters:
+            f.filter(record)  # apply the build-context filter
+        formatted = tls_handlers[0].formatter.format(record)
+        assert "version=v2.3.4" in formatted
+        assert "commit=abc1234" in formatted
+
+    def test_filter_propagates_to_emitted_records(self) -> None:
+        """Records emitted via a child logger reach the StreamHandler with version+commit set."""
+        with patch("sapwebguimcp.logging_config.build_info", return_value=("v1.0.0", "1234567")):
+            configure_logging(log_format="json")
+        captured: list[logging.LogRecord] = []
+        for h in logging.getLogger().handlers:
+            if type(h) is logging.StreamHandler:  # pylint: disable=unidiomatic-typecheck
+                h.addFilter(lambda r: captured.append(r) or True)
+        logging.getLogger("sapwebguimcp.something.deep").info("hello")
+        assert captured, "expected at least one record to reach the handler"
+        assert getattr(captured[-1], "version", None) == "v1.0.0"
+        assert getattr(captured[-1], "commit", None) == "1234567"
