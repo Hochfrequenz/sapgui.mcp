@@ -452,6 +452,13 @@ class TestBuildInfo:
             ("1.0.0+gf41a95d34abcdef", ("1.0.0", "f41a95d")),
             # Local segment present but no g-prefix part: commit stays unknown.
             ("1.0.0+localmod", ("1.0.0", "unknown")),
+            # Empty local segment: don't crash, commit stays unknown.
+            ("1.0.0+", ("1.0.0", "unknown")),
+            # Bare 'g' with no SHA after it: defended by len(part)>1 check,
+            # commit stays unknown (regression guard for IndexError).
+            ("1.0.0+g", ("1.0.0", "unknown")),
+            # Bare 'd' with no date after it: same guard for the dirty marker.
+            ("1.0.0+gabc1234.d", ("1.0.0", "abc1234")),
         ],
     )
     def test_build_info_parses_hatch_vcs_format(self, raw: str, want: tuple[str, str]) -> None:

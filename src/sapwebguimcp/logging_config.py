@@ -329,6 +329,14 @@ def configure_logging(
         log_level: Log level (DEBUG, INFO, WARNING, ERROR). Default is INFO.
         papertrail_host: Papertrail syslog destination host. Empty to disable.
         papertrail_port: Papertrail syslog destination port.
+
+    Build context (version + commit) is attached to every record passing
+    through the StreamHandler and Papertrail TLS handler installed here, via
+    a ``_BuildContextFilter``. This is intentional handler-scoped behaviour:
+    handlers added externally to the root logger (e.g. a user-installed
+    ``FileHandler`` for local file logging) will **not** receive the filter
+    and their output will not carry version/commit. Re-attach the filter
+    explicitly if you wire up a custom handler outside this function.
     """
     json_mode = log_format.lower() == "json"
     level_name = log_level.upper()
