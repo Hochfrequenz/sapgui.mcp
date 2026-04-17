@@ -166,8 +166,8 @@ jobs:
           fi
           ls -la dist/release/
 
-      - name: Upload Executables to Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload Executable to Release
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             ./dist/release/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
