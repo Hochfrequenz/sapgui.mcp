@@ -3,7 +3,7 @@
   "private": true,
   "description": "JavaScript and Markdown formatting for SAP Web GUI MCP Server",
   "devDependencies": {
-    "prettier": "3.8.1"
+    "prettier": "3.8.3"
   },
   "scripts": {
     "format": "prettier --write src/**/*.js **/*.md",
