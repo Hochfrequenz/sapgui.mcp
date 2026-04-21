@@ -226,7 +226,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             KeepaliveResult indicating the keepalive is running.
         """
-        backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keepalive_start")
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keepalive_start")
+        except ValueError as e:
+            return KeepaliveResult(running=False, success=False, error=str(e))
         await backend.start_keepalive(interval_seconds)
         return KeepaliveResult(running=True, interval_seconds=interval_seconds)
 
@@ -247,7 +250,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             KeepaliveResult indicating the keepalive is stopped.
         """
-        backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keepalive_stop")
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keepalive_stop")
+        except ValueError as e:
+            return KeepaliveResult(running=False, success=False, error=str(e))
         await backend.stop_keepalive()
         return KeepaliveResult(running=False)
 
