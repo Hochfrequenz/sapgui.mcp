@@ -15,9 +15,9 @@ ARIA structure (from real snapshots):
     - text: "-> DUM Dummy Queue"
     - text: Änderbar
     - text: S4UK902153
-    - text: KLEINK description text
+    - text: USER01 description text
     - text: S4UK902096
-    - text: KLEINK another description
+    - text: USER01 another description
 """
 
 import logging

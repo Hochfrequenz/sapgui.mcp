@@ -1,6 +1,6 @@
 () => {
     // Extracts the SAP username from the page DOM after login.
-    // Returns { user: "KLEINK" } or { user: null } if not found.
+    // Returns { user: "USER01" } or { user: null } if not found.
     const el = document.getElementById('sysInfoAreaMenuItemSAPITS_MBAR_USER');
     if (!el) return { user: null };
 
