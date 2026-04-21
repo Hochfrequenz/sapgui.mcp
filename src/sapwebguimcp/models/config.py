@@ -230,9 +230,11 @@ class SapWebGuiSettings(BaseSettings):
         json_schema_extra={"env": "LOG_LEVEL"},
     )
 
-    # Papertrail Logging (optional)
-    # Defaults are empty — Papertrail is OFF for bare Python / pip install.
-    # The .exe build bundles .env.production which provides the real values.
+    # Papertrail Logging (optional, off by default)
+    # The public .exe ships with no defaults — Papertrail stays off unless the
+    # user sets both PAPERTRAIL_HOST and PAPERTRAIL_PORT in their own .env or
+    # environment. The separate HF-internal .exe (``sapwebgui_mcp_windows_hf``)
+    # bundles a .env.production written at build time from repository secrets.
     papertrail_host: str = Field(
         default="",
         description="Papertrail syslog destination host. Leave empty to disable.",

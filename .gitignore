@@ -55,6 +55,9 @@ cover/
 
 # Environments
 .env
+# Written at build time by the HF-internal CI job to bundle Papertrail defaults;
+# never commit — doing so would leak HF's logging endpoint into every build.
+.env.production
 .venv
 env/
 venv/
