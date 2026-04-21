@@ -3,6 +3,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Ad-hoc debug dumps from tool development (snapshots of live SAP screens,
+# post-login DOM captures, etc.). These are written next to the server on
+# demand and must never end up in the repository — they can contain system
+# IDs, session tokens, and internal hostnames.
+sap_after_login*.html
+*_debug_*.yaml
+*_debug_*.html
+
 # C extensions
 *.so
 
