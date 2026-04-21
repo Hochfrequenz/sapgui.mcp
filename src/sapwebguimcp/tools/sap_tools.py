@@ -307,8 +307,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "- Use `session` parameter on subsequent tool calls to target that session\n\n"
             "⚠️ **CRITICAL: Always close sessions you opened!** When you opened a session with "
             "`new_window=True`, you MUST close it with `sap_session_close` when your work is done. "
-            "SAP has a limited number of sessions per user — orphaned sessions accumulate and will "
-            "eventually block all further work."
+            "SAP limits sessions per user — orphaned sessions accumulate and will eventually block "
+            "all further work. Use `sap_session_list` to see all open sessions and their IDs."
         )
     )
     async def sap_transaction(  # pylint: disable=too-many-return-statements,too-many-locals,too-many-branches
