@@ -39,9 +39,9 @@ jobs:
             dist/sapwebgui_mcp_windows.exe
             dist/build-dependencies.txt
 
-  build_hf:
+  build_with_remote_logging:
     runs-on: windows-latest
-    name: "Build (hf)"
+    name: "Build (with_remote_logging)"
     # Repository secrets are not available to PRs from forks, so skip this
     # variant in that case. Public forks can still build the public binary.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -61,7 +61,7 @@ jobs:
         shell: pwsh
         run: |
           if (-not $env:PAPERTRAIL_HOST -or -not $env:PAPERTRAIL_PORT) {
-            Write-Error "PAPERTRAIL_HOST and PAPERTRAIL_PORT secrets must be configured for the hf build."
+            Write-Error "PAPERTRAIL_HOST and PAPERTRAIL_PORT secrets must be configured for the with_remote_logging build."
             exit 1
           }
           @"
@@ -71,7 +71,7 @@ jobs:
 
       - name: Build Executable
         env:
-          SAPWEBGUI_BUILD_NAME: sapwebgui_mcp_windows_hf
+          SAPWEBGUI_BUILD_NAME: sapwebgui_mcp_windows_with_remote_logging
         run: |
           pip install tox
           tox -e build_executable
@@ -82,9 +82,9 @@ jobs:
       - name: Upload Executable as Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: sapwebgui_mcp_windows_hf
+          name: sapwebgui_mcp_windows_with_remote_logging
           path: |
-            dist/sapwebgui_mcp_windows_hf.exe
+            dist/sapwebgui_mcp_windows_with_remote_logging.exe
             dist/build-dependencies.txt
 
   smoke_test:
@@ -127,7 +127,7 @@ jobs:
         run: python unittests/webgui/smoke_test_exe.py dist/sapwebgui_mcp_windows.exe
 
   release:
-    needs: [build_public, build_hf, smoke_test]
+    needs: [build_public, build_with_remote_logging, smoke_test]
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
@@ -136,7 +136,7 @@ jobs:
       matrix:
         binary_name:
           - sapwebgui_mcp_windows
-          - sapwebgui_mcp_windows_hf
+          - sapwebgui_mcp_windows_with_remote_logging
     steps:
       - name: Download Executable
         uses: actions/download-artifact@v8

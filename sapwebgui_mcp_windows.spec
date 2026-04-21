@@ -2,17 +2,18 @@
 """Canonical PyInstaller spec for the Windows .exe build.
 
 Invoked by ``tox -e build_executable``. Two variants are produced by the CI
-matrix in ``.github/workflows/build_executable.yml`` — they differ only in
+jobs in ``.github/workflows/build_executable.yml`` — they differ only in
 whether ``.env.production`` is present on disk at build time:
 
-* **Public** — ``.env.production`` absent. No remote-logging defaults are
-  baked into the binary. Papertrail stays off unless the user sets
-  ``PAPERTRAIL_HOST`` + ``PAPERTRAIL_PORT`` in their own ``.env`` /
-  environment.
-* **HF internal** — the CI job writes ``.env.production`` from repository
-  secrets before running ``pyinstaller``, so the resulting binary ships with
-  Hochfrequenz's Papertrail endpoint as the default destination. End users
-  can still override via their own ``.env``.
+* **Public** (``sapwebgui_mcp_windows.exe``) — ``.env.production`` absent.
+  No remote-logging defaults are baked into the binary. Papertrail stays
+  off unless the user sets ``PAPERTRAIL_HOST`` + ``PAPERTRAIL_PORT`` in
+  their own ``.env`` / environment.
+* **With remote logging** (``sapwebgui_mcp_windows_with_remote_logging.exe``)
+  — the CI job writes ``.env.production`` from repository secrets before
+  running ``pyinstaller``, so the resulting binary ships with Hochfrequenz's
+  Papertrail endpoint as the default destination. End users can still
+  override by putting an empty ``PAPERTRAIL_HOST=`` in their own ``.env``.
 
 Set ``SAPWEBGUI_BUILD_NAME`` to control the output filename (defaults to
 ``sapwebgui_mcp_windows`` — public variant).

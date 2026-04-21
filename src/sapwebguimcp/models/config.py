@@ -233,8 +233,9 @@ class SapWebGuiSettings(BaseSettings):
     # Papertrail Logging (optional, off by default)
     # The public .exe ships with no defaults — Papertrail stays off unless the
     # user sets both PAPERTRAIL_HOST and PAPERTRAIL_PORT in their own .env or
-    # environment. The separate HF-internal .exe (``sapwebgui_mcp_windows_hf``)
-    # bundles a .env.production written at build time from repository secrets.
+    # environment. The separate ``sapwebgui_mcp_windows_with_remote_logging``
+    # .exe bundles a .env.production written at build time from repository
+    # secrets, so it streams logs to Hochfrequenz's collector by default.
     papertrail_host: str = Field(
         default="",
         description="Papertrail syslog destination host. Leave empty to disable.",

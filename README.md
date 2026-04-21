@@ -670,7 +670,7 @@ SAP credentials (user, password, client, language, host) are configured in `syst
 | `LOG_FORMAT`       | No                          | Set to `json` for JSON log output                                      | `""` (human-readable)        |
 | `LOG_LEVEL`        | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                                 | `INFO`                       |
 
-<sup>1</sup> Two Windows binaries are published per release. `sapwebgui_mcp_windows.exe` is the public build with remote logging **off by default**. `sapwebgui_mcp_windows_hf.exe` is the Hochfrequenz-internal build that bundles Papertrail defaults at build time. Either can be overridden by your own `.env` / environment variables. See the [Papertrail section](#papertrail-remote-logging).
+<sup>1</sup> Two Windows binaries are published per release. `sapwebgui_mcp_windows.exe` has remote logging **off by default** — this is the variant external users want. `sapwebgui_mcp_windows_with_remote_logging.exe` bundles Papertrail defaults at build time and streams logs to Hochfrequenz's log collector. Either binary can be overridden by your own `.env` / environment variables. See the [Papertrail section](#papertrail-remote-logging).
 
 ## Logging
 
@@ -685,9 +685,9 @@ Each release publishes two Windows binaries:
 | Binary | Papertrail default | Intended audience |
 |---|---|---|
 | `sapwebgui_mcp_windows.exe` | **off** — no defaults bundled | Public / external users |
-| `sapwebgui_mcp_windows_hf.exe` | Hochfrequenz endpoint baked in at build time | Hochfrequenz-internal use |
+| `sapwebgui_mcp_windows_with_remote_logging.exe` | Hochfrequenz endpoint baked in at build time | Hochfrequenz-internal use |
 
-Both binaries honour user overrides. To disable remote logging in the HF build, create a `.env` next to the executable containing `PAPERTRAIL_HOST=`. To enable it in the public build, set both variables.
+Both binaries honour user overrides. To disable remote logging in the `_with_remote_logging` build, create a `.env` next to the executable containing `PAPERTRAIL_HOST=`. To enable it in the public build, set both variables.
 
 ## Troubleshooting
 
