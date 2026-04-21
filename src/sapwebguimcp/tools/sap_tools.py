@@ -229,6 +229,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keepalive_start")
         except ValueError as e:
+            # ToolResult convention: errors go in the result object, not as MCP protocol-level errors.
+            # FastMCP would catch an unhandled exception and return isError=true at the protocol layer,
+            # but that is harder for the LLM to handle than a typed KeepaliveResult(success=False).
             return KeepaliveResult(running=False, success=False, error=str(e))
         await backend.start_keepalive(interval_seconds)
         return KeepaliveResult(running=True, interval_seconds=interval_seconds)
@@ -253,6 +256,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keepalive_stop")
         except ValueError as e:
+            # ToolResult convention: errors go in the result object, not as MCP protocol-level errors.
+            # FastMCP would catch an unhandled exception and return isError=true at the protocol layer,
+            # but that is harder for the LLM to handle than a typed KeepaliveResult(success=False).
             return KeepaliveResult(running=False, success=False, error=str(e))
         await backend.stop_keepalive()
         return KeepaliveResult(running=False)
