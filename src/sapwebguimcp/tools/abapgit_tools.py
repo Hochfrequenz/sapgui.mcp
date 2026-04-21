@@ -955,7 +955,6 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Pull changes from a remote git repository using abapGit API. "
-            "Uses the Z_ABAPGIT_PULL_MCP_SHORTCUT report / Z_ABAPGIT_PULL_MCP transaction for reliable execution. "
             "WARNING: This overwrites local ABAP objects with remote versions. "
             "If SAP requires a transport request, the tool returns an error with guidance. "
             "Look up an open transport (e.g. via SE09/SE10), then retry with trkorr=... "
