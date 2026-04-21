@@ -88,6 +88,6 @@ jobs:
         run: mv ./dist/sapwebgui_mcp_windows.exe ./dist/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
 
       - name: Upload Executable to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: ./dist/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
