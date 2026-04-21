@@ -540,3 +540,87 @@ class TestMcpServer:
         for prompt in prompts:
             assert prompt.description, f"Prompt '{prompt.name}' has no description"
             assert len(prompt.description) >= 10, f"Prompt '{prompt.name}' description too short"
+
+
+class TestToolDescriptionsIssue613:
+    """Regression tests for shortened tool descriptions (issue #613).
+
+    These tests guard against two failure modes:
+    1. Removed content creeping back in (regression).
+    2. Essential information being lost during future edits.
+    """
+
+    @classmethod
+    def _get_tools(cls) -> dict:
+        return {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
+
+    # -------------------------------------------------------------------------
+    # sap_transaction
+    # -------------------------------------------------------------------------
+
+    def test_sap_transaction_no_example_workflow(self) -> None:
+        desc = self._get_tools()["sap_transaction"].description or ""
+        assert "Example workflow for 5 parallel agents" not in desc
+
+    def test_sap_transaction_no_session_parameter_section(self) -> None:
+        desc = self._get_tools()["sap_transaction"].description or ""
+        assert "**Session parameter:**" not in desc
+        assert 'session=None (default): Uses primary session ("s1")' not in desc
+
+    def test_sap_transaction_retains_essential_content(self) -> None:
+        desc = self._get_tools()["sap_transaction"].description or ""
+        assert "IMPORTANT" in desc
+        assert "SE11" in desc
+        assert "SE16" in desc
+        assert "CRITICAL" in desc
+        assert "sap_session_close" in desc
+        assert "Multi-Session Support" in desc
+
+    def test_sap_transaction_description_length(self) -> None:
+        desc = self._get_tools()["sap_transaction"].description or ""
+        assert len(desc) < 950, f"sap_transaction description too long: {len(desc)} chars"
+
+    # -------------------------------------------------------------------------
+    # sap_quick_report
+    # -------------------------------------------------------------------------
+
+    def test_sap_quick_report_no_learning_block(self) -> None:
+        desc = self._get_tools()["sap_quick_report"].description or ""
+        assert "LEARNING:" not in desc
+        assert "tcode-learnings.md" not in desc
+
+    def test_sap_quick_report_no_replaces_pattern(self) -> None:
+        desc = self._get_tools()["sap_quick_report"].description or ""
+        assert "Replaces the pattern:" not in desc
+
+    def test_sap_quick_report_retains_essential_content(self) -> None:
+        desc = self._get_tools()["sap_quick_report"].description or ""
+        assert "Do NOT use for" in desc
+        assert "sap_se16_query" in desc
+        assert "sap_sm37_lookup" in desc
+        assert "post_f8_keys" in desc
+        assert "WebGUI-only" in desc
+
+    def test_sap_quick_report_description_length(self) -> None:
+        desc = self._get_tools()["sap_quick_report"].description or ""
+        assert len(desc) < 900, f"sap_quick_report description too long: {len(desc)} chars"
+
+    # -------------------------------------------------------------------------
+    # sap_abapgit_pull
+    # -------------------------------------------------------------------------
+
+    def test_sap_abapgit_pull_no_internal_transaction_name(self) -> None:
+        desc = self._get_tools()["sap_abapgit_pull"].description or ""
+        assert "Z_ABAPGIT_PULL_MCP_SHORTCUT" not in desc
+
+    def test_sap_abapgit_pull_retains_essential_content(self) -> None:
+        desc = self._get_tools()["sap_abapgit_pull"].description or ""
+        assert "WARNING" in desc
+        assert "overwrites" in desc
+        assert "trkorr" in desc
+        assert "transport" in desc.lower()
+        assert "status unknown" in desc
+
+    def test_sap_abapgit_pull_description_length(self) -> None:
+        desc = self._get_tools()["sap_abapgit_pull"].description or ""
+        assert len(desc) < 480, f"sap_abapgit_pull description too long: {len(desc)} chars"
