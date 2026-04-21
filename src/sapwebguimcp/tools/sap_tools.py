@@ -206,7 +206,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     """Register all SAP-specific tools with the MCP server."""
 
     @mcp.tool(description="Start a background task that keeps the SAP session alive")
-    async def sap_keepalive_start(interval_seconds: int = 300) -> KeepaliveResult:
+    async def sap_keepalive_start(
+        interval_seconds: int = 300,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> KeepaliveResult:
         """
         Start a background task that keeps the SAP session alive.
 
@@ -216,25 +220,34 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         Args:
             interval_seconds: Seconds between keepalive pings (default: 300 = 5 minutes)
+            session: Session ID to target (e.g. 's1', 's2'). Defaults to the primary session.
+            agent_id: Agent ID for session binding (optional).
 
         Returns:
             KeepaliveResult indicating the keepalive is running.
         """
-        backend = await get_backend(tool_name="sap_keepalive_start")
+        backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keepalive_start")
         await backend.start_keepalive(interval_seconds)
         return KeepaliveResult(running=True, interval_seconds=interval_seconds)
 
     @mcp.tool(description="Stop the background keepalive task")
-    async def sap_keepalive_stop() -> KeepaliveResult:
+    async def sap_keepalive_stop(
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> KeepaliveResult:
         """
         Stop the background keepalive task.
 
         Call this when you're done with SAP or want to allow the session to timeout naturally.
 
+        Args:
+            session: Session ID to target (e.g. 's1', 's2'). Defaults to the primary session.
+            agent_id: Agent ID for session binding (optional).
+
         Returns:
             KeepaliveResult indicating the keepalive is stopped.
         """
-        backend = await get_backend(tool_name="sap_keepalive_stop")
+        backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keepalive_stop")
         await backend.stop_keepalive()
         return KeepaliveResult(running=False)
 
