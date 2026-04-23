@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 __all__ = ["register_tree_tools", "_invoke_tree_context_menu"]
 
 
-def _invoke_tree_context_menu(
+def _invoke_tree_context_menu(  # pylint: disable=too-many-arguments,too-many-locals
     session: Any,
     shell_id: str,
     node_key: str,
@@ -164,6 +164,7 @@ def register_tree_tools(mcp: FastMCP) -> None:
             "`select_*` args are mutually exclusive; pass at most one."
         ),
     )
+    # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
     async def sap_tree_context_menu(
         shell_id: Annotated[
             str, Field(description="Tree/GuiShell ID from sap_com_snapshot, e.g. 'wnd[0]/shellcont/shell'")
