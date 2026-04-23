@@ -51,7 +51,7 @@ def _invoke_tree_context_menu(
     select_text: str | None,
     select_fcode: str | None,
     select_position: int | None,
-) -> dict:
+) -> dict[str, Any]:
     """Open a tree's context menu, enumerate items, optionally select one.
 
     Pure COM-layer function — must run on the ComThread. Returns a dict
@@ -96,7 +96,7 @@ def _invoke_tree_context_menu(
             "either the node does not exist or the shell does not expose a context menu"
         )
     children = ccm.Children
-    items: list[dict] = []
+    items: list[dict[str, Any]] = []
     for i in range(children.Count):
         mi = children.Item(i)
         items.append(
@@ -107,7 +107,7 @@ def _invoke_tree_context_menu(
             }
         )
 
-    selected: dict | None = None
+    selected: dict[str, Any] | None = None
     try:
         if select_text is not None:
             shell.SelectContextMenuItemByText(select_text)
@@ -207,7 +207,7 @@ def register_tree_tools(mcp: FastMCP) -> None:
         desktop_session = backend.require_session()
         com = backend.com
 
-        def _run() -> dict:
+        def _run() -> dict[str, Any]:
             return _invoke_tree_context_menu(
                 desktop_session,
                 shell_id,
