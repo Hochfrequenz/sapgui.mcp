@@ -171,7 +171,7 @@ referencing==0.37.0
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
-rich==14.3.3
+rich==15.0.0
     # via
     #   cyclopts
     #   fastmcp
