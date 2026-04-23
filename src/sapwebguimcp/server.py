@@ -46,6 +46,7 @@ from sapwebguimcp.tools import (
     register_spro_tools,
     register_st22_tools,
     register_table_tools,
+    register_tree_tools,
 )
 from sapwebguimcp.tools.abapgit_tools import validate_github_pat
 
@@ -319,9 +320,10 @@ if _backend == "webgui":
     register_se37_edit_tools(mcp)
     register_quick_report_tools(mcp)
 
-# Desktop only: COM escape hatches
+# Desktop only: COM escape hatches + tree tools
 if _backend == "desktop":
     register_com_tools(mcp)
+    register_tree_tools(mcp)
 
 # Register prompts
 register_prompts(mcp)
