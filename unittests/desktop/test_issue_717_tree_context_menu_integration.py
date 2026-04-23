@@ -175,7 +175,14 @@ async def test_dcs_tree_context_menu_fires_task_anlegen(backend):
         def _session_programs_on_this_connection() -> list[str]:
             raw_session = getattr(session, "com", getattr(session, "_com", session))
             conn = raw_session.Parent
-            return [str(conn.Children(i).Info.Program) for i in range(conn.Children.Count)]
+            programs: list[str] = []
+            for i in range(conn.Children.Count):
+                try:
+                    programs.append(str(conn.Children(i).Info.Program))
+                except Exception:  # pylint: disable=broad-exception-caught
+                    # A freshly-opened session may not have Info populated yet.
+                    programs.append("")
+            return programs
 
         programs_before = await backend.com.run(_session_programs_on_this_connection)
 

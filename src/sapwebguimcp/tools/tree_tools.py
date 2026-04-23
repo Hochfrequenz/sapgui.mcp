@@ -124,10 +124,7 @@ def _invoke_tree_context_menu(
             selected = next((it for it in items if it["position"] == select_position), None)
     except Exception as exc:
         # Include the enumerated items so the LLM's next attempt picks a valid one.
-        raise RuntimeError(
-            f"selection failed ({exc}); available items: "
-            f"{[(it['position'], it['text'], it['fcode']) for it in items]}"
-        ) from exc
+        raise RuntimeError(f"selection failed ({exc}); available items: {items}") from exc
 
     return {"items": items, "selected": selected}
 
@@ -201,7 +198,7 @@ def register_tree_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return TreeContextMenuResult.failure(str(e))
 
-        if not backend.backend_type == "desktop":
+        if backend.backend_type != "desktop":
             return TreeContextMenuResult.failure("sap_tree_context_menu is only available on the desktop backend.")
 
         from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
