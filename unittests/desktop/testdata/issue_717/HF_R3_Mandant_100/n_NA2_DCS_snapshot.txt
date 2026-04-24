@@ -1,0 +1,217 @@
+          GuiDockShell[shellcont]: 'SAPGUI.DOCKINGCTRL.1' id=wnd[0]/shellcont
+            GuiShell[shell]: 'SAP.TableTreeControl.1' id=wnd[0]/shellcont/shell
+          GuiMenubar[mbar]: ''
+            GuiMenu[DCS]: 'DCS'
+              GuiMenu[Jobsteuerung]: 'Jobsteuerung'
+              GuiMenu[SQL-Editor]: 'SQL-Editor'
+              GuiMenu[Benutzer Einstellung]: 'Benutzer Einstellung'
+              GuiMenu[DCS Berechtigung Log]: 'DCS Berechtigung Log'
+              GuiMenu[DCS Berechtigung Mgmt]: 'DCS Berechtigung Mgmt'
+              GuiMenu[DCS Projekt importieren]: 'DCS Projekt importieren'
+              GuiMenu[DCS Tablecount]: 'DCS Tablecount'
+              GuiMenu[DBR Data Backup & Restore]: 'DBR Data Backup & Restore'
+              GuiMenu[DCS Version]: 'DCS Version'
+            GuiMenu[Basis]: 'Basis'
+              GuiMenu[Sperreinträge]: 'Sperreinträge'
+              GuiMenu[Hintergrund Jobs]: 'Hintergrund Jobs'
+              GuiMenu[Prozessübersicht]: 'Prozessübersicht'
+              GuiMenu[Globalprozess Übersicht]: 'Globalprozess Übersicht'
+              GuiMenu[ABAP/4 Dump Analyse]: 'ABAP/4 Dump Analyse'
+              GuiMenu[DB Tabellen+Indizes]: 'DB Tabellen+Indizes'
+              GuiMenu[DB-Statistiken]: 'DB-Statistiken'
+              GuiMenu[Leistungskontrolle]: 'Leistungskontrolle'
+              GuiMenu[Datenbank Monitor]: 'Datenbank Monitor'
+              GuiMenu[Workload Analyse]: 'Workload Analyse'
+              GuiMenu[Mandantenkopie]: 'Mandantenkopie'
+              GuiMenu[Cross System Viewer]: 'Cross System Viewer'
+              GuiMenu[Nummernkreispflege]: 'Nummernkreispflege'
+              GuiMenu[DB-Verbindungspflege]: 'DB-Verbindungspflege'
+            GuiMenu[Datei]: 'Datei'
+              GuiMenu[Verzeichnis]: 'Verzeichnis'
+              GuiMenu[SXDA Belegüber]: 'SXDA Belegüber'
+              GuiMenu[Datei Explorer extern]: 'Datei Explorer extern'
+            GuiMenu[Migration]: 'Migration'
+              GuiMenu[EMIGALL]: 'EMIGALL'
+              GuiMenu[SXDA Belegüber]: 'SXDA Belegüber'
+              GuiMenu[Batch Input]: 'Batch Input'
+            GuiMenu[Utilities]: 'Utilities'
+              GuiMenu[E-CATT]: 'E-CATT'
+              GuiMenu[SQL-Editor]: 'SQL-Editor'
+              GuiMenu[Code sichern (Backup)]: 'Code sichern (Backup)'
+              GuiMenu[Tabllenviewer]: 'Tabllenviewer'
+              GuiMenu[Datei-Explorer]: 'Datei-Explorer'
+              GuiMenu[Variantentransport]: 'Variantentransport'
+              GuiMenu[Spool herunterladen]: 'Spool herunterladen'
+              GuiMenu[Benutzerliste]: 'Benutzerliste'
+              GuiMenu[Benutzermanagement]: 'Benutzermanagement'
+            GuiMenu[Fachbereich]: 'Fachbereich'
+              GuiMenu[Posten-Liste]: 'Posten-Liste'
+              GuiMenu[OP-Liste Stich. para]: 'OP-Liste Stich. para'
+              GuiMenu[OP-Liste aus Datei]: 'OP-Liste aus Datei'
+            GuiMenu[System]: 'System'
+              GuiMenu[Neues GUI-Fenster]: 'Neues GUI-Fenster'
+              GuiMenu[GUI-Fenster schließen]: 'GUI-Fenster schließen'
+              GuiMenu[Benutzervorgaben]: 'Benutzervorgaben'
+                GuiMenu[Halten Daten]: 'Halten Daten'
+                GuiMenu[Setzen Daten]: 'Setzen Daten'
+                GuiMenu[Löschen Daten]: 'Löschen Daten'
+                GuiMenu[Eigene Daten]: 'Eigene Daten'
+                GuiMenu[Favoriten erweitern]: 'Favoriten erweitern'
+              GuiMenu[Dienste]: 'Dienste'
+                GuiMenu[Reporting]: 'Reporting'
+                GuiMenu[Quick Viewer]: 'Quick Viewer'
+                GuiMenu[Ausgabesteuerung]: 'Ausgabesteuerung'
+                GuiMenu[Tabellenpflege]: 'Tabellenpflege'
+                  GuiMenu[Erweit. Tab.pflege]: 'Erweit. Tab.pflege'
+                  GuiMenu[Viewclusterpflege]: 'Viewclusterpflege'
+                GuiMenu[Batch-Input]: 'Batch-Input'
+                  GuiMenu[Mappen]: 'Mappen'
+                  GuiMenu[Protokolle]: 'Protokolle'
+                  GuiMenu[Recorder]: 'Recorder'
+                  GuiMenu[Restart Transaktion]: 'Restart Transaktion'
+                  GuiMenu[Transaktion löschen]: 'Transaktion löschen'
+                  GuiMenu[Nächste Transaktion]: 'Nächste Transaktion'
+                  GuiMenu[Sichtbar abspielen]: 'Sichtbar abspielen'
+                  GuiMenu[Nur Fehler anzeigen]: 'Nur Fehler anzeigen'
+                  GuiMenu[Expertenmodus ein]: 'Expertenmodus ein'
+                  GuiMenu[Expertenmodus aus]: 'Expertenmodus aus'
+                  GuiMenu[Abbrechen]: 'Abbrechen'
+                GuiMenu[Fast-Input]: 'Fast-Input'
+                  GuiMenu[Recorder]: 'Recorder'
+                  GuiMenu[Sichtbar abspielen]: 'Sichtbar abspielen'
+                  GuiMenu[Nur Fehler anzeigen]: 'Nur Fehler anzeigen'
+                  GuiMenu[Abbrechen]: 'Abbrechen'
+                GuiMenu[Direct-Input]: 'Direct-Input'
+                GuiMenu[Jobs]: 'Jobs'
+                  GuiMenu[Job-Definition]: 'Job-Definition'
+                  GuiMenu[Job-Übersicht]: 'Job-Übersicht'
+                GuiMenu[Queue]: 'Queue'
+                GuiMenu[SAP Service]: 'SAP Service'
+              GuiMenu[Hilfsmittel]: 'Hilfsmittel'
+                GuiMenu[Debugging Dynpro]: 'Debugging Dynpro'
+                GuiMenu[Debugging ABAP]: 'Debugging ABAP'
+                GuiMenu[Debugging System]: 'Debugging System'
+                GuiMenu[Resourcenverbrauch]: 'Resourcenverbrauch'
+                GuiMenu[Autom. Queue synchrone Verarbeitung]: 'Autom. Queue synchrone Verarbeitung'
+                GuiMenu[Performance Trace]: 'Performance Trace'
+                GuiMenu[Kontexttrace]: 'Kontexttrace'
+                GuiMenu[Laufzeitanalyse]: 'Laufzeitanalyse'
+                  GuiMenu[Ausführen]: 'Ausführen'
+                  GuiMenu[Einschalten]: 'Einschalten'
+                  GuiMenu[Ausschalten]: 'Ausschalten'
+                GuiMenu[Anz. Berecht.prüfung]: 'Anz. Berecht.prüfung'
+                GuiMenu[Speicheranalyse]: 'Speicheranalyse'
+                  GuiMenu[Speicherabzug erzeugen]: 'Speicherabzug erzeugen'
+                  GuiMenu[Speicherabzüge vergleichen]: 'Speicherabzüge vergleichen'
+              GuiMenu[Liste]: 'Liste'
+                GuiMenu[Drucken]: 'Drucken'
+                GuiMenu[Suchen nach...]: 'Suchen nach...'
+                GuiMenu[Sichern]: 'Sichern'
+                  GuiMenu[Ablage SAPoffice]: 'Ablage SAPoffice'
+                  GuiMenu[Liste]: 'Liste'
+                  GuiMenu[Lokale Datei]: 'Lokale Datei'
+                GuiMenu[Senden]: 'Senden'
+                GuiMenu[Listüberschrift]: 'Listüberschrift'
+              GuiMenu[Dienste zum Objekt]: 'Dienste zum Objekt'
+              GuiMenu[Meine Objekte]: 'Meine Objekte'
+                GuiMenu[Objekthistorie]: 'Objekthistorie'
+                GuiMenu[Objekte bearbeiten]: 'Objekte bearbeiten'
+              GuiMenu[Eigene Spoolaufträge]: 'Eigene Spoolaufträge'
+              GuiMenu[Eigene Jobs]: 'Eigene Jobs'
+              GuiMenu[Kurznachricht]: 'Kurznachricht'
+              GuiMenu[Status...]: 'Status...'
+              GuiMenu[Abmelden]: 'Abmelden'
+            GuiMenu[Hilfe]: 'Hilfe'
+              GuiMenu[Hilfe zur Anwendung]: 'Hilfe zur Anwendung'
+              GuiMenu[SAP-Bibliothek]: 'SAP-Bibliothek'
+              GuiMenu[Glossar]: 'Glossar'
+              GuiMenu[Release-Infos]: 'Release-Infos'
+              GuiMenu[menu[4]]: ''
+              GuiMenu[SAP Support Portal]: 'SAP Support Portal'
+              GuiMenu[Support Meldung erfassen]: 'Support Meldung erfassen'
+              GuiMenu[menu[7]]: ''
+              GuiMenu[Einstellungen...]: 'Einstellungen...'
+          GuiToolbar[tbar[0]]: ''
+            GuiButton[btn[0]]: '' id=wnd[0]/tbar[0]/btn[0]
+            GuiButton[btn[11]]: '' id=wnd[0]/tbar[0]/btn[11]
+            GuiButton[btn[15]]: 'Beenden' id=wnd[0]/tbar[0]/btn[15]
+            GuiButton[btn[71]]: '' id=wnd[0]/tbar[0]/btn[71]
+            GuiButton[btn[419]]: '' id=wnd[0]/tbar[0]/btn[419]
+            GuiButton[btn[418]]: '' id=wnd[0]/tbar[0]/btn[418]
+            GuiButton[btn[446]]: '' id=wnd[0]/tbar[0]/btn[446]
+            GuiOkCodeField[okcd]: '' id=wnd[0]/tbar[0]/okcd
+          GuiTitlebar[titl]: 'Natuvion DCS - Data Conversion Suite'
+          GuiToolbar[tbar[1]]: ''
+            GuiButton[btnvhmore]: 'Mehr' id=wnd[0]/tbar[1]/btnvhmore
+            GuiButton[btn[44]]: 'Aktualisieren' id=wnd[0]/tbar[1]/btn[44]
+            GuiButton[btn[21]]: 'Suchen' id=wnd[0]/tbar[1]/btn[21]
+            GuiButton[btn[19]]: 'Filter' id=wnd[0]/tbar[1]/btn[19]
+            GuiButton[btn[23]]: 'Favoriten Ein' id=wnd[0]/tbar[1]/btn[23]
+            GuiButton[btn[38]]: 'Navi Aus' id=wnd[0]/tbar[1]/btn[38]
+            GuiButton[btn[36]]: 'Tabfix Aus' id=wnd[0]/tbar[1]/btn[36]
+            GuiButton[btn[9]]: 'SM37' id=wnd[0]/tbar[1]/btn[9]
+            GuiButton[btn[31]]: 'Pflege Lastverteilung' id=wnd[0]/tbar[1]/btn[31]
+            GuiButton[btn[43]]: 'Sys.Monitor' id=wnd[0]/tbar[1]/btn[43]
+            GuiButton[btn[32]]: 'DCS Dokumentation' id=wnd[0]/tbar[1]/btn[32]
+            GuiButton[btn[33]]: 'Feedback' id=wnd[0]/tbar[1]/btn[33]
+          GuiUserArea[usr]: ''
+                GuiScrollContainer[SUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000]: ''
+                  GuiTabStrip[TABSTRIP1]: ''
+                    GuiTab[FC_TAB02]: ' Taskgruppe' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02
+                          GuiScrollContainer[TABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108]: ''
+                            GuiLabel[%#AUTOTEXT00]: 'Taskgruppe (TG)'
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-TASKGROUP_ID]: '101000' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-TASKGROUP_ID
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-TASKGROUP_TITLE]: 'Initialization' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-TASKGROUP_TITLE
+                            GuiLabel[%#AUTOTEXT002]: 'Erstellt'
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-ERNAM]: 'NATUVION' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-ERNAM
+                            GuiCTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-ERDAT]: '' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/ctxtGS_DYN_GLOBAL-DYN_TASKGROUP-ERDAT
+                            GuiCTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-ERTIM]: '00:00:00' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/ctxtGS_DYN_GLOBAL-DYN_TASKGROUP-ERTIM
+                            GuiLabel[%#AUTOTEXT003]: 'Geändert'
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-AENAM]: '' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-AENAM
+                            GuiCTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-AEDAT]: '' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/ctxtGS_DYN_GLOBAL-DYN_TASKGROUP-AEDAT
+                            GuiCTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-AETIM]: '00:00:00' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/ctxtGS_DYN_GLOBAL-DYN_TASKGROUP-AETIM
+                            GuiLabel[%#AUTOTEXT004]: 'Übergeordnete TG'
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-PARENT_TASKGROUP_ID]: '100000' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-PARENT_TASKGROUP_ID
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-PARENT_TASKGROUP_TITLE]: 'Preparation, Initialization & Analysis' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-PARENT_TASKGROUP_TITLE
+                            GuiLabel[%#AUTOTEXT005]: 'Projekt-ID'
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-PROJECT_ID]: 'AUSB_EXT_PRD' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-PROJECT_ID
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-PROJECT_TITLE]: '#24.2# ERP Template Sub: Orgunit Extraction' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-PROJECT_TITLE
+                            GuiCheckBox[GS_DYN_GLOBAL-DYN_TASKGROUP-REDEFINITION]: 'Redefinition' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/chkGS_DYN_GLOBAL-DYN_TASKGROUP-REDEFINITION
+                            GuiCheckBox[GS_DYN_GLOBAL-DYN_TASKGROUP-INHERITED]: 'Geerbt' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/chkGS_DYN_GLOBAL-DYN_TASKGROUP-INHERITED
+                            GuiCheckBox[GS_DYN_GLOBAL-DYN_TASKGROUP-ABSTRACT]: 'Abstrakt' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/chkGS_DYN_GLOBAL-DYN_TASKGROUP-ABSTRACT
+                            GuiBox[%#AUTOTEXT006]: 'Ausführung'
+                            GuiButton[EXECUTE]: ' Taskgruppe starten' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnEXECUTE
+                            GuiButton[SCHEDULE]: ' Taskgruppe einplanen' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnSCHEDULE
+                            GuiButton[RESET]: ' Taskgruppe zurücksetzen' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnRESET
+                            GuiButton[CANCEL_TG]: ' Taskgruppe abbrechen' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnCANCEL_TG
+                            GuiBox[%#AUTOTEXT007]: 'Werkzeuge'
+                            GuiButton[ROLLOUT_TG]: ' Taskgruppe Delta Rollout' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnROLLOUT_TG
+                            GuiButton[GENERATE]: ' Taskgruppe generieren' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnGENERATE
+                            GuiLabel[%#AUTOTEXT012]: 'Taskgenerierung'
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-ICON_GENSTAT]: '' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-ICON_GENSTAT
+                            GuiButton[REFR_CHECK_REPGEN_TG]: '' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnREFR_CHECK_REPGEN_TG
+                            GuiButton[CHANGELOG_TG]: ' Changelogs' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnCHANGELOG_TG
+                            GuiBox[%#AUTOTEXT008]: 'Watchdog'
+                            GuiLabel[%#AUTOTEXT009]: 'Status'
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-WATCHDOG_STATUS]: 'inaktiv' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-WATCHDOG_STATUS
+                            GuiButton[WATCHDOG_START]: ' Watchdog starten' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnWATCHDOG_START
+                            GuiButton[WATCHDOG_SCHEDULE]: ' Watchdog planen' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnWATCHDOG_SCHEDULE
+                            GuiButton[WATCHDOG_STOP]: ' Stoppe Watchdog' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnWATCHDOG_STOP
+                            GuiBox[%#AUTOTEXT010]: 'Bullock'
+                            GuiLabel[%#AUTOTEXT011]: 'Bullocks'
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-BULLOCK_AMOUNT]: '0' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-BULLOCK_AMOUNT
+                            GuiButton[BULLOCK_START]: ' Starte x Bullock' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnBULLOCK_START
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-BULLOCK_COUNT]: '' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-BULLOCK_COUNT
+                            GuiButton[BULLOCK_STOP]: ' Stoppe x Bullock' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnBULLOCK_STOP
+                            GuiTextField[GS_DYN_GLOBAL-DYN_TASKGROUP-BULLOCK_STOP]: '' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/txtGS_DYN_GLOBAL-DYN_TASKGROUP-BULLOCK_STOP
+                            GuiButton[BULLOCK_STOP_ALL]: ' Stoppe alle Bullocks' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/btnBULLOCK_STOP_ALL
+                            GuiCustomControl[DUMMY1]: '' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB02/ssubTABSTRIP_SCA:/NA2/SAPLDCS_UI_PROJECT:0108/cntlDUMMY1
+                    GuiTab[FC_TAB03]: ' Logging' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB03
+                    GuiTab[FC_TAB05]: ' Tabellenlog' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB05
+                    GuiTab[FC_TAB06]: ' Parameter' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB06
+                    GuiTab[FC_TAB08]: ' Container' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB08
+                    GuiTab[FC_TAB09]: ' Task-Abhängigkeiten' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB09
+                    GuiTab[FC_TAB11]: ' Thread-Status' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB11
+                    GuiTab[FC_TAB13]: ' Notizen' id=wnd[0]/usr/ssubSUBSCREEN:/NA2/SAPLDCS_UI_PROJECT:1000/tabsTABSTRIP1/tabpFC_TAB13
+          GuiStatusbar[sbar]: '' id=wnd[0]/sbar
+            GuiStatusPane[pane[0]]: ''
