@@ -9,7 +9,9 @@ datas += collect_data_files('fakeredis')
 datas += collect_data_files('sapwebguimcp')
 datas += copy_metadata('fastmcp')
 hiddenimports += collect_submodules('lupa')
-datas += [('.env.production', '.')]
+import os
+if os.path.exists('.env.production'):
+    datas += [('.env.production', '.')]
 
 
 a = Analysis(
