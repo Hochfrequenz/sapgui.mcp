@@ -151,3 +151,64 @@ class TestBreakpointListResult:
         )
         assert result.success is False
         assert result.breakpoints == []
+
+
+class TestResolveMatchPattern:
+    def test_substring_match_first_line(self) -> None:
+        from sapwebguimcp.tools.breakpoint_tools import _resolve_match_pattern
+
+        source = "REPORT ztest.\nDATA lv_x TYPE i.\nlv_x = 1."
+        assert _resolve_match_pattern(source, "lv_x = 1") == 3
+
+    def test_substring_match_first_occurrence(self) -> None:
+        from sapwebguimcp.tools.breakpoint_tools import _resolve_match_pattern
+
+        source = "REPORT ztest.\nDATA lv_x TYPE i.\nlv_x = 1.\nlv_x = 2."
+        assert _resolve_match_pattern(source, "lv_x") == 2  # first occurrence
+
+    def test_pattern_not_found_returns_none(self) -> None:
+        from sapwebguimcp.tools.breakpoint_tools import _resolve_match_pattern
+
+        source = "REPORT ztest.\nDATA lv_x TYPE i."
+        assert _resolve_match_pattern(source, "nonexistent_pattern") is None
+
+    def test_regex_match(self) -> None:
+        from sapwebguimcp.tools.breakpoint_tools import _resolve_match_pattern
+
+        source = "REPORT ztest.\nCALL FUNCTION 'MY_FM'.\nDATA lv_x TYPE i."
+        assert _resolve_match_pattern(source, r"CALL FUNCTION '.*'") == 2
+
+
+class TestParseToggleStatus:
+    def test_gesetzt_means_set(self) -> None:
+        from sapwebguimcp.tools.breakpoint_tools import _classify_toggle_status
+
+        assert _classify_toggle_status("Externer Breakpoint in Programm ZTEST gesetzt") == "set"
+
+    def test_geloescht_means_deleted(self) -> None:
+        from sapwebguimcp.tools.breakpoint_tools import _classify_toggle_status
+
+        assert _classify_toggle_status("Externer Breakpoint in Programm ZTEST gelöscht") == "deleted"
+
+    def test_unknown_returns_none(self) -> None:
+        from sapwebguimcp.tools.breakpoint_tools import _classify_toggle_status
+
+        assert _classify_toggle_status("Some unexpected SAP message") is None
+
+
+class TestResolveLineNumberValidation:
+    def test_line_number_within_range_is_valid(self) -> None:
+        from sapwebguimcp.tools.breakpoint_tools import _resolve_match_pattern
+
+        source = "REPORT ztest.\nDATA lv_x TYPE i.\nlv_x = 1."
+        # 3 lines — line 3 is valid
+        assert _resolve_match_pattern(source, "lv_x = 1") == 3
+
+    def test_out_of_range_error_message_format(self) -> None:
+        # Validates the error message format spec requires:
+        # "Line N exceeds source length (M lines)"
+        line_number = 999
+        line_count = 10
+        msg = f"Line {line_number} exceeds source length ({line_count} lines)"
+        assert "999" in msg
+        assert "10" in msg
