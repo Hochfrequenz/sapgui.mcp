@@ -91,9 +91,23 @@ def _open_bp_list_dialog_com(session: Any) -> tuple[bool, str]:
     """
     raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
     try:
-        menu_item = raw_session.FindById("wnd[0]/mbar/menu[3]/menu[7]/menu[0]", False)
+        # Locate the "Breakpoint" submenu in Hilfsmittel (menu[3]).
+        # Its index varies per transaction (menu[6] in SE37, menu[7] in SE38/SE24).
+        bp_submenu_path: str | None = None
+        for i in range(20):
+            item = raw_session.FindById(f"wnd[0]/mbar/menu[3]/menu[{i}]", False)
+            if item is None:
+                break
+            if item.Text in ("Breakpoint", "Breakpoints"):
+                bp_submenu_path = f"wnd[0]/mbar/menu[3]/menu[{i}]/menu[0]"
+                break
+
+        if bp_submenu_path is None:
+            return False, "Breakpoint menu not found in Hilfsmittel"
+
+        menu_item = raw_session.FindById(bp_submenu_path, False)
         if menu_item is None:
-            return False, "Breakpoints menu item not found at wnd[0]/mbar/menu[3]/menu[7]/menu[0]"
+            return False, f"Anzeigen... item not found at {bp_submenu_path}"
         menu_item.Select()
         time.sleep(0.5)
         return True, ""
@@ -250,14 +264,17 @@ async def _navigate_clas(  # pylint: disable=too-many-statements
 
     await asyncio.sleep(0.3)
     await backend.press_key("F7")  # Display
-    await backend.wait(2000)
+    await backend.wait_for_ready()
 
-    # Dismiss language dialog if present
-    try:
+    # Dismiss language dialog if present (only press Enter when a popup actually opened)
+    session = backend.require_session()
+    com = backend.com
+    has_popup = await com.run(
+        lambda: getattr(session, "com", getattr(session, "_com", session)).FindById("wnd[1]", False) is not None
+    )
+    if has_popup:
         await backend.press_key("Enter")
-        await backend.wait(500)
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
+        await backend.wait_for_ready()
 
     screen = await backend.get_screen_info()
     title = (screen.title or "").lower()
@@ -275,8 +292,6 @@ async def _navigate_clas(  # pylint: disable=too-many-statements
             continue
 
     # Find method row in the table control via raw COM
-    session = backend.require_session()
-    com = backend.com
 
     def _select_method_row() -> str | None:
         wnd = session.find_by_id("wnd[0]")
@@ -312,13 +327,11 @@ async def _navigate_clas(  # pylint: disable=too-many-statements
     if select_error:
         return select_error
 
-    await backend.wait(500)
-
     # Click "Quelltext" / "Sourcecode" button to open method source editor
     for btn_name in ("Quelltext", "Sourcecode", "Source Code", "Source code"):
         try:
             await backend.click_button(btn_name)
-            await backend.wait(2000)
+            await backend.wait_for_ready()
             return None
         except Exception:  # pylint: disable=broad-exception-caught
             continue
@@ -344,7 +357,7 @@ async def _navigate_fugr(backend: DesktopBackend, function_module: str) -> str |
 
     await asyncio.sleep(0.3)
     await backend.press_key("F7")  # Display
-    await backend.wait(2000)
+    await backend.wait_for_ready()
 
     screen = await backend.get_screen_info()
     title = (screen.title or "").lower()
@@ -356,7 +369,7 @@ async def _navigate_fugr(backend: DesktopBackend, function_module: str) -> str |
     for tab_name in ("Quelltext", "Source Code", "Source code", "Source text"):
         try:
             await backend.click_tab(tab_name)
-            await backend.wait(1000)
+            await backend.wait_for_ready()
             return None
         except Exception:  # pylint: disable=broad-exception-caught
             continue
