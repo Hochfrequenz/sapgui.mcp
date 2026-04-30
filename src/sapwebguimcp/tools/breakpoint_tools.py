@@ -6,9 +6,10 @@ import asyncio
 import logging
 import re
 import time
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from fastmcp import FastMCP
+from pydantic import Field as PydanticField
 
 from sapwebguimcp.backend.manager import get_backend
 from sapwebguimcp.models.breakpoint_models import (
@@ -365,7 +366,7 @@ async def _navigate_fugr(backend: DesktopBackend, function_module: str) -> str |
 
 async def _navigate_to_editor(
     backend: DesktopBackend,
-    object_type: str,
+    object_type: Literal["PROG", "CLAS", "FUGR"],
     object_name: str,
     method_name: str | None,
 ) -> str | None:
@@ -380,7 +381,7 @@ async def _navigate_to_editor(
         if not method_name:
             return "method_name is required for object_type=FUGR"
         return await _navigate_fugr(backend, method_name)
-    return f"Unknown object_type '{object_type}'"
+    raise ValueError(f"Unknown object_type '{object_type}'")
 
 
 async def _resolve_line_number(
@@ -424,10 +425,10 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
         ),
         annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
     )
-    async def sap_breakpoint_set(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements
+    async def sap_breakpoint_set(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements,too-many-branches
         object_type: Literal["PROG", "CLAS", "FUGR"],
         object_name: str,
-        line_number: int | None = None,
+        line_number: Annotated[int, PydanticField(gt=0)] | None = None,
         match_pattern: str | None = None,
         method_name: str | None = None,
         session: str | None = None,
@@ -463,6 +464,17 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 object_name=object_name,
                 method_name=method_name,
             )
+
+        if match_pattern is not None:
+            try:
+                re.compile(match_pattern)
+            except re.error as exc:
+                return BreakpointSetResult.failure(
+                    error=f"Invalid regex pattern '{match_pattern}': {exc}",
+                    object_type=object_type,
+                    object_name=object_name,
+                    method_name=method_name,
+                )
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_breakpoint_set")
@@ -585,10 +597,10 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
         ),
         annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
     )
-    async def sap_breakpoint_delete(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements
+    async def sap_breakpoint_delete(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements,too-many-branches
         object_type: Literal["PROG", "CLAS", "FUGR"],
         object_name: str,
-        line_number: int | None = None,
+        line_number: Annotated[int, PydanticField(gt=0)] | None = None,
         match_pattern: str | None = None,
         method_name: str | None = None,
         session: str | None = None,
@@ -624,6 +636,17 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 object_name=object_name,
                 method_name=method_name,
             )
+
+        if match_pattern is not None:
+            try:
+                re.compile(match_pattern)
+            except re.error as exc:
+                return BreakpointDeleteResult.failure(
+                    error=f"Invalid regex pattern '{match_pattern}': {exc}",
+                    object_type=object_type,
+                    object_name=object_name,
+                    method_name=method_name,
+                )
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_breakpoint_delete")
