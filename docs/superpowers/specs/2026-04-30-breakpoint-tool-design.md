@@ -201,13 +201,43 @@ The agent is responsible for choosing executable lines.
 
 ### Listing Breakpoints
 
-Via `Hilfsmittel > Breakpoints > Anzeigen...` menu in the source editor.
-This opens a dialog listing all breakpoints for the current object.
-The tool reads the dialog content via `sap_com_snapshot`, then closes it.
+Via `Hilfsmittel > Breakpoints > Anzeigen...` menu in the source editor (menu index
+`wnd[0]/mbar/menu[3]/menu[7]/menu[0]`). This opens a modal dialog on SAPLBREA/600
+containing a `SAPGUI.GridViewCtrl.1` at `wnd[1]/usr/cntlG_BP_CONTAINER/shellcont/shell`.
 
-Alternative (fallback): read source via `GetLineCount` / `GetLineText` (already used in
-the desktop backend) and scan for lines that carry a breakpoint marker in the COM tree.
-This needs a prototype run to confirm which COM property marks a breakpointed line.
+**Verified workflow (live against S/4):**
+
+1. Navigate to the program in SE38/SE24/SE37 (same as set/delete)
+2. Select `wnd[0]/mbar/menu[3]/menu[7]/menu[0]` to open the dialog
+3. The initial view shows only breakpoints for the current editor object. Click
+   `wnd[1]/tbar[0]/btn[5]` ("Alle anzeigen") to expand to all breakpoints for the user
+4. Read `RowCount` on the grid shell
+5. For each row `i` in `range(RowCount)`, call:
+   - `GetCellValue(i, "INCLUDE_DIS")` → include/program name
+   - `GetCellValue(i, "SOURCE_LINE")` → line number as string (parse to int)
+   - `GetCellValue(i, "SOURCE")` → source text at that line
+   - `GetCellValue(i, "MAINPROGRAM_DIS")` → function group / main program name
+6. Filter rows where `INCLUDE_DIS` matches the requested object/method
+7. Close dialog with `wnd[1].SendVKey(12)` (F12 = Abbrechen)
+
+**Verified column names** (from `FORM prepare_alv_bp` in `LBREAF10`):
+
+| col_pos | FIELDNAME | Label | Content |
+|---------|-----------|-------|---------|
+| 1 | `ICON` | Typ | icon (use `GetCellIcon`, not `GetCellValue`) |
+| 2 | `MAINPROGRAM_DIS` | Rahmenprogramm | function group / main program (e.g. `"BREA"`) |
+| 3 | `INCLUDE_DIS` | Include | include or program name (e.g. `"LBREAO10"`) |
+| 4 | `SOURCE_LINE` | Zeile | line number as string (e.g. `"18"`) |
+| 5 | `SOURCE` | Quelltext | source text (e.g. `"IF reset_flag NE space."`) |
+
+All four text columns verified live with `GetCellValue` returning correct values.
+
+**Filter logic for `sap_breakpoint_list`:**
+- For PROG: filter rows where `INCLUDE_DIS == object_name`
+- For CLAS: filter rows where `INCLUDE_DIS` matches the method's include
+  (SAP sets breakpoints on the method's include, not the class name)
+- For FUGR: filter rows where `INCLUDE_DIS == method_name` (function module include)
+  or `MAINPROGRAM_DIS == object_name` (function group name without `SAPL` prefix)
 
 ---
 
@@ -289,9 +319,10 @@ When `match_pattern` is provided instead of `line_number`:
 
 ## Open Questions
 
-1. **Listing via dialog vs. raw COM**: The `Hilfsmittel > Breakpoints > Anzeigen...`
-   dialog approach needs a live prototype to confirm the dialog structure. Fallback:
-   use raw COM line-by-line scan to detect breakpoint markers.
+~~1. **Listing via dialog vs. raw COM**: The `Hilfsmittel > Breakpoints > Anzeigen...`
+   dialog approach needs a live prototype to confirm the dialog structure.~~
+   **Resolved**: Dialog verified live. Use `Alle anzeigen` (btn[5]) + `GetCellValue` with
+   columns `INCLUDE_DIS`, `SOURCE_LINE`, `SOURCE`, `MAINPROGRAM_DIS`. No fallback needed.
 
 ~~2. **SE24 method navigation**: Multi-step (class → Methods tab → method → source view).~~
    **Resolved**: Use Methods tab → click `btnPUSH_EDITOR` ("Quelltext") button.
