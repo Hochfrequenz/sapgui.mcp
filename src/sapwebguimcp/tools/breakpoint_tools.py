@@ -25,11 +25,20 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# COM shell paths per transaction (verified live against S/4)
-_SHELL_PATHS: dict[str, str] = {
-    "PROG": "usr/cntlEDITOR/shellcont/shell",
-    "CLAS": "usr/subEDITORSUBSCREEN:SAPLEDITOR_START:8430/cntlEDITOR/shellcont/shell",
-    "FUGR": "usr/tabsFUNC_TAB_STRIP/tabpSOURCE/ssubSCREEN_HEADER:SAPLEDITOR_START:8430/cntlEDITOR/shellcont/shell",
+# COM shell paths per transaction. Screen numbers (8430, 8300) vary across SAP releases.
+# Each entry lists candidates in preference order; the first one found at runtime is used.
+_SHELL_PATH_CANDIDATES: dict[str, list[str]] = {
+    "PROG": [
+        "usr/cntlEDITOR/shellcont/shell",
+    ],
+    "CLAS": [
+        "usr/subEDITORSUBSCREEN:SAPLEDITOR_START:8430/cntlEDITOR/shellcont/shell",
+        "usr/subEDITORSUBSCREEN:SAPLEDITOR_START:8300/cntlEDITOR/shellcont/shell",
+    ],
+    "FUGR": [
+        "usr/tabsFUNC_TAB_STRIP/tabpSOURCE/ssubSCREEN_HEADER:SAPLEDITOR_START:8430/cntlEDITOR/shellcont/shell",
+        "usr/tabsFUNC_TAB_STRIP/tabpSOURCE/ssubSCREEN_HEADER:SAPLEDITOR_START:8300/cntlEDITOR/shellcont/shell",
+    ],
 }
 
 _WEBGUI_ERROR = "External breakpoints are not supported on the WebGUI backend. Use BACKEND_TYPE=desktop."
@@ -60,6 +69,15 @@ def _classify_toggle_status(status_message: str) -> Literal["set", "deleted"] | 
         return "set"
     if "gelöscht" in msg or "geloescht" in msg:
         return "deleted"
+    return None
+
+
+def _resolve_shell_path_com(session: Any, object_type: str) -> str | None:
+    """COM-thread callable: return the first shell path candidate that exists, or None."""
+    raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
+    for candidate in _SHELL_PATH_CANDIDATES.get(object_type, []):
+        if raw_session.FindById(f"wnd[0]/{candidate}", False) is not None:
+            return candidate
     return None
 
 
@@ -97,23 +115,47 @@ def _open_bp_list_dialog_com(session: Any) -> tuple[bool, str]:
     """
     raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
     try:
-        # Locate the "Breakpoint" submenu in Hilfsmittel (menu[3]).
-        # Its index varies per transaction (menu[6] in SE37, menu[7] in SE38/SE24).
-        bp_submenu_path: str | None = None
+        # Locate Hilfsmittel in the menu bar — its position varies across transactions
+        # and SAP releases, so scan by .Text instead of using a hardcoded index.
+        hilfsmittel_idx: int | None = None
         for i in range(20):
-            item = raw_session.FindById(f"wnd[0]/mbar/menu[3]/menu[{i}]", False)
+            item = raw_session.FindById(f"wnd[0]/mbar/menu[{i}]", False)
+            if item is None:
+                break
+            if item.Text in ("Hilfsmittel", "Utilities"):
+                hilfsmittel_idx = i
+                break
+
+        if hilfsmittel_idx is None:
+            return False, "Hilfsmittel menu not found in menu bar"
+
+        # Locate the "Breakpoint(s)" submenu within Hilfsmittel — index varies per transaction.
+        bp_menu_idx: int | None = None
+        for i in range(20):
+            item = raw_session.FindById(f"wnd[0]/mbar/menu[{hilfsmittel_idx}]/menu[{i}]", False)
             if item is None:
                 break
             if item.Text in ("Breakpoint", "Breakpoints"):
-                bp_submenu_path = f"wnd[0]/mbar/menu[3]/menu[{i}]/menu[0]"
+                bp_menu_idx = i
                 break
 
-        if bp_submenu_path is None:
+        if bp_menu_idx is None:
             return False, "Breakpoint menu not found in Hilfsmittel"
 
-        menu_item = raw_session.FindById(bp_submenu_path, False)
-        if menu_item is None:
-            return False, f"Anzeigen... item not found at {bp_submenu_path}"
+        # Locate "Anzeigen..." within the Breakpoints submenu — index varies per release.
+        anzeigen_path: str | None = None
+        for i in range(20):
+            item = raw_session.FindById(f"wnd[0]/mbar/menu[{hilfsmittel_idx}]/menu[{bp_menu_idx}]/menu[{i}]", False)
+            if item is None:
+                break
+            if item.Text in ("Anzeigen...", "Display..."):
+                anzeigen_path = f"wnd[0]/mbar/menu[{hilfsmittel_idx}]/menu[{bp_menu_idx}]/menu[{i}]"
+                break
+
+        if anzeigen_path is None:
+            return False, "Anzeigen... item not found in Breakpoints submenu"
+
+        menu_item = raw_session.FindById(anzeigen_path, False)
         menu_item.Select()
         time.sleep(0.5)
         return True, ""
@@ -133,12 +175,21 @@ def _read_bp_grid_and_close_com(
     """
     raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
     try:
-        # Click "Alle anzeigen" (btn[5]) to expand to all user breakpoints
-        btn_all = raw_session.FindById("wnd[1]/tbar[0]/btn[5]", False)
+        # Click "Alle anzeigen" — scan toolbar by tooltip, index varies across releases.
+        btn_all = None
+        for i in range(20):
+            btn = raw_session.FindById(f"wnd[1]/tbar[0]/btn[{i}]", False)
+            if btn is None:
+                break
+            if btn.Tooltip in ("Alle anzeigen", "Display All"):
+                btn_all = btn
+                break
         if btn_all is None:
-            return [], "Could not find 'Alle anzeigen' button at wnd[1]/tbar[0]/btn[5]"
-        btn_all.Press()
-        time.sleep(0.3)
+            # Fallback: try the hardcoded index that works on S4U
+            btn_all = raw_session.FindById("wnd[1]/tbar[0]/btn[5]", False)
+        if btn_all is not None:
+            btn_all.Press()
+            time.sleep(0.8)
 
         # Read grid
         grid = raw_session.FindById("wnd[1]/usr/cntlG_BP_CONTAINER/shellcont/shell", False)
@@ -534,8 +585,15 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 )
             assert resolved_line is not None
 
-            shell_path = _SHELL_PATHS[object_type]
             session_com = backend.require_session()
+            shell_path = await backend.com.run(lambda: _resolve_shell_path_com(session_com, object_type))
+            if shell_path is None:
+                return BreakpointSetResult.failure(
+                    error=f"Editor shell not found for {object_type} (tried all known paths)",
+                    object_type=object_type,
+                    object_name=object_name,
+                    method_name=method_name,
+                )
 
             shell_found, status_msg = await backend.com.run(
                 lambda: _toggle_breakpoint_com(session_com, shell_path, resolved_line)
@@ -706,8 +764,15 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 )
             assert resolved_line is not None
 
-            shell_path = _SHELL_PATHS[object_type]
             session_com = backend.require_session()
+            shell_path = await backend.com.run(lambda: _resolve_shell_path_com(session_com, object_type))
+            if shell_path is None:
+                return BreakpointDeleteResult.failure(
+                    error=f"Editor shell not found for {object_type} (tried all known paths)",
+                    object_type=object_type,
+                    object_name=object_name,
+                    method_name=method_name,
+                )
 
             shell_found, status_msg = await backend.com.run(
                 lambda: _toggle_breakpoint_com(session_com, shell_path, resolved_line)
