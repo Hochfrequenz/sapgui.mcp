@@ -25,18 +25,14 @@ async def test_breakpoint_set_prog_by_line(backend):
     assert nav_error is None, f"Navigation failed: {nav_error}"
 
     session = backend.require_session()
-    shell_found, status_msg = await backend.com.run(
-        lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], 1)
-    )
+    shell_found, status_msg = await backend.com.run(lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], 1))
     assert shell_found, f"Shell not found: {status_msg}"
     outcome = _classify_toggle_status(status_msg)
     assert outcome in ("set", "deleted"), f"Unrecognized status: '{status_msg}'"
 
     # Cleanup: ensure breakpoint ends up deleted
     if outcome == "set":
-        await backend.com.run(
-            lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], 1)
-        )
+        await backend.com.run(lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], 1))
 
     await go_home(backend)
 
@@ -59,16 +55,12 @@ async def test_breakpoint_set_and_delete_roundtrip_prog(backend):
 
     # Ensure clean state: toggle until "set"
     for _ in range(2):
-        _, msg = await backend.com.run(
-            lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], test_line)
-        )
+        _, msg = await backend.com.run(lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], test_line))
         if _classify_toggle_status(msg) == "set":
             break
 
     # Now delete it
-    _, msg2 = await backend.com.run(
-        lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], test_line)
-    )
+    _, msg2 = await backend.com.run(lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], test_line))
     assert _classify_toggle_status(msg2) == "deleted", f"Expected 'deleted', got: '{msg2}'"
     await go_home(backend)
 
@@ -90,9 +82,7 @@ async def test_breakpoint_list_prog(backend):
     opened, open_err = await backend.com.run(lambda: _open_bp_list_dialog_com(session))
     assert opened, f"Dialog open failed: {open_err}"
 
-    rows, read_err = await backend.com.run(
-        lambda: _read_bp_grid_and_close_com(session, "PROG", TEST_REPORT, None)
-    )
+    rows, read_err = await backend.com.run(lambda: _read_bp_grid_and_close_com(session, "PROG", TEST_REPORT, None))
     assert not read_err, f"Grid read failed: {read_err}"
 
     entries = _filter_bp_rows(rows, "PROG", TEST_REPORT, None)

@@ -31,9 +31,7 @@ _SHELL_PATHS: dict[str, str] = {
     "FUGR": "usr/tabsFUNC_TAB_STRIP/tabpSOURCE/ssubSCREEN_HEADER:SAPLEDITOR_START:8430/cntlEDITOR/shellcont/shell",
 }
 
-_WEBGUI_ERROR = (
-    "External breakpoints are not supported on the WebGUI backend. Use BACKEND_TYPE=desktop."
-)
+_WEBGUI_ERROR = "External breakpoints are not supported on the WebGUI backend. Use BACKEND_TYPE=desktop."
 
 _SE37_FM_LABELS = ("Funktionsbaustein", "Function Module", "Function module")
 
@@ -64,9 +62,7 @@ def _classify_toggle_status(status_message: str) -> Literal["set", "deleted"] | 
     return None
 
 
-def _toggle_breakpoint_com(
-    session: Any, shell_path: str, line_number: int
-) -> tuple[bool, str]:
+def _toggle_breakpoint_com(session: Any, shell_path: str, line_number: int) -> tuple[bool, str]:
     """COM-thread callable: position cursor at line and send VKey 45.
 
     Returns (shell_found, status_bar_message).
@@ -106,9 +102,6 @@ def _open_bp_list_dialog_com(session: Any) -> tuple[bool, str]:
 
 def _read_bp_grid_and_close_com(
     session: Any,
-    object_type: str,
-    object_name: str,
-    method_name: str | None,
 ) -> tuple[list[dict[str, str]], str]:
     """COM-thread callable: click Alle anzeigen, read grid rows, close dialog.
 
@@ -135,12 +128,14 @@ def _read_bp_grid_and_close_com(
         row_count = grid.RowCount
         rows: list[dict[str, str]] = []
         for i in range(row_count):
-            rows.append({
-                "MAINPROGRAM_DIS": str(grid.GetCellValue(i, "MAINPROGRAM_DIS")),
-                "INCLUDE_DIS": str(grid.GetCellValue(i, "INCLUDE_DIS")),
-                "SOURCE_LINE": str(grid.GetCellValue(i, "SOURCE_LINE")),
-                "SOURCE": str(grid.GetCellValue(i, "SOURCE")),
-            })
+            rows.append(
+                {
+                    "MAINPROGRAM_DIS": str(grid.GetCellValue(i, "MAINPROGRAM_DIS")),
+                    "INCLUDE_DIS": str(grid.GetCellValue(i, "INCLUDE_DIS")),
+                    "SOURCE_LINE": str(grid.GetCellValue(i, "SOURCE_LINE")),
+                    "SOURCE": str(grid.GetCellValue(i, "SOURCE")),
+                }
+            )
     except Exception as exc:  # pylint: disable=broad-exception-caught
         try:
             raw_session.FindById("wnd[1]", False).SendVKey(12)
@@ -158,7 +153,7 @@ def _filter_bp_rows(
     rows: list[dict[str, str]],
     object_type: str,
     object_name: str,
-    method_name: str | None,
+    _method_name: str | None,
 ) -> list[BreakpointEntry]:
     """Filter grid rows to only those matching the requested object."""
     entries: list[BreakpointEntry] = []
@@ -178,8 +173,7 @@ def _filter_bp_rows(
             # for the class. Filtering to a specific method is not possible here without
             # resolving the generated include name first — callers get all class breakpoints.
             if not (
-                main_prog == object_name.upper()
-                or (main_prog == "" and include_dis.startswith(object_name.upper()))
+                main_prog == object_name.upper() or (main_prog == "" and include_dis.startswith(object_name.upper()))
             ):
                 continue
         elif object_type == "FUGR":
@@ -235,7 +229,9 @@ async def _navigate_prog(backend: DesktopBackend, object_name: str) -> str | Non
     return None
 
 
-async def _navigate_clas(backend: DesktopBackend, class_name: str, method_name: str) -> str | None:
+async def _navigate_clas(  # pylint: disable=too-many-statements
+    backend: DesktopBackend, class_name: str, method_name: str
+) -> str | None:
     """Navigate to SE24 in display mode and open the method source editor.
 
     Returns error message or None.
@@ -247,9 +243,7 @@ async def _navigate_clas(backend: DesktopBackend, class_name: str, method_name: 
 
     filled = await backend.focus_and_type("SEOCLASS-CLSNAME", class_name.upper())
     if not filled:
-        filled = await fill_field_with_keyboard(
-            backend, ["Objekttyp", "Object Type"], class_name.upper()
-        )
+        filled = await fill_field_with_keyboard(backend, ["Objekttyp", "Object Type"], class_name.upper())
     if not filled:
         return f"Could not fill class name field for '{class_name}'"
 
@@ -416,7 +410,7 @@ async def _resolve_line_number(
     return resolved, None
 
 
-def register_breakpoint_tools(mcp: FastMCP) -> None:
+def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements
     """Register breakpoint management tools with the MCP server."""
 
     @mcp.tool(
@@ -430,7 +424,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:
         ),
         annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
     )
-    async def sap_breakpoint_set(
+    async def sap_breakpoint_set(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements
         object_type: Literal["PROG", "CLAS", "FUGR"],
         object_name: str,
         line_number: int | None = None,
@@ -487,6 +481,9 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:
                 object_name=object_name,
                 method_name=method_name,
             )
+        from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+        assert isinstance(backend, DesktopBackend)  # noqa: S101
 
         try:
             nav_error = await _navigate_to_editor(backend, object_type, object_name, method_name)
@@ -588,7 +585,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:
         ),
         annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
     )
-    async def sap_breakpoint_delete(
+    async def sap_breakpoint_delete(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements
         object_type: Literal["PROG", "CLAS", "FUGR"],
         object_name: str,
         line_number: int | None = None,
@@ -645,6 +642,9 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:
                 object_name=object_name,
                 method_name=method_name,
             )
+        from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+        assert isinstance(backend, DesktopBackend)  # noqa: S101
 
         try:
             nav_error = await _navigate_to_editor(backend, object_type, object_name, method_name)
@@ -744,7 +744,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:
         ),
         annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True},
     )
-    async def sap_breakpoint_list(
+    async def sap_breakpoint_list(  # pylint: disable=too-many-return-statements
         object_type: Literal["PROG", "CLAS", "FUGR"],
         object_name: str,
         method_name: str | None = None,
@@ -781,6 +781,9 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:
                 object_name=object_name,
                 method_name=method_name,
             )
+        from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+        assert isinstance(backend, DesktopBackend)  # noqa: S101
 
         if object_type in ("CLAS", "FUGR") and not method_name:
             return BreakpointListResult.failure(
@@ -802,9 +805,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:
 
             session_com = backend.require_session()
 
-            opened, open_error = await backend.com.run(
-                lambda: _open_bp_list_dialog_com(session_com)
-            )
+            opened, open_error = await backend.com.run(lambda: _open_bp_list_dialog_com(session_com))
             if not opened:
                 return BreakpointListResult.failure(
                     error=open_error,
@@ -813,9 +814,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:
                     method_name=method_name,
                 )
 
-            rows, read_error = await backend.com.run(
-                lambda: _read_bp_grid_and_close_com(session_com, object_type, object_name, method_name)
-            )
+            rows, read_error = await backend.com.run(lambda: _read_bp_grid_and_close_com(session_com))
             if read_error:
                 return BreakpointListResult.failure(
                     error=read_error,

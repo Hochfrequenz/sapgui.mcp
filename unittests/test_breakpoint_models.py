@@ -232,7 +232,12 @@ class TestFilterBpRows:
         "SOURCE": "WRITE.",
     }
     _FUGR_ROW = {"MAINPROGRAM_DIS": "BREA", "INCLUDE_DIS": "LBREAU01", "SOURCE_LINE": "42", "SOURCE": "IF x."}
-    _FUGR_ROW_OTHER = {"MAINPROGRAM_DIS": "OTHER_GRP", "INCLUDE_DIS": "LOTHER01", "SOURCE_LINE": "3", "SOURCE": "WRITE."}
+    _FUGR_ROW_OTHER = {
+        "MAINPROGRAM_DIS": "OTHER_GRP",
+        "INCLUDE_DIS": "LOTHER01",
+        "SOURCE_LINE": "3",
+        "SOURCE": "WRITE.",
+    }
 
     def test_prog_match_by_include_dis(self) -> None:
         from sapwebguimcp.tools.breakpoint_tools import _filter_bp_rows
