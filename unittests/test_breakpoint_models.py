@@ -34,18 +34,18 @@ class TestBreakpointSetResult:
         assert result.action == "set"
         assert result.error is None
 
-    def test_deleted_instead_action(self) -> None:
-        result = BreakpointSetResult(
-            success=True,
-            object_type="PROG",
-            object_name="ZTEST",
-            method_name=None,
-            line_number=10,
-            action="deleted_instead",
-            status_message="Externer Breakpoint wurde gelöscht",
-            error=None,
-        )
-        assert result.action == "deleted_instead"
+    def test_invalid_action_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            BreakpointSetResult(
+                success=True,
+                object_type="PROG",
+                object_name="ZTEST",
+                method_name=None,
+                line_number=10,
+                action="deleted_instead",  # type: ignore[arg-type]
+                status_message="",
+                error=None,
+            )
 
     def test_failure_factory(self) -> None:
         result = BreakpointSetResult.failure(

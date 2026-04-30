@@ -21,7 +21,7 @@ class BreakpointSetResult(ToolResult):
     object_name: str = Field(description="Program name, class name, or function group name")
     method_name: str | None = Field(default=None, description="Method or function module name (None for PROG)")
     line_number: int = Field(default=0, description="Resolved 1-indexed line number")
-    action: Literal["set", "deleted_instead"] = Field(default="set", description="What actually happened")
+    action: Literal["set"] = Field(default="set", description="What actually happened")
     status_message: str = Field(default="", description="Raw SAP status bar message")
 
 

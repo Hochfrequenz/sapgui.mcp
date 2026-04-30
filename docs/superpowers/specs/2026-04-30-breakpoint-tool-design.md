@@ -181,7 +181,7 @@ and SAP deleted it. The tool re-applies VKey 45 once to restore it, then reports
 
 For `sap_breakpoint_delete`: if result is `"gesetzt"`, the line had no breakpoint and
 SAP set one. The tool re-applies VKey 45 to remove it again, then reports
-`action="deleted"`. If the second attempt also fails, return `success=False`.
+`action="was_not_set"`. If the second attempt also fails, return `success=False`.
 
 ### Continuation Lines
 
@@ -234,10 +234,11 @@ All four text columns verified live with `GetCellValue` returning correct values
 
 **Filter logic for `sap_breakpoint_list`:**
 - For PROG: filter rows where `INCLUDE_DIS == object_name`
-- For CLAS: filter rows where `INCLUDE_DIS` matches the method's include
-  (SAP sets breakpoints on the method's include, not the class name)
-- For FUGR: filter rows where `INCLUDE_DIS == method_name` (function module include)
-  or `MAINPROGRAM_DIS == object_name` (function group name without `SAPL` prefix)
+- For CLAS: filter rows where `MAINPROGRAM_DIS == class_name` (SAP stores class
+  breakpoints in generated method includes but sets `MAINPROGRAM_DIS` to the class name;
+  all breakpoints for the class are returned regardless of method)
+- For FUGR: filter rows where `MAINPROGRAM_DIS == object_name` (function group name);
+  all breakpoints in the function group are returned (SAP uses numbered includes per FM)
 
 ---
 
