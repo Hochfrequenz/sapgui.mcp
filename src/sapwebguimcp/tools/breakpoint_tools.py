@@ -83,6 +83,12 @@ def _toggle_breakpoint_com(session: Any, shell_path: str, line_number: int) -> t
     return True, msg
 
 
+def _has_popup_com(session: Any) -> bool:
+    """COM-thread callable: return True if a modal popup (wnd[1]) is currently open."""
+    raw_session: Any = getattr(session, "com", getattr(session, "_com", session))
+    return raw_session.FindById("wnd[1]", False) is not None
+
+
 def _open_bp_list_dialog_com(session: Any) -> tuple[bool, str]:
     """COM-thread callable: open breakpoints list dialog via menu.
 
@@ -269,9 +275,7 @@ async def _navigate_clas(  # pylint: disable=too-many-statements
     # Dismiss language dialog if present (only press Enter when a popup actually opened)
     session = backend.require_session()
     com = backend.com
-    has_popup = await com.run(
-        lambda: getattr(session, "com", getattr(session, "_com", session)).FindById("wnd[1]", False) is not None
-    )
+    has_popup = await com.run(lambda: _has_popup_com(session))
     if has_popup:
         await backend.press_key("Enter")
         await backend.wait_for_ready()
