@@ -107,6 +107,17 @@ def _has_popup_com(session: Any) -> bool:
     return raw_session.FindById("wnd[1]", False) is not None
 
 
+def _find_menu_item_idx_com(raw_session: Any, base_path: str, texts: tuple[str, ...]) -> int | None:
+    """Scan up to 20 menu children at base_path and return the index of the first text match."""
+    for i in range(20):
+        item = raw_session.FindById(f"{base_path}/menu[{i}]", False)
+        if item is None:
+            break
+        if item.Text in texts:
+            return i
+    return None
+
+
 def _open_bp_list_dialog_com(session: Any) -> tuple[bool, str]:
     """COM-thread callable: open breakpoints list dialog via menu.
 
@@ -117,45 +128,24 @@ def _open_bp_list_dialog_com(session: Any) -> tuple[bool, str]:
     try:
         # Locate Hilfsmittel in the menu bar — its position varies across transactions
         # and SAP releases, so scan by .Text instead of using a hardcoded index.
-        hilfsmittel_idx: int | None = None
-        for i in range(20):
-            item = raw_session.FindById(f"wnd[0]/mbar/menu[{i}]", False)
-            if item is None:
-                break
-            if item.Text in ("Hilfsmittel", "Utilities"):
-                hilfsmittel_idx = i
-                break
-
+        hilfsmittel_idx = _find_menu_item_idx_com(raw_session, "wnd[0]/mbar", ("Hilfsmittel", "Utilities"))
         if hilfsmittel_idx is None:
             return False, "Hilfsmittel menu not found in menu bar"
 
         # Locate the "Breakpoint(s)" submenu within Hilfsmittel — index varies per transaction.
-        bp_menu_idx: int | None = None
-        for i in range(20):
-            item = raw_session.FindById(f"wnd[0]/mbar/menu[{hilfsmittel_idx}]/menu[{i}]", False)
-            if item is None:
-                break
-            if item.Text in ("Breakpoint", "Breakpoints"):
-                bp_menu_idx = i
-                break
-
+        bp_menu_idx = _find_menu_item_idx_com(
+            raw_session, f"wnd[0]/mbar/menu[{hilfsmittel_idx}]", ("Breakpoint", "Breakpoints")
+        )
         if bp_menu_idx is None:
             return False, "Breakpoint menu not found in Hilfsmittel"
 
         # Locate "Anzeigen..." within the Breakpoints submenu — index varies per release.
-        anzeigen_path: str | None = None
-        for i in range(20):
-            item = raw_session.FindById(f"wnd[0]/mbar/menu[{hilfsmittel_idx}]/menu[{bp_menu_idx}]/menu[{i}]", False)
-            if item is None:
-                break
-            if item.Text in ("Anzeigen...", "Display..."):
-                anzeigen_path = f"wnd[0]/mbar/menu[{hilfsmittel_idx}]/menu[{bp_menu_idx}]/menu[{i}]"
-                break
-
-        if anzeigen_path is None:
+        bp_sub_path = f"wnd[0]/mbar/menu[{hilfsmittel_idx}]/menu[{bp_menu_idx}]"
+        anzeigen_idx = _find_menu_item_idx_com(raw_session, bp_sub_path, ("Anzeigen...", "Display..."))
+        if anzeigen_idx is None:
             return False, "Anzeigen... item not found in Breakpoints submenu"
 
-        menu_item = raw_session.FindById(anzeigen_path, False)
+        menu_item = raw_session.FindById(f"{bp_sub_path}/menu[{anzeigen_idx}]", False)
         menu_item.Select()
         time.sleep(0.5)
         return True, ""
