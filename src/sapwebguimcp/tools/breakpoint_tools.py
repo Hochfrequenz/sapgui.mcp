@@ -171,18 +171,24 @@ def _filter_bp_rows(
             if include_dis != object_name.upper():
                 continue
         elif object_type == "CLAS":
-            # SAP stores class method breakpoints on the method's include, not the class name.
-            # MAINPROGRAM_DIS contains the class name (e.g., "ZCL_MYCLASS") for class breakpoints.
-            # Filter by MAINPROGRAM_DIS == class name. If MAINPROGRAM_DIS is empty or differs,
-            # also accept INCLUDE_DIS starting with the class name (handles nested classes).
+            # SAP stores class method breakpoints in generated method includes
+            # (e.g. ZCL_FOO==========CM_MY_METHOD_XX), not under the class name directly.
+            # MAINPROGRAM_DIS is set to the class name for all class breakpoints.
+            # We filter by MAINPROGRAM_DIS == class name, which returns all breakpoints
+            # for the class. Filtering to a specific method is not possible here without
+            # resolving the generated include name first — callers get all class breakpoints.
             if not (
                 main_prog == object_name.upper()
                 or (main_prog == "" and include_dis.startswith(object_name.upper()))
             ):
                 continue
         elif object_type == "FUGR":
-            fm = (method_name or "").upper()
-            if not (include_dis == fm or main_prog == object_name.upper()):
+            # SAP FM breakpoints live in numbered function group includes (e.g. LBREAU01),
+            # not in an include named after the FM. MAINPROGRAM_DIS is set to the function
+            # group name for all FM breakpoints. We filter by MAINPROGRAM_DIS == object_name,
+            # which returns all breakpoints in the function group. The method_name is used
+            # only for navigation, not for filtering here.
+            if main_prog != object_name.upper():
                 continue
 
         try:
@@ -532,6 +538,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:
                         object_name=object_name,
                         method_name=method_name,
                         line_number=resolved_line,
+                        status_message=status_msg2,
                     )
                 return BreakpointSetResult(
                     success=True,
@@ -689,6 +696,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:
                         object_name=object_name,
                         method_name=method_name,
                         line_number=resolved_line,
+                        status_message=status_msg2,
                     )
                 return BreakpointDeleteResult(
                     success=True,
