@@ -132,16 +132,24 @@ def _open_bp_list_dialog_com(session: Any) -> tuple[bool, str]:
         if hilfsmittel_idx is None:
             return False, "Hilfsmittel menu not found in menu bar"
 
-        # Locate the "Breakpoint(s)" submenu within Hilfsmittel — index varies per transaction.
+        # Locate the breakpoints submenu within Hilfsmittel.
+        # In SE37/SE38 on ECC both "Breakpoint" (internal) and "Externe Breakpoints" (external)
+        # exist — prefer the external one; fall back to generic "Breakpoint"/"Breakpoints".
+        hilfsmittel_path = f"wnd[0]/mbar/menu[{hilfsmittel_idx}]"
         bp_menu_idx = _find_menu_item_idx_com(
-            raw_session, f"wnd[0]/mbar/menu[{hilfsmittel_idx}]", ("Breakpoint", "Breakpoints")
+            raw_session, hilfsmittel_path, ("Externe Breakpoints", "External Breakpoints")
         )
+        if bp_menu_idx is None:
+            bp_menu_idx = _find_menu_item_idx_com(raw_session, hilfsmittel_path, ("Breakpoint", "Breakpoints"))
+
         if bp_menu_idx is None:
             return False, "Breakpoint menu not found in Hilfsmittel"
 
         # Locate "Anzeigen..." within the Breakpoints submenu — index varies per release.
         bp_sub_path = f"wnd[0]/mbar/menu[{hilfsmittel_idx}]/menu[{bp_menu_idx}]"
-        anzeigen_idx = _find_menu_item_idx_com(raw_session, bp_sub_path, ("Anzeigen...", "Display..."))
+        anzeigen_idx = _find_menu_item_idx_com(
+            raw_session, bp_sub_path, ("Anzeigen...", "Anzeigen", "Display...", "Display")
+        )
         if anzeigen_idx is None:
             return False, "Anzeigen... item not found in Breakpoints submenu"
 
