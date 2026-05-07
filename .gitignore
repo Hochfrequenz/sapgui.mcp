@@ -102,3 +102,6 @@ node_modules/
 nul
 docs/sap_gui_scripting_api_reference.pdf
 docs/sap_gui_scripting_api_800/
+
+# Git worktrees
+.worktrees/
