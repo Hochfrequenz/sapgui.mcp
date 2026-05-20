@@ -73,10 +73,8 @@ jobs:
             Write-Error "PAPERTRAIL_HOST and PAPERTRAIL_PORT secrets must be configured for the with_remote_logging build."
             exit 1
           }
-          @"
-          PAPERTRAIL_HOST=$env:PAPERTRAIL_HOST
-          PAPERTRAIL_PORT=$env:PAPERTRAIL_PORT
-          "@ | Out-File -Encoding utf8 -NoNewline .env.production
+          $content = "PAPERTRAIL_HOST=$env:PAPERTRAIL_HOST`nPAPERTRAIL_PORT=$env:PAPERTRAIL_PORT`n"
+          [System.IO.File]::WriteAllText(".env.production", $content, [System.Text.Encoding]::UTF8)
 
       - name: Build Executable
         env:
@@ -180,7 +178,10 @@ jobs:
 
   release:
     needs: [build, build_with_remote_logging, smoke_test]
-    if: github.event_name == 'release'
+    # always() lets this job run even when build_with_remote_logging was skipped
+    # (fork PRs have no secret access and skip that job).  The shell script and
+    # fail_on_unmatched_files: false already handle missing artifacts gracefully.
+    if: always() && github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: write
