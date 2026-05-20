@@ -10,9 +10,11 @@ This is an accepted trade-off for a semi-trusted LLM in an internal developer
 tool. If the threat model hardens, swap ``exec()`` for RestrictedPython.
 """
 
+import asyncio
 import json
 import logging
 import traceback as _traceback
+from datetime import timedelta
 from typing import Annotated, Any
 
 from fastmcp import FastMCP
@@ -142,7 +144,14 @@ def register_script_tools(mcp: FastMCP) -> None:
             "number of operations depends on a runtime value — e.g. iterating all rows in a grid, "
             "scanning tree nodes, or branching based on a field value read mid-sequence.\n\n"
             "If the script raises an unhandled exception, ``success=False`` and ``output`` contains "
-            "whatever was collected before the error — partial results are preserved.\n\n"
+            "whatever was collected before the error — partial results are preserved.\n"
+            "**On failure:** inspect ``error`` (exception type + message) and ``error_traceback`` "
+            "to understand what went wrong, then either fix the script and retry, or fall back to "
+            "``sap_com_evaluate`` for individual operations. If the error mentions an element ID "
+            "that was not found, call ``sap_com_snapshot`` first to verify the correct ID.\n\n"
+            "The ``timeout`` parameter (default 30 s) limits how long the tool waits for the script "
+            "to finish. If the timeout fires, ``success=False`` is returned immediately; the COM "
+            "thread may still be running — restart the session if SAP becomes unresponsive.\n\n"
             "Example:\n"
             "```python\n"
             "grid = session.find_by_id('wnd[0]/usr/cntlGRID/shellcont/shell')\n"
@@ -156,6 +165,13 @@ def register_script_tools(mcp: FastMCP) -> None:
         script: Annotated[str, Field(description="Python script body to execute")],
         session: Annotated[str | None, Field(description="Session ID (e.g. 's1'). None = primary.")] = None,
         agent_id: Annotated[str | None, Field(description="Agent identifier for binding check.")] = None,
+        timeout: Annotated[
+            int,
+            Field(
+                description="Maximum seconds to wait for the script to complete. Defaults to 30.",
+                ge=1,
+            ),
+        ] = 30,
     ) -> SapRunScriptResult:
         # Compile first — reject invalid Python before touching backend or COM thread.
         try:
@@ -179,9 +195,18 @@ def register_script_tools(mcp: FastMCP) -> None:
 
         desktop_session = backend.require_session()
         com = backend.com
+        timeout_td = timedelta(seconds=timeout)
 
         try:
-            return await com.run(lambda: _run_in_sandbox(script, desktop_session))
+            return await asyncio.wait_for(
+                com.run(lambda: _run_in_sandbox(script, desktop_session)),
+                timeout=timeout_td.total_seconds(),
+            )
+        except asyncio.TimeoutError:
+            return SapRunScriptResult.failure(
+                f"Script timed out after {timeout_td.seconds}s. "
+                "The COM thread may still be running — restart the session if SAP is unresponsive."
+            )
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.exception("sap_run_script: COM execution error")
             return SapRunScriptResult.failure(f"COM execution error: {exc}")

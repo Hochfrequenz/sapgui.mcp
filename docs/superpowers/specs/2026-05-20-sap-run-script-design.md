@@ -211,6 +211,10 @@ summary.
 >
 > If the script raises an unhandled exception, `success=False` and `output` contains whatever was
 > collected before the error — partial results are preserved.
+> **On failure:** inspect `error` (exception type + message) and `error_traceback` to understand
+> what went wrong, then either fix the script and retry, or fall back to `sap_com_evaluate` for
+> individual operations. If the error mentions an element ID that was not found, call
+> `sap_com_snapshot` first to verify the correct ID.
 >
 > Example:
 > ```python

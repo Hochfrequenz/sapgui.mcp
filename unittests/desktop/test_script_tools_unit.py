@@ -202,3 +202,27 @@ class TestSapRunScriptTool:
         assert result.success is False
         assert result.error.startswith("SyntaxError")
         mock_get_backend.assert_not_called()
+
+    def test_timeout_returns_structured_failure(self):
+        """asyncio.TimeoutError from com.run is converted to a structured failure."""
+        from sapwebguimcp.backend.desktop import DesktopBackend
+
+        mock_backend = MagicMock()
+        mock_backend.__class__ = DesktopBackend  # lets isinstance() pass
+        mock_backend.backend_type = "desktop"
+        mock_backend.com.run = AsyncMock(side_effect=asyncio.TimeoutError)
+
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+        tool_fn = self._make_tool_fn(mcp)
+
+        with patch(
+            "sapwebguimcp.tools.script_tools.get_backend",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
+            result = asyncio.run(tool_fn(script="output(1)", session=None, agent_id=None, timeout=1))
+
+        assert result.success is False
+        assert "timed out" in result.error
+        assert "1s" in result.error
