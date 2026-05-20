@@ -152,7 +152,7 @@ def register_script_tools(mcp: FastMCP) -> None:
             "```"
         ),
     )
-    async def sap_run_script(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    async def sap_run_script(
         script: Annotated[str, Field(description="Python script body to execute")],
         session: Annotated[str | None, Field(description="Session ID (e.g. 's1'). None = primary.")] = None,
         agent_id: Annotated[str | None, Field(description="Agent identifier for binding check.")] = None,
@@ -174,4 +174,8 @@ def register_script_tools(mcp: FastMCP) -> None:
         desktop_session = backend.require_session()
         com = backend.com
 
-        return await com.run(lambda: _run_in_sandbox(script, desktop_session))
+        try:
+            return await com.run(lambda: _run_in_sandbox(script, desktop_session))
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            logger.exception("sap_run_script: COM execution error")
+            return SapRunScriptResult.failure(f"COM execution error: {exc}")
