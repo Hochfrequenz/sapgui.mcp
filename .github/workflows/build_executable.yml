@@ -10,7 +10,19 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            tox_env: build_executable
+            artifact: sapwebgui_mcp_windows
+            binary: sapwebgui_mcp_windows.exe
+          - os: macos-latest
+            tox_env: build_executable_macos
+            artifact: sapwebgui_mcp_macos_arm64
+            binary: sapwebgui_mcp_macos_arm64
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -23,6 +35,52 @@ jobs:
       - name: Build Executable
         run: |
           pip install tox
+          tox -e ${{ matrix.tox_env }}
+
+      - name: Freeze build dependencies
+        run: tox exec -e ${{ matrix.tox_env }} -- pip freeze > dist/build-dependencies.txt
+
+      - name: Upload Executable as Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/${{ matrix.binary }}
+            dist/build-dependencies.txt
+
+  build_with_remote_logging:
+    runs-on: windows-latest
+    name: "Build (with_remote_logging)"
+    # Repository secrets are not available to PRs from forks, so skip this
+    # variant in that case. Public forks can still build the public binary.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Write .env.production from secrets
+        env:
+          PAPERTRAIL_HOST: ${{ secrets.PAPERTRAIL_HOST }}
+          PAPERTRAIL_PORT: ${{ secrets.PAPERTRAIL_PORT }}
+        shell: pwsh
+        run: |
+          if (-not $env:PAPERTRAIL_HOST -or -not $env:PAPERTRAIL_PORT) {
+            Write-Error "PAPERTRAIL_HOST and PAPERTRAIL_PORT secrets must be configured for the with_remote_logging build."
+            exit 1
+          }
+          $content = "PAPERTRAIL_HOST=$env:PAPERTRAIL_HOST`nPAPERTRAIL_PORT=$env:PAPERTRAIL_PORT`n"
+          [System.IO.File]::WriteAllText(".env.production", $content, [System.Text.Encoding]::UTF8)
+
+      - name: Build Executable
+        env:
+          SAPWEBGUI_BUILD_NAME: sapwebgui_mcp_windows_with_remote_logging
+        run: |
+          pip install tox
           tox -e build_executable
 
       - name: Freeze build dependencies
@@ -31,18 +89,30 @@ jobs:
       - name: Upload Executable as Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: sapwebgui_mcp_windows
+          name: sapwebgui_mcp_windows_with_remote_logging
           path: |
-            dist/sapwebgui_mcp_windows.exe
+            dist/sapwebgui_mcp_windows_with_remote_logging.exe
             dist/build-dependencies.txt
 
   smoke_test:
+    # The two Windows variants share all non-logging code paths, so smoke-testing
+    # the public binary is sufficient — HF-specific behaviour (Papertrail) cannot
+    # be smoke-tested without a live Papertrail collector anyway.
     needs: build
-    runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
+        os: [windows-latest, macos-latest]
         chrome: [true, false]
-    name: "Smoke Test (Chrome: ${{ matrix.chrome }})"
+        include:
+          - os: windows-latest
+            artifact: sapwebgui_mcp_windows
+            binary: sapwebgui_mcp_windows.exe
+          - os: macos-latest
+            artifact: sapwebgui_mcp_macos_arm64
+            binary: sapwebgui_mcp_macos_arm64
+    runs-on: ${{ matrix.os }}
+    name: "Smoke Test (${{ matrix.os }}, Chrome: ${{ matrix.chrome }})"
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -55,39 +125,116 @@ jobs:
       - name: Download Executable
         uses: actions/download-artifact@v8
         with:
-          name: sapwebgui_mcp_windows
+          name: ${{ matrix.artifact }}
           path: dist
 
       # Chrome is pre-installed on GitHub Actions windows-latest runners
-      - name: Start Chrome headless
-        if: matrix.chrome
+      - name: Start Chrome headless (Windows)
+        if: matrix.chrome && matrix.os == 'windows-latest'
         run: |
           Start-Process -FilePath "C:\Program Files\Google\Chrome\Application\chrome.exe" `
             -ArgumentList "--headless", "--disable-gpu", "--remote-debugging-port=9222", "--user-data-dir=$env:TEMP\chrome-debug"
-          Start-Sleep -Seconds 3
-          Invoke-WebRequest -Uri "http://localhost:9222/json/version" -UseBasicParsing
+          # Wait up to 15s for CDP endpoint to come up (avoids fixed-sleep race)
+          $ok = $false
+          for ($i = 0; $i -lt 15; $i++) {
+            try {
+              Invoke-WebRequest -Uri "http://localhost:9222/json/version" -UseBasicParsing | Out-Null
+              $ok = $true
+              break
+            } catch {
+              Start-Sleep -Seconds 1
+            }
+          }
+          if (-not $ok) { throw "Chrome CDP endpoint did not come up within 15s" }
         shell: pwsh
 
+      # Chrome is pre-installed on GitHub Actions macos-latest runners
+      - name: Start Chrome headless (macOS)
+        if: matrix.chrome && matrix.os == 'macos-latest'
+        run: |
+          "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+            --headless --disable-gpu --remote-debugging-port=9222 \
+            --user-data-dir="$RUNNER_TEMP/chrome-debug" &
+          # Wait up to 15s for CDP endpoint to come up (avoids fixed-sleep race)
+          for i in $(seq 1 15); do
+            if curl -sSf http://localhost:9222/json/version >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Chrome CDP endpoint did not come up within 15s" >&2
+          exit 1
+        shell: bash
+
+      # actions/upload-artifact zips contents and the zip format does not
+      # reliably preserve Unix mode bits on download — restore +x.
+      - name: Make binary executable (macOS)
+        if: matrix.os == 'macos-latest'
+        run: chmod +x dist/${{ matrix.binary }}
+        shell: bash
+
       - name: Smoke Test
-        run: python unittests/webgui/smoke_test_exe.py dist/sapwebgui_mcp_windows.exe
+        run: python unittests/webgui/smoke_test_exe.py dist/${{ matrix.binary }}
 
   release:
-    needs: [build, smoke_test]
-    if: github.event_name == 'release'
+    needs: [build, build_with_remote_logging, smoke_test]
+    # always() lets this job run even when build_with_remote_logging was skipped
+    # (fork PRs have no secret access and skip that job).  The shell script and
+    # fail_on_unmatched_files: false already handle missing artifacts gracefully.
+    if: always() && github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Download Executable
+      - name: Download Windows (public) Executable
         uses: actions/download-artifact@v8
         with:
           name: sapwebgui_mcp_windows
-          path: dist
+          path: dist/windows
+        continue-on-error: true
 
-      - name: Rename Executable with version
-        run: mv ./dist/sapwebgui_mcp_windows.exe ./dist/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
+      - name: Download Windows (with_remote_logging) Executable
+        uses: actions/download-artifact@v8
+        with:
+          name: sapwebgui_mcp_windows_with_remote_logging
+          path: dist/windows_with_remote_logging
+        continue-on-error: true
 
-      - name: Upload Executable to Release
+      - name: Download macOS Executable
+        uses: actions/download-artifact@v8
+        with:
+          name: sapwebgui_mcp_macos_arm64
+          path: dist/macos
+        continue-on-error: true
+
+      # Rename each binary independently so a missing artifact from one
+      # platform does not prevent the other from being attached to the release.
+      - name: Rename Executables with version
+        run: |
+          set -eu
+          mkdir -p dist/release
+          if [ -f ./dist/windows/sapwebgui_mcp_windows.exe ]; then
+            mv ./dist/windows/sapwebgui_mcp_windows.exe ./dist/release/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
+          else
+            echo "::warning::Windows (public) artifact missing; skipping"
+          fi
+          if [ -f ./dist/windows_with_remote_logging/sapwebgui_mcp_windows_with_remote_logging.exe ]; then
+            mv ./dist/windows_with_remote_logging/sapwebgui_mcp_windows_with_remote_logging.exe ./dist/release/sapwebgui_mcp_windows_with_remote_logging_${{ github.ref_name }}.exe
+          else
+            echo "::warning::Windows (with_remote_logging) artifact missing; skipping"
+          fi
+          if [ -f ./dist/macos/sapwebgui_mcp_macos_arm64 ]; then
+            mv ./dist/macos/sapwebgui_mcp_macos_arm64 ./dist/release/sapwebgui_mcp_macos_arm64_${{ github.ref_name }}
+          else
+            echo "::warning::macOS arm64 artifact missing; skipping"
+          fi
+          ls -la dist/release/
+
+      - name: Upload Executables to Release
         uses: softprops/action-gh-release@v3
         with:
-          files: ./dist/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
+          files: |
+            ./dist/release/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
+            ./dist/release/sapwebgui_mcp_windows_with_remote_logging_${{ github.ref_name }}.exe
+            ./dist/release/sapwebgui_mcp_macos_arm64_${{ github.ref_name }}
+          fail_on_unmatched_files: false

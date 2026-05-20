@@ -93,7 +93,7 @@ async def test_slg1_02_capture_log_list(sap_mcp_client: ClientSession) -> None:
         )
 
     # Execute (F8)
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F8 failed: {keyboard.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
@@ -133,7 +133,7 @@ async def test_slg1_03_capture_expanded_log(sap_mcp_client: ClientSession) -> No
         )
 
     # Execute (F8)
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F8 failed: {keyboard.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
@@ -193,7 +193,7 @@ async def test_slg1_04_capture_no_results(sap_mcp_client: ClientSession) -> None
         )
 
     # Execute (F8)
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F8 failed: {keyboard.error}"
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 

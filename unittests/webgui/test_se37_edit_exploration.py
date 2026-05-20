@@ -56,7 +56,7 @@ async def _login_and_navigate_to_fm(client: ClientSession, fm_name: str = "Z_TES
 
     await client.call_tool("browser_wait", {"timeout": 1000})
     await client.call_tool("sap_fill_form", {"fields": {"Funktionsbaustein": fm_name}})
-    await client.call_tool("sap_keyboard", {"key": "F7"})
+    await client.call_tool("sap_press_key", {"key": "F7"})
     await client.call_tool("browser_wait", {"timeout": 2000})
 
 
@@ -97,7 +97,7 @@ async def test_se37_edit_02_change_mode_via_f6(sap_mcp_client: ClientSession) ->
     await sap_mcp_client.call_tool("sap_fill_form", {"fields": {"Funktionsbaustein": "Z_TEST_MCP_EDIT"}})
 
     # F6 for direct change mode (same as SE38)
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F6"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F6"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Click Quelltext tab
@@ -125,13 +125,13 @@ async def test_se37_edit_03_check_and_activate(sap_mcp_client: ClientSession) ->
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
     await sap_mcp_client.call_tool("sap_fill_form", {"fields": {"Funktionsbaustein": "Z_TEST_MCP_EDIT"}})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F6"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F6"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
     await sap_mcp_client.call_tool("browser_click", {"selector": "tab", "text": "Quelltext"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Syntax check
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "Control+F2"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "Control+F2"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "se37_edit_after_check")
@@ -140,7 +140,7 @@ async def test_se37_edit_03_check_and_activate(sap_mcp_client: ClientSession) ->
     print(f"Snapshot preview:\n{snapshot.encode('ascii', 'replace').decode()[:2000]}")
 
     # Activate
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "Control+F3"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "Control+F3"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "se37_edit_after_activate")

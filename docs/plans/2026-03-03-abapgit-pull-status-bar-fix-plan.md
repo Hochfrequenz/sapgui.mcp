@@ -156,7 +156,7 @@ New:
             "Pull changes from a remote git repository using abapGit API. "
             "Uses the Z_ABAPGIT_PULL report/transaction for reliable execution. "
             "WARNING: This overwrites local ABAP objects with remote versions. "
-            "If the tool reports 'status unknown', call sap_keyboard('F8') "
+            "If the tool reports 'status unknown', call sap_press_key('F8') "
             "followed by sap_read_status_bar() as a workaround."
         ),
 ```

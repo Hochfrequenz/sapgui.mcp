@@ -77,7 +77,7 @@ async def test_sm37_capture_job_list(sap_mcp_client: ClientSession) -> None:
         {"fields": {"Jobname": "*", "Benutzername": "*"}},
     )
 
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "sm37_job_list", overwrite=True)
@@ -100,7 +100,7 @@ async def test_sm37_capture_job_log(sap_mcp_client: ClientSession) -> None:
         {"fields": {"Jobname": "*", "Benutzername": "*"}},
     )
 
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Select first row
@@ -137,7 +137,7 @@ async def test_sm37_capture_no_jobs_found(sap_mcp_client: ClientSession) -> None
         {"fields": {"Jobname": "ZZZNOTEXIST_JOB_99", "Benutzername": "*"}},
     )
 
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "sm37_no_jobs_found", overwrite=True)

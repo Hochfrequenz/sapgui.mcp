@@ -7,7 +7,7 @@ This module contains tools for:
 - sap_transaction: Enter and execute SAP transaction codes
 - sap_keepalive_start/stop: Keep SAP session alive
 - sap_session_status: Check SAP session status
-- sap_keyboard: Send keyboard shortcuts (F-keys, Ctrl+S, etc.)
+- sap_press_key: Send keyboard shortcuts (F-keys, Ctrl+S, etc.)
 - sap_get_screen_text: Get all readable text from current screen
 - sap_read_table: Read data from ALV grids and tables (with cell selectors)
 - sap_click_table_cell: Click a cell in an ALV grid table
@@ -534,7 +534,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             '- session="s2": Targets specific session (for parallel agents)'
         )
     )
-    async def sap_keyboard(  # pylint: disable=too-many-return-statements
+    async def sap_press_key(  # pylint: disable=too-many-return-statements
         key: str,
         session: str | None = None,
         agent_id: str | None = None,
@@ -565,7 +565,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             If it returned to 'wnd[0]', a dialog was closed (e.g., after pressing Escape or Enter).
         """
         try:
-            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_keyboard")
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_press_key")
         except ValueError as e:
             return KeyboardResult.failure(str(e), key=key)
 
@@ -1023,7 +1023,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Discover clickable buttons on the current SAP screen. "
             "Returns buttons with label, selector/ID, shortcut (e.g. F3), and accesskey. "
-            "Prefer keyboard shortcuts (sap_keyboard) when available — they're faster and more reliable. "
+            "Prefer keyboard shortcuts (sap_press_key) when available — they're faster and more reliable. "
             "To press a discovered button: use browser_click(selector) on WebGUI, "
             "or sap_com_evaluate(element_id, action='call', method='Press') on Desktop. "
             "For input fields use sap_discover_fields instead.\n\n"
@@ -1079,7 +1079,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         titles like "Person anlegen (F5)" or "Speichern (Strg+S)".
 
         Use this tool to discover shortcuts BEFORE attempting button clicks.
-        Then use sap_keyboard to execute the shortcut.
+        Then use sap_press_key to execute the shortcut.
 
         Args:
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
@@ -1438,7 +1438,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Click a button on the current SAP screen by its label text.\n\n"
             "Use sap_discover_buttons first to see available buttons. "
-            "Prefer sap_keyboard with keyboard shortcuts (F-keys, Ctrl+*) when available — "
+            "Prefer sap_press_key with keyboard shortcuts (F-keys, Ctrl+*) when available — "
             "they are faster and more reliable. Use this tool when no shortcut exists.\n\n"
             "Args:\n"
             "- label: Button label text (e.g., 'Execute', 'Save', 'Ausführen')\n\n"

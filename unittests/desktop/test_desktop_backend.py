@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from types import SimpleNamespace
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -24,35 +24,17 @@ class TestDesktopBackendType:
 class TestDesktopBackendLogin:
     @pytest.mark.anyio
     async def test_login_calls_login_helper(self):
-        from pydantic import SecretStr
-        from sap_mcp_config import Config, SAPSystem
-
         from sapwebguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
-        mock_sap_config = Config(
-            default_system="TEST_CONN",
-            systems={
-                "TEST_CONN": SAPSystem(
-                    host="https://sap.example.com",
-                    client="100",
-                    user="user",
-                    password=SecretStr("pass"),
-                    language="EN",
-                ),
-            },
-        )
 
         async def mock_run(fn):
             return fn()
 
-        with (
-            patch("sapwebguimcp.backend.desktop._sapsucker_login", return_value=session),
-            patch("sapwebguimcp.backend.desktop.get_sap_config", return_value=mock_sap_config),
-        ):
+        with patch("sapwebguimcp.backend.desktop._sapsucker_login", return_value=session):
             backend = DesktopBackend(com_thread=MagicMock())
             backend.com.run = mock_run
-            result = await backend.login("ignored", "user", "pass", "100", "EN")
+            result = await backend.login("ignored", "user", "pass", "100", "EN", connection_name="TEST_CONN")
             assert result.success is True
             assert result.user == "TESTUSER"
 

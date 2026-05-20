@@ -90,7 +90,7 @@ sap_fill(field_near_label="Marktlokation", value="DE000...")
 ### Step 3: Execute Search
 
 ```
-sap_keyboard("F8")  # Execute
+sap_press_key("F8")  # Execute
 sap_get_screen_text()  # Check results or error
 ```
 
@@ -115,7 +115,7 @@ sap_read_table()
 ```
 # Double-click or select a row and press Enter to see details
 sap_click(row=N)  # Select specific row
-sap_keyboard("Enter")
+sap_press_key("Enter")
 
 sap_get_screen_text()  # Read detail screen
 
@@ -220,7 +220,7 @@ Die Selektionsmaske ist geladen.
 [fills process type: ZMCPD_GPKE*]
 [fills status: 04 (Fehlerhaft)]
 
-[calls sap_keyboard("F8")]
+[calls sap_press_key("F8")]
 
 [calls sap_read_table()]
 

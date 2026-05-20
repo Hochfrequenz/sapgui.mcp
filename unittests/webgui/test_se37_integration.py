@@ -113,7 +113,7 @@ async def test_se37_capture_rfc_read_table(sap_mcp_client: ClientSession) -> Non
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Press F7 to display
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F7 failed: {keyboard.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -162,7 +162,7 @@ async def test_se37_capture_rfc_read_table_import(sap_mcp_client: ClientSession)
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Press F7 to display
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F7 failed: {keyboard.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -212,7 +212,7 @@ async def test_se37_capture_rfc_read_table_export(sap_mcp_client: ClientSession)
         )
     assert fill.success, f"Fill form failed: {fill.error}"
 
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F7 failed: {keyboard.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -260,7 +260,7 @@ async def test_se37_capture_rfc_read_table_tables(sap_mcp_client: ClientSession)
         )
     assert fill.success, f"Fill form failed: {fill.error}"
 
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F7 failed: {keyboard.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -308,7 +308,7 @@ async def test_se37_capture_rfc_read_table_exceptions(sap_mcp_client: ClientSess
         )
     assert fill.success, f"Fill form failed: {fill.error}"
 
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F7 failed: {keyboard.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -358,7 +358,7 @@ async def test_se37_capture_bapi_user_get_detail(sap_mcp_client: ClientSession) 
         )
     assert fill.success, f"Fill form failed: {fill.error}"
 
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F7 failed: {keyboard.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -400,7 +400,7 @@ async def test_se37_function_not_found(sap_mcp_client: ClientSession) -> None:
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Press F7 to try to display
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 

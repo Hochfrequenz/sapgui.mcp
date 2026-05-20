@@ -113,10 +113,10 @@ active_window: str | None  # e.g. "wnd[1]" — which window was operated on
 This is the agent's signal that a dialog is open. The agent monitors
 `active_window` across calls:
 
-1. `sap_keyboard(key="F5")` -> `active_window="wnd[1]"` (dialog opened)
+1. `sap_press_key(key="F5")` -> `active_window="wnd[1]"` (dialog opened)
 2. `sap_discover_fields()` -> fields from `wnd[1]`
 3. `sap_fill_form(...)` -> fills fields in `wnd[1]`
-4. `sap_keyboard(key="Enter")` -> `active_window="wnd[0]"` (dialog closed)
+4. `sap_press_key(key="Enter")` -> `active_window="wnd[0]"` (dialog closed)
 
 **Post-action re-detection**: For tools that change screen state (`press_key`,
 `fill_form`, `click_button`), `active_window` in the result reflects the state
@@ -133,7 +133,7 @@ Delete all 9 "popup blocking" pre-checks in `sap_tools.py`:
   with a dialog open is genuinely wrong — SAP ignores OkCode input to `wnd[0]`
   while a modal is active). Return the popup info in the failure so the agent
   knows what to dismiss. Remove post-navigation popup failures.
-- `sap_keyboard`: Remove pre-check and post-check blocking. Keystroke goes to
+- `sap_press_key`: Remove pre-check and post-check blocking. Keystroke goes to
   active window. Post-keystroke popup appearance is reported via `active_window`.
 - `sap_fill_form`: Remove pre-check. Field search happens in active window.
 - `sap_set_field` (text, checkbox, radio): Remove pre-check. Same reasoning.
@@ -154,7 +154,7 @@ abapgit error detection). It is no longer called as a gate in the tool layer.
 
 ### Drop `PopupInfo` from action tool results
 
-Action tools (`sap_keyboard`, `sap_fill_form`, `sap_set_field`) no longer attach
+Action tools (`sap_press_key`, `sap_fill_form`, `sap_set_field`) no longer attach
 `popup: PopupInfo(...)` to their results. The `active_window` field is sufficient.
 
 `sap_get_screen_info` keeps popup info — it is the "what's going on" tool where

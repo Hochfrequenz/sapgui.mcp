@@ -111,7 +111,7 @@ sap_fill(field_near_label="Mahnbereich", value="0001")
 ### Step 7: Save
 
 ```
-sap_keyboard("Control+S")
+sap_press_key("Control+S")
 sap_read_status_bar()  # Should show "Vertragskonto XXXXXXXXXXXX angelegt"
                        # or "Contract Account XXXXXXXXXXXX created"
 ```
@@ -205,7 +205,7 @@ User: Lastschrift mit IBAN DE89370400440532013000
 Claude: [navigates to payment tab]
 [fills: Zahlweg=L, IBAN=DE89370400440532013000]
 
-[calls sap_keyboard("Control+S")]
+[calls sap_press_key("Control+S")]
 [calls sap_read_status_bar()]
 
 Das Vertragskonto wurde erfolgreich angelegt.

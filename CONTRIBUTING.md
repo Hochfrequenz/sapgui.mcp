@@ -215,7 +215,7 @@ Both are sent to the AI client. Without the Args section, the LLM doesn't know w
 @mcp.tool(
     description=(
         "Discover clickable buttons on the current SAP screen. "
-        "Prefer keyboard shortcuts (sap_keyboard) when available — "
+        "Prefer keyboard shortcuts (sap_press_key) when available — "
         "they're faster and work on all backends. "
         "For input fields use sap_discover_fields instead."
     )

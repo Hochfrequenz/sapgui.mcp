@@ -129,7 +129,7 @@ class SessionStatus(ToolResult):
 
 
 class KeyboardResult(ToolResult):
-    """Result from sap_keyboard tool."""
+    """Result from sap_press_key tool."""
 
     key: str = Field(description="Key that was sent")
     page_title: str | None = Field(default=None, description="Current page title after")
@@ -404,7 +404,7 @@ Each tool changes from `-> str` to its specific result model:
 | `sap_login`             | `LoginResult`           |
 | `sap_transaction`       | `TransactionResult`     |
 | `sap_session_status`    | `SessionStatus`         |
-| `sap_keyboard`          | `KeyboardResult`        |
+| `sap_press_key`          | `KeyboardResult`        |
 | `sap_keepalive_start`   | `KeepaliveResult`       |
 | `sap_keepalive_stop`    | `KeepaliveResult`       |
 | `sap_read_status_bar`   | `StatusBarInfo`         |

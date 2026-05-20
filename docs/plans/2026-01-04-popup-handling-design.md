@@ -55,7 +55,7 @@ class ToolResult(BaseModel):
 Tools that check for popup before operating:
 
 - `sap_transaction`
-- `sap_keyboard`
+- `sap_press_key`
 - `sap_fill_form`
 - `sap_set_field`
 - `browser_click`
@@ -90,7 +90,7 @@ BP discard changes popup:
 
 1. `sap_login`
 2. `sap_transaction("BP")`
-3. `sap_keyboard("F5")` - create person
+3. `sap_press_key("F5")` - create person
 4. `sap_fill_form({"Nachname": "Test"})`
 5. `sap_transaction("SE16")` - triggers popup
 6. Verify `blocking_popup` in response

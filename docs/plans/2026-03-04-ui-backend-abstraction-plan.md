@@ -664,7 +664,7 @@ Add the `SapUiPrimitives` methods to `WebGuiBackend`. Extract logic from:
 - `fill_grid_cell` ← `se16_tools.py` filter filling logic + `fill_se16_filter.js`. For filling grid/table cells by row+column (needed by SE16 filters).
 - `click_button` ← `sap_tools.py` button click logic + `discover_buttons.js`. Returns `None`.
 - `click_tab` ← `se24_tools.py` `_click_tab` helper pattern. Returns `None`.
-- `press_key` ← `sap_tool_impl.py` `sap_keyboard_impl` (lines ~80-128)
+- `press_key` ← `sap_tool_impl.py` `sap_press_key_impl` (lines ~80-128)
 - `type_text` ← `page.keyboard.type()` wrapper
 - `select_dropdown` ← `sap_tools.py` dropdown selection logic
 
@@ -982,7 +982,7 @@ grep -r "from sapwebguimcp.tools.sap_tool_impl import" src/sapwebguimcp/
 Typical imports to replace:
 
 - `sap_transaction_impl` → `backend.enter_transaction()`
-- `sap_keyboard_impl` → `backend.press_key()`
+- `sap_press_key_impl` → `backend.press_key()`
 - `sap_fill_form_impl` → `backend.fill_form()`
 - `sap_read_status_bar_impl` → `backend.get_status_bar()`
 - `sap_get_screen_info_impl` → `backend.get_screen_info()`
@@ -1053,7 +1053,7 @@ async def sap_transaction(tcode, new_window, session, agent_id):
 
 - `sap_login` → `backend.login()`
 - `sap_transaction` → `backend.enter_transaction()`
-- `sap_keyboard` → `backend.press_key()`
+- `sap_press_key` → `backend.press_key()`
 - `sap_fill_form` → `backend.fill_form()`
 - `sap_set_field` → `backend.fill_field()` (raises `ValueError` on failure)
 - `sap_get_screen_text` → `backend.get_screen_text(include_dropdown_options=...)` (returns `ScreenText`)

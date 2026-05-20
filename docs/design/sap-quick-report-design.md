@@ -56,7 +56,7 @@ Der häufigste SAP-Workflow — Transaktion öffnen, Selektionsbild füllen, F8 
     description=(
         "Execute a transaction, fill the selection screen (fields, checkboxes, "
         "radio buttons), press Execute (F8), and return the result — all in one call.\n\n"
-        "Replaces the pattern: sap_transaction → ensure_screen_state → sap_keyboard(F8) "
+        "Replaces the pattern: sap_transaction → ensure_screen_state → sap_press_key(F8) "
         "→ sap_read_table.\n\n"
         "Works with any SAP report/list transaction that has a selection screen "
         "(SM37, VA05, ME2M, MB51, FBL1N, Z-transactions, etc.).\n\n"
@@ -292,7 +292,7 @@ Erstes Mal — unbekannte Transaktion:
      screen_text: {title: "Variantenauswahl", ...},
      status_bar_message: ""
    }
-5. Agent sieht: Popup. Nutzt sap_keyboard("Enter") um es zu schließen.
+5. Agent sieht: Popup. Nutzt sap_press_key("Enter") um es zu schließen.
 6. Agent liest Ergebnis mit sap_read_table().
 7. Agent loggt Learning in tcode-learnings.md
 

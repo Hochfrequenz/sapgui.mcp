@@ -9,6 +9,7 @@ This package contains tool modules that are registered with the FastMCP server:
 """
 
 from sapwebguimcp.tools.abapgit_tools import register_abapgit_tools
+from sapwebguimcp.tools.breakpoint_tools import register_breakpoint_tools
 from sapwebguimcp.tools.browser_tools import register_browser_tools
 from sapwebguimcp.tools.catalog_tools import register_catalog_tools
 from sapwebguimcp.tools.class_tools import register_class_tools
@@ -26,6 +27,7 @@ from sapwebguimcp.tools.intent_tools import (
 )
 from sapwebguimcp.tools.quick_report_tools import register_quick_report_tools
 from sapwebguimcp.tools.sap_tools import register_sap_tools
+from sapwebguimcp.tools.script_tools import register_script_tools
 from sapwebguimcp.tools.se09_tools import register_se09_tools
 from sapwebguimcp.tools.se11_tools import register_se11_tools
 from sapwebguimcp.tools.se16_tools import register_se16_tools
@@ -41,9 +43,11 @@ from sapwebguimcp.tools.sm37_tools import register_sm37_tools
 from sapwebguimcp.tools.spro_tools import register_spro_tools
 from sapwebguimcp.tools.st22_tools import register_st22_tools
 from sapwebguimcp.tools.table_tools import register_table_tools
+from sapwebguimcp.tools.tree_tools import register_tree_tools
 
 __all__ = [
     "register_abapgit_tools",
+    "register_breakpoint_tools",
     "register_browser_tools",
     "register_catalog_tools",
     "register_com_tools",
@@ -53,6 +57,7 @@ __all__ = [
     "register_intent_tools",
     "register_quick_report_tools",
     "register_sap_tools",
+    "register_script_tools",
     "register_se11_tools",
     "register_se16_tools",
     "register_se24_edit_tools",
@@ -68,6 +73,7 @@ __all__ = [
     "register_sm37_tools",
     "register_st22_tools",
     "register_table_tools",
+    "register_tree_tools",
     "get_session_feedback",
     "clear_session_feedback",
     "get_session_intents",

@@ -228,7 +228,7 @@ async def sap_fill_form(
 | Category       | Tools                                                                                                                                                                                              |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SAP Form       | `sap_fill_form`, `sap_set_field`, `sap_get_form_fields`                                                                                                                                            |
-| SAP Navigation | `sap_transaction`, `sap_keyboard`                                                                                                                                                                  |
+| SAP Navigation | `sap_transaction`, `sap_press_key`                                                                                                                                                                  |
 | SAP Read       | `sap_get_screen_text`, `sap_get_screen_info`, `sap_read_status_bar`, `sap_read_table`                                                                                                              |
 | SAP Discovery  | `sap_discover_fields`, `sap_discover_buttons`, `sap_get_shortcuts`                                                                                                                                 |
 | SAP Table      | `sap_click_table_cell`                                                                                                                                                                             |

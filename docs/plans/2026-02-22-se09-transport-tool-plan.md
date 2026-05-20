@@ -235,7 +235,7 @@ async def test_se09_capture_transport_list(sap_mcp_client: ClientSession) -> Non
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Press F8 (Execute/Display) to show transport list
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     await capture_yaml_snapshot(sap_mcp_client, "se09_transport_list", overwrite=True)
@@ -261,7 +261,7 @@ async def test_se09_capture_expanded_request(sap_mcp_client: ClientSession) -> N
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Press F8 to show transport list
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Try to expand the first tree node (request) by clicking its expand icon
@@ -270,7 +270,7 @@ async def test_se09_capture_expanded_request(sap_mcp_client: ClientSession) -> N
     first_treeitem = "treeitem >> nth=0"
     await sap_mcp_client.call_tool("browser_click", {"selector": first_treeitem})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "ArrowRight"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "ArrowRight"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     await capture_yaml_snapshot(sap_mcp_client, "se09_expanded_request", overwrite=True)
@@ -297,21 +297,21 @@ async def test_se09_capture_expanded_task_with_objects(sap_mcp_client: ClientSes
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Press F8 to show transport list
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Expand first request
     first_treeitem = "treeitem >> nth=0"
     await sap_mcp_client.call_tool("browser_click", {"selector": first_treeitem})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "ArrowRight"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "ArrowRight"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Expand first task (should be the second treeitem now, after the request)
     second_treeitem = "treeitem >> nth=1"
     await sap_mcp_client.call_tool("browser_click", {"selector": second_treeitem})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "ArrowRight"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "ArrowRight"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     await capture_yaml_snapshot(sap_mcp_client, "se09_expanded_task_objects", overwrite=True)
@@ -351,7 +351,7 @@ async def test_se09_capture_no_transports(sap_mcp_client: ClientSession) -> None
         )
 
     # Press F8
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     await capture_yaml_snapshot(sap_mcp_client, "se09_no_transports", overwrite=True)

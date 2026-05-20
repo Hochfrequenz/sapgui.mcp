@@ -44,7 +44,7 @@ linting = [
     "pylint==4.0.5",
 ]
 type_check = [
-    "mypy[pydantic]==1.20.0",
+    "mypy[pydantic]==2.0.0",
     "types-PyYAML==6.0.12.20260408",
 ]
 spell_check = [
@@ -66,7 +66,7 @@ dev = [
     "uv",
 ]
 build_executable = [
-    "pyinstaller==6.19.0",
+    "pyinstaller==6.20.0",
 ]
 
 [project.urls]

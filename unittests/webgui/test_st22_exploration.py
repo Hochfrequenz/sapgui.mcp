@@ -95,7 +95,7 @@ async def test_st22_03_execute_today(sap_mcp_client: ClientSession) -> None:
     await _login_and_navigate_to_st22(sap_mcp_client)
 
     # ST22 might show today's dumps already, or we might need F8
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "st22_today_executed")
@@ -149,7 +149,7 @@ async def test_st22_05_dump_detail_scrolled(sap_mcp_client: ClientSession) -> No
 
     # Scroll down multiple times
     for _i in range(5):
-        await sap_mcp_client.call_tool("sap_keyboard", {"key": "PageDown"})
+        await sap_mcp_client.call_tool("sap_press_key", {"key": "PageDown"})
         await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "st22_dump_detail_scrolled")
@@ -189,7 +189,7 @@ async def test_st22_07_clear_user_and_execute(sap_mcp_client: ClientSession) -> 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     # Press F8 to execute
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "st22_all_users_today")
@@ -206,7 +206,7 @@ async def test_st22_08_clear_user_via_keyboard(sap_mcp_client: ClientSession) ->
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     # Press F8 to execute
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "st22_cleared_user_f8")
@@ -302,7 +302,7 @@ async def test_st22_11_clear_user_fill_star(sap_mcp_client: ClientSession) -> No
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     # Press F8 to execute
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "st22_wildcard_user")
@@ -338,11 +338,11 @@ async def test_st22_12_reset_then_execute(sap_mcp_client: ClientSession) -> None
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     # Enter to submit the form changes
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "Enter"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "Enter"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # F8 to execute
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "st22_reset_execute")
@@ -401,7 +401,7 @@ async def test_st22_13_clear_user_triple_click_delete(sap_mcp_client: ClientSess
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     # Press F8 to execute
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "st22_cleared_f8")

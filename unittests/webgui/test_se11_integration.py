@@ -115,7 +115,7 @@ async def test_se11_capture_table_snapshot(sap_mcp_client: ClientSession) -> Non
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Press F7 (Display)
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F7 failed: {keyboard.error}"
 
     # Wait a moment for the screen to load
@@ -135,7 +135,7 @@ async def test_se11_capture_table_snapshot(sap_mcp_client: ClientSession) -> Non
     print("=" * 80)
 
     # Go back with F3
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F3"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F3"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F3 failed: {keyboard.error}"
 
 
@@ -166,7 +166,7 @@ async def test_se11_capture_structure_snapshot(sap_mcp_client: ClientSession) ->
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Press F7 (Display)
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F7 failed: {keyboard.error}"
 
     # Wait a moment for the screen to load
@@ -186,7 +186,7 @@ async def test_se11_capture_structure_snapshot(sap_mcp_client: ClientSession) ->
     print("=" * 80)
 
     # Go back with F3
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F3"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F3"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F3 failed: {keyboard.error}"
 
 
@@ -213,7 +213,7 @@ async def test_se11_table_not_found(sap_mcp_client: ClientSession) -> None:
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Press F7 (Display)
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     # This might return an error - that's expected
 
     # Wait a moment
@@ -417,11 +417,11 @@ async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None
     # "Datenbanktabelle" is a radio button, click it then Tab to the text field
     await call_tool_typed(sap_mcp_client, "browser_click", {"selector": "text=Datenbanktabelle"}, ClickResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 300})
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Tab"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Tab"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_keyboard", {"text": "T000"})
 
     # Press F7 (Anzeigen/Display) to view table definition
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F7"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F7"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Capture table structure HTML

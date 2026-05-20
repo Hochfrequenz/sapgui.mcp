@@ -69,7 +69,7 @@ For any transaction -- not just the ones with specialized tools:
 | Tool | What it does |
 |------|-------------|
 | `sap_transaction("TCODE")` | Open a transaction |
-| `sap_keyboard("F8")` | Press a key or shortcut |
+| `sap_press_key("F8")` | Press a key or shortcut |
 | `sap_fill_form({...})` | Fill multiple form fields at once |
 | `sap_get_screen_text()` | Read current screen content |
 | `sap_read_status_bar()` | Read the status bar message |
@@ -453,7 +453,7 @@ description: Create a business partner (person or organization) by composing gen
 
 ## Overview
 
-This recipe demonstrates how to automate a complete SAP workflow by composing generic tools. There is no dedicated "create BP" tool -- instead, you combine `sap_transaction`, `sap_keyboard`, `sap_fill_form`, and `sap_read_status_bar` to create a business partner from scratch.
+This recipe demonstrates how to automate a complete SAP workflow by composing generic tools. There is no dedicated "create BP" tool -- instead, you combine `sap_transaction`, `sap_press_key`, `sap_fill_form`, and `sap_read_status_bar` to create a business partner from scratch.
 
 This pattern works for **any SAP transaction**, not just BP.
 
@@ -480,7 +480,7 @@ For a **person** (natural person):
 
 ```
 
-sap_keyboard("F5")
+sap_press_key("F5")
 
 ```
 
@@ -488,7 +488,7 @@ For an **organization** (company):
 
 ```
 
-sap_keyboard("Control+F5")
+sap_press_key("Control+F5")
 
 ```
 
@@ -536,7 +536,7 @@ sap_fill_form({
 
 ```
 
-sap_keyboard("Control+S")
+sap_press_key("Control+S")
 
 ```
 
@@ -575,7 +575,7 @@ sap_fill_form({"Missing Field Label": "value"})
 4. Try saving again:
 ```
 
-sap_keyboard("Control+S")
+sap_press_key("Control+S")
 sap_read_status_bar()
 
 ```
@@ -635,7 +635,7 @@ Do NOT try to navigate back -- just restart the transaction.
 
 ## Key Takeaway
 
-This workflow uses only generic tools: `sap_transaction`, `sap_keyboard`, `sap_fill_form`, `sap_read_status_bar`, `sap_get_screen_text`, and `sap_se16_query`. The same pattern applies to **any** SAP transaction -- open it, fill fields, save, check the result.
+This workflow uses only generic tools: `sap_transaction`, `sap_press_key`, `sap_fill_form`, `sap_read_status_bar`, `sap_get_screen_text`, and `sap_se16_query`. The same pattern applies to **any** SAP transaction -- open it, fill fields, save, check the result.
 ```
 
 **Step 2: Run tests**
@@ -650,7 +650,7 @@ git add src/sapwebguimcp/prompts/create_business_partner.md
 git commit -m "feat(prompts): add create_business_partner prompt
 
 Demonstrates composing generic tools (sap_transaction, sap_fill_form,
-sap_keyboard, sap_read_status_bar) into a complete workflow without
+sap_press_key, sap_read_status_bar) into a complete workflow without
 needing a dedicated BP tool."
 ```
 
@@ -743,7 +743,7 @@ sap_transaction("SE24") # For classes
 
 Use the generic tools to interact with your code:
 - `sap_fill_form()` to provide test inputs
-- `sap_keyboard("F8")` to execute
+- `sap_press_key("F8")` to execute
 - `sap_read_status_bar()` to check results
 - `sap_get_screen_text()` to read output
 
