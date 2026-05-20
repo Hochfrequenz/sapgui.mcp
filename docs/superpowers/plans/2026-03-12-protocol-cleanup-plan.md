@@ -500,7 +500,7 @@ This is the largest and most complex cleanup. `sap_tools.py` has 3 `backend._pag
 4. **`_enable_okcode_field`** → move into backend as internal method
 5. **`_capture_sap_identity`** → move into backend (called after login)
 6. **`sap_get_shortcuts`** → use `evaluate_javascript` (already in protocol)
-7. **`sap_keyboard` wait** → use `wait()` (added in Task 1)
+7. **`sap_press_key` wait** → use `wait()` (added in Task 1)
 8. **`sap_transaction` wait** → use `wait()` (added in Task 1)
 
 ### Task 8: Move login logic into WebGuiBackend
@@ -672,7 +672,7 @@ Move the `new_window=True` logic from `sap_transaction` into `WebGuiBackend.open
 
 After login, keepalive, and new_window are moved:
 
-- `sap_keyboard` line 1045: `page.wait_for_timeout(300)` → `await backend.wait(300)`
+- `sap_press_key` line 1045: `page.wait_for_timeout(300)` → `await backend.wait(300)`
 - `sap_transaction` line 796+819: replace `backend._page` with `backend.wait(200)`
 - `sap_get_shortcuts` line 1538: `page.evaluate(...)` → `backend.evaluate_javascript(...)`
 

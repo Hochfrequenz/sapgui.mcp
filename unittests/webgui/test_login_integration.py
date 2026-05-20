@@ -132,7 +132,7 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
             """},
             EvaluateResult,
         )
-        await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Escape"}, KeyboardResult)
+        await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Escape"}, KeyboardResult)
 
 
 @pytest.mark.anyio

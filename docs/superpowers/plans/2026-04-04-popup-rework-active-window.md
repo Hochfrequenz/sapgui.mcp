@@ -456,7 +456,7 @@ In `unittests/desktop/test_popup_rework_exploration.py`, add:
 @skip_no_sap
 @pytest.mark.anyio
 async def test_06_keyboard_does_not_block_on_popup(backend):
-    """After fix: sap_keyboard works when popup is open (sends to active window)."""
+    """After fix: sap_press_key works when popup is open (sends to active window)."""
     await backend.enter_transaction("SE21")
     await backend.wait_for_ready()
 
@@ -519,7 +519,7 @@ Remove for desktop. The popup is now just normal state. For WebGUI, keep.
 
 Same — remove for desktop, keep for WebGUI.
 
-**Location 4: `sap_keyboard` pre-check (line ~540-548)**
+**Location 4: `sap_press_key` pre-check (line ~540-548)**
 
 Remove for desktop. The keystroke will go to the active window.
 
@@ -534,7 +534,7 @@ Remove for desktop. The keystroke will go to the active window.
                     )
 ```
 
-**Location 5: `sap_keyboard` post-check (line ~556-564)**
+**Location 5: `sap_press_key` post-check (line ~556-564)**
 
 Remove for desktop. A popup appearing after a keystroke is just state change, not an error.
 
@@ -769,23 +769,23 @@ SAP often opens modal dialogs (popups) for confirmations, data entry forms,
 transport prompts, and error messages. These appear at `wnd[1]` or `wnd[2]`.
 
 **All tools automatically operate on the active window.** When a popup is open,
-`sap_discover_fields`, `sap_get_form_fields`, `sap_fill_form`, `sap_keyboard`,
+`sap_discover_fields`, `sap_get_form_fields`, `sap_fill_form`, `sap_press_key`,
 and other tools target the popup — not the main window behind it.
 
 **How to detect a popup opened:**
 - Check the `active_window` field in tool results. `"wnd[0]"` means the main
   window; `"wnd[1]"` or higher means a modal dialog is open.
-- After actions that change screen state (`sap_keyboard`, `sap_fill_form`),
+- After actions that change screen state (`sap_press_key`, `sap_fill_form`),
   always note the `active_window` value.
 
 **Typical workflow:**
-1. `sap_keyboard(key="F5")` → result has `active_window="wnd[1]"` (dialog opened)
+1. `sap_press_key(key="F5")` → result has `active_window="wnd[1]"` (dialog opened)
 2. `sap_discover_fields()` → shows fields in the dialog
 3. `sap_fill_form({...})` → fills dialog fields
-4. `sap_keyboard(key="Enter")` → result has `active_window="wnd[0]"` (dialog closed)
+4. `sap_press_key(key="Enter")` → result has `active_window="wnd[0]"` (dialog closed)
 
 **To dismiss a dialog you don't need:** Use `sap_close_popup(close=True)` or
-`sap_keyboard(key="Escape")`.
+`sap_press_key(key="Escape")`.
 
 **Cannot navigate while a dialog is open:** `sap_transaction()` will fail if a
 modal dialog is present — dismiss it first.

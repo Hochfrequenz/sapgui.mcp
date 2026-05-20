@@ -53,7 +53,7 @@ Primary focus on German energy market requirements:
 ┌────────────────────────────────────────────────────────────┐
 │  SAP TOOLS (New - to be implemented)                      │
 │  Session:    sap_session_status                           │
-│  Navigation: sap_keyboard                                 │
+│  Navigation: sap_press_key                                 │
 │  Reading:    sap_get_screen_text, sap_read_table,         │
 │              sap_read_status_bar, sap_get_screen_info     │
 └────────────────────────────────────────────────────────────┘
@@ -92,12 +92,12 @@ async def sap_session_status() -> str:
 
 ### Navigation & Actions
 
-#### `sap_keyboard`
+#### `sap_press_key`
 
 Send keyboard shortcuts to SAP Web GUI.
 
 ```python
-async def sap_keyboard(key: str) -> str:
+async def sap_press_key(key: str) -> str:
     """
     Send a keyboard shortcut to SAP Web GUI.
 
@@ -284,7 +284,7 @@ Each skill follows this structure:
 - Test 1: Status is "active" after login
 - Test 2: Returns valid state value
 
-#### `sap_keyboard`
+#### `sap_press_key`
 
 - Test 1: F3 navigates back from SE16
 - Test 2: F8 triggers execution (error expected without input)
@@ -313,7 +313,7 @@ Each skill follows this structure:
 
 ### Phase 1: Core Tools
 
-1. `sap_keyboard` - Extend navigation capabilities
+1. `sap_press_key` - Extend navigation capabilities
 2. `sap_get_screen_text` - Enable adaptive field discovery
 3. `sap_read_status_bar` - Capture operation results
 

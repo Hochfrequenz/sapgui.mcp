@@ -301,13 +301,13 @@ async def test_bp_fill_form_ambiguous_label_rejected(sap_mcp_client: ClientSessi
     await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "BP"}, TransactionResult)
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
-    # Press F5 to create a Person (uses sap_keyboard which reads status bar)
-    keyboard_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    # Press F5 to create a Person (uses sap_press_key which reads status bar)
+    keyboard_result = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
 
     # Handle category selection popup if it appears
     if keyboard_result.popup:
         # Click "Ja" (Yes) or confirm button to proceed
-        await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Enter"}, KeyboardResult)
+        await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Enter"}, KeyboardResult)
         await asyncio.sleep(0.5)
 
     # Wait for Person form to load
@@ -366,11 +366,11 @@ async def test_bp_set_field_ambiguous_label_rejected(sap_mcp_client: ClientSessi
     await _wait_for_transaction_screen(sap_mcp_client, "BP")
 
     # Press F5 to create a Person
-    keyboard_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    keyboard_result = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
 
     # Handle category selection popup if it appears
     if keyboard_result.popup:
-        await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Enter"}, KeyboardResult)
+        await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Enter"}, KeyboardResult)
         await asyncio.sleep(0.5)
 
     # Wait for Person form to load

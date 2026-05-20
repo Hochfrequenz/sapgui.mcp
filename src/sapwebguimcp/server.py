@@ -224,7 +224,7 @@ WORKFLOW:
 1. Call sap_login first to open SAP and authenticate
 2. Use sap_transaction to navigate to transactions (e.g., VA01, SE16, BP)
 3. Use sap_com_snapshot to see the SAP GUI element tree with element IDs
-4. Use SAP-specific tools (sap_fill_form, sap_click_button, sap_keyboard) for interactions
+4. Use SAP-specific tools (sap_fill_form, sap_click_button, sap_press_key) for interactions
 5. Use sap_com_evaluate as escape hatch for operations not covered by SAP-specific tools
 
 MULTI-SESSION SUPPORT (#671):

@@ -285,7 +285,7 @@ async def test_slg1_02_capture_log_list(sap_mcp_client: ClientSession) -> None:
         )
 
     # Execute (F8)
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "slg1_log_list", overwrite=True)
@@ -328,7 +328,7 @@ async def test_slg1_03_capture_expanded_log(sap_mcp_client: ClientSession) -> No
             type(LoginResult),
         )
 
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Try to expand the first tree node
@@ -374,7 +374,7 @@ async def test_slg1_04_capture_no_results(sap_mcp_client: ClientSession) -> None
             type(LoginResult),
         )
 
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "slg1_no_results", overwrite=True)

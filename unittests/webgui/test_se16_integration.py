@@ -120,7 +120,7 @@ async def test_se16_capture_t000_results(sap_mcp_client: ClientSession) -> None:
     assert fill.success, f"Fill form failed: {fill.error}"
 
     # Execute (F8)
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
     assert keyboard.success, f"Keyboard F8 failed: {keyboard.error}"
 
     # Wait for results
@@ -581,7 +581,7 @@ async def test_se16_table_content_t000(sap_mcp_client: ClientSession) -> None:
     assert fill_result.success, f"Failed to fill table name field: {fill_result.error}"
 
     # Execute to show table content
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Capture table content HTML for unit tests

@@ -32,7 +32,7 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     2. Dismiss the first popup to enter person creation mode
     3. Press F3 (Back) WITHOUT filling required fields
     4. This triggers a validation popup: "Die Daten des Geschäftspartners sind fehlerhaft"
-    5. Verify that sap_keyboard returns with popup info
+    5. Verify that sap_press_key returns with popup info
     6. Capture HTML snapshot of the popup for offline testing
     7. Dismiss the popup using sap_close_popup with "Ja"
     8. Verify the popup was dismissed and we're back to BP initial screen
@@ -52,7 +52,7 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     # Press F5 to create a new person - this triggers a confirmation popup
     # "Wechsel in das Anlegen einer Person" (Switch to creating a person)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
-    kb_data = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    kb_data = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
 
     # Capture the F5 confirmation popup for debugging
     await capture_html_snapshot(sap_mcp_client, "bp_switch_to_person_popup", overwrite=True)
@@ -85,7 +85,7 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     # Press F3 (Back) WITHOUT filling any data - this triggers validation popup
     # Message: "Die Daten des Geschäftspartners sind fehlerhaft..."
     # Buttons: "Ja", "Nein"
-    back_data = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F3"}, KeyboardResult)
+    back_data = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F3"}, KeyboardResult)
 
     # Always capture HTML to debug popup detection
     await capture_html_snapshot(sap_mcp_client, "bp_validation_popup", overwrite=True)

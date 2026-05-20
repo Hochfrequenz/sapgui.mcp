@@ -19,7 +19,7 @@ from .integration_helpers import (
 
 
 @pytest.mark.anyio
-async def test_sap_keyboard_f3_navigates_back(sap_mcp_client: ClientSession) -> None:
+async def test_sap_press_key_f3_navigates_back(sap_mcp_client: ClientSession) -> None:
     """Test F3 (Back) returns from transaction to previous screen."""
     await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE16"}, TransactionResult)
@@ -27,7 +27,7 @@ async def test_sap_keyboard_f3_navigates_back(sap_mcp_client: ClientSession) -> 
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Press F3 to go back
-    result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F3"}, KeyboardResult)
+    result = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F3"}, KeyboardResult)
     assert result.success, f"Keyboard F3 failed: {result.error}"
     assert result.key == "F3", f"Expected key F3: {result}"
 
@@ -45,7 +45,7 @@ async def test_sap_keyboard_f3_navigates_back(sap_mcp_client: ClientSession) -> 
 
 
 @pytest.mark.anyio
-async def test_sap_keyboard_f8_triggers_execution(sap_mcp_client: ClientSession) -> None:
+async def test_sap_press_key_f8_triggers_execution(sap_mcp_client: ClientSession) -> None:
     """Test F8 (Execute) triggers action in SE16.
 
     When F8 is pressed in SE16 without a table name, SAP should show an error
@@ -59,7 +59,7 @@ async def test_sap_keyboard_f8_triggers_execution(sap_mcp_client: ClientSession)
     await _wait_for_transaction_screen(sap_mcp_client, "SE16")
 
     # Try to execute without entering a table name - should trigger error
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 

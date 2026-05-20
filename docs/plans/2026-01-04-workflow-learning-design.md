@@ -90,7 +90,7 @@ async def workflow_run(
         # Server-side agent loop - nutzt Client's LLM via Sampling
         result = await ctx.sample(
             messages=f"{workflow.prompt}\n\nData: {item}",
-            tools=[sap_fill_form, sap_keyboard, sap_read_status_bar, ...],
+            tools=[sap_fill_form, sap_press_key, sap_read_status_bar, ...],
         )
         results.append(parse_result(result.text))
 
