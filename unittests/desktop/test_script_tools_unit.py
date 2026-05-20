@@ -34,3 +34,11 @@ class TestSapRunScriptResult:
     def test_success_false_without_error_raises(self):
         with pytest.raises(Exception):
             SapRunScriptResult(success=False)
+
+    def test_failure_with_traceback(self):
+        r = SapRunScriptResult.failure(
+            "RuntimeError: bad",
+            error_traceback="Traceback (most recent call last):\nRuntimeError: bad",
+        )
+        assert r.success is False
+        assert r.error_traceback == "Traceback (most recent call last):\nRuntimeError: bad"

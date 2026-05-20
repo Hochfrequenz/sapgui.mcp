@@ -12,9 +12,7 @@ class SapRunScriptResult(ToolResult):
 
     output: list[Any] = Field(
         default_factory=list,
-        description=(
-            "Values collected via output() calls during script execution, in call order. " "JSON-safe by construction."
-        ),
+        description="Values collected via output() calls during script execution, in call order.",
     )
     error_traceback: str | None = Field(
         default=None,
