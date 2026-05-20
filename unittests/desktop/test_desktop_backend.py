@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from types import SimpleNamespace
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
