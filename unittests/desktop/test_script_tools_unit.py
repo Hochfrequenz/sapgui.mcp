@@ -86,7 +86,7 @@ class TestRunInSandbox:
         r = _run_in_sandbox("def broken(:", self._session())
         assert r.success is False
         assert r.error is not None
-        assert "SyntaxError" in r.error
+        assert r.error.startswith("SyntaxError")
 
     def test_runtime_exception_returns_failure(self):
         r = _run_in_sandbox("raise ValueError('boom')", self._session())
@@ -145,6 +145,6 @@ class TestRunInSandbox:
     def test_null_bytes_in_script_return_failure(self):
         r = _run_in_sandbox("x = \x00", self._session())
         assert r.success is False
-        # compile() raises ValueError for null bytes
+        # compile() raises SyntaxError for null bytes in Python 3
         assert r.error is not None
-        assert "ValueError" in r.error or "SyntaxError" in r.error
+        assert r.error.startswith("SyntaxError")

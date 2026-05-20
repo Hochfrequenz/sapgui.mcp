@@ -13,11 +13,9 @@ tool. If the threat model hardens, swap ``exec()`` for RestrictedPython.
 import json
 import logging
 import traceback as _traceback
-from typing import Annotated, Any
+from typing import Any
 
 from fastmcp import FastMCP
-from mcp.types import ToolAnnotations
-from pydantic import Field
 
 from sapwebguimcp.backend.desktop.models.script_results import SapRunScriptResult
 from sapwebguimcp.backend.manager import get_backend
@@ -119,5 +117,5 @@ def _run_in_sandbox(script: str, session: Any) -> SapRunScriptResult:
 
 def register_script_tools(mcp: FastMCP) -> None:
     """Register sap_run_script with the MCP server (desktop backend only)."""
-    # Implementation added in Task 3
+    # TODO: implement in Task 3 — will use Annotated, Field, ToolAnnotations
     pass
