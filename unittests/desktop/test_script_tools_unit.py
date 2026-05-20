@@ -188,3 +188,17 @@ class TestSapRunScriptTool:
 
         assert result.success is False
         assert "No session" in result.error
+
+    def test_syntax_error_fails_before_backend_lookup(self):
+        """Invalid Python is rejected before get_backend is ever called."""
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+        tool_fn = self._make_tool_fn(mcp)
+
+        mock_get_backend = AsyncMock()
+        with patch("sapwebguimcp.tools.script_tools.get_backend", mock_get_backend):
+            result = asyncio.run(tool_fn(script="def broken(:", session=None, agent_id=None))
+
+        assert result.success is False
+        assert result.error.startswith("SyntaxError")
+        mock_get_backend.assert_not_called()

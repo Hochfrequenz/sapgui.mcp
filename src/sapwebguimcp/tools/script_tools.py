@@ -157,6 +157,12 @@ def register_script_tools(mcp: FastMCP) -> None:
         session: Annotated[str | None, Field(description="Session ID (e.g. 's1'). None = primary.")] = None,
         agent_id: Annotated[str | None, Field(description="Agent identifier for binding check.")] = None,
     ) -> SapRunScriptResult:
+        # Compile first — reject invalid Python before touching backend or COM thread.
+        try:
+            compile(script, "<sap_script>", "exec")  # noqa: S307
+        except (SyntaxError, ValueError) as exc:
+            return SapRunScriptResult.failure(f"{type(exc).__name__}: {exc}")
+
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_run_script")
         except ValueError as exc:
