@@ -13,15 +13,16 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 @skip_no_sap
 @pytest.mark.anyio
 async def test_script_reads_window_title(backend):
-    """Script reads the main window title and outputs it."""
+    """Script reads the main window title via a real COM call through the sandbox."""
     script = 'output(session.find_by_id("wnd[0]").text)'
     session = backend.require_session()
     result = await backend.com.run(lambda: _run_in_sandbox(script, session))
     assert result.success, f"Failed: {result.error}"
-    assert isinstance(result.output, list)
     assert len(result.output) == 1
-    assert isinstance(result.output[0], str)
-    assert len(result.output[0]) > 0
+    title = result.output[0]
+    assert isinstance(title, str)
+    assert title.strip(), "Window title should not be blank"
+    assert "SAP" in title, f"Expected SAP in window title, got: {title!r}"
 
 
 @skip_no_sap
@@ -38,18 +39,19 @@ async def test_script_loop_collects_multiple_outputs(backend):
 @skip_no_sap
 @pytest.mark.anyio
 async def test_script_conditional_branching(backend):
-    """Script branches on window title length and outputs the correct branch."""
+    """Script branches on a known condition — verifies both the decision and the value."""
     script = (
         'title = session.find_by_id("wnd[0]").text\n'
-        "if len(title) > 0:\n"
-        '    output("has_title")\n'
+        'if "SAP" in title:\n'
+        "    output(title)\n"
         "else:\n"
-        '    output("no_title")\n'
+        '    output("no_sap_in_title")\n'
     )
     session = backend.require_session()
     result = await backend.com.run(lambda: _run_in_sandbox(script, session))
     assert result.success, f"Failed: {result.error}"
-    assert result.output == ["has_title"]
+    assert len(result.output) == 1
+    assert "SAP" in result.output[0], f"Expected SAP branch, got: {result.output[0]!r}"
 
 
 @skip_no_sap
