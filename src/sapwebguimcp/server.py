@@ -32,6 +32,7 @@ from sapwebguimcp.tools import (
     register_intent_tools,
     register_quick_report_tools,
     register_sap_tools,
+    register_script_tools,
     register_se09_tools,
     register_se11_tools,
     register_se16_tools,
@@ -325,6 +326,7 @@ if _backend == "webgui":
 if _backend == "desktop":
     register_com_tools(mcp)
     register_tree_tools(mcp)
+    register_script_tools(mcp)
 
 # Register prompts
 register_prompts(mcp)

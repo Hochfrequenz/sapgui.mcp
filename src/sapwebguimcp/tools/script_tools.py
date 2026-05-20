@@ -13,9 +13,11 @@ tool. If the threat model hardens, swap ``exec()`` for RestrictedPython.
 import json
 import logging
 import traceback as _traceback
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
+from pydantic import Field
 
 from sapwebguimcp.backend.desktop.models.script_results import SapRunScriptResult
 from sapwebguimcp.backend.manager import get_backend
@@ -103,7 +105,7 @@ def _run_in_sandbox(script: str, session: Any) -> SapRunScriptResult:
     }
 
     try:
-        exec(compile(script, "<sap_script>", "exec"), restricted_globals)  # noqa: S102
+        exec(compile(script, "<sap_script>", "exec"), restricted_globals)  # noqa: S102  # pylint: disable=exec-used
         if not collected:
             logger.debug("sap_run_script: script completed with no output")
         return SapRunScriptResult(output=collected)
@@ -117,5 +119,59 @@ def _run_in_sandbox(script: str, session: Any) -> SapRunScriptResult:
 
 def register_script_tools(mcp: FastMCP) -> None:
     """Register sap_run_script with the MCP server (desktop backend only)."""
-    # TODO: implement in Task 3 — will use Annotated, Field, ToolAnnotations
-    pass
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            readOnlyHint=False,
+            destructiveHint=True,
+            openWorldHint=False,
+        ),
+        description=(
+            "Execute a Python script against the live SAP GUI session (desktop backend only).\n\n"
+            "The script receives:\n"
+            "- ``session``: sapsucker ``GuiSession`` — use ``session.find_by_id(id)`` to reach "
+            "elements, then read/write their properties and call methods directly.\n"
+            "- ``output(value)``: call this to collect results. All values are returned in order.\n\n"
+            "**Always call ``output()`` at least once** with a summary — a script that never "
+            "calls ``output()`` returns an empty list with no indication of what happened.\n\n"
+            "``import`` and ``print`` are not available. Use ``output()`` instead of ``print()``.\n\n"
+            "Full Python control flow works: ``for``, ``if``/``else``, ``while``, ``try``/``except``, "
+            "list comprehensions, function definitions.\n\n"
+            "**When to use this tool vs ``sap_com_evaluate``:** prefer ``sap_com_evaluate`` for "
+            "fixed-step sequences (known number of operations). Use ``sap_run_script`` when the "
+            "number of operations depends on a runtime value — e.g. iterating all rows in a grid, "
+            "scanning tree nodes, or branching based on a field value read mid-sequence.\n\n"
+            "If the script raises an unhandled exception, ``success=False`` and ``output`` contains "
+            "whatever was collected before the error — partial results are preserved.\n\n"
+            "Example:\n"
+            "```python\n"
+            "grid = session.find_by_id('wnd[0]/usr/cntlGRID/shellcont/shell')\n"
+            "errors = [grid.get_cell_value(r, 'VBELN') for r in range(grid.row_count)\n"
+            "          if grid.get_cell_value(r, 'STATUS') == 'Error']\n"
+            "output({'error_count': len(errors), 'docs': errors})\n"
+            "```"
+        ),
+    )
+    async def sap_run_script(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+        script: Annotated[str, Field(description="Python script body to execute")],
+        session: Annotated[str | None, Field(description="Session ID (e.g. 's1'). None = primary.")] = None,
+        agent_id: Annotated[str | None, Field(description="Agent identifier for binding check.")] = None,
+    ) -> SapRunScriptResult:
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_run_script")
+        except ValueError as exc:
+            return SapRunScriptResult.failure(str(exc))
+
+        if backend.backend_type != "desktop":
+            return SapRunScriptResult.failure(
+                "sap_run_script is only available on the desktop backend. " "Use browser_evaluate for WebGUI."
+            )
+
+        from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+        assert isinstance(backend, DesktopBackend)  # noqa: S101
+
+        desktop_session = backend.require_session()
+        com = backend.com
+
+        return await com.run(lambda: _run_in_sandbox(script, desktop_session))

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastmcp import FastMCP
 
 from sapwebguimcp.backend.desktop.models.script_results import SapRunScriptResult
-from sapwebguimcp.tools.script_tools import _run_in_sandbox
+from sapwebguimcp.tools.script_tools import _run_in_sandbox, register_script_tools
 
 
 class TestSapRunScriptResult:
@@ -147,3 +149,42 @@ class TestRunInSandbox:
         # compile() raises SyntaxError for null bytes in Python 3
         assert r.error is not None
         assert r.error.startswith("SyntaxError")
+
+
+class TestSapRunScriptTool:
+    def _make_tool_fn(self, mcp: FastMCP):
+        # FastMCP >= 3.x stores tools in _local_provider._components keyed as "tool:<name>@"
+        return mcp._local_provider._components["tool:sap_run_script@"].fn
+
+    def test_non_desktop_backend_returns_failure(self):
+        mock_backend = MagicMock()
+        mock_backend.backend_type = "webgui"
+
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+        tool_fn = self._make_tool_fn(mcp)
+
+        with patch(
+            "sapwebguimcp.tools.script_tools.get_backend",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
+            result = asyncio.run(tool_fn(script="output(1)", session=None, agent_id=None))
+
+        assert result.success is False
+        assert "desktop" in result.error.lower()
+
+    def test_get_backend_value_error_returns_failure(self):
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+        tool_fn = self._make_tool_fn(mcp)
+
+        with patch(
+            "sapwebguimcp.tools.script_tools.get_backend",
+            new_callable=AsyncMock,
+            side_effect=ValueError("No session configured"),
+        ):
+            result = asyncio.run(tool_fn(script="output(1)", session=None, agent_id=None))
+
+        assert result.success is False
+        assert "No session" in result.error
