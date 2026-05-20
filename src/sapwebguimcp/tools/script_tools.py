@@ -163,7 +163,7 @@ def register_script_tools(mcp: FastMCP) -> None:
             "```"
         ),
     )
-    async def sap_run_script(
+    async def sap_run_script(  # pylint: disable=too-many-return-statements
         script: Annotated[str, Field(description="Python script body to execute")],
         session: Annotated[str | None, Field(description="Session ID (e.g. 's1'). None = primary.")] = None,
         agent_id: Annotated[str | None, Field(description="Agent identifier for binding check.")] = None,
