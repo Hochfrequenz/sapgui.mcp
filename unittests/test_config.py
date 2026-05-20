@@ -109,7 +109,7 @@ class TestEnvFiles:
     def test_env_files_meipass_with_production(self, tmp_path: Path) -> None:
         """Frozen exe with .env.production bundled -- returns both files."""
         prod_env = tmp_path / ".env.production"
-        prod_env.write_text("PAPERTRAIL_HOST=logs5.papertrailapp.com\n")
+        prod_env.write_text("SOME_SETTING=value\n")
         with patch.object(sys, "_MEIPASS", str(tmp_path), create=True):
             result = _env_files()
         assert len(result) == 2
