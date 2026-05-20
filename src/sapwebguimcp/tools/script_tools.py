@@ -22,7 +22,7 @@ from sapwebguimcp.backend.manager import get_backend
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["register_script_tools", "_run_in_sandbox", "SAFE_BUILTINS"]
+__all__ = ["register_script_tools"]
 
 
 def _blocked_import(*args: Any, **kwargs: Any) -> None:
@@ -77,8 +77,8 @@ SAFE_BUILTINS: dict[str, Any] = {
     "RuntimeError": RuntimeError,
     "StopIteration": StopIteration,
     "NotImplementedError": NotImplementedError,
-    # True / False / None are Python 3 keywords; listed here for clarity only —
-    # they resolve without going through __builtins__.
+    # True, False, None are Python 3 keywords; they are NOT in this dict and
+    # resolve without going through __builtins__.
 }
 
 

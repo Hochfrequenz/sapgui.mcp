@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import pytest
 
 from sapwebguimcp.backend.desktop.models.script_results import SapRunScriptResult
+from sapwebguimcp.tools.script_tools import _run_in_sandbox
 
 
 class TestSapRunScriptResult:
@@ -42,11 +45,6 @@ class TestSapRunScriptResult:
         )
         assert r.success is False
         assert r.error_traceback == "Traceback (most recent call last):\nRuntimeError: bad"
-
-
-from unittest.mock import MagicMock
-
-from sapwebguimcp.tools.script_tools import _run_in_sandbox
 
 
 class TestRunInSandbox:
@@ -87,6 +85,7 @@ class TestRunInSandbox:
         assert r.success is False
         assert r.error is not None
         assert r.error.startswith("SyntaxError")
+        assert r.error_traceback is not None
 
     def test_runtime_exception_returns_failure(self):
         r = _run_in_sandbox("raise ValueError('boom')", self._session())
