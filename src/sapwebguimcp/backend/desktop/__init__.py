@@ -933,6 +933,9 @@ class DesktopBackend:
         Returns:
             (snapshot, max_depth_found, elements_hidden)
         """
+        from sapwebguimcp.backend.desktop._snapshot_render import (  # pylint: disable=import-outside-toplevel
+            render_snapshot_lines,
+        )
         from sapwebguimcp.backend.desktop._truncation import (  # pylint: disable=import-outside-toplevel
             truncate_tree,
         )
@@ -950,10 +953,7 @@ class DesktopBackend:
             if depth is not None:
                 tree, max_depth_found, elements_hidden = truncate_tree(tree, depth)
 
-            lines = []
-            for elem in _flatten(tree):
-                indent = "  " * elem.id.count("/")
-                lines.append(f"{indent}{elem.type}[{elem.name}]: {elem.text!r}")
+            lines = render_snapshot_lines(tree)
 
             if elements_hidden > 0:
                 lines.append(
