@@ -22,6 +22,7 @@ from sapwebguimcp.prompts import register_prompts
 from sapwebguimcp.resources import register_feedback_resources, register_intent_resources
 from sapwebguimcp.tools import (
     register_abapgit_tools,
+    register_breakpoint_tools,
     register_browser_tools,
     register_catalog_tools,
     register_class_tools,
@@ -46,6 +47,7 @@ from sapwebguimcp.tools import (
     register_spro_tools,
     register_st22_tools,
     register_table_tools,
+    register_tree_tools,
 )
 from sapwebguimcp.tools.abapgit_tools import validate_github_pat
 
@@ -307,6 +309,7 @@ register_fm_tools(mcp)
 register_class_tools(mcp)
 register_se24_edit_tools(mcp)
 register_se38_edit_tools(mcp)
+register_breakpoint_tools(mcp)
 
 # Always available: logging, abapgit
 register_intent_tools(mcp)
@@ -319,9 +322,9 @@ if _backend == "webgui":
     register_se37_edit_tools(mcp)
     register_quick_report_tools(mcp)
 
-# Desktop only: COM escape hatches
 if _backend == "desktop":
     register_com_tools(mcp)
+    register_tree_tools(mcp)
 
 # Register prompts
 register_prompts(mcp)
