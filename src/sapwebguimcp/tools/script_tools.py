@@ -14,6 +14,7 @@ import asyncio
 import json
 import logging
 import traceback as _traceback
+import types
 from datetime import timedelta
 from typing import Annotated, Any
 
@@ -86,8 +87,8 @@ SAFE_BUILTINS: dict[str, Any] = {
 }
 
 
-def _run_in_sandbox(script: str, session: Any) -> SapRunScriptResult:
-    """Execute *script* in a restricted namespace on the calling thread.
+def _run_in_sandbox(code: types.CodeType, session: Any) -> SapRunScriptResult:
+    """Execute *code* in a restricted namespace on the calling thread.
 
     Must be called from the COM thread (inside ``com.run(lambda)``).
     """
@@ -107,7 +108,7 @@ def _run_in_sandbox(script: str, session: Any) -> SapRunScriptResult:
     }
 
     try:
-        exec(compile(script, "<sap_script>", "exec"), restricted_globals)  # noqa: S102  # pylint: disable=exec-used
+        exec(code, restricted_globals)  # noqa: S102  # pylint: disable=exec-used
         if not collected:
             logger.debug("sap_run_script: script completed with no output")
         return SapRunScriptResult(output=collected)
@@ -175,7 +176,7 @@ def register_script_tools(mcp: FastMCP) -> None:
     ) -> SapRunScriptResult:
         # Compile first — reject invalid Python before touching backend or COM thread.
         try:
-            compile(script, "<sap_script>", "exec")  # noqa: S307
+            code = compile(script, "<sap_script>", "exec")
         except (SyntaxError, ValueError) as exc:
             return SapRunScriptResult.failure(f"{type(exc).__name__}: {exc}")
 
@@ -199,7 +200,7 @@ def register_script_tools(mcp: FastMCP) -> None:
 
         try:
             return await asyncio.wait_for(
-                com.run(lambda: _run_in_sandbox(script, desktop_session)),
+                com.run(lambda: _run_in_sandbox(code, desktop_session)),
                 timeout=timeout_td.total_seconds(),
             )
         except asyncio.TimeoutError:
