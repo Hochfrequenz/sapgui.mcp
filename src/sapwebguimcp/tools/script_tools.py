@@ -164,7 +164,7 @@ def register_script_tools(mcp: FastMCP) -> None:
 
         if backend.backend_type != "desktop":
             return SapRunScriptResult.failure(
-                "sap_run_script is only available on the desktop backend. " "Use browser_evaluate for WebGUI."
+                "sap_run_script is only available on the desktop backend. Use browser_evaluate for WebGUI."
             )
 
         from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
