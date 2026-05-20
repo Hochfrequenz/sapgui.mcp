@@ -72,6 +72,7 @@ SAFE_BUILTINS: dict[str, Any] = {
     "any": any,
     "all": all,
     "isinstance": isinstance,
+    "getattr": getattr,
     # Exceptions — scripts may raise or catch these
     "Exception": Exception,
     "ValueError": ValueError,

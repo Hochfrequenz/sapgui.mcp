@@ -103,7 +103,7 @@ exec(compile(script, "<sap_script>", "exec"), {
 ```
 
 **Not provided (accidental-use defence):** `open`, `eval`, `exec`, `print`, `input`, `compile`,
-`globals`, `locals`, `breakpoint`, `getattr`, `setattr`, `delattr`, `hasattr`, `vars`, `dir`,
+`globals`, `locals`, `breakpoint`, `setattr`, `delattr`, `hasattr`, `vars`, `dir`,
 and all stdlib modules.
 
 Note: `Exception` and its common subclasses ARE provided — scripts must be able to raise typed
@@ -121,9 +121,9 @@ def _blocked_import(*args, **kwargs):
 SAFE_BUILTINS["__import__"] = _blocked_import
 ```
 
-> **Note:** `getattr` is absent as a convenience function, not as a security boundary. Python's
-> `obj.attr` syntax does not call the builtin `getattr`, so attribute access on injected objects
-> works normally. MRO traversal (`obj.__class__.__mro__`) is not blocked — see Threat model.
+> **Note:** `getattr` is provided so LLM-generated scripts can use dynamic attribute access
+> (`getattr(obj, attr_name)`), analogous to `isinstance`. MRO traversal
+> (`obj.__class__.__mro__`) is not blocked — see Threat model.
 
 ### Output coercion
 

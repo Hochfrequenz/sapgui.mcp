@@ -143,6 +143,13 @@ class TestRunInSandbox:
         assert r.success is True
         assert r.output == ["HELLO"]
 
+    def test_getattr_available_for_dynamic_access(self):
+        session = self._session()
+        session.SomeProperty = "value"
+        r = _run_in_sandbox(_c("output(getattr(session, 'SomeProperty'))"), session)
+        assert r.success is True
+        assert r.output == ["value"]
+
 
 class TestSapRunScriptTool:
     def _make_tool_fn(self, mcp: FastMCP):
