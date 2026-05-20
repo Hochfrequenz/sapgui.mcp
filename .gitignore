@@ -7,9 +7,9 @@ __pycache__/
 # post-login DOM captures, etc.). These are written next to the server on
 # demand and must never end up in the repository — they can contain system
 # IDs, session tokens, and internal hostnames.
-sap_after_login*.html
-*_debug_*.yaml
-*_debug_*.html
+/sap_after_login*.html
+/*_debug_*.yaml
+/*_debug_*.html
 
 # C extensions
 *.so
