@@ -5,7 +5,7 @@
 
 ## Problem
 
-`sap_abapgit_pull` consistently returns "status unknown: SAP status bar was empty" even when the pull actually succeeds. Users must manually call `sap_keyboard(F8)` then `sap_read_status_bar` as a workaround.
+`sap_abapgit_pull` consistently returns "status unknown: SAP status bar was empty" even when the pull actually succeeds. Users must manually call `sap_press_key(F8)` then `sap_read_status_bar` as a workaround.
 
 ### Root Cause
 
@@ -31,7 +31,7 @@ The Enter press after F8 has no confirmed purpose. Transport and overwrite check
 
 ### 3. Document F8 workaround in tool description
 
-Add guidance to the `sap_abapgit_pull` tool description: if the tool reports "status unknown", call `sap_keyboard('F8')` then `sap_read_status_bar` as a fallback.
+Add guidance to the `sap_abapgit_pull` tool description: if the tool reports "status unknown", call `sap_press_key('F8')` then `sap_read_status_bar` as a fallback.
 
 ## Scope
 

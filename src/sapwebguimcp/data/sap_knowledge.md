@@ -68,23 +68,23 @@ SAP often opens modal dialogs (popups) for confirmations, data entry forms,
 transport prompts, and error messages. These appear at `wnd[1]` or `wnd[2]`.
 
 **All tools automatically operate on the active window.** When a popup is open,
-`sap_discover_fields`, `sap_get_form_fields`, `sap_fill_form`, `sap_keyboard`,
+`sap_discover_fields`, `sap_get_form_fields`, `sap_fill_form`, `sap_press_key`,
 and other tools target the popup — not the main window behind it.
 
 **How to detect a popup opened:**
 - Check the `active_window` field in tool results. `"wnd[0]"` means the main
   window; `"wnd[1]"` or higher means a modal dialog is open.
-- After actions that change screen state (`sap_keyboard`, `sap_fill_form`),
+- After actions that change screen state (`sap_press_key`, `sap_fill_form`),
   always note the `active_window` value.
 
 **Typical workflow:**
-1. `sap_keyboard(key="F5")` → result has `active_window="wnd[1]"` (dialog opened)
+1. `sap_press_key(key="F5")` → result has `active_window="wnd[1]"` (dialog opened)
 2. `sap_discover_fields()` → shows fields in the dialog
 3. `sap_fill_form({...})` → fills dialog fields
-4. `sap_keyboard(key="Enter")` → result has `active_window="wnd[0]"` (dialog closed)
+4. `sap_press_key(key="Enter")` → result has `active_window="wnd[0]"` (dialog closed)
 
 **To dismiss a dialog you don't need:** Use `sap_close_popup(close=True)` or
-`sap_keyboard(key="Escape")`.
+`sap_press_key(key="Escape")`.
 
 **Cannot navigate while a dialog is open:** `sap_transaction()` will fail if a
 modal dialog is present — dismiss it first.
@@ -102,8 +102,8 @@ SAP WebGUI can "bleed" state between sequential transactions. Symptoms:
 **Solutions (in order of preference):**
 
 1. **`reset_first=True`** - Use `sap_transaction("SE24", reset_first=True)` to navigate to Easy Access before entering the transaction. This clears all residual state.
-2. **Manual `/n` reset** - Call `sap_keyboard("Enter")` with `/n` in the OK-code field, then re-enter your transaction.
-3. **Real keyboard typing** - If a field value isn't being picked up, try clearing the field and retyping the value manually using `sap_keyboard` with individual keystrokes.
+2. **Manual `/n` reset** - Call `sap_press_key("Enter")` with `/n` in the OK-code field, then re-enter your transaction.
+3. **Real keyboard typing** - If a field value isn't being picked up, try clearing the field and retyping the value manually using `sap_press_key` with individual keystrokes.
 
 After you found out how to solve a specific problem without these workarounds, consider providing feedback to the devs.
 
@@ -317,7 +317,7 @@ sap_session_bind(session_id="s4", agent_id="subagent-3")
 
 # Each sub-agent works independently:
 sap_fill_form({"Name": "Customer 1"}, session="s2", agent_id="subagent-1")
-sap_keyboard("F8", session="s2", agent_id="subagent-1")  # Execute
+sap_press_key("F8", session="s2", agent_id="subagent-1")  # Execute
 ```
 
 ### Tools Supporting `session` Parameter
@@ -326,7 +326,7 @@ All major SAP and browser tools accept an optional `session` parameter:
 
 **SAP Tools:**
 
-- `sap_transaction`, `sap_keyboard`, `sap_get_screen_text`
+- `sap_transaction`, `sap_press_key`, `sap_get_screen_text`
 - `sap_fill_form`, `sap_set_field`, `sap_get_form_fields`
 - `sap_read_table`, `sap_click_table_cell`
 - `sap_discover_fields`, `sap_discover_buttons`, `sap_get_shortcuts`
@@ -351,7 +351,7 @@ Session-management tools like `sap_session_release(session_id)` only take `sessi
 ```python
 sap_transaction("VA01", session="s2", agent_id="subagent-orders")
 sap_fill_form({"Customer": "12345"}, session="s2", agent_id="subagent-orders")
-sap_keyboard("Enter", session="s2", agent_id="subagent-orders")
+sap_press_key("Enter", session="s2", agent_id="subagent-orders")
 ```
 
 When finished, release your session: `sap_session_release(session_id="s2")`
@@ -389,5 +389,5 @@ if result.session_id is None:
 
 # Use the new session (now guaranteed to be valid)
 sap_fill_form({"Name": "Customer 1"}, session=result.session_id)
-sap_keyboard("Control+s", session=result.session_id)
+sap_press_key("Control+s", session=result.session_id)
 ```

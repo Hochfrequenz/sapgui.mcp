@@ -1115,7 +1115,7 @@ Similar pattern - add `session: str | None = None` as last parameter and use `ge
 
 Apply same pattern to:
 
-- `sap_keyboard`
+- `sap_press_key`
 - `sap_get_screen_text`
 - `sap_get_screen_info`
 - `sap_read_status_bar`
@@ -1132,7 +1132,7 @@ Apply same pattern to:
 
 ```bash
 git add src/sapwebguimcp/tools/sap_tools.py
-git commit -m "feat(tools): add session param to sap_fill_form, sap_transaction, sap_keyboard"
+git commit -m "feat(tools): add session param to sap_fill_form, sap_transaction, sap_press_key"
 ```
 
 ---

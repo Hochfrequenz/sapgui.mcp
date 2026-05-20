@@ -91,7 +91,7 @@ sap_transaction("SE24")  # For classes
 Use the generic tools to interact with your code:
 
 - `sap_fill_form()` to provide test inputs
-- `sap_keyboard("F8")` to execute
+- `sap_press_key("F8")` to execute
 - `sap_read_status_bar()` to check results
 - `sap_get_screen_text()` to read output
 

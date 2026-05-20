@@ -339,7 +339,7 @@ async def test_spro_capture_img_tree(sap_mcp_client: ClientSession) -> None:
 
     # Try clicking the SAP Reference IMG button
     # The actual label needs to be determined from the snapshot
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
     await capture_yaml_snapshot(sap_mcp_client, "spro_img_tree", overwrite=True)
 
@@ -355,11 +355,11 @@ async def test_spro_capture_search_dialog(sap_mcp_client: ClientSession) -> None
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Navigate into IMG tree first (F5 or click button - TBD from snapshots)
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Open search (Ctrl+F or menu Find)
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Ctrl+F"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Ctrl+F"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
     await capture_yaml_snapshot(sap_mcp_client, "spro_search_dialog", overwrite=True)
 
@@ -375,11 +375,11 @@ async def test_spro_capture_search_results(sap_mcp_client: ClientSession) -> Non
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Navigate into IMG tree
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Open search
-    keyboard = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Ctrl+F"}, KeyboardResult)
+    keyboard = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Ctrl+F"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Type search keyword and execute

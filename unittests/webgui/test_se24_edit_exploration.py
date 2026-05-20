@@ -75,7 +75,7 @@ async def test_se24_edit_00_setup_create_method(sap_mcp_client: ClientSession) -
     await sap_mcp_client.call_tool("sap_fill_form", {"fields": {_CLASS_FIELD: "ZCL_TEST_MCP_EDIT"}})
 
     # F6 for direct change mode
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F6"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F6"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Check if DO_SOMETHING already exists in the snapshot
@@ -95,14 +95,14 @@ async def test_se24_edit_00_setup_create_method(sap_mcp_client: ClientSession) -
         "browser_fill", {"selector": "role=grid >> role=textbox >> nth=0", "value": "DO_SOMETHING"}
     )
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "Enter"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "Enter"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "se24_edit_after_method_add", overwrite=True)
     print(f"After adding method:\n{snapshot.encode('ascii', 'replace').decode()[:2000]}")
 
     # Activate with Ctrl+F3
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "Control+F3"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "Control+F3"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "se24_edit_after_setup_activate", overwrite=True)
@@ -126,7 +126,7 @@ async def test_se24_edit_01_display_class_main(sap_mcp_client: ClientSession) ->
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
     await sap_mcp_client.call_tool("sap_fill_form", {"fields": {_CLASS_FIELD: "ZCL_TEST_MCP_EDIT"}})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F7"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F7"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "se24_edit_display_main", overwrite=True)

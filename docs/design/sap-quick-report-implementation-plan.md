@@ -1030,7 +1030,7 @@ def register_quick_report_tools(mcp: FastMCP) -> None:
         description=(
             "Execute a transaction, fill the selection screen (fields, checkboxes, "
             "radio buttons), press Execute (F8), and return the result — all in one call.\n\n"
-            "Replaces the pattern: sap_transaction → ensure_screen_state → sap_keyboard(F8) "
+            "Replaces the pattern: sap_transaction → ensure_screen_state → sap_press_key(F8) "
             "→ sap_read_table.\n\n"
             "Works with any SAP report/list transaction that has a selection screen "
             "(VA05, ME2M, MB51, FBL1N, Z-transactions, etc.).\n\n"

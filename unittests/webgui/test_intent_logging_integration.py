@@ -69,8 +69,8 @@ async def test_intent_logging_with_bp_transaction(
     await capture_html_snapshot(sap_mcp_client, "bp_initial")
 
     # Press F5 to start creating (opens new partner creation)
-    kb_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
-    assert kb_result.success, f"sap_keyboard F5 failed: {kb_result.error}"
+    kb_result = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
+    assert kb_result.success, f"sap_press_key F5 failed: {kb_result.error}"
 
     # Wait a moment for the dialog to open
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -125,5 +125,5 @@ async def test_intent_logging_with_bp_transaction(
     assert intent2_data.entry_id in entry_ids, "Second entry_id not in log"
 
     # Press F3 to go back/cancel (avoid creating an actual partner)
-    back_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F3"}, KeyboardResult)
+    back_result = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F3"}, KeyboardResult)
     print(f"\nBack result: {back_result}")

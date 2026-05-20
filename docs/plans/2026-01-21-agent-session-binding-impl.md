@@ -765,7 +765,7 @@ This task updates 14 tools in sap_tools.py to add the `agent_id` parameter. The 
 **Tools to update:**
 
 - sap_transaction
-- sap_keyboard
+- sap_press_key
 - sap_get_screen_text
 - sap_get_form_fields
 - sap_read_table
@@ -779,10 +779,10 @@ This task updates 14 tools in sap_tools.py to add the `agent_id` parameter. The 
 - sap_fill_form
 - sap_set_field
 
-**Example update for sap_keyboard:**
+**Example update for sap_press_key:**
 
 ```python
-async def sap_keyboard(
+async def sap_press_key(
     key: str,
     session: str | None = None,
     agent_id: str | None = None,
@@ -801,7 +801,7 @@ async def sap_keyboard(
     browser_manager = await get_browser_manager()
 
     try:
-        page = browser_manager.get_session_page_checked(session, agent_id, "sap_keyboard")
+        page = browser_manager.get_session_page_checked(session, agent_id, "sap_press_key")
     except ValueError as e:
         return KeyboardResult.failure(str(e), key=key)
 
@@ -974,7 +974,7 @@ Pass both `session` and `agent_id` on all subsequent calls:
 
 ```python
 # All tools support agent_id parameter
-sap_keyboard("Enter", session="s2", agent_id="my-agent")
+sap_press_key("Enter", session="s2", agent_id="my-agent")
 sap_fill_form({"Customer": "12345"}, session="s2", agent_id="my-agent")
 sap_transaction("VA02", session="s2", agent_id="my-agent")
 ```

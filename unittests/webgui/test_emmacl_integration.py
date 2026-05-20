@@ -135,8 +135,8 @@ async def test_emmacl_execute_without_filter(sap_mcp_client: ClientSession) -> N
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Execute without any filters (F8)
-    kb_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
-    assert kb_result.success, f"sap_keyboard F8 failed: {kb_result.error}"
+    kb_result = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
+    assert kb_result.success, f"sap_press_key F8 failed: {kb_result.error}"
 
     # Wait for results to load
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
@@ -194,8 +194,8 @@ async def test_emmacl_execute_with_filter(sap_mcp_client: ClientSession) -> None
     ), f"Expected {len(filter_values)} fields filled, got: {fill_result}"
 
     # Execute with filter (F8)
-    kb_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
-    assert kb_result.success, f"sap_keyboard F8 failed: {kb_result.error}"
+    kb_result = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
+    assert kb_result.success, f"sap_press_key F8 failed: {kb_result.error}"
 
     # Wait for results to load
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
@@ -250,8 +250,8 @@ async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
     # Step 2: Execute without filters (F8) to get the results table
-    kb_result = await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F8"}, KeyboardResult)
-    assert kb_result.success, f"sap_keyboard F8 failed: {kb_result.error}"
+    kb_result = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
+    assert kb_result.success, f"sap_press_key F8 failed: {kb_result.error}"
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
@@ -342,7 +342,7 @@ async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None
     await capture_html_snapshot(sap_mcp_client, "emmacl_case_detail")
 
     # Press F3 to go back to the list
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F3"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
 
 
@@ -364,7 +364,7 @@ async def test_emmacl_alv_click_with_browser_click(sap_mcp_client: ClientSession
     # Open EMMACL and get results
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Read table with ALV metadata
@@ -412,7 +412,7 @@ async def test_emmacl_alv_click_with_browser_click(sap_mcp_client: ClientSession
     )
 
     # Go back
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F3"})
 
 
 @pytest.mark.anyio
@@ -433,7 +433,7 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
     # Open EMMACL and execute without filters
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "EMMACL"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
-    await sap_mcp_client.call_tool("sap_keyboard", {"key": "F8"})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "F8"})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Read table to get available cases
@@ -507,7 +507,7 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
                 print(f"  Row {row_num}: Title unchanged, navigation may have failed")
 
             # Go back to the list
-            await sap_mcp_client.call_tool("sap_keyboard", {"key": "F3"})
+            await sap_mcp_client.call_tool("sap_press_key", {"key": "F3"})
             await sap_mcp_client.call_tool("browser_wait", {"timeout": 1500})
 
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -527,7 +527,7 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
     # This test documents the context cost of manual iteration:
     # - Each sap_click_table_cell call: ~300 tokens (call + result)
     # - Each sap_get_screen_info call: ~200 tokens
-    # - Each sap_keyboard call: ~200 tokens
+    # - Each sap_press_key call: ~200 tokens
     # - Each browser_wait call: ~150 tokens
     # For 15 cases: ~15 * (300 + 200 + 200 + 150 + 200 + 150) = ~18,000 tokens
     #

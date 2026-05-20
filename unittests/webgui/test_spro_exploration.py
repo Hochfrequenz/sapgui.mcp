@@ -86,7 +86,7 @@ async def test_spro_capture_img_tree(sap_mcp_client: ClientSession) -> None:
     await _login_and_navigate_to_spro(sap_mcp_client)
 
     # Try F5 to enter SAP Reference IMG
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "spro_img_tree", overwrite=True)
@@ -104,11 +104,11 @@ async def test_spro_capture_search_via_ctrl_f(sap_mcp_client: ClientSession) -> 
     await _login_and_navigate_to_spro(sap_mcp_client)
 
     # Enter IMG tree
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Try Ctrl+F for search
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "Ctrl+F"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Ctrl+F"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "spro_search_ctrlf", overwrite=True)
@@ -126,11 +126,11 @@ async def test_spro_capture_search_via_f5_in_tree(sap_mcp_client: ClientSession)
     await _login_and_navigate_to_spro(sap_mcp_client)
 
     # Enter IMG tree
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Try F5 again for search within the tree
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     snapshot = await capture_yaml_snapshot(sap_mcp_client, "spro_search_f5_in_tree", overwrite=True)
@@ -148,7 +148,7 @@ async def test_spro_capture_search_via_button_click(sap_mcp_client: ClientSessio
     await _login_and_navigate_to_spro(sap_mcp_client)
 
     # Enter IMG tree
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Click "Suchen (Strg+F)" / "Find (Ctrl+F)" button via JS
@@ -233,7 +233,7 @@ async def test_spro_capture_search_results(sap_mcp_client: ClientSession) -> Non
     await _login_and_navigate_to_spro(sap_mcp_client)
 
     # Enter IMG tree
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Click search button
@@ -314,7 +314,7 @@ async def test_spro_capture_search_results_country(sap_mcp_client: ClientSession
     await _login_and_navigate_to_spro(sap_mcp_client)
 
     # Enter IMG tree
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Click search button
@@ -376,7 +376,7 @@ async def test_spro_capture_toolbar_buttons(sap_mcp_client: ClientSession) -> No
     await _login_and_navigate_to_spro(sap_mcp_client)
 
     # Enter IMG tree
-    await call_tool_typed(sap_mcp_client, "sap_keyboard", {"key": "F5"}, KeyboardResult)
+    await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F5"}, KeyboardResult)
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # Capture the tree view — toolbar buttons should be visible in ARIA snapshot

@@ -60,7 +60,7 @@ The prompt set demonstrates a progression of complexity:
 
 1. **Discovery** (`getting_started`) -- what's available
 2. **Single specialized tool** (`explore_table`, `explore_function_module`, `explore_class`) -- one tool call, structured result
-3. **Generic tool composition** (`create_business_partner`) -- no dedicated BP tool exists; instead, generic tools (`sap_transaction`, `sap_keyboard`, `sap_fill_form`, `sap_read_status_bar`) are combined into a complete workflow
+3. **Generic tool composition** (`create_business_partner`) -- no dedicated BP tool exists; instead, generic tools (`sap_transaction`, `sap_press_key`, `sap_fill_form`, `sap_read_status_bar`) are combined into a complete workflow
 4. **Full lifecycle** (`abapgit_workflow`) -- MCP server as part of a broader development process
 
 The BP prompt is the key teaching example: it shows that any SAP workflow can be automated by composing the generic tools, without needing a specialized tool for every transaction.
@@ -109,9 +109,9 @@ Uses SE24 lookup:
 Multi-tool workflow demonstrating SAP automation:
 
 1. `sap_transaction("BP")` -- open transaction
-2. `sap_keyboard("F5")` or `sap_keyboard("Control+F5")` -- create person or org
+2. `sap_press_key("F5")` or `sap_press_key("Control+F5")` -- create person or org
 3. `sap_fill_form({...})` -- fill name, address fields
-4. `sap_keyboard("Control+S")` -- save
+4. `sap_press_key("Control+S")` -- save
 5. `sap_read_status_bar()` -- check for success or errors
 6. Handle missing obligatory fields (re-read screen, fill missing, retry)
 7. Verification: display created BP or `sap_se16_query(table="BUT000", filters={"PARTNER": "..."})`

@@ -161,7 +161,7 @@ session.SendVKey(45)   # on wnd[0]
 
 - VKey 45 = Ctrl+Shift+F9 = "Externen Breakpoint setzen/löschen"
 - VKey 46 = Ctrl+Shift+F10 = "Session-Breakpoint setzen/löschen" (not used here)
-- `sap_keyboard(key="Control+Shift+F9")` does **not** work on the desktop backend
+- `sap_press_key(key="Control+Shift+F9")` does **not** work on the desktop backend
 
 ### Toggle Behavior
 

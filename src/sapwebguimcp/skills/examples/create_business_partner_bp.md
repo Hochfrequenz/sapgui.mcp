@@ -66,9 +66,9 @@ sap_get_screen_text()  # Verify "Geschäftspartner pflegen" or "Maintain Busines
 
 ```
 sap_get_screen_text()  # Find button labels
-sap_keyboard("F5")     # Create Person
+sap_press_key("F5")     # Create Person
 # or
-sap_keyboard("F6")     # Create Organization
+sap_press_key("F6")     # Create Organization
 ```
 
 ### Step 3: Select Grouping
@@ -135,7 +135,7 @@ sap_get_screen_text()  # Look for role section
 ### Step 6: Save
 
 ```
-sap_keyboard("Control+S")
+sap_press_key("Control+S")
 sap_read_status_bar()  # Should show "Geschäftspartner XXXXXXXXXX angelegt"
                        # or "Business Partner XXXXXXXXXX created"
 ```
@@ -198,7 +198,7 @@ Claude: Ich öffne die Transaktion BP zur Geschäftspartner-Pflege.
 [calls sap_transaction("BP")]
 
 Die Maske "Geschäftspartner pflegen" ist geladen. Ich lege eine Person an.
-[calls sap_keyboard("F5")]
+[calls sap_press_key("F5")]
 
 [calls sap_get_screen_text() to identify fields]
 Ich sehe die Eingabefelder für die Personendaten.
@@ -206,7 +206,7 @@ Ich sehe die Eingabefelder für die Personendaten.
 [fills: Anrede=Herr, Vorname=Max, Nachname=Mustermann]
 [fills address: Straße=Hauptstraße 1, PLZ=10115, Ort=Berlin, Land=DE]
 
-[calls sap_keyboard("Control+S")]
+[calls sap_press_key("Control+S")]
 [calls sap_read_status_bar()]
 
 Der Geschäftspartner wurde erfolgreich angelegt.
