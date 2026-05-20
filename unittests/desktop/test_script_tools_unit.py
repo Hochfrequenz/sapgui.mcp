@@ -146,7 +146,10 @@ class TestRunInSandbox:
 
 class TestSapRunScriptTool:
     def _make_tool_fn(self, mcp: FastMCP):
-        # FastMCP >= 3.x stores tools in _local_provider._components keyed as "tool:<name>@"
+        # FastMCP >= 3.x stores registered tools in _local_provider._components under a key of
+        # the form "tool:<name>@".  There is no public API for extracting the underlying async
+        # function, so we reach into the private structure here.  If FastMCP changes its internal
+        # layout this will raise KeyError/AttributeError and the tests below will fail clearly.
         return mcp._local_provider._components["tool:sap_run_script@"].fn
 
     def test_non_desktop_backend_returns_failure(self):
