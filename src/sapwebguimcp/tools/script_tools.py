@@ -192,7 +192,8 @@ def register_script_tools(mcp: FastMCP) -> None:
 
         from sapwebguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
-        assert isinstance(backend, DesktopBackend)  # noqa: S101
+        if not isinstance(backend, DesktopBackend):
+            return SapRunScriptResult.failure("Internal error: expected DesktopBackend")
 
         desktop_session = backend.require_session()
         com = backend.com
