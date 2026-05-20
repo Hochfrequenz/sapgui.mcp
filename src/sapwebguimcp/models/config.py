@@ -231,8 +231,8 @@ class SapWebGuiSettings(BaseSettings):
     )
 
     # Papertrail Logging (optional)
-    # Defaults are empty — Papertrail is OFF for bare Python / pip install.
-    # The .exe build bundles .env.production which provides the real values.
+    # Defaults are empty — Papertrail is OFF everywhere (source, pip install, and .exe).
+    # Set PAPERTRAIL_HOST + PAPERTRAIL_PORT in your .env (or environment) to enable.
     papertrail_host: str = Field(
         default="",
         description="Papertrail syslog destination host. Leave empty to disable.",

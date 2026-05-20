@@ -48,7 +48,56 @@ jobs:
             dist/${{ matrix.binary }}
             dist/build-dependencies.txt
 
+  build_with_remote_logging:
+    runs-on: windows-latest
+    name: "Build (with_remote_logging)"
+    # Repository secrets are not available to PRs from forks, so skip this
+    # variant in that case. Public forks can still build the public binary.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Write .env.production from secrets
+        env:
+          PAPERTRAIL_HOST: ${{ secrets.PAPERTRAIL_HOST }}
+          PAPERTRAIL_PORT: ${{ secrets.PAPERTRAIL_PORT }}
+        shell: pwsh
+        run: |
+          if (-not $env:PAPERTRAIL_HOST -or -not $env:PAPERTRAIL_PORT) {
+            Write-Error "PAPERTRAIL_HOST and PAPERTRAIL_PORT secrets must be configured for the with_remote_logging build."
+            exit 1
+          }
+          $content = "PAPERTRAIL_HOST=$env:PAPERTRAIL_HOST`nPAPERTRAIL_PORT=$env:PAPERTRAIL_PORT`n"
+          [System.IO.File]::WriteAllText(".env.production", $content, [System.Text.Encoding]::UTF8)
+
+      - name: Build Executable
+        env:
+          SAPWEBGUI_BUILD_NAME: sapwebgui_mcp_windows_with_remote_logging
+        run: |
+          pip install tox
+          tox -e build_executable
+
+      - name: Freeze build dependencies
+        run: tox exec -e build_executable -- pip freeze > dist/build-dependencies.txt
+
+      - name: Upload Executable as Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: sapwebgui_mcp_windows_with_remote_logging
+          path: |
+            dist/sapwebgui_mcp_windows_with_remote_logging.exe
+            dist/build-dependencies.txt
+
   smoke_test:
+    # The two Windows variants share all non-logging code paths, so smoke-testing
+    # the public binary is sufficient — HF-specific behaviour (Papertrail) cannot
+    # be smoke-tested without a live Papertrail collector anyway.
     needs: build
     strategy:
       fail-fast: false
@@ -128,17 +177,27 @@ jobs:
         run: python unittests/webgui/smoke_test_exe.py dist/${{ matrix.binary }}
 
   release:
-    needs: [build, smoke_test]
-    if: github.event_name == 'release'
+    needs: [build, build_with_remote_logging, smoke_test]
+    # always() lets this job run even when build_with_remote_logging was skipped
+    # (fork PRs have no secret access and skip that job).  The shell script and
+    # fail_on_unmatched_files: false already handle missing artifacts gracefully.
+    if: always() && github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Download Windows Executable
+      - name: Download Windows (public) Executable
         uses: actions/download-artifact@v8
         with:
           name: sapwebgui_mcp_windows
           path: dist/windows
+        continue-on-error: true
+
+      - name: Download Windows (with_remote_logging) Executable
+        uses: actions/download-artifact@v8
+        with:
+          name: sapwebgui_mcp_windows_with_remote_logging
+          path: dist/windows_with_remote_logging
         continue-on-error: true
 
       - name: Download macOS Executable
@@ -157,7 +216,12 @@ jobs:
           if [ -f ./dist/windows/sapwebgui_mcp_windows.exe ]; then
             mv ./dist/windows/sapwebgui_mcp_windows.exe ./dist/release/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
           else
-            echo "::warning::Windows artifact missing; skipping"
+            echo "::warning::Windows (public) artifact missing; skipping"
+          fi
+          if [ -f ./dist/windows_with_remote_logging/sapwebgui_mcp_windows_with_remote_logging.exe ]; then
+            mv ./dist/windows_with_remote_logging/sapwebgui_mcp_windows_with_remote_logging.exe ./dist/release/sapwebgui_mcp_windows_with_remote_logging_${{ github.ref_name }}.exe
+          else
+            echo "::warning::Windows (with_remote_logging) artifact missing; skipping"
           fi
           if [ -f ./dist/macos/sapwebgui_mcp_macos_arm64 ]; then
             mv ./dist/macos/sapwebgui_mcp_macos_arm64 ./dist/release/sapwebgui_mcp_macos_arm64_${{ github.ref_name }}
@@ -166,10 +230,11 @@ jobs:
           fi
           ls -la dist/release/
 
-      - name: Upload Executable to Release
+      - name: Upload Executables to Release
         uses: softprops/action-gh-release@v3
         with:
           files: |
             ./dist/release/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
+            ./dist/release/sapwebgui_mcp_windows_with_remote_logging_${{ github.ref_name }}.exe
             ./dist/release/sapwebgui_mcp_macos_arm64_${{ github.ref_name }}
           fail_on_unmatched_files: false

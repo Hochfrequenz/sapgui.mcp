@@ -63,6 +63,10 @@ cover/
 
 # Environments
 .env
+# Written at build time by the build_with_remote_logging CI job to bundle
+# Papertrail defaults; never commit — doing so would leak the logging
+# endpoint into every build, including the public one.
+/.env.production
 .venv
 env/
 venv/
