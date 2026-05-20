@@ -32,6 +32,7 @@ from sapwebguimcp.tools import (
     register_intent_tools,
     register_quick_report_tools,
     register_sap_tools,
+    register_script_tools,
     register_se09_tools,
     register_se11_tools,
     register_se16_tools,
@@ -244,6 +245,12 @@ ESCAPE HATCHES (when SAP-specific tools are insufficient):
   - action="call": Invoke a method (e.g., SendVKey on wnd[0], Press on buttons)
   - Use element IDs from sap_com_snapshot (e.g., "wnd[0]/usr/cmbFIELD")
   - VKey codes: 0=Enter, 3=F3/Back, 8=F8/Execute, 11=F11/Save, 12=F12/Cancel
+- sap_run_script: Run a Python script against the live session in one round-trip
+  - Use when the number of operations depends on a runtime value (rows in a grid,
+    nodes in a tree, status-conditional branching) — replaces many sap_com_evaluate
+    calls with a single script. Faster and uses fewer tokens.
+  - Provides: session (GuiSession), output(value) to collect results
+  - import and print are not available; use output() instead
 """
 
 
@@ -325,6 +332,7 @@ if _backend == "webgui":
 if _backend == "desktop":
     register_com_tools(mcp)
     register_tree_tools(mcp)
+    register_script_tools(mcp)
 
 # Register prompts
 register_prompts(mcp)
