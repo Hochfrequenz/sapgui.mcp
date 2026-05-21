@@ -11,7 +11,7 @@ ARIA format examples (from real SAP screens)::
     - checkbox "Änderbar" [checked] [disabled]:  Änderbar
     - radio "Datenbanktabelle" [checked]
     - radio "View"
-    - textbox "Benutzer": KLEINK
+    - textbox "Benutzer": USER01
     - menuitemradio "System S4U (100)" [checked]:   ← ignored (system info)
 """
 
