@@ -37,8 +37,18 @@ All three setup approaches below show Claude Desktop and Claude Code snippets; o
 <summary><strong>📦 Standalone Executable (recommended — no Docker, no Python)</strong></summary>
 <br>
 
-Download `sapgui_mcp_windows_<version>.exe` from
-[GitHub Releases](https://github.com/Hochfrequenz/sapgui.mcp/releases/latest).
+Download the binary for your platform from
+[GitHub Releases](https://github.com/Hochfrequenz/sapgui.mcp/releases/latest):
+
+| Platform         | Binary                                    |
+| ---------------- | ----------------------------------------- |
+| Windows (x64)    | `sapgui_mcp_windows_<version>.exe`        |
+| macOS (Apple Silicon) | `sapgui_mcp_macos_arm64_<version>` |
+
+> [!NOTE]
+> The macOS binary supports the **WebGUI backend only** (browser automation). The desktop backend requires SAP GUI for Windows (COM Scripting) and is not available on macOS.
+>
+> **macOS Gatekeeper:** If macOS refuses to run the binary, clear the quarantine attribute: `xattr -c sapgui_mcp_macos_arm64_<version>`
 
 Choose a backend:
 
@@ -610,32 +620,130 @@ Add to `.mcp.json` in your project root:
 
 ## Available Tools
 
-### SAP Tools
+### Core SAP Tools
 
-| Tool                     | Description                                                                            |
-| ------------------------ | -------------------------------------------------------------------------------------- |
-| `sap_login`              | Logs into SAP (WebGUI: opens login page; Desktop: connects via SAP Logon)              |
-| `sap_transaction`        | Enters and executes a transaction code                                                 |
-| `sap_keepalive_start`    | Prevents session timeout (pings every 5 minutes)                                       |
-| `sap_keepalive_stop`     | Stops the keepalive task                                                               |
-| `sap_abapgit_list_repos` | List all registered abapGit repos (names, Git URLs, packages, branches, last pull)    |
-| `sap_abapgit_pull`       | Pull a registered abapGit repo (uses the `Z_ABAPGIT_PULL_MCP_SHORTCUT` SAP-side report) |
-| `log_intent`             | Log what you're doing for accountability                                               |
-| `log_feedback`           | Report issues (creates GitHub issues if `GITHUB_PAT` is set)                           |
+| Tool | Description |
+| --- | --- |
+| `sap_login` | Log into SAP (WebGUI: opens login page; Desktop: connects via SAP Logon) |
+| `sap_transaction` | Enter and execute a transaction code |
+| `sap_list_connections` | List configured SAP systems and SAP Logon entries |
+| `sap_screenshot` | Take a screenshot of the current SAP screen |
+| `sap_keepalive_start` | Prevent session timeout (pings every 5 minutes) |
+| `sap_keepalive_stop` | Stop the keepalive task |
+| `sap_get_capabilities` | Query which features the current backend supports |
 
-#### abapGit integration
+### Screen Interaction Tools
+
+| Tool | Description |
+| --- | --- |
+| `sap_get_screen_text` | Get all readable text from the current screen |
+| `sap_get_screen_info` | Get technical screen info (program, dynpro, title) |
+| `sap_get_form_fields` | Get all form fields and their current values |
+| `sap_fill_form` | Fill multiple form fields at once |
+| `sap_set_field` | Set a single field by selector or label |
+| `sap_set_checkbox` | Toggle a checkbox |
+| `sap_set_radio_button` | Select a radio button |
+| `sap_click_button` | Click a button by label text |
+| `sap_select_tab` | Select a tab by label text |
+| `sap_select_dropdown` | Select a dropdown option by label and value |
+| `sap_press_key` | Send keyboard shortcuts (F-keys, Ctrl+S, etc.) |
+| `sap_close_popup` | Close modal popups and dialogs |
+| `sap_read_status_bar` | Read status bar messages |
+| `sap_read_table` | Read data from ALV grids and tables |
+| `sap_click_table_cell` | Click a cell in an ALV grid table |
+| `sap_session_status` | Check SAP session status |
+| `sap_lookup_fields` | Look up known field selectors for a transaction |
+| `sap_discover_fields` | Discover input fields on current screen |
+| `sap_discover_buttons` | Discover available buttons on current screen |
+| `sap_get_shortcuts` | Get available keyboard shortcuts |
+
+### Transaction-Specific Tools
+
+| Tool | Description |
+| --- | --- |
+| `sap_se09_lookup` | Search transports (SE09/SE10) |
+| `sap_se11_lookup` | Look up Data Dictionary objects (tables, structures, data elements) |
+| `sap_se16_query` | Query table contents via SE16/SE16N |
+| `sap_se24_lookup` | Look up ABAP class definitions |
+| `sap_se24_edit` | Edit ABAP class source code |
+| `sap_se37_lookup` | Look up function module definitions |
+| `sap_se37_edit` | Edit function module source code |
+| `sap_se38_edit` | Edit ABAP report source code |
+| `sap_se93_lookup` | Look up transaction code definitions |
+| `sap_slg1_lookup` | Query application logs (SLG1) |
+| `sap_sm30_lookup` | Display/maintain table views (SM30) |
+| `sap_sm37_lookup` | Search background jobs (SM37) |
+| `sap_spro_search` | Search customizing activities (SPRO) |
+| `sap_st22_lookup` | Look up ABAP short dumps |
+| `sap_quick_report` | Run SAP Quick Reports (SQVI) |
+
+### Session Management Tools (Desktop backend)
+
+| Tool | Description |
+| --- | --- |
+| `sap_session_list` | List all active SAP sessions |
+| `sap_session_bind` | Bind to a specific SAP session (for parallel agents) |
+| `sap_session_release` | Release a bound session |
+| `sap_session_close` | Close an SAP session |
+| `sap_session_reset_to_primary` | Reset to primary session |
+
+### Catalog Search Tools (offline, no SAP connection needed)
+
+| Tool | Description |
+| --- | --- |
+| `search_transactions` | Search bundled transaction catalog by keyword |
+| `search_tables` | Search bundled SAP table catalog by name or field |
+| `search_classes` | Search bundled ABAP class catalog |
+| `search_function_modules` | Search bundled function module catalog |
+
+### abapGit Tools
+
+| Tool | Description |
+| --- | --- |
+| `sap_abapgit_list_repos` | List all registered abapGit repos (names, Git URLs, packages, branches, last pull) |
+| `sap_abapgit_pull` | Pull a registered abapGit repo (uses the `Z_ABAPGIT_PULL_MCP_SHORTCUT` SAP-side report) |
+| `sap_read_se38_source` | Read ABAP report source code via SE38 |
 
 `sap_abapgit_pull` and `sap_abapgit_list_repos` require the [`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT) ABAP report installed on the SAP system.
 The report calls the abapGit ABAP API directly instead of automating the UI, which makes pulls much more reliable.
 If the tools fail with `"transaction not found"` or similar, install the report from that repo first.
 For private git repositories, set `GITHUB_PAT` or `ABAPGIT_PAT` (the latter overrides the former) in the MCP server's environment — without a PAT, pulls from private repos will fail.
 
-### Browser Tools (WebGUI only)
+### Desktop COM Tools (Desktop backend only)
+
+| Tool | Description |
+| --- | --- |
+| `sap_com_snapshot` | Dump the SAP GUI control tree (object hierarchy) |
+| `sap_com_evaluate` | Execute raw COM operations on SAP GUI objects |
+| `sap_run_script` | Run a Python script against the SAP GUI COM API |
+| `sap_tree_context_menu` | Open and interact with tree context menus |
+| `sap_breakpoint_set` | Set an ABAP breakpoint |
+| `sap_breakpoint_delete` | Delete an ABAP breakpoint |
+| `sap_breakpoint_list` | List active ABAP breakpoints |
+
+### Logging Tools
+
+| Tool | Description |
+| --- | --- |
+| `log_intent` | Log what you're doing for accountability |
+| `log_feedback` | Report issues (creates GitHub issues if `GITHUB_PAT` is set) |
+
+### Browser Tools (WebGUI backend only)
 
 Low-level browser escape hatches available when using the WebGUI backend:
 
-- **`browser_screenshot`** — capture a PNG of the current SAP Web GUI view. Useful for documentation, visual validation, and showing reviewers what a workflow actually looks like on screen.
-- **`browser_snapshot`**, **`browser_click`**, **`browser_fill`**, **`browser_keyboard`**, etc. — fallbacks for SAP screens the typed SAP tools above do not yet cover.
+| Tool | Description |
+| --- | --- |
+| `browser_screenshot` | Capture a PNG of the current SAP Web GUI view |
+| `browser_snapshot` | Get the accessibility tree of the current page |
+| `browser_click` | Click an element by selector |
+| `browser_fill` | Fill an input field |
+| `browser_keyboard` | Send keyboard input |
+| `browser_navigate` | Navigate to a URL |
+| `browser_evaluate` | Execute JavaScript on the page |
+| `browser_wait` | Wait for an element or a timeout |
+| `browser_get_html` | Get HTML content of the page or an element |
+| `browser_select_option` | Select a dropdown option |
 
 The SAP-specific tools above handle most interactions; reach for the browser tools when you need pixel-level control.
 
@@ -652,23 +760,26 @@ SAP credentials (user, password, client, language, host) are configured in `syst
 
 ### Environment Variables (server-specific)
 
-| Variable           | Required                    | Description                                                            | Default                      |
-| ------------------ | --------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
-| `BACKEND_TYPE`     | No                          | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`                     |
-| `SAP_URL`          | No                          | Override WebGUI URL (default: derived from `host` in systems.json)     | `""`                         |
-| `SAP_CONFIG_FILE`  | No                          | Path to systems.json (see table above for default per OS)              | (see above)                  |
-| `BROWSER_MODE`     | No                          | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.     | `connect`                    |
-| `BROWSER_TYPE`     | No                          | `chromium`, `firefox`, or `webkit`. WebGUI only.                       | `chromium`                   |
-| `BROWSER_HEADLESS` | No                          | Run browser in headless mode. WebGUI only.                             | `false`                      |
-| `CDP_URL`          | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL. WebGUI only.                             | `http://localhost:9222`      |
-| `GITHUB_PAT`       | No                          | GitHub PAT for `log_feedback` issues and abapGit auth                  | —                            |
-| `GITHUB_USER`      | No                          | GitHub username for abapGit (falls back to `x-access-token`)           | —                            |
-| `GITHUB_REPO`      | No                          | Repository for feedback issues                                         | `Hochfrequenz/sapgui.mcp` |
-| `ABAPGIT_PAT`      | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)               | —                            |
-| `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                              | `""` (off)                   |
-| `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                                 | `0` (off)                    |
-| `LOG_FORMAT`       | No                          | Set to `json` for JSON log output                                      | `""` (human-readable)        |
-| `LOG_LEVEL`        | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                                 | `INFO`                       |
+| Variable             | Required                    | Description                                                            | Default                      |
+| -------------------- | --------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
+| `BACKEND_TYPE`       | No                          | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`                     |
+| `SAP_URL`            | No                          | Override WebGUI URL (default: derived from `host` in systems.json)     | `""`                         |
+| `SAP_CONFIG_FILE`    | No                          | Path to systems.json (see table above for default per OS)              | (see above)                  |
+| `BROWSER_MODE`       | No                          | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.     | `connect`                    |
+| `BROWSER_TYPE`       | No                          | `chromium`, `firefox`, or `webkit`. WebGUI only.                       | `chromium`                   |
+| `BROWSER_HEADLESS`   | No                          | Run browser in headless mode. WebGUI only.                             | `false`                      |
+| `CDP_URL`            | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL. WebGUI only.                             | `http://localhost:9222`      |
+| `CHROME_PATH`        | No                          | Explicit path to Chrome binary. If empty, auto-detected. WebGUI only.  | `""` (auto-detect)           |
+| `CHROME_USER_DATA_DIR` | No                        | User data directory for auto-launched Chrome. WebGUI only.             | `<tempdir>/chrome-debug`     |
+| `COM_MIN_INTERVAL_MS` | No                         | Minimum ms between COM calls (prevents overload). Desktop only.        | `100`                        |
+| `GITHUB_PAT`         | No                          | GitHub PAT for `log_feedback` issues and abapGit auth                  | —                            |
+| `GITHUB_USER`        | No                          | GitHub username for abapGit (falls back to `x-access-token`)           | —                            |
+| `GITHUB_REPO`        | No                          | Repository for feedback issues                                         | `Hochfrequenz/sapgui.mcp` |
+| `ABAPGIT_PAT`        | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)               | —                            |
+| `PAPERTRAIL_HOST`    | No                          | Papertrail syslog host (empty to disable)                              | `""` (off)                   |
+| `PAPERTRAIL_PORT`    | No                          | Papertrail syslog port                                                 | `0` (off)                    |
+| `LOG_FORMAT`         | No                          | Set to `json` for JSON log output                                      | `""` (human-readable)        |
+| `LOG_LEVEL`          | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                                 | `INFO`                       |
 
 ## Logging
 
@@ -687,12 +798,13 @@ PAPERTRAIL_PORT=12345
 
 When enabled, tool call names, SAP hostnames, and operational metadata are sent to the configured Papertrail endpoint for monitoring and debugging. No SAP credentials or business data are transmitted.
 
-Each release publishes two Windows binaries:
+Each release publishes binaries for Windows and macOS:
 
 | Binary | Papertrail default | Intended audience |
 |---|---|---|
 | `sapgui_mcp_windows.exe` | **off** — no defaults bundled | Public / external users |
 | `sapgui_mcp_windows_with_remote_logging.exe` | Hochfrequenz endpoint baked in at build time | Hochfrequenz-internal use |
+| `sapgui_mcp_macos_arm64` | **off** — no defaults bundled | Public / macOS (Apple Silicon) users |
 
 Both binaries honour user overrides via `.env` or environment variables.
 
