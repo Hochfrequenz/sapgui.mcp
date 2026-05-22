@@ -13,6 +13,9 @@ The MCP works with both SAP R/3 and S/4 (because some might even say "they are t
 > [!TIP]
 > **Pairs with [`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `mcp-server-abap` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
 
+> [!TIP]
+> **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, send a single Python script that loops, branches, and collects results — all in one shot. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. The script runs in a secure sandbox against the SAP GUI COM API and returns structured output. Desktop backend only. See [Desktop COM Tools](#desktop-com-tools-desktop-backend-only).
+
 > **Developer?** See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured, request flow diagrams, and how to add new transaction tools.
 
 ## Setup
@@ -715,7 +718,7 @@ For private git repositories, set `GITHUB_PAT` or `ABAPGIT_PAT` (the latter over
 | --- | --- |
 | `sap_com_snapshot` | Dump the SAP GUI control tree (object hierarchy) |
 | `sap_com_evaluate` | Execute raw COM operations on SAP GUI objects |
-| `sap_run_script` | Run a Python script against the SAP GUI COM API |
+| `sap_run_script` | 🚀 Run a sandboxed Python script against the SAP GUI COM API — loops, branches, and bulk reads in one call instead of many. Great token saver! |
 | `sap_tree_context_menu` | Open and interact with tree context menus |
 | `sap_breakpoint_set` | Set an ABAP breakpoint |
 | `sap_breakpoint_delete` | Delete an ABAP breakpoint |
