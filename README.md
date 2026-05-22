@@ -14,7 +14,7 @@ The MCP works with both SAP R/3 and S/4 (because some might even say "they are t
 > **Pairs with [`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `mcp-server-abap` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
 
 > [!TIP]
-> **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, send a single Python script that loops, branches, and collects results — all in one shot. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. The script runs in a secure sandbox against the SAP GUI COM API and returns structured output. Desktop backend only. See [Desktop COM Tools](#desktop-com-tools-desktop-backend-only).
+> **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, the AI agent can write and execute a single Python script that loops, branches, and collects results — all in one shot. You just describe what you need; the agent generates the script automatically. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. Runs in a secure sandbox against the SAP GUI COM API. Desktop backend only. See [Desktop COM Tools](#desktop-com-tools-desktop-backend-only).
 
 > **Developer?** See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured, request flow diagrams, and how to add new transaction tools.
 
