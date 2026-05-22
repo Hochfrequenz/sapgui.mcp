@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-24
 **Status:** Approved
-**Issue:** The codebase has ~63 local (lazy) imports scattered across `src/sapwebguimcp/`. Most exist to work around a circular dependency chain or because imports were never promoted to top-level. This spec describes how to reduce them to ~28, keeping only those justified by platform constraints or concrete-class access patterns.
+**Issue:** The codebase has ~63 local (lazy) imports scattered across `src/sapguimcp/`. Most exist to work around a circular dependency chain or because imports were never promoted to top-level. This spec describes how to reduce them to ~28, keeping only those justified by platform constraints or concrete-class access patterns.
 
 ## Problem
 
@@ -34,8 +34,8 @@ This breaks the only `backend → tools` edge: `desktop/__init__.py` no longer i
 - `manager.py` can import both backends at top-level. Desktop imports use a platform guard:
   ```python
   if sys.platform == "win32":
-      from sapwebguimcp.backend.desktop import DesktopBackend, _current_session_id
-      from sapwebguimcp.backend.desktop._com_thread import ComThread
+      from sapguimcp.backend.desktop import DesktopBackend, _current_session_id
+      from sapguimcp.backend.desktop._com_thread import ComThread
   ```
   This is needed because `desktop/__init__.py` imports `sapsucker.login` at top-level, which only exists on Windows.
 - `desktop/__init__.py` can import result models and `get_settings` at top-level since there is no longer a reverse path back to `tools/`.
@@ -91,7 +91,7 @@ These are justified and should remain:
 | `sapsucker.login`, `SapGui`, `SapConnectionError` | `_discovery.py` | 3 | Heavy import chain, called rarely |
 | `GuiVContainer` | `se93_tools.py` | 1 | sapsucker component in COM callback |
 | `server` | `__init__.py` | 1 | `__getattr__` lazy module loading |
-| `_sapwebguimcp_version` | `server.py` | 1 | Generated file, may not exist |
+| `_sapguimcp_version` | `server.py` | 1 | Generated file, may not exist |
 | `open_and_discover_clients` | `desktop/__init__.py` | 1 | Heavy import chain, called rarely |
 
 **Total remaining: ~28**
@@ -116,8 +116,8 @@ These are justified and should remain:
 
 ## Verification
 
-- `pylint src/sapwebguimcp` scores 10.00/10
-- `mypy --strict src/sapwebguimcp` passes
+- `pylint src/sapguimcp` scores 10.00/10
+- `mypy --strict src/sapguimcp` passes
 - `isort --check` and `black --check` pass
 - All unit tests pass
 - Count of `import-outside-toplevel` disables drops from ~63 to ~28

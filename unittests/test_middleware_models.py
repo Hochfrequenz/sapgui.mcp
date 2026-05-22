@@ -1,6 +1,6 @@
 """Tests for middleware models (SapIdentity, SessionStats)."""
 
-from sapwebguimcp.models.middleware import SapIdentity, SessionStats
+from sapguimcp.models.middleware import SapIdentity, SessionStats
 
 
 def test_sap_identity_model():

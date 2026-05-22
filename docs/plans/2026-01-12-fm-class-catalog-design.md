@@ -61,7 +61,7 @@ class ClassCatalog(BaseModel):
 ## File Structure
 
 ```
-src/sapwebguimcp/
+src/sapguimcp/
 ├── data/
 │   ├── transactions.json      # (existing)
 │   ├── tables.json            # (existing)

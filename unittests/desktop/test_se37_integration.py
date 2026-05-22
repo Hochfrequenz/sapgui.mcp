@@ -5,8 +5,8 @@ import sys
 
 import pytest
 
-from sapwebguimcp.models.se37_models import SE37Entry, SE37Error
-from sapwebguimcp.tools.se37_tools import _lookup_fm_desktop
+from sapguimcp.models.se37_models import SE37Entry, SE37Error
+from sapguimcp.tools.se37_tools import _lookup_fm_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

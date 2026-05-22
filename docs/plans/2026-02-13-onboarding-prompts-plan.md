@@ -4,9 +4,9 @@
 
 **Goal:** Add 6 static markdown prompts to help new users discover and use the SAP Web GUI MCP server.
 
-**Architecture:** Pure content -- 6 new `.md` files in `src/sapwebguimcp/prompts/`. No code changes. The existing auto-discovery system (`register_prompts` in `__init__.py`) picks them up automatically. Existing CI tests validate format.
+**Architecture:** Pure content -- 6 new `.md` files in `src/sapguimcp/prompts/`. No code changes. The existing auto-discovery system (`register_prompts` in `__init__.py`) picks them up automatically. Existing CI tests validate format.
 
-**Tech Stack:** Markdown with YAML frontmatter. Follows the template in `src/sapwebguimcp/prompts/README.md`.
+**Tech Stack:** Markdown with YAML frontmatter. Follows the template in `src/sapguimcp/prompts/README.md`.
 
 ---
 
@@ -14,11 +14,11 @@
 
 **Files:**
 
-- Create: `src/sapwebguimcp/prompts/getting_started.md`
+- Create: `src/sapguimcp/prompts/getting_started.md`
 
 **Step 1: Write the prompt file**
 
-Create `src/sapwebguimcp/prompts/getting_started.md` with this content:
+Create `src/sapguimcp/prompts/getting_started.md` with this content:
 
 ```markdown
 ---
@@ -121,7 +121,7 @@ Expected: All tests PASS (file count increases from 1 to 2)
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/prompts/getting_started.md
+git add src/sapguimcp/prompts/getting_started.md
 git commit -m "feat(prompts): add getting_started onboarding prompt"
 ```
 
@@ -131,11 +131,11 @@ git commit -m "feat(prompts): add getting_started onboarding prompt"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/prompts/explore_table.md`
+- Create: `src/sapguimcp/prompts/explore_table.md`
 
 **Step 1: Write the prompt file**
 
-Create `src/sapwebguimcp/prompts/explore_table.md` with this content:
+Create `src/sapguimcp/prompts/explore_table.md` with this content:
 
 ```markdown
 ---
@@ -238,7 +238,7 @@ Expected: All tests PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/prompts/explore_table.md
+git add src/sapguimcp/prompts/explore_table.md
 git commit -m "feat(prompts): add explore_table prompt"
 ```
 
@@ -248,11 +248,11 @@ git commit -m "feat(prompts): add explore_table prompt"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/prompts/explore_function_module.md`
+- Create: `src/sapguimcp/prompts/explore_function_module.md`
 
 **Step 1: Write the prompt file**
 
-Create `src/sapwebguimcp/prompts/explore_function_module.md` with this content:
+Create `src/sapguimcp/prompts/explore_function_module.md` with this content:
 
 ```markdown
 ---
@@ -337,7 +337,7 @@ Expected: All tests PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/prompts/explore_function_module.md
+git add src/sapguimcp/prompts/explore_function_module.md
 git commit -m "feat(prompts): add explore_function_module prompt"
 ```
 
@@ -347,11 +347,11 @@ git commit -m "feat(prompts): add explore_function_module prompt"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/prompts/explore_class.md`
+- Create: `src/sapguimcp/prompts/explore_class.md`
 
 **Step 1: Write the prompt file**
 
-Create `src/sapwebguimcp/prompts/explore_class.md` with this content:
+Create `src/sapguimcp/prompts/explore_class.md` with this content:
 
 ```markdown
 ---
@@ -426,7 +426,7 @@ Expected: All tests PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/prompts/explore_class.md
+git add src/sapguimcp/prompts/explore_class.md
 git commit -m "feat(prompts): add explore_class prompt"
 ```
 
@@ -436,13 +436,13 @@ git commit -m "feat(prompts): add explore_class prompt"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/prompts/create_business_partner.md`
-- Reference: `src/sapwebguimcp/skills/examples/create_business_partner_bp.md` (existing, for field mappings)
-- Reference: `src/sapwebguimcp/workflows/bp-person-creation.md` (existing, for workflow steps)
+- Create: `src/sapguimcp/prompts/create_business_partner.md`
+- Reference: `src/sapguimcp/skills/examples/create_business_partner_bp.md` (existing, for field mappings)
+- Reference: `src/sapguimcp/workflows/bp-person-creation.md` (existing, for workflow steps)
 
 **Step 1: Write the prompt file**
 
-Create `src/sapwebguimcp/prompts/create_business_partner.md` with this content:
+Create `src/sapguimcp/prompts/create_business_partner.md` with this content:
 
 ```markdown
 ---
@@ -646,7 +646,7 @@ Expected: All tests PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/prompts/create_business_partner.md
+git add src/sapguimcp/prompts/create_business_partner.md
 git commit -m "feat(prompts): add create_business_partner prompt
 
 Demonstrates composing generic tools (sap_transaction, sap_fill_form,
@@ -660,12 +660,12 @@ needing a dedicated BP tool."
 
 **Files:**
 
-- Create: `src/sapwebguimcp/prompts/abapgit_workflow.md`
-- Reference: `src/sapwebguimcp/data/sap_knowledge.md` (lines 66-135, ABAP development section)
+- Create: `src/sapguimcp/prompts/abapgit_workflow.md`
+- Reference: `src/sapguimcp/data/sap_knowledge.md` (lines 66-135, ABAP development section)
 
 **Step 1: Write the prompt file**
 
-Create `src/sapwebguimcp/prompts/abapgit_workflow.md` with this content:
+Create `src/sapguimcp/prompts/abapgit_workflow.md` with this content:
 
 ```markdown
 ---
@@ -783,7 +783,7 @@ Expected: All tests PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/prompts/abapgit_workflow.md
+git add src/sapguimcp/prompts/abapgit_workflow.md
 git commit -m "feat(prompts): add abapgit_workflow prompt"
 ```
 

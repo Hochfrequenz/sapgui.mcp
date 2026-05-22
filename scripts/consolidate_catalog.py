@@ -14,7 +14,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from sapwebguimcp.catalog.models import TransactionCatalog, TransactionInfo, detect_area
+from sapguimcp.catalog.models import TransactionCatalog, TransactionInfo, detect_area
 
 
 def load_se16_result(file_path: Path) -> list[dict]:
@@ -48,9 +48,9 @@ def main():
     """Main consolidation function."""
     # Paths
     tool_results_dir = Path(
-        r"C:\Users\KleinKonstantin\.claude\projects\C--github-sapwebgui-mcp\d667c1d3-9bc0-4d17-a90f-c1a710d03224\tool-results"
+        r"C:\Users\KleinKonstantin\.claude\projects\C--github-sapgui-mcp\d667c1d3-9bc0-4d17-a90f-c1a710d03224\tool-results"
     )
-    data_dir = project_root / "src" / "sapwebguimcp" / "data"
+    data_dir = project_root / "src" / "sapguimcp" / "data"
     output_file = data_dir / "transactions.json"
 
     # Ensure data directory exists

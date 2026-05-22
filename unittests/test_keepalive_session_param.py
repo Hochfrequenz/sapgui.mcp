@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-_PATCH_GET_BACKEND = "sapwebguimcp.tools.sap_tools.get_backend"
+_PATCH_GET_BACKEND = "sapguimcp.tools.sap_tools.get_backend"
 
 
 def _make_mock_backend() -> AsyncMock:
@@ -25,7 +25,7 @@ def _make_mock_backend() -> AsyncMock:
 
 @pytest.fixture
 async def start_fn() -> Callable[..., Any]:
-    from sapwebguimcp.server import mcp
+    from sapguimcp.server import mcp
 
     tool = await mcp.get_tool("sap_keepalive_start")
     return tool.fn
@@ -33,7 +33,7 @@ async def start_fn() -> Callable[..., Any]:
 
 @pytest.fixture
 async def stop_fn() -> Callable[..., Any]:
-    from sapwebguimcp.server import mcp
+    from sapguimcp.server import mcp
 
     tool = await mcp.get_tool("sap_keepalive_stop")
     return tool.fn

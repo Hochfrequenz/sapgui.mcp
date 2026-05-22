@@ -14,12 +14,12 @@ Currently, `sap_tools.py` contains 7 significant JavaScript blocks (ranging from
 
 ## Solution
 
-Create a `src/sapwebguimcp/js/` directory containing dedicated JavaScript files, loaded at runtime using `importlib.resources`.
+Create a `src/sapguimcp/js/` directory containing dedicated JavaScript files, loaded at runtime using `importlib.resources`.
 
 ## Structure
 
 ```
-src/sapwebguimcp/
+src/sapguimcp/
 ├── js/
 │   ├── __init__.py              # Makes it a package for importlib.resources
 │   ├── set_language_field.js    # sap_login language setting
@@ -67,8 +67,8 @@ Helper function to load JS files:
 from importlib import resources
 
 def _load_js(filename: str) -> str:
-    """Load a JavaScript file from the sapwebguimcp.js package."""
-    return resources.files("sapwebguimcp.js").joinpath(filename).read_text(encoding="utf-8")
+    """Load a JavaScript file from the sapguimcp.js package."""
+    return resources.files("sapguimcp.js").joinpath(filename).read_text(encoding="utf-8")
 ```
 
 Usage:
@@ -102,7 +102,7 @@ result = await page.evaluate(
 
 ## Packaging
 
-Files in `src/sapwebguimcp/js/` are automatically included in the package since `pyproject.toml` has `only-include = ["src"]`. The `__init__.py` ensures the directory is treated as a package for `importlib.resources`.
+Files in `src/sapguimcp/js/` are automatically included in the package since `pyproject.toml` has `only-include = ["src"]`. The `__init__.py` ensures the directory is treated as a package for `importlib.resources`.
 
 ## Testing
 

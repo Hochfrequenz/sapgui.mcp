@@ -5,8 +5,8 @@ import sys
 
 import pytest
 
-from sapwebguimcp.models.se24_models import SE24Entry, SE24Error
-from sapwebguimcp.tools.se24_tools import _lookup_class_desktop
+from sapguimcp.models.se24_models import SE24Entry, SE24Error
+from sapguimcp.tools.se24_tools import _lookup_class_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

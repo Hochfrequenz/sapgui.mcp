@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, PropertyMock
 
 import pytest
 
-from sapwebguimcp.tools.table_helpers import (
+from sapguimcp.tools.table_helpers import (
     _find_table_control_info,
     _read_visible_page,
     read_table_control,

@@ -1,5 +1,5 @@
 [project]
-name = "sapwebguimcp"
+name = "sapguimcp"
 description = "MCP server for SAP Web GUI browser automation"
 license = "MIT"
 requires-python = ">=3.11"
@@ -70,11 +70,11 @@ build_executable = [
 ]
 
 [project.urls]
-Changelog = "https://github.com/Hochfrequenz/sapwebgui.mcp/releases"
-Homepage = "https://github.com/Hochfrequenz/sapwebgui.mcp"
+Changelog = "https://github.com/Hochfrequenz/sapgui.mcp/releases"
+Homepage = "https://github.com/Hochfrequenz/sapgui.mcp"
 
 [project.scripts]
-run-sapwebgui-mcp-server = "sapwebguimcp.server:main"
+run-sapgui-mcp-server = "sapguimcp.server:main"
 
 [tool.black]
 line-length = 120
@@ -113,7 +113,7 @@ fragments = [{ path = "README.md" }]
 source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
-version-file = "src/_sapwebguimcp_version.py"
+version-file = "src/_sapguimcp_version.py"
 template = '''
 version = "{version}"
 '''
@@ -126,8 +126,8 @@ only-include = ["src"]
 sources = ["src"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/sapwebguimcp/backend/webgui/js" = "sapwebguimcp/backend/webgui/js"
-"src/sapwebguimcp/prompts" = "sapwebguimcp/prompts"
+"src/sapguimcp/backend/webgui/js" = "sapguimcp/backend/webgui/js"
+"src/sapguimcp/prompts" = "sapguimcp/prompts"
 
 [tool.pytest.ini_options]
 testpaths = ["unittests"]

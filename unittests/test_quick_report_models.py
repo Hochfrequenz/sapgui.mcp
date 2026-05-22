@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from sapwebguimcp.models.quick_report_models import (
+from sapguimcp.models.quick_report_models import (
     QuickReportResult,
     ScreenClassification,
 )

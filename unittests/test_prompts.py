@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
-from sapwebguimcp.prompts import PromptValidationError
-from sapwebguimcp.prompts import __file__ as prompts_module_file
-from sapwebguimcp.prompts import parse_frontmatter, validate_prompt_file
+from sapguimcp.prompts import PromptValidationError
+from sapguimcp.prompts import __file__ as prompts_module_file
+from sapguimcp.prompts import parse_frontmatter, validate_prompt_file
 
 
 def get_prompts_dir() -> Path:
@@ -242,7 +242,7 @@ def _get_registered_prompts() -> dict[str, Any]:
     """
     import asyncio
 
-    from sapwebguimcp.server import mcp
+    from sapguimcp.server import mcp
 
     if hasattr(mcp, "list_prompts"):
         prompts_list = asyncio.run(mcp.list_prompts())

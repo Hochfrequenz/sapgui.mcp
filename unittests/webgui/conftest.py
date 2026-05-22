@@ -265,7 +265,7 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     This fixture:
     1. Skips if not running on an authorized machine (HF-KKLEIN3)
     2. Skips if SAP_URL environment variable is not set
-    3. Starts the sapwebguimcp server as a subprocess
+    3. Starts the sapguimcp server as a subprocess
     4. Connects an MCP client via stdio
     5. Yields the client session for tests to call tools
     6. Cleans up on teardown
@@ -297,7 +297,7 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     }
     server_params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "sapwebguimcp.server"],
+        args=["-m", "sapguimcp.server"],
         env=server_env,
     )
 

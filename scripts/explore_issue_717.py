@@ -22,10 +22,10 @@ import json
 import sys
 from pathlib import Path
 
-from sapwebguimcp.backend.desktop import DesktopBackend
-from sapwebguimcp.backend.desktop._com_thread import ComThread
-from sapwebguimcp.models.config import get_sap_config
-from sapwebguimcp.tools.com_tools import ComOperationInput, _execute_single_op
+from sapguimcp.backend.desktop import DesktopBackend
+from sapguimcp.backend.desktop._com_thread import ComThread
+from sapguimcp.models.config import get_sap_config
+from sapguimcp.tools.com_tools import ComOperationInput, _execute_single_op
 
 TREE_PATH = [
     "DCS Projekte",

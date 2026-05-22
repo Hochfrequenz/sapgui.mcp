@@ -6,8 +6,8 @@ from datetime import date, timedelta
 
 import pytest
 
-from sapwebguimcp.models.st22_models import ST22DumpListResult
-from sapwebguimcp.tools.st22_tools import _st22_lookup_desktop
+from sapguimcp.models.st22_models import ST22DumpListResult
+from sapguimcp.tools.st22_tools import _st22_lookup_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

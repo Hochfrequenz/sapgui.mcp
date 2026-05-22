@@ -10,8 +10,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture overview — la
 
 ```bash
 # Clone the repository
-git clone https://github.com/Hochfrequenz/sapwebgui.mcp.git
-cd sapwebgui.mcp
+git clone https://github.com/Hochfrequenz/sapgui.mcp.git
+cd sapgui.mcp
 
 # Create development environment
 tox -e dev
@@ -243,14 +243,14 @@ async def sap_discover_buttons(session: str | None = None) -> DiscoveredButtons:
 
 ### JavaScript Files
 
-- Place JavaScript in `src/sapwebguimcp/js/`
+- Place JavaScript in `src/sapguimcp/js/`
 - Use IIFE pattern: `() => { ... }`
 - Load with `_load_js("filename.js")` in Python
 - Document SAP-specific quirks in comments
 
 ### Pydantic Models and DTOs
 
-- Place in `src/sapwebguimcp/models/`
+- Place in `src/sapguimcp/models/`
 - Use `Field(description=...)` for all fields
 - Export from `__init__.py`
 
@@ -296,12 +296,12 @@ You don't need to put any effort in rebases, amends or similar.
 
 ### Adding New Tools
 
-See [src/sapwebguimcp/tools/README.md](src/sapwebguimcp/tools/README.md) for detailed instructions on creating new tools.
+See [src/sapguimcp/tools/README.md](src/sapguimcp/tools/README.md) for detailed instructions on creating new tools.
 
 ### Adding New Models
 
-See [src/sapwebguimcp/models/README.md](src/sapwebguimcp/models/README.md) for information about the data models.
+See [src/sapguimcp/models/README.md](src/sapguimcp/models/README.md) for information about the data models.
 
 ### Creating Skills
 
-See [src/sapwebguimcp/skills/README.md](src/sapwebguimcp/skills/README.md) for how to create reusable workflows.
+See [src/sapguimcp/skills/README.md](src/sapguimcp/skills/README.md) for how to create reusable workflows.

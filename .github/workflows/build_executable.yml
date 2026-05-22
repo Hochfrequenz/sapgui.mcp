@@ -16,12 +16,12 @@ jobs:
         include:
           - os: windows-latest
             tox_env: build_executable
-            artifact: sapwebgui_mcp_windows
-            binary: sapwebgui_mcp_windows.exe
+            artifact: sapgui_mcp_windows
+            binary: sapgui_mcp_windows.exe
           - os: macos-latest
             tox_env: build_executable_macos
-            artifact: sapwebgui_mcp_macos_arm64
-            binary: sapwebgui_mcp_macos_arm64
+            artifact: sapgui_mcp_macos_arm64
+            binary: sapgui_mcp_macos_arm64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -78,7 +78,7 @@ jobs:
 
       - name: Build Executable
         env:
-          SAPWEBGUI_BUILD_NAME: sapwebgui_mcp_windows_with_remote_logging
+          SAPGUI_BUILD_NAME: sapgui_mcp_windows_with_remote_logging
         run: |
           pip install tox
           tox -e build_executable
@@ -89,9 +89,9 @@ jobs:
       - name: Upload Executable as Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: sapwebgui_mcp_windows_with_remote_logging
+          name: sapgui_mcp_windows_with_remote_logging
           path: |
-            dist/sapwebgui_mcp_windows_with_remote_logging.exe
+            dist/sapgui_mcp_windows_with_remote_logging.exe
             dist/build-dependencies.txt
 
   smoke_test:
@@ -106,11 +106,11 @@ jobs:
         chrome: [true, false]
         include:
           - os: windows-latest
-            artifact: sapwebgui_mcp_windows
-            binary: sapwebgui_mcp_windows.exe
+            artifact: sapgui_mcp_windows
+            binary: sapgui_mcp_windows.exe
           - os: macos-latest
-            artifact: sapwebgui_mcp_macos_arm64
-            binary: sapwebgui_mcp_macos_arm64
+            artifact: sapgui_mcp_macos_arm64
+            binary: sapgui_mcp_macos_arm64
     runs-on: ${{ matrix.os }}
     name: "Smoke Test (${{ matrix.os }}, Chrome: ${{ matrix.chrome }})"
     steps:
@@ -189,21 +189,21 @@ jobs:
       - name: Download Windows (public) Executable
         uses: actions/download-artifact@v8
         with:
-          name: sapwebgui_mcp_windows
+          name: sapgui_mcp_windows
           path: dist/windows
         continue-on-error: true
 
       - name: Download Windows (with_remote_logging) Executable
         uses: actions/download-artifact@v8
         with:
-          name: sapwebgui_mcp_windows_with_remote_logging
+          name: sapgui_mcp_windows_with_remote_logging
           path: dist/windows_with_remote_logging
         continue-on-error: true
 
       - name: Download macOS Executable
         uses: actions/download-artifact@v8
         with:
-          name: sapwebgui_mcp_macos_arm64
+          name: sapgui_mcp_macos_arm64
           path: dist/macos
         continue-on-error: true
 
@@ -213,18 +213,18 @@ jobs:
         run: |
           set -eu
           mkdir -p dist/release
-          if [ -f ./dist/windows/sapwebgui_mcp_windows.exe ]; then
-            mv ./dist/windows/sapwebgui_mcp_windows.exe ./dist/release/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
+          if [ -f ./dist/windows/sapgui_mcp_windows.exe ]; then
+            mv ./dist/windows/sapgui_mcp_windows.exe ./dist/release/sapgui_mcp_windows_${{ github.ref_name }}.exe
           else
             echo "::warning::Windows (public) artifact missing; skipping"
           fi
-          if [ -f ./dist/windows_with_remote_logging/sapwebgui_mcp_windows_with_remote_logging.exe ]; then
-            mv ./dist/windows_with_remote_logging/sapwebgui_mcp_windows_with_remote_logging.exe ./dist/release/sapwebgui_mcp_windows_with_remote_logging_${{ github.ref_name }}.exe
+          if [ -f ./dist/windows_with_remote_logging/sapgui_mcp_windows_with_remote_logging.exe ]; then
+            mv ./dist/windows_with_remote_logging/sapgui_mcp_windows_with_remote_logging.exe ./dist/release/sapgui_mcp_windows_with_remote_logging_${{ github.ref_name }}.exe
           else
             echo "::warning::Windows (with_remote_logging) artifact missing; skipping"
           fi
-          if [ -f ./dist/macos/sapwebgui_mcp_macos_arm64 ]; then
-            mv ./dist/macos/sapwebgui_mcp_macos_arm64 ./dist/release/sapwebgui_mcp_macos_arm64_${{ github.ref_name }}
+          if [ -f ./dist/macos/sapgui_mcp_macos_arm64 ]; then
+            mv ./dist/macos/sapgui_mcp_macos_arm64 ./dist/release/sapgui_mcp_macos_arm64_${{ github.ref_name }}
           else
             echo "::warning::macOS arm64 artifact missing; skipping"
           fi
@@ -234,7 +234,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            ./dist/release/sapwebgui_mcp_windows_${{ github.ref_name }}.exe
-            ./dist/release/sapwebgui_mcp_windows_with_remote_logging_${{ github.ref_name }}.exe
-            ./dist/release/sapwebgui_mcp_macos_arm64_${{ github.ref_name }}
+            ./dist/release/sapgui_mcp_windows_${{ github.ref_name }}.exe
+            ./dist/release/sapgui_mcp_windows_with_remote_logging_${{ github.ref_name }}.exe
+            ./dist/release/sapgui_mcp_macos_arm64_${{ github.ref_name }}
           fail_on_unmatched_files: false

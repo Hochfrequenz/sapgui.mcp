@@ -13,8 +13,8 @@ import os
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import AbapGitActionResult, LoginResult
-from sapwebguimcp.tools.abapgit_tools import (
+from sapguimcp.models import AbapGitActionResult, LoginResult
+from sapguimcp.tools.abapgit_tools import (
     _enrich_transport_error,
     _is_no_task_error,
     _is_transport_required_error,
@@ -116,14 +116,14 @@ def test_settings_abapgit_fields() -> None:
     os.environ.pop("ABAPGIT_PAT", None)
 
     # Force reload settings
-    import sapwebguimcp.models.config
+    import sapguimcp.models.config
 
-    sapwebguimcp.models.config._settings = None
+    sapguimcp.models.config._settings = None
 
-    from sapwebguimcp.models.config import SapWebGuiSettings
+    from sapguimcp.models.config import SapGuiSettings
 
     # Create fresh settings without .env file
-    settings = SapWebGuiSettings(_env_file=None)  # type: ignore[call-arg]
+    settings = SapGuiSettings(_env_file=None)  # type: ignore[call-arg]
 
     # Check that abapGit fields exist with correct defaults
     assert hasattr(settings, "abapgit_pat")
@@ -133,13 +133,13 @@ def test_settings_abapgit_fields() -> None:
 def test_settings_loads_abapgit_from_env(abapgit_env_vars: None) -> None:
     """Test that settings load abapGit values from environment."""
     # Force reload settings
-    import sapwebguimcp.models.config
+    import sapguimcp.models.config
 
-    sapwebguimcp.models.config._settings = None
+    sapguimcp.models.config._settings = None
 
-    from sapwebguimcp.models.config import SapWebGuiSettings
+    from sapguimcp.models.config import SapGuiSettings
 
-    settings = SapWebGuiSettings(_env_file=None)  # type: ignore[call-arg]
+    settings = SapGuiSettings(_env_file=None)  # type: ignore[call-arg]
 
     assert settings.abapgit_pat == "ghp_test_token_12345"
 
@@ -247,7 +247,7 @@ def test_abapgit_action_result_requires_repo_name() -> None:
 
 def test_abapgit_repo_info_model() -> None:
     """Test that AbapGitRepoInfo model validates correctly."""
-    from sapwebguimcp.models.abapgit_models import AbapGitRepoInfo
+    from sapguimcp.models.abapgit_models import AbapGitRepoInfo
 
     repo = AbapGitRepoInfo(
         name="Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
@@ -267,7 +267,7 @@ def test_abapgit_repo_info_model() -> None:
 
 def test_abapgit_list_result_model() -> None:
     """Test that AbapGitListResult model validates correctly."""
-    from sapwebguimcp.models.abapgit_models import AbapGitListResult, AbapGitRepoInfo
+    from sapguimcp.models.abapgit_models import AbapGitListResult, AbapGitRepoInfo
 
     result = AbapGitListResult(
         success=True,
@@ -287,7 +287,7 @@ def test_abapgit_list_result_model() -> None:
 
 def test_abapgit_list_result_empty() -> None:
     """Test empty list result."""
-    from sapwebguimcp.models.abapgit_models import AbapGitListResult
+    from sapguimcp.models.abapgit_models import AbapGitListResult
 
     result = AbapGitListResult(success=True, repos=[])
     assert result.success
@@ -299,7 +299,7 @@ def test_abapgit_list_result_failure_requires_error() -> None:
     import pytest
     from pydantic import ValidationError
 
-    from sapwebguimcp.models.abapgit_models import AbapGitListResult
+    from sapguimcp.models.abapgit_models import AbapGitListResult
 
     with pytest.raises(ValidationError):
         AbapGitListResult(success=False, error=None)
@@ -315,7 +315,7 @@ def test_abapgit_list_result_failure_requires_error() -> None:
 
 def test_parse_repo_list_output() -> None:
     """Test parsing tilde-delimited WRITE output from Z_ABAPGIT_PULL_MCP_SHORTCUT LIST mode."""
-    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+    from sapguimcp.tools.abapgit_tools import parse_repo_list_output
 
     raw_output = (
         "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY~https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
@@ -337,7 +337,7 @@ def test_parse_repo_list_output() -> None:
 
 def test_parse_repo_list_output_with_offline() -> None:
     """Test parsing a repo line with offline flag set."""
-    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+    from sapguimcp.tools.abapgit_tools import parse_repo_list_output
 
     raw_output = "Z_OFFLINE_REPO~file:///path~$Z_OFFLINE~refs/heads/main~~~X\n"
     repos = parse_repo_list_output(raw_output)
@@ -350,7 +350,7 @@ def test_parse_repo_list_output_with_offline() -> None:
 
 def test_parse_repo_list_output_empty() -> None:
     """Test parsing empty output."""
-    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+    from sapguimcp.tools.abapgit_tools import parse_repo_list_output
 
     assert parse_repo_list_output("") == []
     assert parse_repo_list_output("   \n  \n") == []
@@ -358,7 +358,7 @@ def test_parse_repo_list_output_empty() -> None:
 
 def test_parse_repo_list_output_skips_garbage() -> None:
     """Test that non-repo lines (SAP UI text, headers) are skipped."""
-    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+    from sapguimcp.tools.abapgit_tools import parse_repo_list_output
 
     raw_output = (
         "Some SAP header text\n"
@@ -372,7 +372,7 @@ def test_parse_repo_list_output_skips_garbage() -> None:
 
 def test_parse_repo_list_output_initial_timestamp() -> None:
     """Test that initial ABAP TIMESTAMPL (all zeros) is treated as None."""
-    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+    from sapguimcp.tools.abapgit_tools import parse_repo_list_output
 
     raw_output = "Z_REPO~https://github.com/org/Z_REPO~$Z_PKG~refs/heads/main~00000000000000.0000000~~\n"
     repos = parse_repo_list_output(raw_output)
@@ -652,7 +652,7 @@ async def test_abapgit_list_repos(sap_mcp_client: ClientSession) -> None:
     Requires Z_ABAPGIT_PULL_MCP to be deployed with LIST support.
     Verifies that at least the known test repos are returned.
     """
-    from sapwebguimcp.models.abapgit_models import AbapGitListResult
+    from sapguimcp.models.abapgit_models import AbapGitListResult
 
     # Login first
     login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)

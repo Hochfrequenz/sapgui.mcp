@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.backend.webgui.parsers.sm37_parser import (
+from sapguimcp.backend.webgui.parsers.sm37_parser import (
     is_job_list_screen,
     is_no_jobs_found,
     parse_sm37_job_list,
@@ -155,21 +155,21 @@ class TestDateFormatHelper:
     """Tests for the shared date format helper."""
 
     def test_format_sap_date_de(self) -> None:
-        from sapwebguimcp.utils import format_sap_date
+        from sapguimcp.utils import format_sap_date
 
         assert format_sap_date("2026-02-22", "DE") == "22.02.2026"
         assert format_sap_date("2026-01-05", "DE") == "05.01.2026"
         assert format_sap_date("2025-12-31", "DE") == "31.12.2025"
 
     def test_format_sap_date_en(self) -> None:
-        from sapwebguimcp.utils import format_sap_date
+        from sapguimcp.utils import format_sap_date
 
         assert format_sap_date("2026-02-22", "EN") == "02/22/2026"
         assert format_sap_date("2026-01-05", "EN") == "01/05/2026"
         assert format_sap_date("2025-12-31", "EN") == "12/31/2025"
 
     def test_format_sap_date_invalid(self) -> None:
-        from sapwebguimcp.utils import format_sap_date
+        from sapguimcp.utils import format_sap_date
 
         with pytest.raises(ValueError):
             format_sap_date("22.02.2026", "DE")
@@ -178,7 +178,7 @@ class TestDateFormatHelper:
             format_sap_date("2026/02/22", "EN")
 
     def test_format_sap_date_rejects_non_date(self) -> None:
-        from sapwebguimcp.utils import format_sap_date
+        from sapguimcp.utils import format_sap_date
 
         with pytest.raises(ValueError):
             format_sap_date("not-a-date", "DE")

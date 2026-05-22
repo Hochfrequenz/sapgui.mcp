@@ -16,14 +16,14 @@
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/middleware.py`
+- Modify: `src/sapguimcp/models/middleware.py`
 - Test: `unittests/test_middleware_models.py` (or create if not exists)
 
 **Step 1: Write the failing test**
 
 ```python
 # In test file for middleware models
-from sapwebguimcp.models.middleware import SapIdentity, SessionStats
+from sapguimcp.models.middleware import SapIdentity, SessionStats
 
 def test_sap_identity_model():
     identity = SapIdentity(sap_user="KLEINK", sap_host="sap-prod.acme.com", sap_mandant="100")
@@ -47,7 +47,7 @@ Expected: FAIL — `ImportError: cannot import name 'SapIdentity'`
 
 **Step 3: Write minimal implementation**
 
-In `src/sapwebguimcp/models/middleware.py`, add before `SessionStats`:
+In `src/sapguimcp/models/middleware.py`, add before `SessionStats`:
 
 ```python
 class SapIdentity(BaseModel):
@@ -74,7 +74,7 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/middleware.py unittests/test_middleware_models.py
+git add src/sapguimcp/models/middleware.py unittests/test_middleware_models.py
 git commit -m "feat: add SapIdentity model and SessionStats.sap_identity field"
 ```
 
@@ -84,8 +84,8 @@ git commit -m "feat: add SapIdentity model and SessionStats.sap_identity field"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/middleware/logging.py`
-- Modify: `src/sapwebguimcp/middleware/__init__.py` (export `set_sap_identity`)
+- Modify: `src/sapguimcp/middleware/logging.py`
+- Modify: `src/sapguimcp/middleware/__init__.py` (export `set_sap_identity`)
 - Test: `unittests/test_tool_call_logging_middleware.py` (create)
 
 **Context:** The middleware's `_sessions` dict is instance state. Tools run inside `call_next` (child context) so they can't use `Context.set_state()` — deep-copy prevents cross-boundary communication. Solution: a module-level reference to the middleware's `_sessions` dict, plus a `set_sap_identity(session_id, identity)` function.
@@ -95,8 +95,8 @@ git commit -m "feat: add SapIdentity model and SessionStats.sap_identity field"
 ```python
 # unittests/test_tool_call_logging_middleware.py
 import pytest
-from sapwebguimcp.middleware.logging import set_sap_identity, _sessions_ref
-from sapwebguimcp.models.middleware import SapIdentity, SessionStats
+from sapguimcp.middleware.logging import set_sap_identity, _sessions_ref
+from sapguimcp.models.middleware import SapIdentity, SessionStats
 
 def test_set_sap_identity_creates_session_if_needed():
     """set_sap_identity should work even if session doesn't exist yet."""
@@ -106,7 +106,7 @@ def test_set_sap_identity_creates_session_if_needed():
 
 def test_set_sap_identity_on_existing_session():
     """set_sap_identity on an existing session preserves other stats."""
-    from sapwebguimcp.middleware.logging import _sessions_ref
+    from sapguimcp.middleware.logging import _sessions_ref
     _sessions_ref["existing"] = SessionStats(call_count=5)
     identity = SapIdentity(sap_user="JSMITH", sap_host="host2", sap_mandant="200")
     set_sap_identity("existing", identity)
@@ -136,7 +136,7 @@ Expected: FAIL — `ImportError: cannot import name 'set_sap_identity'`
 
 **Step 3: Write implementation**
 
-In `src/sapwebguimcp/middleware/logging.py`:
+In `src/sapguimcp/middleware/logging.py`:
 
 1. Add a module-level dict reference (the middleware will register itself here):
 
@@ -207,7 +207,7 @@ _logger.info("Tool completed", extra=extra)
 6. Add import for `SapIdentity`:
 
 ```python
-from sapwebguimcp.models.middleware import SapIdentity, SessionStats, ToolCall
+from sapguimcp.models.middleware import SapIdentity, SessionStats, ToolCall
 ```
 
 7. Update `__all__`:
@@ -216,10 +216,10 @@ from sapwebguimcp.models.middleware import SapIdentity, SessionStats, ToolCall
 __all__ = ["ToolCallLoggingMiddleware", "set_sap_identity"]
 ```
 
-8. Export from `src/sapwebguimcp/middleware/__init__.py`:
+8. Export from `src/sapguimcp/middleware/__init__.py`:
 
 ```python
-from sapwebguimcp.middleware.logging import set_sap_identity
+from sapguimcp.middleware.logging import set_sap_identity
 ```
 
 **Step 4: Run tests to verify they pass**
@@ -230,7 +230,7 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/middleware/logging.py src/sapwebguimcp/middleware/__init__.py unittests/test_tool_call_logging_middleware.py
+git add src/sapguimcp/middleware/logging.py src/sapguimcp/middleware/__init__.py unittests/test_tool_call_logging_middleware.py
 git commit -m "feat: add set_sap_identity() and inject identity into tool call logs"
 ```
 
@@ -240,7 +240,7 @@ git commit -m "feat: add set_sap_identity() and inject identity into tool call l
 
 **Files:**
 
-- Create: `src/sapwebguimcp/js/extract_sap_user.js`
+- Create: `src/sapguimcp/js/extract_sap_user.js`
 - Test: Test via Python unit test with mock HTML
 
 **Context:** After login, the SAP page has an element:
@@ -294,7 +294,7 @@ Two extraction strategies (in order of reliability):
 def test_extract_sap_user_js_exists():
     """The JS file should be loadable."""
     from pathlib import Path
-    js_path = Path("src/sapwebguimcp/js/extract_sap_user.js")
+    js_path = Path("src/sapguimcp/js/extract_sap_user.js")
     assert js_path.exists()
     content = js_path.read_text()
     assert "sysInfoAreaMenuItemSAPITS_MBAR_USER" in content
@@ -305,7 +305,7 @@ Note: Full integration testing of the JS requires Playwright, which is covered b
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/js/extract_sap_user.js
+git add src/sapguimcp/js/extract_sap_user.js
 git commit -m "feat: add JavaScript for DOM-based SAP username extraction"
 ```
 
@@ -315,7 +315,7 @@ git commit -m "feat: add JavaScript for DOM-based SAP username extraction"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sap_tools.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py`
 - Test: `unittests/test_sap_login_identity.py` (create)
 
 **Context:** `sap_login` has 3 success paths:
@@ -345,8 +345,8 @@ Add near the top of `sap_tools.py`:
 
 ```python
 from urllib.parse import urlparse
-from sapwebguimcp.middleware.logging import set_sap_identity
-from sapwebguimcp.models.middleware import SapIdentity
+from sapguimcp.middleware.logging import set_sap_identity
+from sapguimcp.models.middleware import SapIdentity
 
 async def _capture_sap_identity(
     page: Any,
@@ -396,7 +396,7 @@ For the "already logged in" path (line 635-648), mandant comes from `settings.sa
 ```python
 # unittests/test_sap_login_identity.py
 from unittest.mock import AsyncMock, patch, MagicMock
-from sapwebguimcp.models.middleware import SapIdentity
+from sapguimcp.models.middleware import SapIdentity
 
 @pytest.mark.anyio
 async def test_capture_sap_identity_success():
@@ -404,7 +404,7 @@ async def test_capture_sap_identity_success():
     page = AsyncMock()
     page.evaluate.return_value = {"user": "KLEINK"}
 
-    with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
+    with patch("sapguimcp.tools.sap_tools.set_sap_identity") as mock_set:
         await _capture_sap_identity(page, "https://sap-prod.acme.com/sap/bc/gui", "100", "session-1")
 
     mock_set.assert_called_once()
@@ -419,7 +419,7 @@ async def test_capture_sap_identity_dom_fails():
     page = AsyncMock()
     page.evaluate.side_effect = Exception("Element not found")
 
-    with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
+    with patch("sapguimcp.tools.sap_tools.set_sap_identity") as mock_set:
         await _capture_sap_identity(page, "https://sap.acme.com/path", "100", "session-1")
 
     mock_set.assert_not_called()
@@ -430,7 +430,7 @@ async def test_capture_sap_identity_null_user():
     page = AsyncMock()
     page.evaluate.return_value = {"user": None}
 
-    with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
+    with patch("sapguimcp.tools.sap_tools.set_sap_identity") as mock_set:
         await _capture_sap_identity(page, "https://sap.acme.com/path", "100", "session-1")
 
     mock_set.assert_not_called()
@@ -441,7 +441,7 @@ async def test_capture_sap_identity_schemeless_url():
     page = AsyncMock()
     page.evaluate.return_value = {"user": "JSMITH"}
 
-    with patch("sapwebguimcp.tools.sap_tools.set_sap_identity") as mock_set:
+    with patch("sapguimcp.tools.sap_tools.set_sap_identity") as mock_set:
         await _capture_sap_identity(page, "sap-server/path", "200", "s1")
 
     identity = mock_set.call_args[0][1]
@@ -456,7 +456,7 @@ Expected: PASS
 **Step 7: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/sap_tools.py src/sapwebguimcp/js/extract_sap_user.js unittests/test_sap_login_identity.py
+git add src/sapguimcp/tools/sap_tools.py src/sapguimcp/js/extract_sap_user.js unittests/test_sap_login_identity.py
 git commit -m "feat: capture SAP identity after login and inject into tool call logs"
 ```
 

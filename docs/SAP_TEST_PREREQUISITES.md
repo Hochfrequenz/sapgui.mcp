@@ -55,7 +55,7 @@ Creating these objects generates **transport requests** owned by the test user (
     - Check "Enable Scripting"
     - Uncheck "Notify when a script attaches to SAP GUI"
     - Uncheck "Notify when a script opens a connection"
-- **R/3 only**: Switch ABAP editor to "text-based editor" (SE38 → Hilfsmittel → Einstellungen → ABAP Editor → "Text-basierter Editor"). The source-code-based editor does not fully expose content via COM scripting. See [#442](https://github.com/Hochfrequenz/sapwebgui.mcp/issues/442).
+- **R/3 only**: Switch ABAP editor to "text-based editor" (SE38 → Hilfsmittel → Einstellungen → ABAP Editor → "Text-basierter Editor"). The source-code-based editor does not fully expose content via COM scripting. See [#442](https://github.com/Hochfrequenz/sapgui.mcp/issues/442).
 
 ### Credentials Configuration
 

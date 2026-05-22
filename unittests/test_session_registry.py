@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
+from sapguimcp.backend.webgui.models.session_registry import SessionRegistry
 
 
 class TestSessionRegistryUnit:
@@ -167,7 +167,7 @@ class TestBrowserManagerSessionIntegration:
 
     def test_browser_manager_has_registry(self) -> None:
         """Test that BrowserManager exposes session registry."""
-        from sapwebguimcp.backend.webgui.browser import BrowserManager
+        from sapguimcp.backend.webgui.browser import BrowserManager
 
         manager = BrowserManager()
         assert hasattr(manager, "registry")
@@ -175,7 +175,7 @@ class TestBrowserManagerSessionIntegration:
 
     def test_browser_manager_get_session_page(self) -> None:
         """Test BrowserManager.get_session_page() method."""
-        from sapwebguimcp.backend.webgui.browser import BrowserManager
+        from sapguimcp.backend.webgui.browser import BrowserManager
 
         manager = BrowserManager()
 
@@ -334,7 +334,7 @@ class TestBrowserManagerBindingCheck:
 
     def test_get_session_page_with_binding_check(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test get_session_page_checked calls check_binding."""
-        from sapwebguimcp.backend.webgui.browser import BrowserManager
+        from sapguimcp.backend.webgui.browser import BrowserManager
 
         manager = BrowserManager()
         page = MagicMock()

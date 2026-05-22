@@ -68,8 +68,8 @@ Replace the entire content inside the `<details>` block (lines 28-102) with:
 <summary><strong>📦 Standalone Executable (recommended — no Docker, no Python)</strong></summary>
 <br>
 
-Download `sapwebgui_mcp_windows_<version>.exe` from
-[GitHub Releases](https://github.com/Hochfrequenz/sapwebgui.mcp/releases/latest).
+Download `sapgui_mcp_windows_<version>.exe` from
+[GitHub Releases](https://github.com/Hochfrequenz/sapgui.mcp/releases/latest).
 
 Choose a backend:
 
@@ -115,7 +115,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
 {
     "mcpServers": {
         "sap-desktop": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
             "env": {
                 "BACKEND_TYPE": "desktop",
                 "SAP_CONNECTION_NAME": "Your SAP Logon Entry",
@@ -137,7 +137,7 @@ Add to `.mcp.json` in your project root:
 {
     "mcpServers": {
         "sap-desktop": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
             "env": {
                 "BACKEND_TYPE": "desktop",
                 "SAP_CONNECTION_NAME": "Your SAP Logon Entry",
@@ -190,7 +190,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
             "env": {
                 "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "SAP_USER": "your_username",
@@ -212,7 +212,7 @@ Add to `.mcp.json` in your project root:
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
             "env": {
                 "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "SAP_USER": "your_username",
@@ -265,7 +265,7 @@ Replace the Configuration Reference table with:
 | `CDP_URL`             | When `BROWSER_MODE=connect`       | Chrome DevTools Protocol URL. WebGUI only.                   | `http://localhost:9222`      |
 | `GITHUB_PAT`          | No                                | GitHub PAT for `log_feedback` issues and abapGit auth        | —                            |
 | `GITHUB_USER`         | No                                | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
-| `GITHUB_REPO`         | No                                | Repository for feedback issues                               | `Hochfrequenz/sapwebgui.mcp` |
+| `GITHUB_REPO`         | No                                | Repository for feedback issues                               | `Hochfrequenz/sapgui.mcp` |
 | `ABAPGIT_PAT`         | No                                | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
 | `PAPERTRAIL_HOST`     | No                                | Papertrail syslog host (empty to disable)                    | `""` (off) <sup>2</sup>      |
 | `PAPERTRAIL_PORT`     | No                                | Papertrail syslog port                                       | `0` (off) <sup>2</sup>       |
@@ -318,7 +318,7 @@ The server supports two backends. Choose one via `BACKEND_TYPE`.
             │ HTTP/WebSocket
             ↓
 ┌─────────────────────────────────────────────────────────┐
-│  MCP Server (sapwebguimcp)                              │
+│  MCP Server (sapguimcp)                              │
 │  - Playwright for browser automation                    │
 │  - SAP-specific tools                                   │
 └─────────────────────────────────────────────────────────┘
@@ -342,7 +342,7 @@ The server supports two backends. Choose one via `BACKEND_TYPE`.
             │ COM (pywin32)
             ↓
 ┌─────────────────────────────────────────────────────────┐
-│  MCP Server (sapwebguimcp)                              │
+│  MCP Server (sapguimcp)                              │
 │  - Desktop backend with COM thread                      │
 │  - SAP-specific tools                                   │
 └─────────────────────────────────────────────────────────┘

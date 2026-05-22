@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-05
 **Branch (sapsucker)**: `feat/full-element-info`
-**Branch (sapwebguimcp)**: `feat/full-depth-tree`
+**Branch (sapguimcp)**: `feat/full-depth-tree`
 
 ## Problem
 
@@ -85,7 +85,7 @@ pathological COM trees (SAP GUI trees never exceed ~15 levels in practice).
 `_probe_bdt_fields()` also constructs `ElementInfo` objects and must be updated
 to populate the new fields via `_safe_com_attr`.
 
-### Part 3: sapwebguimcp — smart truncation in MCP tools
+### Part 3: sapguimcp — smart truncation in MCP tools
 
 The MCP layer handles LLM token concerns. sapsucker does not.
 
@@ -130,7 +130,7 @@ elements_hidden: int   # How many elements were cut
 When `elements_hidden > 0`, the tool description tells the LLM:
 "N elements at deeper levels not shown. Call again with depth=M to see all."
 
-### Part 4: sapwebguimcp — remove all hardcoded max_depth
+### Part 4: sapguimcp — remove all hardcoded max_depth
 
 Remove explicit `max_depth` arguments from all 5 limited call sites:
 
@@ -145,13 +145,13 @@ Remove explicit `max_depth` arguments from all 5 limited call sites:
 The 18 call sites using `dump_tree()` (default) are unchanged — they already
 get full depth since the new default is unlimited.
 
-### Part 5: sapwebguimcp — remove tooltip workaround
+### Part 5: sapguimcp — remove tooltip workaround
 
 The tooltip COM re-fetch in `discover_buttons()` and `check_popup()` (added in
 #614) becomes unnecessary — `elem.tooltip` is now available directly from
 `ElementInfo`. Remove the workaround and use `elem.tooltip` instead.
 
-### Part 6: sapwebguimcp — internal code uses full tree
+### Part 6: sapguimcp — internal code uses full tree
 
 Backend methods that search for elements (`_element_finder.py`, `fill_form`,
 `click_button`, `discover_fields`, etc.) always receive the full tree. No
@@ -166,7 +166,7 @@ truncation applies to internal operations — only to LLM-facing tool responses.
 - Unit test: `dump_tree(max_depth=3)` still works (backward compat)
 - Unit test: new properties read via safe getter (COM failure → default value)
 
-### sapwebguimcp
+### sapguimcp
 
 - Unit test: `truncate_tree()` with various depths, verify counts
 - Unit test: `truncate_tree()` with depth=None returns full tree
@@ -185,7 +185,7 @@ truncation applies to internal operations — only to LLM-facing tool responses.
 | `sapsucker/models.py` | Extend `ElementInfo` with ~13 new fields |
 | `sapsucker/components/base.py` | Read new properties in `_dump_tree_recursive` and `_probe_bdt_fields`, default `max_depth=None` with 200 safety cap |
 
-### sapwebguimcp (`feat/full-depth-tree` branch)
+### sapguimcp (`feat/full-depth-tree` branch)
 
 | File | Change |
 |------|--------|

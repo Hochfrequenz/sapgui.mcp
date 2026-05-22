@@ -30,14 +30,14 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv()
 
 # Now safe to import the manager and tools.
-from sapwebguimcp.backend.manager import (  # noqa: E402
+from sapguimcp.backend.manager import (  # noqa: E402
     get_backend,
     get_backend_manager,
     reset_backend_manager,
 )
-from sapwebguimcp.tools.sap_login_impl import sap_login_impl  # noqa: E402
+from sapguimcp.tools.sap_login_impl import sap_login_impl  # noqa: E402
 
-LOG_DIR = Path("C:/github/sapwebgui.mcp/scripts/validation_logs")
+LOG_DIR = Path("C:/github/sapgui.mcp/scripts/validation_logs")
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -442,7 +442,7 @@ async def main() -> int:
             print(f"\n{name}: CRASH ({type(exc).__name__}: {exc})  log={log_file}")
             overall = False
         finally:
-            from sapwebguimcp.backend.manager import close_backend
+            from sapguimcp.backend.manager import close_backend
 
             try:
                 await close_backend()

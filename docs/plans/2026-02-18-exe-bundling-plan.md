@@ -38,7 +38,7 @@ deps =
     -r requirements.txt
     .[build_executable]
 commands =
-    pyinstaller --onefile --name sapwebgui_mcp_windows src/sapwebguimcp/server.py
+    pyinstaller --onefile --name sapgui_mcp_windows src/sapguimcp/server.py
 ```
 
 **Step 3: Run formatting**
@@ -59,7 +59,7 @@ git commit -m "feat: add build_executable tox environment for PyInstaller bundli
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/server.py` (in `app_lifespan`)
+- Modify: `src/sapguimcp/server.py` (in `app_lifespan`)
 
 **Step 1: Write the failing test**
 
@@ -74,7 +74,7 @@ import pytest
 import respx
 from httpx import Response
 
-from sapwebguimcp.server import _check_cdp_available
+from sapguimcp.server import _check_cdp_available
 
 
 class TestCdpCheck:
@@ -143,13 +143,13 @@ Expected: PASS
 
 **Step 5: Run formatting**
 
-Run: `python -m isort src/sapwebguimcp/server.py unittests/test_server_cdp_check.py`
-Run: `python -m black src/sapwebguimcp/server.py unittests/test_server_cdp_check.py`
+Run: `python -m isort src/sapguimcp/server.py unittests/test_server_cdp_check.py`
+Run: `python -m black src/sapguimcp/server.py unittests/test_server_cdp_check.py`
 
 **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/server.py unittests/test_server_cdp_check.py
+git add src/sapguimcp/server.py unittests/test_server_cdp_check.py
 git commit -m "feat: add Chrome CDP detection with user guidance at startup"
 ```
 
@@ -323,19 +323,19 @@ jobs:
                   tox -e build_executable
 
             - name: Smoke Test
-              run: python unittests/smoke_test_exe.py dist/sapwebgui_mcp_windows.exe
+              run: python unittests/smoke_test_exe.py dist/sapgui_mcp_windows.exe
 
             - name: Upload Executable as Artifact
               uses: actions/upload-artifact@v6
               with:
-                  name: sapwebgui_mcp_windows
-                  path: dist/sapwebgui_mcp_windows.exe
+                  name: sapgui_mcp_windows
+                  path: dist/sapgui_mcp_windows.exe
 
             - name: Upload Executable to Release
               if: github.event_name == 'release'
               uses: softprops/action-gh-release@v2
               with:
-                  files: dist/sapwebgui_mcp_windows.exe
+                  files: dist/sapgui_mcp_windows.exe
 ```
 
 **Step 2: Commit**
@@ -352,28 +352,28 @@ git commit -m "ci: add workflow to build and smoke-test standalone executable"
 **Step 1: Build the exe locally**
 
 Run: `tox -e build_executable`
-Expected: PyInstaller produces `dist/sapwebgui_mcp_windows.exe`
+Expected: PyInstaller produces `dist/sapgui_mcp_windows.exe`
 
 This step may fail due to Playwright hidden imports or missing data files. If so:
 
 **Step 2 (if needed): Create a PyInstaller spec file**
 
-If PyInstaller fails to bundle correctly (missing modules, Playwright issues), create `sapwebgui_mcp_windows.spec` with explicit `hiddenimports` and `datas` entries. Common fixes:
+If PyInstaller fails to bundle correctly (missing modules, Playwright issues), create `sapgui_mcp_windows.spec` with explicit `hiddenimports` and `datas` entries. Common fixes:
 
-- Add `hiddenimports=['sapwebguimcp.tools', 'sapwebguimcp.parsers', ...]` for all subpackages
-- Add `datas` for `src/sapwebguimcp/js/*.js` and `src/sapwebguimcp/prompts/*.md`
+- Add `hiddenimports=['sapguimcp.tools', 'sapguimcp.parsers', ...]` for all subpackages
+- Add `datas` for `src/sapguimcp/js/*.js` and `src/sapguimcp/prompts/*.md`
 - Exclude Playwright browser binaries with `excludes`
 
 Update tox.ini to use the spec file:
 
 ```ini
 commands =
-    pyinstaller sapwebgui_mcp_windows.spec
+    pyinstaller sapgui_mcp_windows.spec
 ```
 
 **Step 3: Run the smoke test locally**
 
-Run: `python unittests/smoke_test_exe.py dist/sapwebgui_mcp_windows.exe`
+Run: `python unittests/smoke_test_exe.py dist/sapgui_mcp_windows.exe`
 Expected: `OK: Got valid MCP initialize response`
 
 **Step 4: Commit any spec file or fixes**
@@ -400,7 +400,7 @@ After the Docker "Quick Start" section and before "Development Setup", add a new
 ## Standalone Executable (no Docker)
 
 If you prefer not to use Docker, download the standalone `.exe` from
-[GitHub Releases](https://github.com/Hochfrequenz/sapwebgui.mcp/releases).
+[GitHub Releases](https://github.com/Hochfrequenz/sapgui.mcp/releases).
 
 ### Step 1: Start Chrome with remote debugging
 
@@ -417,7 +417,7 @@ Point your Claude config to the exe:
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/sapwebgui_mcp_windows.exe",
+            "command": "C:/path/to/sapgui_mcp_windows.exe",
             "env": {
                 "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "SAP_USER": "your_username",

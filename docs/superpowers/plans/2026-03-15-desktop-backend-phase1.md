@@ -15,13 +15,13 @@
 ## File Structure
 
 ```
-src/sapwebguimcp/backend/desktop/
+src/sapguimcp/backend/desktop/
     __init__.py              # DesktopBackend class (~200 lines)
     _com_thread.py           # _ComThread — dedicated COM worker (~50 lines)
     _key_mapping.py          # VKey name → number map (~40 lines)
 
-src/sapwebguimcp/models/config.py     # Modify: BackendType → Literal["webgui", "desktop"]
-src/sapwebguimcp/backend/manager.py   # Modify: add desktop branch
+src/sapguimcp/models/config.py     # Modify: BackendType → Literal["webgui", "desktop"]
+src/sapguimcp/backend/manager.py   # Modify: add desktop branch
 
 unittests/desktop/
     __init__.py
@@ -40,8 +40,8 @@ unittests/desktop/
 
 **Files:**
 
-- Create: `src/sapwebguimcp/backend/desktop/__init__.py` (empty)
-- Create: `src/sapwebguimcp/backend/desktop/_com_thread.py`
+- Create: `src/sapguimcp/backend/desktop/__init__.py` (empty)
+- Create: `src/sapguimcp/backend/desktop/_com_thread.py`
 - Create: `unittests/desktop/__init__.py`
 - Test: `unittests/desktop/test_com_thread.py`
 
@@ -54,7 +54,7 @@ import asyncio
 
 import pytest
 
-from sapwebguimcp.backend.desktop._com_thread import ComThread
+from sapguimcp.backend.desktop._com_thread import ComThread
 
 
 @pytest.fixture
@@ -127,12 +127,12 @@ Expected: FAIL — `ModuleNotFoundError`
 - [ ] **Step 3: Implement \_ComThread**
 
 ```python
-# src/sapwebguimcp/backend/desktop/__init__.py
+# src/sapguimcp/backend/desktop/__init__.py
 """Desktop backend — SAP GUI Scripting (COM) implementation."""
 ```
 
 ```python
-# src/sapwebguimcp/backend/desktop/_com_thread.py
+# src/sapguimcp/backend/desktop/_com_thread.py
 """Dedicated background thread for SAP GUI COM calls.
 
 All COM calls must happen on the same apartment-threaded context.
@@ -210,7 +210,7 @@ Expected: All tests PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/desktop/__init__.py src/sapwebguimcp/backend/desktop/_com_thread.py unittests/desktop/__init__.py unittests/desktop/test_com_thread.py
+git add src/sapguimcp/backend/desktop/__init__.py src/sapguimcp/backend/desktop/_com_thread.py unittests/desktop/__init__.py unittests/desktop/test_com_thread.py
 git commit -m "feat(desktop): add ComThread — dedicated COM worker thread for apartment threading"
 ```
 
@@ -220,7 +220,7 @@ git commit -m "feat(desktop): add ComThread — dedicated COM worker thread for 
 
 **Files:**
 
-- Create: `src/sapwebguimcp/backend/desktop/_key_mapping.py`
+- Create: `src/sapguimcp/backend/desktop/_key_mapping.py`
 - Test: `unittests/desktop/test_key_mapping.py`
 
 - [ ] **Step 1: Write tests**
@@ -228,7 +228,7 @@ git commit -m "feat(desktop): add ComThread — dedicated COM worker thread for 
 ```python
 # unittests/desktop/test_key_mapping.py
 """Tests for VKey name → number mapping."""
-from sapwebguimcp.backend.desktop._key_mapping import key_to_vkey
+from sapguimcp.backend.desktop._key_mapping import key_to_vkey
 
 
 def test_enter():
@@ -270,7 +270,7 @@ def test_unknown_key_raises():
 - [ ] **Step 2: Implement**
 
 ```python
-# src/sapwebguimcp/backend/desktop/_key_mapping.py
+# src/sapguimcp/backend/desktop/_key_mapping.py
 """Map key names to SAP GUI VKey numbers.
 
 SAP GUI's SendVKey accepts a numeric VKey code (0-36+). This module maps
@@ -322,7 +322,7 @@ Run: `python -m pytest unittests/desktop/test_key_mapping.py -v`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/desktop/_key_mapping.py unittests/desktop/test_key_mapping.py
+git add src/sapguimcp/backend/desktop/_key_mapping.py unittests/desktop/test_key_mapping.py
 git commit -m "feat(desktop): add VKey name-to-number mapping"
 ```
 
@@ -332,8 +332,8 @@ git commit -m "feat(desktop): add VKey name-to-number mapping"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/config.py`
-- Modify: `src/sapwebguimcp/backend/manager.py`
+- Modify: `src/sapguimcp/models/config.py`
+- Modify: `src/sapguimcp/backend/manager.py`
 - Test: `unittests/desktop/test_manager_desktop.py`
 
 - [ ] **Step 1: Write tests**
@@ -345,7 +345,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sapwebguimcp.backend.manager import BackendManager
+from sapguimcp.backend.manager import BackendManager
 
 
 def test_backend_type_accepts_desktop():
@@ -361,7 +361,7 @@ def test_backend_type_rejects_invalid():
 
 - [ ] **Step 2: Update config.py**
 
-In `src/sapwebguimcp/models/config.py`, change:
+In `src/sapguimcp/models/config.py`, change:
 
 ```python
 BackendType = Literal["webgui", "desktop"]
@@ -382,7 +382,7 @@ Run: `python -m pytest unittests/desktop/test_manager_desktop.py -v`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/config.py unittests/desktop/test_manager_desktop.py
+git add src/sapguimcp/models/config.py unittests/desktop/test_manager_desktop.py
 git commit -m "feat: extend BackendType to support 'desktop'"
 ```
 
@@ -394,7 +394,7 @@ git commit -m "feat: extend BackendType to support 'desktop'"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/backend/desktop/__init__.py` (replace empty)
+- Create: `src/sapguimcp/backend/desktop/__init__.py` (replace empty)
 - Test: `unittests/desktop/test_desktop_backend.py`
 - Test: `unittests/desktop/conftest.py`
 
@@ -488,10 +488,10 @@ from unittests.desktop.conftest import make_mock_session
 class TestDesktopBackendLogin:
     @pytest.mark.anyio
     async def test_login_calls_login_helper(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
-        with patch("sapwebguimcp.backend.desktop._login_mod.login", return_value=session) as mock_login:
+        with patch("sapguimcp.backend.desktop._login_mod.login", return_value=session) as mock_login:
             backend = DesktopBackend(com_thread=None)  # no real COM thread needed for this test
             backend._session = session  # skip actual login
             result = await backend.login("ignored", "user", "pass", "100", "EN")
@@ -502,7 +502,7 @@ class TestDesktopBackendLogin:
 class TestDesktopBackendEnterTransaction:
     @pytest.mark.anyio
     async def test_enter_transaction(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         backend = DesktopBackend.__new__(DesktopBackend)
@@ -525,7 +525,7 @@ class TestDesktopBackendEnterTransaction:
 class TestDesktopBackendSessionStatus:
     @pytest.mark.anyio
     async def test_get_session_status_active(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         backend = DesktopBackend.__new__(DesktopBackend)
@@ -545,7 +545,7 @@ class TestDesktopBackendSessionStatus:
 class TestDesktopBackendPressKey:
     @pytest.mark.anyio
     async def test_press_enter(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         wnd = session.find_by_id("wnd[0]")
@@ -566,7 +566,7 @@ class TestDesktopBackendPressKey:
 
     @pytest.mark.anyio
     async def test_press_f5(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         wnd = session.find_by_id("wnd[0]")
@@ -587,7 +587,7 @@ class TestDesktopBackendPressKey:
 - [ ] **Step 3: Implement DesktopBackend skeleton**
 
 ```python
-# src/sapwebguimcp/backend/desktop/__init__.py
+# src/sapguimcp/backend/desktop/__init__.py
 """Desktop backend — SAP GUI Scripting (COM) implementation of SapUiBackend.
 
 Bridges the async MCP protocol to synchronous COM calls via a dedicated
@@ -601,11 +601,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
-from sapwebguimcp.backend.desktop._com_thread import ComThread
-from sapwebguimcp.backend.desktop._key_mapping import key_to_vkey
-from sapwebguimcp.backend.types import AriaSnapshot
-from sapwebguimcp.models.base import PopupInfo, ToolResult
-from sapwebguimcp.models.sap_results import (
+from sapguimcp.backend.desktop._com_thread import ComThread
+from sapguimcp.backend.desktop._key_mapping import key_to_vkey
+from sapguimcp.backend.types import AriaSnapshot
+from sapguimcp.models.base import PopupInfo, ToolResult
+from sapguimcp.models.sap_results import (
     ButtonInfo,
     FieldInfo,
     KeyboardResult,
@@ -619,18 +619,18 @@ from sapwebguimcp.models.sap_results import (
 )
 
 if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import CheckActivateResult
-    from sapwebguimcp.models.alv_models import TableCellClickResult
-    from sapwebguimcp.models.sap_results import (
+    from sapguimcp.backend.protocol import CheckActivateResult
+    from sapguimcp.models.alv_models import TableCellClickResult
+    from sapguimcp.models.sap_results import (
         ClosePopupResult,
         DropdownFillResult,
         FillFormResult,
         FormFieldsResult,
         SessionInfo,
     )
-    from sapwebguimcp.sapgui.components.session import GuiSession
+    from sapguimcp.sapgui.components.session import GuiSession
 
-import sapwebguimcp.sapgui._login as _login_mod
+import sapguimcp.sapgui._login as _login_mod
 
 logger = logging.getLogger(__name__)
 
@@ -665,7 +665,7 @@ class DesktopBackend:
         session_id: str | None = None,
     ) -> LoginResult:
         """Log into SAP GUI desktop (url is ignored — uses SAP_CONNECTION_NAME)."""
-        from sapwebguimcp.models.config import get_settings
+        from sapguimcp.models.config import get_settings
 
         settings = get_settings()
         connection_name = settings.sap_connection_name
@@ -779,7 +779,7 @@ class DesktopBackend:
 
     async def list_sessions(self) -> list[SessionInfo]:
         """List all sessions in the current connection."""
-        from sapwebguimcp.models.sap_results import SessionInfo as SInfo
+        from sapguimcp.models.sap_results import SessionInfo as SInfo
 
         session = self._require_session()
 
@@ -959,7 +959,7 @@ class DesktopBackend:
 
     async def get_form_fields(self, *, include_dropdown_options: bool = False) -> FormFieldsResult:
         """Detect form fields with their current values."""
-        from sapwebguimcp.models.sap_results import FormFieldsResult
+        from sapguimcp.models.sap_results import FormFieldsResult
 
         fields = await self.discover_fields()
         return FormFieldsResult(success=True, fields=fields, field_count=len(fields))
@@ -1024,8 +1024,8 @@ class DesktopBackend:
         session = self._require_session()
 
         def _read() -> dict[str, Any]:
-            from sapwebguimcp.sapgui.components.grid import GuiGridView
-            from sapwebguimcp.sapgui.components.table import GuiTableControl
+            from sapguimcp.sapgui.components.grid import GuiGridView
+            from sapguimcp.sapgui.components.table import GuiTableControl
 
             # Find grid or table in the user area
             usr = session.find_by_id("wnd[0]/usr")
@@ -1050,7 +1050,7 @@ class DesktopBackend:
 
                 actual_end = min(end_row or (start_row + max_rows - 1), row_count)
                 rows = []
-                from sapwebguimcp.models.sap_results import TableRow
+                from sapguimcp.models.sap_results import TableRow
                 for ri in range(start_row - 1, actual_end):
                     data = {}
                     for col_name in headers:
@@ -1068,7 +1068,7 @@ class DesktopBackend:
             return {"headers": [], "rows": [], "total_rows": 0, "start_row": 1}
 
         data = await self._com.run(_read)
-        from sapwebguimcp.models.sap_results import TableRow
+        from sapguimcp.models.sap_results import TableRow
         rows = [TableRow(**r) for r in data.pop("rows", [])]
         return TableData(success=True, rows=rows, **data)
 
@@ -1076,13 +1076,13 @@ class DesktopBackend:
         self, row: int, column: int | str, action: str = "click"
     ) -> TableCellClickResult:
         """Click a cell in an ALV grid table."""
-        from sapwebguimcp.models.alv_models import TableCellClickResult
+        from sapguimcp.models.alv_models import TableCellClickResult
 
         session = self._require_session()
 
         def _click() -> None:
             # Find grid
-            from sapwebguimcp.sapgui.components.grid import GuiGridView
+            from sapguimcp.sapgui.components.grid import GuiGridView
 
             usr = session.find_by_id("wnd[0]/usr")
             tree = cast(Any, usr).dump_tree(max_depth=3)
@@ -1233,14 +1233,14 @@ Run: `python -m pytest unittests/desktop/test_desktop_backend.py -v`
 
 - [ ] **Step 5: Update BackendManager**
 
-Add the desktop branch to `src/sapwebguimcp/backend/manager.py`:
+Add the desktop branch to `src/sapguimcp/backend/manager.py`:
 
 In `get_or_create`, after the webgui block, add:
 
 ```python
         elif self.backend_type == "desktop":
-            from sapwebguimcp.backend.desktop import DesktopBackend
-            from sapwebguimcp.backend.desktop._com_thread import ComThread
+            from sapguimcp.backend.desktop import DesktopBackend
+            from sapguimcp.backend.desktop._com_thread import ComThread
 
             session_key = session or "s1"
             cached = self._backends.get(session_key)
@@ -1269,8 +1269,8 @@ Expected: All tests PASS
 - [ ] **Step 7: Format and lint**
 
 ```bash
-python -m isort src/sapwebguimcp/backend/desktop/ unittests/desktop/ --profile black
-python -m black src/sapwebguimcp/backend/desktop/ unittests/desktop/ --line-length 120
+python -m isort src/sapguimcp/backend/desktop/ unittests/desktop/ --profile black
+python -m black src/sapguimcp/backend/desktop/ unittests/desktop/ --line-length 120
 tox -e type_check
 tox -e linting
 ```
@@ -1278,7 +1278,7 @@ tox -e linting
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/desktop/ src/sapwebguimcp/backend/manager.py unittests/desktop/
+git add src/sapguimcp/backend/desktop/ src/sapguimcp/backend/manager.py unittests/desktop/
 git commit -m "feat(desktop): add DesktopBackend with Navigation + Inspection + press_key (Phase 1 MVP)"
 ```
 

@@ -29,7 +29,7 @@ class TestRunPullAndCheckErrors:
         """After F8, should wait for networkidle instead of hardcoded timeouts."""
         from unittest.mock import AsyncMock, call, patch
 
-        from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
+        from sapguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
         mock_page = AsyncMock()
         mock_page.keyboard.press = AsyncMock()
@@ -37,7 +37,7 @@ class TestRunPullAndCheckErrors:
         mock_page.wait_for_timeout = AsyncMock()
 
         with patch(
-            "sapwebguimcp.tools.abapgit_tools._handle_popup_error",
+            "sapguimcp.tools.abapgit_tools._handle_popup_error",
             new_callable=AsyncMock,
             return_value=None,
         ):
@@ -65,11 +65,11 @@ Expected: FAIL — current code uses `wait_for_timeout` not `wait_for_load_state
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/abapgit_tools.py:390-402`
+- Modify: `src/sapguimcp/tools/abapgit_tools.py:390-402`
 
 **Step 1: Replace the function body**
 
-In `src/sapwebguimcp/tools/abapgit_tools.py`, replace `_run_pull_and_check_errors` (lines 390-402):
+In `src/sapguimcp/tools/abapgit_tools.py`, replace `_run_pull_and_check_errors` (lines 390-402):
 
 Old:
 
@@ -116,7 +116,7 @@ Expected: All pass (existing tests for `_analyze_pull_result`, model tests, pars
 **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/abapgit_tools.py unittests/test_pat_validation.py
+git add src/sapguimcp/tools/abapgit_tools.py unittests/test_pat_validation.py
 git commit -m "fix: use networkidle wait in abapgit pull instead of hardcoded timeouts
 
 Replace wait_for_timeout(3s+5s) with wait_for_load_state('networkidle')
@@ -133,11 +133,11 @@ empty' on successful pulls when deserialization exceeds 8 seconds."
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/abapgit_tools.py:929-933`
+- Modify: `src/sapguimcp/tools/abapgit_tools.py:929-933`
 
 **Step 1: Update the description**
 
-In `src/sapwebguimcp/tools/abapgit_tools.py`, change the `sap_abapgit_pull` tool description (line 929-933):
+In `src/sapguimcp/tools/abapgit_tools.py`, change the `sap_abapgit_pull` tool description (line 929-933):
 
 Old:
 
@@ -168,16 +168,16 @@ Expected: All pass.
 
 **Step 3: Run formatting and linting**
 
-Run: `python -m black src/sapwebguimcp/tools/abapgit_tools.py unittests/test_pat_validation.py && python -m isort src/sapwebguimcp/tools/abapgit_tools.py unittests/test_pat_validation.py`
+Run: `python -m black src/sapguimcp/tools/abapgit_tools.py unittests/test_pat_validation.py && python -m isort src/sapguimcp/tools/abapgit_tools.py unittests/test_pat_validation.py`
 Expected: Files formatted (or already compliant).
 
-Run: `python -m pylint src/sapwebguimcp/tools/abapgit_tools.py`
+Run: `python -m pylint src/sapguimcp/tools/abapgit_tools.py`
 Expected: No new errors.
 
 **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/abapgit_tools.py
+git add src/sapguimcp/tools/abapgit_tools.py
 git commit -m "docs: add F8 workaround note to sap_abapgit_pull description"
 ```
 
@@ -311,14 +311,14 @@ Add to the `TestRunPullAndCheckErrors` class in `unittests/test_pat_validation.p
         """If networkidle times out, should log warning and continue (not crash)."""
         from unittest.mock import AsyncMock, patch
 
-        from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
+        from sapguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
         mock_page = AsyncMock()
         mock_page.keyboard.press = AsyncMock()
         mock_page.wait_for_load_state = AsyncMock(side_effect=TimeoutError("networkidle timeout"))
 
         with patch(
-            "sapwebguimcp.tools.abapgit_tools._handle_popup_error",
+            "sapguimcp.tools.abapgit_tools._handle_popup_error",
             new_callable=AsyncMock,
             return_value=None,
         ):

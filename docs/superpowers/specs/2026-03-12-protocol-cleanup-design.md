@@ -138,9 +138,9 @@ doesn't leak implementation details.
 
 ## Success criteria
 
-- `grep -r 'backend\._page' src/sapwebguimcp/tools/` returns only `browser_tools.py`.
-- `grep -r 'from playwright' src/sapwebguimcp/tools/` returns only `browser_tools.py` (if any).
-- `grep -r 'get_browser_manager\|\.registry\.' src/sapwebguimcp/tools/` returns only `browser_tools.py` (if any).
-- `grep -r '_page' src/sapwebguimcp/backend/manager.py` returns nothing.
+- `grep -r 'backend\._page' src/sapguimcp/tools/` returns only `browser_tools.py`.
+- `grep -r 'from playwright' src/sapguimcp/tools/` returns only `browser_tools.py` (if any).
+- `grep -r 'get_browser_manager\|\.registry\.' src/sapguimcp/tools/` returns only `browser_tools.py` (if any).
+- `grep -r '_page' src/sapguimcp/backend/manager.py` returns nothing.
 - All existing tests pass.
 - No new `# type: ignore[attr-defined]` suppressions outside `browser_tools.py`.

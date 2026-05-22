@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import LoginResult
-from sapwebguimcp.models.spro_models import SPROFileSummary, SPROSearchResult
+from sapguimcp.models import LoginResult
+from sapguimcp.models.spro_models import SPROFileSummary, SPROSearchResult
 
 from .conftest import call_tool_typed
 

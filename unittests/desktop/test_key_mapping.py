@@ -1,7 +1,7 @@
 # unittests/desktop/test_key_mapping.py
 """Tests for VKey name → number mapping."""
 
-from sapwebguimcp.backend.desktop._key_mapping import key_to_vkey
+from sapguimcp.backend.desktop._key_mapping import key_to_vkey
 
 
 def test_enter():

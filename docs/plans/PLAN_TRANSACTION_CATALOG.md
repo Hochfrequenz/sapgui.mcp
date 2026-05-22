@@ -14,14 +14,14 @@ This document describes the plan to scrape SAP transaction codes and expose them
 ### Files Created
 
 ```
-src/sapwebguimcp/catalog/
+src/sapguimcp/catalog/
 ├── __init__.py      # Module exports
 ├── models.py        # TransactionInfo, TransactionCatalog
 ├── scraper.py       # scrape_tstc(), enrich_with_se93()
 ├── loader.py        # load_catalog(), get_catalog()
 └── search.py        # search_transactions()
 
-src/sapwebguimcp/tools/
+src/sapguimcp/tools/
 └── catalog_tools.py # MCP tool registration
 
 unittests/
@@ -118,7 +118,7 @@ class TransactionInfo:
 
 #### Step 1.4: Store as static JSON
 
-- Write to `src/sapwebguimcp/data/transactions.json`
+- Write to `src/sapguimcp/data/transactions.json`
 - Include metadata (last_updated, source_system, language)
 
 ### Phase 2: Create MCP Resource
@@ -196,7 +196,7 @@ async def search_transactions(
 ## File Structure
 
 ```
-src/sapwebguimcp/
+src/sapguimcp/
 ├── data/
 │   └── transactions.json      # Static transaction catalog
 ├── catalog/
@@ -261,7 +261,7 @@ tox -e integration_tests
 
 ## Related Files
 
-- `src/sapwebguimcp/tools/se16_tools.py` - SE16N query tool
-- `src/sapwebguimcp/tools/se93_tools.py` - SE93 lookup tool
-- `src/sapwebguimcp/parsers/se93_parser.py` - SE93 screen parser
-- `src/sapwebguimcp/models.py` - Existing data models
+- `src/sapguimcp/tools/se16_tools.py` - SE16N query tool
+- `src/sapguimcp/tools/se93_tools.py` - SE93 lookup tool
+- `src/sapguimcp/parsers/se93_parser.py` - SE93 screen parser
+- `src/sapguimcp/models.py` - Existing data models

@@ -10,13 +10,13 @@
 
 **Existing code references:**
 
-- Current BrowserManager: `src/sapwebguimcp/models/browser.py` (501 lines)
-- Shared tool impls: `src/sapwebguimcp/tools/sap_tool_impl.py` (372 lines)
-- Page helpers: `src/sapwebguimcp/tools/sap_page_helpers.py` (65 lines)
-- Edit helpers: `src/sapwebguimcp/tools/edit_helpers.py` (160 lines)
+- Current BrowserManager: `src/sapguimcp/models/browser.py` (501 lines)
+- Shared tool impls: `src/sapguimcp/tools/sap_tool_impl.py` (372 lines)
+- Page helpers: `src/sapguimcp/tools/sap_page_helpers.py` (65 lines)
+- Edit helpers: `src/sapguimcp/tools/edit_helpers.py` (160 lines)
 - JS loader: `_load_js` in `sap_tool_impl.py:43-46`
-- All result models: `src/sapwebguimcp/models/` (re-exported from `__init__.py`)
-- Server wiring: `src/sapwebguimcp/server.py` (221 lines)
+- All result models: `src/sapguimcp/models/` (re-exported from `__init__.py`)
+- Server wiring: `src/sapguimcp/server.py` (221 lines)
 
 ---
 
@@ -44,19 +44,19 @@ These are small, non-breaking PRs that reduce the size of the main migration.
 
 **Files:**
 
-- Create: `src/sapwebguimcp/backend/__init__.py`
-- Create: `src/sapwebguimcp/backend/types.py`
-- Modify: `src/sapwebguimcp/parsers/se24_parser.py`
-- Modify: `src/sapwebguimcp/parsers/se37_parser.py`
-- Modify: `src/sapwebguimcp/parsers/se16_parser.py`
-- Modify: `src/sapwebguimcp/parsers/se11_parser.py`
-- Modify: `src/sapwebguimcp/parsers/se93_parser.py`
-- Modify: `src/sapwebguimcp/parsers/se09_parser.py`
-- Modify: `src/sapwebguimcp/parsers/slg1_parser.py`
-- Modify: `src/sapwebguimcp/parsers/sm37_parser.py`
-- Modify: `src/sapwebguimcp/parsers/sm30_parser.py`
-- Modify: `src/sapwebguimcp/parsers/spro_parser.py`
-- Modify: `src/sapwebguimcp/parsers/st22_parser.py`
+- Create: `src/sapguimcp/backend/__init__.py`
+- Create: `src/sapguimcp/backend/types.py`
+- Modify: `src/sapguimcp/parsers/se24_parser.py`
+- Modify: `src/sapguimcp/parsers/se37_parser.py`
+- Modify: `src/sapguimcp/parsers/se16_parser.py`
+- Modify: `src/sapguimcp/parsers/se11_parser.py`
+- Modify: `src/sapguimcp/parsers/se93_parser.py`
+- Modify: `src/sapguimcp/parsers/se09_parser.py`
+- Modify: `src/sapguimcp/parsers/slg1_parser.py`
+- Modify: `src/sapguimcp/parsers/sm37_parser.py`
+- Modify: `src/sapguimcp/parsers/sm30_parser.py`
+- Modify: `src/sapguimcp/parsers/spro_parser.py`
+- Modify: `src/sapguimcp/parsers/st22_parser.py`
 - Test: `unittests/test_aria_snapshot_type.py`
 
 **Step 1: Write the test**
@@ -64,7 +64,7 @@ These are small, non-breaking PRs that reduce the size of the main migration.
 ```python
 # unittests/test_aria_snapshot_type.py
 """Tests for the AriaSnapshot type alias."""
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapguimcp.backend.types import AriaSnapshot
 
 
 def test_aria_snapshot_is_str_subtype() -> None:
@@ -84,20 +84,20 @@ def test_aria_snapshot_distinct_from_raw_str() -> None:
 **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest unittests/test_aria_snapshot_type.py -v`
-Expected: FAIL — `ModuleNotFoundError: No module named 'sapwebguimcp.backend'`
+Expected: FAIL — `ModuleNotFoundError: No module named 'sapguimcp.backend'`
 
 **Step 3: Create the backend package and types module**
 
 ```python
-# src/sapwebguimcp/backend/__init__.py
+# src/sapguimcp/backend/__init__.py
 """Backend abstraction layer for SAP UI interaction."""
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapguimcp.backend.types import AriaSnapshot
 
 __all__ = ["AriaSnapshot"]
 ```
 
 ```python
-# src/sapwebguimcp/backend/types.py
+# src/sapguimcp/backend/types.py
 """Type definitions for the backend abstraction layer."""
 from typing import NewType
 
@@ -117,13 +117,13 @@ Expected: PASS
 
 **Step 5: Update all parser entry-point signatures to use `AriaSnapshot`**
 
-For each parser file, add `from sapwebguimcp.backend.types import AriaSnapshot` and change the main parse function signature from `snapshot: str` to `snapshot: AriaSnapshot`. The parser internals stay unchanged — `AriaSnapshot` is a `str` at runtime.
+For each parser file, add `from sapguimcp.backend.types import AriaSnapshot` and change the main parse function signature from `snapshot: str` to `snapshot: AriaSnapshot`. The parser internals stay unchanged — `AriaSnapshot` is a `str` at runtime.
 
 Example for `se24_parser.py`:
 
 ```python
 # Add import
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapguimcp.backend.types import AriaSnapshot
 
 # Change signature (find the main public parse function)
 def parse_se24_snapshot(snapshot: AriaSnapshot, ...) -> SE24Entry | SE24Error:
@@ -139,7 +139,7 @@ Expected: All PASS (AriaSnapshot is str at runtime)
 **Step 7: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/ unittests/test_aria_snapshot_type.py src/sapwebguimcp/parsers/
+git add src/sapguimcp/backend/ unittests/test_aria_snapshot_type.py src/sapguimcp/parsers/
 git commit -m "feat: introduce AriaSnapshot type alias and update parser signatures"
 ```
 
@@ -149,7 +149,7 @@ git commit -m "feat: introduce AriaSnapshot type alias and update parser signatu
 
 **Files:**
 
-- Create: `src/sapwebguimcp/backend/protocol.py`
+- Create: `src/sapguimcp/backend/protocol.py`
 - Test: `unittests/test_backend_protocol.py`
 
 **Step 1: Write the test**
@@ -159,7 +159,7 @@ git commit -m "feat: introduce AriaSnapshot type alias and update parser signatu
 """Tests that the backend protocol is well-defined and importable."""
 from typing import runtime_checkable
 
-from sapwebguimcp.backend.protocol import (
+from sapguimcp.backend.protocol import (
     SapEditor,
     SapNavigation,
     SapPopup,
@@ -198,7 +198,7 @@ Expected: FAIL — `ModuleNotFoundError`
 **Step 3: Write protocol.py**
 
 ```python
-# src/sapwebguimcp/backend/protocol.py
+# src/sapguimcp/backend/protocol.py
 """
 Protocol definitions for the SAP UI backend abstraction.
 
@@ -211,8 +211,8 @@ from typing import Protocol, runtime_checkable
 
 from pydantic import Field
 
-from sapwebguimcp.backend.types import AriaSnapshot
-from sapwebguimcp.models import (
+from sapguimcp.backend.types import AriaSnapshot
+from sapguimcp.models import (
     ButtonInfo,
     ClosePopupResult,
     DropdownFillResult,
@@ -366,9 +366,9 @@ class SapUiBackend(
 **Step 4: Update `backend/__init__.py` exports**
 
 ```python
-# src/sapwebguimcp/backend/__init__.py
+# src/sapguimcp/backend/__init__.py
 """Backend abstraction layer for SAP UI interaction."""
-from sapwebguimcp.backend.protocol import (
+from sapguimcp.backend.protocol import (
     CheckActivateResult,
     SapEditor,
     SapNavigation,
@@ -377,7 +377,7 @@ from sapwebguimcp.backend.protocol import (
     SapUiInspection,
     SapUiPrimitives,
 )
-from sapwebguimcp.backend.types import AriaSnapshot
+from sapguimcp.backend.types import AriaSnapshot
 
 __all__ = [
     "AriaSnapshot",
@@ -402,7 +402,7 @@ Expected: PASS
 **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/protocol.py src/sapwebguimcp/backend/__init__.py unittests/test_backend_protocol.py
+git add src/sapguimcp/backend/protocol.py src/sapguimcp/backend/__init__.py unittests/test_backend_protocol.py
 git commit -m "feat: add SapUiBackend protocol hierarchy"
 ```
 
@@ -412,20 +412,20 @@ git commit -m "feat: add SapUiBackend protocol hierarchy"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/backend/webgui/__init__.py`
-- Create: `src/sapwebguimcp/backend/webgui/js_helpers.py`
-- Modify: `src/sapwebguimcp/tools/sap_tool_impl.py` (re-export from new location)
-- Modify: `src/sapwebguimcp/tools/sap_tools.py` (re-export from new location)
+- Create: `src/sapguimcp/backend/webgui/__init__.py`
+- Create: `src/sapguimcp/backend/webgui/js_helpers.py`
+- Modify: `src/sapguimcp/tools/sap_tool_impl.py` (re-export from new location)
+- Modify: `src/sapguimcp/tools/sap_tools.py` (re-export from new location)
 
 **Step 1: Create webgui package and js_helpers**
 
 ```python
-# src/sapwebguimcp/backend/webgui/__init__.py
+# src/sapguimcp/backend/webgui/__init__.py
 """WebGUI backend implementation using Playwright/CDP."""
 ```
 
 ```python
-# src/sapwebguimcp/backend/webgui/js_helpers.py
+# src/sapguimcp/backend/webgui/js_helpers.py
 """JavaScript file loading helpers for the WebGUI backend."""
 from functools import lru_cache
 from importlib import resources
@@ -433,9 +433,9 @@ from importlib import resources
 
 @lru_cache(maxsize=16)
 def load_js(filename: str) -> str:
-    """Load a JavaScript file from the sapwebguimcp.js package."""
+    """Load a JavaScript file from the sapguimcp.js package."""
     return (
-        resources.files("sapwebguimcp.js")
+        resources.files("sapguimcp.js")
         .joinpath(filename)
         .read_text(encoding="utf-8")
     )
@@ -451,20 +451,20 @@ def load_js_with_field_utils(filename: str) -> str:
 
 **Step 2: Update sap_tool_impl.py to re-export from new location**
 
-In `src/sapwebguimcp/tools/sap_tool_impl.py`, replace the `_load_js` and `_load_js_with_field_utils` definitions (lines 43-53) with:
+In `src/sapguimcp/tools/sap_tool_impl.py`, replace the `_load_js` and `_load_js_with_field_utils` definitions (lines 43-53) with:
 
 ```python
-from sapwebguimcp.backend.webgui.js_helpers import load_js as _load_js
-from sapwebguimcp.backend.webgui.js_helpers import load_js_with_field_utils as _load_js_with_field_utils
+from sapguimcp.backend.webgui.js_helpers import load_js as _load_js
+from sapguimcp.backend.webgui.js_helpers import load_js_with_field_utils as _load_js_with_field_utils
 ```
 
 **Step 3: Update sap_tools.py similarly**
 
-In `src/sapwebguimcp/tools/sap_tools.py`, replace the `_load_js` and `_load_js_with_field_utils` definitions (lines 91-102) with:
+In `src/sapguimcp/tools/sap_tools.py`, replace the `_load_js` and `_load_js_with_field_utils` definitions (lines 91-102) with:
 
 ```python
-from sapwebguimcp.backend.webgui.js_helpers import load_js as _load_js
-from sapwebguimcp.backend.webgui.js_helpers import load_js_with_field_utils as _load_js_with_field_utils
+from sapguimcp.backend.webgui.js_helpers import load_js as _load_js
+from sapguimcp.backend.webgui.js_helpers import load_js_with_field_utils as _load_js_with_field_utils
 ```
 
 **Step 4: Run tests to verify nothing broke**
@@ -475,7 +475,7 @@ Expected: All PASS (re-exports preserve behavior)
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/webgui/ src/sapwebguimcp/tools/sap_tool_impl.py src/sapwebguimcp/tools/sap_tools.py
+git add src/sapguimcp/backend/webgui/ src/sapguimcp/tools/sap_tool_impl.py src/sapguimcp/tools/sap_tools.py
 git commit -m "refactor: move JS helpers to backend/webgui/js_helpers.py"
 ```
 
@@ -491,26 +491,26 @@ From here on, work on a feature branch `feat/ui-backend-abstraction` based on ma
 
 **Files:**
 
-- Move: `src/sapwebguimcp/models/browser.py` → `src/sapwebguimcp/backend/webgui/browser.py`
-- Modify: `src/sapwebguimcp/models/__init__.py` (re-export from new location)
+- Move: `src/sapguimcp/models/browser.py` → `src/sapguimcp/backend/webgui/browser.py`
+- Modify: `src/sapguimcp/models/__init__.py` (re-export from new location)
 
 **Step 1: Copy `models/browser.py` to `backend/webgui/browser.py`**
 
-Copy the file as-is. Update its internal imports if any reference `sapwebguimcp.models.browser` (check for circular imports).
+Copy the file as-is. Update its internal imports if any reference `sapguimcp.models.browser` (check for circular imports).
 
 **Step 2: Update `models/__init__.py` to re-export**
 
 Replace the direct import of `BrowserManager`, `get_browser_manager`, `close_browser_manager` with:
 
 ```python
-from sapwebguimcp.backend.webgui.browser import (
+from sapguimcp.backend.webgui.browser import (
     BrowserManager,
     close_browser_manager,
     get_browser_manager,
 )
 ```
 
-This ensures all existing code that imports from `sapwebguimcp.models` still works.
+This ensures all existing code that imports from `sapguimcp.models` still works.
 
 **Step 3: Run tests**
 
@@ -520,7 +520,7 @@ Expected: All PASS
 **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/webgui/browser.py src/sapwebguimcp/models/
+git add src/sapguimcp/backend/webgui/browser.py src/sapguimcp/models/
 git commit -m "refactor: move BrowserManager to backend/webgui/"
 ```
 
@@ -530,7 +530,7 @@ git commit -m "refactor: move BrowserManager to backend/webgui/"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/backend/webgui/backend.py`
+- Create: `src/sapguimcp/backend/webgui/backend.py`
 - Test: `unittests/test_webgui_backend.py`
 
 This is the core implementation. The `WebGuiBackend` wraps a single Playwright `Page` and implements `SapUiBackend`.
@@ -540,8 +540,8 @@ This is the core implementation. The `WebGuiBackend` wraps a single Playwright `
 ```python
 # unittests/test_webgui_backend.py
 """Tests for the WebGuiBackend implementation."""
-from sapwebguimcp.backend.protocol import SapUiBackend
-from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+from sapguimcp.backend.protocol import SapUiBackend
+from sapguimcp.backend.webgui.backend import WebGuiBackend
 
 
 def test_webgui_backend_implements_protocol() -> None:
@@ -554,17 +554,17 @@ Note: This test will fail until ALL protocol methods are implemented. Implement 
 **Step 2: Create WebGuiBackend with navigation methods**
 
 ```python
-# src/sapwebguimcp/backend/webgui/backend.py
+# src/sapguimcp/backend/webgui/backend.py
 """WebGUI backend implementation using Playwright/CDP."""
 from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
 
-from sapwebguimcp.backend.protocol import CheckActivateResult
-from sapwebguimcp.backend.types import AriaSnapshot
-from sapwebguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils
-from sapwebguimcp.models import (
+from sapguimcp.backend.protocol import CheckActivateResult
+from sapguimcp.backend.types import AriaSnapshot
+from sapguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils
+from sapguimcp.models import (
     ButtonInfo,
     ClosePopupResult,
     DropdownFillResult,
@@ -645,7 +645,7 @@ Each `NotImplementedError` will be replaced with code extracted from the existin
 **Step 3: Commit skeleton**
 
 ```bash
-git add src/sapwebguimcp/backend/webgui/backend.py unittests/test_webgui_backend.py
+git add src/sapguimcp/backend/webgui/backend.py unittests/test_webgui_backend.py
 git commit -m "feat: add WebGuiBackend skeleton with navigation methods"
 ```
 
@@ -655,7 +655,7 @@ git commit -m "feat: add WebGuiBackend skeleton with navigation methods"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/backend/webgui/backend.py`
+- Modify: `src/sapguimcp/backend/webgui/backend.py`
 
 Add the `SapUiPrimitives` methods to `WebGuiBackend`. Extract logic from:
 
@@ -706,7 +706,7 @@ git commit -m "feat: implement SapUiPrimitives methods in WebGuiBackend"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/backend/webgui/backend.py`
+- Modify: `src/sapguimcp/backend/webgui/backend.py`
 
 Add the `SapUiInspection` methods. Extract logic from:
 
@@ -752,7 +752,7 @@ git commit -m "feat: implement SapUiInspection methods in WebGuiBackend"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/backend/webgui/backend.py`
+- Modify: `src/sapguimcp/backend/webgui/backend.py`
 
 Extract logic from `tools/edit_helpers.py`:
 
@@ -774,7 +774,7 @@ git commit -m "feat: implement SapEditor methods in WebGuiBackend"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/backend/webgui/backend.py`
+- Modify: `src/sapguimcp/backend/webgui/backend.py`
 
 Extract logic from:
 
@@ -798,8 +798,8 @@ git commit -m "feat: implement SapPopup methods in WebGuiBackend"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/backend/manager.py`
-- Modify: `src/sapwebguimcp/backend/__init__.py`
+- Create: `src/sapguimcp/backend/manager.py`
+- Modify: `src/sapguimcp/backend/__init__.py`
 - Test: `unittests/test_backend_manager.py`
 
 **Step 1: Write test**
@@ -811,8 +811,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from sapwebguimcp.backend.manager import BackendManager
-from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+from sapguimcp.backend.manager import BackendManager
+from sapguimcp.backend.webgui.backend import WebGuiBackend
 
 
 def test_backend_manager_default_type() -> None:
@@ -830,17 +830,17 @@ def test_backend_manager_unknown_type_raises() -> None:
 **Step 2: Implement BackendManager**
 
 ```python
-# src/sapwebguimcp/backend/manager.py
+# src/sapguimcp/backend/manager.py
 """Backend manager — singleton entry point for tools."""
 from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
 
-from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+from sapguimcp.backend.webgui.backend import WebGuiBackend
 
 if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
+    from sapguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -874,7 +874,7 @@ class BackendManager:
         if the underlying page is still the same, creates a new one otherwise.
         """
         if self.backend_type == "webgui":
-            from sapwebguimcp.backend.webgui.browser import (
+            from sapguimcp.backend.webgui.browser import (
                 get_browser_manager,
             )
 
@@ -902,7 +902,7 @@ def get_backend_manager() -> BackendManager:
     global _backend_manager  # noqa: PLW0603
     if _backend_manager is None:
         # Read backend type from settings/env
-        from sapwebguimcp.models.config import get_settings
+        from sapguimcp.models.config import get_settings
 
         settings = get_settings()
         backend_type = getattr(settings, "sap_ui_backend", "webgui")
@@ -934,7 +934,7 @@ def reset_backend_manager() -> None:
 Add exports:
 
 ```python
-from sapwebguimcp.backend.manager import get_backend, get_backend_manager, reset_backend_manager
+from sapguimcp.backend.manager import get_backend, get_backend_manager, reset_backend_manager
 ```
 
 **Step 4: Run tests**
@@ -945,7 +945,7 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/manager.py src/sapwebguimcp/backend/__init__.py unittests/test_backend_manager.py
+git add src/sapguimcp/backend/manager.py src/sapguimcp/backend/__init__.py unittests/test_backend_manager.py
 git commit -m "feat: add BackendManager with get_backend() entry point"
 ```
 
@@ -968,7 +968,7 @@ Each task follows the same pattern:
 
 **Files:**
 
-- Delete: `src/sapwebguimcp/tools/sap_tool_impl.py`
+- Delete: `src/sapguimcp/tools/sap_tool_impl.py`
 - Modify: All files that import from `sap_tool_impl.py` (update to use `get_backend()` directly or import JS helpers from `backend.webgui.js_helpers`)
 
 Per design review: `sap_tool_impl.py` is a double-delegation layer — its functions just wrap backend methods. Delete it outright instead of migrating. All callers switch to using `get_backend()` directly.
@@ -976,7 +976,7 @@ Per design review: `sap_tool_impl.py` is a double-delegation layer — its funct
 **Step 1: Identify all importers**
 
 ```bash
-grep -r "from sapwebguimcp.tools.sap_tool_impl import" src/sapwebguimcp/
+grep -r "from sapguimcp.tools.sap_tool_impl import" src/sapguimcp/
 ```
 
 Typical imports to replace:
@@ -987,7 +987,7 @@ Typical imports to replace:
 - `sap_read_status_bar_impl` → `backend.get_status_bar()`
 - `sap_get_screen_info_impl` → `backend.get_screen_info()`
 - `sap_get_screen_text_impl` → `backend.get_screen_text()`
-- `_load_js` / `_load_js_with_field_utils` → `from sapwebguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils`
+- `_load_js` / `_load_js_with_field_utils` → `from sapguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils`
 
 **Step 2: Update each caller to use backend directly**
 
@@ -995,11 +995,11 @@ Each file that imported from `sap_tool_impl.py` now calls `get_backend()` and us
 
 ```python
 # BEFORE (in some tool file)
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
+from sapguimcp.tools.sap_tool_impl import sap_transaction_impl
 result = await sap_transaction_impl(tcode, session, agent_id)
 
 # AFTER
-from sapwebguimcp.backend import get_backend
+from sapguimcp.backend import get_backend
 backend = await get_backend(session=session, agent_id=agent_id, tool_name="...")
 result = await backend.enter_transaction(tcode)
 ```
@@ -1007,13 +1007,13 @@ result = await backend.enter_transaction(tcode)
 **Step 3: Delete `sap_tool_impl.py`**
 
 ```bash
-git rm src/sapwebguimcp/tools/sap_tool_impl.py
+git rm src/sapguimcp/tools/sap_tool_impl.py
 ```
 
 **Step 4: Run tests**
 
 ```bash
-cd /c/github/sapwebgui.mcp && tox -e type_check
+cd /c/github/sapgui.mcp && tox -e type_check
 ```
 
 **Commit:**
@@ -1028,7 +1028,7 @@ git commit -m "refactor: delete sap_tool_impl.py, callers use backend directly"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sap_tools.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py`
 
 This is the largest tool file (2370 lines). Replace every `get_browser_manager()` → `get_backend()` and every `page.*` call with backend protocol methods.
 
@@ -1085,7 +1085,7 @@ git commit -m "refactor: migrate sap_tools.py to use backend protocol"
 
 **Files:**
 
-- Delete: `src/sapwebguimcp/tools/sap_page_helpers.py`
+- Delete: `src/sapguimcp/tools/sap_page_helpers.py`
 - Modify: All files that import from `sap_page_helpers.py`
 
 These helpers (`navigate_transaction`, `fill_form_on_page`, `read_status_bar`) become one-liners when using the backend protocol. Delete the file outright and replace callers with direct backend calls.
@@ -1093,14 +1093,14 @@ These helpers (`navigate_transaction`, `fill_form_on_page`, `read_status_bar`) b
 **Step 1: Identify all importers**
 
 ```bash
-grep -r "from sapwebguimcp.tools.sap_page_helpers import" src/sapwebguimcp/
+grep -r "from sapguimcp.tools.sap_page_helpers import" src/sapguimcp/
 ```
 
 **Step 2: Replace each call**
 
 ```python
 # BEFORE
-from sapwebguimcp.tools.sap_page_helpers import navigate_transaction
+from sapguimcp.tools.sap_page_helpers import navigate_transaction
 error = await navigate_transaction(page, "SE24")
 
 # AFTER
@@ -1117,7 +1117,7 @@ Similarly:
 **Step 3: Delete the file**
 
 ```bash
-git rm src/sapwebguimcp/tools/sap_page_helpers.py
+git rm src/sapguimcp/tools/sap_page_helpers.py
 ```
 
 **Commit:**
@@ -1132,10 +1132,10 @@ git commit -m "refactor: delete sap_page_helpers.py, callers use backend directl
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/se24_edit_tools.py`
-- Modify: `src/sapwebguimcp/tools/se37_edit_tools.py`
-- Modify: `src/sapwebguimcp/tools/se38_edit_tools.py`
-- Delete: `src/sapwebguimcp/tools/edit_helpers.py` (logic moved to WebGuiBackend in Task 8)
+- Modify: `src/sapguimcp/tools/se24_edit_tools.py`
+- Modify: `src/sapguimcp/tools/se37_edit_tools.py`
+- Modify: `src/sapguimcp/tools/se38_edit_tools.py`
+- Delete: `src/sapguimcp/tools/edit_helpers.py` (logic moved to WebGuiBackend in Task 8)
 
 **Migration pattern:**
 
@@ -1164,7 +1164,7 @@ result = await backend.check_and_activate()  # returns CheckActivateResult (Tool
 - Delete `edit_helpers.py` entirely
 
 ```bash
-git rm src/sapwebguimcp/tools/edit_helpers.py
+git rm src/sapguimcp/tools/edit_helpers.py
 ```
 
 **Commit:**
@@ -1179,11 +1179,11 @@ git commit -m "refactor: migrate edit tools to backend protocol, delete edit_hel
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/se24_tools.py`
-- Modify: `src/sapwebguimcp/tools/se37_tools.py`
-- Modify: `src/sapwebguimcp/tools/se11_tools.py`
-- Modify: `src/sapwebguimcp/tools/se16_tools.py`
-- Modify: `src/sapwebguimcp/tools/se93_tools.py`
+- Modify: `src/sapguimcp/tools/se24_tools.py`
+- Modify: `src/sapguimcp/tools/se37_tools.py`
+- Modify: `src/sapguimcp/tools/se11_tools.py`
+- Modify: `src/sapguimcp/tools/se16_tools.py`
+- Modify: `src/sapguimcp/tools/se93_tools.py`
 
 **Migration pattern (using SE24 as example):**
 
@@ -1229,17 +1229,17 @@ git commit -m "refactor: migrate SE24/SE37/SE11/SE16/SE93 lookup tools to backen
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sm37_tools.py`
-- Modify: `src/sapwebguimcp/tools/slg1_tools.py`
-- Modify: `src/sapwebguimcp/tools/sm30_tools.py`
-- Modify: `src/sapwebguimcp/tools/spro_tools.py`
-- Modify: `src/sapwebguimcp/tools/st22_tools.py`
-- Modify: `src/sapwebguimcp/tools/se09_tools.py`
-- Audit: `src/sapwebguimcp/tools/catalog_tools.py`
-- Audit: `src/sapwebguimcp/tools/class_tools.py`
-- Audit: `src/sapwebguimcp/tools/fm_tools.py`
-- Audit: `src/sapwebguimcp/tools/table_tools.py`
-- Audit: `src/sapwebguimcp/tools/workflow_tools.py`
+- Modify: `src/sapguimcp/tools/sm37_tools.py`
+- Modify: `src/sapguimcp/tools/slg1_tools.py`
+- Modify: `src/sapguimcp/tools/sm30_tools.py`
+- Modify: `src/sapguimcp/tools/spro_tools.py`
+- Modify: `src/sapguimcp/tools/st22_tools.py`
+- Modify: `src/sapguimcp/tools/se09_tools.py`
+- Audit: `src/sapguimcp/tools/catalog_tools.py`
+- Audit: `src/sapguimcp/tools/class_tools.py`
+- Audit: `src/sapguimcp/tools/fm_tools.py`
+- Audit: `src/sapguimcp/tools/table_tools.py`
+- Audit: `src/sapguimcp/tools/workflow_tools.py`
 
 These all follow the same pattern as lookup tools: navigate to transaction, fill fields, press F-key, read snapshot/table, parse results.
 
@@ -1259,18 +1259,18 @@ git commit -m "refactor: migrate monitoring tools (SM37/SLG1/SM30/SPRO/ST22/SE09
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/abapgit_tools.py`
+- Modify: `src/sapguimcp/tools/abapgit_tools.py`
 
 This is the largest tool file after sap_tools.py (~1000 lines). Same migration pattern. Previously imported from `sap_tool_impl.py` — since that file was deleted in Task 11, update all calls to use `get_backend()` directly:
 
 ```python
 # BEFORE
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl, sap_read_status_bar_impl
+from sapguimcp.tools.sap_tool_impl import sap_transaction_impl, sap_read_status_bar_impl
 await sap_transaction_impl(tcode, session, agent_id)
 status = await sap_read_status_bar_impl(session, agent_id)
 
 # AFTER
-from sapwebguimcp.backend import get_backend
+from sapguimcp.backend import get_backend
 backend = await get_backend(session=session, agent_id=agent_id, tool_name="...")
 await backend.enter_transaction(tcode)
 status = await backend.get_status_bar()
@@ -1288,8 +1288,8 @@ git commit -m "refactor: migrate abapGit tools to backend protocol"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/browser_tools.py`
-- Modify: `src/sapwebguimcp/server.py`
+- Modify: `src/sapguimcp/tools/browser_tools.py`
+- Modify: `src/sapguimcp/server.py`
 
 Browser tools stay as direct Playwright wrappers but registration becomes conditional:
 
@@ -1316,7 +1316,7 @@ git commit -m "refactor: make browser_tools registration conditional on backend 
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/session_tools.py`
+- Modify: `src/sapguimcp/tools/session_tools.py`
 
 Session management tools (`sap_session_list`, `sap_session_close`, `sap_session_bind`, `sap_session_release`) operate on the `BackendManager`/`SessionRegistry`, not on individual backend instances.
 
@@ -1326,7 +1326,7 @@ browser_manager = await get_browser_manager()
 sessions = browser_manager.registry.list_sessions()
 
 # AFTER — option A: use BackendManager directly
-from sapwebguimcp.backend.manager import get_backend_manager
+from sapguimcp.backend.manager import get_backend_manager
 manager = get_backend_manager()
 sessions = manager.list_sessions()
 ```
@@ -1349,13 +1349,13 @@ git commit -m "refactor: migrate session_tools.py to use BackendManager"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/server.py`
+- Modify: `src/sapguimcp/server.py`
 
 Update the lifespan to initialize/cleanup via `BackendManager`:
 
 ```python
 # BEFORE
-from sapwebguimcp.models import close_browser_manager, get_browser_manager
+from sapguimcp.models import close_browser_manager, get_browser_manager
 
 @asynccontextmanager
 async def app_lifespan(_server: FastMCP):
@@ -1364,7 +1364,7 @@ async def app_lifespan(_server: FastMCP):
     await close_browser_manager()
 
 # AFTER
-from sapwebguimcp.backend.manager import get_backend_manager, reset_backend_manager
+from sapguimcp.backend.manager import get_backend_manager, reset_backend_manager
 
 @asynccontextmanager
 async def app_lifespan(_server: FastMCP):
@@ -1388,14 +1388,14 @@ git commit -m "refactor: update server.py to use BackendManager lifecycle"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/__init__.py` — remove `BrowserManager`, `get_browser_manager`, `close_browser_manager` re-exports (or keep as deprecated with a warning)
+- Modify: `src/sapguimcp/models/__init__.py` — remove `BrowserManager`, `get_browser_manager`, `close_browser_manager` re-exports (or keep as deprecated with a warning)
 
 Note: `sap_tool_impl.py` was already deleted in Task 11, `sap_page_helpers.py` in Task 13, and `edit_helpers.py` in Task 14. This task handles remaining cleanup.
 
 **Verify no Playwright imports remain in tools/:**
 
 ```bash
-grep -r "from playwright" src/sapwebguimcp/tools/
+grep -r "from playwright" src/sapguimcp/tools/
 ```
 
 Expected: Only `browser_tools.py` should have Playwright imports.
@@ -1403,7 +1403,7 @@ Expected: Only `browser_tools.py` should have Playwright imports.
 **Also verify no stale imports from deleted files:**
 
 ```bash
-grep -r "sap_tool_impl\|sap_page_helpers\|edit_helpers" src/sapwebguimcp/tools/
+grep -r "sap_tool_impl\|sap_page_helpers\|edit_helpers" src/sapguimcp/tools/
 ```
 
 Expected: No matches (all callers updated in earlier tasks).
@@ -1423,7 +1423,7 @@ Use `tox` environments to match CI exactly.
 **Step 1: Run unit tests**
 
 ```bash
-cd /c/github/sapwebgui.mcp && python -m pytest unittests/ -k "not integration and not exploration" -v --timeout=60
+cd /c/github/sapgui.mcp && python -m pytest unittests/ -k "not integration and not exploration" -v --timeout=60
 ```
 
 Fix any failures. Common issues:
@@ -1435,26 +1435,26 @@ Fix any failures. Common issues:
 **Step 2: Run type checking (matches CI)**
 
 ```bash
-cd /c/github/sapwebgui.mcp && tox -e type_check
+cd /c/github/sapgui.mcp && tox -e type_check
 ```
 
 **Step 3: Run formatting check (matches CI)**
 
 ```bash
-cd /c/github/sapwebgui.mcp && tox -e formatting
+cd /c/github/sapgui.mcp && tox -e formatting
 ```
 
 **Step 4: Auto-fix formatting if needed**
 
 ```bash
-cd /c/github/sapwebgui.mcp && python -m black src/ unittests/
-cd /c/github/sapwebgui.mcp && python -m isort src/ unittests/
+cd /c/github/sapgui.mcp && python -m black src/ unittests/
+cd /c/github/sapgui.mcp && python -m isort src/ unittests/
 ```
 
 **Step 5: Run spelling check (matches CI)**
 
 ```bash
-cd /c/github/sapwebgui.mcp && tox -e spelling
+cd /c/github/sapgui.mcp && tox -e spelling
 ```
 
 **Commit:**
@@ -1469,13 +1469,13 @@ git commit -m "fix: resolve test failures and linting issues after migration"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/config.py`
+- Modify: `src/sapguimcp/models/config.py`
 - Modify: `.env.example` (if it exists)
 
-Add the `sap_ui_backend` field to `SapWebGuiSettings`:
+Add the `sap_ui_backend` field to `SapGuiSettings`:
 
 ```python
-# In config.py SapWebGuiSettings class
+# In config.py SapGuiSettings class
 sap_ui_backend: Literal["webgui"] = Field(
     default="webgui",
     description="SAP UI backend type. Currently only 'webgui' is supported.",

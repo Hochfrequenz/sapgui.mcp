@@ -7,9 +7,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sapwebguimcp.backend.desktop import _current_session_id
-from sapwebguimcp.backend.desktop._com_thread import ComThread
-from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
+from sapguimcp.backend.desktop import _current_session_id
+from sapguimcp.backend.desktop._com_thread import ComThread
+from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
 
 def _make_mock_session(name: str = "s") -> MagicMock:
@@ -24,7 +24,7 @@ def _make_mock_session(name: str = "s") -> MagicMock:
 class TestContextVarRouting:
     def test_default_returns_s1(self) -> None:
         """With no ContextVar set, require_session returns s1."""
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         b = DesktopBackend.__new__(DesktopBackend)
         b.registry = DesktopSessionRegistry()
@@ -41,7 +41,7 @@ class TestContextVarRouting:
 
     def test_contextvar_routes_to_s2(self) -> None:
         """With ContextVar set to 's2', require_session returns s2."""
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         b = DesktopBackend.__new__(DesktopBackend)
         b.registry = DesktopSessionRegistry()
@@ -59,7 +59,7 @@ class TestContextVarRouting:
 
     def test_contextvar_unknown_session_raises(self) -> None:
         """ContextVar pointing to nonexistent session raises ValueError."""
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         b = DesktopBackend.__new__(DesktopBackend)
         b.registry = DesktopSessionRegistry()
@@ -76,7 +76,7 @@ class TestContextVarRouting:
     @pytest.mark.anyio
     async def test_contextvar_isolation_across_tasks(self) -> None:
         """Parallel async tasks with different ContextVar values get correct sessions."""
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         b = DesktopBackend.__new__(DesktopBackend)
         b.registry = DesktopSessionRegistry()

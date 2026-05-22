@@ -42,7 +42,7 @@ async def test_bp_discover_fields_returns_fields(backend):
 @pytest.mark.anyio
 async def test_bp_com_evaluate_find_by_name_read(backend):
     """sap_com_evaluate with FindByName can read a BDT field."""
-    from sapwebguimcp.tools.com_tools import ComOperationInput, FindByNameRef, _execute_single_op
+    from sapguimcp.tools.com_tools import ComOperationInput, FindByNameRef, _execute_single_op
 
     await backend.enter_transaction("BP")
     await backend.press_key("F5")
@@ -63,7 +63,7 @@ async def test_bp_com_evaluate_find_by_name_read(backend):
 @pytest.mark.anyio
 async def test_bp_com_evaluate_find_by_name_write(backend):
     """sap_com_evaluate with FindByName can write a BDT field."""
-    from sapwebguimcp.tools.com_tools import ComOperationInput, FindByNameRef, _execute_single_op
+    from sapguimcp.tools.com_tools import ComOperationInput, FindByNameRef, _execute_single_op
 
     await backend.enter_transaction("BP")
     await backend.press_key("F5")

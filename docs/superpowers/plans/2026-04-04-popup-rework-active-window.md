@@ -16,12 +16,12 @@
 
 | File | Role | Change |
 |------|------|--------|
-| `src/sapwebguimcp/backend/desktop/__init__.py` | Desktop backend | Add `_active_window_id()`, update ~15 methods to use it |
-| `src/sapwebguimcp/backend/desktop/_element_finder.py` | Label→COM resolution | Add `wnd_id` param to 8 public functions |
-| `src/sapwebguimcp/models/base.py` | Result base class | Add `active_window` field to `ToolResult` |
-| `src/sapwebguimcp/tools/sap_tools.py` | MCP tool layer | Remove 9 popup-blocking checks (desktop only), populate `active_window` |
-| `src/sapwebguimcp/tools/abapgit_tools.py` | abapGit pull | Update `_check_for_error_popup_desktop()` |
-| `src/sapwebguimcp/data/sap_knowledge.md` | Agent instructions | Add active window guidance |
+| `src/sapguimcp/backend/desktop/__init__.py` | Desktop backend | Add `_active_window_id()`, update ~15 methods to use it |
+| `src/sapguimcp/backend/desktop/_element_finder.py` | Label→COM resolution | Add `wnd_id` param to 8 public functions |
+| `src/sapguimcp/models/base.py` | Result base class | Add `active_window` field to `ToolResult` |
+| `src/sapguimcp/tools/sap_tools.py` | MCP tool layer | Remove 9 popup-blocking checks (desktop only), populate `active_window` |
+| `src/sapguimcp/tools/abapgit_tools.py` | abapGit pull | Update `_check_for_error_popup_desktop()` |
+| `src/sapguimcp/data/sap_knowledge.md` | Agent instructions | Add active window guidance |
 | `unittests/desktop/test_popup_rework_unit.py` | Unit tests | New: `_active_window_id`, element finder `wnd_id` |
 | `unittests/desktop/test_popup_rework_exploration.py` | Integration tests | Flip assertions, add new tests |
 
@@ -30,7 +30,7 @@
 ### Task 1: Add `_active_window_id()` helper + unit tests
 
 **Files:**
-- Modify: `src/sapwebguimcp/backend/desktop/__init__.py` (top of file, after imports)
+- Modify: `src/sapguimcp/backend/desktop/__init__.py` (top of file, after imports)
 - Create: `unittests/desktop/test_popup_rework_unit.py`
 
 - [ ] **Step 1: Write the unit test**
@@ -69,28 +69,28 @@ def _make_session(*, has_wnd1: bool = False, has_wnd2: bool = False, has_wnd3: b
 
 
 def test_active_window_no_popup():
-    from sapwebguimcp.backend.desktop import _active_window_id
+    from sapguimcp.backend.desktop import _active_window_id
 
     session = _make_session()
     assert _active_window_id(session) == "wnd[0]"
 
 
 def test_active_window_wnd1():
-    from sapwebguimcp.backend.desktop import _active_window_id
+    from sapguimcp.backend.desktop import _active_window_id
 
     session = _make_session(has_wnd1=True)
     assert _active_window_id(session) == "wnd[1]"
 
 
 def test_active_window_wnd2():
-    from sapwebguimcp.backend.desktop import _active_window_id
+    from sapguimcp.backend.desktop import _active_window_id
 
     session = _make_session(has_wnd1=True, has_wnd2=True)
     assert _active_window_id(session) == "wnd[2]"
 
 
 def test_active_window_wnd3():
-    from sapwebguimcp.backend.desktop import _active_window_id
+    from sapguimcp.backend.desktop import _active_window_id
 
     session = _make_session(has_wnd1=True, has_wnd2=True, has_wnd3=True)
     assert _active_window_id(session) == "wnd[3]"
@@ -106,7 +106,7 @@ Expected: `ImportError` — `_active_window_id` doesn't exist yet.
 
 - [ ] **Step 3: Implement `_active_window_id`**
 
-In `src/sapwebguimcp/backend/desktop/__init__.py`, add after the `_flatten` function (around line 43) and before the `DesktopBackend` class:
+In `src/sapguimcp/backend/desktop/__init__.py`, add after the `_flatten` function (around line 43) and before the `DesktopBackend` class:
 
 ```python
 def _active_window_id(session: Any) -> str:
@@ -132,7 +132,7 @@ Expected: 4 PASSED
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/desktop/__init__.py unittests/desktop/test_popup_rework_unit.py
+git add src/sapguimcp/backend/desktop/__init__.py unittests/desktop/test_popup_rework_unit.py
 git commit -m "feat: add _active_window_id() helper for topmost window detection"
 ```
 
@@ -141,7 +141,7 @@ git commit -m "feat: add _active_window_id() helper for topmost window detection
 ### Task 2: Add `wnd_id` parameter to element finder functions + unit tests
 
 **Files:**
-- Modify: `src/sapwebguimcp/backend/desktop/_element_finder.py`
+- Modify: `src/sapguimcp/backend/desktop/_element_finder.py`
 - Modify: `unittests/desktop/test_popup_rework_unit.py`
 
 The element finder has 8 public functions that hardcode `wnd[0]`. Each gains an
@@ -169,20 +169,20 @@ def _make_element(*, id: str, type_as_number: int, text: str, name: str, changea
 
 
 def test_extract_container_path_wnd1():
-    from sapwebguimcp.backend.desktop._element_finder import _extract_container_path
+    from sapguimcp.backend.desktop._element_finder import _extract_container_path
 
     assert _extract_container_path("/app/con[0]/ses[0]/wnd[1]/usr/lblFOO") == "wnd[1]/usr/"
 
 
 def test_extract_container_path_fallback_uses_param():
-    from sapwebguimcp.backend.desktop._element_finder import _extract_container_path
+    from sapguimcp.backend.desktop._element_finder import _extract_container_path
 
     # When no wnd[ is found in the ID, fallback should use the wnd_id param
     assert _extract_container_path("some/weird/path", wnd_id="wnd[1]") == "wnd[1]/usr/"
 
 
 def test_find_by_name_prefix_wnd1():
-    from sapwebguimcp.backend.desktop._element_finder import _find_by_name_prefix
+    from sapguimcp.backend.desktop._element_finder import _find_by_name_prefix
 
     session = MagicMock()
     field_mock = MagicMock()
@@ -192,7 +192,7 @@ def test_find_by_name_prefix_wnd1():
 
 
 def test_find_button_by_label_wnd1():
-    from sapwebguimcp.backend.desktop._element_finder import find_button_by_label
+    from sapguimcp.backend.desktop._element_finder import find_button_by_label
 
     session = MagicMock()
     btn_elem = _make_element(id="/app/con[0]/ses[0]/wnd[1]/tbar[0]/btn[0]", type_as_number=40, text="Save", name="btn[0]")
@@ -222,7 +222,7 @@ Expected: FAIL — functions don't accept `wnd_id` yet.
 
 - [ ] **Step 3: Add `wnd_id` parameter to all element finder functions**
 
-In `src/sapwebguimcp/backend/desktop/_element_finder.py`, update each function:
+In `src/sapguimcp/backend/desktop/_element_finder.py`, update each function:
 
 1. `_extract_container_path(label_id, wnd_id="wnd[0]")` — change fallback from `"wnd[0]/usr/"` to `f"{wnd_id}/usr/"`
 2. `_find_by_name_prefix(session, label_name, path_prefix="wnd[0]/usr/")` — no signature change needed (callers pass the prefix). But update the docstring.
@@ -257,7 +257,7 @@ Expected: All existing tests still pass (they don't pass `wnd_id`, so defaults t
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/desktop/_element_finder.py unittests/desktop/test_popup_rework_unit.py
+git add src/sapguimcp/backend/desktop/_element_finder.py unittests/desktop/test_popup_rework_unit.py
 git commit -m "feat: add wnd_id parameter to all element finder functions"
 ```
 
@@ -266,7 +266,7 @@ git commit -m "feat: add wnd_id parameter to all element finder functions"
 ### Task 3: Update desktop backend methods to use active window
 
 **Files:**
-- Modify: `src/sapwebguimcp/backend/desktop/__init__.py`
+- Modify: `src/sapguimcp/backend/desktop/__init__.py`
 
 Every method that currently hardcodes `wnd[0]` must call `_active_window_id(session)` and use the result. This is a mechanical change across ~15 methods.
 
@@ -370,7 +370,7 @@ Carefully review any failures — they may indicate methods that assumed `wnd[0]
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/desktop/__init__.py unittests/desktop/test_popup_rework_exploration.py
+git add src/sapguimcp/backend/desktop/__init__.py unittests/desktop/test_popup_rework_exploration.py
 git commit -m "feat: all desktop backend methods operate on active window"
 ```
 
@@ -379,7 +379,7 @@ git commit -m "feat: all desktop backend methods operate on active window"
 ### Task 4: Add `active_window` to `ToolResult` base class
 
 **Files:**
-- Modify: `src/sapwebguimcp/models/base.py`
+- Modify: `src/sapguimcp/models/base.py`
 - Modify: `unittests/desktop/test_popup_rework_unit.py`
 
 - [ ] **Step 1: Write unit test**
@@ -388,14 +388,14 @@ Append to `unittests/desktop/test_popup_rework_unit.py`:
 
 ```python
 def test_tool_result_has_active_window():
-    from sapwebguimcp.models.base import ToolResult
+    from sapguimcp.models.base import ToolResult
 
     r = ToolResult(success=True, active_window="wnd[1]")
     assert r.active_window == "wnd[1]"
 
 
 def test_tool_result_active_window_default_none():
-    from sapwebguimcp.models.base import ToolResult
+    from sapguimcp.models.base import ToolResult
 
     r = ToolResult(success=True)
     assert r.active_window is None
@@ -409,7 +409,7 @@ python -m pytest unittests/desktop/test_popup_rework_unit.py -v -k "tool_result"
 
 - [ ] **Step 3: Add `active_window` field to `ToolResult`**
 
-In `src/sapwebguimcp/models/base.py`, add after the `popup` field (line ~74):
+In `src/sapguimcp/models/base.py`, add after the `popup` field (line ~74):
 
 ```python
     active_window: str | None = Field(
@@ -434,7 +434,7 @@ python -m pytest unittests/ -v -k "not integration and not exploration" --tb=sho
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/base.py unittests/desktop/test_popup_rework_unit.py
+git add src/sapguimcp/models/base.py unittests/desktop/test_popup_rework_unit.py
 git commit -m "feat: add active_window field to ToolResult base class"
 ```
 
@@ -443,7 +443,7 @@ git commit -m "feat: add active_window field to ToolResult base class"
 ### Task 5: Remove popup-blocking checks in tool layer (desktop only)
 
 **Files:**
-- Modify: `src/sapwebguimcp/tools/sap_tools.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py`
 
 This is the core behavior change. Remove the 9 "popup blocking" pre-checks, but
 **only for the desktop backend**. WebGUI keeps the current behavior.
@@ -482,7 +482,7 @@ async def test_06_keyboard_does_not_block_on_popup(backend):
 
 - [ ] **Step 2: Identify and remove the 9 blocking locations**
 
-In `src/sapwebguimcp/tools/sap_tools.py`, find each `check_popup()` + `"Popup blocking"` pattern.
+In `src/sapguimcp/tools/sap_tools.py`, find each `check_popup()` + `"Popup blocking"` pattern.
 Wrap the removal in a backend type check:
 
 **Location 1: `sap_transaction` pre-check (line ~369-376)**
@@ -567,7 +567,7 @@ Remove for desktop.
 
 - [ ] **Step 3: Add `_is_desktop_backend` import if not present**
 
-The import already exists at line 57: `from sapwebguimcp.tools._backend_utils import _is_desktop_backend`
+The import already exists at line 57: `from sapguimcp.tools._backend_utils import _is_desktop_backend`
 
 - [ ] **Step 4: Run the integration test**
 
@@ -588,7 +588,7 @@ Expected: All PASS (including the flipped assertions from Task 3)
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/sap_tools.py unittests/desktop/test_popup_rework_exploration.py
+git add src/sapguimcp/tools/sap_tools.py unittests/desktop/test_popup_rework_exploration.py
 git commit -m "feat: remove popup-blocking checks for desktop backend"
 ```
 
@@ -597,8 +597,8 @@ git commit -m "feat: remove popup-blocking checks for desktop backend"
 ### Task 6: Populate `active_window` in tool results
 
 **Files:**
-- Modify: `src/sapwebguimcp/tools/sap_tools.py`
-- Modify: `src/sapwebguimcp/backend/desktop/__init__.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py`
+- Modify: `src/sapguimcp/backend/desktop/__init__.py`
 
 The backend methods should return `active_window` in their results. The simplest
 approach: have each backend method that returns a `ToolResult` populate
@@ -635,7 +635,7 @@ async def test_07_active_window_in_keyboard_result(backend):
 
 - [ ] **Step 2: Update `press_key` to populate `active_window` in result**
 
-In `src/sapwebguimcp/backend/desktop/__init__.py`, `press_key()` method:
+In `src/sapguimcp/backend/desktop/__init__.py`, `press_key()` method:
 
 ```python
     def _press() -> tuple[str, str, str, str]:
@@ -681,7 +681,7 @@ python -m pytest unittests/desktop/test_popup_rework_exploration.py -v -s --tb=s
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/desktop/__init__.py src/sapwebguimcp/tools/sap_tools.py
+git add src/sapguimcp/backend/desktop/__init__.py src/sapguimcp/tools/sap_tools.py
 git commit -m "feat: populate active_window in tool results"
 ```
 
@@ -690,7 +690,7 @@ git commit -m "feat: populate active_window in tool results"
 ### Task 7: Update abapgit error popup detection
 
 **Files:**
-- Modify: `src/sapwebguimcp/tools/abapgit_tools.py`
+- Modify: `src/sapguimcp/tools/abapgit_tools.py`
 
 The `_check_for_error_popup_desktop()` function (line 216-225) uses
 `get_snapshot()` and searches for `"wnd[1]"` in the text. After our change,
@@ -747,7 +747,7 @@ python -m pytest unittests/ -k "abapgit" -v --tb=short
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/abapgit_tools.py
+git add src/sapguimcp/tools/abapgit_tools.py
 git commit -m "fix: update abapgit error popup detection for active window model"
 ```
 
@@ -756,7 +756,7 @@ git commit -m "fix: update abapgit error popup detection for active window model
 ### Task 8: Update `sap_knowledge.md` with active window guidance
 
 **Files:**
-- Modify: `src/sapwebguimcp/data/sap_knowledge.md`
+- Modify: `src/sapguimcp/data/sap_knowledge.md`
 
 - [ ] **Step 1: Add guidance section**
 
@@ -794,7 +794,7 @@ modal dialog is present — dismiss it first.
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/sapwebguimcp/data/sap_knowledge.md
+git add src/sapguimcp/data/sap_knowledge.md
 git commit -m "docs: add active window guidance to sap_knowledge.md"
 ```
 

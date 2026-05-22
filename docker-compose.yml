@@ -10,10 +10,10 @@ services:
     restart: unless-stopped
 
   # SAP WebGUI MCP Server (for manual testing only)
-  # Claude Desktop runs its own container with --network sapwebguimcp_default
-  sapwebgui-mcp:
+  # Claude Desktop runs its own container with --network sapguimcp_default
+  sapgui-mcp:
     build: .
-    image: sapwebgui-mcp:test
+    image: sapgui-mcp:test
     stdin_open: true
     environment:
       - BROWSER_MODE=connect

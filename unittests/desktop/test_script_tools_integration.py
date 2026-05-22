@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastmcp import FastMCP
 
-from sapwebguimcp.tools.script_tools import register_script_tools
+from sapguimcp.tools.script_tools import register_script_tools
 from unittests.desktop.conftest import skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
@@ -30,7 +30,7 @@ async def test_script_reads_window_title(backend):
     register_script_tools(mcp)
     tool_fn = _make_tool_fn(mcp)
 
-    with patch("sapwebguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
+    with patch("sapguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
         result = await tool_fn(
             script='output(session.find_by_id("wnd[0]").text)',
             session=None,
@@ -53,7 +53,7 @@ async def test_script_loop_collects_multiple_outputs(backend):
     register_script_tools(mcp)
     tool_fn = _make_tool_fn(mcp)
 
-    with patch("sapwebguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
+    with patch("sapguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
         result = await tool_fn(
             script="for i in range(3):\n    output(i)",
             session=None,
@@ -79,7 +79,7 @@ async def test_script_conditional_branching(backend):
     register_script_tools(mcp)
     tool_fn = _make_tool_fn(mcp)
 
-    with patch("sapwebguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
+    with patch("sapguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
         result = await tool_fn(script=script, session=None, agent_id=None)
 
     assert result.success, f"Failed: {result.error}"
@@ -95,7 +95,7 @@ async def test_script_runtime_error_preserves_partial_output(backend):
     register_script_tools(mcp)
     tool_fn = _make_tool_fn(mcp)
 
-    with patch("sapwebguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
+    with patch("sapguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
         result = await tool_fn(
             script='output("before")\nraise ValueError("intentional")',
             session=None,
@@ -116,7 +116,7 @@ async def test_script_import_raises_name_error_not_import_error(backend):
     register_script_tools(mcp)
     tool_fn = _make_tool_fn(mcp)
 
-    with patch("sapwebguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
+    with patch("sapguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
         result = await tool_fn(script="import os", session=None, agent_id=None)
 
     assert not result.success
@@ -132,7 +132,7 @@ async def test_script_empty_output_succeeds(backend):
     register_script_tools(mcp)
     tool_fn = _make_tool_fn(mcp)
 
-    with patch("sapwebguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
+    with patch("sapguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
         result = await tool_fn(script="", session=None, agent_id=None)
 
     assert result.success, f"Failed: {result.error}"

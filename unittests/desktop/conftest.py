@@ -11,9 +11,9 @@ import pytest
 from dotenv import load_dotenv
 from sapsucker import SapGui
 
-from sapwebguimcp.backend.desktop import DesktopBackend
-from sapwebguimcp.backend.desktop._com_thread import ComThread
-from sapwebguimcp.models.config import get_settings
+from sapguimcp.backend.desktop import DesktopBackend
+from sapguimcp.backend.desktop._com_thread import ComThread
+from sapguimcp.models.config import get_settings
 from unittests.conftest import has_sap_desktop_creds
 
 # ---------------------------------------------------------------------------
@@ -62,7 +62,7 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     end to return to the Easy Access screen.
     """
     load_dotenv()
-    from sapwebguimcp.models.config import get_sap_config
+    from sapguimcp.models.config import get_sap_config
 
     sap_cfg = get_sap_config()
     system = sap_cfg.get_default()

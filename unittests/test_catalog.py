@@ -14,13 +14,13 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.catalog.models import (
+from sapguimcp.catalog.models import (
     SAP_AREA_PREFIXES,
     TransactionCatalog,
     TransactionInfo,
     detect_area,
 )
-from sapwebguimcp.catalog.search import (
+from sapguimcp.catalog.search import (
     get_common_transactions,
     normalize_query,
     search_by_area,
@@ -480,7 +480,7 @@ class TestCatalogLoader:
 
     def test_load_catalog_from_json(self) -> None:
         """Test loading a catalog from a JSON file."""
-        from sapwebguimcp.catalog.loader import load_catalog
+        from sapguimcp.catalog.loader import load_catalog
 
         # Create a temporary catalog file
         catalog_data = {
@@ -514,7 +514,7 @@ class TestCatalogLoader:
 
     def test_load_catalog_missing_file(self) -> None:
         """Test loading from non-existent file returns empty catalog."""
-        from sapwebguimcp.catalog.loader import load_catalog
+        from sapguimcp.catalog.loader import load_catalog
 
         load_catalog.cache_clear()
 
@@ -523,7 +523,7 @@ class TestCatalogLoader:
 
     def test_reload_catalog_clears_cache(self) -> None:
         """Test that reload_catalog clears the cache."""
-        from sapwebguimcp.catalog.loader import load_catalog, reload_catalog
+        from sapguimcp.catalog.loader import load_catalog, reload_catalog
 
         # Create temp catalog
         catalog_data = {"transactions": [{"tcode": "TEST1"}]}
@@ -566,7 +566,7 @@ class TestScraperModels:
 
     def test_load_tstc_data(self) -> None:
         """Test loading raw TSTC data from JSON."""
-        from sapwebguimcp.catalog.scraper import load_tstc_data
+        from sapguimcp.catalog.scraper import load_tstc_data
 
         tstc_data = {
             "success": True,
@@ -596,7 +596,7 @@ class TestScraperModels:
         Note: Uses load_catalog_for_scraping (uncached) for scraper tests.
         The cached loader.load_catalog() is tested in TestCatalogLoader.
         """
-        from sapwebguimcp.catalog.scraper import load_catalog_for_scraping, save_catalog
+        from sapguimcp.catalog.scraper import load_catalog_for_scraping, save_catalog
 
         catalog = TransactionCatalog(
             transactions=[

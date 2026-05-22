@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, PropertyMock
 
 import pytest
 
-from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
+from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
 
 def _make_mock_session(transaction: str = "SE00") -> MagicMock:

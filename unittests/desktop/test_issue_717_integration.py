@@ -16,7 +16,7 @@ import sys
 
 import pytest
 
-from sapwebguimcp.tools.com_tools import ComOperationInput, _execute_single_op
+from sapguimcp.tools.com_tools import ComOperationInput, _execute_single_op
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import SecretStr
 
-_PATCH_GET_BACKEND = "sapwebguimcp.tools.sap_list_connections_impl.get_backend"
-_PATCH_GET_SAP_CONFIG = "sapwebguimcp.tools.sap_list_connections_impl.get_sap_config"
+_PATCH_GET_BACKEND = "sapguimcp.tools.sap_list_connections_impl.get_backend"
+_PATCH_GET_SAP_CONFIG = "sapguimcp.tools.sap_list_connections_impl.get_sap_config"
 
 _SAMPLE_LANDSCAPE_XML = dedent("""\
     <?xml version="1.0"?>
@@ -26,7 +26,7 @@ _SAMPLE_LANDSCAPE_XML = dedent("""\
 
 
 def _parse_connections(xml_text: str) -> list:
-    from sapwebguimcp.tools.sap_list_connections_impl import _parse_landscape_xml
+    from sapguimcp.tools.sap_list_connections_impl import _parse_landscape_xml
 
     return _parse_landscape_xml(xml_text)
 
@@ -67,7 +67,7 @@ class TestSapListConnectionsTool:
     @pytest.mark.anyio
     async def test_returns_connection_list(self) -> None:
         """Tool calls backend.list_connections and returns results."""
-        from sapwebguimcp.tools.sap_list_connections_impl import sap_list_connections_impl
+        from sapguimcp.tools.sap_list_connections_impl import sap_list_connections_impl
 
         backend = AsyncMock()
         backend.list_connections.return_value = [
@@ -114,7 +114,7 @@ class TestConfiguredSystems:
     """configured_systems exposes systems.json entries without passwords."""
 
     def test_get_configured_systems_returns_safe_fields(self) -> None:
-        from sapwebguimcp.tools.sap_list_connections_impl import _get_configured_systems
+        from sapguimcp.tools.sap_list_connections_impl import _get_configured_systems
 
         with patch(_PATCH_GET_SAP_CONFIG, return_value=_make_sap_config()):
             systems = _get_configured_systems()
@@ -129,7 +129,7 @@ class TestConfiguredSystems:
         assert "user" not in s4
 
     def test_get_configured_systems_no_config(self) -> None:
-        from sapwebguimcp.tools.sap_list_connections_impl import _get_configured_systems
+        from sapguimcp.tools.sap_list_connections_impl import _get_configured_systems
 
         with patch(_PATCH_GET_SAP_CONFIG, side_effect=FileNotFoundError):
             systems = _get_configured_systems()
@@ -138,7 +138,7 @@ class TestConfiguredSystems:
 
     @pytest.mark.anyio
     async def test_tool_includes_configured_systems(self) -> None:
-        from sapwebguimcp.tools.sap_list_connections_impl import sap_list_connections_impl
+        from sapguimcp.tools.sap_list_connections_impl import sap_list_connections_impl
 
         backend = AsyncMock()
         backend.list_connections.return_value = [
@@ -160,12 +160,12 @@ class TestConfiguredSystems:
 
     @pytest.mark.anyio
     async def test_tool_returns_systems_even_when_backend_fails(self) -> None:
-        from sapwebguimcp.tools.sap_list_connections_impl import sap_list_connections_impl
+        from sapguimcp.tools.sap_list_connections_impl import sap_list_connections_impl
 
         with (
             patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("no backend"))),
             patch(
-                "sapwebguimcp.tools.sap_list_connections_impl._find_landscape_path",
+                "sapguimcp.tools.sap_list_connections_impl._find_landscape_path",
                 return_value=None,
             ),
             patch(_PATCH_GET_SAP_CONFIG, return_value=_make_sap_config()),

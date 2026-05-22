@@ -1,11 +1,11 @@
 """Tests for CheckActivateResult and backend structure."""
 
-from sapwebguimcp.models.base import CheckActivateResult
+from sapguimcp.models.base import CheckActivateResult
 
 
 def test_check_activate_result_is_tool_result() -> None:
     """CheckActivateResult must be a ToolResult subclass."""
-    from sapwebguimcp.models import ToolResult
+    from sapguimcp.models import ToolResult
 
     assert issubclass(CheckActivateResult, ToolResult)
 
@@ -31,7 +31,7 @@ def test_check_activate_result_with_values() -> None:
 
 def test_webgui_backend_has_expected_methods() -> None:
     """WebGuiBackend must have the core backend methods."""
-    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.backend.webgui.backend import WebGuiBackend
 
     for attr in ("backend_type", "login", "enter_transaction", "get_screen_info", "press_key"):
         assert hasattr(WebGuiBackend, attr), f"WebGuiBackend missing: {attr}"

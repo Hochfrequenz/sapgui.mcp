@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.backend.webgui.parsers.se16_parser import (
+from sapguimcp.backend.webgui.parsers.se16_parser import (
     parse_se16_columns,
     parse_se16_hit_count,
     parse_se16_rows,

@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp import FastMCP
 
-from sapwebguimcp.backend.desktop.models.script_results import SapRunScriptResult
-from sapwebguimcp.tools.script_tools import _run_in_sandbox, register_script_tools
+from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
+from sapguimcp.tools.script_tools import _run_in_sandbox, register_script_tools
 
 _FILENAME = "<sap_script>"
 
@@ -168,7 +168,7 @@ class TestSapRunScriptTool:
         tool_fn = self._make_tool_fn(mcp)
 
         with patch(
-            "sapwebguimcp.tools.script_tools.get_backend",
+            "sapguimcp.tools.script_tools.get_backend",
             new_callable=AsyncMock,
             return_value=mock_backend,
         ):
@@ -183,7 +183,7 @@ class TestSapRunScriptTool:
         tool_fn = self._make_tool_fn(mcp)
 
         with patch(
-            "sapwebguimcp.tools.script_tools.get_backend",
+            "sapguimcp.tools.script_tools.get_backend",
             new_callable=AsyncMock,
             side_effect=ValueError("No session configured"),
         ):
@@ -199,7 +199,7 @@ class TestSapRunScriptTool:
         tool_fn = self._make_tool_fn(mcp)
 
         mock_get_backend = AsyncMock()
-        with patch("sapwebguimcp.tools.script_tools.get_backend", mock_get_backend):
+        with patch("sapguimcp.tools.script_tools.get_backend", mock_get_backend):
             result = asyncio.run(tool_fn(script="def broken(:", session=None, agent_id=None))
 
         assert result.success is False
@@ -213,7 +213,7 @@ class TestSapRunScriptTool:
         tool_fn = self._make_tool_fn(mcp)
 
         mock_get_backend = AsyncMock()
-        with patch("sapwebguimcp.tools.script_tools.get_backend", mock_get_backend):
+        with patch("sapguimcp.tools.script_tools.get_backend", mock_get_backend):
             result = asyncio.run(tool_fn(script="x = \x00", session=None, agent_id=None))
 
         assert result.success is False
@@ -222,7 +222,7 @@ class TestSapRunScriptTool:
 
     def test_timeout_returns_structured_failure(self):
         """asyncio.TimeoutError from com.run is converted to a structured failure."""
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         mock_backend = MagicMock()
         mock_backend.__class__ = DesktopBackend  # lets isinstance() pass
@@ -234,7 +234,7 @@ class TestSapRunScriptTool:
         tool_fn = self._make_tool_fn(mcp)
 
         with patch(
-            "sapwebguimcp.tools.script_tools.get_backend",
+            "sapguimcp.tools.script_tools.get_backend",
             new_callable=AsyncMock,
             return_value=mock_backend,
         ):

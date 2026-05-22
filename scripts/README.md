@@ -19,7 +19,7 @@ They are NOT shipped with the package and NOT used at runtime.
 
 ## Transaction Catalog Building
 
-The transaction catalog (`src/sapwebguimcp/data/transactions.json`) is built using these scripts:
+The transaction catalog (`src/sapguimcp/data/transactions.json`) is built using these scripts:
 
 ### Step 1: Scrape TSTC Table
 
@@ -70,8 +70,8 @@ This script:
 ## Directory Structure Rationale
 
 ```
-sapwebgui.mcp/
-├── src/sapwebguimcp/           # RUNTIME CODE - shipped with package
+sapgui.mcp/
+├── src/sapguimcp/           # RUNTIME CODE - shipped with package
 │   ├── catalog/                # Runtime catalog (loader, search)
 │   │   └── scraper.py          # Dev helper, but co-located for imports
 │   ├── data/
@@ -97,4 +97,4 @@ These scripts:
 - Should **NOT be importable** as part of the package
 - Are **NOT included** in the built wheel/Docker image
 
-The `scraper.py` module in `src/sapwebguimcp/catalog/` is an exception - it's co-located because it imports from the catalog models, but it's clearly marked as "DEVELOPMENT USE ONLY" in its docstring.
+The `scraper.py` module in `src/sapguimcp/catalog/` is an exception - it's co-located because it imports from the catalog models, but it's clearly marked as "DEVELOPMENT USE ONLY" in its docstring.

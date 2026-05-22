@@ -14,7 +14,7 @@
 
 **Files:**
 
-- Create: `src/sapwebguimcp/logging_config.py`
+- Create: `src/sapguimcp/logging_config.py`
 - Create: `unittests/test_logging_config.py`
 
 **Step 1: Write the failing tests**
@@ -30,7 +30,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import BaseModel
 
-from sapwebguimcp.logging_config import (
+from sapguimcp.logging_config import (
     StructuredFormatter,
     ToolLogContext,
     TransactionLogContext,
@@ -47,7 +47,7 @@ class TestStructuredFormatter:
         """Plain message without extra fields uses simple format."""
         formatter = StructuredFormatter(json_mode=False)
         record = logging.LogRecord(
-            name="sapwebguimcp.tools.sap_tools",
+            name="sapguimcp.tools.sap_tools",
             level=logging.INFO,
             pathname="",
             lineno=0,
@@ -57,14 +57,14 @@ class TestStructuredFormatter:
         )
         output = formatter.format(record)
         assert "INFO" in output
-        assert "sapwebguimcp.tools.sap_tools" in output
+        assert "sapguimcp.tools.sap_tools" in output
         assert "Server started" in output
 
     def test_console_format_with_extra_fields(self) -> None:
         """Extra fields are appended as key=value pairs."""
         formatter = StructuredFormatter(json_mode=False)
         record = logging.LogRecord(
-            name="sapwebguimcp.tools.sap_tools",
+            name="sapguimcp.tools.sap_tools",
             level=logging.INFO,
             pathname="",
             lineno=0,
@@ -83,7 +83,7 @@ class TestStructuredFormatter:
         """JSON mode outputs valid JSON with standard fields."""
         formatter = StructuredFormatter(json_mode=True)
         record = logging.LogRecord(
-            name="sapwebguimcp.server",
+            name="sapguimcp.server",
             level=logging.INFO,
             pathname="",
             lineno=0,
@@ -94,7 +94,7 @@ class TestStructuredFormatter:
         output = formatter.format(record)
         data = json.loads(output)
         assert data["level"] == "INFO"
-        assert data["logger"] == "sapwebguimcp.server"
+        assert data["logger"] == "sapguimcp.server"
         assert data["msg"] == "Server started"
         assert "ts" in data
 
@@ -254,7 +254,7 @@ class TestConfigureLogging:
 **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest unittests/test_logging_config.py -v -x`
-Expected: FAIL with `ModuleNotFoundError: No module named 'sapwebguimcp.logging_config'`
+Expected: FAIL with `ModuleNotFoundError: No module named 'sapguimcp.logging_config'`
 
 **Step 3: Write the implementation**
 
@@ -265,7 +265,7 @@ Provides a dual-mode formatter (human-readable console or JSON) and
 Pydantic models for type-safe structured log context.
 
 Usage:
-    from sapwebguimcp.logging_config import configure_logging, ToolLogContext
+    from sapguimcp.logging_config import configure_logging, ToolLogContext
 
     configure_logging()  # Call once at startup
 
@@ -452,8 +452,8 @@ Expected: All PASS
 **Step 5: Format and commit**
 
 ```bash
-python -m black src/sapwebguimcp/logging_config.py unittests/test_logging_config.py
-git add src/sapwebguimcp/logging_config.py unittests/test_logging_config.py
+python -m black src/sapguimcp/logging_config.py unittests/test_logging_config.py
+git add src/sapguimcp/logging_config.py unittests/test_logging_config.py
 git commit -m "feat: add structured logging formatter and context models"
 ```
 
@@ -463,7 +463,7 @@ git commit -m "feat: add structured logging formatter and context models"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/server.py:42-47`
+- Modify: `src/sapguimcp/server.py:42-47`
 
 **Step 1: Replace basicConfig with configure_logging**
 
@@ -482,7 +482,7 @@ To:
 
 ```python
 # Configure logging
-from sapwebguimcp.logging_config import configure_logging
+from sapguimcp.logging_config import configure_logging
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -496,7 +496,7 @@ Expected: All PASS (36 tests)
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/server.py
+git add src/sapguimcp/server.py
 git commit -m "chore: wire up structured logging in server.py"
 ```
 
@@ -506,7 +506,7 @@ git commit -m "chore: wire up structured logging in server.py"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/middleware/logging.py`
+- Modify: `src/sapguimcp/middleware/logging.py`
 
 **Step 1: Replace pipe-delimited strings with structured extra**
 
@@ -559,7 +559,7 @@ Expected: All PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/middleware/logging.py
+git add src/sapguimcp/middleware/logging.py
 git commit -m "refactor: migrate middleware logging to structured extra"
 ```
 
@@ -569,7 +569,7 @@ git commit -m "refactor: migrate middleware logging to structured extra"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/browser_tools.py`
+- Modify: `src/sapguimcp/tools/browser_tools.py`
 
 **Step 1: Standardize exception messages**
 
@@ -606,7 +606,7 @@ Expected: All PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/browser_tools.py
+git add src/sapguimcp/tools/browser_tools.py
 git commit -m "refactor: standardize browser_tools logging"
 ```
 
@@ -616,7 +616,7 @@ git commit -m "refactor: standardize browser_tools logging"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sap_tool_impl.py`
+- Modify: `src/sapguimcp/tools/sap_tool_impl.py`
 
 **Step 1: Standardize messages and add structured context**
 
@@ -682,7 +682,7 @@ Expected: All PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/sap_tool_impl.py
+git add src/sapguimcp/tools/sap_tool_impl.py
 git commit -m "refactor: standardize sap_tool_impl logging"
 ```
 
@@ -692,7 +692,7 @@ git commit -m "refactor: standardize sap_tool_impl logging"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sap_tools.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py`
 
 **Step 1: Read the file and identify all log statements**
 
@@ -718,7 +718,7 @@ Expected: All PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/sap_tools.py
+git add src/sapguimcp/tools/sap_tools.py
 git commit -m "refactor: standardize sap_tools logging"
 ```
 
@@ -728,12 +728,12 @@ git commit -m "refactor: standardize sap_tools logging"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/se11_tools.py` (8 statements)
-- Modify: `src/sapwebguimcp/tools/se16_tools.py` (32 statements)
-- Modify: `src/sapwebguimcp/tools/se24_tools.py` (4 statements)
-- Modify: `src/sapwebguimcp/tools/se37_tools.py` (4 statements)
-- Modify: `src/sapwebguimcp/tools/se93_tools.py` (3 statements)
-- Modify: `src/sapwebguimcp/parsers/se16_parser.py` (2 statements)
+- Modify: `src/sapguimcp/tools/se11_tools.py` (8 statements)
+- Modify: `src/sapguimcp/tools/se16_tools.py` (32 statements)
+- Modify: `src/sapguimcp/tools/se24_tools.py` (4 statements)
+- Modify: `src/sapguimcp/tools/se37_tools.py` (4 statements)
+- Modify: `src/sapguimcp/tools/se93_tools.py` (3 statements)
+- Modify: `src/sapguimcp/parsers/se16_parser.py` (2 statements)
 
 **Step 1: Apply standard patterns**
 
@@ -765,7 +765,7 @@ logger.warning("SE16 parser: No grid found in snapshot")
 logger.warning("No grid found in snapshot")
 ```
 
-Remove module-name prefixes from messages (e.g., "SE16: ..." or "SE11: ...") -- the logger name `sapwebguimcp.tools.se16_tools` already identifies the module.
+Remove module-name prefixes from messages (e.g., "SE16: ..." or "SE11: ...") -- the logger name `sapguimcp.tools.se16_tools` already identifies the module.
 
 **Step 2: Run existing tests**
 
@@ -775,9 +775,9 @@ Expected: All PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/se11_tools.py src/sapwebguimcp/tools/se16_tools.py \
-    src/sapwebguimcp/tools/se24_tools.py src/sapwebguimcp/tools/se37_tools.py \
-    src/sapwebguimcp/tools/se93_tools.py src/sapwebguimcp/parsers/se16_parser.py
+git add src/sapguimcp/tools/se11_tools.py src/sapguimcp/tools/se16_tools.py \
+    src/sapguimcp/tools/se24_tools.py src/sapguimcp/tools/se37_tools.py \
+    src/sapguimcp/tools/se93_tools.py src/sapguimcp/parsers/se16_parser.py
 git commit -m "refactor: standardize SE* tools and parser logging"
 ```
 
@@ -787,9 +787,9 @@ git commit -m "refactor: standardize SE* tools and parser logging"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/browser.py` (10 statements)
-- Modify: `src/sapwebguimcp/models/session_registry.py` (7 statements)
-- Modify: `src/sapwebguimcp/models/workflow_storage.py` (4 statements)
+- Modify: `src/sapguimcp/models/browser.py` (10 statements)
+- Modify: `src/sapguimcp/models/session_registry.py` (7 statements)
+- Modify: `src/sapguimcp/models/workflow_storage.py` (4 statements)
 
 **Step 1: Apply standard patterns**
 
@@ -827,8 +827,8 @@ Expected: All PASS. Pay special attention to `test_session_registry.py` which us
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/browser.py src/sapwebguimcp/models/session_registry.py \
-    src/sapwebguimcp/models/workflow_storage.py
+git add src/sapguimcp/models/browser.py src/sapguimcp/models/session_registry.py \
+    src/sapguimcp/models/workflow_storage.py
 git commit -m "refactor: standardize models logging"
 ```
 
@@ -838,18 +838,18 @@ git commit -m "refactor: standardize models logging"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/abapgit_tools.py` (28 statements)
-- Modify: `src/sapwebguimcp/tools/session_tools.py` (4 statements)
-- Modify: `src/sapwebguimcp/tools/workflow_tools.py` (10 statements)
-- Modify: `src/sapwebguimcp/tools/feedback_tools.py` (4 statements)
-- Modify: `src/sapwebguimcp/tools/intent_tools.py` (1 statement)
-- Modify: `src/sapwebguimcp/catalog/loader.py` (3 statements)
-- Modify: `src/sapwebguimcp/catalog/scraper.py` (3 statements)
-- Modify: `src/sapwebguimcp/tables/loader.py` (3 statements)
-- Modify: `src/sapwebguimcp/tables/scraper.py` (7 statements)
-- Modify: `src/sapwebguimcp/classcatalog/loader.py` (3 statements)
-- Modify: `src/sapwebguimcp/fmcatalog/loader.py` (3 statements)
-- Modify: `src/sapwebguimcp/prompts/__init__.py` (3 statements)
+- Modify: `src/sapguimcp/tools/abapgit_tools.py` (28 statements)
+- Modify: `src/sapguimcp/tools/session_tools.py` (4 statements)
+- Modify: `src/sapguimcp/tools/workflow_tools.py` (10 statements)
+- Modify: `src/sapguimcp/tools/feedback_tools.py` (4 statements)
+- Modify: `src/sapguimcp/tools/intent_tools.py` (1 statement)
+- Modify: `src/sapguimcp/catalog/loader.py` (3 statements)
+- Modify: `src/sapguimcp/catalog/scraper.py` (3 statements)
+- Modify: `src/sapguimcp/tables/loader.py` (3 statements)
+- Modify: `src/sapguimcp/tables/scraper.py` (7 statements)
+- Modify: `src/sapguimcp/classcatalog/loader.py` (3 statements)
+- Modify: `src/sapguimcp/fmcatalog/loader.py` (3 statements)
+- Modify: `src/sapguimcp/prompts/__init__.py` (3 statements)
 
 **Step 1: Apply standard patterns**
 
@@ -885,11 +885,11 @@ Expected: All PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/abapgit_tools.py src/sapwebguimcp/tools/session_tools.py \
-    src/sapwebguimcp/tools/workflow_tools.py src/sapwebguimcp/catalog/loader.py \
-    src/sapwebguimcp/catalog/scraper.py src/sapwebguimcp/tables/loader.py \
-    src/sapwebguimcp/tables/scraper.py src/sapwebguimcp/classcatalog/loader.py \
-    src/sapwebguimcp/fmcatalog/loader.py src/sapwebguimcp/prompts/__init__.py
+git add src/sapguimcp/tools/abapgit_tools.py src/sapguimcp/tools/session_tools.py \
+    src/sapguimcp/tools/workflow_tools.py src/sapguimcp/catalog/loader.py \
+    src/sapguimcp/catalog/scraper.py src/sapguimcp/tables/loader.py \
+    src/sapguimcp/tables/scraper.py src/sapguimcp/classcatalog/loader.py \
+    src/sapguimcp/fmcatalog/loader.py src/sapguimcp/prompts/__init__.py
 git commit -m "refactor: standardize remaining tools and catalog logging"
 ```
 
@@ -935,7 +935,7 @@ Expected: All PASS
 **Step 4: Format all changed files**
 
 ```bash
-python -m black src/sapwebguimcp/ unittests/
+python -m black src/sapguimcp/ unittests/
 npm run format
 ```
 
@@ -962,10 +962,10 @@ Expected: All PASS
 
 ```bash
 LOG_LEVEL=DEBUG python -c "
-from sapwebguimcp.logging_config import configure_logging, ToolLogContext
+from sapguimcp.logging_config import configure_logging, ToolLogContext
 import logging
 configure_logging()
-logger = logging.getLogger('sapwebguimcp.test')
+logger = logging.getLogger('sapguimcp.test')
 logger.info('Plain message')
 ctx = ToolLogContext(tool='sap_login', session='s1', duration_ms=2340)
 logger.info('Tool completed', extra=ctx.model_dump(mode='json', exclude_none=True))
@@ -981,10 +981,10 @@ except:
 
 ```bash
 LOG_FORMAT=json LOG_LEVEL=DEBUG python -c "
-from sapwebguimcp.logging_config import configure_logging, ToolLogContext
+from sapguimcp.logging_config import configure_logging, ToolLogContext
 import logging
 configure_logging()
-logger = logging.getLogger('sapwebguimcp.test')
+logger = logging.getLogger('sapguimcp.test')
 ctx = ToolLogContext(tool='sap_login', session='s1', duration_ms=2340)
 logger.info('Tool completed', extra=ctx.model_dump(mode='json', exclude_none=True))
 "
@@ -995,7 +995,7 @@ Expected: Valid JSON line with `ts`, `level`, `logger`, `msg`, `tool`, `session`
 **Step 4: Format everything and commit**
 
 ```bash
-python -m black src/sapwebguimcp/ unittests/
+python -m black src/sapguimcp/ unittests/
 npm run format
 git add -A
 git commit -m "chore: final formatting pass"

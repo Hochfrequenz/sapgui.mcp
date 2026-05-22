@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.backend.webgui.parsers.se09_parser import parse_se09_transport_list
-from sapwebguimcp.models.se09_models import TransportRequest
-from sapwebguimcp.tools.se09_tools import _assign_tasks_from_expanded_text
+from sapguimcp.backend.webgui.parsers.se09_parser import parse_se09_transport_list
+from sapguimcp.models.se09_models import TransportRequest
+from sapguimcp.tools.se09_tools import _assign_tasks_from_expanded_text
 
 # Path to captured YAML snapshots
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se09_exploration"

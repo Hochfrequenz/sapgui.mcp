@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from sapwebguimcp.models.breakpoint_models import (
+from sapguimcp.models.breakpoint_models import (
     BreakpointDeleteResult,
     BreakpointEntry,
     BreakpointListResult,
@@ -155,25 +155,25 @@ class TestBreakpointListResult:
 
 class TestResolveMatchPattern:
     def test_substring_match_first_line(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _resolve_match_pattern
+        from sapguimcp.tools.breakpoint_tools import _resolve_match_pattern
 
         source = "REPORT ztest.\nDATA lv_x TYPE i.\nlv_x = 1."
         assert _resolve_match_pattern(source, "lv_x = 1") == 3
 
     def test_substring_match_first_occurrence(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _resolve_match_pattern
+        from sapguimcp.tools.breakpoint_tools import _resolve_match_pattern
 
         source = "REPORT ztest.\nDATA lv_x TYPE i.\nlv_x = 1.\nlv_x = 2."
         assert _resolve_match_pattern(source, "lv_x") == 2  # first occurrence
 
     def test_pattern_not_found_returns_none(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _resolve_match_pattern
+        from sapguimcp.tools.breakpoint_tools import _resolve_match_pattern
 
         source = "REPORT ztest.\nDATA lv_x TYPE i."
         assert _resolve_match_pattern(source, "nonexistent_pattern") is None
 
     def test_regex_match(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _resolve_match_pattern
+        from sapguimcp.tools.breakpoint_tools import _resolve_match_pattern
 
         source = "REPORT ztest.\nCALL FUNCTION 'MY_FM'.\nDATA lv_x TYPE i."
         assert _resolve_match_pattern(source, r"CALL FUNCTION '.*'") == 2
@@ -181,24 +181,24 @@ class TestResolveMatchPattern:
 
 class TestParseToggleStatus:
     def test_gesetzt_means_set(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _classify_toggle_status
+        from sapguimcp.tools.breakpoint_tools import _classify_toggle_status
 
         assert _classify_toggle_status("Externer Breakpoint in Programm ZTEST gesetzt") == "set"
 
     def test_geloescht_means_deleted(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _classify_toggle_status
+        from sapguimcp.tools.breakpoint_tools import _classify_toggle_status
 
         assert _classify_toggle_status("Externer Breakpoint in Programm ZTEST gelöscht") == "deleted"
 
     def test_unknown_returns_none(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _classify_toggle_status
+        from sapguimcp.tools.breakpoint_tools import _classify_toggle_status
 
         assert _classify_toggle_status("Some unexpected SAP message") is None
 
 
 class TestResolveLineNumberValidation:
     def test_line_number_within_range_is_valid(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _resolve_match_pattern
+        from sapguimcp.tools.breakpoint_tools import _resolve_match_pattern
 
         source = "REPORT ztest.\nDATA lv_x TYPE i.\nlv_x = 1."
         # 3 lines — line 3 is valid
@@ -240,33 +240,33 @@ class TestFilterBpRows:
     }
 
     def test_prog_match_by_include_dis(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _filter_bp_rows
+        from sapguimcp.tools.breakpoint_tools import _filter_bp_rows
 
         entries = _filter_bp_rows([self._PROG_ROW, self._PROG_ROW_OTHER], "PROG", "ZTEST_PROG", None)
         assert len(entries) == 1
         assert entries[0].line_number == 10
 
     def test_prog_no_match(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _filter_bp_rows
+        from sapguimcp.tools.breakpoint_tools import _filter_bp_rows
 
         entries = _filter_bp_rows([self._PROG_ROW_OTHER], "PROG", "ZTEST_PROG", None)
         assert entries == []
 
     def test_prog_case_insensitive(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _filter_bp_rows
+        from sapguimcp.tools.breakpoint_tools import _filter_bp_rows
 
         entries = _filter_bp_rows([self._PROG_ROW], "PROG", "ztest_prog", None)
         assert len(entries) == 1
 
     def test_clas_match_by_main_prog(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _filter_bp_rows
+        from sapguimcp.tools.breakpoint_tools import _filter_bp_rows
 
         entries = _filter_bp_rows([self._CLAS_ROW, self._CLAS_ROW_OTHER], "CLAS", "ZCL_MYCLASS", "MY_METHOD")
         assert len(entries) == 1
         assert entries[0].line_number == 18
 
     def test_clas_returns_all_methods_for_class(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _filter_bp_rows
+        from sapguimcp.tools.breakpoint_tools import _filter_bp_rows
 
         second_method_row = {
             "MAINPROGRAM_DIS": "ZCL_MYCLASS",
@@ -279,14 +279,14 @@ class TestFilterBpRows:
         assert len(entries) == 2
 
     def test_fugr_match_by_main_prog(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _filter_bp_rows
+        from sapguimcp.tools.breakpoint_tools import _filter_bp_rows
 
         entries = _filter_bp_rows([self._FUGR_ROW, self._FUGR_ROW_OTHER], "FUGR", "BREA", "MY_FM")
         assert len(entries) == 1
         assert entries[0].line_number == 42
 
     def test_non_numeric_source_line_skipped(self) -> None:
-        from sapwebguimcp.tools.breakpoint_tools import _filter_bp_rows
+        from sapguimcp.tools.breakpoint_tools import _filter_bp_rows
 
         bad_row = {"MAINPROGRAM_DIS": "", "INCLUDE_DIS": "ZTEST_PROG", "SOURCE_LINE": "N/A", "SOURCE": "WRITE."}
         entries = _filter_bp_rows([bad_row], "PROG", "ZTEST_PROG", None)

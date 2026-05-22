@@ -16,8 +16,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from sapwebguimcp.backend.desktop import DesktopBackend
-from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
+from sapguimcp.backend.desktop import DesktopBackend
+from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
 
 def _make_backend() -> DesktopBackend:

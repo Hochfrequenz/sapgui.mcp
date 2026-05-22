@@ -1,8 +1,8 @@
 # Design: `sap_quick_report` — Robustes Composite-Tool (v2)
 
 **Datum:** 2026-03-19 (v2, überarbeitet nach Review PR #438)
-**Repo:** https://github.com/Hochfrequenz/sapwebgui.mcp
-**PR-Kontext:** https://github.com/Hochfrequenz/sapwebgui.mcp/pull/426 (Maßnahme 3)
+**Repo:** https://github.com/Hochfrequenz/sapgui.mcp
+**PR-Kontext:** https://github.com/Hochfrequenz/sapgui.mcp/pull/426 (Maßnahme 3)
 **Typ:** Feature-Design (Machbarkeitsstudie → Implementierungsvorlage)
 **Backend-Scope:** WebGUI-only (Phase 1). Runtime-Guard: Tool gibt sofort Fehler bei Desktop-Backend zurück. Desktop-Support (COM-Tree-basierter Classifier) ist Phase 2.
 
@@ -213,7 +213,7 @@ async def classify_result_screen(
 ### Dateistruktur
 
 ```
-src/sapwebguimcp/
+src/sapguimcp/
   tools/
     quick_report_tools.py          ← Tool-Funktion + Pipeline + classify_result_screen()
   models/

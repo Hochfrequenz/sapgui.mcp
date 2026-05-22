@@ -18,9 +18,9 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.backend.webgui.models.browser_results import EvaluateResult, SnapshotResult
-from sapwebguimcp.models import FillFormResult, LoginResult, TransactionResult
-from sapwebguimcp.models.se09_models import TransportListResult
+from sapguimcp.backend.webgui.models.browser_results import EvaluateResult, SnapshotResult
+from sapguimcp.models import FillFormResult, LoginResult, TransactionResult
+from sapguimcp.models.se09_models import TransportListResult
 
 from .conftest import call_tool_typed
 

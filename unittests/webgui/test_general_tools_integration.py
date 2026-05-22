@@ -9,7 +9,7 @@ import os
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     ClickButtonResult,
     LoginResult,
     SelectDropdownResult,

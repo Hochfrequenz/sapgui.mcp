@@ -14,7 +14,7 @@ pytestmark = [skip_no_sap, pytest.mark.integration]
 @pytest.mark.anyio
 async def test_breakpoint_set_prog_by_line(backend):
     """sap_breakpoint_set on a PROG sets breakpoint at the specified line."""
-    from sapwebguimcp.tools.breakpoint_tools import (
+    from sapguimcp.tools.breakpoint_tools import (
         _SHELL_PATHS,
         _classify_toggle_status,
         _navigate_prog,
@@ -40,7 +40,7 @@ async def test_breakpoint_set_prog_by_line(backend):
 @pytest.mark.anyio
 async def test_breakpoint_set_and_delete_roundtrip_prog(backend):
     """Setting then deleting a breakpoint on PROG returns to no-breakpoint state."""
-    from sapwebguimcp.tools.breakpoint_tools import (
+    from sapguimcp.tools.breakpoint_tools import (
         _SHELL_PATHS,
         _classify_toggle_status,
         _navigate_prog,
@@ -68,7 +68,7 @@ async def test_breakpoint_set_and_delete_roundtrip_prog(backend):
 @pytest.mark.anyio
 async def test_breakpoint_list_prog(backend):
     """sap_breakpoint_list returns empty list when no breakpoints are set."""
-    from sapwebguimcp.tools.breakpoint_tools import (
+    from sapguimcp.tools.breakpoint_tools import (
         _filter_bp_rows,
         _navigate_prog,
         _open_bp_list_dialog_com,
@@ -93,7 +93,7 @@ async def test_breakpoint_list_prog(backend):
 @pytest.mark.anyio
 async def test_breakpoint_clas_navigate(backend):
     """Navigation to SE24 class method editor succeeds."""
-    from sapwebguimcp.tools.breakpoint_tools import _navigate_clas
+    from sapguimcp.tools.breakpoint_tools import _navigate_clas
 
     nav_error = await _navigate_clas(backend, TEST_CLASS, TEST_METHOD)
     assert nav_error is None, f"Navigation failed: {nav_error}"

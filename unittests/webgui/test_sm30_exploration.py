@@ -16,8 +16,8 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.backend.webgui.models.browser_results import SnapshotResult
-from sapwebguimcp.models import FillFormResult, KeyboardResult, LoginResult, StatusBarInfo, TransactionResult
+from sapguimcp.backend.webgui.models.browser_results import SnapshotResult
+from sapguimcp.models import FillFormResult, KeyboardResult, LoginResult, StatusBarInfo, TransactionResult
 
 from .conftest import call_tool_typed
 
@@ -75,7 +75,7 @@ async def _fill_view_name_and_display(client: ClientSession, view_name: str) -> 
 
     # SM30: Click "Anzeigen"/"Display" button using JavaScript evaluation
     # SAP WebGUI buttons can be clicked by finding the button element with matching text
-    from sapwebguimcp.backend.webgui.models.browser_results import EvaluateResult
+    from sapguimcp.backend.webgui.models.browser_results import EvaluateResult
 
     js_click = await call_tool_typed(
         client,

@@ -67,7 +67,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
             "env": {
                 "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "SAP_USER": "your_username",
@@ -90,7 +90,7 @@ Add to `.mcp.json` in your project root:
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
             "env": {
                 "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "SAP_USER": "your_username",
@@ -188,7 +188,7 @@ Then open `%APPDATA%\Claude\claude_desktop_config.json` and add:
                 "AUDIT_LOG_DIR=/audit-logs",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
-                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+                "ghcr.io/hochfrequenz/sapgui.mcp:latest"
             ]
         }
     }
@@ -237,7 +237,7 @@ Add to `.mcp.json` in your project root:
                 "AUDIT_LOG_DIR=/audit-logs",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
-                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+                "ghcr.io/hochfrequenz/sapgui.mcp:latest"
             ]
         }
     }
@@ -298,7 +298,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/your/venv/Scripts/run-sapwebgui-mcp-server.exe",
+            "command": "C:/path/to/your/venv/Scripts/run-sapgui-mcp-server.exe",
             "args": [],
             "env": {
                 "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
@@ -324,7 +324,7 @@ Add to `.mcp.json` in your project root:
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/your/venv/Scripts/run-sapwebgui-mcp-server.exe",
+            "command": "C:/path/to/your/venv/Scripts/run-sapgui-mcp-server.exe",
             "args": [],
             "env": {
                 "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
@@ -391,7 +391,7 @@ Replace the existing table with:
 | `AUDIT_LOG_DIR`    | No                          | Directory for audit logs (JSONL)                             | —                            |
 | `GITHUB_PAT`       | No                          | GitHub PAT for `log_feedback` issues and abapGit auth        | —                            |
 | `GITHUB_USER`      | No                          | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
-| `GITHUB_REPO`      | No                          | Repository for feedback issues                               | `Hochfrequenz/sapwebgui.mcp` |
+| `GITHUB_REPO`      | No                          | Repository for feedback issues                               | `Hochfrequenz/sapgui.mcp` |
 | `ABAPGIT_PAT`      | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
 | `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                    | `logs5.papertrailapp.com`    |
 | `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                       | `35329`                      |

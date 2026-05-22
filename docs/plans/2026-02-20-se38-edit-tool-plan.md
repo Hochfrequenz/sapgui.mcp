@@ -14,8 +14,8 @@
 
 **Files:**
 
-- Create: `src/sapwebguimcp/models/se38_edit_models.py`
-- Modify: `src/sapwebguimcp/models/__init__.py`
+- Create: `src/sapguimcp/models/se38_edit_models.py`
+- Modify: `src/sapguimcp/models/__init__.py`
 - Test: `unittests/test_se38_edit.py`
 
 **Step 1: Write the failing test**
@@ -31,7 +31,7 @@ from pydantic import ValidationError
 
 def test_se38_edit_result_success() -> None:
     """Test successful SE38EditResult creation."""
-    from sapwebguimcp.models.se38_edit_models import SE38EditResult
+    from sapguimcp.models.se38_edit_models import SE38EditResult
 
     result = SE38EditResult(
         success=True,
@@ -49,7 +49,7 @@ def test_se38_edit_result_success() -> None:
 
 def test_se38_edit_result_failure() -> None:
     """Test failed SE38EditResult creation via factory."""
-    from sapwebguimcp.models.se38_edit_models import SE38EditResult
+    from sapguimcp.models.se38_edit_models import SE38EditResult
 
     result = SE38EditResult.failure(
         error="Syntax error in line 3",
@@ -65,7 +65,7 @@ def test_se38_edit_result_failure() -> None:
 
 def test_se38_edit_result_validation_error() -> None:
     """Test that success=True with error raises ValidationError."""
-    from sapwebguimcp.models.se38_edit_models import SE38EditResult
+    from sapguimcp.models.se38_edit_models import SE38EditResult
 
     with pytest.raises(ValidationError):
         SE38EditResult(
@@ -81,18 +81,18 @@ def test_se38_edit_result_validation_error() -> None:
 **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest unittests/test_se38_edit.py::test_se38_edit_result_success -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'sapwebguimcp.models.se38_edit_models'`
+Expected: FAIL with `ModuleNotFoundError: No module named 'sapguimcp.models.se38_edit_models'`
 
 **Step 3: Write minimal implementation**
 
-Create `src/sapwebguimcp/models/se38_edit_models.py`:
+Create `src/sapguimcp/models/se38_edit_models.py`:
 
 ```python
 """Models for SE38 (ABAP Report Editor) edit operations."""
 
 from pydantic import Field
 
-from sapwebguimcp.models.base import ToolResult
+from sapguimcp.models.base import ToolResult
 
 
 class SE38EditResult(ToolResult):
@@ -104,10 +104,10 @@ class SE38EditResult(ToolResult):
     activated: bool = Field(default=False, description="Whether the report was successfully activated")
 ```
 
-Add to `src/sapwebguimcp/models/__init__.py` — add import and `__all__` entry:
+Add to `src/sapguimcp/models/__init__.py` — add import and `__all__` entry:
 
 ```python
-from sapwebguimcp.models.se38_edit_models import SE38EditResult
+from sapguimcp.models.se38_edit_models import SE38EditResult
 ```
 
 Add `"SE38EditResult"` to the `__all__` list.
@@ -120,7 +120,7 @@ Expected: 3 PASSED
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/se38_edit_models.py src/sapwebguimcp/models/__init__.py unittests/test_se38_edit.py
+git add src/sapguimcp/models/se38_edit_models.py src/sapguimcp/models/__init__.py unittests/test_se38_edit.py
 git commit -m "feat(se38): add SE38EditResult model"
 ```
 
@@ -130,7 +130,7 @@ git commit -m "feat(se38): add SE38EditResult model"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/tools/edit_helpers.py`
+- Create: `src/sapguimcp/tools/edit_helpers.py`
 - Test: `unittests/test_se38_edit.py` (append)
 
 **Step 1: Write the failing test**
@@ -146,7 +146,7 @@ class TestParseStatusNote:
 
     def test_parse_check_success_de(self) -> None:
         """German check success message."""
-        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+        from sapguimcp.tools.edit_helpers import parse_toolbar_note
 
         snapshot = '- note "Erfolgreich Meldungsleiste Es wurden keine Syntaxfehler in Report ZTEST_MCP_EDIT gefunden"'
         success, message = parse_toolbar_note(snapshot)
@@ -155,7 +155,7 @@ class TestParseStatusNote:
 
     def test_parse_activate_success_de(self) -> None:
         """German activation success message."""
-        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+        from sapguimcp.tools.edit_helpers import parse_toolbar_note
 
         snapshot = '- note "Erfolgreich Meldungsleiste Aktives Objekt wurde generiert"'
         success, message = parse_toolbar_note(snapshot)
@@ -164,7 +164,7 @@ class TestParseStatusNote:
 
     def test_parse_check_failure_de(self) -> None:
         """German check failure message (error pattern)."""
-        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+        from sapguimcp.tools.edit_helpers import parse_toolbar_note
 
         snapshot = '- note "Fehler Meldungsleiste Syntaxfehler in Zeile 3"'
         success, message = parse_toolbar_note(snapshot)
@@ -173,7 +173,7 @@ class TestParseStatusNote:
 
     def test_parse_no_note(self) -> None:
         """No note in snapshot."""
-        from sapwebguimcp.tools.edit_helpers import parse_toolbar_note
+        from sapguimcp.tools.edit_helpers import parse_toolbar_note
 
         snapshot = "- button 'Aktivieren'"
         success, message = parse_toolbar_note(snapshot)
@@ -184,11 +184,11 @@ class TestParseStatusNote:
 **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest unittests/test_se38_edit.py::TestParseStatusNote -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'sapwebguimcp.tools.edit_helpers'`
+Expected: FAIL with `ModuleNotFoundError: No module named 'sapguimcp.tools.edit_helpers'`
 
 **Step 3: Write minimal implementation**
 
-Create `src/sapwebguimcp/tools/edit_helpers.py`:
+Create `src/sapguimcp/tools/edit_helpers.py`:
 
 ```python
 """
@@ -334,7 +334,7 @@ Expected: All PASSED (including Task 1 tests)
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/edit_helpers.py unittests/test_se38_edit.py
+git add src/sapguimcp/tools/edit_helpers.py unittests/test_se38_edit.py
 git commit -m "feat(se38): add shared edit helpers (check/activate, status parsing)"
 ```
 
@@ -344,9 +344,9 @@ git commit -m "feat(se38): add shared edit helpers (check/activate, status parsi
 
 **Files:**
 
-- Create: `src/sapwebguimcp/tools/se38_edit_tools.py`
-- Modify: `src/sapwebguimcp/tools/__init__.py`
-- Modify: `src/sapwebguimcp/server.py`
+- Create: `src/sapguimcp/tools/se38_edit_tools.py`
+- Modify: `src/sapguimcp/tools/__init__.py`
+- Modify: `src/sapguimcp/server.py`
 
 **Step 1: Write the failing test**
 
@@ -356,7 +356,7 @@ Append to `unittests/test_se38_edit.py`:
 def test_se38_edit_tool_is_registered() -> None:
     """Test that sap_se38_edit tool is registered on the MCP server."""
     import asyncio
-    from sapwebguimcp.server import mcp
+    from sapguimcp.server import mcp
 
     tools = asyncio.run(mcp.list_tools())
     tool_names = [t.name for t in tools]
@@ -370,7 +370,7 @@ Expected: FAIL with `AssertionError: sap_se38_edit not found in [...]`
 
 **Step 3: Write the tool implementation**
 
-Create `src/sapwebguimcp/tools/se38_edit_tools.py`:
+Create `src/sapguimcp/tools/se38_edit_tools.py`:
 
 ```python
 """
@@ -384,10 +384,10 @@ import logging
 
 from fastmcp import FastMCP
 
-from sapwebguimcp.models import SE38EditResult
-from sapwebguimcp.models.browser import get_browser_manager
-from sapwebguimcp.tools.edit_helpers import check_and_activate, read_editor_source, replace_editor_source
-from sapwebguimcp.tools.sap_tools import sap_transaction_impl
+from sapguimcp.models import SE38EditResult
+from sapguimcp.models.browser import get_browser_manager
+from sapguimcp.tools.edit_helpers import check_and_activate, read_editor_source, replace_editor_source
+from sapguimcp.tools.sap_tools import sap_transaction_impl
 
 logger = logging.getLogger(__name__)
 
@@ -534,15 +534,15 @@ def register_se38_edit_tools(mcp: FastMCP) -> None:
 
 Register the tool:
 
-In `src/sapwebguimcp/tools/__init__.py`, add:
+In `src/sapguimcp/tools/__init__.py`, add:
 
 ```python
-from sapwebguimcp.tools.se38_edit_tools import register_se38_edit_tools
+from sapguimcp.tools.se38_edit_tools import register_se38_edit_tools
 ```
 
 Add `"register_se38_edit_tools"` to `__all__`.
 
-In `src/sapwebguimcp/server.py`, add after the other register calls:
+In `src/sapguimcp/server.py`, add after the other register calls:
 
 ```python
 register_se38_edit_tools(mcp)
@@ -551,7 +551,7 @@ register_se38_edit_tools(mcp)
 And add to the import block:
 
 ```python
-from sapwebguimcp.tools import register_se38_edit_tools
+from sapguimcp.tools import register_se38_edit_tools
 ```
 
 **Step 4: Run tests to verify they pass**
@@ -562,7 +562,7 @@ Expected: All PASSED
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/se38_edit_tools.py src/sapwebguimcp/tools/__init__.py src/sapwebguimcp/server.py unittests/test_se38_edit.py
+git add src/sapguimcp/tools/se38_edit_tools.py src/sapguimcp/tools/__init__.py src/sapguimcp/server.py unittests/test_se38_edit.py
 git commit -m "feat(se38): add sap_se38_edit tool with check, activate, auto-revert"
 ```
 
@@ -620,7 +620,7 @@ async def test_se38_edit_round_trip(sap_mcp_client: ClientSession) -> None:
     4. Verifies success
     5. Restores original source
     """
-    from sapwebguimcp.models import SE38EditResult
+    from sapguimcp.models import SE38EditResult
     from .conftest import call_tool_typed
 
     # Login

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sapwebguimcp.logging_config import (
+from sapguimcp.logging_config import (
     COMMIT_UNKNOWN,
     BrowserLogContext,
     QueryLogContext,
@@ -29,7 +29,7 @@ class TestStructuredFormatter:
         """Plain message without extra fields uses simple format."""
         formatter = StructuredFormatter(json_mode=False)
         record = logging.LogRecord(
-            name="sapwebguimcp.tools.sap_tools",
+            name="sapguimcp.tools.sap_tools",
             level=logging.INFO,
             pathname="",
             lineno=0,
@@ -39,14 +39,14 @@ class TestStructuredFormatter:
         )
         output = formatter.format(record)
         assert "INFO" in output
-        assert "sapwebguimcp.tools.sap_tools" in output
+        assert "sapguimcp.tools.sap_tools" in output
         assert "Server started" in output
 
     def test_console_format_with_extra_fields(self) -> None:
         """Extra fields are appended as key=value pairs."""
         formatter = StructuredFormatter(json_mode=False)
         record = logging.LogRecord(
-            name="sapwebguimcp.tools.sap_tools",
+            name="sapguimcp.tools.sap_tools",
             level=logging.INFO,
             pathname="",
             lineno=0,
@@ -65,7 +65,7 @@ class TestStructuredFormatter:
         """JSON mode outputs valid JSON with standard fields."""
         formatter = StructuredFormatter(json_mode=True)
         record = logging.LogRecord(
-            name="sapwebguimcp.server",
+            name="sapguimcp.server",
             level=logging.INFO,
             pathname="",
             lineno=0,
@@ -76,7 +76,7 @@ class TestStructuredFormatter:
         output = formatter.format(record)
         data = json.loads(output)
         assert data["level"] == "INFO"
-        assert data["logger"] == "sapwebguimcp.server"
+        assert data["logger"] == "sapguimcp.server"
         assert data["msg"] == "Server started"
         assert "ts" in data
 
@@ -377,7 +377,7 @@ class TestPapertrailTlsHandler:
         assert handler._sock is None
         assert handler._consecutive_failures == 1
 
-    @patch("sapwebguimcp.logging_config.socket.create_connection")
+    @patch("sapguimcp.logging_config.socket.create_connection")
     def test_emit_handles_connect_failure(self, mock_conn: MagicMock) -> None:
         """Connection failure does not raise and triggers backoff."""
         mock_conn.side_effect = OSError("connection refused")
@@ -389,7 +389,7 @@ class TestPapertrailTlsHandler:
         assert handler._consecutive_failures == 1
         assert handler._backoff_until > 0
 
-    @patch("sapwebguimcp.logging_config.socket.create_connection")
+    @patch("sapguimcp.logging_config.socket.create_connection")
     def test_emit_skips_during_backoff(self, mock_conn: MagicMock) -> None:
         """Messages are silently dropped during backoff period."""
         mock_conn.side_effect = OSError("connection refused")
@@ -463,14 +463,14 @@ class TestBuildInfo:
     )
     def test_build_info_parses_hatch_vcs_format(self, raw: str, want: tuple[str, str]) -> None:
         """build_info splits hatch-vcs version strings into (base, short-SHA[+dirty])."""
-        with patch("sapwebguimcp.logging_config.importlib.metadata.version", return_value=raw):
+        with patch("sapguimcp.logging_config.importlib.metadata.version", return_value=raw):
             assert build_info() == want
 
     def test_build_info_falls_back_when_package_not_installed(self) -> None:
         """When the package isn't installed, build_info returns ('dev', 'unknown')."""
         with patch(
-            "sapwebguimcp.logging_config.importlib.metadata.version",
-            side_effect=_md.PackageNotFoundError("sapwebguimcp"),
+            "sapguimcp.logging_config.importlib.metadata.version",
+            side_effect=_md.PackageNotFoundError("sapguimcp"),
         ):
             assert build_info() == ("dev", COMMIT_UNKNOWN)
 
@@ -488,7 +488,7 @@ class TestBuildContextFilter:
 
     def test_configure_logging_attaches_filter_to_stream_handler(self) -> None:
         """The StreamHandler installed by configure_logging carries the build filter."""
-        with patch("sapwebguimcp.logging_config.build_info", return_value=("v9.9.9", "deadbee")):
+        with patch("sapguimcp.logging_config.build_info", return_value=("v9.9.9", "deadbee")):
             configure_logging()
         stream_handlers = [
             h
@@ -512,11 +512,11 @@ class TestBuildContextFilter:
         the record but the syslog format string ignored them — making remote
         Papertrail logs unable to identify the build.
         """
-        with patch("sapwebguimcp.logging_config.build_info", return_value=("v2.3.4", "abc1234")):
+        with patch("sapguimcp.logging_config.build_info", return_value=("v2.3.4", "abc1234")):
             configure_logging(papertrail_host="localhost", papertrail_port=15514)
         tls_handlers = [h for h in logging.getLogger().handlers if isinstance(h, _PapertrailTlsHandler)]
         assert len(tls_handlers) == 1
-        record = logging.LogRecord("sapwebguimcp.x", logging.INFO, "", 0, "hello", (), None)
+        record = logging.LogRecord("sapguimcp.x", logging.INFO, "", 0, "hello", (), None)
         for f in tls_handlers[0].filters:
             f.filter(record)  # apply the build-context filter
         formatted = tls_handlers[0].formatter.format(record)
@@ -525,13 +525,13 @@ class TestBuildContextFilter:
 
     def test_filter_propagates_to_emitted_records(self) -> None:
         """Records emitted via a child logger reach the StreamHandler with version+commit set."""
-        with patch("sapwebguimcp.logging_config.build_info", return_value=("v1.0.0", "1234567")):
+        with patch("sapguimcp.logging_config.build_info", return_value=("v1.0.0", "1234567")):
             configure_logging(log_format="json")
         captured: list[logging.LogRecord] = []
         for h in logging.getLogger().handlers:
             if type(h) is logging.StreamHandler:  # pylint: disable=unidiomatic-typecheck
                 h.addFilter(lambda r: captured.append(r) or True)
-        logging.getLogger("sapwebguimcp.something.deep").info("hello")
+        logging.getLogger("sapguimcp.something.deep").info("hello")
         assert captured, "expected at least one record to reach the handler"
         assert getattr(captured[-1], "version", None) == "v1.0.0"
         assert getattr(captured[-1], "commit", None) == "1234567"

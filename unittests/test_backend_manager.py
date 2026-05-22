@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-import sapwebguimcp.backend.manager as manager_module
-from sapwebguimcp.backend.desktop import _current_session_id
-from sapwebguimcp.backend.desktop._com_thread import ComThread
-from sapwebguimcp.backend.manager import (
+import sapguimcp.backend.manager as manager_module
+from sapguimcp.backend.desktop import _current_session_id
+from sapguimcp.backend.desktop._com_thread import ComThread
+from sapguimcp.backend.manager import (
     BackendManager,
     close_backend,
     get_backend_manager,
@@ -51,7 +51,7 @@ def test_backend_manager_close_clears_caches() -> None:
     manager._page_ids["s1"] = 12345
 
     with patch(
-        "sapwebguimcp.backend.manager.close_browser_manager",
+        "sapguimcp.backend.manager.close_browser_manager",
         new_callable=AsyncMock,
     ) as mock_close:
         asyncio.run(manager.close())

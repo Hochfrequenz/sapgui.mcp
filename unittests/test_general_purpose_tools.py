@@ -12,16 +12,16 @@ from fastmcp import Client
 from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
-from sapwebguimcp.models import ClickButtonResult, SelectDropdownResult, SelectTabResult
-from sapwebguimcp.models.base import PopupInfo
-from sapwebguimcp.models.sap_results import DropdownFillResult
-from sapwebguimcp.server import mcp
+from sapguimcp.models import ClickButtonResult, SelectDropdownResult, SelectTabResult
+from sapguimcp.models.base import PopupInfo
+from sapguimcp.models.sap_results import DropdownFillResult
+from sapguimcp.server import mcp
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-_PATCH_GET_BACKEND = "sapwebguimcp.tools.sap_tools.get_backend"
+_PATCH_GET_BACKEND = "sapguimcp.tools.sap_tools.get_backend"
 
 
 def _make_backend(backend_type: str = "webgui", **overrides) -> AsyncMock:

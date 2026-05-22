@@ -71,7 +71,7 @@ class _ComThread:
 ## Package Location
 
 ```
-src/sapwebguimcp/backend/desktop/
+src/sapguimcp/backend/desktop/
     __init__.py              # DesktopBackend class
     _com_thread.py           # _ComThread — dedicated COM worker thread
     _session_manager.py      # Multi-session tracking (bind/release/list)
@@ -290,6 +290,6 @@ Update `BackendManager` in `backend/manager.py` to create `DesktopBackend` when 
 
 No new dependencies. Uses existing:
 
-- `sapwebguimcp.sapgui` (pysapgui library)
-- `sapwebguimcp.sapgui._login` (login/logoff helpers)
+- `sapguimcp.sapgui` (pysapgui library)
+- `sapguimcp.sapgui._login` (login/logoff helpers)
 - `pywin32` (already in pyproject.toml)

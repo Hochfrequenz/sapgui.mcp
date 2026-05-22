@@ -15,7 +15,7 @@
 ## Task 1: DesktopSessionRegistry — unit tests + implementation
 
 **Files:**
-- Create: `src/sapwebguimcp/backend/desktop/_session_registry.py`
+- Create: `src/sapguimcp/backend/desktop/_session_registry.py`
 - Create: `unittests/test_desktop_session_registry.py`
 
 - [ ] **Step 1.1: Write failing tests for the registry**
@@ -37,7 +37,7 @@ Expected: FAIL with `ImportError: cannot import name 'DesktopSessionRegistry'`
 
 - [ ] **Step 1.3: Implement DesktopSessionRegistry**
 
-Create `src/sapwebguimcp/backend/desktop/_session_registry.py` with:
+Create `src/sapguimcp/backend/desktop/_session_registry.py` with:
 - `_PROBE_TTL_SECONDS = 5.0` constant
 - `register(session) → str`: increments counter, stores session, sets probe timestamp
 - `get_session(session_id | None) → GuiSession`: None→"s1", probes COM with TTL, auto-unregisters on failure
@@ -59,18 +59,18 @@ Expected: All tests PASS (target: ~18 tests)
 ## Task 2: Wire registry into DesktopBackend + ContextVar routing
 
 **Files:**
-- Modify: `src/sapwebguimcp/backend/desktop/__init__.py`
-- Modify: `src/sapwebguimcp/backend/manager.py`
+- Modify: `src/sapguimcp/backend/desktop/__init__.py`
+- Modify: `src/sapguimcp/backend/manager.py`
 - Create: `unittests/test_contextvar_routing.py` (unit test for ContextVar + _require_session)
 
 - [ ] **Step 2.1: Add ContextVar and update `__init__`, `login`, `_require_session`**
 
-In `src/sapwebguimcp/backend/desktop/__init__.py`:
+In `src/sapguimcp/backend/desktop/__init__.py`:
 
 Module-level:
 ```python
 from contextvars import ContextVar
-from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
+from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
 _current_session_id: ContextVar[str | None] = ContextVar("_current_session_id", default=None)
 ```
@@ -122,7 +122,7 @@ async def open_new_session(self, tcode):
         if count < 2:
             return None, count, None
         new_ses_com = conn_com.Children(count - 1)
-        from sapwebguimcp.sapgui._factory import wrap_com_object
+        from sapguimcp.sapgui._factory import wrap_com_object
         new_gui_session = wrap_com_object(new_ses_com)
         new_ses_com.FindById("wnd[0]/tbar[0]/okcd").Text = f"/n{tcode}"
         new_ses_com.FindById("wnd[0]").SendVKey(0)
@@ -195,7 +195,7 @@ async def has_session(self, session_id):
 
 - [ ] **Step 2.3: Update BackendManager**
 
-In `src/sapwebguimcp/backend/manager.py`, change desktop branch:
+In `src/sapguimcp/backend/manager.py`, change desktop branch:
 - Single instance keyed as `"desktop"` (not per-session)
 - Set `_current_session_id` ContextVar before returning
 - Call `registry.check_binding` if session is specified

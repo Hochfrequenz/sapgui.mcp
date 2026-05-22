@@ -5,8 +5,8 @@ import sys
 
 import pytest
 
-from sapwebguimcp.models.se16_models import SE16Result
-from sapwebguimcp.tools.se16_tools import _execute_se16_query
+from sapguimcp.models.se16_models import SE16Result
+from sapguimcp.tools.se16_tools import _execute_se16_query
 from unittests.desktop.conftest import TEST_TABLE, go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

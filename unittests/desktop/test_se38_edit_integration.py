@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from sapwebguimcp.tools.se38_edit_tools import _edit_check_activate, _navigate_and_open_editor_desktop
+from sapguimcp.tools.se38_edit_tools import _edit_check_activate, _navigate_and_open_editor_desktop
 from unittests.desktop.conftest import TEST_REPORT, go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

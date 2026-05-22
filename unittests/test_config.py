@@ -7,22 +7,22 @@ from unittest.mock import patch
 
 import pytest
 
-from sapwebguimcp.models.config import (
+from sapguimcp.models.config import (
     BrowserMode,
     BrowserType,
-    SapWebGuiSettings,
+    SapGuiSettings,
     _env_files,
     get_settings,
 )
 
 
-class TestSapWebGuiSettings:
-    """Tests for SapWebGuiSettings."""
+class TestSapGuiSettings:
+    """Tests for SapGuiSettings."""
 
     def test_default_values(self) -> None:
         """Test that default values are set correctly."""
         with patch.dict(os.environ, {}, clear=True):
-            settings = SapWebGuiSettings(_env_file=None)
+            settings = SapGuiSettings(_env_file=None)
 
         assert settings.backend_type == "webgui"
         assert settings.sap_url == ""
@@ -42,7 +42,7 @@ class TestSapWebGuiSettings:
         }
 
         with patch.dict(os.environ, env_vars, clear=True):
-            settings = SapWebGuiSettings(_env_file=None)
+            settings = SapGuiSettings(_env_file=None)
 
         assert settings.sap_url == "https://sap.example.com/webgui"
         assert settings.browser_mode == BrowserMode.CONNECT
@@ -53,7 +53,7 @@ class TestSapWebGuiSettings:
     def test_papertrail_defaults_empty(self) -> None:
         """Papertrail is OFF by default (no hardcoded host/port)."""
         with patch.dict(os.environ, {}, clear=True):
-            settings = SapWebGuiSettings(_env_file=None)
+            settings = SapGuiSettings(_env_file=None)
         assert settings.papertrail_host == ""
         assert settings.papertrail_port == 0
 
@@ -62,7 +62,7 @@ class TestSapWebGuiSettings:
         prod = tmp_path / ".env.production"
         prod.write_text("PAPERTRAIL_HOST=logs.example.com\nPAPERTRAIL_PORT=12345\n")
         with patch.dict(os.environ, {}, clear=True):
-            settings = SapWebGuiSettings(_env_file=str(prod))
+            settings = SapGuiSettings(_env_file=str(prod))
         assert settings.papertrail_host == "logs.example.com"
         assert settings.papertrail_port == 12345
 
@@ -74,7 +74,7 @@ class TestSapWebGuiSettings:
         }
 
         with patch.dict(os.environ, env_vars, clear=True):
-            settings = SapWebGuiSettings(_env_file=None)
+            settings = SapGuiSettings(_env_file=None)
 
         errors = settings.validate_for_browser()
         assert len(errors) == 1
@@ -83,7 +83,7 @@ class TestSapWebGuiSettings:
     def test_validate_for_browser_launch_mode(self) -> None:
         """Test validation passes in launch mode."""
         with patch.dict(os.environ, {"BROWSER_MODE": "launch"}, clear=True):
-            settings = SapWebGuiSettings(_env_file=None)
+            settings = SapGuiSettings(_env_file=None)
 
         errors = settings.validate_for_browser()
         assert len(errors) == 0
@@ -121,19 +121,19 @@ class TestGetSettings:
     """Tests for the get_settings function."""
 
     def test_returns_settings_instance(self) -> None:
-        """Test that get_settings returns a SapWebGuiSettings instance."""
-        import sapwebguimcp.models.config
+        """Test that get_settings returns a SapGuiSettings instance."""
+        import sapguimcp.models.config
 
-        sapwebguimcp.models.config._settings = None
+        sapguimcp.models.config._settings = None
 
         settings = get_settings()
-        assert isinstance(settings, SapWebGuiSettings)
+        assert isinstance(settings, SapGuiSettings)
 
     def test_returns_same_instance(self) -> None:
         """Test that get_settings returns the same instance on subsequent calls."""
-        import sapwebguimcp.models.config
+        import sapguimcp.models.config
 
-        sapwebguimcp.models.config._settings = None
+        sapguimcp.models.config._settings = None
 
         settings1 = get_settings()
         settings2 = get_settings()

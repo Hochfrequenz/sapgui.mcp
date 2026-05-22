@@ -74,7 +74,7 @@ Desktop Backend (BACKEND_TYPE=desktop):
             │ COM (pywin32)
             ↓
 ┌─────────────────────────────────────────────────────────┐
-│  MCP Server (sapwebguimcp)                              │
+│  MCP Server (sapguimcp)                              │
 │  - Desktop backend with COM thread                      │
 │  - SAP-specific tools                                   │
 └─────────────────────────────────────────────────────────┘

@@ -6,7 +6,7 @@ New users (both Claude Code developers and Claude Desktop business users) don't 
 
 ## Solution
 
-Add 6 static markdown prompts to `src/sapwebguimcp/prompts/` using the existing auto-discovery system. No code changes required.
+Add 6 static markdown prompts to `src/sapguimcp/prompts/` using the existing auto-discovery system. No code changes required.
 
 ## Approach
 

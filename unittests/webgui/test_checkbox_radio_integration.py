@@ -16,10 +16,10 @@ checkbox/radio controls are reliably represented in ARIA snapshots.
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.backend.webgui.models.browser_results import SnapshotResult
-from sapwebguimcp.backend.webgui.parsers.screen_state_parser import parse_selection_screen_state
-from sapwebguimcp.models import LoginResult, TransactionResult
-from sapwebguimcp.models.sap_results import SetFieldResult
+from sapguimcp.backend.webgui.models.browser_results import SnapshotResult
+from sapguimcp.backend.webgui.parsers.screen_state_parser import parse_selection_screen_state
+from sapguimcp.models import LoginResult, TransactionResult
+from sapguimcp.models.sap_results import SetFieldResult
 
 from .conftest import call_tool_typed
 

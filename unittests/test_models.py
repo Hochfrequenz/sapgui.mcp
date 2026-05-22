@@ -5,8 +5,8 @@ from datetime import timedelta
 import pytest
 from pydantic import ValidationError
 
-from sapwebguimcp.backend.webgui.models.browser_results import ClickResult, WaitResult
-from sapwebguimcp.models import (
+from sapguimcp.backend.webgui.models.browser_results import ClickResult, WaitResult
+from sapguimcp.models import (
     CapabilitiesResult,
     DiscoveredFields,
     FieldInfo,
@@ -428,7 +428,7 @@ class TestSessionIdValidation:
         """Test valid session ID format."""
         from pydantic import TypeAdapter
 
-        from sapwebguimcp.models import SessionId
+        from sapguimcp.models import SessionId
 
         adapter = TypeAdapter(SessionId)
         assert adapter.validate_python("s1") == "s1"
@@ -438,7 +438,7 @@ class TestSessionIdValidation:
         """Test that session IDs are normalized to lowercase."""
         from pydantic import TypeAdapter
 
-        from sapwebguimcp.models import SessionId
+        from sapguimcp.models import SessionId
 
         adapter = TypeAdapter(SessionId)
         assert adapter.validate_python("S1") == "s1"
@@ -448,7 +448,7 @@ class TestSessionIdValidation:
         """Test that invalid session IDs raise ValidationError."""
         from pydantic import TypeAdapter, ValidationError
 
-        from sapwebguimcp.models import SessionId
+        from sapguimcp.models import SessionId
 
         adapter = TypeAdapter(SessionId)
         with pytest.raises(ValidationError):
@@ -464,7 +464,7 @@ class TestSessionModels:
 
     def test_session_info_creation(self) -> None:
         """Test SessionInfo model creation."""
-        from sapwebguimcp.models import SessionInfo
+        from sapguimcp.models import SessionInfo
 
         info = SessionInfo(session_id="s1", tcode="VA01", title="Create Sales Order", is_primary=True)
         assert info.session_id == "s1"
@@ -477,7 +477,7 @@ class TestSessionModels:
 
     def test_session_info_with_system_info(self) -> None:
         """Test SessionInfo with system_name, client, user (#593)."""
-        from sapwebguimcp.models import SessionInfo
+        from sapguimcp.models import SessionInfo
 
         info = SessionInfo(
             session_id="s1",
@@ -494,7 +494,7 @@ class TestSessionModels:
 
     def test_session_list_result(self) -> None:
         """Test SessionListResult with multiple sessions."""
-        from sapwebguimcp.models import SessionInfo, SessionListResult
+        from sapguimcp.models import SessionInfo, SessionListResult
 
         result = SessionListResult(
             sessions=[
@@ -507,7 +507,7 @@ class TestSessionModels:
 
     def test_session_close_result(self) -> None:
         """Test SessionCloseResult model."""
-        from sapwebguimcp.models import SessionCloseResult
+        from sapguimcp.models import SessionCloseResult
 
         result = SessionCloseResult(session_id="s2", remaining_sessions=1)
         assert result.success is True

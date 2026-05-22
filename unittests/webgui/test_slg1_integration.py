@@ -8,8 +8,8 @@ works correctly end-to-end.
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import LoginResult
-from sapwebguimcp.models.slg1_models import SLG1LogListResult
+from sapguimcp.models import LoginResult
+from sapguimcp.models.slg1_models import SLG1LogListResult
 
 from .conftest import call_tool_typed
 

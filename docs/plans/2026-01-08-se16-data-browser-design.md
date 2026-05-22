@@ -111,15 +111,15 @@ Clients without support silently ignore these calls (no errors).
 
 ## Implementation Steps
 
-1. **Create models** (`src/sapwebguimcp/models/se16_models.py`)
+1. **Create models** (`src/sapguimcp/models/se16_models.py`)
     - SE16Row, SE16Result, SE16FileSummary
 
-2. **Create parsing logic** (`src/sapwebguimcp/parsers/se16_parser.py`)
+2. **Create parsing logic** (`src/sapguimcp/parsers/se16_parser.py`)
     - Parse column headers from grid header row
     - Parse data rows matching cells to columns
     - Handle empty cells
 
-3. **Create tool** (`src/sapwebguimcp/tools/se16_tools.py`)
+3. **Create tool** (`src/sapguimcp/tools/se16_tools.py`)
     - Navigate to SE16N
     - Set table name
     - Set filters if provided

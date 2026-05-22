@@ -190,7 +190,7 @@ When a desktop backend arrives, it gets its own snapshot type and parsers. The r
 ## Module Structure
 
 ```
-src/sapwebguimcp/
+src/sapguimcp/
 ├── backend/                    # NEW — abstraction layer
 │   ├── __init__.py             # exports get_backend, SapUiBackend, AriaSnapshot
 │   ├── types.py                # AriaSnapshot, other type aliases

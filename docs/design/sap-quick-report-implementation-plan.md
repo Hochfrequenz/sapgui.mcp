@@ -10,7 +10,7 @@
 
 **Spec:** `docs/design/sap-quick-report-design.md` (v2)
 
-**Repo:** `sapwebgui.mcp/` (cloned at `C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp`)
+**Repo:** `sapgui.mcp/` (cloned at `C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp`)
 
 ---
 
@@ -18,23 +18,23 @@
 
 | Action | File | Responsibility |
 |---|---|---|
-| Create | `src/sapwebguimcp/models/quick_report_models.py` | `ScreenClassification`, `QuickReportResult` |
-| Create | `src/sapwebguimcp/tools/quick_report_tools.py` | `classify_result_screen()`, `sap_quick_report` pipeline, `register_quick_report_tools()` |
+| Create | `src/sapguimcp/models/quick_report_models.py` | `ScreenClassification`, `QuickReportResult` |
+| Create | `src/sapguimcp/tools/quick_report_tools.py` | `classify_result_screen()`, `sap_quick_report` pipeline, `register_quick_report_tools()` |
 | Create | `unittests/test_quick_report_models.py` | Model validation tests |
 | Create | `unittests/test_quick_report_classifier.py` | Screen classifier unit tests |
 | Create | `unittests/test_quick_report_pipeline.py` | Pipeline + post_f8_keys unit tests |
-| Modify | `src/sapwebguimcp/models/__init__.py` | Export `ScreenClassification`, `QuickReportResult` |
-| Modify | `src/sapwebguimcp/tools/__init__.py` | Export `register_quick_report_tools` |
-| Modify | `src/sapwebguimcp/server.py` | Call `register_quick_report_tools(mcp)` |
+| Modify | `src/sapguimcp/models/__init__.py` | Export `ScreenClassification`, `QuickReportResult` |
+| Modify | `src/sapguimcp/tools/__init__.py` | Export `register_quick_report_tools` |
+| Modify | `src/sapguimcp/server.py` | Call `register_quick_report_tools(mcp)` |
 
 ---
 
 ## Task 1: Models — `ScreenClassification` + `QuickReportResult`
 
 **Files:**
-- Create: `src/sapwebguimcp/models/quick_report_models.py`
+- Create: `src/sapguimcp/models/quick_report_models.py`
 - Create: `unittests/test_quick_report_models.py`
-- Modify: `src/sapwebguimcp/models/__init__.py`
+- Modify: `src/sapguimcp/models/__init__.py`
 
 ### Step 1.1: Write model tests
 
@@ -48,7 +48,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from sapwebguimcp.models.quick_report_models import (
+from sapguimcp.models.quick_report_models import (
     QuickReportResult,
     ScreenClassification,
 )
@@ -155,12 +155,12 @@ class TestQuickReportResult:
 
 ### Step 1.2: Run tests — verify they fail
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py -v`
-- Expected: `ModuleNotFoundError: No module named 'sapwebguimcp.models.quick_report_models'`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_models.py -v`
+- Expected: `ModuleNotFoundError: No module named 'sapguimcp.models.quick_report_models'`
 
 ### Step 1.3: Implement models
 
-- [ ] Create `src/sapwebguimcp/models/quick_report_models.py`:
+- [ ] Create `src/sapguimcp/models/quick_report_models.py`:
 
 ```python
 """Models for sap_quick_report composite tool."""
@@ -169,8 +169,8 @@ from enum import StrEnum
 
 from pydantic import Field
 
-from sapwebguimcp.models.base import ToolResult
-from sapwebguimcp.models.sap_results import (
+from sapguimcp.models.base import ToolResult
+from sapguimcp.models.sap_results import (
     ScreenText,
     StatusBarType,
     TableData,
@@ -223,10 +223,10 @@ class QuickReportResult(ToolResult):
 
 ### Step 1.4: Export models from `models/__init__.py`
 
-- [ ] Add to `src/sapwebguimcp/models/__init__.py` imports:
+- [ ] Add to `src/sapguimcp/models/__init__.py` imports:
 
 ```python
-from sapwebguimcp.models.quick_report_models import (
+from sapguimcp.models.quick_report_models import (
     QuickReportResult,
     ScreenClassification,
 )
@@ -236,12 +236,12 @@ And add `QuickReportResult`, `ScreenClassification` to the `__all__` list (if on
 
 ### Step 1.5: Run tests — verify they pass
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py -v`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_models.py -v`
 - Expected: All tests PASS
 
 ### Step 1.6: Commit
 
-- [ ] `git add src/sapwebguimcp/models/quick_report_models.py src/sapwebguimcp/models/__init__.py unittests/test_quick_report_models.py && git commit -m "feat(quick-report): add ScreenClassification and QuickReportResult models"`
+- [ ] `git add src/sapguimcp/models/quick_report_models.py src/sapguimcp/models/__init__.py unittests/test_quick_report_models.py && git commit -m "feat(quick-report): add ScreenClassification and QuickReportResult models"`
 
 ---
 
@@ -249,7 +249,7 @@ And add `QuickReportResult`, `ScreenClassification` to the `__all__` list (if on
 
 **Files:**
 - Create: `unittests/test_quick_report_classifier.py`
-- Create: `src/sapwebguimcp/tools/quick_report_tools.py` (first function)
+- Create: `src/sapguimcp/tools/quick_report_tools.py` (first function)
 
 **Context:** The classifier examines the current screen after F8 and returns a `ScreenClassification`. It uses:
 - `backend.get_status_bar()` → `StatusBarInfo` (has `.type` and `.message`)
@@ -274,9 +274,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from sapwebguimcp.models import StatusBarInfo, ScreenText
-from sapwebguimcp.models.quick_report_models import ScreenClassification
-from sapwebguimcp.tools.quick_report_tools import classify_result_screen
+from sapguimcp.models import StatusBarInfo, ScreenText
+from sapguimcp.models.quick_report_models import ScreenClassification
+from sapguimcp.tools.quick_report_tools import classify_result_screen
 
 
 def _make_backend(
@@ -393,12 +393,12 @@ class TestClassifyResultScreen:
 
 ### Step 2.2: Run tests — verify they fail
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_classifier.py -v`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_classifier.py -v`
 - Expected: `ImportError: cannot import name 'classify_result_screen'`
 
 ### Step 2.3: Implement classifier
 
-- [ ] Create `src/sapwebguimcp/tools/quick_report_tools.py`:
+- [ ] Create `src/sapguimcp/tools/quick_report_tools.py`:
 
 ```python
 """sap_quick_report composite tool — pipeline, classifier, registration."""
@@ -409,14 +409,14 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
-from sapwebguimcp.models.quick_report_models import (
+from sapguimcp.models.quick_report_models import (
     QuickReportResult,
     ScreenClassification,
 )
-from sapwebguimcp.models.sap_results import StatusBarInfo
+from sapguimcp.models.sap_results import StatusBarInfo
 
 if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
+    from sapguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -464,12 +464,12 @@ async def classify_result_screen(
 
 ### Step 2.4: Run tests — verify they pass
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_classifier.py -v`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_classifier.py -v`
 - Expected: All tests PASS
 
 ### Step 2.5: Commit
 
-- [ ] `git add src/sapwebguimcp/tools/quick_report_tools.py unittests/test_quick_report_classifier.py && git commit -m "feat(quick-report): add classify_result_screen() with TDD tests"`
+- [ ] `git add src/sapguimcp/tools/quick_report_tools.py unittests/test_quick_report_classifier.py && git commit -m "feat(quick-report): add classify_result_screen() with TDD tests"`
 
 ---
 
@@ -477,7 +477,7 @@ async def classify_result_screen(
 
 **Files:**
 - Create: `unittests/test_quick_report_pipeline.py`
-- Modify: `src/sapwebguimcp/tools/quick_report_tools.py`
+- Modify: `src/sapguimcp/tools/quick_report_tools.py`
 
 **Context:** The pipeline function calls:
 1. `_is_desktop_backend(backend)` from `tools/_backend_utils.py`
@@ -507,7 +507,7 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 import pytest
 from pydantic import Field
 
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     KeyboardResult,
     ScreenText,
     StatusBarInfo,
@@ -515,12 +515,12 @@ from sapwebguimcp.models import (
     TableRow,
     TransactionResult,
 )
-from sapwebguimcp.models.quick_report_models import (
+from sapguimcp.models.quick_report_models import (
     QuickReportResult,
     ScreenClassification,
 )
-from sapwebguimcp.models.screen_state import ScreenStateDiff
-from sapwebguimcp.tools.quick_report_tools import _execute_quick_report
+from sapguimcp.models.screen_state import ScreenStateDiff
+from sapguimcp.tools.quick_report_tools import _execute_quick_report
 
 
 def _make_backend(
@@ -592,8 +592,8 @@ class TestQuickReportPipeline:
     async def test_happy_path_table(self) -> None:
         """TX → fill → F8 → TABLE with rows."""
         backend = _make_backend()
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff()
                 result = await _execute_quick_report(
                     backend,
@@ -609,7 +609,7 @@ class TestQuickReportPipeline:
     async def test_desktop_backend_rejected(self) -> None:
         """Desktop backend → immediate failure."""
         backend = _make_backend()
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=True):
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=True):
             result = await _execute_quick_report(backend, tcode="VA05")
         assert result.success is False
         assert "WebGUI" in result.error
@@ -617,7 +617,7 @@ class TestQuickReportPipeline:
     async def test_tx_not_found(self) -> None:
         """Transaction not found → failure."""
         backend = _make_backend(tx_success=False, tx_error="Transaction ZZZZZ does not exist")
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
             result = await _execute_quick_report(backend, tcode="ZZZZZ")
         assert result.success is False
         assert "ZZZZZ" in result.error or "does not exist" in result.error
@@ -629,8 +629,8 @@ class TestQuickReportPipeline:
             status_message="Keine Daten gefunden",
             snapshot="- document 'SAP'",
         )
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff()
                 result = await _execute_quick_report(backend, tcode="ME2M")
         assert result.success is True
@@ -644,8 +644,8 @@ class TestQuickReportPipeline:
             status_message="Werk XXXX existiert nicht",
             snapshot="- document 'SAP'",
         )
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff()
                 result = await _execute_quick_report(backend, tcode="ME2M")
         assert result.success is True
@@ -660,8 +660,8 @@ class TestQuickReportPipeline:
             snapshot="- document 'SAP'\n  - dialog 'Variantenauswahl'",
             screen_title="Variantenauswahl",
         )
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff()
                 result = await _execute_quick_report(backend, tcode="ZCUSTOM01")
         assert result.success is True
@@ -672,8 +672,8 @@ class TestQuickReportPipeline:
     async def test_field_not_found_continues(self) -> None:
         """Field not found → warning, but F8 still pressed."""
         backend = _make_backend()
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff(
                     warnings=["Label 'FakeField' not found on screen"]
                 )
@@ -707,8 +707,8 @@ class TestQuickReportPipeline:
         backend.press_key = track_press_key
         backend.wait_for_ready = track_wait
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff()
                 call_log.append("ensure_screen_state")
                 await _execute_quick_report(backend, tcode="VA05", fields={"X": "Y"})
@@ -757,8 +757,8 @@ class TestPostF8Keys:
 
         backend.get_status_bar = evolving_status_bar
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff()
                 result = await _execute_quick_report(
                     backend,
@@ -773,8 +773,8 @@ class TestPostF8Keys:
         """Only first 3 keys are executed, 4th produces warning."""
         backend = _make_backend()
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff()
                 result = await _execute_quick_report(
                     backend,
@@ -788,8 +788,8 @@ class TestPostF8Keys:
         """post_f8_keys=[] behaves like None."""
         backend = _make_backend()
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff()
                 result = await _execute_quick_report(
                     backend,
@@ -811,8 +811,8 @@ class TestPostF8Keys:
 
         backend.press_key = tracking_press_key
 
-        with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-            with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+        with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+            with patch("sapguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                 mock_ess.return_value = ScreenStateDiff()
                 result = await _execute_quick_report(
                     backend,
@@ -835,8 +835,8 @@ class TestPostF8Keys:
             output_path = f.name
 
         try:
-            with patch("sapwebguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
-                with patch("sapwebguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
+            with patch("sapguimcp.tools.quick_report_tools._is_desktop_backend", return_value=False):
+                with patch("sapguimcp.tools.quick_report_tools.ensure_screen_state", new_callable=AsyncMock) as mock_ess:
                     mock_ess.return_value = ScreenStateDiff()
                     result = await _execute_quick_report(
                         backend,
@@ -854,12 +854,12 @@ class TestPostF8Keys:
 
 ### Step 3.2: Run tests — verify they fail
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_pipeline.py -v`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_pipeline.py -v`
 - Expected: `ImportError: cannot import name '_execute_quick_report'`
 
 ### Step 3.3: Implement pipeline
 
-- [ ] Add to `src/sapwebguimcp/tools/quick_report_tools.py` (after the classifier):
+- [ ] Add to `src/sapguimcp/tools/quick_report_tools.py` (after the classifier):
 
 ```python
 from pathlib import Path
@@ -867,9 +867,9 @@ from pathlib import Path
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from sapwebguimcp.models.screen_state import SelectionScreenState
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
-from sapwebguimcp.tools.screen_state_helpers import ensure_screen_state
+from sapguimcp.models.screen_state import SelectionScreenState
+from sapguimcp.tools._backend_utils import _is_desktop_backend
+from sapguimcp.tools.screen_state_helpers import ensure_screen_state
 
 _MAX_POST_F8_KEYS = 3
 
@@ -1002,25 +1002,25 @@ async def _execute_quick_report(
 
 ### Step 3.4: Run tests — verify they pass
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_pipeline.py -v`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_pipeline.py -v`
 - Expected: All tests PASS
 
 ### Step 3.5: Commit
 
-- [ ] `git add src/sapwebguimcp/tools/quick_report_tools.py unittests/test_quick_report_pipeline.py && git commit -m "feat(quick-report): add sap_quick_report pipeline with post_f8_keys support"`
+- [ ] `git add src/sapguimcp/tools/quick_report_tools.py unittests/test_quick_report_pipeline.py && git commit -m "feat(quick-report): add sap_quick_report pipeline with post_f8_keys support"`
 
 ---
 
 ## Task 4: Tool Registration + Wiring
 
 **Files:**
-- Modify: `src/sapwebguimcp/tools/quick_report_tools.py` (add `register_quick_report_tools`)
-- Modify: `src/sapwebguimcp/tools/__init__.py`
-- Modify: `src/sapwebguimcp/server.py`
+- Modify: `src/sapguimcp/tools/quick_report_tools.py` (add `register_quick_report_tools`)
+- Modify: `src/sapguimcp/tools/__init__.py`
+- Modify: `src/sapguimcp/server.py`
 
 ### Step 4.1: Add `register_quick_report_tools` to `quick_report_tools.py`
 
-- [ ] Add at the end of `src/sapwebguimcp/tools/quick_report_tools.py`:
+- [ ] Add at the end of `src/sapguimcp/tools/quick_report_tools.py`:
 
 ```python
 def register_quick_report_tools(mcp: FastMCP) -> None:
@@ -1063,7 +1063,7 @@ def register_quick_report_tools(mcp: FastMCP) -> None:
         agent_id: str | None = None,
     ) -> QuickReportResult:
         """Execute a transaction, fill selection screen, press F8, return result."""
-        from sapwebguimcp.backend.manager import get_backend  # pylint: disable=import-outside-toplevel
+        from sapguimcp.backend.manager import get_backend  # pylint: disable=import-outside-toplevel
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_quick_report")
@@ -1085,19 +1085,19 @@ def register_quick_report_tools(mcp: FastMCP) -> None:
         )
 ```
 
-**Note:** Uses `get_backend` from `sapwebguimcp.backend.manager` — same pattern as `register_sm37_tools` in `sm37_tools.py`.
+**Note:** Uses `get_backend` from `sapguimcp.backend.manager` — same pattern as `register_sm37_tools` in `sm37_tools.py`.
 
 ### Step 4.2: Export from `tools/__init__.py`
 
-- [ ] Add to `src/sapwebguimcp/tools/__init__.py`:
+- [ ] Add to `src/sapguimcp/tools/__init__.py`:
 
 ```python
-from sapwebguimcp.tools.quick_report_tools import register_quick_report_tools
+from sapguimcp.tools.quick_report_tools import register_quick_report_tools
 ```
 
 ### Step 4.3: Register in `server.py`
 
-- [ ] In `src/sapwebguimcp/server.py`, add `register_quick_report_tools(mcp)` alongside the other `register_*_tools` calls (near line 195, after `register_sm37_tools(mcp)`):
+- [ ] In `src/sapguimcp/server.py`, add `register_quick_report_tools(mcp)` alongside the other `register_*_tools` calls (near line 195, after `register_sm37_tools(mcp)`):
 
 ```python
 register_quick_report_tools(mcp)
@@ -1105,22 +1105,22 @@ register_quick_report_tools(mcp)
 
 ### Step 4.4: Verify server starts
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -c "from sapwebguimcp.tools import register_quick_report_tools; print('OK')"`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -c "from sapguimcp.tools import register_quick_report_tools; print('OK')"`
 - Expected: `OK`
 
 ### Step 4.5: Run all quick_report tests
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/test_quick_report_models.py unittests/test_quick_report_classifier.py unittests/test_quick_report_pipeline.py -v`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_models.py unittests/test_quick_report_classifier.py unittests/test_quick_report_pipeline.py -v`
 - Expected: All tests PASS
 
 ### Step 4.6: Run full test suite to check for regressions
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/ -v --ignore=unittests/webgui --ignore=unittests/desktop -x`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/ -v --ignore=unittests/webgui --ignore=unittests/desktop -x`
 - Expected: No regressions. If existing tests fail, investigate — do NOT modify existing tests.
 
 ### Step 4.7: Commit
 
-- [ ] `git add src/sapwebguimcp/tools/quick_report_tools.py src/sapwebguimcp/tools/__init__.py src/sapwebguimcp/server.py && git commit -m "feat(quick-report): register sap_quick_report tool in MCP server"`
+- [ ] `git add src/sapguimcp/tools/quick_report_tools.py src/sapguimcp/tools/__init__.py src/sapguimcp/server.py && git commit -m "feat(quick-report): register sap_quick_report tool in MCP server"`
 
 ---
 
@@ -1128,18 +1128,18 @@ register_quick_report_tools(mcp)
 
 ### Step 5.1: Verify all exports
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -c "from sapwebguimcp.models import QuickReportResult, ScreenClassification; print('Models OK')"`
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -c "from sapwebguimcp.tools import register_quick_report_tools; print('Tools OK')"`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -c "from sapguimcp.models import QuickReportResult, ScreenClassification; print('Models OK')"`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -c "from sapguimcp.tools import register_quick_report_tools; print('Tools OK')"`
 - Expected: Both print OK
 
 ### Step 5.2: Run full test suite
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pytest unittests/ -v --ignore=unittests/webgui --ignore=unittests/desktop -x`
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/ -v --ignore=unittests/webgui --ignore=unittests/desktop -x`
 - Expected: All tests PASS, no regressions
 
 ### Step 5.3: Verify linting (if configured)
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapwebgui.mcp && python -m pylint src/sapwebguimcp/models/quick_report_models.py src/sapwebguimcp/tools/quick_report_tools.py --disable=all --enable=E` (errors only)
+- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pylint src/sapguimcp/models/quick_report_models.py src/sapguimcp/tools/quick_report_tools.py --disable=all --enable=E` (errors only)
 - Expected: No errors
 
 ### Step 5.4: Final commit (if any cleanup needed)
@@ -1152,7 +1152,7 @@ register_quick_report_tools(mcp)
 
 ### Verified API names (confirmed against codebase)
 
-- **Backend resolution:** `from sapwebguimcp.backend.manager import get_backend` — takes `session`, `agent_id`, `tool_name`; wrap in `try/except ValueError`
+- **Backend resolution:** `from sapguimcp.backend.manager import get_backend` — takes `session`, `agent_id`, `tool_name`; wrap in `try/except ValueError`
 - **Status bar:** `backend.get_status_bar()` → `StatusBarInfo` (not `read_status_bar`)
 - **Page title:** `backend.get_page_title()` → `str`
 - **`max_rows`:** `Field(default=30, ge=1)` on tool function signature

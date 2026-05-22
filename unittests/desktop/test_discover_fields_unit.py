@@ -6,7 +6,7 @@ using ElementInfo fixtures that represent SE18/SE19 screen structures.
 
 from sapsucker.models import ElementInfo
 
-from sapwebguimcp.backend.desktop import _discover_fields_from_tree
+from sapguimcp.backend.desktop import _discover_fields_from_tree
 
 
 def _make_elem(

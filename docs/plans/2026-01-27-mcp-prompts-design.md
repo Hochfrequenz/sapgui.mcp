@@ -2,7 +2,7 @@
 
 ## Overview
 
-Add MCP prompts to the sapwebguimcp server. Prompts are reusable recipes that guide subagents through tested, step-by-step SAP workflows.
+Add MCP prompts to the sapguimcp server. Prompts are reusable recipes that guide subagents through tested, step-by-step SAP workflows.
 
 ## Use Case
 
@@ -15,7 +15,7 @@ Add MCP prompts to the sapwebguimcp server. Prompts are reusable recipes that gu
 | Decision          | Choice                          | Rationale                                  |
 | ----------------- | ------------------------------- | ------------------------------------------ |
 | Storage format    | Markdown with YAML frontmatter  | Easy to write/maintain, version-controlled |
-| Location          | `src/sapwebguimcp/prompts/*.md` | Alongside tools/, models/, skills/         |
+| Location          | `src/sapguimcp/prompts/*.md` | Alongside tools/, models/, skills/         |
 | Registration      | Auto-discovery at startup       | No manual decorator per prompt             |
 | Prompt name       | Derived from filename           | Keeps name and file in sync                |
 | Required metadata | `description` only              | KISS, YAGNI                                |
@@ -24,7 +24,7 @@ Add MCP prompts to the sapwebguimcp server. Prompts are reusable recipes that gu
 ## Directory Structure
 
 ```
-src/sapwebguimcp/prompts/
+src/sapguimcp/prompts/
 ├── __init__.py           # Auto-discovery + registration logic
 ├── README.md             # Contributor documentation
 └── *.md                  # Prompt files (auto-registered)
@@ -44,7 +44,7 @@ Step-by-step instructions...
 
 ## Auto-Discovery Implementation
 
-`src/sapwebguimcp/prompts/__init__.py`:
+`src/sapguimcp/prompts/__init__.py`:
 
 - Scan `prompts/` directory for `*.md` files (excluding `README.md`)
 - Parse YAML frontmatter to extract `description`

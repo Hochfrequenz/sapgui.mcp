@@ -4,8 +4,8 @@ import asyncio
 
 from fastmcp import FastMCP
 
-from sapwebguimcp.models.config import get_settings
-from sapwebguimcp.server import mcp
+from sapguimcp.models.config import get_settings
+from sapguimcp.server import mcp
 
 _backend_type = get_settings().backend_type
 

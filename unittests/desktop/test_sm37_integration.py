@@ -6,8 +6,8 @@ from datetime import date
 
 import pytest
 
-from sapwebguimcp.models.sm37_models import SM37JobListResult
-from sapwebguimcp.tools.sm37_tools import _execute_sm37_lookup, _execute_sm37_lookup_desktop
+from sapguimcp.models.sm37_models import SM37JobListResult
+from sapguimcp.tools.sm37_tools import _execute_sm37_lookup, _execute_sm37_lookup_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

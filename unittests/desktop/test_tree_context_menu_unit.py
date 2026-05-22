@@ -17,7 +17,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sapwebguimcp.tools.tree_tools import _invoke_tree_context_menu
+from sapguimcp.tools.tree_tools import _invoke_tree_context_menu
 
 
 def _mock_shell(items: list[tuple[str, str]]) -> tuple[MagicMock, MagicMock]:
@@ -207,7 +207,7 @@ def test_null_current_context_menu_raises_helpful_error():
 
 def test_tree_context_menu_item_is_a_plain_payload():
     """Regression: TreeContextMenuItem must NOT inherit ToolResult's envelope fields."""
-    from sapwebguimcp.backend.desktop.models.com_results import TreeContextMenuItem
+    from sapguimcp.backend.desktop.models.com_results import TreeContextMenuItem
 
     item = TreeContextMenuItem(position=0, text="A", fcode="F_1")
     # These are ToolResult-only fields; they MUST NOT appear on a payload item.

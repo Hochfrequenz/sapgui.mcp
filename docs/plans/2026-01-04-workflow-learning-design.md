@@ -113,7 +113,7 @@ async def workflow_run(
 **Zwei Quellen:**
 
 ```
-sapwebguimcp/
+sapguimcp/
 ├── workflows/              <- Bundled (im Package, von Devs reviewed)
 │   ├── bp-creation.md
 │   └── material-master.md

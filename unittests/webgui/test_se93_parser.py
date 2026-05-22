@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.backend.webgui.parsers.se93_parser import parse_se93_snapshot
-from sapwebguimcp.models import SE93Entry, SE93Error
+from sapguimcp.backend.webgui.parsers.se93_parser import parse_se93_snapshot
+from sapguimcp.models import SE93Entry, SE93Error
 
 # Path to captured YAML snapshots
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se93_exploration"

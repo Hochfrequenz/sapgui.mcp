@@ -14,8 +14,8 @@
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/abapgit_models.py`
-- Modify: `src/sapwebguimcp/models/__init__.py`
+- Modify: `src/sapguimcp/models/abapgit_models.py`
+- Modify: `src/sapguimcp/models/__init__.py`
 - Test: `unittests/test_abapgit_tools.py`
 
 **Step 1: Write the failing test**
@@ -25,7 +25,7 @@ Add to `unittests/test_abapgit_tools.py` in the unit tests section:
 ```python
 def test_abapgit_repo_info_model() -> None:
     """Test that AbapGitRepoInfo model validates correctly."""
-    from sapwebguimcp.models.abapgit_models import AbapGitRepoInfo
+    from sapguimcp.models.abapgit_models import AbapGitRepoInfo
 
     repo = AbapGitRepoInfo(
         name="Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
@@ -45,7 +45,7 @@ def test_abapgit_repo_info_model() -> None:
 
 def test_abapgit_list_result_model() -> None:
     """Test that AbapGitListResult model validates correctly."""
-    from sapwebguimcp.models.abapgit_models import AbapGitListResult, AbapGitRepoInfo
+    from sapguimcp.models.abapgit_models import AbapGitListResult, AbapGitRepoInfo
 
     result = AbapGitListResult(
         success=True,
@@ -65,7 +65,7 @@ def test_abapgit_list_result_model() -> None:
 
 def test_abapgit_list_result_empty() -> None:
     """Test empty list result."""
-    from sapwebguimcp.models.abapgit_models import AbapGitListResult
+    from sapguimcp.models.abapgit_models import AbapGitListResult
 
     result = AbapGitListResult(success=True, repos=[])
     assert result.success
@@ -79,10 +79,10 @@ Expected: FAIL with `ImportError: cannot import name 'AbapGitRepoInfo'`
 
 **Step 3: Write minimal implementation**
 
-Add to `src/sapwebguimcp/models/abapgit_models.py`:
+Add to `src/sapguimcp/models/abapgit_models.py`:
 
 ```python
-from sapwebguimcp.models.base import ToolResult
+from sapguimcp.models.base import ToolResult
 
 
 class AbapGitRepoInfo(BaseModel):
@@ -105,7 +105,7 @@ class AbapGitListResult(ToolResult):
 
 Add the import of `ToolResult` at the top of `abapgit_models.py` (already has `BaseModel` from pydantic).
 
-Update `src/sapwebguimcp/models/__init__.py` to export the new types:
+Update `src/sapguimcp/models/__init__.py` to export the new types:
 
 - Add `AbapGitRepoInfo` and `AbapGitListResult` to the import from `abapgit_models` and `__all__`.
 
@@ -117,7 +117,7 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/abapgit_models.py src/sapwebguimcp/models/__init__.py unittests/test_abapgit_tools.py
+git add src/sapguimcp/models/abapgit_models.py src/sapguimcp/models/__init__.py unittests/test_abapgit_tools.py
 git commit -m "feat: add AbapGitRepoInfo and AbapGitListResult models"
 ```
 
@@ -127,7 +127,7 @@ git commit -m "feat: add AbapGitRepoInfo and AbapGitListResult models"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/abapgit_tools.py`
+- Modify: `src/sapguimcp/tools/abapgit_tools.py`
 - Test: `unittests/test_abapgit_tools.py`
 
 **Step 1: Write the failing test**
@@ -137,7 +137,7 @@ Add to `unittests/test_abapgit_tools.py` in the unit tests section:
 ```python
 def test_parse_repo_list_output() -> None:
     """Test parsing pipe-delimited WRITE output from Z_ABAPGIT_PULL LIST mode."""
-    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+    from sapguimcp.tools.abapgit_tools import parse_repo_list_output
 
     raw_output = (
         "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY|https://github.com/Hochfrequenz/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
@@ -159,7 +159,7 @@ def test_parse_repo_list_output() -> None:
 
 def test_parse_repo_list_output_with_offline() -> None:
     """Test parsing a repo line with offline flag set."""
-    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+    from sapguimcp.tools.abapgit_tools import parse_repo_list_output
 
     raw_output = "Z_OFFLINE_REPO|file:///path|$Z_OFFLINE|refs/heads/main|||X\n"
     repos = parse_repo_list_output(raw_output)
@@ -172,7 +172,7 @@ def test_parse_repo_list_output_with_offline() -> None:
 
 def test_parse_repo_list_output_empty() -> None:
     """Test parsing empty output."""
-    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+    from sapguimcp.tools.abapgit_tools import parse_repo_list_output
 
     assert parse_repo_list_output("") == []
     assert parse_repo_list_output("   \n  \n") == []
@@ -180,7 +180,7 @@ def test_parse_repo_list_output_empty() -> None:
 
 def test_parse_repo_list_output_skips_garbage() -> None:
     """Test that non-repo lines (SAP UI text, headers) are skipped."""
-    from sapwebguimcp.tools.abapgit_tools import parse_repo_list_output
+    from sapguimcp.tools.abapgit_tools import parse_repo_list_output
 
     raw_output = (
         "Some SAP header text\n"
@@ -199,10 +199,10 @@ Expected: FAIL with `ImportError: cannot import name 'parse_repo_list_output'`
 
 **Step 3: Write minimal implementation**
 
-Add to `src/sapwebguimcp/tools/abapgit_tools.py`:
+Add to `src/sapguimcp/tools/abapgit_tools.py`:
 
 ```python
-from sapwebguimcp.models.abapgit_models import AbapGitRepoInfo
+from sapguimcp.models.abapgit_models import AbapGitRepoInfo
 
 def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
     """Parse pipe-delimited WRITE output from Z_ABAPGIT_PULL LIST mode.
@@ -247,7 +247,7 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/abapgit_tools.py unittests/test_abapgit_tools.py
+git add src/sapguimcp/tools/abapgit_tools.py unittests/test_abapgit_tools.py
 git commit -m "feat: add pipe-delimited repo list parser"
 ```
 
@@ -257,14 +257,14 @@ git commit -m "feat: add pipe-delimited repo list parser"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/abapgit_tools.py`
+- Modify: `src/sapguimcp/tools/abapgit_tools.py`
 
 **Step 1: Add the list implementation function**
 
-Add to `src/sapwebguimcp/tools/abapgit_tools.py`, after the `_abapgit_pull_via_api` function:
+Add to `src/sapguimcp/tools/abapgit_tools.py`, after the `_abapgit_pull_via_api` function:
 
 ```python
-from sapwebguimcp.models.abapgit_models import AbapGitListResult
+from sapguimcp.models.abapgit_models import AbapGitListResult
 
 async def _abapgit_list_repos() -> AbapGitListResult:
     """List all registered abapGit repositories via Z_ABAPGIT_PULL P_ACTION=LIST."""
@@ -373,7 +373,7 @@ In `register_abapgit_tools()`, add before the existing `sap_abapgit_pull` regist
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/abapgit_tools.py
+git add src/sapguimcp/tools/abapgit_tools.py
 git commit -m "feat: add sap_abapgit_list_repos MCP tool"
 ```
 
@@ -517,7 +517,7 @@ async def test_abapgit_list_repos(sap_mcp_client: ClientSession) -> None:
     Requires Z_ABAPGIT_PULL to be deployed with LIST support.
     Verifies that at least the known test repos are returned.
     """
-    from sapwebguimcp.models.abapgit_models import AbapGitListResult
+    from sapguimcp.models.abapgit_models import AbapGitListResult
 
     # Login first
     login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)

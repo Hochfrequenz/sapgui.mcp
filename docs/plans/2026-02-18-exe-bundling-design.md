@@ -10,7 +10,7 @@ Bundle the MCP server as a single Windows `.exe` using PyInstaller. The exe conn
 
 ## User Experience (Target)
 
-1. Download `sapwebgui_mcp_windows.exe` from GitHub Releases
+1. Download `sapgui_mcp_windows.exe` from GitHub Releases
 2. Start Chrome: `chrome.exe --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug"`
 3. Add to Claude config:
 
@@ -18,7 +18,7 @@ Bundle the MCP server as a single Windows `.exe` using PyInstaller. The exe conn
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/tools/sapwebgui_mcp_windows.exe",
+            "command": "C:/tools/sapgui_mcp_windows.exe",
             "env": {
                 "SAP_URL": "https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "SAP_USER": "your_username",
@@ -57,7 +57,7 @@ This is a warning, not a fatal error -- the user might start Chrome after the se
 Follows the existing Hochfrequenz pattern (lpex2csv, maus):
 
 - `pyinstaller` added as optional dependency under `[project.optional-dependencies] build_executable`
-- `tox -e build_executable` runs `pyinstaller --onefile --name sapwebgui_mcp_windows src/sapwebguimcp/server.py`
+- `tox -e build_executable` runs `pyinstaller --onefile --name sapgui_mcp_windows src/sapguimcp/server.py`
 - CI workflow builds the exe on `windows-latest` and uploads to GitHub Releases
 
 ### CI smoke test
@@ -98,7 +98,7 @@ deps =
     -r requirements.txt
     .[build_executable]
 commands =
-    pyinstaller --onefile --name sapwebgui_mcp_windows src/sapwebguimcp/server.py
+    pyinstaller --onefile --name sapgui_mcp_windows src/sapguimcp/server.py
 ```
 
 ### server.py
@@ -141,12 +141,12 @@ build_standalone_executable:
         - name: Smoke Test
           run: |
               # send MCP initialize request and verify response
-              python unittests/smoke_test_exe.py dist/sapwebgui_mcp_windows.exe
+              python unittests/smoke_test_exe.py dist/sapgui_mcp_windows.exe
         - name: Upload to Release
           if: github.event_name == 'release'
           uses: softprops/action-gh-release@v2
           with:
-              files: dist/sapwebgui_mcp_windows.exe
+              files: dist/sapgui_mcp_windows.exe
 ```
 
 ### smoke_test_exe.py (new)

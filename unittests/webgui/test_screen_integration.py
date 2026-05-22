@@ -3,7 +3,7 @@
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     LoginResult,
     ScreenInfo,
     ScreenText,

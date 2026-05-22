@@ -15,7 +15,7 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 class TestDesktopBackendType:
     def test_backend_type_is_desktop(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         backend = DesktopBackend.__new__(DesktopBackend)
         assert backend.backend_type == "desktop"
@@ -24,14 +24,14 @@ class TestDesktopBackendType:
 class TestDesktopBackendLogin:
     @pytest.mark.anyio
     async def test_login_calls_login_helper(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
 
         async def mock_run(fn):
             return fn()
 
-        with patch("sapwebguimcp.backend.desktop._sapsucker_login", return_value=session):
+        with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=session):
             backend = DesktopBackend(com_thread=MagicMock())
             backend.com.run = mock_run
             result = await backend.login("ignored", "user", "pass", "100", "EN", connection_name="TEST_CONN")
@@ -42,7 +42,7 @@ class TestDesktopBackendLogin:
 class TestDesktopBackendEnterTransaction:
     @pytest.mark.anyio
     async def test_enter_transaction(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         backend = DesktopBackend.__new__(DesktopBackend)
@@ -62,7 +62,7 @@ class TestDesktopBackendEnterTransaction:
     @pytest.mark.anyio
     async def test_enter_transaction_pure_navigation_slash_n(self):
         """GH-555: /n (reset to Easy Access) must not fail TCode validation."""
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         backend = DesktopBackend.__new__(DesktopBackend)
@@ -81,7 +81,7 @@ class TestDesktopBackendEnterTransaction:
     @pytest.mark.anyio
     async def test_enter_transaction_slash_n_with_tcode(self):
         """/nSE24 should strip prefix and use SE24 as tcode."""
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         backend = DesktopBackend.__new__(DesktopBackend)
@@ -101,7 +101,7 @@ class TestDesktopBackendEnterTransaction:
 class TestDesktopBackendSessionStatus:
     @pytest.mark.anyio
     async def test_get_session_status_active(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         backend = DesktopBackend.__new__(DesktopBackend)
@@ -121,7 +121,7 @@ class TestDesktopBackendSessionStatus:
 class TestDesktopBackendPressKey:
     @pytest.mark.anyio
     async def test_press_enter(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         wnd = session.find_by_id("wnd[0]")
@@ -142,7 +142,7 @@ class TestDesktopBackendPressKey:
 
     @pytest.mark.anyio
     async def test_press_f5(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         wnd = session.find_by_id("wnd[0]")
@@ -162,7 +162,7 @@ class TestDesktopBackendPressKey:
 
 def _make_backend_with_finder(session, finder_patch_target, finder_return):
     """Helper to create a backend with a mocked element finder function."""
-    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapguimcp.backend.desktop import DesktopBackend
 
     backend = DesktopBackend.__new__(DesktopBackend)
     backend._session = session
@@ -178,7 +178,7 @@ def _make_backend_with_finder(session, finder_patch_target, finder_return):
 class TestDesktopBackendFillField:
     @pytest.mark.anyio
     async def test_fill_field_sets_text(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         field_mock = MagicMock()
         field_mock.com = field_mock  # unwrap returns self
@@ -194,9 +194,9 @@ class TestDesktopBackendFillField:
         backend.com = MagicMock()
         backend.com.run = mock_run
 
-        with patch("sapwebguimcp.backend.desktop._dump_flat_tree", return_value=[]):
+        with patch("sapguimcp.backend.desktop._dump_flat_tree", return_value=[]):
             with patch(
-                "sapwebguimcp.backend.desktop.find_field_by_label",
+                "sapguimcp.backend.desktop.find_field_by_label",
                 return_value=field_mock,
             ):
                 await backend.fill_field("Material", "123")
@@ -204,7 +204,7 @@ class TestDesktopBackendFillField:
 
     @pytest.mark.anyio
     async def test_fill_field_raises_when_not_found(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         backend = DesktopBackend.__new__(DesktopBackend)
@@ -216,9 +216,9 @@ class TestDesktopBackendFillField:
         backend.com = MagicMock()
         backend.com.run = mock_run
 
-        with patch("sapwebguimcp.backend.desktop._dump_flat_tree", return_value=[]):
+        with patch("sapguimcp.backend.desktop._dump_flat_tree", return_value=[]):
             with patch(
-                "sapwebguimcp.backend.desktop.find_field_by_label",
+                "sapguimcp.backend.desktop.find_field_by_label",
                 return_value=None,
             ):
                 with pytest.raises(ValueError, match="Field not found"):
@@ -228,7 +228,7 @@ class TestDesktopBackendFillField:
 class TestDesktopBackendClickButton:
     @pytest.mark.anyio
     async def test_click_button_calls_press(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         btn_mock = MagicMock()
         session = make_mock_session()
@@ -243,7 +243,7 @@ class TestDesktopBackendClickButton:
         backend.com.run = mock_run
 
         with patch(
-            "sapwebguimcp.backend.desktop.find_button_by_label",
+            "sapguimcp.backend.desktop.find_button_by_label",
             return_value=btn_mock,
         ):
             await backend.click_button("Execute")
@@ -251,7 +251,7 @@ class TestDesktopBackendClickButton:
 
     @pytest.mark.anyio
     async def test_click_button_raises_when_not_found(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         backend = DesktopBackend.__new__(DesktopBackend)
@@ -264,7 +264,7 @@ class TestDesktopBackendClickButton:
         backend.com.run = mock_run
 
         with patch(
-            "sapwebguimcp.backend.desktop.find_button_by_label",
+            "sapguimcp.backend.desktop.find_button_by_label",
             return_value=None,
         ):
             with pytest.raises(ValueError, match="Button not found"):
@@ -274,7 +274,7 @@ class TestDesktopBackendClickButton:
 class TestDesktopBackendClickTab:
     @pytest.mark.anyio
     async def test_click_tab_calls_select(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         tab_mock = MagicMock()
         session = make_mock_session()
@@ -289,7 +289,7 @@ class TestDesktopBackendClickTab:
         backend.com.run = mock_run
 
         with patch(
-            "sapwebguimcp.backend.desktop.find_tab_by_label",
+            "sapguimcp.backend.desktop.find_tab_by_label",
             return_value=tab_mock,
         ):
             await backend.click_tab("Address")
@@ -299,7 +299,7 @@ class TestDesktopBackendClickTab:
 class TestDesktopBackendSetCheckbox:
     @pytest.mark.anyio
     async def test_set_checkbox_true(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         chk_mock = MagicMock()
         session = make_mock_session()
@@ -314,7 +314,7 @@ class TestDesktopBackendSetCheckbox:
         backend.com.run = mock_run
 
         with patch(
-            "sapwebguimcp.backend.desktop.find_checkbox_by_label",
+            "sapguimcp.backend.desktop.find_checkbox_by_label",
             return_value=chk_mock,
         ):
             await backend.set_checkbox("Active", True)
@@ -324,7 +324,7 @@ class TestDesktopBackendSetCheckbox:
 class TestDesktopBackendSetRadioButton:
     @pytest.mark.anyio
     async def test_set_radio_button(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         rad_mock = MagicMock()
         session = make_mock_session()
@@ -339,7 +339,7 @@ class TestDesktopBackendSetRadioButton:
         backend.com.run = mock_run
 
         with patch(
-            "sapwebguimcp.backend.desktop.find_radio_by_label",
+            "sapguimcp.backend.desktop.find_radio_by_label",
             return_value=rad_mock,
         ):
             await backend.set_radio_button("Option A")
@@ -349,7 +349,7 @@ class TestDesktopBackendSetRadioButton:
 class TestDesktopBackendFillForm:
     @pytest.mark.anyio
     async def test_fill_form_fills_fields(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         field1 = MagicMock()
         field1.com = field1
@@ -371,9 +371,9 @@ class TestDesktopBackendFillForm:
         backend.com = MagicMock()
         backend.com.run = mock_run
 
-        with patch("sapwebguimcp.backend.desktop._dump_flat_tree", return_value=[]):
+        with patch("sapguimcp.backend.desktop._dump_flat_tree", return_value=[]):
             with patch(
-                "sapwebguimcp.backend.desktop.find_field_by_label",
+                "sapguimcp.backend.desktop.find_field_by_label",
                 side_effect=mock_find,
             ):
                 result = await backend.fill_form({"Material": "123", "Plant": "1000"})
@@ -384,7 +384,7 @@ class TestDesktopBackendFillForm:
 
     @pytest.mark.anyio
     async def test_fill_form_reports_not_found(self):
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         backend = DesktopBackend.__new__(DesktopBackend)
@@ -396,9 +396,9 @@ class TestDesktopBackendFillForm:
         backend.com = MagicMock()
         backend.com.run = mock_run
 
-        with patch("sapwebguimcp.backend.desktop._dump_flat_tree", return_value=[]):
+        with patch("sapguimcp.backend.desktop._dump_flat_tree", return_value=[]):
             with patch(
-                "sapwebguimcp.backend.desktop.find_field_by_label",
+                "sapguimcp.backend.desktop.find_field_by_label",
                 return_value=None,
             ):
                 result = await backend.fill_form({"Missing": "val"})
@@ -411,7 +411,7 @@ class TestDesktopBackendFillForm:
 
 def _make_backend(session):
     """Create a DesktopBackend wired to a mock session with async mock_run."""
-    from sapwebguimcp.backend.desktop import DesktopBackend
+    from sapguimcp.backend.desktop import DesktopBackend
 
     backend = DesktopBackend.__new__(DesktopBackend)
     backend._session = session
@@ -586,7 +586,7 @@ class TestDesktopBackendReadTable:
         """column_order returns a Python list from sapsucker, not a COM collection."""
         from sapsucker.components.grid import GuiGridView
 
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         backend = DesktopBackend.__new__(DesktopBackend)
@@ -634,7 +634,7 @@ class TestDesktopBackendReadTable:
         """column_order as COM collection (with .Count attribute) still works."""
         from sapsucker.components.grid import GuiGridView
 
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
         backend = DesktopBackend.__new__(DesktopBackend)

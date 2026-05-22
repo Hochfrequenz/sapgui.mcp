@@ -167,7 +167,7 @@ block the COM thread until the MCP transport times out. This is accepted for v1.
 
 ### Return model — `SapRunScriptResult`
 
-`SapRunScriptResult` inherits **`ToolResult`** from `sapwebguimcp.models.base`. The inherited
+`SapRunScriptResult` inherits **`ToolResult`** from `sapguimcp.models.base`. The inherited
 `popup` and `active_window` fields are never populated and serialise to nothing (FastMCP omits
 `None` fields). Inheriting `ToolResult` reuses its model validator and `failure()` classmethod
 without duplication.
@@ -228,11 +228,11 @@ summary.
 
 | action | path |
 |---|---|
-| new | `src/sapwebguimcp/backend/desktop/models/script_results.py` — `SapRunScriptResult` |
-| new | `src/sapwebguimcp/tools/script_tools.py` — tool + sandbox + `SAFE_BUILTINS` |
+| new | `src/sapguimcp/backend/desktop/models/script_results.py` — `SapRunScriptResult` |
+| new | `src/sapguimcp/tools/script_tools.py` — tool + sandbox + `SAFE_BUILTINS` |
 | new | `unittests/desktop/test_script_tools_unit.py` — unit tests (mock session) |
-| edit | `src/sapwebguimcp/tools/__init__.py` — export `register_script_tools` |
-| edit | `src/sapwebguimcp/server.py` — register behind desktop gate |
+| edit | `src/sapguimcp/tools/__init__.py` — export `register_script_tools` |
+| edit | `src/sapguimcp/server.py` — register behind desktop gate |
 
 Desktop-only models live in `backend/desktop/models/` (alongside `com_results.py`,
 `TreeContextMenuResult`, etc.). A separate `script_results.py` is created rather than appending to

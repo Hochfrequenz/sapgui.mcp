@@ -139,7 +139,7 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     LoginResult,
     SE16FileSummary,
     SE16Result,
@@ -604,7 +604,7 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     FillFormResult,
     HtmlResult,
     KeyboardResult,
@@ -1022,7 +1022,7 @@ This file is large (~3,271 lines, ~342 call_tool invocations). The migration fol
 Add model imports at the top after existing imports:
 
 ```python
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     CapabilitiesResult,
     ClosePopupResult,
     DiscoveredButtons,

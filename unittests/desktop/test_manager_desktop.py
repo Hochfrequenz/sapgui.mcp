@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-from sapwebguimcp.backend.manager import BackendManager
+from sapguimcp.backend.manager import BackendManager
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="desktop backend requires Windows")

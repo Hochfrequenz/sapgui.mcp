@@ -17,7 +17,7 @@ load_dotenv()
 def _has_sap_config() -> bool:
     """Check if a valid sap-mcp-config systems.json is available."""
     try:
-        from sapwebguimcp.models.config import get_sap_config
+        from sapguimcp.models.config import get_sap_config
 
         cfg = get_sap_config()
         default = cfg.get_default()
@@ -46,13 +46,13 @@ def has_sap_webgui_creds() -> bool:
 @pytest.fixture(autouse=True)
 def reset_settings() -> Generator[None, None, None]:
     """Reset global settings before each test."""
-    import sapwebguimcp.models.config
+    import sapguimcp.models.config
 
-    sapwebguimcp.models.config._settings = None
-    sapwebguimcp.models.config._sap_config = None
+    sapguimcp.models.config._settings = None
+    sapguimcp.models.config._sap_config = None
     yield
-    sapwebguimcp.models.config._settings = None
-    sapwebguimcp.models.config._sap_config = None
+    sapguimcp.models.config._settings = None
+    sapguimcp.models.config._sap_config = None
 
 
 @pytest.fixture(autouse=True)

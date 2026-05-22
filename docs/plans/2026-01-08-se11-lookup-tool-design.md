@@ -124,7 +124,7 @@ class SE11Result(BaseModel):
 ## Dateistruktur
 
 ```
-src/sapwebguimcp/
+src/sapguimcp/
 ├── models/
 │   └── se11_models.py          # SE11Field, SE11Entry, SE11Error, SE11Result
 ├── tools/

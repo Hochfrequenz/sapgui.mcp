@@ -14,7 +14,7 @@
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/session_registry.py`
+- Modify: `src/sapguimcp/models/session_registry.py`
 - Test: `unittests/test_session_registry.py`
 
 **Step 1: Write failing tests for binding methods**
@@ -100,7 +100,7 @@ Expected: FAIL with "SessionRegistry has no attribute 'bind'" or similar
 
 **Step 3: Implement binding methods in SessionRegistry**
 
-Edit `src/sapwebguimcp/models/session_registry.py`:
+Edit `src/sapguimcp/models/session_registry.py`:
 
 Add `_bindings` dict to `__init__`:
 
@@ -202,7 +202,7 @@ Expected: All PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/session_registry.py unittests/test_session_registry.py
+git add src/sapguimcp/models/session_registry.py unittests/test_session_registry.py
 git commit -m "feat(session): add agent-session binding methods to SessionRegistry
 
 Add _bindings dict and methods:
@@ -219,7 +219,7 @@ Add _bindings dict and methods:
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/session_registry.py`
+- Modify: `src/sapguimcp/models/session_registry.py`
 - Test: `unittests/test_session_registry.py`
 
 **Step 1: Write failing tests for binding check**
@@ -293,7 +293,7 @@ Expected: FAIL with "SessionRegistry has no attribute 'check_binding'"
 
 **Step 3: Implement check_binding method**
 
-Add to `src/sapwebguimcp/models/session_registry.py`:
+Add to `src/sapguimcp/models/session_registry.py`:
 
 ```python
 def check_binding(self, session_id: str, agent_id: str | None, tool_name: str) -> None:
@@ -348,7 +348,7 @@ Expected: All PASS
 **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/session_registry.py unittests/test_session_registry.py
+git add src/sapguimcp/models/session_registry.py unittests/test_session_registry.py
 git commit -m "feat(session): add check_binding method for cross-agent detection
 
 Logs warnings when:
@@ -364,7 +364,7 @@ Operations always proceed (warn but allow)."
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/browser.py`
+- Modify: `src/sapguimcp/models/browser.py`
 - Test: `unittests/test_session_registry.py`
 
 **Step 1: Write failing test**
@@ -377,7 +377,7 @@ class TestBrowserManagerBindingCheck:
 
     def test_get_session_page_with_binding_check(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test get_session_page_checked calls check_binding."""
-        from sapwebguimcp.models.browser import BrowserManager
+        from sapguimcp.models.browser import BrowserManager
 
         manager = BrowserManager()
         page = MagicMock()
@@ -401,7 +401,7 @@ Expected: FAIL with "BrowserManager has no attribute 'get_session_page_checked'"
 
 **Step 3: Implement get_session_page_checked**
 
-Add to `src/sapwebguimcp/models/browser.py` in BrowserManager class:
+Add to `src/sapguimcp/models/browser.py` in BrowserManager class:
 
 ```python
 def get_session_page_checked(
@@ -436,7 +436,7 @@ Expected: All PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/browser.py unittests/test_session_registry.py
+git add src/sapguimcp/models/browser.py unittests/test_session_registry.py
 git commit -m "feat(browser): add get_session_page_checked helper
 
 Combines page retrieval with binding check for tool implementations."
@@ -448,16 +448,16 @@ Combines page retrieval with binding check for tool implementations."
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/session_tools.py`
-- Modify: `src/sapwebguimcp/tools/sap_tools.py` (register tools)
+- Modify: `src/sapguimcp/tools/session_tools.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py` (register tools)
 - Test: `unittests/test_session_tools.py` (create if needed)
 
 **Step 1: Add implementation functions**
 
-Add to `src/sapwebguimcp/tools/session_tools.py`:
+Add to `src/sapguimcp/tools/session_tools.py`:
 
 ```python
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     SessionBindResult,
     SessionReleaseResult,
     # ... existing imports
@@ -540,7 +540,7 @@ async def sap_session_release_impl(session_id: str) -> SessionReleaseResult:
 
 **Step 2: Add result models**
 
-Create or update `src/sapwebguimcp/models/session_results.py` (or in appropriate models file):
+Create or update `src/sapguimcp/models/session_results.py` (or in appropriate models file):
 
 ```python
 @dataclass
@@ -619,7 +619,7 @@ async def sap_session_release(session: str) -> SessionReleaseResult:
 Add to sap_tools.py imports:
 
 ```python
-from sapwebguimcp.tools.session_tools import (
+from sapguimcp.tools.session_tools import (
     sap_session_bind_impl,
     sap_session_release_impl,
     # ... existing imports
@@ -640,7 +640,7 @@ Expected: All PASS
 **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/session_tools.py src/sapwebguimcp/tools/sap_tools.py src/sapwebguimcp/models/
+git add src/sapguimcp/tools/session_tools.py src/sapguimcp/tools/sap_tools.py src/sapguimcp/models/
 git commit -m "feat(tools): add sap_session_bind and sap_session_release tools
 
 New tools for agent-session binding management:
@@ -654,13 +654,13 @@ New tools for agent-session binding management:
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/session_tools.py`
-- Modify: `src/sapwebguimcp/tools/sap_tools.py`
+- Modify: `src/sapguimcp/tools/session_tools.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py`
 - Test: `unittests/test_session_tools.py`
 
 **Step 1: Update sap_session_open_impl**
 
-In `src/sapwebguimcp/tools/session_tools.py`, update the function signature and body:
+In `src/sapguimcp/tools/session_tools.py`, update the function signature and body:
 
 ```python
 async def sap_session_open_impl(
@@ -741,7 +741,7 @@ Expected: All PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/session_tools.py src/sapwebguimcp/tools/sap_tools.py src/sapwebguimcp/models/
+git add src/sapguimcp/tools/session_tools.py src/sapguimcp/tools/sap_tools.py src/sapguimcp/models/
 git commit -m "feat(session): add agent_id parameter to sap_session_open
 
 Sessions can now be bound to agents at creation time.
@@ -754,7 +754,7 @@ Binding is optional - backward compatible with existing code."
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sap_tools.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py`
 
 This task updates 14 tools in sap_tools.py to add the `agent_id` parameter. The pattern is the same for each:
 
@@ -818,7 +818,7 @@ Expected: All PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/sap_tools.py
+git add src/sapguimcp/tools/sap_tools.py
 git commit -m "feat(tools): add agent_id parameter to 14 session-aware tools
 
 Tools now check agent binding before accessing sessions.
@@ -831,11 +831,11 @@ Backward compatible - agent_id defaults to None (no check)."
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/se11_tools.py`
-- Modify: `src/sapwebguimcp/tools/se16_tools.py`
-- Modify: `src/sapwebguimcp/tools/se24_tools.py`
-- Modify: `src/sapwebguimcp/tools/se37_tools.py`
-- Modify: `src/sapwebguimcp/tools/se93_tools.py`
+- Modify: `src/sapguimcp/tools/se11_tools.py`
+- Modify: `src/sapguimcp/tools/se16_tools.py`
+- Modify: `src/sapguimcp/tools/se24_tools.py`
+- Modify: `src/sapguimcp/tools/se37_tools.py`
+- Modify: `src/sapguimcp/tools/se93_tools.py`
 
 Apply the same pattern as Task 6 to all tools in these files:
 
@@ -862,7 +862,7 @@ Expected: All PASS
 **Step 7: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/se*.py
+git add src/sapguimcp/tools/se*.py
 git commit -m "feat(tools): add agent_id parameter to SE* lookup tools
 
 All SE11, SE16, SE24, SE37, SE93 tools now check agent binding."
@@ -874,7 +874,7 @@ All SE11, SE16, SE24, SE37, SE93 tools now check agent binding."
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/browser_tools.py`
+- Modify: `src/sapguimcp/tools/browser_tools.py`
 
 Apply the same pattern to browser tools that have session parameter.
 
@@ -890,7 +890,7 @@ Expected: All PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/browser_tools.py
+git add src/sapguimcp/tools/browser_tools.py
 git commit -m "feat(tools): add agent_id parameter to browser tools"
 ```
 
@@ -900,8 +900,8 @@ git commit -m "feat(tools): add agent_id parameter to browser tools"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/session_results.py`
-- Modify: `src/sapwebguimcp/tools/session_tools.py`
+- Modify: `src/sapguimcp/models/session_results.py`
+- Modify: `src/sapguimcp/tools/session_tools.py`
 
 **Step 1: Update SessionInfo model**
 
@@ -936,7 +936,7 @@ Expected: All PASS
 **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/ src/sapwebguimcp/tools/session_tools.py
+git add src/sapguimcp/models/ src/sapguimcp/tools/session_tools.py
 git commit -m "feat(session): include agent_id in session list results
 
 sap_session_list now shows which sessions are bound to which agents."
@@ -1059,7 +1059,7 @@ class TestAgentBindingIntegration:
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Test that cross-agent access logs warning."""
-        from sapwebguimcp.models.browser import BrowserManager
+        from sapguimcp.models.browser import BrowserManager
 
         manager = BrowserManager()
 
@@ -1092,7 +1092,7 @@ class TestAgentBindingIntegration:
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Test that unbound session doesn't warn."""
-        from sapwebguimcp.models.browser import BrowserManager
+        from sapguimcp.models.browser import BrowserManager
 
         manager = BrowserManager()
 
@@ -1135,19 +1135,19 @@ pytest unittests/ -v
 **Step 2: Run type checking**
 
 ```bash
-mypy src/sapwebguimcp/
+mypy src/sapguimcp/
 ```
 
 **Step 3: Run linting**
 
 ```bash
-pylint src/sapwebguimcp/
+pylint src/sapguimcp/
 ```
 
 **Step 4: Format code**
 
 ```bash
-black src/sapwebguimcp/ unittests/
+black src/sapguimcp/ unittests/
 ```
 
 **Step 5: Fix any issues found**

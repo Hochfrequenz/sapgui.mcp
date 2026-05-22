@@ -111,9 +111,9 @@ COM can return complex objects. Serialization strategy:
 
 ### File Placement
 
-- **Tool registration:** New file `src/sapwebguimcp/tools/com_tools.py` (mirrors `browser_tools.py`)
-- **Result model:** Add `ComEvaluateResult` to `src/sapwebguimcp/models/browser_results.py` (or new `com_results.py`)
-- **Backend method:** Add `evaluate_com` to `DesktopBackend` in `src/sapwebguimcp/backend/desktop/__init__.py`
+- **Tool registration:** New file `src/sapguimcp/tools/com_tools.py` (mirrors `browser_tools.py`)
+- **Result model:** Add `ComEvaluateResult` to `src/sapguimcp/models/browser_results.py` (or new `com_results.py`)
+- **Backend method:** Add `evaluate_com` to `DesktopBackend` in `src/sapguimcp/backend/desktop/__init__.py`
 
 ## Safety
 

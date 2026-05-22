@@ -5,8 +5,8 @@ import os
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.backend.webgui.models.browser_results import EvaluateResult
-from sapwebguimcp.models import KeyboardResult, LoginResult, SessionStatus
+from sapguimcp.backend.webgui.models.browser_results import EvaluateResult
+from sapguimcp.models import KeyboardResult, LoginResult, SessionStatus
 
 from .conftest import call_tool_typed, get_html_content
 from .integration_helpers import capture_html_snapshot

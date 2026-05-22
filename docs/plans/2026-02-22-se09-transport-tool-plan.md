@@ -12,7 +12,7 @@
 
 ### Task 1: Create Pydantic Models
 
-**Files:** Create `src/sapwebguimcp/models/se09_models.py`
+**Files:** Create `src/sapguimcp/models/se09_models.py`
 
 **Step 1:** Create the file with the following models:
 
@@ -26,7 +26,7 @@ including requests, tasks, and optionally transported objects.
 
 from pydantic import AwareDatetime, BaseModel, Field
 
-from sapwebguimcp.models.base import ToolResult
+from sapguimcp.models.base import ToolResult
 
 __all__ = [
     "TransportObject",
@@ -79,18 +79,18 @@ class TransportListResult(ToolResult):
     retrieved_at: AwareDatetime = Field(description="When the data was retrieved")
 ```
 
-**Verification:** `python -c "from sapwebguimcp.models.se09_models import TransportListResult; print('OK')"`
+**Verification:** `python -c "from sapguimcp.models.se09_models import TransportListResult; print('OK')"`
 
 ---
 
 ### Task 2: Register Models in `__init__.py`
 
-**Files:** Modify `src/sapwebguimcp/models/__init__.py`
+**Files:** Modify `src/sapguimcp/models/__init__.py`
 
 **Step 1:** Add import block after the SE93 models import:
 
 ```python
-from sapwebguimcp.models.se09_models import (
+from sapguimcp.models.se09_models import (
     TransportListResult,
     TransportObject,
     TransportRequest,
@@ -108,13 +108,13 @@ from sapwebguimcp.models.se09_models import (
     "TransportTask",
 ```
 
-**Verification:** `python -c "from sapwebguimcp.models import TransportListResult, TransportRequest; print('OK')"`
+**Verification:** `python -c "from sapguimcp.models import TransportListResult, TransportRequest; print('OK')"`
 
 ---
 
 ### Task 3: Add Language Constants
 
-**Files:** Modify `src/sapwebguimcp/lang.py`
+**Files:** Modify `src/sapguimcp/lang.py`
 
 **Step 1:** Add SE09-specific constants at the end of the file:
 
@@ -146,7 +146,7 @@ SE09_DISPLAY_BUTTON_EN = "Display"
 # Task line format: "DEVK900101  Description  OWNER  20260222  Development/Correction"
 ```
 
-**Verification:** `python -c "from sapwebguimcp.lang import SE09_WORKBENCH_DE; print('OK')"`
+**Verification:** `python -c "from sapguimcp.lang import SE09_WORKBENCH_DE; print('OK')"`
 
 ---
 
@@ -174,7 +174,7 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import LoginResult, SnapshotResult, TransactionResult
+from sapguimcp.models import LoginResult, SnapshotResult, TransactionResult
 
 from .conftest import call_tool_typed
 
@@ -335,7 +335,7 @@ async def test_se09_capture_no_transports(sap_mcp_client: ClientSession) -> None
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
     # Fill username with non-existent user
-    from sapwebguimcp.models import FillFormResult
+    from sapguimcp.models import FillFormResult
     fill = await call_tool_typed(
         sap_mcp_client,
         "sap_fill_form",
@@ -380,7 +380,7 @@ SAP_LANGUAGE=EN pytest unittests/test_se09_exploration.py -v -s
 
 ### Task 5: Write SE09 Parser
 
-**Files:** Create `src/sapwebguimcp/parsers/se09_parser.py`
+**Files:** Create `src/sapguimcp/parsers/se09_parser.py`
 
 **Step 1:** Create the parser module. The parser extracts transport data from ARIA tree snapshots. Tree items appear as `treeitem` roles in the YAML. The exact regex patterns MUST be refined after examining the captured snapshots from Task 4.
 
@@ -399,7 +399,7 @@ import logging
 import re
 from datetime import UTC, datetime
 
-from sapwebguimcp.models.se09_models import (
+from sapguimcp.models.se09_models import (
     TransportListResult,
     TransportObject,
     TransportRequest,
@@ -613,7 +613,7 @@ def _determine_tree_level_for_request(request: TransportRequest, lines: list[str
 3. Update `_TREEITEM_PATTERN`, `_parse_tree_item_text`, and `_determine_tree_level` accordingly
 4. The tree may use `[expanded]`/`[collapsed]` attributes, `group` roles, or nested `tree`/`treeitem` roles
 
-**Verification:** `python -c "from sapwebguimcp.parsers.se09_parser import parse_se09_tree_snapshot; print('OK')"`
+**Verification:** `python -c "from sapguimcp.parsers.se09_parser import parse_se09_tree_snapshot; print('OK')"`
 
 ---
 
@@ -634,7 +634,7 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.parsers.se09_parser import parse_se09_tree_snapshot
+from sapguimcp.parsers.se09_parser import parse_se09_tree_snapshot
 
 # Path to captured YAML snapshots
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se09_exploration"
@@ -749,7 +749,7 @@ class TestObjectParsing:
 
 ### Task 7: Write SE09 Tool
 
-**Files:** Create `src/sapwebguimcp/tools/se09_tools.py`
+**Files:** Create `src/sapguimcp/tools/se09_tools.py`
 
 **Step 1:** Create the tool module following the SE37/SE93 pattern:
 
@@ -771,10 +771,10 @@ from typing import Any, Literal
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from sapwebguimcp.models import get_browser_manager
-from sapwebguimcp.models.se09_models import TransportListResult
-from sapwebguimcp.parsers.se09_parser import parse_se09_tree_snapshot
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
+from sapguimcp.models import get_browser_manager
+from sapguimcp.models.se09_models import TransportListResult
+from sapguimcp.parsers.se09_parser import parse_se09_tree_snapshot
+from sapguimcp.tools.sap_tool_impl import sap_transaction_impl
 
 logger = logging.getLogger(__name__)
 
@@ -1062,18 +1062,18 @@ def register_se09_tools(mcp: FastMCP) -> None:
         return result
 ```
 
-**Verification:** `python -c "from sapwebguimcp.tools.se09_tools import register_se09_tools; print('OK')"`
+**Verification:** `python -c "from sapguimcp.tools.se09_tools import register_se09_tools; print('OK')"`
 
 ---
 
 ### Task 8: Register Tool in `tools/__init__.py`
 
-**Files:** Modify `src/sapwebguimcp/tools/__init__.py`
+**Files:** Modify `src/sapguimcp/tools/__init__.py`
 
 **Step 1:** Add import:
 
 ```python
-from sapwebguimcp.tools.se09_tools import register_se09_tools
+from sapguimcp.tools.se09_tools import register_se09_tools
 ```
 
 **Step 2:** Add to `__all__`:
@@ -1082,13 +1082,13 @@ from sapwebguimcp.tools.se09_tools import register_se09_tools
     "register_se09_tools",
 ```
 
-**Verification:** `python -c "from sapwebguimcp.tools import register_se09_tools; print('OK')"`
+**Verification:** `python -c "from sapguimcp.tools import register_se09_tools; print('OK')"`
 
 ---
 
 ### Task 9: Register Tool in `server.py`
 
-**Files:** Modify `src/sapwebguimcp/server.py`
+**Files:** Modify `src/sapguimcp/server.py`
 
 **Step 1:** Add import in the tools import block:
 
@@ -1102,7 +1102,7 @@ from sapwebguimcp.tools.se09_tools import register_se09_tools
 register_se09_tools(mcp)
 ```
 
-**Verification:** `python -c "from sapwebguimcp.server import mcp; tools = [t for t in dir(mcp)]; print('OK')"`
+**Verification:** `python -c "from sapguimcp.server import mcp; tools = [t for t in dir(mcp)]; print('OK')"`
 
 ---
 
@@ -1122,8 +1122,8 @@ These tests run against a real SAP system to verify the sap_se09_lookup tool.
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import LoginResult
-from sapwebguimcp.models.se09_models import TransportListResult
+from sapguimcp.models import LoginResult
+from sapguimcp.models.se09_models import TransportListResult
 
 from .conftest import call_tool_typed
 
@@ -1263,14 +1263,14 @@ pytest unittests/test_se09_integration.py -v -s
 **Step 1:** Run type checking:
 
 ```bash
-pyright src/sapwebguimcp/models/se09_models.py src/sapwebguimcp/parsers/se09_parser.py src/sapwebguimcp/tools/se09_tools.py
+pyright src/sapguimcp/models/se09_models.py src/sapguimcp/parsers/se09_parser.py src/sapguimcp/tools/se09_tools.py
 ```
 
 **Step 2:** Run linting:
 
 ```bash
-ruff check src/sapwebguimcp/models/se09_models.py src/sapwebguimcp/parsers/se09_parser.py src/sapwebguimcp/tools/se09_tools.py
-ruff format --check src/sapwebguimcp/models/se09_models.py src/sapwebguimcp/parsers/se09_parser.py src/sapwebguimcp/tools/se09_tools.py
+ruff check src/sapguimcp/models/se09_models.py src/sapguimcp/parsers/se09_parser.py src/sapguimcp/tools/se09_tools.py
+ruff format --check src/sapguimcp/models/se09_models.py src/sapguimcp/parsers/se09_parser.py src/sapguimcp/tools/se09_tools.py
 ```
 
 **Step 3:** Run parser unit tests (offline):
@@ -1314,13 +1314,13 @@ The parser in Task 5 contains placeholder patterns. The actual implementation wo
 
 | File                                      | Action | Description                 |
 | ----------------------------------------- | ------ | --------------------------- |
-| `src/sapwebguimcp/models/se09_models.py`  | Create | Pydantic models             |
-| `src/sapwebguimcp/models/__init__.py`     | Modify | Register model exports      |
-| `src/sapwebguimcp/lang.py`                | Modify | Add SE09 language constants |
-| `src/sapwebguimcp/parsers/se09_parser.py` | Create | Tree snapshot parser        |
-| `src/sapwebguimcp/tools/se09_tools.py`    | Create | MCP tool implementation     |
-| `src/sapwebguimcp/tools/__init__.py`      | Modify | Register tool export        |
-| `src/sapwebguimcp/server.py`              | Modify | Register tool with server   |
+| `src/sapguimcp/models/se09_models.py`  | Create | Pydantic models             |
+| `src/sapguimcp/models/__init__.py`     | Modify | Register model exports      |
+| `src/sapguimcp/lang.py`                | Modify | Add SE09 language constants |
+| `src/sapguimcp/parsers/se09_parser.py` | Create | Tree snapshot parser        |
+| `src/sapguimcp/tools/se09_tools.py`    | Create | MCP tool implementation     |
+| `src/sapguimcp/tools/__init__.py`      | Modify | Register tool export        |
+| `src/sapguimcp/server.py`              | Modify | Register tool with server   |
 | `unittests/test_se09_exploration.py`      | Create | Snapshot capture tests      |
 | `unittests/test_se09_parser.py`           | Create | Offline parser tests        |
 | `unittests/test_se09_integration.py`      | Create | End-to-end tests            |
