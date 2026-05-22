@@ -12,7 +12,7 @@
 
 ### Task 1: Create Pydantic Models (`slg1_models.py`)
 
-**Files:** Create `src/sapwebguimcp/models/slg1_models.py`
+**Files:** Create `src/sapguimcp/models/slg1_models.py`
 
 **Step 1:** Create the file with the following models, following the pattern in `se37_models.py`:
 
@@ -26,7 +26,7 @@ including log headers and individual log messages.
 
 from pydantic import AwareDatetime, BaseModel, Field
 
-from sapwebguimcp.models.base import ToolResult
+from sapguimcp.models.base import ToolResult
 
 __all__ = [
     "SLG1Message",
@@ -91,7 +91,7 @@ class SLG1FileSummary(ToolResult):
 **Step 2:** Verify the file is syntactically correct:
 
 ```bash
-python -c "from sapwebguimcp.models.slg1_models import SLG1Message, SLG1LogEntry, SLG1LogListResult, SLG1FileSummary; print('OK')"
+python -c "from sapguimcp.models.slg1_models import SLG1Message, SLG1LogEntry, SLG1LogListResult, SLG1FileSummary; print('OK')"
 ```
 
 Expected output: `OK`
@@ -100,12 +100,12 @@ Expected output: `OK`
 
 ### Task 2: Register Models in `models/__init__.py`
 
-**Files:** Modify `src/sapwebguimcp/models/__init__.py`
+**Files:** Modify `src/sapguimcp/models/__init__.py`
 
 **Step 1:** Add the import block after the SE93 models import (around line 119-125):
 
 ```python
-from sapwebguimcp.models.slg1_models import (
+from sapguimcp.models.slg1_models import (
     SLG1FileSummary,
     SLG1LogEntry,
     SLG1LogListResult,
@@ -126,7 +126,7 @@ from sapwebguimcp.models.slg1_models import (
 **Step 3:** Verify the import works:
 
 ```bash
-python -c "from sapwebguimcp.models import SLG1Message, SLG1LogEntry, SLG1LogListResult, SLG1FileSummary; print('OK')"
+python -c "from sapguimcp.models import SLG1Message, SLG1LogEntry, SLG1LogListResult, SLG1FileSummary; print('OK')"
 ```
 
 Expected output: `OK`
@@ -135,7 +135,7 @@ Expected output: `OK`
 
 ### Task 3: Add SLG1 Language Constants
 
-**Files:** Modify `src/sapwebguimcp/lang.py`
+**Files:** Modify `src/sapguimcp/lang.py`
 
 **Step 1:** Add an SLG1 section after the SE93 section (after line 166), before the Helper Functions section:
 
@@ -205,7 +205,7 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import LoginResult, SnapshotResult, StatusBarInfo, TransactionResult
+from sapguimcp.models import LoginResult, SnapshotResult, StatusBarInfo, TransactionResult
 
 from .conftest import call_tool_typed
 
@@ -422,7 +422,7 @@ SAP_LANGUAGE=EN pytest unittests/test_slg1_exploration.py -v -s --no-header 2>&1
 
 ### Task 5: Write SLG1 Parser
 
-**Files:** Create `src/sapwebguimcp/parsers/slg1_parser.py`
+**Files:** Create `src/sapguimcp/parsers/slg1_parser.py`
 
 **Depends on:** Task 4 (need captured snapshots to understand ARIA structure)
 
@@ -444,13 +444,13 @@ import logging
 import re
 from datetime import UTC, datetime
 
-from sapwebguimcp.lang import (
+from sapguimcp.lang import (
     SLG1_INITIAL_SCREEN_DE,
     SLG1_INITIAL_SCREEN_EN,
     SLG1_NO_LOGS_FOUND_DE,
     SLG1_NO_LOGS_FOUND_EN,
 )
-from sapwebguimcp.models.slg1_models import (
+from sapguimcp.models.slg1_models import (
     SLG1LogEntry,
     SLG1LogListResult,
     SLG1Message,
@@ -594,7 +594,7 @@ def parse_slg1_log_list(
 **Step 2:** Verify the parser module loads:
 
 ```bash
-python -c "from sapwebguimcp.parsers.slg1_parser import parse_slg1_log_list, is_slg1_initial_screen; print('OK')"
+python -c "from sapguimcp.parsers.slg1_parser import parse_slg1_log_list, is_slg1_initial_screen; print('OK')"
 ```
 
 **IMPORTANT:** The parser patterns (`_LOG_HEADER_PATTERN`, message parsing, etc.) are placeholders. After running exploration tests in Task 4 and examining the captured YAML snapshots, the patterns MUST be updated to match the actual ARIA tree structure. The tree format for ALV Tree Control in SAP WebGUI will look different from ALV grids.
@@ -620,7 +620,7 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.parsers.slg1_parser import (
+from sapguimcp.parsers.slg1_parser import (
     is_slg1_initial_screen,
     is_slg1_no_results,
     parse_slg1_log_list,
@@ -735,7 +735,7 @@ pytest unittests/test_slg1_parser.py -v --no-header
 
 ### Task 7: Write SLG1 Tool (`slg1_tools.py`)
 
-**Files:** Create `src/sapwebguimcp/tools/slg1_tools.py`
+**Files:** Create `src/sapguimcp/tools/slg1_tools.py`
 
 **Depends on:** Tasks 1-5
 
@@ -758,18 +758,18 @@ from typing import Any
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from sapwebguimcp.models import get_browser_manager
-from sapwebguimcp.models.slg1_models import (
+from sapguimcp.models import get_browser_manager
+from sapguimcp.models.slg1_models import (
     SLG1FileSummary,
     SLG1LogListResult,
 )
-from sapwebguimcp.parsers.slg1_parser import (
+from sapguimcp.parsers.slg1_parser import (
     MAX_LOGS,
     is_slg1_initial_screen,
     is_slg1_no_results,
     parse_slg1_log_list,
 )
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
+from sapguimcp.tools.sap_tool_impl import sap_transaction_impl
 
 logger = logging.getLogger(__name__)
 
@@ -807,8 +807,8 @@ async def _fill_slg1_selection_screen(
 
     Returns error message on failure, None on success.
     """
-    from sapwebguimcp.models.config import get_settings
-    from sapwebguimcp.tools.sap_tool_impl import _load_js_with_field_utils
+    from sapguimcp.models.config import get_settings
+    from sapguimcp.tools.sap_tool_impl import _load_js_with_field_utils
 
     settings = get_settings()
     language = settings.sap_language
@@ -1099,19 +1099,19 @@ def register_slg1_tools(mcp: FastMCP) -> None:
 **Step 2:** Verify the tool module loads:
 
 ```bash
-python -c "from sapwebguimcp.tools.slg1_tools import register_slg1_tools; print('OK')"
+python -c "from sapguimcp.tools.slg1_tools import register_slg1_tools; print('OK')"
 ```
 
 ---
 
 ### Task 8: Register Tool in `tools/__init__.py` and `server.py`
 
-**Files:** Modify `src/sapwebguimcp/tools/__init__.py`, modify `src/sapwebguimcp/server.py`
+**Files:** Modify `src/sapguimcp/tools/__init__.py`, modify `src/sapguimcp/server.py`
 
-**Step 1:** In `src/sapwebguimcp/tools/__init__.py`, add the import (alphabetical order, after se93_tools):
+**Step 1:** In `src/sapguimcp/tools/__init__.py`, add the import (alphabetical order, after se93_tools):
 
 ```python
-from sapwebguimcp.tools.slg1_tools import register_slg1_tools
+from sapguimcp.tools.slg1_tools import register_slg1_tools
 ```
 
 Add to `__all__`:
@@ -1120,10 +1120,10 @@ Add to `__all__`:
     "register_slg1_tools",
 ```
 
-**Step 2:** In `src/sapwebguimcp/server.py`, add the import in the tools import block (around line 23-41):
+**Step 2:** In `src/sapguimcp/server.py`, add the import in the tools import block (around line 23-41):
 
 ```python
-from sapwebguimcp.tools import (
+from sapguimcp.tools import (
     ...
     register_slg1_tools,
     ...
@@ -1139,7 +1139,7 @@ register_slg1_tools(mcp)
 **Step 4:** Verify the server starts without errors:
 
 ```bash
-python -c "from sapwebguimcp.server import mcp; print('Server loaded OK')"
+python -c "from sapguimcp.server import mcp; print('Server loaded OK')"
 ```
 
 ---
@@ -1163,8 +1163,8 @@ works correctly end-to-end.
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import LoginResult
-from sapwebguimcp.models.slg1_models import SLG1LogListResult
+from sapguimcp.models import LoginResult
+from sapguimcp.models.slg1_models import SLG1LogListResult
 
 from .conftest import call_tool_typed
 
@@ -1287,13 +1287,13 @@ pytest unittests/ -v --no-header -x --ignore=unittests/test_slg1_exploration.py 
 **Step 2:** Run linting:
 
 ```bash
-ruff check src/sapwebguimcp/models/slg1_models.py src/sapwebguimcp/parsers/slg1_parser.py src/sapwebguimcp/tools/slg1_tools.py
+ruff check src/sapguimcp/models/slg1_models.py src/sapguimcp/parsers/slg1_parser.py src/sapguimcp/tools/slg1_tools.py
 ```
 
 **Step 3:** Run type checking:
 
 ```bash
-mypy src/sapwebguimcp/models/slg1_models.py src/sapwebguimcp/parsers/slg1_parser.py src/sapwebguimcp/tools/slg1_tools.py
+mypy src/sapguimcp/models/slg1_models.py src/sapguimcp/parsers/slg1_parser.py src/sapguimcp/tools/slg1_tools.py
 ```
 
 ---

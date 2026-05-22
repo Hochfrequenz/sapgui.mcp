@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 def test_se24_edit_result_success() -> None:
     """Test successful SE24EditResult creation."""
-    from sapwebguimcp.models.se24_edit_models import SE24EditResult
+    from sapguimcp.models.se24_edit_models import SE24EditResult
 
     result = SE24EditResult(
         success=True,
@@ -26,7 +26,7 @@ def test_se24_edit_result_success() -> None:
 
 def test_se24_edit_result_failure() -> None:
     """Test failed SE24EditResult creation via factory."""
-    from sapwebguimcp.models.se24_edit_models import SE24EditResult
+    from sapguimcp.models.se24_edit_models import SE24EditResult
 
     result = SE24EditResult.failure(
         error="Syntax error in line 3",
@@ -43,7 +43,7 @@ def test_se24_edit_result_failure() -> None:
 
 def test_se24_edit_result_validation_error() -> None:
     """Test that success=True with error raises ValidationError."""
-    from sapwebguimcp.models.se24_edit_models import SE24EditResult
+    from sapguimcp.models.se24_edit_models import SE24EditResult
 
     with pytest.raises(ValidationError):
         SE24EditResult(
@@ -61,7 +61,7 @@ class TestParseStatusNote:
     """Tests for parsing status bar notes — shared with SE38/SE37 but verified for SE24 context."""
 
     def test_parse_check_success_de(self) -> None:
-        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
+        from sapguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = (
             '- note "Erfolgreich Meldungsleiste Es wurden keine Syntaxfehler in Klasse ZCL_TEST_MCP_EDIT gefunden"'
@@ -71,14 +71,14 @@ class TestParseStatusNote:
         assert "keine Syntaxfehler" in message
 
     def test_parse_activate_success_de(self) -> None:
-        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
+        from sapguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = '- note "Erfolgreich Meldungsleiste Objekt wurde aktiviert"'
         success, message = parse_toolbar_note(snapshot)
         assert success is True
 
     def test_parse_check_failure_de(self) -> None:
-        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
+        from sapguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = '- note "Fehler Meldungsleiste Syntaxfehler in Zeile 3"'
         success, message = parse_toolbar_note(snapshot)
@@ -86,7 +86,7 @@ class TestParseStatusNote:
         assert "Syntaxfehler" in message
 
     def test_parse_check_success_en(self) -> None:
-        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
+        from sapguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = '- note "Success Message Bar No syntax errors found in Class ZCL_TEST_MCP_EDIT"'
         success, message = parse_toolbar_note(snapshot)
@@ -94,7 +94,7 @@ class TestParseStatusNote:
         assert "No syntax errors" in message
 
     def test_parse_activate_success_en(self) -> None:
-        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
+        from sapguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = '- note "Success Message Bar Object activated"'
         success, message = parse_toolbar_note(snapshot)
@@ -102,14 +102,14 @@ class TestParseStatusNote:
         assert "Object activated" in message
 
     def test_parse_check_failure_en(self) -> None:
-        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
+        from sapguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = '- note "Error Message Bar Syntax error in line 3"'
         success, message = parse_toolbar_note(snapshot)
         assert success is False
 
     def test_parse_no_note(self) -> None:
-        from sapwebguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
+        from sapguimcp.backend.webgui.backend import _parse_toolbar_note as parse_toolbar_note
 
         snapshot = "- button 'Aktivieren'"
         success, message = parse_toolbar_note(snapshot)
@@ -122,7 +122,7 @@ async def test_se24_edit_tool_is_registered() -> None:
     """Test that register_se24_edit_tools adds the tool to a FastMCP instance."""
     from fastmcp import FastMCP
 
-    from sapwebguimcp.tools.se24_edit_tools import register_se24_edit_tools
+    from sapguimcp.tools.se24_edit_tools import register_se24_edit_tools
 
     mcp = FastMCP("test")
     register_se24_edit_tools(mcp)

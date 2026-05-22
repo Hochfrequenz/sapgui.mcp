@@ -6,11 +6,11 @@ import pytest
 from pydantic import SecretStr
 from sap_mcp_config import Config, SAPSystem
 
-from sapwebguimcp.models.sap_results import LoginResult
+from sapguimcp.models.sap_results import LoginResult
 
-_PATCH_GET_BACKEND = "sapwebguimcp.tools.sap_login_impl.get_backend"
-_PATCH_GET_SETTINGS = "sapwebguimcp.tools.sap_login_impl.get_settings"
-_PATCH_GET_SAP_CONFIG = "sapwebguimcp.tools.sap_login_impl.get_sap_config"
+_PATCH_GET_BACKEND = "sapguimcp.tools.sap_login_impl.get_backend"
+_PATCH_GET_SETTINGS = "sapguimcp.tools.sap_login_impl.get_settings"
+_PATCH_GET_SAP_CONFIG = "sapguimcp.tools.sap_login_impl.get_sap_config"
 
 
 def _multi_system_config() -> Config:
@@ -83,7 +83,7 @@ class TestSystemKeyResolution:
     @pytest.mark.anyio
     async def test_default_system_uses_sap_logon_entry(self) -> None:
         """Default system's SAP Logon entry is passed to backend, not the dict key."""
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+        from sapguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _multi_system_config()
         backend = _make_backend()
@@ -103,7 +103,7 @@ class TestSystemKeyResolution:
     @pytest.mark.anyio
     async def test_explicit_key_resolves_to_sap_logon_entry(self) -> None:
         """Passing a system_key resolves to that system's SAP Logon entry."""
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+        from sapguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _multi_system_config()
         backend = _make_backend()
@@ -123,7 +123,7 @@ class TestSystemKeyResolution:
     @pytest.mark.anyio
     async def test_same_sap_logon_entry_different_clients(self) -> None:
         """Two system keys sharing the same SAP Logon entry but different clients work correctly."""
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+        from sapguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _multi_system_config()
 
@@ -143,7 +143,7 @@ class TestSystemKeyResolution:
     @pytest.mark.anyio
     async def test_webgui_backend_receives_sap_logon_entry(self) -> None:
         """WebGUI backend also receives the SAP Logon entry (even though it ignores it)."""
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+        from sapguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _multi_system_config()
         backend = _make_backend()
@@ -161,7 +161,7 @@ class TestSystemKeyResolution:
     @pytest.mark.anyio
     async def test_unknown_system_key_returns_error(self) -> None:
         """Passing an unknown system_key returns a failure instead of silently falling back."""
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+        from sapguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _multi_system_config()
 
@@ -193,7 +193,7 @@ class TestUrlPrecedenceForNonDefaultSystem:
     @pytest.mark.anyio
     async def test_system_host_wins_over_env_sap_url_for_explicit_key(self) -> None:
         """system.host must win over settings.sap_url when system_key is given."""
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+        from sapguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _two_host_config()
         settings = _make_settings(
@@ -225,7 +225,7 @@ class TestUrlPrecedenceForNonDefaultSystem:
         truth, and ``SAP_URL`` is only a legacy fallback for systems that have
         no ``host`` configured.
         """
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+        from sapguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _two_host_config()
         settings = _make_settings(
@@ -248,7 +248,7 @@ class TestUrlPrecedenceForNonDefaultSystem:
     @pytest.mark.anyio
     async def test_explicit_url_argument_still_wins(self) -> None:
         """An explicit ``url`` argument keeps top priority — it's the manual escape hatch."""
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+        from sapguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = _two_host_config()
         settings = _make_settings(
@@ -275,7 +275,7 @@ class TestUrlPrecedenceForNonDefaultSystem:
         Some users may still rely on ``SAP_URL`` from a pre-systems.json setup.
         We must not break that path — only stop it from overriding a real host.
         """
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl
+        from sapguimcp.tools.sap_login_impl import sap_login_impl
 
         cfg = Config(
             default_system="legacy",
@@ -316,10 +316,10 @@ class TestServerInstructions:
     """Server instructions include available system keys so the LLM can offer choices."""
 
     def test_instructions_contain_system_keys(self) -> None:
-        from sapwebguimcp.server import _build_instructions
+        from sapguimcp.server import _build_instructions
 
         cfg = _multi_system_config()
-        with patch("sapwebguimcp.server.get_sap_config", return_value=cfg):
+        with patch("sapguimcp.server.get_sap_config", return_value=cfg):
             instructions = _build_instructions()
 
         assert "dev-100" in instructions
@@ -327,18 +327,18 @@ class TestServerInstructions:
         assert "Default: 'dev-100'" in instructions
 
     def test_instructions_mention_choose_tool(self) -> None:
-        from sapwebguimcp.server import _build_instructions
+        from sapguimcp.server import _build_instructions
 
         cfg = _multi_system_config()
-        with patch("sapwebguimcp.server.get_sap_config", return_value=cfg):
+        with patch("sapguimcp.server.get_sap_config", return_value=cfg):
             instructions = _build_instructions()
 
         assert "choose" in instructions
 
     def test_instructions_graceful_when_config_missing(self) -> None:
-        from sapwebguimcp.server import _build_instructions
+        from sapguimcp.server import _build_instructions
 
-        with patch("sapwebguimcp.server.get_sap_config", side_effect=FileNotFoundError):
+        with patch("sapguimcp.server.get_sap_config", side_effect=FileNotFoundError):
             instructions = _build_instructions()
 
         assert "AVAILABLE SYSTEMS" not in instructions

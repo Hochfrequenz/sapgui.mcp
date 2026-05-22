@@ -31,7 +31,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sapwebguimcp.backend.desktop import DesktopBackend
+from sapguimcp.backend.desktop import DesktopBackend
 from unittests.desktop.conftest import make_mock_session
 
 
@@ -78,7 +78,7 @@ async def test_first_login_registers_as_s1() -> None:
     backend = _make_backend()
     fresh = make_mock_session()
 
-    with patch("sapwebguimcp.backend.desktop._sapsucker_login", return_value=fresh):
+    with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=fresh):
         result = await backend.login(
             url="ignored",
             username="user",
@@ -104,7 +104,7 @@ async def test_login_result_carries_session_id() -> None:
     backend.registry.register(make_mock_session())  # pre-existing s1
     fresh = make_mock_session()
 
-    with patch("sapwebguimcp.backend.desktop._sapsucker_login", return_value=fresh):
+    with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=fresh):
         result = await backend.login(
             url="ignored",
             username="user",
@@ -137,7 +137,7 @@ async def test_relogin_with_alive_session_keeps_both() -> None:
     backend = _make_backend()
 
     first = make_mock_session(client="100", user="MUSTERMANNM")
-    with patch("sapwebguimcp.backend.desktop._sapsucker_login", return_value=first):
+    with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=first):
         first_result = await backend.login(
             url="ignored",
             username="MUSTERMANNM",
@@ -148,7 +148,7 @@ async def test_relogin_with_alive_session_keeps_both() -> None:
         )
 
     second = make_mock_session(client="210", user="MUSTERFRAUM")
-    with patch("sapwebguimcp.backend.desktop._sapsucker_login", return_value=second):
+    with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=second):
         second_result = await backend.login(
             url="ignored",
             username="MUSTERFRAUM",
@@ -185,7 +185,7 @@ async def test_relogin_preserves_multi_session_state_and_bindings() -> None:
     assert backend.registry.get_bound_agent("s2") == "agent_a"
 
     fresh = make_mock_session()
-    with patch("sapwebguimcp.backend.desktop._sapsucker_login", return_value=fresh):
+    with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=fresh):
         result = await backend.login(
             url="ignored",
             username="user",
@@ -235,7 +235,7 @@ async def test_relogin_after_external_sap_gui_death_prunes_dead_session() -> Non
 
     # Re-login with a fresh session.
     fresh = make_mock_session()
-    with patch("sapwebguimcp.backend.desktop._sapsucker_login", return_value=fresh):
+    with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=fresh):
         result = await backend.login(
             url="ignored",
             username="user",
@@ -269,7 +269,7 @@ async def test_relogin_prunes_only_dead_keeps_alive() -> None:
     _kill_session(dead)
 
     fresh = make_mock_session()
-    with patch("sapwebguimcp.backend.desktop._sapsucker_login", return_value=fresh):
+    with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=fresh):
         result = await backend.login(
             url="ignored",
             username="user",
@@ -307,7 +307,7 @@ async def test_failed_login_does_not_touch_registry() -> None:
     def boom(**_kwargs: Any) -> Any:
         raise RuntimeError("connect refused")
 
-    with patch("sapwebguimcp.backend.desktop._sapsucker_login", side_effect=boom):
+    with patch("sapguimcp.backend.desktop._sapsucker_login", side_effect=boom):
         result = await backend.login(
             url="ignored",
             username="user",
@@ -339,7 +339,7 @@ async def test_failed_login_does_not_prune_dead_sessions_either() -> None:
     def boom(**_kwargs: Any) -> Any:
         raise RuntimeError("transient")
 
-    with patch("sapwebguimcp.backend.desktop._sapsucker_login", side_effect=boom):
+    with patch("sapguimcp.backend.desktop._sapsucker_login", side_effect=boom):
         result = await backend.login(
             url="ignored",
             username="user",

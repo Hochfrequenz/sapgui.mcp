@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from sapwebguimcp.tools.se24_edit_tools import (
+from sapguimcp.tools.se24_edit_tools import (
     _edit_check_activate_method,
     _navigate_to_method_editor_desktop,
 )

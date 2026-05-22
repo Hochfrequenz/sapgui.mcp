@@ -18,7 +18,7 @@ SAP GUI Scripting API 800 (HTML docs installed at `C:\Program Files\SAP\FrontEnd
 ## Package Location
 
 ```
-src/sapwebguimcp/
+src/sapguimcp/
   sapgui/                    # standalone subpackage (future PyPI extraction)
     __init__.py              # public API: SapGui.connect(), SapGui.launch()
     _com.py                  # low-level COM helpers (GetObject, polling, CoInitialize)
@@ -522,9 +522,9 @@ COM objects are apartment-threaded. `_com.py` calls `pythoncom.CoInitialize()` b
 
 ## What Gets Added
 
-1. `src/sapwebguimcp/sapgui/` — the library (this spec)
+1. `src/sapguimcp/sapgui/` — the library (this spec)
 2. `unittests/sapgui/` — library tests
-3. Later: `src/sapwebguimcp/backend/desktop/` — MCP backend adapter (separate spec)
+3. Later: `src/sapguimcp/backend/desktop/` — MCP backend adapter (separate spec)
 
 ## Implementation Order
 

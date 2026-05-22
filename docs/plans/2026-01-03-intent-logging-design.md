@@ -123,7 +123,7 @@ async def get_session_intent_log(session_id: str) -> str:
 **Logger:** Uses standard `__name__` convention
 
 ```python
-# In sapwebguimcp/tools/intent_tools.py
+# In sapguimcp/tools/intent_tools.py
 _logger = logging.getLogger(__name__)
 
 def log_intent(...):
@@ -137,7 +137,7 @@ def log_intent(...):
 **New files:**
 
 ```
-src/sapwebguimcp/
+src/sapguimcp/
 ├── tools/
 │   └── intent_tools.py       # log_intent tool
 ├── loghandlers/
@@ -162,14 +162,14 @@ src/sapwebguimcp/
 ```json
 "args": [
   "run", "-i", "--rm",
-  "--network", "sapwebguimcp_default",
-  "-v", "C:/Users/Username/.sapwebgui-mcp/audit:/app/audit",
+  "--network", "sapguimcp_default",
+  "-v", "C:/Users/Username/.sapgui-mcp/audit:/app/audit",
   "-e", "AUDIT_LOG_DIR=/app/audit",
   ...
 ]
 ```
 
-**Host side:** `~/.sapwebgui-mcp/audit/`
+**Host side:** `~/.sapgui-mcp/audit/`
 **Container side:** `/app/audit/`
 
 ## Usage Examples

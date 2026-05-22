@@ -7,8 +7,8 @@ These tests run against a real SAP system to verify the sap_se09_lookup tool.
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import LoginResult, ShortcutsResult
-from sapwebguimcp.models.se09_models import TransportListResult
+from sapguimcp.models import LoginResult, ShortcutsResult
+from sapguimcp.models.se09_models import TransportListResult
 
 from .conftest import call_tool_typed
 from .integration_helpers import capture_html_snapshot

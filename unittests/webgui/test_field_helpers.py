@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from sapwebguimcp.tools.field_helpers import fill_and_display, fill_field_with_keyboard
+from sapguimcp.tools.field_helpers import fill_and_display, fill_field_with_keyboard
 
 
 def _make_backend(

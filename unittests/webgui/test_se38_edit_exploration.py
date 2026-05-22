@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.backend.webgui.models.browser_results import SnapshotResult
-from sapwebguimcp.models import FillFormResult, KeyboardResult, LoginResult, StatusBarInfo, TransactionResult
+from sapguimcp.backend.webgui.models.browser_results import SnapshotResult
+from sapguimcp.models import FillFormResult, KeyboardResult, LoginResult, StatusBarInfo, TransactionResult
 
 from .conftest import call_tool_typed
 
@@ -454,7 +454,7 @@ async def test_se38_edit_round_trip(sap_mcp_client: ClientSession) -> None:
     4. Restore original source via sap_se38_edit
     5. Verify restoration succeeded
     """
-    from sapwebguimcp.models.se38_edit_models import SE38EditResult
+    from sapguimcp.models.se38_edit_models import SE38EditResult
 
     # Login
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)

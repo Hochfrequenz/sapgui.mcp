@@ -6,12 +6,12 @@ Automatically create GitHub issues from model feedback logged via `log_feedback`
 
 ## Configuration
 
-Two new env vars in `SapWebGuiSettings`:
+Two new env vars in `SapGuiSettings`:
 
 | Variable      | Description                                       | Default                      |
 | ------------- | ------------------------------------------------- | ---------------------------- |
 | `GITHUB_PAT`  | GitHub PAT for creating issues (empty = disabled) | (empty)                      |
-| `GITHUB_REPO` | Repository for issues (owner/repo)                | `Hochfrequenz/sapwebgui.mcp` |
+| `GITHUB_REPO` | Repository for issues (owner/repo)                | `Hochfrequenz/sapgui.mcp` |
 
 ## Architecture
 
@@ -100,10 +100,10 @@ Unit tests with `respx` (httpx mocking):
 
 ## Files to Create/Modify
 
-1. `src/sapwebguimcp/models/config.py` - Add `github_pat`, `github_repo`
-2. `src/sapwebguimcp/models/intent_models.py` - Extend `FeedbackLogResult`
-3. `src/sapwebguimcp/loghandlers/feedback_issue_handler.py` - New handler
-4. `src/sapwebguimcp/loghandlers/__init__.py` - Export new handler
-5. `src/sapwebguimcp/server.py` - Register handler if PAT configured
+1. `src/sapguimcp/models/config.py` - Add `github_pat`, `github_repo`
+2. `src/sapguimcp/models/intent_models.py` - Extend `FeedbackLogResult`
+3. `src/sapguimcp/loghandlers/feedback_issue_handler.py` - New handler
+4. `src/sapguimcp/loghandlers/__init__.py` - Export new handler
+5. `src/sapguimcp/server.py` - Register handler if PAT configured
 6. `README.md` - Document new env vars
 7. `unittests/test_feedback_issue_handler.py` - Unit tests

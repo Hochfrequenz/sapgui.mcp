@@ -10,7 +10,7 @@ The other workflow tools (`workflow_list`, `workflow_save`, `workflow_submit`, `
 
 ### 1. Remove `workflow_run` tool and its helper
 
-**File:** `src/sapwebguimcp/tools/workflow_tools.py`
+**File:** `src/sapguimcp/tools/workflow_tools.py`
 
 - Delete `_execute_workflow_run()` (lines 41-126)
 - Delete the `workflow_run` tool registration (lines 261-276)
@@ -18,7 +18,7 @@ The other workflow tools (`workflow_list`, `workflow_save`, `workflow_submit`, `
 
 ### 2. Remove `get_sampling_tools()`
 
-**File:** `src/sapwebguimcp/tools/sap_tool_impl.py`
+**File:** `src/sapguimcp/tools/sap_tool_impl.py`
 
 - Delete `get_sampling_tools()` function (lines 378-395)
 - Remove it from `__all__` (line 40)
@@ -26,12 +26,12 @@ The other workflow tools (`workflow_list`, `workflow_save`, `workflow_submit`, `
 
 ### 3. Remove `WorkflowRunResult` and `WorkflowError` models
 
-**File:** `src/sapwebguimcp/models/workflow_models.py`
+**File:** `src/sapguimcp/models/workflow_models.py`
 
 - Delete `WorkflowError` class (lines 57-62)
 - Delete `WorkflowRunResult` class (lines 64-77)
 
-**File:** `src/sapwebguimcp/models/__init__.py`
+**File:** `src/sapguimcp/models/__init__.py`
 
 - Remove `WorkflowError` and `WorkflowRunResult` from imports and `__all__`
 
@@ -69,5 +69,5 @@ The other workflow tools (`workflow_list`, `workflow_save`, `workflow_submit`, `
 - `workflow_list`, `workflow_save`, `workflow_submit`, `workflow_delete` tools
 - `Workflow`, `WorkflowListResult`, `WorkflowSaveInput`, `WorkflowSaveResult`, `WorkflowDeleteResult`, `WorkflowSubmitResult` models
 - `workflow_storage.py` (load/save/delete workflows)
-- Bundled workflows in `src/sapwebguimcp/workflows/`
+- Bundled workflows in `src/sapguimcp/workflows/`
 - All `sap_*_impl` functions in `sap_tool_impl.py` (used by MCP tools directly)

@@ -10,7 +10,7 @@ import httpx
 import pytest
 import respx
 
-from sapwebguimcp.loghandlers.feedback_issue_handler import FeedbackIssueHandler
+from sapguimcp.loghandlers.feedback_issue_handler import FeedbackIssueHandler
 
 
 class TestFeedbackIssueHandler:

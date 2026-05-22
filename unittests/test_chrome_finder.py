@@ -10,13 +10,13 @@ from unittest.mock import patch
 
 import pytest
 
-from sapwebguimcp.backend.webgui.chrome_finder import (
+from sapguimcp.backend.webgui.chrome_finder import (
     extract_port_from_cdp_url,
     find_chrome,
     launch_chrome,
     wait_for_cdp,
 )
-from sapwebguimcp.models.config import SapWebGuiSettings
+from sapguimcp.models.config import SapGuiSettings
 
 # =============================================================================
 # Tests for find_chrome()
@@ -171,26 +171,26 @@ class TestConfigIntegration:
     def test_default_chrome_path_is_empty(self) -> None:
         """CHROME_PATH should default to empty string."""
         with patch.dict(os.environ, {}, clear=True):
-            settings = SapWebGuiSettings(_env_file=None)
+            settings = SapGuiSettings(_env_file=None)
         assert settings.chrome_path == ""
 
     def test_default_chrome_user_data_dir(self) -> None:
         """CHROME_USER_DATA_DIR should default to <tempdir>/chrome-debug."""
         with patch.dict(os.environ, {}, clear=True):
-            settings = SapWebGuiSettings(_env_file=None)
+            settings = SapGuiSettings(_env_file=None)
         expected = str(Path(tempfile.gettempdir()) / "chrome-debug")
         assert settings.chrome_user_data_dir == expected
 
     def test_chrome_path_from_env(self) -> None:
         """CHROME_PATH should be loadable from environment."""
         with patch.dict(os.environ, {"CHROME_PATH": r"C:\custom\chrome.exe"}, clear=True):
-            settings = SapWebGuiSettings(_env_file=None)
+            settings = SapGuiSettings(_env_file=None)
         assert settings.chrome_path == r"C:\custom\chrome.exe"
 
     def test_chrome_user_data_dir_from_env(self) -> None:
         """CHROME_USER_DATA_DIR should be loadable from environment."""
         with patch.dict(os.environ, {"CHROME_USER_DATA_DIR": r"D:\my-chrome"}, clear=True):
-            settings = SapWebGuiSettings(_env_file=None)
+            settings = SapGuiSettings(_env_file=None)
         assert settings.chrome_user_data_dir == r"D:\my-chrome"
 
 

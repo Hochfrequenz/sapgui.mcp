@@ -29,7 +29,7 @@ async def test_open_second_session(backend):
 @pytest.mark.anyio
 async def test_parallel_navigation(backend):
     """Two sessions navigate to different transactions concurrently."""
-    from sapwebguimcp.backend.desktop import _current_session_id
+    from sapguimcp.backend.desktop import _current_session_id
 
     sid2, _, _ = await backend.open_new_session("SE00")
     assert sid2 is not None and sid2 != "s1"

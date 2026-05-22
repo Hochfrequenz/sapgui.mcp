@@ -29,11 +29,11 @@ FastMCP exposes the `description` parameter via MCP, but ignores docstrings for 
 
 **Files affected:**
 
-- `src/sapwebguimcp/tools/sap_tools.py`
-- `src/sapwebguimcp/tools/browser_tools.py`
-- `src/sapwebguimcp/tools/intent_tools.py`
-- `src/sapwebguimcp/tools/feedback_tools.py`
-- `src/sapwebguimcp/tools/workflow_tools.py`
+- `src/sapguimcp/tools/sap_tools.py`
+- `src/sapguimcp/tools/browser_tools.py`
+- `src/sapguimcp/tools/intent_tools.py`
+- `src/sapguimcp/tools/feedback_tools.py`
+- `src/sapguimcp/tools/workflow_tools.py`
 
 ### Part B: New `sap_get_capabilities()` tool
 
@@ -59,7 +59,7 @@ async def sap_get_capabilities() -> CapabilitiesResult:  # pylint: disable=missi
 ### Part C: New models
 
 ```python
-# In src/sapwebguimcp/models/capabilities_models.py
+# In src/sapguimcp/models/capabilities_models.py
 
 class ToolInfo(BaseModel):
     """Information about a single tool."""

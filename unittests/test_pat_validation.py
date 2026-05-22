@@ -9,8 +9,8 @@ import pytest
 import respx
 from httpx import ConnectError, Response
 
-from sapwebguimcp.server import app_lifespan
-from sapwebguimcp.tools.abapgit_tools import validate_github_pat
+from sapguimcp.server import app_lifespan
+from sapguimcp.tools.abapgit_tools import validate_github_pat
 
 
 class TestValidateGithubPat:
@@ -83,7 +83,7 @@ class TestStartupPatValidation:
         respx.get("http://localhost:9222/json/version").mock(return_value=Response(200, json={"Browser": "Chrome/120"}))
         respx.get("https://api.github.com/user").mock(return_value=Response(200, json={"login": "hf-kklein"}))
         monkeypatch.setenv("ABAPGIT_PAT", "ghp_fake_valid_token")
-        from sapwebguimcp.models import config as config_mod
+        from sapguimcp.models import config as config_mod
 
         monkeypatch.setattr(config_mod, "_settings", None)
 
@@ -102,7 +102,7 @@ class TestStartupPatValidation:
         respx.get("http://localhost:9222/json/version").mock(return_value=Response(200, json={"Browser": "Chrome/120"}))
         respx.get("https://api.github.com/user").mock(return_value=Response(401, json={"message": "Bad credentials"}))
         monkeypatch.setenv("ABAPGIT_PAT", "ghp_fake_expired_token")
-        from sapwebguimcp.models import config as config_mod
+        from sapguimcp.models import config as config_mod
 
         monkeypatch.setattr(config_mod, "_settings", None)
 
@@ -121,7 +121,7 @@ class TestStartupPatValidation:
         respx.get("http://localhost:9222/json/version").mock(return_value=Response(200, json={"Browser": "Chrome/120"}))
         monkeypatch.setenv("ABAPGIT_PAT", "")
         monkeypatch.setenv("GITHUB_PAT", "")
-        from sapwebguimcp.models import config as config_mod
+        from sapguimcp.models import config as config_mod
 
         monkeypatch.setattr(config_mod, "_settings", None)
 
@@ -141,7 +141,7 @@ class TestStartupPatValidation:
         respx.get("https://api.github.com/user").mock(return_value=Response(200, json={"login": "testuser"}))
         monkeypatch.setenv("ABAPGIT_PAT", "")
         monkeypatch.setenv("GITHUB_PAT", "ghp_fake_github_token")
-        from sapwebguimcp.models import config as config_mod
+        from sapguimcp.models import config as config_mod
 
         monkeypatch.setattr(config_mod, "_settings", None)
 
@@ -160,14 +160,14 @@ class TestAnalyzePullResultFallback:
         """Empty status bar should return failure, not success."""
         from unittest.mock import patch
 
-        from sapwebguimcp.tools.abapgit_tools import _analyze_pull_result
+        from sapguimcp.tools.abapgit_tools import _analyze_pull_result
 
         mock_status = type("Status", (), {"message": "", "type": "none"})()
         mock_backend = AsyncMock()
         mock_backend.get_status_bar = AsyncMock(return_value=mock_status)
 
         with patch(
-            "sapwebguimcp.tools.abapgit_tools._check_screen_for_errors",
+            "sapguimcp.tools.abapgit_tools._check_screen_for_errors",
             new_callable=AsyncMock,
             return_value=None,
         ):
@@ -194,12 +194,12 @@ class TestRunPullAndCheckErrors:
         """After F8, should wait for networkidle instead of hardcoded timeouts."""
         from unittest.mock import call, patch
 
-        from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
+        from sapguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
         mock_backend = self._mock_backend_no_popup()
 
         with patch(
-            "sapwebguimcp.tools.abapgit_tools._handle_popup_error",
+            "sapguimcp.tools.abapgit_tools._handle_popup_error",
             new_callable=AsyncMock,
             return_value=None,
         ):
@@ -220,13 +220,13 @@ class TestRunPullAndCheckErrors:
         """If networkidle times out, should log warning and continue (not crash)."""
         from unittest.mock import patch
 
-        from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
+        from sapguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
         mock_backend = self._mock_backend_no_popup()
         mock_backend.wait_for_ready = AsyncMock(side_effect=TimeoutError("networkidle timeout"))
 
         with patch(
-            "sapwebguimcp.tools.abapgit_tools._handle_popup_error",
+            "sapguimcp.tools.abapgit_tools._handle_popup_error",
             new_callable=AsyncMock,
             return_value=None,
         ):
@@ -240,8 +240,8 @@ class TestRunPullAndCheckErrors:
         """When 'Inaktive Objekte' popup appears after pull, it should be confirmed."""
         from unittest.mock import call, patch
 
-        from sapwebguimcp.models.base import PopupInfo, PopupType
-        from sapwebguimcp.tools.abapgit_tools import _run_pull_and_check_errors
+        from sapguimcp.models.base import PopupInfo, PopupType
+        from sapguimcp.tools.abapgit_tools import _run_pull_and_check_errors
 
         mock_backend = AsyncMock()
         mock_backend.press_key = AsyncMock()
@@ -251,7 +251,7 @@ class TestRunPullAndCheckErrors:
         )
 
         with patch(
-            "sapwebguimcp.tools.abapgit_tools._handle_popup_error",
+            "sapguimcp.tools.abapgit_tools._handle_popup_error",
             new_callable=AsyncMock,
             return_value=None,
         ):

@@ -1,5 +1,5 @@
 {
-  "name": "sapwebguimcp",
+  "name": "sapguimcp",
   "private": true,
   "description": "JavaScript and Markdown formatting for SAP Web GUI MCP Server",
   "devDependencies": {

@@ -5,8 +5,8 @@ import sys
 
 import pytest
 
-from sapwebguimcp.models.se09_models import TransportListResult
-from sapwebguimcp.tools.se09_tools import _lookup_transports_desktop
+from sapguimcp.models.se09_models import TransportListResult
+from sapguimcp.tools.se09_tools import _lookup_transports_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

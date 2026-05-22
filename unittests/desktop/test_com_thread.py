@@ -5,7 +5,7 @@ import asyncio
 
 import pytest
 
-from sapwebguimcp.backend.desktop._com_thread import ComThread
+from sapguimcp.backend.desktop._com_thread import ComThread
 
 
 @pytest.fixture

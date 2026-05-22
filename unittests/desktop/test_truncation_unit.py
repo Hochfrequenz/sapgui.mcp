@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from sapsucker.models import ElementInfo
 
-from sapwebguimcp.backend.desktop._truncation import compute_tree_depth, truncate_tree
+from sapguimcp.backend.desktop._truncation import compute_tree_depth, truncate_tree
 
 
 def _elem(id: str, children: list | None = None) -> ElementInfo:

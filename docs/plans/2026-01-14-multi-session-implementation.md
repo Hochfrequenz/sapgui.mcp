@@ -16,8 +16,8 @@
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/base.py`
-- Modify: `src/sapwebguimcp/models/__init__.py`
+- Modify: `src/sapguimcp/models/base.py`
+- Modify: `src/sapguimcp/models/__init__.py`
 - Test: `unittests/test_models.py`
 
 **Step 1: Write the failing test**
@@ -30,7 +30,7 @@ class TestSessionIdValidation:
 
     def test_valid_session_id(self) -> None:
         """Test valid session ID format."""
-        from sapwebguimcp.models import SessionId
+        from sapguimcp.models import SessionId
         from pydantic import TypeAdapter
 
         adapter = TypeAdapter(SessionId)
@@ -39,7 +39,7 @@ class TestSessionIdValidation:
 
     def test_session_id_normalized_to_lowercase(self) -> None:
         """Test that session IDs are normalized to lowercase."""
-        from sapwebguimcp.models import SessionId
+        from sapguimcp.models import SessionId
         from pydantic import TypeAdapter
 
         adapter = TypeAdapter(SessionId)
@@ -48,7 +48,7 @@ class TestSessionIdValidation:
 
     def test_invalid_session_id_rejected(self) -> None:
         """Test that invalid session IDs raise ValidationError."""
-        from sapwebguimcp.models import SessionId
+        from sapguimcp.models import SessionId
         from pydantic import TypeAdapter, ValidationError
 
         adapter = TypeAdapter(SessionId)
@@ -67,7 +67,7 @@ Expected: FAIL with "cannot import name 'SessionId'"
 
 **Step 3: Write minimal implementation**
 
-Add to `src/sapwebguimcp/models/base.py` after the TCode definition (~line 12):
+Add to `src/sapguimcp/models/base.py` after the TCode definition (~line 12):
 
 ```python
 # Session ID type: lowercase 's' followed by digits (s1, s2, s3, ...)
@@ -77,7 +77,7 @@ SessionId = Annotated[str, BeforeValidator(str.lower), Field(pattern=_SESSION_ID
 
 **Step 4: Export SessionId**
 
-Add to `src/sapwebguimcp/models/base.py` `__all__`:
+Add to `src/sapguimcp/models/base.py` `__all__`:
 
 ```python
 __all__ = [
@@ -86,10 +86,10 @@ __all__ = [
 ]
 ```
 
-Add to `src/sapwebguimcp/models/__init__.py`:
+Add to `src/sapguimcp/models/__init__.py`:
 
 ```python
-from sapwebguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, SessionId, TCode, ToolResult
+from sapguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, SessionId, TCode, ToolResult
 ```
 
 And add `"SessionId"` to the `__all__` list in `__init__.py`.
@@ -102,7 +102,7 @@ Expected: PASS
 **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/base.py src/sapwebguimcp/models/__init__.py unittests/test_models.py
+git add src/sapguimcp/models/base.py src/sapguimcp/models/__init__.py unittests/test_models.py
 git commit -m "feat(models): add SessionId type alias with validation"
 ```
 
@@ -112,8 +112,8 @@ git commit -m "feat(models): add SessionId type alias with validation"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/sap_results.py`
-- Modify: `src/sapwebguimcp/models/__init__.py`
+- Modify: `src/sapguimcp/models/sap_results.py`
+- Modify: `src/sapguimcp/models/__init__.py`
 - Test: `unittests/test_models.py`
 
 **Step 1: Write the failing test**
@@ -126,7 +126,7 @@ class TestSessionModels:
 
     def test_session_info_creation(self) -> None:
         """Test SessionInfo model creation."""
-        from sapwebguimcp.models import SessionInfo
+        from sapguimcp.models import SessionInfo
 
         info = SessionInfo(session_id="s1", tcode="VA01", title="Create Sales Order", is_primary=True)
         assert info.session_id == "s1"
@@ -135,7 +135,7 @@ class TestSessionModels:
 
     def test_session_open_result_success(self) -> None:
         """Test SessionOpenResult for successful session creation."""
-        from sapwebguimcp.models import SessionOpenResult
+        from sapguimcp.models import SessionOpenResult
 
         result = SessionOpenResult(session_id="s2", tcode="MM01", session_count=2)
         assert result.success is True
@@ -144,7 +144,7 @@ class TestSessionModels:
 
     def test_session_open_result_failure(self) -> None:
         """Test SessionOpenResult.failure() factory."""
-        from sapwebguimcp.models import SessionOpenResult
+        from sapguimcp.models import SessionOpenResult
 
         result = SessionOpenResult.failure("SAP session limit reached")
         assert result.success is False
@@ -152,7 +152,7 @@ class TestSessionModels:
 
     def test_session_list_result(self) -> None:
         """Test SessionListResult with multiple sessions."""
-        from sapwebguimcp.models import SessionInfo, SessionListResult
+        from sapguimcp.models import SessionInfo, SessionListResult
 
         result = SessionListResult(sessions=[
             SessionInfo(session_id="s1", is_primary=True),
@@ -163,7 +163,7 @@ class TestSessionModels:
 
     def test_session_close_result(self) -> None:
         """Test SessionCloseResult model."""
-        from sapwebguimcp.models import SessionCloseResult
+        from sapguimcp.models import SessionCloseResult
 
         result = SessionCloseResult(session_id="s2", remaining_sessions=1)
         assert result.success is True
@@ -178,10 +178,10 @@ Expected: FAIL with "cannot import name 'SessionInfo'"
 
 **Step 3: Write minimal implementation**
 
-Add to `src/sapwebguimcp/models/sap_results.py` after existing imports:
+Add to `src/sapguimcp/models/sap_results.py` after existing imports:
 
 ```python
-from sapwebguimcp.models.base import PopupInfo, SessionId, TCode, ToolResult
+from sapguimcp.models.base import PopupInfo, SessionId, TCode, ToolResult
 ```
 
 Then add after `SessionStatus` class (~line 77):
@@ -233,7 +233,7 @@ class SessionCloseResult(ToolResult):
 
 **Step 4: Export new models**
 
-Add to `src/sapwebguimcp/models/sap_results.py` imports in `__init__.py` and `__all__`:
+Add to `src/sapguimcp/models/sap_results.py` imports in `__init__.py` and `__all__`:
 
 - `SessionInfo`
 - `SessionOpenResult`
@@ -248,7 +248,7 @@ Expected: PASS
 **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/sap_results.py src/sapwebguimcp/models/__init__.py unittests/test_models.py
+git add src/sapguimcp/models/sap_results.py src/sapguimcp/models/__init__.py unittests/test_models.py
 git commit -m "feat(models): add session management result models"
 ```
 
@@ -258,8 +258,8 @@ git commit -m "feat(models): add session management result models"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/models/session_registry.py`
-- Modify: `src/sapwebguimcp/models/__init__.py`
+- Create: `src/sapguimcp/models/session_registry.py`
+- Modify: `src/sapguimcp/models/__init__.py`
 - Create: `unittests/test_session_registry.py`
 
 **Step 1: Write the failing tests**
@@ -272,7 +272,7 @@ Create `unittests/test_session_registry.py`:
 from unittest.mock import MagicMock, AsyncMock
 import pytest
 
-from sapwebguimcp.models.session_registry import SessionRegistry
+from sapguimcp.models.session_registry import SessionRegistry
 
 
 class TestSessionRegistryUnit:
@@ -403,11 +403,11 @@ class TestSessionRegistryUnit:
 **Step 2: Run test to verify it fails**
 
 Run: `pytest unittests/test_session_registry.py -v`
-Expected: FAIL with "No module named 'sapwebguimcp.models.session_registry'"
+Expected: FAIL with "No module named 'sapguimcp.models.session_registry'"
 
 **Step 3: Write minimal implementation**
 
-Create `src/sapwebguimcp/models/session_registry.py`:
+Create `src/sapguimcp/models/session_registry.py`:
 
 ```python
 """Session registry for tracking SAP browser sessions."""
@@ -540,10 +540,10 @@ Expected: PASS
 
 **Step 5: Export from models package**
 
-Add to `src/sapwebguimcp/models/__init__.py`:
+Add to `src/sapguimcp/models/__init__.py`:
 
 ```python
-from sapwebguimcp.models.session_registry import SessionRegistry
+from sapguimcp.models.session_registry import SessionRegistry
 ```
 
 Add `"SessionRegistry"` to `__all__`.
@@ -551,7 +551,7 @@ Add `"SessionRegistry"` to `__all__`.
 **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/session_registry.py src/sapwebguimcp/models/__init__.py unittests/test_session_registry.py
+git add src/sapguimcp/models/session_registry.py src/sapguimcp/models/__init__.py unittests/test_session_registry.py
 git commit -m "feat(models): add SessionRegistry with unit tests"
 ```
 
@@ -561,7 +561,7 @@ git commit -m "feat(models): add SessionRegistry with unit tests"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/browser.py`
+- Modify: `src/sapguimcp/models/browser.py`
 - Test: `unittests/test_session_registry.py`
 
 **Step 1: Write the failing test**
@@ -574,7 +574,7 @@ class TestBrowserManagerSessionIntegration:
 
     def test_browser_manager_has_registry(self) -> None:
         """Test that BrowserManager exposes session registry."""
-        from sapwebguimcp.models.browser import BrowserManager
+        from sapguimcp.models.browser import BrowserManager
 
         manager = BrowserManager()
         assert hasattr(manager, 'registry')
@@ -582,7 +582,7 @@ class TestBrowserManagerSessionIntegration:
 
     def test_browser_manager_get_session_page(self) -> None:
         """Test BrowserManager.get_session_page() method."""
-        from sapwebguimcp.models.browser import BrowserManager
+        from sapguimcp.models.browser import BrowserManager
         from unittest.mock import MagicMock
 
         manager = BrowserManager()
@@ -607,16 +607,16 @@ Expected: FAIL (no `registry` attribute or `get_session_page` method)
 
 **Step 3: Modify BrowserManager**
 
-In `src/sapwebguimcp/models/browser.py`, add import:
+In `src/sapguimcp/models/browser.py`, add import:
 
 ```python
-from sapwebguimcp.models.session_registry import SessionRegistry
+from sapguimcp.models.session_registry import SessionRegistry
 ```
 
 Modify `BrowserManager.__init__`:
 
 ```python
-def __init__(self, settings: Optional[SapWebGuiSettings] = None) -> None:
+def __init__(self, settings: Optional[SapGuiSettings] = None) -> None:
     self._settings = settings
     self._playwright: Optional[Playwright] = None
     self._browser: Optional[Browser] = None
@@ -651,7 +651,7 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/browser.py unittests/test_session_registry.py
+git add src/sapguimcp/models/browser.py unittests/test_session_registry.py
 git commit -m "feat(browser): integrate SessionRegistry into BrowserManager"
 ```
 
@@ -661,8 +661,8 @@ git commit -m "feat(browser): integrate SessionRegistry into BrowserManager"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/tools/session_tools.py`
-- Modify: `src/sapwebguimcp/server.py` (import new tools)
+- Create: `src/sapguimcp/tools/session_tools.py`
+- Modify: `src/sapguimcp/server.py` (import new tools)
 - Test: `unittests/test_session_tools.py`
 
 **Step 1: Write the failing tests**
@@ -682,12 +682,12 @@ class TestSessionToolsUnit:
     @pytest.mark.anyio
     async def test_sap_session_list_empty(self) -> None:
         """Test sap_session_list with no sessions."""
-        from sapwebguimcp.tools.session_tools import sap_session_list_impl
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapguimcp.tools.session_tools import sap_session_list_impl
+        from sapguimcp.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
 
-        with patch('sapwebguimcp.tools.session_tools.get_browser_manager') as mock_get_bm:
+        with patch('sapguimcp.tools.session_tools.get_browser_manager') as mock_get_bm:
             mock_manager = MagicMock()
             mock_manager.registry = registry
             mock_get_bm.return_value = mock_manager
@@ -700,8 +700,8 @@ class TestSessionToolsUnit:
     @pytest.mark.anyio
     async def test_sap_session_list_with_sessions(self) -> None:
         """Test sap_session_list with active sessions."""
-        from sapwebguimcp.tools.session_tools import sap_session_list_impl
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapguimcp.tools.session_tools import sap_session_list_impl
+        from sapguimcp.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
 
@@ -719,7 +719,7 @@ class TestSessionToolsUnit:
         registry.register(page1)
         registry.register(page2)
 
-        with patch('sapwebguimcp.tools.session_tools.get_browser_manager') as mock_get_bm:
+        with patch('sapguimcp.tools.session_tools.get_browser_manager') as mock_get_bm:
             mock_manager = MagicMock()
             mock_manager.registry = registry
             mock_get_bm.return_value = mock_manager
@@ -732,7 +732,7 @@ class TestSessionToolsUnit:
     @pytest.mark.anyio
     async def test_sap_session_close_rejects_primary(self) -> None:
         """Test that sap_session_close rejects closing s1."""
-        from sapwebguimcp.tools.session_tools import sap_session_close_impl
+        from sapguimcp.tools.session_tools import sap_session_close_impl
 
         result = await sap_session_close_impl("s1")
 
@@ -742,12 +742,12 @@ class TestSessionToolsUnit:
     @pytest.mark.anyio
     async def test_sap_session_close_unknown_session(self) -> None:
         """Test sap_session_close with unknown session."""
-        from sapwebguimcp.tools.session_tools import sap_session_close_impl
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapguimcp.tools.session_tools import sap_session_close_impl
+        from sapguimcp.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
 
-        with patch('sapwebguimcp.tools.session_tools.get_browser_manager') as mock_get_bm:
+        with patch('sapguimcp.tools.session_tools.get_browser_manager') as mock_get_bm:
             mock_manager = MagicMock()
             mock_manager.registry = registry
             mock_get_bm.return_value = mock_manager
@@ -761,18 +761,18 @@ class TestSessionToolsUnit:
 **Step 2: Run test to verify it fails**
 
 Run: `pytest unittests/test_session_tools.py -v`
-Expected: FAIL with "No module named 'sapwebguimcp.tools.session_tools'"
+Expected: FAIL with "No module named 'sapguimcp.tools.session_tools'"
 
 **Step 3: Write minimal implementation**
 
-Create `src/sapwebguimcp/tools/session_tools.py`:
+Create `src/sapguimcp/tools/session_tools.py`:
 
 ```python
 """Session management tools for parallel sub-agent support."""
 
 import logging
 
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     SessionCloseResult,
     SessionInfo,
     SessionListResult,
@@ -943,7 +943,7 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/session_tools.py unittests/test_session_tools.py
+git add src/sapguimcp/tools/session_tools.py unittests/test_session_tools.py
 git commit -m "feat(tools): add session management tools (open/list/close)"
 ```
 
@@ -953,7 +953,7 @@ git commit -m "feat(tools): add session management tools (open/list/close)"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sap_tools.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py`
 - Test: `unittests/test_server.py`
 
 **Step 1: Write the failing test**
@@ -963,7 +963,7 @@ Add to `unittests/test_server.py`:
 ```python
 def test_session_tools_registered() -> None:
     """Test that session management tools are registered."""
-    from sapwebguimcp.server import mcp
+    from sapguimcp.server import mcp
 
     tool_names = [t.name for t in mcp._tool_manager._tools.values()]
 
@@ -979,10 +979,10 @@ Expected: FAIL (tools not registered)
 
 **Step 3: Add tool registrations**
 
-Add to `src/sapwebguimcp/tools/sap_tools.py` after existing imports:
+Add to `src/sapguimcp/tools/sap_tools.py` after existing imports:
 
 ```python
-from sapwebguimcp.tools.session_tools import (
+from sapguimcp.tools.session_tools import (
     sap_session_close_impl,
     sap_session_list_impl,
     sap_session_open_impl,
@@ -1039,7 +1039,7 @@ async def sap_session_close(session_id: str) -> SessionCloseResult:
 Add imports for result models at top of file:
 
 ```python
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     # ... existing imports
     SessionCloseResult,
     SessionListResult,
@@ -1055,7 +1055,7 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/sap_tools.py
+git add src/sapguimcp/tools/sap_tools.py
 git commit -m "feat(server): register session management tools"
 ```
 
@@ -1067,13 +1067,13 @@ This is a large task split into multiple sub-steps. We'll modify tools increment
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sap_tools.py`
-- Modify: `src/sapwebguimcp/tools/sap_tool_impl.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py`
+- Modify: `src/sapguimcp/tools/sap_tool_impl.py`
 - Test: Integration tests (manual for now)
 
 **Step 1: Add session parameter to sap_fill_form**
 
-In `src/sapwebguimcp/tools/sap_tools.py`, modify `sap_fill_form`:
+In `src/sapguimcp/tools/sap_tools.py`, modify `sap_fill_form`:
 
 ```python
 @mcp.tool(description="""Fill multiple SAP form fields in a single call.
@@ -1131,7 +1131,7 @@ Apply same pattern to:
 **Step 4: Commit after each batch of 3-4 tools**
 
 ```bash
-git add src/sapwebguimcp/tools/sap_tools.py
+git add src/sapguimcp/tools/sap_tools.py
 git commit -m "feat(tools): add session param to sap_fill_form, sap_transaction, sap_press_key"
 ```
 
@@ -1141,7 +1141,7 @@ git commit -m "feat(tools): add session param to sap_fill_form, sap_transaction,
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/browser_tools.py`
+- Modify: `src/sapguimcp/tools/browser_tools.py`
 
 Apply same pattern to:
 
@@ -1175,7 +1175,7 @@ page = browser_manager.get_session_page(session)
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/browser_tools.py
+git add src/sapguimcp/tools/browser_tools.py
 git commit -m "feat(tools): add session param to browser tools"
 ```
 
@@ -1185,18 +1185,18 @@ git commit -m "feat(tools): add session param to browser tools"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/se11_tools.py`
-- Modify: `src/sapwebguimcp/tools/se16_tools.py`
-- Modify: `src/sapwebguimcp/tools/se24_tools.py`
-- Modify: `src/sapwebguimcp/tools/se37_tools.py`
-- Modify: `src/sapwebguimcp/tools/se93_tools.py`
+- Modify: `src/sapguimcp/tools/se11_tools.py`
+- Modify: `src/sapguimcp/tools/se16_tools.py`
+- Modify: `src/sapguimcp/tools/se24_tools.py`
+- Modify: `src/sapguimcp/tools/se37_tools.py`
+- Modify: `src/sapguimcp/tools/se93_tools.py`
 
 Apply same pattern to each SE\* lookup tool.
 
 **Step 1: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/se*.py
+git add src/sapguimcp/tools/se*.py
 git commit -m "feat(tools): add session param to SE11/SE16/SE24/SE37/SE93 tools"
 ```
 
@@ -1234,7 +1234,7 @@ class TestSessionRegistryIntegration:
     @pytest.mark.anyio
     async def test_register_real_page(self, browser_context) -> None:
         """Test registering a real Playwright page."""
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapguimcp.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
         page = await browser_context.new_page()
@@ -1247,7 +1247,7 @@ class TestSessionRegistryIntegration:
     @pytest.mark.anyio
     async def test_page_close_auto_unregisters(self, browser_context) -> None:
         """Test that closing page triggers auto-unregister."""
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapguimcp.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
         page = await browser_context.new_page()
@@ -1266,7 +1266,7 @@ class TestSessionRegistryIntegration:
     @pytest.mark.anyio
     async def test_multiple_pages_independent(self, browser_context) -> None:
         """Test multiple pages are tracked independently."""
-        from sapwebguimcp.models.session_registry import SessionRegistry
+        from sapguimcp.models.session_registry import SessionRegistry
 
         registry = SessionRegistry()
 
@@ -1326,7 +1326,7 @@ class TestSessionSAPIntegration:
     @pytest.mark.anyio
     async def test_sap_login_registers_s1(self, sap_mcp_client) -> None:
         """Test that sap_login creates primary session s1."""
-        from sapwebguimcp.models import SessionListResult
+        from sapguimcp.models import SessionListResult
 
         # Login first
         await sap_mcp_client.call_tool("sap_login", {})
@@ -1343,7 +1343,7 @@ class TestSessionSAPIntegration:
     @pytest.mark.anyio
     async def test_sap_session_open_creates_s2(self, sap_mcp_client) -> None:
         """Test that sap_session_open creates new session."""
-        from sapwebguimcp.models import SessionOpenResult
+        from sapguimcp.models import SessionOpenResult
 
         # Login first
         await sap_mcp_client.call_tool("sap_login", {})
@@ -1360,7 +1360,7 @@ class TestSessionSAPIntegration:
     @pytest.mark.anyio
     async def test_tool_targets_correct_session(self, sap_mcp_client) -> None:
         """Test that session parameter targets correct window."""
-        from sapwebguimcp.models import ScreenInfo
+        from sapguimcp.models import ScreenInfo
 
         # Login and open second session with different tcode
         await sap_mcp_client.call_tool("sap_login", {})
@@ -1395,7 +1395,7 @@ git commit -m "test(session): add E2E tests for SAP session management"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sap_tools.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py`
 
 **Step 1: Modify sap_login**
 
@@ -1414,7 +1414,7 @@ if not browser_manager.registry.has_session("s1"):
 **Step 2: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/sap_tools.py
+git add src/sapguimcp/tools/sap_tools.py
 git commit -m "feat(login): register primary session s1 on successful login"
 ```
 
@@ -1424,7 +1424,7 @@ git commit -m "feat(login): register primary session s1 on successful login"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/data/sap_knowledge.md`
+- Modify: `src/sapguimcp/data/sap_knowledge.md`
 - Modify: `README.md`
 
 **Step 1: Update sap_knowledge.md**
@@ -1466,7 +1466,7 @@ pytest unittests/ -v --tb=short
 **Step 3: Final commit**
 
 ```bash
-git add src/sapwebguimcp/data/sap_knowledge.md README.md
+git add src/sapguimcp/data/sap_knowledge.md README.md
 git commit -m "docs: add multi-session documentation"
 ```
 

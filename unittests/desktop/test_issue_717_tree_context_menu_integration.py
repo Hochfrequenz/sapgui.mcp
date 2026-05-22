@@ -20,7 +20,7 @@ import sys
 
 import pytest
 
-from sapwebguimcp.tools.tree_tools import _invoke_tree_context_menu
+from sapguimcp.tools.tree_tools import _invoke_tree_context_menu
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

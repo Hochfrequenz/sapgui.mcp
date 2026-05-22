@@ -16,12 +16,12 @@ A reusable login/logoff helper for the pysapgui library, plus a pytest fixture f
 SAP_CONNECTION_NAME=HF S/4
 ```
 
-Added to `SapWebGuiSettings` in `models/config.py` and `.env.example`. Also added to `clean_environment` in `unittests/conftest.py`. This is the SAP Logon entry name passed to `app.open_connection(name)`.
+Added to `SapGuiSettings` in `models/config.py` and `.env.example`. Also added to `clean_environment` in `unittests/conftest.py`. This is the SAP Logon entry name passed to `app.open_connection(name)`.
 
 ## Package Location
 
 ```
-src/sapwebguimcp/sapgui/
+src/sapguimcp/sapgui/
   _login.py              # login(), logoff(), _handle_multiple_logon_popup()
 
 unittests/sapgui/

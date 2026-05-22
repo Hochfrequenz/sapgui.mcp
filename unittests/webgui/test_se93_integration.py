@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.backend.webgui.models.browser_results import FillResult, SnapshotResult
-from sapwebguimcp.models import FillFormResult, KeyboardResult, LoginResult, StatusBarInfo, TableData, TransactionResult
+from sapguimcp.backend.webgui.models.browser_results import FillResult, SnapshotResult
+from sapguimcp.models import FillFormResult, KeyboardResult, LoginResult, StatusBarInfo, TableData, TransactionResult
 
 from .conftest import call_tool_typed
 from .integration_helpers import (
@@ -438,7 +438,7 @@ async def test_se93_lookup_single_dialog_transaction(sap_mcp_client: ClientSessi
     """
     Test sap_se93_lookup with a single dialog transaction (VA01).
     """
-    from sapwebguimcp.models import SE93Result
+    from sapguimcp.models import SE93Result
 
     # Login first
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
@@ -469,7 +469,7 @@ async def test_se93_lookup_single_report_transaction(sap_mcp_client: ClientSessi
     """
     Test sap_se93_lookup with a single report transaction (SE38).
     """
-    from sapwebguimcp.models import SE93Result
+    from sapguimcp.models import SE93Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -496,7 +496,7 @@ async def test_se93_lookup_batch_transactions(sap_mcp_client: ClientSession) -> 
     """
     Test sap_se93_lookup with multiple transactions (batch lookup).
     """
-    from sapwebguimcp.models import SE93Result
+    from sapguimcp.models import SE93Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -527,7 +527,7 @@ async def test_se93_lookup_not_found(sap_mcp_client: ClientSession) -> None:
     """
     Test sap_se93_lookup with non-existent transaction.
     """
-    from sapwebguimcp.models import SE93Result
+    from sapguimcp.models import SE93Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -551,7 +551,7 @@ async def test_se93_lookup_mixed_success_and_failure(sap_mcp_client: ClientSessi
     """
     Test sap_se93_lookup with mix of valid and invalid transactions.
     """
-    from sapwebguimcp.models import SE93Result
+    from sapguimcp.models import SE93Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -579,7 +579,7 @@ async def test_se93_lookup_gui_capabilities(sap_mcp_client: ClientSession) -> No
     """
     Test that GUI capabilities are correctly parsed.
     """
-    from sapwebguimcp.models import SE93Result
+    from sapguimcp.models import SE93Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"

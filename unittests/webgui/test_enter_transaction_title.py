@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from sapwebguimcp.models.sap_results import TransactionResult
+from sapguimcp.models.sap_results import TransactionResult
 
 
 @pytest.mark.anyio
@@ -15,7 +15,7 @@ async def test_enter_transaction_returns_new_title_after_slow_navigation():
 
     Reproduces Bug 2: title still shows previous transaction's title.
     """
-    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.backend.webgui.backend import WebGuiBackend
 
     page = AsyncMock()
     page.is_closed.return_value = False
@@ -68,7 +68,7 @@ async def test_enter_transaction_returns_new_title_after_slow_navigation():
 @pytest.mark.anyio
 async def test_poll_title_change_returns_on_timeout():
     """When title never changes (same-tcode navigation), _poll_title_change returns after timeout."""
-    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.backend.webgui.backend import WebGuiBackend
 
     page = AsyncMock()
     # Title never changes

@@ -93,7 +93,7 @@ async def test_02_se21_trigger_popup(backend):
             return None
         title = str(wnd1.text)
         tree = wnd1.dump_tree()
-        from sapwebguimcp.backend.desktop import _flatten
+        from sapguimcp.backend.desktop import _flatten
 
         flat = _flatten(tree)
         return {
@@ -191,7 +191,7 @@ async def test_03_se38_create_popup(backend):
         if wnd1 is None:
             return None
         tree = wnd1.dump_tree()
-        from sapwebguimcp.backend.desktop import _flatten
+        from sapguimcp.backend.desktop import _flatten
 
         return [
             {"id": e.id, "type": e.type, "type_num": e.type_as_number, "name": e.name, "text": e.text}

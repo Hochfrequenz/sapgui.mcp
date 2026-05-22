@@ -2,7 +2,7 @@
 Test-specific DE/EN language constants with explicit _DE/_EN suffixes.
 
 These constants are for test assertions that depend on SAP GUI language.
-Follows the same pattern as src/sapwebguimcp/lang.py but for test-only strings.
+Follows the same pattern as src/sapguimcp/lang.py but for test-only strings.
 """
 
 # =============================================================================

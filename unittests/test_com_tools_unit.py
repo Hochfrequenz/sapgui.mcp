@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, PropertyMock
 
 import pytest
 
-from sapwebguimcp.tools.com_tools import (
+from sapguimcp.tools.com_tools import (
     ComOperationInput,
     _execute_single_op,
     _serialize_com_result,

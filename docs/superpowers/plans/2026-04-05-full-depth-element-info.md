@@ -4,7 +4,7 @@
 
 **Goal:** Capture all SAP GUI COM properties in `ElementInfo`, remove depth limits from `dump_tree`, and add smart truncation with a `depth` parameter to MCP tools so the LLM knows when deeper elements exist and can request them.
 
-**Architecture:** Two repos, two feature branches. sapsucker (library) extends `ElementInfo` and removes depth limits. sapwebguimcp (MCP server) installs sapsucker in dev mode, removes hardcoded `max_depth` values, adds `depth` parameter + truncation metadata to LLM-facing tools. Internal backend code always uses the full tree.
+**Architecture:** Two repos, two feature branches. sapsucker (library) extends `ElementInfo` and removes depth limits. sapguimcp (MCP server) installs sapsucker in dev mode, removes hardcoded `max_depth` values, adds `depth` parameter + truncation metadata to LLM-facing tools. Internal backend code always uses the full tree.
 
 **Tech Stack:** Python 3.12, pydantic, SAP GUI Scripting COM (via sapsucker/pywin32), pytest
 
@@ -407,13 +407,13 @@ gh pr checks <PR_NUMBER>
 
 ---
 
-## Part B: sapwebguimcp changes (repo: `C:/github/sapwebgui.mcp`, branch: `feat/full-depth-tree`)
+## Part B: sapguimcp changes (repo: `C:/github/sapgui.mcp`, branch: `feat/full-depth-tree`)
 
 ### Prerequisites
 
 Install sapsucker dev mode:
 ```bash
-cd C:/github/sapwebgui.mcp
+cd C:/github/sapgui.mcp
 pip install -e C:/github/sapsucker
 ```
 
@@ -437,7 +437,7 @@ pip install -e C:/github/sapsucker
 - [ ] **Step 1: Create branch**
 
 ```bash
-cd C:/github/sapwebgui.mcp
+cd C:/github/sapgui.mcp
 git fetch origin main && git checkout -b feat/full-depth-tree origin/main
 ```
 
@@ -460,7 +460,7 @@ Expected: ` ` (two empty strings)
 ### Task B2: Create truncation helper
 
 **Files:**
-- Create: `src/sapwebguimcp/backend/desktop/_truncation.py`
+- Create: `src/sapguimcp/backend/desktop/_truncation.py`
 - Create: `unittests/desktop/test_truncation_unit.py`
 
 - [ ] **Step 1: Write tests**
@@ -471,7 +471,7 @@ from __future__ import annotations
 
 from sapsucker.models import ElementInfo
 
-from sapwebguimcp.backend.desktop._truncation import compute_tree_depth, truncate_tree
+from sapguimcp.backend.desktop._truncation import compute_tree_depth, truncate_tree
 
 
 def _elem(id: str, children: list | None = None) -> ElementInfo:
@@ -533,7 +533,7 @@ python -m pytest unittests/desktop/test_truncation_unit.py -v
 
 - [ ] **Step 3: Implement truncation helper**
 
-Create `src/sapwebguimcp/backend/desktop/_truncation.py`:
+Create `src/sapguimcp/backend/desktop/_truncation.py`:
 
 ```python
 """Tree truncation for LLM-facing tool responses.
@@ -609,7 +609,7 @@ python -m pytest unittests/desktop/test_truncation_unit.py -v
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/desktop/_truncation.py unittests/desktop/test_truncation_unit.py
+git add src/sapguimcp/backend/desktop/_truncation.py unittests/desktop/test_truncation_unit.py
 git commit -m "feat: add tree truncation helper for LLM-facing tool responses"
 ```
 
@@ -618,17 +618,17 @@ git commit -m "feat: add tree truncation helper for LLM-facing tool responses"
 ### Task B3: Remove all hardcoded `max_depth` values
 
 **Files:**
-- Modify: `src/sapwebguimcp/backend/desktop/__init__.py` (2 locations)
-- Modify: `src/sapwebguimcp/tools/sap_tools.py` (1 location)
-- Modify: `src/sapwebguimcp/tools/se24_edit_tools.py` (1 location)
-- Modify: `src/sapwebguimcp/tools/table_helpers.py` (1 location)
+- Modify: `src/sapguimcp/backend/desktop/__init__.py` (2 locations)
+- Modify: `src/sapguimcp/tools/sap_tools.py` (1 location)
+- Modify: `src/sapguimcp/tools/se24_edit_tools.py` (1 location)
+- Modify: `src/sapguimcp/tools/table_helpers.py` (1 location)
 
 - [ ] **Step 1: Find and remove all explicit `max_depth` args**
 
 Search for `max_depth` in the codebase:
 
 ```bash
-grep -rn "max_depth" src/sapwebguimcp/ --include="*.py"
+grep -rn "max_depth" src/sapguimcp/ --include="*.py"
 ```
 
 Remove the `max_depth=N` argument from each `dump_tree()` call:
@@ -676,10 +676,10 @@ git commit -m "feat: remove all hardcoded max_depth values, simplify tooltip fal
 ### Task B4: Add `depth` parameter to MCP tools
 
 **Files:**
-- Modify: `src/sapwebguimcp/tools/sap_tools.py`
-- Modify: `src/sapwebguimcp/tools/com_tools.py`
-- Modify: `src/sapwebguimcp/backend/desktop/__init__.py`
-- Modify: `src/sapwebguimcp/models/sap_results.py`
+- Modify: `src/sapguimcp/tools/sap_tools.py`
+- Modify: `src/sapguimcp/tools/com_tools.py`
+- Modify: `src/sapguimcp/backend/desktop/__init__.py`
+- Modify: `src/sapguimcp/models/sap_results.py`
 
 - [ ] **Step 1: Add truncation metadata to result models**
 
@@ -713,7 +713,7 @@ so the LLM knows if there are deeper elements.
 
 After getting fields from `backend.discover_fields()`, add truncation metadata:
 ```python
-    from sapwebguimcp.backend.desktop._truncation import compute_tree_depth
+    from sapguimcp.backend.desktop._truncation import compute_tree_depth
     # The backend searched full depth; report how deep the tree goes
     # (actual truncation only matters for snapshot/tree tools)
 ```
@@ -740,7 +740,7 @@ python -m pytest unittests/desktop/ -k "not integration" -v --tb=short
 
 ```bash
 python -m isort src/ unittests/ && python -m black src/ unittests/
-git add -u && git add src/sapwebguimcp/backend/desktop/_truncation.py unittests/desktop/test_truncation_unit.py
+git add -u && git add src/sapguimcp/backend/desktop/_truncation.py unittests/desktop/test_truncation_unit.py
 git commit -m "feat: add depth parameter to MCP tools with truncation metadata"
 ```
 

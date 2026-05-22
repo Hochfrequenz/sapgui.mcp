@@ -9,8 +9,8 @@ import os
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.backend.webgui.models.browser_results import ClickResult, WaitResult
-from sapwebguimcp.models import (
+from sapguimcp.backend.webgui.models.browser_results import ClickResult, WaitResult
+from sapguimcp.models import (
     FillFormResult,
     FormFieldsResult,
     KeyboardResult,

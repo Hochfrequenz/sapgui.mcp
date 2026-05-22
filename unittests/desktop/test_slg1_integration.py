@@ -6,8 +6,8 @@ from datetime import date
 
 import pytest
 
-from sapwebguimcp.models.slg1_models import SLG1LogListResult
-from sapwebguimcp.tools.slg1_tools import _slg1_lookup_desktop
+from sapguimcp.models.slg1_models import SLG1LogListResult
+from sapguimcp.tools.slg1_tools import _slg1_lookup_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

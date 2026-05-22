@@ -8,9 +8,9 @@ Tests cover:
 
 import pytest
 
-from sapwebguimcp.classcatalog.loader import get_catalog, load_catalog
-from sapwebguimcp.classcatalog.models import ClassCatalog, ClassEntry
-from sapwebguimcp.classcatalog.search import ClassSearchResult, search_classes
+from sapguimcp.classcatalog.loader import get_catalog, load_catalog
+from sapguimcp.classcatalog.models import ClassCatalog, ClassEntry
+from sapguimcp.classcatalog.search import ClassSearchResult, search_classes
 
 
 class TestClassCatalogLoader:
@@ -143,8 +143,8 @@ class TestFuzzyClassSearch:
     """Tests for fuzzy matching in class search (GH-250)."""
 
     def test_fuzzy_finds_class_by_partial_description(self) -> None:
-        from sapwebguimcp.classcatalog.models import ClassCatalog, ClassEntry
-        from sapwebguimcp.classcatalog.search import search_classes
+        from sapguimcp.classcatalog.models import ClassCatalog, ClassEntry
+        from sapguimcp.classcatalog.search import search_classes
 
         cls = ClassEntry(name="CL_TEST", description="Vertragsverwaltung Utilities")
         catalog = ClassCatalog(classes={"CL_TEST": cls}, source_system="test", language="DE")

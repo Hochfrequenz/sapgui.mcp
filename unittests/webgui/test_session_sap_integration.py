@@ -15,7 +15,7 @@ class TestSessionSAPIntegration:
     @pytest.mark.anyio
     async def test_sap_session_list_after_login(self, sap_mcp_client) -> None:
         """Test that sap_session_list works after login."""
-        from sapwebguimcp.models import SessionListResult
+        from sapguimcp.models import SessionListResult
 
         # Login first
         await sap_mcp_client.call_tool("sap_login", {})
@@ -30,7 +30,7 @@ class TestSessionSAPIntegration:
     @pytest.mark.anyio
     async def test_sap_session_close_primary_rejected(self, sap_mcp_client) -> None:
         """Test that closing primary session is rejected."""
-        from sapwebguimcp.models import SessionCloseResult
+        from sapguimcp.models import SessionCloseResult
 
         await sap_mcp_client.call_tool("sap_login", {})
 
@@ -42,7 +42,7 @@ class TestSessionSAPIntegration:
     @pytest.mark.anyio
     async def test_sap_transaction_new_window_auto_registers_session(self, sap_mcp_client) -> None:
         """Test that sap_transaction with new_window=True auto-registers the new session."""
-        from sapwebguimcp.models import SessionCloseResult, SessionListResult, TransactionResult
+        from sapguimcp.models import SessionCloseResult, SessionListResult, TransactionResult
 
         # Login first
         await sap_mcp_client.call_tool("sap_login", {})

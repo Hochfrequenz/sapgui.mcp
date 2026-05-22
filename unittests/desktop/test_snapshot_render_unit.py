@@ -1,6 +1,6 @@
 """Unit tests for snapshot line rendering.
 
-Regression test for https://github.com/Hochfrequenz/sapwebgui.mcp/issues/717
+Regression test for https://github.com/Hochfrequenz/sapgui.mcp/issues/717
 — the reporter could not figure out the full COM ID of a tree inside a
 ``GuiDockShell`` because the snapshot only showed ``{type}[{name}]`` and
 they had to reconstruct the path from indentation. The fix is to also
@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from sapsucker.models import ElementInfo
 
-from sapwebguimcp.backend.desktop._snapshot_render import render_snapshot_lines
+from sapguimcp.backend.desktop._snapshot_render import render_snapshot_lines
 
 
 def _elem(

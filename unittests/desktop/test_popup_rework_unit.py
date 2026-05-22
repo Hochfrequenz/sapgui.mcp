@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.backend.desktop import _active_window_id, _flatten
+from sapguimcp.backend.desktop import _active_window_id, _flatten
 
 
 def _make_session(*, has_wnd1: bool = False, has_wnd2: bool = False, has_wnd3: bool = False) -> MagicMock:

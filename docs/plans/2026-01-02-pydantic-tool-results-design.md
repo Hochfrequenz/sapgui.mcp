@@ -25,7 +25,7 @@ Create Pydantic models for all tool return types with:
 ## Package Structure
 
 ```
-src/sapwebguimcp/models/
+src/sapguimcp/models/
 ├── __init__.py          # Add new exports
 ├── base.py              # NEW: ToolResult base class
 ├── browser_manager.py   # Existing
@@ -92,7 +92,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from sapwebguimcp.models.base import TCODE_PATTERN, ToolResult
+from sapguimcp.models.base import TCODE_PATTERN, ToolResult
 
 
 class LoginResult(ToolResult):
@@ -223,7 +223,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from sapwebguimcp.models.base import ToolResult
+from sapguimcp.models.base import ToolResult
 
 
 class SnapshotResult(ToolResult):
@@ -302,9 +302,9 @@ class SelectOptionResult(ToolResult):
 ## Updated `models/__init__.py`
 
 ```python
-from sapwebguimcp.models.base import TCODE_PATTERN, ToolResult
-from sapwebguimcp.models.browser_manager import BrowserManager, get_browser_manager
-from sapwebguimcp.models.browser_results import (
+from sapguimcp.models.base import TCODE_PATTERN, ToolResult
+from sapguimcp.models.browser_manager import BrowserManager, get_browser_manager
+from sapguimcp.models.browser_results import (
     BrowserKeyboardResult,
     ClickResult,
     EvaluateResult,
@@ -316,8 +316,8 @@ from sapwebguimcp.models.browser_results import (
     SnapshotResult,
     WaitResult,
 )
-from sapwebguimcp.models.keepalive import KeepaliveManager
-from sapwebguimcp.models.sap_results import (
+from sapguimcp.models.keepalive import KeepaliveManager
+from sapguimcp.models.sap_results import (
     DiscoveredFields,
     FieldInfo,
     FieldLookupResult,
@@ -373,10 +373,10 @@ In `server.py`:
 
 ```python
 # Before:
-mcp = FastMCP("sapwebgui")
+mcp = FastMCP("sapgui")
 
 # After:
-mcp = FastMCP("sapwebgui", strict_input_validation=True)
+mcp = FastMCP("sapgui", strict_input_validation=True)
 ```
 
 ## Screenshot Special Case

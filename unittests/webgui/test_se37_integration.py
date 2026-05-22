@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.backend.webgui.models.browser_results import SnapshotResult
-from sapwebguimcp.models import FillFormResult, KeyboardResult, LoginResult, StatusBarInfo, TransactionResult
+from sapguimcp.backend.webgui.models.browser_results import SnapshotResult
+from sapguimcp.models import FillFormResult, KeyboardResult, LoginResult, StatusBarInfo, TransactionResult
 
 from .conftest import call_tool_typed
 
@@ -425,7 +425,7 @@ async def test_se37_lookup_single_function_module(sap_mcp_client: ClientSession)
     """
     Test sap_se37_lookup with a single function module (RFC_READ_TABLE).
     """
-    from sapwebguimcp.models import SE37Result
+    from sapguimcp.models import SE37Result
 
     # Login first
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
@@ -457,7 +457,7 @@ async def test_se37_lookup_batch_function_modules(sap_mcp_client: ClientSession)
     """
     Test sap_se37_lookup with multiple function modules (batch lookup).
     """
-    from sapwebguimcp.models import SE37Result
+    from sapguimcp.models import SE37Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -483,7 +483,7 @@ async def test_se37_lookup_not_found(sap_mcp_client: ClientSession) -> None:
     """
     Test sap_se37_lookup with non-existent function module.
     """
-    from sapwebguimcp.models import SE37Result
+    from sapguimcp.models import SE37Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -507,7 +507,7 @@ async def test_se37_lookup_mixed_success_and_failure(sap_mcp_client: ClientSessi
     """
     Test sap_se37_lookup with mix of valid and invalid function modules.
     """
-    from sapwebguimcp.models import SE37Result
+    from sapguimcp.models import SE37Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -535,7 +535,7 @@ async def test_se37_lookup_parameters_parsing(sap_mcp_client: ClientSession) -> 
     """
     Test that import/export/tables parameters are correctly parsed.
     """
-    from sapwebguimcp.models import SE37Result
+    from sapguimcp.models import SE37Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -575,7 +575,7 @@ async def test_se37_lookup_exceptions_parsing(sap_mcp_client: ClientSession) -> 
     """
     Test that exceptions are correctly parsed.
     """
-    from sapwebguimcp.models import SE37Result
+    from sapguimcp.models import SE37Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"

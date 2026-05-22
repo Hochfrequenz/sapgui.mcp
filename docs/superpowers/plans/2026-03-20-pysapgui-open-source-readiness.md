@@ -4,7 +4,7 @@
 
 **Goal:** Prepare the pysapgui library for open-source release by filling API gaps, improving design, adding documentation/tests, and finally extracting to its own repo.
 
-**Architecture:** pysapgui is a typed Python wrapper around the SAP GUI Scripting COM API. It lives at `src/sapwebguimcp/sapgui/` with 28 source files and 15 test files. Zero coupling to the MCP server. Work happens in-place; extraction is the final step.
+**Architecture:** pysapgui is a typed Python wrapper around the SAP GUI Scripting COM API. It lives at `src/sapguimcp/sapgui/` with 28 source files and 15 test files. Zero coupling to the MCP server. Work happens in-place; extraction is the final step.
 
 **Tech Stack:** Python 3.10+, pywin32 (COM), Pydantic v2 (models), pytest
 
@@ -53,7 +53,7 @@ All Phase 1 tasks are independent and can be parallelized.
 ### Task 1: GuiGridView — fill missing methods (#473)
 
 **Files:**
-- Modify: `src/sapwebguimcp/sapgui/components/grid.py` (189 lines, append after line 189)
+- Modify: `src/sapguimcp/sapgui/components/grid.py` (189 lines, append after line 189)
 - Modify: `unittests/sapgui/test_grid.py` (create if not exists, or append)
 
 - [ ] **Step 1: Write failing tests for missing grid methods**
@@ -63,7 +63,7 @@ Add to `unittests/sapgui/test_grid.py`:
 ```python
 """Tests for GuiGridView missing methods — issue #473."""
 from unittest.mock import MagicMock
-from sapwebguimcp.sapgui.components.grid import GuiGridView
+from sapguimcp.sapgui.components.grid import GuiGridView
 
 
 def _make_grid():
@@ -130,7 +130,7 @@ Expected: FAIL — methods not defined on GuiGridView
 
 - [ ] **Step 3: Implement missing methods**
 
-Append to `src/sapwebguimcp/sapgui/components/grid.py` inside the `GuiGridView` class (before the final line):
+Append to `src/sapguimcp/sapgui/components/grid.py` inside the `GuiGridView` class (before the final line):
 
 ```python
     # --- Cell info methods ---
@@ -182,9 +182,9 @@ Expected: ALL PASS
 - [ ] **Step 5: Run isort + black, then commit**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/components/grid.py unittests/sapgui/test_grid.py
-python -m black src/sapwebguimcp/sapgui/components/grid.py unittests/sapgui/test_grid.py
-git add src/sapwebguimcp/sapgui/components/grid.py unittests/sapgui/test_grid.py
+python -m isort src/sapguimcp/sapgui/components/grid.py unittests/sapgui/test_grid.py
+python -m black src/sapguimcp/sapgui/components/grid.py unittests/sapgui/test_grid.py
+git add src/sapguimcp/sapgui/components/grid.py unittests/sapgui/test_grid.py
 git commit -m "feat(pysapgui): add missing GuiGridView methods (#473)"
 ```
 
@@ -193,7 +193,7 @@ git commit -m "feat(pysapgui): add missing GuiGridView methods (#473)"
 ### Task 2: GuiTree — fill missing methods (#474)
 
 **Files:**
-- Modify: `src/sapwebguimcp/sapgui/components/tree.py` (98 lines, append)
+- Modify: `src/sapguimcp/sapgui/components/tree.py` (98 lines, append)
 - Modify: `unittests/sapgui/test_tree.py` (create if not exists, or append)
 
 - [ ] **Step 1: Write failing tests**
@@ -201,7 +201,7 @@ git commit -m "feat(pysapgui): add missing GuiGridView methods (#473)"
 ```python
 """Tests for GuiTree missing methods — issue #474."""
 from unittest.mock import MagicMock
-from sapwebguimcp.sapgui.components.tree import GuiTree
+from sapguimcp.sapgui.components.tree import GuiTree
 
 
 def _make_tree():
@@ -252,7 +252,7 @@ Expected: FAIL
 
 - [ ] **Step 3: Implement missing methods**
 
-Append to `GuiTree` class in `src/sapwebguimcp/sapgui/components/tree.py`:
+Append to `GuiTree` class in `src/sapguimcp/sapgui/components/tree.py`:
 
 ```python
     # --- Checkbox methods ---
@@ -295,9 +295,9 @@ Expected: ALL PASS
 - [ ] **Step 5: Run isort + black, then commit**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/components/tree.py unittests/sapgui/test_tree.py
-python -m black src/sapwebguimcp/sapgui/components/tree.py unittests/sapgui/test_tree.py
-git add src/sapwebguimcp/sapgui/components/tree.py unittests/sapgui/test_tree.py
+python -m isort src/sapguimcp/sapgui/components/tree.py unittests/sapgui/test_tree.py
+python -m black src/sapguimcp/sapgui/components/tree.py unittests/sapgui/test_tree.py
+git add src/sapguimcp/sapgui/components/tree.py unittests/sapgui/test_tree.py
 git commit -m "feat(pysapgui): add missing GuiTree methods (#474)"
 ```
 
@@ -306,7 +306,7 @@ git commit -m "feat(pysapgui): add missing GuiTree methods (#474)"
 ### Task 3: GuiTextedit/GuiAbapEditor — fill missing methods (#475)
 
 **Files:**
-- Modify: `src/sapwebguimcp/sapgui/components/editor.py` (93 lines)
+- Modify: `src/sapguimcp/sapgui/components/editor.py` (93 lines)
 - Modify: `unittests/sapgui/test_editor.py` (create if not exists)
 
 - [ ] **Step 1: Write failing tests**
@@ -314,7 +314,7 @@ git commit -m "feat(pysapgui): add missing GuiTree methods (#474)"
 ```python
 """Tests for editor missing methods — issue #475."""
 from unittest.mock import MagicMock
-from sapwebguimcp.sapgui.components.editor import GuiAbapEditor, GuiTextedit
+from sapguimcp.sapgui.components.editor import GuiAbapEditor, GuiTextedit
 
 
 def _make_textedit():
@@ -389,7 +389,7 @@ Expected: FAIL
 
 - [ ] **Step 3: Implement missing methods**
 
-In `src/sapwebguimcp/sapgui/components/editor.py`, add to `GuiTextedit` class:
+In `src/sapguimcp/sapgui/components/editor.py`, add to `GuiTextedit` class:
 
 ```python
     @property
@@ -449,9 +449,9 @@ Expected: ALL PASS
 - [ ] **Step 5: Run isort + black, then commit**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/components/editor.py unittests/sapgui/test_editor.py
-python -m black src/sapwebguimcp/sapgui/components/editor.py unittests/sapgui/test_editor.py
-git add src/sapwebguimcp/sapgui/components/editor.py unittests/sapgui/test_editor.py
+python -m isort src/sapguimcp/sapgui/components/editor.py unittests/sapgui/test_editor.py
+python -m black src/sapguimcp/sapgui/components/editor.py unittests/sapgui/test_editor.py
+git add src/sapguimcp/sapgui/components/editor.py unittests/sapgui/test_editor.py
 git commit -m "feat(pysapgui): add missing editor methods (#475)"
 ```
 
@@ -460,7 +460,7 @@ git commit -m "feat(pysapgui): add missing editor methods (#475)"
 ### Task 4: GuiTableControl — fill missing methods (#476)
 
 **Files:**
-- Modify: `src/sapwebguimcp/sapgui/components/table.py` (93 lines)
+- Modify: `src/sapguimcp/sapgui/components/table.py` (93 lines)
 - Modify: `unittests/sapgui/test_table.py` (create if not exists)
 
 - [ ] **Step 1: Write failing tests**
@@ -468,7 +468,7 @@ git commit -m "feat(pysapgui): add missing editor methods (#475)"
 ```python
 """Tests for GuiTableControl missing methods — issue #476."""
 from unittest.mock import MagicMock
-from sapwebguimcp.sapgui.components.table import GuiTableControl, GuiTableRow, GuiTableColumn
+from sapguimcp.sapgui.components.table import GuiTableControl, GuiTableRow, GuiTableColumn
 
 
 def _make_table():
@@ -512,7 +512,7 @@ Expected: FAIL
 
 - [ ] **Step 3: Implement missing methods**
 
-Add to `GuiTableControl` class in `src/sapwebguimcp/sapgui/components/table.py`:
+Add to `GuiTableControl` class in `src/sapguimcp/sapgui/components/table.py`:
 
 ```python
     def get_absolute_row(self, row: int) -> "GuiTableRow":
@@ -521,7 +521,7 @@ Add to `GuiTableControl` class in `src/sapwebguimcp/sapgui/components/table.py`:
         Unlike indexing via rows[i], this accounts for the scroll position
         and returns the row at the given absolute position in the data.
         """
-        from sapwebguimcp.sapgui.components.table import GuiTableRow
+        from sapguimcp.sapgui.components.table import GuiTableRow
 
         return GuiTableRow(self._com.GetAbsoluteRow(row))
 ```
@@ -536,9 +536,9 @@ Expected: ALL PASS
 - [ ] **Step 5: Run isort + black, then commit**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/components/table.py unittests/sapgui/test_table.py
-python -m black src/sapwebguimcp/sapgui/components/table.py unittests/sapgui/test_table.py
-git add src/sapwebguimcp/sapgui/components/table.py unittests/sapgui/test_table.py
+python -m isort src/sapguimcp/sapgui/components/table.py unittests/sapgui/test_table.py
+python -m black src/sapguimcp/sapgui/components/table.py unittests/sapgui/test_table.py
+git add src/sapguimcp/sapgui/components/table.py unittests/sapgui/test_table.py
 git commit -m "feat(pysapgui): add missing GuiTableControl methods (#476)"
 ```
 
@@ -547,15 +547,15 @@ git commit -m "feat(pysapgui): add missing GuiTableControl methods (#476)"
 ### Task 5: GuiContextMenu wrapper (#477)
 
 **Files:**
-- Create: new class in `src/sapwebguimcp/sapgui/components/toolbar.py` (natural home — menus/context menus)
-- Modify: `src/sapwebguimcp/sapgui/components/__init__.py` (add export)
-- Modify: `src/sapwebguimcp/sapgui/_factory.py` (register type 127)
-- Modify: `src/sapwebguimcp/sapgui/_types.py` (verify enum entry exists)
+- Create: new class in `src/sapguimcp/sapgui/components/toolbar.py` (natural home — menus/context menus)
+- Modify: `src/sapguimcp/sapgui/components/__init__.py` (add export)
+- Modify: `src/sapguimcp/sapgui/_factory.py` (register type 127)
+- Modify: `src/sapguimcp/sapgui/_types.py` (verify enum entry exists)
 - Create: test in `unittests/sapgui/test_toolbar.py`
 
 - [ ] **Step 1: Add type 127 to the enum**
 
-The enum in `src/sapwebguimcp/sapgui/_types.py` does NOT have `GuiContextMenu = 127` (jumps from 126 to 128). Add it:
+The enum in `src/sapguimcp/sapgui/_types.py` does NOT have `GuiContextMenu = 127` (jumps from 126 to 128). Add it:
 
 ```python
     GuiContextMenu = 127
@@ -568,7 +568,7 @@ Insert between `GuiDockShell = 126` and `GuiComponentCollection = 128`.
 ```python
 """Tests for GuiContextMenu — issue #477."""
 from unittest.mock import MagicMock
-from sapwebguimcp.sapgui.components.toolbar import GuiContextMenu
+from sapguimcp.sapgui.components.toolbar import GuiContextMenu
 
 
 def _make_context_menu():
@@ -591,7 +591,7 @@ Expected: FAIL — GuiContextMenu not defined
 
 - [ ] **Step 4: Implement GuiContextMenu**
 
-Add to `src/sapwebguimcp/sapgui/components/toolbar.py`:
+Add to `src/sapguimcp/sapgui/components/toolbar.py`:
 
 ```python
 class GuiContextMenu(GuiMenu):
@@ -605,7 +605,7 @@ class GuiContextMenu(GuiMenu):
 
 - [ ] **Step 5: Register in factory**
 
-Add to `_TYPE_MAP` in `src/sapwebguimcp/sapgui/_factory.py`:
+Add to `_TYPE_MAP` in `src/sapguimcp/sapgui/_factory.py`:
 
 ```python
     127: GuiContextMenu,
@@ -615,7 +615,7 @@ Add the import at the top of the factory file's import block.
 
 - [ ] **Step 6: Add to component exports**
 
-Add `GuiContextMenu` to `__all__` in `src/sapwebguimcp/sapgui/components/__init__.py` and add the import.
+Add `GuiContextMenu` to `__all__` in `src/sapguimcp/sapgui/components/__init__.py` and add the import.
 
 - [ ] **Step 7: Run tests to verify they pass**
 
@@ -630,9 +630,9 @@ Expected: ALL PASS
 - [ ] **Step 9: Run isort + black, then commit**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/components/toolbar.py src/sapwebguimcp/sapgui/components/__init__.py src/sapwebguimcp/sapgui/_factory.py unittests/sapgui/test_toolbar.py
-python -m black src/sapwebguimcp/sapgui/components/toolbar.py src/sapwebguimcp/sapgui/components/__init__.py src/sapwebguimcp/sapgui/_factory.py unittests/sapgui/test_toolbar.py
-git add src/sapwebguimcp/sapgui/components/toolbar.py src/sapwebguimcp/sapgui/components/__init__.py src/sapwebguimcp/sapgui/_factory.py unittests/sapgui/test_toolbar.py
+python -m isort src/sapguimcp/sapgui/components/toolbar.py src/sapguimcp/sapgui/components/__init__.py src/sapguimcp/sapgui/_factory.py unittests/sapgui/test_toolbar.py
+python -m black src/sapguimcp/sapgui/components/toolbar.py src/sapguimcp/sapgui/components/__init__.py src/sapguimcp/sapgui/_factory.py unittests/sapgui/test_toolbar.py
+git add src/sapguimcp/sapgui/components/toolbar.py src/sapguimcp/sapgui/components/__init__.py src/sapguimcp/sapgui/_factory.py unittests/sapgui/test_toolbar.py
 git commit -m "feat(pysapgui): add GuiContextMenu wrapper (type 127) (#477)"
 ```
 
@@ -641,9 +641,9 @@ git commit -m "feat(pysapgui): add GuiContextMenu wrapper (type 127) (#477)"
 ### Task 6: GuiScrollbar wrapper (#478)
 
 **Files:**
-- Create: new class in `src/sapwebguimcp/sapgui/components/container.py` (lives alongside GuiUserArea which exposes it)
-- Modify: `src/sapwebguimcp/sapgui/components/__init__.py` (add export)
-- Modify: `src/sapwebguimcp/sapgui/components/container.py` (update GuiUserArea scrollbar properties)
+- Create: new class in `src/sapguimcp/sapgui/components/container.py` (lives alongside GuiUserArea which exposes it)
+- Modify: `src/sapguimcp/sapgui/components/__init__.py` (add export)
+- Modify: `src/sapguimcp/sapgui/components/container.py` (update GuiUserArea scrollbar properties)
 - Create: test in `unittests/sapgui/test_container.py`
 
 - [ ] **Step 1: Write failing tests**
@@ -651,7 +651,7 @@ git commit -m "feat(pysapgui): add GuiContextMenu wrapper (type 127) (#477)"
 ```python
 """Tests for GuiScrollbar — issue #478."""
 from unittest.mock import MagicMock, PropertyMock
-from sapwebguimcp.sapgui.components.container import GuiScrollbar, GuiUserArea
+from sapguimcp.sapgui.components.container import GuiScrollbar, GuiUserArea
 
 
 def _make_scrollbar():
@@ -713,7 +713,7 @@ Expected: FAIL
 
 - [ ] **Step 3: Implement GuiScrollbar and update GuiUserArea**
 
-Add to `src/sapwebguimcp/sapgui/components/container.py` (before GuiUserArea):
+Add to `src/sapguimcp/sapgui/components/container.py` (before GuiUserArea):
 
 ```python
 class GuiScrollbar:
@@ -785,9 +785,9 @@ Expected: ALL PASS
 - [ ] **Step 6: Run isort + black, then commit**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/components/container.py src/sapwebguimcp/sapgui/components/__init__.py unittests/sapgui/test_container.py
-python -m black src/sapwebguimcp/sapgui/components/container.py src/sapwebguimcp/sapgui/components/__init__.py unittests/sapgui/test_container.py
-git add src/sapwebguimcp/sapgui/components/container.py src/sapwebguimcp/sapgui/components/__init__.py unittests/sapgui/test_container.py
+python -m isort src/sapguimcp/sapgui/components/container.py src/sapguimcp/sapgui/components/__init__.py unittests/sapgui/test_container.py
+python -m black src/sapguimcp/sapgui/components/container.py src/sapguimcp/sapgui/components/__init__.py unittests/sapgui/test_container.py
+git add src/sapguimcp/sapgui/components/container.py src/sapguimcp/sapgui/components/__init__.py unittests/sapgui/test_container.py
 git commit -m "feat(pysapgui): add GuiScrollbar wrapper and typed UserArea scrollbars (#478)"
 ```
 
@@ -800,30 +800,30 @@ All Phase 2 tasks are independent and can be parallelized.
 ### Task 7: Extract _login.py to login submodule (#479)
 
 **Files:**
-- Rename: `src/sapwebguimcp/sapgui/_login.py` → `src/sapwebguimcp/sapgui/login.py`
-- Modify: `src/sapwebguimcp/backend/desktop/__init__.py` (update import)
+- Rename: `src/sapguimcp/sapgui/_login.py` → `src/sapguimcp/sapgui/login.py`
+- Modify: `src/sapguimcp/backend/desktop/__init__.py` (update import)
 - Modify: any other files importing `_login`
 - Modify: `unittests/sapgui/test_login.py` (update imports)
 
 - [ ] **Step 1: Search for all _login imports**
 
-Run: `grep -rn "_login" src/sapwebguimcp/ unittests/sapgui/` to find all references.
+Run: `grep -rn "_login" src/sapguimcp/ unittests/sapgui/` to find all references.
 
 - [ ] **Step 2: Rename the file**
 
 ```bash
-git mv src/sapwebguimcp/sapgui/_login.py src/sapwebguimcp/sapgui/login.py
+git mv src/sapguimcp/sapgui/_login.py src/sapguimcp/sapgui/login.py
 ```
 
 - [ ] **Step 3: Update all imports**
 
-In `src/sapwebguimcp/backend/desktop/__init__.py`, change:
+In `src/sapguimcp/backend/desktop/__init__.py`, change:
 ```python
-import sapwebguimcp.sapgui._login as _login_mod
+import sapguimcp.sapgui._login as _login_mod
 ```
 to:
 ```python
-import sapwebguimcp.sapgui.login as _login_mod
+import sapguimcp.sapgui.login as _login_mod
 ```
 
 Update any test imports similarly.
@@ -836,9 +836,9 @@ Expected: ALL PASS — desktop backend imports must also work
 - [ ] **Step 5: Run isort + black on changed files, then commit**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/login.py src/sapwebguimcp/backend/desktop/__init__.py
-python -m black src/sapwebguimcp/sapgui/login.py src/sapwebguimcp/backend/desktop/__init__.py
-git add src/sapwebguimcp/sapgui/login.py src/sapwebguimcp/backend/desktop/__init__.py unittests/sapgui/test_login.py
+python -m isort src/sapguimcp/sapgui/login.py src/sapguimcp/backend/desktop/__init__.py
+python -m black src/sapguimcp/sapgui/login.py src/sapguimcp/backend/desktop/__init__.py
+git add src/sapguimcp/sapgui/login.py src/sapguimcp/backend/desktop/__init__.py unittests/sapgui/test_login.py
 git commit -m "refactor(pysapgui): rename _login.py to login.py for public API (#479)"
 ```
 
@@ -847,7 +847,7 @@ git commit -m "refactor(pysapgui): rename _login.py to login.py for public API (
 ### Task 8: Add context manager to GuiApplication (#480)
 
 **Files:**
-- Modify: `src/sapwebguimcp/sapgui/components/application.py` (111 lines)
+- Modify: `src/sapguimcp/sapgui/components/application.py` (111 lines)
 - Modify: `unittests/sapgui/test_application.py` (98 lines)
 
 - [ ] **Step 1: Write failing test**
@@ -919,15 +919,15 @@ Expected: ALL PASS
 - [ ] **Step 5: Run isort + black, then commit**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/components/application.py unittests/sapgui/test_application.py
-python -m black src/sapwebguimcp/sapgui/components/application.py unittests/sapgui/test_application.py
-git add src/sapwebguimcp/sapgui/components/application.py unittests/sapgui/test_application.py
+python -m isort src/sapguimcp/sapgui/components/application.py unittests/sapgui/test_application.py
+python -m black src/sapguimcp/sapgui/components/application.py unittests/sapgui/test_application.py
+git add src/sapguimcp/sapgui/components/application.py unittests/sapgui/test_application.py
 git commit -m "feat(pysapgui): add context manager protocol to GuiApplication (#480)"
 ```
 
 - [ ] **Step 6: Update `SapGui.connect()` docstring to advertise context manager**
 
-In `src/sapwebguimcp/sapgui/__init__.py`, update the `connect()` docstring:
+In `src/sapguimcp/sapgui/__init__.py`, update the `connect()` docstring:
 
 ```python
     @staticmethod
@@ -944,7 +944,7 @@ In `src/sapwebguimcp/sapgui/__init__.py`, update the `connect()` docstring:
 ```
 
 ```bash
-git add src/sapwebguimcp/sapgui/__init__.py
+git add src/sapguimcp/sapgui/__init__.py
 git commit --amend --no-edit
 ```
 
@@ -953,12 +953,12 @@ git commit --amend --no-edit
 ### Task 9: Log non-COM exceptions in _safe_com_attr (#481)
 
 **Files:**
-- Modify: `src/sapwebguimcp/sapgui/components/base.py` (lines 191-200)
+- Modify: `src/sapguimcp/sapgui/components/base.py` (lines 191-200)
 - Modify: `unittests/sapgui/test_base.py`
 
 - [ ] **Step 1: Read current _safe_com_attr implementation**
 
-Read `src/sapwebguimcp/sapgui/components/base.py` lines 191-200 to see exact current code.
+Read `src/sapguimcp/sapgui/components/base.py` lines 191-200 to see exact current code.
 
 - [ ] **Step 2: Write test for narrowed exception**
 
@@ -1002,7 +1002,7 @@ def _safe_com_attr(com_obj: "CDispatch", attr: str, default: Any = None) -> Any:
 
 ```bash
 python -m pytest unittests/sapgui/test_base.py -v
-git add src/sapwebguimcp/sapgui/components/base.py unittests/sapgui/test_base.py
+git add src/sapguimcp/sapgui/components/base.py unittests/sapgui/test_base.py
 git commit -m "fix(pysapgui): log non-COM exceptions in _safe_com_attr (#481)"
 ```
 
@@ -1017,7 +1017,7 @@ git commit -m "fix(pysapgui): log non-COM exceptions in _safe_com_attr (#481)"
 ### Task 11: Add __all__ to all component modules (#483)
 
 **Files:**
-- Modify: all 21 files in `src/sapwebguimcp/sapgui/components/` plus core modules
+- Modify: all 21 files in `src/sapguimcp/sapgui/components/` plus core modules
 
 - [ ] **Step 1: Add __all__ to each component file**
 
@@ -1045,9 +1045,9 @@ Expected: ALL PASS
 - [ ] **Step 3: Run isort + black on all modified files, then commit**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/
-python -m black src/sapwebguimcp/sapgui/
-git add src/sapwebguimcp/sapgui/
+python -m isort src/sapguimcp/sapgui/
+python -m black src/sapguimcp/sapgui/
+git add src/sapguimcp/sapgui/
 git commit -m "chore(pysapgui): add __all__ to all modules (#483)"
 ```
 
@@ -1056,7 +1056,7 @@ git commit -m "chore(pysapgui): add __all__ to all modules (#483)"
 ### Task 12: Document thread safety (#484)
 
 **Files:**
-- Modify: `src/sapwebguimcp/sapgui/_com.py` (add module docstring about threading)
+- Modify: `src/sapguimcp/sapgui/_com.py` (add module docstring about threading)
 
 - [ ] **Step 1: Add threading docstring to _com.py**
 
@@ -1080,7 +1080,7 @@ via ``asyncio.to_thread()`` or a ``ThreadPoolExecutor``.
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/_com.py
+git add src/sapguimcp/sapgui/_com.py
 git commit -m "docs(pysapgui): add thread safety documentation to _com.py (#484)"
 ```
 
@@ -1118,7 +1118,7 @@ git commit -m "docs(pysapgui): add README for standalone library (#485)"
 ### Task 14: Docstring audit (#486)
 
 **Files:**
-- Modify: all files in `src/sapwebguimcp/sapgui/` and `src/sapwebguimcp/sapgui/components/`
+- Modify: all files in `src/sapguimcp/sapgui/` and `src/sapguimcp/sapgui/components/`
 
 - [ ] **Step 1: Audit each file for missing docstrings**
 
@@ -1130,9 +1130,9 @@ Go through every public class and method. Add docstrings where missing. Follow t
 - [ ] **Step 2: Run isort + black, then commit**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/
-python -m black src/sapwebguimcp/sapgui/
-git add src/sapwebguimcp/sapgui/
+python -m isort src/sapguimcp/sapgui/
+python -m black src/sapguimcp/sapgui/
+git add src/sapguimcp/sapgui/
 git commit -m "docs(pysapgui): complete docstring audit (#486)"
 ```
 
@@ -1150,7 +1150,7 @@ git commit -m "docs(pysapgui): complete docstring audit (#486)"
 
 ```python
 """Connect to SAP GUI, open SE16, and read the status bar."""
-from sapwebguimcp.sapgui import SapGui
+from sapguimcp.sapgui import SapGui
 
 app = SapGui.connect()
 session = app.connections[0].sessions[0]
@@ -1168,8 +1168,8 @@ print(f"Status bar: {session.find_by_id('wnd[0]/sbar').text}")
 
 ```python
 """Read data from an ALV grid (e.g., SE16N result)."""
-from sapwebguimcp.sapgui import SapGui
-from sapwebguimcp.sapgui.components.grid import GuiGridView
+from sapguimcp.sapgui import SapGui
+from sapguimcp.sapgui.components.grid import GuiGridView
 
 app = SapGui.connect()
 session = app.connections[0].sessions[0]
@@ -1188,7 +1188,7 @@ for row in range(grid.row_count):
 
 ```python
 """Fill a selection screen and execute a report."""
-from sapwebguimcp.sapgui import SapGui
+from sapguimcp.sapgui import SapGui
 
 app = SapGui.connect()
 session = app.connections[0].sessions[0]
@@ -1210,8 +1210,8 @@ print(f"Now on screen: {session.info.screen_number}")
 
 ```python
 """Navigate a tree control (e.g., in SPRO or SM30)."""
-from sapwebguimcp.sapgui import SapGui
-from sapwebguimcp.sapgui.components.tree import GuiTree
+from sapguimcp.sapgui import SapGui
+from sapguimcp.sapgui.components.tree import GuiTree
 
 app = SapGui.connect()
 session = app.connections[0].sessions[0]
@@ -1238,7 +1238,7 @@ git commit -m "docs(pysapgui): add example scripts (#487)"
 ### Task 15a: Add doctests to public API methods (#497)
 
 **Files:**
-- Modify: key files in `src/sapwebguimcp/sapgui/components/`
+- Modify: key files in `src/sapguimcp/sapgui/components/`
 
 - [ ] **Step 1: Add doctests to high-value methods**
 
@@ -1263,9 +1263,9 @@ Target methods: `SapGui.connect()`, `GuiSession.find_by_id()`, `GuiSession.send_
 - [ ] **Step 2: Run isort + black, then commit**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/
-python -m black src/sapwebguimcp/sapgui/
-git add src/sapwebguimcp/sapgui/
+python -m isort src/sapguimcp/sapgui/
+python -m black src/sapguimcp/sapgui/
+git add src/sapguimcp/sapgui/
 git commit -m "docs(pysapgui): add doctests to public API methods (#497)"
 ```
 
@@ -1283,7 +1283,7 @@ Read the existing project CI to understand constraints. Recommended: start with 
 
 ```bash
 pip install pdoc
-pdoc src/sapwebguimcp/sapgui/ -o site/
+pdoc src/sapguimcp/sapgui/ -o site/
 ```
 
 If mkdocs/RTD preferred, set up `mkdocs.yml` with `mkdocstrings` plugin.
@@ -1307,7 +1307,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
       - run: pip install pdoc pydantic pywin32-stubs
-      - run: pdoc src/sapwebguimcp/sapgui/ -o site/
+      - run: pdoc src/sapguimcp/sapgui/ -o site/
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -1383,7 +1383,7 @@ def pytest_configure(config):
 def live_session():
     """Connect to running SAP GUI. Skip if not available."""
     try:
-        from sapwebguimcp.sapgui import SapGui
+        from sapguimcp.sapgui import SapGui
         app = SapGui.connect()
         session = app.connections[0].sessions[0]
         return session
@@ -1429,11 +1429,11 @@ name: pysapgui CI
 on:
   push:
     paths:
-      - 'src/sapwebguimcp/sapgui/**'
+      - 'src/sapguimcp/sapgui/**'
       - 'unittests/sapgui/**'
   pull_request:
     paths:
-      - 'src/sapwebguimcp/sapgui/**'
+      - 'src/sapguimcp/sapgui/**'
       - 'unittests/sapgui/**'
 
 jobs:
@@ -1458,8 +1458,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install ruff mypy
-      - run: ruff check src/sapwebguimcp/sapgui/
-      - run: mypy src/sapwebguimcp/sapgui/ --ignore-missing-imports
+      - run: ruff check src/sapguimcp/sapgui/
+      - run: mypy src/sapguimcp/sapgui/ --ignore-missing-imports
 ```
 
 - [ ] **Step 3: Commit**
@@ -1475,39 +1475,39 @@ git commit -m "ci(pysapgui): add CI pipeline for lint, type-check, tests (#490)"
 
 ### Task 19: Rename imports and create package alias (#491)
 
-**Important:** Simply renaming `sapwebguimcp.sapgui` → `pysapgui` in import statements would cause ImportError because the package is still physically at `src/sapwebguimcp/sapgui/`. We need to do this together with creating the package path.
+**Important:** Simply renaming `sapguimcp.sapgui` → `pysapgui` in import statements would cause ImportError because the package is still physically at `src/sapguimcp/sapgui/`. We need to do this together with creating the package path.
 
 **Files:**
 - Create: `src/pysapgui/` — the actual package directory (move files here)
 - Modify: all internal imports (~91 occurrences)
-- Create: `src/sapwebguimcp/sapgui/__init__.py` — compatibility shim re-exporting from `pysapgui`
+- Create: `src/sapguimcp/sapgui/__init__.py` — compatibility shim re-exporting from `pysapgui`
 - Modify: `unittests/sapgui/` — update test imports
 
 - [ ] **Step 1: Inventory all imports**
 
-Run: `grep -rn "sapwebguimcp.sapgui" src/sapwebguimcp/sapgui/ unittests/sapgui/`
+Run: `grep -rn "sapguimcp.sapgui" src/sapguimcp/sapgui/ unittests/sapgui/`
 
 - [ ] **Step 2: Move the package**
 
 ```bash
 # Move sapgui source to top-level pysapgui package
-cp -r src/sapwebguimcp/sapgui/ src/pysapgui/
+cp -r src/sapguimcp/sapgui/ src/pysapgui/
 ```
 
 - [ ] **Step 3: Rename all internal imports in src/pysapgui/**
 
-Replace `sapwebguimcp.sapgui` → `pysapgui` in all files under `src/pysapgui/`.
+Replace `sapguimcp.sapgui` → `pysapgui` in all files under `src/pysapgui/`.
 
 Use find-and-replace (sed or IDE). ~91 occurrences across ~25 files.
 
 - [ ] **Step 4: Create compatibility shim**
 
-Replace `src/sapwebguimcp/sapgui/__init__.py` with a re-export shim so the desktop backend keeps working:
+Replace `src/sapguimcp/sapgui/__init__.py` with a re-export shim so the desktop backend keeps working:
 
 ```python
 """Compatibility shim — pysapgui has moved to its own package.
 
-This re-exports the public API so existing ``sapwebguimcp.sapgui`` imports
+This re-exports the public API so existing ``sapguimcp.sapgui`` imports
 continue to work until the MCP server migrates to ``pysapgui``.
 """
 from pysapgui import SapGui  # noqa: F401
@@ -1517,17 +1517,17 @@ from pysapgui import components  # noqa: F401
 
 - [ ] **Step 5: Update test imports**
 
-Replace `sapwebguimcp.sapgui` → `pysapgui` in all files under `unittests/sapgui/`.
+Replace `sapguimcp.sapgui` → `pysapgui` in all files under `unittests/sapgui/`.
 
 - [ ] **Step 6: Run full test suite**
 
 Run: `python -m pytest unittests/ -v`
-Expected: ALL PASS — both `pysapgui` imports (direct) and `sapwebguimcp.sapgui` imports (shim) resolve
+Expected: ALL PASS — both `pysapgui` imports (direct) and `sapguimcp.sapgui` imports (shim) resolve
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/pysapgui/ src/sapwebguimcp/sapgui/__init__.py unittests/sapgui/
+git add src/pysapgui/ src/sapguimcp/sapgui/__init__.py unittests/sapgui/
 git commit -m "refactor(pysapgui): move to standalone package with compat shim (#491)"
 ```
 
@@ -1581,7 +1581,7 @@ git init pysapgui
 # Copy files, push
 ```
 
-- [ ] **Step 4: Update sapwebgui.mcp**
+- [ ] **Step 4: Update sapgui.mcp**
 
 Replace bundled `sapgui/` with a `pysapgui` dependency:
 
@@ -1593,7 +1593,7 @@ dependencies = [
 ]
 ```
 
-Update `src/sapwebguimcp/backend/desktop/__init__.py` imports from `sapwebguimcp.sapgui` → `pysapgui`.
+Update `src/sapguimcp/backend/desktop/__init__.py` imports from `sapguimcp.sapgui` → `pysapgui`.
 
 - [ ] **Step 5: First PyPI release**
 

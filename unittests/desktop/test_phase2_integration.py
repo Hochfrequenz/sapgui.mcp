@@ -18,7 +18,7 @@ from typing import Any, cast
 
 import pytest
 
-from sapwebguimcp.backend.desktop._element_finder import _flatten
+from sapguimcp.backend.desktop._element_finder import _flatten
 from unittests.desktop.conftest import TEST_TABLE, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")

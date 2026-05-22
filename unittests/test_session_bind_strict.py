@@ -21,9 +21,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
-from sapwebguimcp.backend.webgui.models.session_registry import SessionRegistry
-from sapwebguimcp.models.base import SessionBindConflictError
+from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
+from sapguimcp.backend.webgui.models.session_registry import SessionRegistry
+from sapguimcp.models.base import SessionBindConflictError
 
 
 def _make_mock_gui_session() -> MagicMock:
@@ -40,8 +40,8 @@ def test_session_bind_conflict_error_is_single_class() -> None:
     from either backend's registry. If a future refactor accidentally defines
     a separate copy in the desktop module, this test fails immediately.
     """
-    from sapwebguimcp.backend.desktop._session_registry import SessionBindConflictError as Desktop
-    from sapwebguimcp.models.base import SessionBindConflictError as Base
+    from sapguimcp.backend.desktop._session_registry import SessionBindConflictError as Desktop
+    from sapguimcp.models.base import SessionBindConflictError as Base
 
     assert Desktop is Base
 
@@ -217,7 +217,7 @@ class TestDesktopBackendBindSessionStrict:
 
     @staticmethod
     def _make_backend() -> Any:
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         backend = DesktopBackend.__new__(DesktopBackend)
         backend.registry = DesktopSessionRegistry()
@@ -247,7 +247,7 @@ class TestDesktopBackendBindSessionStrict:
 # ---------------------------------------------------------------------------
 
 
-_PATCH_GET_BACKEND = "sapwebguimcp.tools.session_tools.get_backend"
+_PATCH_GET_BACKEND = "sapguimcp.tools.session_tools.get_backend"
 
 
 def _make_tool_backend(*, has: bool = True, conflict: SessionBindConflictError | None = None) -> AsyncMock:
@@ -272,7 +272,7 @@ class TestSapSessionBindImplStrict:
     @pytest.mark.anyio
     async def test_happy_path_default(self) -> None:
         """Strict bind on an unbound session returns success."""
-        from sapwebguimcp.tools.session_tools import sap_session_bind_impl
+        from sapguimcp.tools.session_tools import sap_session_bind_impl
 
         backend = _make_tool_backend()
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
@@ -286,7 +286,7 @@ class TestSapSessionBindImplStrict:
     @pytest.mark.anyio
     async def test_conflict_returns_failure_with_helpful_message(self) -> None:
         """Strict-conflict case returns failure with both recovery options spelled out."""
-        from sapwebguimcp.tools.session_tools import sap_session_bind_impl
+        from sapguimcp.tools.session_tools import sap_session_bind_impl
 
         conflict = SessionBindConflictError(
             session_id="s2",
@@ -307,7 +307,7 @@ class TestSapSessionBindImplStrict:
     @pytest.mark.anyio
     async def test_force_true_propagates(self) -> None:
         """force=True is passed through to backend.bind_session."""
-        from sapwebguimcp.tools.session_tools import sap_session_bind_impl
+        from sapguimcp.tools.session_tools import sap_session_bind_impl
 
         backend = _make_tool_backend()
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
@@ -319,7 +319,7 @@ class TestSapSessionBindImplStrict:
     @pytest.mark.anyio
     async def test_unknown_session_returns_not_found(self) -> None:
         """Pre-existing not-found behaviour is preserved."""
-        from sapwebguimcp.tools.session_tools import sap_session_bind_impl
+        from sapguimcp.tools.session_tools import sap_session_bind_impl
 
         backend = _make_tool_backend(has=False)
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
@@ -331,7 +331,7 @@ class TestSapSessionBindImplStrict:
     @pytest.mark.anyio
     async def test_other_exceptions_still_caught(self) -> None:
         """Generic exceptions are still caught by the broad handler (regression guard)."""
-        from sapwebguimcp.tools.session_tools import sap_session_bind_impl
+        from sapguimcp.tools.session_tools import sap_session_bind_impl
 
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("connection lost"))):
             result = await sap_session_bind_impl("s2", "agent_a")

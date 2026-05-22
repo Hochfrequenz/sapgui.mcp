@@ -20,7 +20,7 @@ Parsers are internal to each backend. They are not exposed to the LLM as tools.
 ### Current
 
 ```
-src/sapwebguimcp/
+src/sapguimcp/
   backend/
     protocol.py          # SapUiBackend protocol
     manager.py           # get_backend() entry point
@@ -28,7 +28,7 @@ src/sapwebguimcp/
     webgui/
       backend.py         # WebGuiBackend
       browser.py         # Playwright/CDP
-      js_helpers.py      # load_js() — uses resources.files("sapwebguimcp.js")
+      js_helpers.py      # load_js() — uses resources.files("sapguimcp.js")
   js/                    # ← WebGUI-specific, top level (loaded via resources.files)
   parsers/               # ← ARIA-specific, top level
   tools/                 # shared MCP tools
@@ -55,7 +55,7 @@ src/sapwebguimcp/
 Only `js/` and `parsers/` move. Everything else stays where it is.
 
 ```
-src/sapwebguimcp/
+src/sapguimcp/
   backend/
     protocol.py          # SapUiBackend protocol (unchanged)
     manager.py           # picks backend from config
@@ -63,9 +63,9 @@ src/sapwebguimcp/
     webgui/
       backend.py         # WebGuiBackend
       browser.py         # Playwright/CDP
-      js_helpers.py      # load_js() — updated to resources.files("sapwebguimcp.backend.webgui.js")
-      js/                # ← moved from src/sapwebguimcp/js/
-      parsers/           # ← moved from src/sapwebguimcp/parsers/
+      js_helpers.py      # load_js() — updated to resources.files("sapguimcp.backend.webgui.js")
+      js/                # ← moved from src/sapguimcp/js/
+      parsers/           # ← moved from src/sapguimcp/parsers/
   tools/                 # shared MCP tools (import paths updated)
   models/                # shared result models (unchanged)
   lang.py                # shared (unchanged)
@@ -249,11 +249,11 @@ Some per-tcode integration test files already exist (e.g., `test_se09_integratio
 
 This is a **structural refactor** with two small logic fixes for import boundary violations. All tests produce the same results from different paths. The changes are:
 
-1. Move `src/sapwebguimcp/js/` → `src/sapwebguimcp/backend/webgui/js/`
-2. Move `src/sapwebguimcp/parsers/` → `src/sapwebguimcp/backend/webgui/parsers/`
-3. Update `js_helpers.py` to use `resources.files("sapwebguimcp.backend.webgui.js")` instead of `resources.files("sapwebguimcp.js")`
+1. Move `src/sapguimcp/js/` → `src/sapguimcp/backend/webgui/js/`
+2. Move `src/sapguimcp/parsers/` → `src/sapguimcp/backend/webgui/parsers/`
+3. Update `js_helpers.py` to use `resources.files("sapguimcp.backend.webgui.js")` instead of `resources.files("sapguimcp.js")`
 4. Update `pyproject.toml` package-data paths for the moved JS files
-5. Update all parser imports in tools (e.g., `from sapwebguimcp.parsers.X` → `from sapwebguimcp.backend.webgui.parsers.X`)
+5. Update all parser imports in tools (e.g., `from sapguimcp.parsers.X` → `from sapguimcp.backend.webgui.parsers.X`)
 6. Fix `se16_tools.py` `load_js` import violation (move JS loading into backend)
 7. Fix `browser_tools.py` `_escape_css_selector` import violation (move to shared utility)
 8. Split `test_sap_integration.py` into per-tcode files

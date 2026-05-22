@@ -25,7 +25,7 @@ import pytest
 import respx
 from httpx import ConnectError, Response
 
-from sapwebguimcp.tools.abapgit_tools import validate_github_pat
+from sapguimcp.tools.abapgit_tools import validate_github_pat
 
 
 class TestValidateGithubPat:
@@ -94,7 +94,7 @@ git commit -m "test: add failing tests for validate_github_pat"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/abapgit_tools.py` (add function near top, after imports)
+- Modify: `src/sapguimcp/tools/abapgit_tools.py` (add function near top, after imports)
 
 **Step 1: Implement the function**
 
@@ -137,7 +137,7 @@ Expected: All 4 tests PASS
 **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/abapgit_tools.py
+git add src/sapguimcp/tools/abapgit_tools.py
 git commit -m "feat: add validate_github_pat function"
 ```
 
@@ -186,7 +186,7 @@ git commit -m "test: add real integration test for expired PAT"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/server.py:88-108` (the `app_lifespan` function)
+- Modify: `src/sapguimcp/server.py:88-108` (the `app_lifespan` function)
 
 **Step 1: Write the failing test**
 
@@ -195,7 +195,7 @@ Add to `unittests/test_pat_validation.py`:
 ```python
 import logging
 
-from sapwebguimcp.server import app_lifespan
+from sapguimcp.server import app_lifespan
 
 
 class TestStartupPatValidation:
@@ -218,7 +218,7 @@ class TestStartupPatValidation:
         # Set a PAT in settings
         monkeypatch.setenv("ABAPGIT_PAT", "ghp_fake_valid_token")
         # Reset cached settings so monkeypatch takes effect
-        from sapwebguimcp.models import config as config_mod
+        from sapguimcp.models import config as config_mod
         monkeypatch.setattr(config_mod, "_settings", None)
 
         with caplog.at_level(logging.INFO):
@@ -242,7 +242,7 @@ class TestStartupPatValidation:
             return_value=Response(401, json={"message": "Bad credentials"})
         )
         monkeypatch.setenv("ABAPGIT_PAT", "ghp_fake_expired_token")
-        from sapwebguimcp.models import config as config_mod
+        from sapguimcp.models import config as config_mod
         monkeypatch.setattr(config_mod, "_settings", None)
 
         with caplog.at_level(logging.WARNING):
@@ -262,7 +262,7 @@ class TestStartupPatValidation:
         )
         monkeypatch.delenv("ABAPGIT_PAT", raising=False)
         monkeypatch.delenv("GITHUB_PAT", raising=False)
-        from sapwebguimcp.models import config as config_mod
+        from sapguimcp.models import config as config_mod
         monkeypatch.setattr(config_mod, "_settings", None)
 
         with caplog.at_level(logging.INFO):
@@ -281,7 +281,7 @@ Expected: FAIL (app_lifespan doesn't validate PAT yet)
 Modify `app_lifespan` in `server.py` (lines 88-108). Add after the CDP check (line 100), before `try: yield`:
 
 ```python
-from sapwebguimcp.tools.abapgit_tools import validate_github_pat
+from sapguimcp.tools.abapgit_tools import validate_github_pat
 
 # ... inside app_lifespan, after CDP check, before try/yield:
 
@@ -307,7 +307,7 @@ Expected: All 3 tests PASS
 **Step 5: Commit**
 
 ```bash
-git add unittests/test_pat_validation.py src/sapwebguimcp/server.py
+git add unittests/test_pat_validation.py src/sapguimcp/server.py
 git commit -m "feat: validate GitHub PAT on server startup"
 ```
 
@@ -317,7 +317,7 @@ git commit -m "feat: validate GitHub PAT on server startup"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/abapgit_tools.py:296-298`
+- Modify: `src/sapguimcp/tools/abapgit_tools.py:296-298`
 
 **Step 1: Write the failing test**
 
@@ -326,8 +326,8 @@ Add to `unittests/test_pat_validation.py`:
 ```python
 from unittest.mock import AsyncMock, patch
 
-from sapwebguimcp.models.abapgit_models import AbapGitActionResult
-from sapwebguimcp.tools.abapgit_tools import _analyze_pull_result
+from sapguimcp.models.abapgit_models import AbapGitActionResult
+from sapguimcp.tools.abapgit_tools import _analyze_pull_result
 
 
 class TestAnalyzePullResultFallback:
@@ -342,12 +342,12 @@ class TestAnalyzePullResultFallback:
 
         with (
             patch(
-                "sapwebguimcp.tools.abapgit_tools.sap_read_status_bar_impl",
+                "sapguimcp.tools.abapgit_tools.sap_read_status_bar_impl",
                 new_callable=AsyncMock,
                 return_value=mock_status,
             ),
             patch(
-                "sapwebguimcp.tools.abapgit_tools._check_screen_for_errors",
+                "sapguimcp.tools.abapgit_tools._check_screen_for_errors",
                 new_callable=AsyncMock,
                 return_value=None,
             ),
@@ -397,7 +397,7 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/abapgit_tools.py unittests/test_pat_validation.py
+git add src/sapguimcp/tools/abapgit_tools.py unittests/test_pat_validation.py
 git commit -m "fix: treat empty status bar as failure in _analyze_pull_result"
 ```
 
@@ -416,7 +416,7 @@ npm run format
 **Step 2: Run linting**
 
 ```bash
-python -m pylint src/sapwebguimcp/tools/abapgit_tools.py src/sapwebguimcp/server.py
+python -m pylint src/sapguimcp/tools/abapgit_tools.py src/sapguimcp/server.py
 ```
 
 **Step 3: Run full unit test suite (exclude E2E)**

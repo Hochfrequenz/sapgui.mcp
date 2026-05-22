@@ -12,7 +12,7 @@ Mirror the WebGUI `SessionRegistry` pattern for the desktop COM backend. Session
 
 ### Component 1: DesktopSessionRegistry
 
-New file: `src/sapwebguimcp/backend/desktop/_session_registry.py`
+New file: `src/sapguimcp/backend/desktop/_session_registry.py`
 
 ```
 DesktopSessionRegistry:
@@ -72,7 +72,7 @@ Currently `BackendManager.get_or_create()` creates a **new `DesktopBackend`** fo
 
 **`_require_session`**: Read `_current_session_id.get()`, look up via registry. Fallback to "s1" if no ContextVar set (backward compat).
 
-**`open_new_session`**: Create SAP session via COM `session.create_session()`, then get the new session from `conn.Children(count-1)`. Wrap the raw COM object in a pysapgui `GuiSession` using `wrap_com_object()` from `sapwebguimcp.sapgui._factory`. Register in registry → returns "s2". The registry stores `GuiSession` wrappers, not raw COM objects.
+**`open_new_session`**: Create SAP session via COM `session.create_session()`, then get the new session from `conn.Children(count-1)`. Wrap the raw COM object in a pysapgui `GuiSession` using `wrap_com_object()` from `sapguimcp.sapgui._factory`. Register in registry → returns "s2". The registry stores `GuiSession` wrappers, not raw COM objects.
 
 **`close_session`**: Accepts registry ID ("s2"). Looks up `GuiSession` from registry to get the raw COM session ID (`session.id`), calls `conn.CloseSession(com_id)`, then `registry.unregister("s2")`.
 
@@ -119,8 +119,8 @@ Everything else is identical: ID scheme, binding, check_binding (warn-only), lis
 
 ## Files changed
 
-- **New**: `src/sapwebguimcp/backend/desktop/_session_registry.py`
+- **New**: `src/sapguimcp/backend/desktop/_session_registry.py`
 - **New**: `unittests/test_desktop_session_registry.py` (unit tests)
 - **New**: `unittests/desktop/test_multi_session_integration.py`
-- **Modified**: `src/sapwebguimcp/backend/desktop/__init__.py` (registry, ContextVar, _require_session)
-- **Modified**: `src/sapwebguimcp/backend/manager.py` (single desktop backend, set ContextVar)
+- **Modified**: `src/sapguimcp/backend/desktop/__init__.py` (registry, ContextVar, _require_session)
+- **Modified**: `src/sapguimcp/backend/manager.py` (single desktop backend, set ContextVar)

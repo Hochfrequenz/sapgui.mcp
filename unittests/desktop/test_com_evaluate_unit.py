@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, PropertyMock
 
 import pytest
 
-from sapwebguimcp.tools.com_tools import _safe_attr, _serialize_com_result
+from sapguimcp.tools.com_tools import _safe_attr, _serialize_com_result
 
 
 class TestSafeAttr:
@@ -76,7 +76,7 @@ class TestSerializeComResult:
         assert isinstance(result, str)
 
 
-from sapwebguimcp.tools.com_tools import ComOperationInput, FindByNameRef, _execute_single_op
+from sapguimcp.tools.com_tools import ComOperationInput, FindByNameRef, _execute_single_op
 
 
 def _make_mock_session(element_map: dict):

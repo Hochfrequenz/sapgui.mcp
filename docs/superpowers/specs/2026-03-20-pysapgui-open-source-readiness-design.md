@@ -6,7 +6,7 @@ Prepare the `sapgui/` subpackage for open-source release as an independent PyPI 
 
 ## Current State
 
-The library is already architecturally decoupled from the MCP server — zero imports from `sapwebguimcp` outside of `sapgui/` itself, zero references to MCP concepts. It wraps 40+ SAP GUI Scripting element types with typed Python classes, has a two-level factory dispatch, login/logoff helpers, and 15 mock-based test files.
+The library is already architecturally decoupled from the MCP server — zero imports from `sapguimcp` outside of `sapgui/` itself, zero references to MCP concepts. It wraps 40+ SAP GUI Scripting element types with typed Python classes, has a two-level factory dispatch, login/logoff helpers, and 15 mock-based test files.
 
 **No competing library provides typed element wrappers.** The closest alternatives (`pysapscript`, `robotframework-sapguilibrary`) use string-based generic `read()`/`write()` or Robot Framework keywords. This library's typed approach with IDE autocomplete is a genuine differentiator.
 
@@ -71,7 +71,7 @@ Issues declare their dependencies so execution order is visible from the tickets
 
 | Issue | Title | Depends On |
 |---|---|---|
-| #491 | Rename imports `sapwebguimcp.sapgui` → `pysapgui` | All Phase 1–4 |
+| #491 | Rename imports `sapguimcp.sapgui` → `pysapgui` | All Phase 1–4 |
 | #492 | Create standalone pyproject.toml and extract to own repo | #491, #485, #490 |
 
 ## Dependency Graph
@@ -174,8 +174,8 @@ Note: #482 (Pydantic → dataclasses) is CANCELLED — Pydantic stays.
 
 ### Phase 5: Extraction & Packaging
 
-**5.1 Rename imports (#491)** — `sapwebguimcp.sapgui` → `pysapgui`
-**5.2 Extract to own repo (#492)** — pyproject.toml, license, PyPI release, update sapwebgui.mcp
+**5.1 Rename imports (#491)** — `sapguimcp.sapgui` → `pysapgui`
+**5.2 Extract to own repo (#492)** — pyproject.toml, license, PyPI release, update sapgui.mcp
 
 ## Out of Scope
 

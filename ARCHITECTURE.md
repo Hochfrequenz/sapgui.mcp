@@ -79,10 +79,10 @@ sequenceDiagram
 Core packages only — helper packages (`catalog/`, `classcatalog/`, `fmcatalog/`, `tables/`) provide offline SAP metadata search; `middleware/`, `resources/`, `prompts/`, `workflows/`, `loghandlers/` handle cross-cutting concerns.
 
 ```
-src/sapwebguimcp/
+src/sapguimcp/
   server.py                    # FastMCP app, tool registration, lifecycle
   models/
-    config.py                  # SapWebGuiSettings (all env vars)
+    config.py                  # SapGuiSettings (all env vars)
     base.py                    # ToolResult base class, TCode type, PopupInfo
     sap_results.py             # Shared results (LoginResult, ScreenInfo, ...)
     se16_models.py             # SE16-specific result models
@@ -129,11 +129,11 @@ Follow the SE16 pattern. For a new transaction `SE99`:
 
 ### 1. Create the result model
 
-`src/sapwebguimcp/models/se99_models.py`:
+`src/sapguimcp/models/se99_models.py`:
 
 ```python
 from pydantic import Field
-from sapwebguimcp.models.base import ToolResult
+from sapguimcp.models.base import ToolResult
 
 class SE99Result(ToolResult):
     """Result from sap_se99_query tool."""
@@ -145,12 +145,12 @@ Export it from `models/__init__.py`.
 
 ### 2. Create the tool file
 
-`src/sapwebguimcp/tools/se99_tools.py`:
+`src/sapguimcp/tools/se99_tools.py`:
 
 ```python
 from fastmcp import FastMCP
-from sapwebguimcp.backend.manager import get_backend
-from sapwebguimcp.models.se99_models import SE99Result
+from sapguimcp.backend.manager import get_backend
+from sapguimcp.models.se99_models import SE99Result
 
 def register_se99_tools(mcp: FastMCP) -> None:
     @mcp.tool(description="Query SE99 data")
@@ -179,7 +179,7 @@ def register_se99_tools(mcp: FastMCP) -> None:
 If the desktop backend needs different logic (e.g., COM table reading instead of HTML parsing), add a helper:
 
 ```python
-from sapwebguimcp.tools._backend_utils import _is_desktop_backend
+from sapguimcp.tools._backend_utils import _is_desktop_backend
 
 if _is_desktop_backend(backend):
     result = await _query_se99_desktop(backend, param)
@@ -189,7 +189,7 @@ else:
 
 ### 4. Add a WebGUI parser (if needed)
 
-`src/sapwebguimcp/backend/webgui/parsers/se99_parser.py` — for extracting structured data from HTML/ARIA snapshots. Only needed for WebGUI; desktop reads data via COM.
+`src/sapguimcp/backend/webgui/parsers/se99_parser.py` — for extracting structured data from HTML/ARIA snapshots. Only needed for WebGUI; desktop reads data via COM.
 
 ### 5. Register the tool
 
@@ -235,7 +235,7 @@ tox -e formatting          # black + isort check
 
 ## Configuration
 
-All settings are in `src/sapwebguimcp/models/config.py` and loaded from environment variables or `.env` files.
+All settings are in `src/sapguimcp/models/config.py` and loaded from environment variables or `.env` files.
 
 ### Core (have defaults, but needed for SAP operations)
 

@@ -5,8 +5,8 @@ import sys
 
 import pytest
 
-from sapwebguimcp.models.sm30_models import SM30ViewResult
-from sapwebguimcp.tools.sm30_tools import _lookup_view_desktop
+from sapguimcp.models.sm30_models import SM30ViewResult
+from sapguimcp.tools.sm30_tools import _lookup_view_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

@@ -15,8 +15,8 @@ from datetime import date, timedelta
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import LoginResult
-from sapwebguimcp.models.st22_models import ST22DumpDetailResult, ST22DumpListResult
+from sapguimcp.models import LoginResult
+from sapguimcp.models.st22_models import ST22DumpDetailResult, ST22DumpListResult
 
 from .conftest import call_tool_typed
 

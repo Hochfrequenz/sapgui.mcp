@@ -14,7 +14,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from sapwebguimcp.catalog.models import TransactionCatalog, TransactionInfo, detect_area
+from sapguimcp.catalog.models import TransactionCatalog, TransactionInfo, detect_area
 
 # Inline results from the scraping session
 INLINE_RESULTS = [
@@ -150,7 +150,7 @@ INLINE_RESULTS = [
 
 def main():
     """Add inline results to the catalog."""
-    data_dir = project_root / "src" / "sapwebguimcp" / "data"
+    data_dir = project_root / "src" / "sapguimcp" / "data"
     catalog_file = data_dir / "transactions.json"
 
     # Load existing catalog

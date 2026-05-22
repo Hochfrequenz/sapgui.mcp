@@ -27,9 +27,9 @@ import json
 import sys
 from pathlib import Path
 
-from sapwebguimcp.backend.desktop import DesktopBackend
-from sapwebguimcp.backend.desktop._com_thread import ComThread
-from sapwebguimcp.models.config import get_sap_config
+from sapguimcp.backend.desktop import DesktopBackend
+from sapguimcp.backend.desktop._com_thread import ComThread
+from sapguimcp.models.config import get_sap_config
 
 SHELL_ID = "wnd[0]/shellcont/shell"
 TREE_PATH = ["DCS Projekte", "AUSBILDUN", "AUSB_EXT_PRD", "Taskgruppe 100000", "Taskgruppe 101000"]

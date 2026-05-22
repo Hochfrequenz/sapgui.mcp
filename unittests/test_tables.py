@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.tables.models import TableCatalog, TableField, TableInfo
+from sapguimcp.tables.models import TableCatalog, TableField, TableInfo
 
 
 class TestTableField:
@@ -122,7 +122,7 @@ class TestTableLoader:
 
     def test_load_catalog_from_json(self) -> None:
         """Load catalog from JSON file."""
-        from sapwebguimcp.tables.loader import load_catalog
+        from sapguimcp.tables.loader import load_catalog
 
         catalog_data = {
             "tables": {
@@ -158,7 +158,7 @@ class TestTableLoader:
 
     def test_load_catalog_missing_file(self) -> None:
         """Missing file returns empty catalog."""
-        from sapwebguimcp.tables.loader import load_catalog
+        from sapguimcp.tables.loader import load_catalog
 
         load_catalog.cache_clear()
         catalog = load_catalog(Path("/nonexistent/path.json"))
@@ -166,7 +166,7 @@ class TestTableLoader:
 
     def test_load_catalog_cached(self) -> None:
         """Same instance returned on repeated calls."""
-        from sapwebguimcp.tables.loader import load_catalog
+        from sapguimcp.tables.loader import load_catalog
 
         load_catalog.cache_clear()
 
@@ -185,7 +185,7 @@ class TestTableLoader:
 
     def test_get_catalog_never_raises(self) -> None:
         """get_catalog returns empty catalog on errors."""
-        from sapwebguimcp.tables.loader import get_catalog, load_catalog
+        from sapguimcp.tables.loader import get_catalog, load_catalog
 
         load_catalog.cache_clear()
         catalog = get_catalog()
@@ -237,7 +237,7 @@ class TestTableSearch:
 
     def test_exact_table_name_match(self, sample_catalog: TableCatalog) -> None:
         """Exact table name gets highest score."""
-        from sapwebguimcp.tables.search import search_tables
+        from sapguimcp.tables.search import search_tables
 
         results = search_tables(sample_catalog, "MARA")
 
@@ -248,7 +248,7 @@ class TestTableSearch:
 
     def test_table_name_prefix_match(self, sample_catalog: TableCatalog) -> None:
         """Table name prefix match."""
-        from sapwebguimcp.tables.search import search_tables
+        from sapguimcp.tables.search import search_tables
 
         results = search_tables(sample_catalog, "MAR")
 
@@ -259,7 +259,7 @@ class TestTableSearch:
 
     def test_description_search(self, sample_catalog: TableCatalog) -> None:
         """Search in table description."""
-        from sapwebguimcp.tables.search import search_tables
+        from sapguimcp.tables.search import search_tables
 
         results = search_tables(sample_catalog, "Material")
 
@@ -270,7 +270,7 @@ class TestTableSearch:
 
     def test_field_name_search(self, sample_catalog: TableCatalog) -> None:
         """Search finds tables with matching field name."""
-        from sapwebguimcp.tables.search import search_tables
+        from sapguimcp.tables.search import search_tables
 
         results = search_tables(sample_catalog, "MATNR", include_fields=True)
 
@@ -281,7 +281,7 @@ class TestTableSearch:
 
     def test_field_description_search(self, sample_catalog: TableCatalog) -> None:
         """Search finds tables with matching field description."""
-        from sapwebguimcp.tables.search import search_tables
+        from sapguimcp.tables.search import search_tables
 
         results = search_tables(sample_catalog, "Materialnummer", include_fields=True)
 
@@ -289,7 +289,7 @@ class TestTableSearch:
 
     def test_field_search_disabled(self, sample_catalog: TableCatalog) -> None:
         """include_fields=False skips field matching."""
-        from sapwebguimcp.tables.search import search_tables
+        from sapguimcp.tables.search import search_tables
 
         results = search_tables(sample_catalog, "MATNR", include_fields=False)
 
@@ -300,21 +300,21 @@ class TestTableSearch:
 
     def test_limit_results(self, sample_catalog: TableCatalog) -> None:
         """Limit parameter works."""
-        from sapwebguimcp.tables.search import search_tables
+        from sapguimcp.tables.search import search_tables
 
         results = search_tables(sample_catalog, "M", limit=2)
         assert len(results) <= 2
 
     def test_empty_query(self, sample_catalog: TableCatalog) -> None:
         """Empty query returns no results."""
-        from sapwebguimcp.tables.search import search_tables
+        from sapguimcp.tables.search import search_tables
 
         assert search_tables(sample_catalog, "") == []
         assert search_tables(sample_catalog, "   ") == []
 
     def test_case_insensitive(self, sample_catalog: TableCatalog) -> None:
         """Search is case-insensitive."""
-        from sapwebguimcp.tables.search import search_tables
+        from sapguimcp.tables.search import search_tables
 
         results_upper = search_tables(sample_catalog, "MARA")
         results_lower = search_tables(sample_catalog, "mara")
@@ -329,7 +329,7 @@ class TestTableTools:
         """Table tools register without error."""
         from fastmcp import FastMCP
 
-        from sapwebguimcp.tools.table_tools import register_table_tools
+        from sapguimcp.tools.table_tools import register_table_tools
 
         mcp = FastMCP("test")
         register_table_tools(mcp)
@@ -346,8 +346,8 @@ class TestIntegration:
 
     def test_search_euitrans_returns_table(self) -> None:
         """Integration: search finds EUITRANS table in bundled catalog."""
-        from sapwebguimcp.tables.loader import get_catalog, load_catalog
-        from sapwebguimcp.tables.search import search_tables
+        from sapguimcp.tables.loader import get_catalog, load_catalog
+        from sapguimcp.tables.search import search_tables
 
         load_catalog.cache_clear()
         catalog = get_catalog()
@@ -370,7 +370,7 @@ class TestFuzzyTableSearch:
     """Tests for fuzzy matching in table search (GH-250)."""
 
     def test_fuzzy_finds_table_by_partial_description(self) -> None:
-        from sapwebguimcp.tables.search import search_tables
+        from sapguimcp.tables.search import search_tables
 
         table = TableInfo(
             name="T000",

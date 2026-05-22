@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.backend.webgui.parsers.sm30_parser import (
+from sapguimcp.backend.webgui.parsers.sm30_parser import (
     detect_sm30_view_type,
     parse_sm30_columns,
     parse_sm30_rows,

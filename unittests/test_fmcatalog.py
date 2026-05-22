@@ -8,9 +8,9 @@ Tests cover:
 
 import pytest
 
-from sapwebguimcp.fmcatalog.loader import get_catalog, load_catalog
-from sapwebguimcp.fmcatalog.models import FMCatalog, FMParameter, FunctionModuleEntry
-from sapwebguimcp.fmcatalog.search import FMSearchResult, search_function_modules
+from sapguimcp.fmcatalog.loader import get_catalog, load_catalog
+from sapguimcp.fmcatalog.models import FMCatalog, FMParameter, FunctionModuleEntry
+from sapguimcp.fmcatalog.search import FMSearchResult, search_function_modules
 
 
 class TestFMCatalogLoader:
@@ -173,8 +173,8 @@ class TestFuzzyFMSearch:
     """Tests for fuzzy matching in FM search (GH-250)."""
 
     def test_fuzzy_finds_fm_by_partial_description(self) -> None:
-        from sapwebguimcp.fmcatalog.models import FMCatalog, FunctionModuleEntry
-        from sapwebguimcp.fmcatalog.search import search_function_modules
+        from sapguimcp.fmcatalog.models import FMCatalog, FunctionModuleEntry
+        from sapguimcp.fmcatalog.search import search_function_modules
 
         fm = FunctionModuleEntry(name="Z_TEST_FM", description="Rechnungsstellung durchführen")
         catalog = FMCatalog(function_modules={"Z_TEST_FM": fm}, source_system="test", language="DE")

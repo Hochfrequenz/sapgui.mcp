@@ -409,13 +409,13 @@ await ensure_screen_state(backend, target)
 
 | File                                              | Purpose                                                          |
 | ------------------------------------------------- | ---------------------------------------------------------------- |
-| `src/sapwebguimcp/models/screen_state.py`         | `SelectionScreenState`, `ScreenStateDiff` models                 |
-| `src/sapwebguimcp/parsers/screen_state_parser.py` | `parse_selection_screen_state()` — pure ARIA snapshot parsing    |
-| `src/sapwebguimcp/tools/screen_state_helpers.py`  | `ensure_screen_state()`, `bilingual_target()` — transition logic |
-| `src/sapwebguimcp/backend/protocol.py`            | Add `set_radio_button()` to `SapUiPrimitives`                    |
-| `src/sapwebguimcp/backend/webgui/backend.py`      | Implement `set_radio_button()`                                   |
-| `src/sapwebguimcp/models/sap_results.py`          | Add `checked` field to `FormField`                               |
-| `src/sapwebguimcp/js/detect_form_fields.js`       | Return `el.checked` for checkbox/radio                           |
+| `src/sapguimcp/models/screen_state.py`         | `SelectionScreenState`, `ScreenStateDiff` models                 |
+| `src/sapguimcp/parsers/screen_state_parser.py` | `parse_selection_screen_state()` — pure ARIA snapshot parsing    |
+| `src/sapguimcp/tools/screen_state_helpers.py`  | `ensure_screen_state()`, `bilingual_target()` — transition logic |
+| `src/sapguimcp/backend/protocol.py`            | Add `set_radio_button()` to `SapUiPrimitives`                    |
+| `src/sapguimcp/backend/webgui/backend.py`      | Implement `set_radio_button()`                                   |
+| `src/sapguimcp/models/sap_results.py`          | Add `checked` field to `FormField`                               |
+| `src/sapguimcp/js/detect_form_fields.js`       | Return `el.checked` for checkbox/radio                           |
 | `unittests/test_screen_state_parser.py`           | Parser unit tests against existing YAML snapshots                |
 | `unittests/test_ensure_screen_state.py`           | Transition logic unit tests with mocked backend                  |
 

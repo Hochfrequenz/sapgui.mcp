@@ -2001,7 +2001,7 @@ wheels = [
 ]
 
 [[package]]
-name = "sapwebguimcp"
+name = "sapguimcp"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },

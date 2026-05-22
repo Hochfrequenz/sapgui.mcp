@@ -1,6 +1,6 @@
 FROM python:3.14-slim
 
-LABEL org.opencontainers.image.source="https://github.com/Hochfrequenz/sapwebgui.mcp"
+LABEL org.opencontainers.image.source="https://github.com/Hochfrequenz/sapgui.mcp"
 LABEL org.opencontainers.image.description="MCP server for SAP Web GUI browser automation"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL authors="Hochfrequenz Unternehmensberatung GmbH"
@@ -47,4 +47,4 @@ ENV BROWSER_TYPE=chromium
 ENV CDP_URL=http://host.docker.internal:9222
 
 # MCP servers communicate via stdin/stdout, so just run the server directly
-ENTRYPOINT ["run-sapwebgui-mcp-server"]
+ENTRYPOINT ["run-sapgui-mcp-server"]

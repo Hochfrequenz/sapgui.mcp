@@ -5,7 +5,7 @@ import json
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     IntentLogResult,
     KeyboardResult,
     LoginResult,

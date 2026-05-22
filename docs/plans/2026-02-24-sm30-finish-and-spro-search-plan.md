@@ -17,7 +17,7 @@
 **Step 1:** Check out the branch and merge main
 
 ```bash
-cd /c/github/sapwebgui.mcp
+cd /c/github/sapgui.mcp
 git checkout feat/sm30-tool
 git fetch origin main
 git merge origin/main
@@ -25,11 +25,11 @@ git merge origin/main
 
 **Step 2:** Resolve merge conflicts. Expected conflicts in:
 
-- `src/sapwebguimcp/lang.py` — Keep both: existing SM30 constants + new SM37/SLG1/ST22/SE09 constants from main
-- `src/sapwebguimcp/models/__init__.py` — Keep both: SM30 imports + SM37/SLG1/ST22/SE09 imports from main
-- `src/sapwebguimcp/tools/__init__.py` — Keep both: SM30 registration + other tool registrations from main
-- `src/sapwebguimcp/server.py` — Keep both: SM30 registration + other registrations from main
-- `src/sapwebguimcp/parsers/__init__.py` — Keep both
+- `src/sapguimcp/lang.py` — Keep both: existing SM30 constants + new SM37/SLG1/ST22/SE09 constants from main
+- `src/sapguimcp/models/__init__.py` — Keep both: SM30 imports + SM37/SLG1/ST22/SE09 imports from main
+- `src/sapguimcp/tools/__init__.py` — Keep both: SM30 registration + other tool registrations from main
+- `src/sapguimcp/server.py` — Keep both: SM30 registration + other registrations from main
+- `src/sapguimcp/parsers/__init__.py` — Keep both
 
 **Step 3:** Commit the merge
 
@@ -41,7 +41,7 @@ git commit -m "merge: update feat/sm30-tool with latest main"
 **Step 4:** Verify the merge compiles
 
 ```bash
-python -c "from sapwebguimcp.tools.sm30_tools import register_sm30_tools; print('OK')"
+python -c "from sapguimcp.tools.sm30_tools import register_sm30_tools; print('OK')"
 ```
 
 ---
@@ -50,18 +50,18 @@ python -c "from sapwebguimcp.tools.sm30_tools import register_sm30_tools; print(
 
 The SM30 tool uses `sap_transaction_impl("SM30")` which ignores the session `page`. Replace with `navigate_transaction(page, "SM30")` from `sap_page_helpers.py`.
 
-**Files:** Modify `src/sapwebguimcp/tools/sm30_tools.py`
+**Files:** Modify `src/sapguimcp/tools/sm30_tools.py`
 
 **Step 1:** Replace imports. Remove:
 
 ```python
-from sapwebguimcp.tools.sap_tool_impl import sap_transaction_impl
+from sapguimcp.tools.sap_tool_impl import sap_transaction_impl
 ```
 
 Add:
 
 ```python
-from sapwebguimcp.tools.sap_page_helpers import navigate_transaction
+from sapguimcp.tools.sap_page_helpers import navigate_transaction
 ```
 
 **Step 2:** In `_lookup_view()`, replace:
@@ -92,7 +92,7 @@ if tx_error:
 
 Replace all `Any` type annotations with proper Playwright types.
 
-**Files:** Modify `src/sapwebguimcp/tools/sm30_tools.py`
+**Files:** Modify `src/sapguimcp/tools/sm30_tools.py`
 
 **Step 1:** Add Playwright import:
 
@@ -121,12 +121,12 @@ from playwright.async_api import Locator, Page
 
 Replace hardcoded DE/EN strings with `bilingual_pattern()` from `lang.py`.
 
-**Files:** Modify `src/sapwebguimcp/tools/sm30_tools.py`
+**Files:** Modify `src/sapguimcp/tools/sm30_tools.py`
 
 **Step 1:** Add lang imports:
 
 ```python
-from sapwebguimcp.lang import (
+from sapguimcp.lang import (
     SM30_DISPLAY_BUTTON_DE,
     SM30_DISPLAY_BUTTON_EN,
     SM30_INITIAL_SCREEN_DE,
@@ -149,7 +149,7 @@ from sapwebguimcp.lang import (
 
 ### Task 5: Remove dead code and unused functions
 
-**Files:** Modify `src/sapwebguimcp/tools/sm30_tools.py`
+**Files:** Modify `src/sapguimcp/tools/sm30_tools.py`
 
 **Step 1:** Review and remove unused functions:
 
@@ -162,7 +162,7 @@ from sapwebguimcp.lang import (
 
 ### Task 6: Verify models don't use `Any` typing
 
-**Files:** Review `src/sapwebguimcp/models/sm30_models.py`
+**Files:** Review `src/sapguimcp/models/sm30_models.py`
 
 **Step 1:** Check if `from typing import Any` is used. The current branch code imports `Any` but doesn't seem to use it (the `SM30ViewType` is `Literal["flat", "unsupported"]`). Remove unused `Any` import.
 
@@ -225,8 +225,8 @@ tox -e type_check 2>&1 | tail -30
 **Step 1:** Run formatting:
 
 ```bash
-black src/sapwebguimcp/tools/sm30_tools.py src/sapwebguimcp/parsers/sm30_parser.py src/sapwebguimcp/models/sm30_models.py
-isort src/sapwebguimcp/tools/sm30_tools.py src/sapwebguimcp/parsers/sm30_parser.py src/sapwebguimcp/models/sm30_models.py
+black src/sapguimcp/tools/sm30_tools.py src/sapguimcp/parsers/sm30_parser.py src/sapguimcp/models/sm30_models.py
+isort src/sapguimcp/tools/sm30_tools.py src/sapguimcp/parsers/sm30_parser.py src/sapguimcp/models/sm30_models.py
 npm run format
 ```
 
@@ -276,7 +276,7 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     KeyboardResult,
     LoginResult,
     SnapshotResult,
@@ -385,7 +385,7 @@ async def test_spro_capture_search_results(sap_mcp_client: ClientSession) -> Non
     # Type search keyword and execute
     # NOTE: The actual search method (dialog vs inline) needs to be determined
     # from the search dialog snapshot. This is a best-guess flow.
-    from sapwebguimcp.models import FillFormResult
+    from sapguimcp.models import FillFormResult
     # Try filling search field - actual field name TBD from snapshot
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
     await capture_yaml_snapshot(sap_mcp_client, "spro_search_results_country", overwrite=True)
@@ -429,7 +429,7 @@ After running the exploration tests, analyze the captured YAML snapshots to unde
 
 ### Task 12: Add SPRO language constants to lang.py
 
-**Files:** Modify `src/sapwebguimcp/lang.py`
+**Files:** Modify `src/sapguimcp/lang.py`
 
 Add SPRO-specific constants after the SM30 section:
 
@@ -450,7 +450,7 @@ SPRO_SAP_REF_IMG_EN = "<TBD from snapshot>"
 
 ### Task 13: Create SPRO models (spro_models.py)
 
-**Files:** Create `src/sapwebguimcp/models/spro_models.py`
+**Files:** Create `src/sapguimcp/models/spro_models.py`
 
 ```python
 """
@@ -459,7 +459,7 @@ Pydantic models for SPRO (IMG Customizing) search tool.
 
 from pydantic import AwareDatetime, BaseModel, Field
 
-from sapwebguimcp.models.base import ToolResult
+from sapguimcp.models.base import ToolResult
 
 __all__ = [
     "SPROActivity",
@@ -498,7 +498,7 @@ class SPROFileSummary(ToolResult):
 
 ### Task 14: Create SPRO parser (spro_parser.py)
 
-**Files:** Create `src/sapwebguimcp/parsers/spro_parser.py`
+**Files:** Create `src/sapguimcp/parsers/spro_parser.py`
 
 **NOTE:** The parser implementation depends entirely on the ARIA snapshot analysis from Task 11. The parser patterns (regex, tree walking, etc.) will be determined after exploring the actual SPRO search results structure.
 
@@ -516,7 +516,7 @@ import logging
 import re
 from datetime import UTC, datetime
 
-from sapwebguimcp.models.spro_models import SPROActivity, SPROSearchResult
+from sapguimcp.models.spro_models import SPROActivity, SPROSearchResult
 
 logger = logging.getLogger(__name__)
 
@@ -558,7 +558,7 @@ def parse_spro_search_results(
 
 ### Task 15: Create SPRO tool (spro_tools.py)
 
-**Files:** Create `src/sapwebguimcp/tools/spro_tools.py`
+**Files:** Create `src/sapguimcp/tools/spro_tools.py`
 
 Follow the session-aware pattern from SLG1/SE09/SM37:
 
@@ -583,9 +583,9 @@ Navigation flow:
 
 **Files:** Modify:
 
-- `src/sapwebguimcp/models/__init__.py` — Add SPRO model imports + `__all__` entries
-- `src/sapwebguimcp/tools/__init__.py` — Add `register_spro_tools` import + `__all__` entry
-- `src/sapwebguimcp/server.py` — Add import and `register_spro_tools(mcp)` call
+- `src/sapguimcp/models/__init__.py` — Add SPRO model imports + `__all__` entries
+- `src/sapguimcp/tools/__init__.py` — Add `register_spro_tools` import + `__all__` entry
+- `src/sapguimcp/server.py` — Add import and `register_spro_tools(mcp)` call
 
 ---
 

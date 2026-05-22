@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from sapwebguimcp.backend.desktop._element_finder import (
+from sapguimcp.backend.desktop._element_finder import (
     _dump_flat_tree,
     find_button_by_label,
     find_checkbox_by_label,
@@ -465,7 +465,7 @@ class TestFillFormDumpTreeCount:
         """
         import asyncio
 
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         labels_and_fields = [
             ("Vorname", "FIRSTNAME"),

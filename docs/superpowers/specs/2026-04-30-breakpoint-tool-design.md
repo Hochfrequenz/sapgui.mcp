@@ -1,7 +1,7 @@
 # Design: ABAP Breakpoint Management Tools
 
 **Date:** 2026-04-30
-**Repo:** https://github.com/Hochfrequenz/sapwebgui.mcp
+**Repo:** https://github.com/Hochfrequenz/sapgui.mcp
 **Type:** Feature Design
 **Backend:** Desktop only (SAP GUI COM)
 
@@ -99,7 +99,7 @@ sap_breakpoint_list(
 
 ## Data Models
 
-New file: `src/sapwebguimcp/models/breakpoint_models.py`
+New file: `src/sapguimcp/models/breakpoint_models.py`
 
 ```python
 class BreakpointEntry(BaseModel):
@@ -304,12 +304,12 @@ When `match_pattern` is provided instead of `line_number`:
 ## Files
 
 ### New files
-- `src/sapwebguimcp/tools/breakpoint_tools.py`
-- `src/sapwebguimcp/models/breakpoint_models.py`
+- `src/sapguimcp/tools/breakpoint_tools.py`
+- `src/sapguimcp/models/breakpoint_models.py`
 
 ### Modified files
-- `src/sapwebguimcp/tools/__init__.py` — add `register_breakpoint_tools`
-- `src/sapwebguimcp/server.py` — register tool
+- `src/sapguimcp/tools/__init__.py` — add `register_breakpoint_tools`
+- `src/sapguimcp/server.py` — register tool
 
 ### Tests
 - `unittests/test_breakpoint_models.py` — unit tests for model validation

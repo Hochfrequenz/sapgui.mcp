@@ -8,13 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.backend.webgui.parsers.st22_parser import (
+from sapguimcp.backend.webgui.parsers.st22_parser import (
     is_no_dumps_message,
     parse_st22_dump_detail,
     parse_st22_dump_list,
     parse_st22_initial_screen,
 )
-from sapwebguimcp.models.st22_models import ST22Dump, ST22DumpDetail
+from sapguimcp.models.st22_models import ST22Dump, ST22DumpDetail
 
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "st22_exploration"
 

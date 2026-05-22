@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapwebguimcp.backend.webgui.models.browser_results import SnapshotResult
-from sapwebguimcp.models import FillFormResult, KeyboardResult, LoginResult, StatusBarInfo, TransactionResult
+from sapguimcp.backend.webgui.models.browser_results import SnapshotResult
+from sapguimcp.models import FillFormResult, KeyboardResult, LoginResult, StatusBarInfo, TransactionResult
 
 from .conftest import call_tool_typed
 
@@ -416,7 +416,7 @@ async def test_se24_lookup_single_class(sap_mcp_client: ClientSession) -> None:
     """
     Test sap_se24_lookup with a single class (CL_ABAP_CHAR_UTILITIES).
     """
-    from sapwebguimcp.models import SE24Result
+    from sapguimcp.models import SE24Result
 
     # Login first
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
@@ -444,7 +444,7 @@ async def test_se24_lookup_batch_classes(sap_mcp_client: ClientSession) -> None:
     """
     Test sap_se24_lookup with multiple classes (batch lookup).
     """
-    from sapwebguimcp.models import SE24Result
+    from sapguimcp.models import SE24Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -470,7 +470,7 @@ async def test_se24_lookup_not_found(sap_mcp_client: ClientSession) -> None:
     """
     Test sap_se24_lookup with non-existent class.
     """
-    from sapwebguimcp.models import SE24Result
+    from sapguimcp.models import SE24Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -496,7 +496,7 @@ async def test_se24_lookup_mixed_success_and_failure(sap_mcp_client: ClientSessi
     """
     Test sap_se24_lookup with mix of valid and invalid classes.
     """
-    from sapwebguimcp.models import SE24Result
+    from sapguimcp.models import SE24Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -524,7 +524,7 @@ async def test_se24_lookup_interface(sap_mcp_client: ClientSession) -> None:
     """
     Test sap_se24_lookup with an interface.
     """
-    from sapwebguimcp.models import SE24Result
+    from sapguimcp.models import SE24Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -550,7 +550,7 @@ async def test_se24_lookup_methods_parsing(sap_mcp_client: ClientSession) -> Non
     """
     Test that class methods are correctly parsed.
     """
-    from sapwebguimcp.models import SE24Result
+    from sapguimcp.models import SE24Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
@@ -581,7 +581,7 @@ async def test_se24_lookup_attributes_parsing(sap_mcp_client: ClientSession) -> 
     CR_LF, etc.).  A previous bug caused attributes[] to be empty because the
     Attribute tab was never actually selected.
     """
-    from sapwebguimcp.models import SE24Result
+    from sapguimcp.models import SE24Result
 
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"

@@ -1,8 +1,8 @@
 # `sap_fill_form` Desktop Backend Performance Fix
 
 **Date**: 2026-04-07
-**Issue**: Hochfrequenz/sapwebgui.mcp#627
-**Branch (sapwebguimcp)**: TBD
+**Issue**: Hochfrequenz/sapgui.mcp#627
+**Branch (sapguimcp)**: TBD
 
 ## Problem
 
@@ -151,7 +151,7 @@ reused across the loop. `fill_form` is the user-visible fix; `fill_main_input`
 gets the same treatment for free because they share the helper.
 
 A small helper added to
-`src/sapwebguimcp/backend/desktop/_element_finder.py` keeps the
+`src/sapguimcp/backend/desktop/_element_finder.py` keeps the
 dump-and-flatten idiom in one place. It is a module-private helper named
 with a leading underscore, matching the existing `_flatten` convention in
 the same file:
@@ -176,7 +176,7 @@ def _fill() -> None:
 ### Part 3: tool documentation fix
 
 The MCP tool description for `sap_fill_form` in
-`src/sapwebguimcp/tools/sap_tools.py` (~line 1146) currently lists key
+`src/sapguimcp/tools/sap_tools.py` (~line 1146) currently lists key
 formats but never shows a complete payload. Append a single canonical
 example to the description string:
 
@@ -295,7 +295,7 @@ inspection only - no test needed.
 
 - The change to `find_field_by_label`'s signature is API-breaking for
   in-tree callers but the function is private to the desktop backend
-  (`src/sapwebguimcp/backend/desktop/_element_finder.py`). No external
+  (`src/sapguimcp/backend/desktop/_element_finder.py`). No external
   consumers exist.
 - The MCP-facing tool API (`sap_fill_form` request shape) does not change.
 - The MCP tool description string changes; agents reading the tool list

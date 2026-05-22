@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.backend.webgui.parsers.screen_state_parser import parse_selection_screen_state
-from sapwebguimcp.models.screen_state import (
+from sapguimcp.backend.webgui.parsers.screen_state_parser import parse_selection_screen_state
+from sapguimcp.models.screen_state import (
     ScreenStateDiff,
     SelectionScreenState,
     StateChange,
@@ -189,7 +189,7 @@ class TestFormFieldCheckedField:
     """Verify FormField model accepts and serializes the new checked field."""
 
     def test_checkbox_field_checked(self) -> None:
-        from sapwebguimcp.models.sap_results import FormField, SapFieldType
+        from sapguimcp.models.sap_results import FormField, SapFieldType
 
         field = FormField(id="cb1", label="Workbench", field_type=SapFieldType.CHECKBOX, checked=True)
         assert field.checked is True
@@ -197,7 +197,7 @@ class TestFormFieldCheckedField:
         assert data["checked"] is True
 
     def test_text_field_checked_is_none(self) -> None:
-        from sapwebguimcp.models.sap_results import FormField, SapFieldType
+        from sapguimcp.models.sap_results import FormField, SapFieldType
 
         field = FormField(id="txt1", label="Name", field_type=SapFieldType.TEXT)
         assert field.checked is None
@@ -205,7 +205,7 @@ class TestFormFieldCheckedField:
         assert data["checked"] is None
 
     def test_radio_field_unchecked(self) -> None:
-        from sapwebguimcp.models.sap_results import FormField, SapFieldType
+        from sapguimcp.models.sap_results import FormField, SapFieldType
 
         field = FormField(id="rb1", label="View", field_type=SapFieldType.RADIO, checked=False)
         assert field.checked is False

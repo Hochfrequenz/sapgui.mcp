@@ -8,13 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.backend.webgui.parsers.se37_parser import (
+from sapguimcp.backend.webgui.parsers.se37_parser import (
     SE37TabSnapshots,
     parse_se37_exceptions_snapshot,
     parse_se37_parameters_snapshot,
     parse_se37_snapshot,
 )
-from sapwebguimcp.models import SE37Entry, SE37Error
+from sapguimcp.models import SE37Entry, SE37Error
 
 # Path to captured YAML snapshots
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se37_exploration"

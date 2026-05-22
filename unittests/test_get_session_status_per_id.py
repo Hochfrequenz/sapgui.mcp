@@ -20,8 +20,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from sapwebguimcp.backend.desktop import DesktopBackend
-from sapwebguimcp.backend.desktop._session_registry import DesktopSessionRegistry
+from sapguimcp.backend.desktop import DesktopBackend
+from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
 
 def _make_desktop_backend() -> DesktopBackend:
@@ -107,7 +107,7 @@ class TestDesktopGetSessionStatusPerID:
         Here we register two sessions and set the ContextVar to s2, then
         assert the probe ran against s2's user, not s1's.
         """
-        from sapwebguimcp.backend.desktop import _current_session_id
+        from sapguimcp.backend.desktop import _current_session_id
 
         backend = _make_desktop_backend()
         s1 = _make_mock_gui_session(user="USER_S1")
@@ -172,7 +172,7 @@ class TestWebGuiGetSessionStatusPerID:
 
     @staticmethod
     def _make_backend() -> Any:
-        from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+        from sapguimcp.backend.webgui.backend import WebGuiBackend
 
         backend = WebGuiBackend.__new__(WebGuiBackend)
         backend._page = MagicMock()

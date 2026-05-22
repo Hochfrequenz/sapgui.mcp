@@ -14,12 +14,12 @@
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/workflow_models.py:57-77`
-- Modify: `src/sapwebguimcp/models/__init__.py:161,163,321,323`
+- Modify: `src/sapguimcp/models/workflow_models.py:57-77`
+- Modify: `src/sapguimcp/models/__init__.py:161,163,321,323`
 
 **Step 1: Delete `WorkflowError` and `WorkflowRunResult` from workflow_models.py**
 
-In `src/sapwebguimcp/models/workflow_models.py`, delete lines 57-77 (the `WorkflowError` and `WorkflowRunResult` classes):
+In `src/sapguimcp/models/workflow_models.py`, delete lines 57-77 (the `WorkflowError` and `WorkflowRunResult` classes):
 
 ```python
 # DELETE these two classes entirely:
@@ -40,7 +40,7 @@ class WorkflowRunResult(ToolResult):
 
 **Step 2: Remove imports from models/**init**.py**
 
-In `src/sapwebguimcp/models/__init__.py`:
+In `src/sapguimcp/models/__init__.py`:
 
 - Line 161: Remove `WorkflowError,` from the import block
 - Line 163: Remove `WorkflowRunResult,` from the import block
@@ -49,13 +49,13 @@ In `src/sapwebguimcp/models/__init__.py`:
 
 **Step 3: Run tests to verify nothing breaks**
 
-Run: `cd /c/github/sapwebgui.mcp && python -m pytest unittests/ -x -q --ignore=unittests/test_sap_integration.py 2>&1 | tail -5`
+Run: `cd /c/github/sapgui.mcp && python -m pytest unittests/ -x -q --ignore=unittests/test_sap_integration.py 2>&1 | tail -5`
 Expected: All tests pass (no test imports WorkflowRunResult or WorkflowError)
 
 **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/workflow_models.py src/sapwebguimcp/models/__init__.py
+git add src/sapguimcp/models/workflow_models.py src/sapguimcp/models/__init__.py
 git commit -m "refactor: remove WorkflowRunResult and WorkflowError models"
 ```
 
@@ -65,7 +65,7 @@ git commit -m "refactor: remove WorkflowRunResult and WorkflowError models"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sap_tool_impl.py:1-2,40,378-395`
+- Modify: `src/sapguimcp/tools/sap_tool_impl.py:1-2,40,378-395`
 
 **Step 1: Update module docstring**
 
@@ -91,13 +91,13 @@ Delete lines 378-395 (the entire function).
 
 **Step 4: Run tests**
 
-Run: `cd /c/github/sapwebgui.mcp && python -m pytest unittests/ -x -q --ignore=unittests/test_sap_integration.py 2>&1 | tail -5`
+Run: `cd /c/github/sapgui.mcp && python -m pytest unittests/ -x -q --ignore=unittests/test_sap_integration.py 2>&1 | tail -5`
 Expected: All tests pass
 
 **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/sap_tool_impl.py
+git add src/sapguimcp/tools/sap_tool_impl.py
 git commit -m "refactor: remove get_sampling_tools() from sap_tool_impl"
 ```
 
@@ -107,7 +107,7 @@ git commit -m "refactor: remove get_sampling_tools() from sap_tool_impl"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/workflow_tools.py:7,34,41-126,261-276`
+- Modify: `src/sapguimcp/tools/workflow_tools.py:7,34,41-126,261-276`
 
 **Step 1: Update module docstring**
 
@@ -130,7 +130,7 @@ the prompts from workflow_list.
 Delete line 34:
 
 ```python
-from sapwebguimcp.tools.sap_tool_impl import get_sampling_tools
+from sapguimcp.tools.sap_tool_impl import get_sampling_tools
 ```
 
 **Step 3: Delete `_execute_workflow_run` function**
@@ -143,7 +143,7 @@ In the import block (lines 16-25), remove `WorkflowError` and `WorkflowRunResult
 
 ```python
 # BEFORE:
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     Workflow,
     WorkflowDeleteResult,
     WorkflowError,
@@ -155,7 +155,7 @@ from sapwebguimcp.models import (
 )
 
 # AFTER:
-from sapwebguimcp.models import (
+from sapguimcp.models import (
     Workflow,
     WorkflowDeleteResult,
     WorkflowListResult,
@@ -193,13 +193,13 @@ Check: `workflow_save` has `_: Context | None = None` — so `Context` IS still 
 
 **Step 7: Run tests**
 
-Run: `cd /c/github/sapwebgui.mcp && python -m pytest unittests/ -x -q --ignore=unittests/test_sap_integration.py 2>&1 | tail -5`
+Run: `cd /c/github/sapgui.mcp && python -m pytest unittests/ -x -q --ignore=unittests/test_sap_integration.py 2>&1 | tail -5`
 Expected: All tests pass
 
 **Step 8: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/workflow_tools.py
+git add src/sapguimcp/tools/workflow_tools.py
 git commit -m "refactor: remove workflow_run tool and sampling dependency"
 ```
 
@@ -327,7 +327,7 @@ Around lines 2276-2278, remove:
 
 **Step 3: Run full test suite**
 
-Run: `cd /c/github/sapwebgui.mcp && python -m pytest unittests/ -x -q --ignore=unittests/test_sap_integration.py 2>&1 | tail -5`
+Run: `cd /c/github/sapgui.mcp && python -m pytest unittests/ -x -q --ignore=unittests/test_sap_integration.py 2>&1 | tail -5`
 Expected: All tests pass
 
 **Step 4: Commit**
@@ -358,15 +358,15 @@ Expected: Only matches in `docs/plans/` (historical design docs) — no matches 
 
 **Step 4: Run linting**
 
-Run: `cd /c/github/sapwebgui.mcp && python -m pylint sapwebguimcp --disable=all --enable=E 2>&1 | tail -10`
+Run: `cd /c/github/sapgui.mcp && python -m pylint sapguimcp --disable=all --enable=E 2>&1 | tail -10`
 Expected: No errors
 
 **Step 5: Run type check**
 
-Run: `cd /c/github/sapwebgui.mcp && python -m mypy --show-error-codes src/sapwebguimcp --strict 2>&1 | tail -5`
+Run: `cd /c/github/sapgui.mcp && python -m mypy --show-error-codes src/sapguimcp --strict 2>&1 | tail -5`
 Expected: No new errors
 
 **Step 6: Run formatting check**
 
-Run: `cd /c/github/sapwebgui.mcp && python -m black --check src/sapwebguimcp unittests 2>&1 | tail -5`
+Run: `cd /c/github/sapgui.mcp && python -m black --check src/sapguimcp unittests 2>&1 | tail -5`
 Expected: All files OK

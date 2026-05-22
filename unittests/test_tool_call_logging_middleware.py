@@ -7,15 +7,15 @@ from typing import Any
 
 import pytest
 
-from sapwebguimcp.middleware.logging import (
+from sapguimcp.middleware.logging import (
     ToolCallLoggingMiddleware,
     _sessions_ref,
     new_request_id,
     set_sap_identity,
 )
 
-_LOGGER_NAME = "sapwebguimcp.middleware.logging"
-from sapwebguimcp.models.middleware import SapIdentity, SessionStats
+_LOGGER_NAME = "sapguimcp.middleware.logging"
+from sapguimcp.models.middleware import SapIdentity, SessionStats
 
 
 @dataclass
@@ -81,9 +81,7 @@ def test_extract_sap_user_js_exists():
     """The JS file should be loadable and contain expected selectors."""
     from importlib import resources
 
-    content = (
-        resources.files("sapwebguimcp.backend.webgui.js").joinpath("extract_sap_user.js").read_text(encoding="utf-8")
-    )
+    content = resources.files("sapguimcp.backend.webgui.js").joinpath("extract_sap_user.js").read_text(encoding="utf-8")
     assert "sysInfoAreaMenuItemSAPITS_MBAR_USER" in content
     assert "lsdata" in content
     assert "aria-label" in content

@@ -214,7 +214,7 @@ async def sap_get_screen_info() -> str:
 ### Directory Layout
 
 ```
-src/sapwebguimcp/skills/
+src/sapguimcp/skills/
 ├── README.md                    # How to create skills
 ├── examples/
 │   ├── general_navigation.md    # Basic SAP navigation (existing)

@@ -10,7 +10,7 @@ import sys
 
 import pytest
 
-from sapwebguimcp.tools.abapgit_tools import _abapgit_list_repos, _abapgit_pull_via_api
+from sapguimcp.tools.abapgit_tools import _abapgit_list_repos, _abapgit_pull_via_api
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")

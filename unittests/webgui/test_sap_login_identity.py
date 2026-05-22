@@ -4,17 +4,17 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from sapwebguimcp.models.middleware import SapIdentity
+from sapguimcp.models.middleware import SapIdentity
 
 # _capture_sap_identity moved from sap_tools to WebGuiBackend.
 # We test it via the backend instance method now.
 
-_PATCH_SET_IDENTITY = "sapwebguimcp.backend.webgui.backend.set_sap_identity"
+_PATCH_SET_IDENTITY = "sapguimcp.backend.webgui.backend.set_sap_identity"
 
 
 def _make_backend(page: AsyncMock) -> "WebGuiBackend":  # type: ignore[name-defined]
     """Create a WebGuiBackend wrapping a mock page."""
-    from sapwebguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.backend.webgui.backend import WebGuiBackend
 
     return WebGuiBackend(page)
 

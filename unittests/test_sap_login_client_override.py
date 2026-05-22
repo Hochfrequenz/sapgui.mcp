@@ -6,11 +6,11 @@ import pytest
 from pydantic import SecretStr
 from sap_mcp_config import Config, SAPSystem
 
-from sapwebguimcp.models.sap_results import LoginResult
+from sapguimcp.models.sap_results import LoginResult
 
-_PATCH_GET_BACKEND = "sapwebguimcp.tools.sap_login_impl.get_backend"
-_PATCH_GET_SETTINGS = "sapwebguimcp.tools.sap_login_impl.get_settings"
-_PATCH_GET_SAP_CONFIG = "sapwebguimcp.tools.sap_login_impl.get_sap_config"
+_PATCH_GET_BACKEND = "sapguimcp.tools.sap_login_impl.get_backend"
+_PATCH_GET_SETTINGS = "sapguimcp.tools.sap_login_impl.get_settings"
+_PATCH_GET_SAP_CONFIG = "sapguimcp.tools.sap_login_impl.get_sap_config"
 
 
 def _make_sap_config(default_system: str = "HFQ", client: str = "100", connection_name: str = "HF S/4") -> Config:
@@ -49,7 +49,7 @@ class TestSapLoginClientOverride:
     @pytest.mark.anyio
     async def test_uses_config_client_by_default(self) -> None:
         """When no client arg given, login uses client from shared config."""
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl as sap_login
+        from sapguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
         sap_cfg = _make_sap_config(client="100")
         settings = _make_settings()
@@ -69,7 +69,7 @@ class TestSapLoginClientOverride:
     @pytest.mark.anyio
     async def test_client_param_overrides_config_client(self) -> None:
         """When client arg is provided, it overrides client from shared config."""
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl as sap_login
+        from sapguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
         sap_cfg = _make_sap_config(client="100")
         settings = _make_settings()
@@ -93,7 +93,7 @@ class TestSapLoginSystemKeyOverride:
     @pytest.mark.anyio
     async def test_uses_default_system_sap_logon_entry(self) -> None:
         """When no system_key given, default system's SAP Logon entry is passed to backend."""
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl as sap_login
+        from sapguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
         sap_cfg = _make_sap_config(default_system="HFQ", connection_name="HF S/4")
         settings = _make_settings()
@@ -113,7 +113,7 @@ class TestSapLoginSystemKeyOverride:
     @pytest.mark.anyio
     async def test_system_key_param_overrides_default(self) -> None:
         """When system_key is provided, it selects that system instead of default_system."""
-        from sapwebguimcp.tools.sap_login_impl import sap_login_impl as sap_login
+        from sapguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
         sap_cfg = Config(
             default_system="HFQ",

@@ -18,7 +18,7 @@ Standardize Python logging across the codebase for consistency and queryability,
 
 ### 1. Log Format and Configuration
 
-New file `src/sapwebguimcp/logging_config.py` with:
+New file `src/sapguimcp/logging_config.py` with:
 
 - Custom `Formatter` that reads structured data from log record's `extra` dict
 - `configure_logging()` function replacing `basicConfig()` in `server.py`
@@ -26,10 +26,10 @@ New file `src/sapwebguimcp/logging_config.py` with:
 
 ```
 # Console mode (default, human-readable):
-2026-02-13T14:23:01 INFO  sapwebguimcp.tools.sap_tools  Tool completed  tool=sap_login duration_ms=2340 session=s1
+2026-02-13T14:23:01 INFO  sapguimcp.tools.sap_tools  Tool completed  tool=sap_login duration_ms=2340 session=s1
 
 # JSON mode (LOG_FORMAT=json):
-{"ts":"2026-02-13T14:23:01","level":"INFO","logger":"sapwebguimcp.tools.sap_tools","msg":"Tool completed","tool":"sap_login","duration_ms":2340,"session":"s1"}
+{"ts":"2026-02-13T14:23:01","level":"INFO","logger":"sapguimcp.tools.sap_tools","msg":"Tool completed","tool":"sap_login","duration_ms":2340,"session":"s1"}
 ```
 
 ISO8601 timestamps in both modes.
@@ -83,7 +83,7 @@ Plain `extra={}` dicts are fine for one-off log statements where a model is over
 
 ### 4. Migration Scope
 
-**New file:** `src/sapwebguimcp/logging_config.py`
+**New file:** `src/sapguimcp/logging_config.py`
 
 **Modified:** ~28 files, ~228 log statements (mechanical: message cleanup + `extra=`)
 

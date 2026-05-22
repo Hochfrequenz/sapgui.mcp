@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.backend.webgui.parsers.slg1_parser import (
+from sapguimcp.backend.webgui.parsers.slg1_parser import (
     is_slg1_initial_screen,
     is_slg1_log_list_screen,
     is_slg1_no_results,

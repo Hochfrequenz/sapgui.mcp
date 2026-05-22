@@ -1,9 +1,9 @@
-# SAP MCP Server
+# SAP GUI MCP Server
 
-[![Unittests](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Unittests/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
-[![Coverage](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Coverage/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
-[![Linting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Linting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
-[![Formatting](https://github.com/Hochfrequenz/sapwebgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapwebgui.mcp/actions)
+[![Unittests](https://github.com/Hochfrequenz/sapgui.mcp/workflows/Unittests/badge.svg)](https://github.com/Hochfrequenz/sapgui.mcp/actions)
+[![Coverage](https://github.com/Hochfrequenz/sapgui.mcp/workflows/Coverage/badge.svg)](https://github.com/Hochfrequenz/sapgui.mcp/actions)
+[![Linting](https://github.com/Hochfrequenz/sapgui.mcp/workflows/Linting/badge.svg)](https://github.com/Hochfrequenz/sapgui.mcp/actions)
+[![Formatting](https://github.com/Hochfrequenz/sapgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapgui.mcp/actions)
 
 An MCP (Model Context Protocol) server for SAP automation.
 Control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) — via **SAP GUI desktop** or **SAP Web GUI** (browser).
@@ -37,8 +37,8 @@ All three setup approaches below show Claude Desktop and Claude Code snippets; o
 <summary><strong>📦 Standalone Executable (recommended — no Docker, no Python)</strong></summary>
 <br>
 
-Download `sapwebgui_mcp_windows_<version>.exe` from
-[GitHub Releases](https://github.com/Hochfrequenz/sapwebgui.mcp/releases/latest).
+Download `sapgui_mcp_windows_<version>.exe` from
+[GitHub Releases](https://github.com/Hochfrequenz/sapgui.mcp/releases/latest).
 
 Choose a backend:
 
@@ -86,7 +86,7 @@ Uses [sapsucker](https://github.com/Hochfrequenz/sapsucker) for typed SAP GUI Sc
 Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%APPDATA%\Claude`, press Enter. If `claude_desktop_config.json` does not exist, create a new text file with that exact name (make sure it ends in `.json`, not `.json.txt`).
 
 > [!TIP]
-> After downloading the `.exe`, note the full path. For example, if you saved `sapwebgui_mcp_windows_1.5.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapwebgui_mcp_windows_1.5.0.exe`. Always use forward slashes (`/`) in the JSON, not backslashes (`\`).
+> After downloading the `.exe`, note the full path. For example, if you saved `sapgui_mcp_windows_1.5.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapgui_mcp_windows_1.5.0.exe`. Always use forward slashes (`/`) in the JSON, not backslashes (`\`).
 
 **Step 1:** Create the SAP config file (shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) — configure once, use everywhere).
 
@@ -138,7 +138,7 @@ See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the ful
 {
     "mcpServers": {
         "sap-desktop": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
             "env": {
                 "BACKEND_TYPE": "desktop"
             }
@@ -155,7 +155,7 @@ Add to `.mcp.json` in your project root:
 {
     "mcpServers": {
         "sap-desktop": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
             "env": {
                 "BACKEND_TYPE": "desktop"
             }
@@ -255,7 +255,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
             "env": {
                 "GITHUB_PAT": "your_github_pat"
             }
@@ -272,7 +272,7 @@ Add to `.mcp.json` in your project root:
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/sapwebgui_mcp_windows_<version>.exe",
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
             "env": {
                 "GITHUB_PAT": "your_github_pat"
             }
@@ -449,7 +449,7 @@ Open `%APPDATA%\Claude\claude_desktop_config.json` and add:
                 "~/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
-                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+                "ghcr.io/hochfrequenz/sapgui.mcp:latest"
             ]
         }
     }
@@ -487,7 +487,7 @@ Add to `.mcp.json` in your project root:
                 "~/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
-                "ghcr.io/hochfrequenz/sapwebgui.mcp:latest"
+                "ghcr.io/hochfrequenz/sapgui.mcp:latest"
             ]
         }
     }
@@ -511,7 +511,7 @@ If Docker Desktop isn't running or you're not logged in (`docker login ghcr.io`)
 Try pulling manually if you run into errors:
 
 ```powershell
-docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
+docker pull ghcr.io/hochfrequenz/sapgui.mcp:latest
 ```
 
 If the containers started but Chrome (in browser automation mode with CDP enabled) is missing, Claude will likely understand how to login but fail on the first tool call.
@@ -532,8 +532,8 @@ For contributors who want to run from source.
 ### Clone and install
 
 ```bash
-git clone https://github.com/Hochfrequenz/sapwebgui.mcp.git
-cd sapwebgui.mcp
+git clone https://github.com/Hochfrequenz/sapgui.mcp.git
+cd sapgui.mcp
 pip install -e ".[dev]"
 playwright install chromium
 ```
@@ -555,7 +555,7 @@ $env:BROWSER_MODE = "connect"
 $env:CDP_URL = "http://localhost:9222"
 
 # Start the server
-run-sapwebgui-mcp-server
+run-sapgui-mcp-server
 ```
 
 ### Configure your MCP client
@@ -574,7 +574,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/your/venv/Scripts/run-sapwebgui-mcp-server.exe",
+            "command": "C:/path/to/your/venv/Scripts/run-sapgui-mcp-server.exe",
             "args": [],
             "env": {
                 "BROWSER_MODE": "connect",
@@ -594,7 +594,7 @@ Add to `.mcp.json` in your project root:
 {
     "mcpServers": {
         "sap-webgui": {
-            "command": "C:/path/to/your/venv/Scripts/run-sapwebgui-mcp-server.exe",
+            "command": "C:/path/to/your/venv/Scripts/run-sapgui-mcp-server.exe",
             "args": [],
             "env": {
                 "BROWSER_MODE": "connect",
@@ -663,7 +663,7 @@ SAP credentials (user, password, client, language, host) are configured in `syst
 | `CDP_URL`          | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL. WebGUI only.                             | `http://localhost:9222`      |
 | `GITHUB_PAT`       | No                          | GitHub PAT for `log_feedback` issues and abapGit auth                  | —                            |
 | `GITHUB_USER`      | No                          | GitHub username for abapGit (falls back to `x-access-token`)           | —                            |
-| `GITHUB_REPO`      | No                          | Repository for feedback issues                                         | `Hochfrequenz/sapwebgui.mcp` |
+| `GITHUB_REPO`      | No                          | Repository for feedback issues                                         | `Hochfrequenz/sapgui.mcp` |
 | `ABAPGIT_PAT`      | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)               | —                            |
 | `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                              | `""` (off)                   |
 | `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                                 | `0` (off)                    |
@@ -691,8 +691,8 @@ Each release publishes two Windows binaries:
 
 | Binary | Papertrail default | Intended audience |
 |---|---|---|
-| `sapwebgui_mcp_windows.exe` | **off** — no defaults bundled | Public / external users |
-| `sapwebgui_mcp_windows_with_remote_logging.exe` | Hochfrequenz endpoint baked in at build time | Hochfrequenz-internal use |
+| `sapgui_mcp_windows.exe` | **off** — no defaults bundled | Public / external users |
+| `sapgui_mcp_windows_with_remote_logging.exe` | Hochfrequenz endpoint baked in at build time | Hochfrequenz-internal use |
 
 Both binaries honour user overrides via `.env` or environment variables.
 
@@ -831,7 +831,7 @@ You should see: `Login Succeeded`
 **Step 3: Pull the image**
 
 ```powershell
-docker pull ghcr.io/hochfrequenz/sapwebgui.mcp:latest
+docker pull ghcr.io/hochfrequenz/sapgui.mcp:latest
 ```
 
 > **Note:** You only need to do this once per machine. Docker stores your credentials.
@@ -850,7 +850,7 @@ The server supports two backends. Choose one via `BACKEND_TYPE`.
 ```mermaid
 graph BT
     Claude["Claude Desktop / Claude Code"]
-    MCP["MCP Server (sapwebguimcp)\nPlaywright for browser automation\nSAP-specific tools"]
+    MCP["MCP Server (sapguimcp)\nPlaywright for browser automation\nSAP-specific tools"]
     CDP["CDP Proxy (nginx)\nOnly needed for Docker"]
     Chrome["Chrome\nSAP Web GUI loaded\nPersistent session"]
 
@@ -864,7 +864,7 @@ graph BT
 ```mermaid
 graph BT
     Claude["Claude Desktop / Claude Code"]
-    MCP["MCP Server (sapwebguimcp)\nDesktop backend with COM thread\nSAP-specific tools"]
+    MCP["MCP Server (sapguimcp)\nDesktop backend with COM thread\nSAP-specific tools"]
     SAP["SAP GUI for Windows\nCOM Scripting API\nPersistent session(s)"]
 
     Claude -- "MCP (stdio)" --> MCP
@@ -875,10 +875,10 @@ graph BT
 
 This server is part of a small ecosystem of SAP + AI tooling:
 
-- **[`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap)** — complementary MCP server that talks to SAP via the ADT REST API (read/write source, activate, syntax-check, run unit tests, manage transports). Where `sapwebgui.mcp` drives SAP through its UI, `mcp-server-abap` talks directly to the ABAP Development Tools HTTP API. The two are designed to coexist and share `~/.config/sap-mcp/systems.json`.
-- **[`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY)** — GitHub template for AI-driven ABAP vibe-coding projects. Documents the two-agent pattern (dev via `mcp-server-abap`, test / documentation / screenshots via `sapwebgui.mcp`) end-to-end.
+- **[`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap)** — complementary MCP server that talks to SAP via the ADT REST API (read/write source, activate, syntax-check, run unit tests, manage transports). Where `sapgui.mcp` drives SAP through its UI, `mcp-server-abap` talks directly to the ABAP Development Tools HTTP API. The two are designed to coexist and share `~/.config/sap-mcp/systems.json`.
+- **[`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY)** — GitHub template for AI-driven ABAP vibe-coding projects. Documents the two-agent pattern (dev via `mcp-server-abap`, test / documentation / screenshots via `sapgui.mcp`) end-to-end.
 - **[`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT)** — SAP-side ABAP report that `sap_abapgit_pull` calls to pull abapGit repos through the ABAP API. Install it on any SAP system where you want the abapGit pull tools to work.
-- **[`sap-mcp-config`](https://github.com/Hochfrequenz/sap-mcp-config)** — shared config schema for `systems.json`, consumed by both `sapwebgui.mcp` (Python) and `mcp-server-abap` (Go).
+- **[`sap-mcp-config`](https://github.com/Hochfrequenz/sap-mcp-config)** — shared config schema for `systems.json`, consumed by both `sapgui.mcp` (Python) and `mcp-server-abap` (Go).
 
 **Hochfrequenz colleagues:** internal setup docs — including combined `.mcp.json` / `opencode.json` examples that register both MCPs together in one project — live at <https://brain.hochfrequenz.de/books/ki-tools-bei-hochfrequenz/chapter/sap-mcps>.
 

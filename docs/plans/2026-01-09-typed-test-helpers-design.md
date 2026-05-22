@@ -133,4 +133,4 @@ async def do_login(client: ClientSession) -> LoginResult:
 
 ## Type Sources
 
-Return types are read from tool function annotations in `src/sapwebguimcp/tools/*.py` and models in `src/sapwebguimcp/models/*.py`.
+Return types are read from tool function annotations in `src/sapguimcp/tools/*.py` and models in `src/sapguimcp/models/*.py`.

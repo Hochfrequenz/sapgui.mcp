@@ -8,13 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.backend.webgui.parsers.se24_parser import (
+from sapguimcp.backend.webgui.parsers.se24_parser import (
     SE24TabSnapshots,
     parse_se24_attributes_snapshot,
     parse_se24_methods_snapshot,
     parse_se24_snapshot,
 )
-from sapwebguimcp.models.se24_models import SE24Entry, SE24Error
+from sapguimcp.models.se24_models import SE24Entry, SE24Error
 
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se24_exploration"
 

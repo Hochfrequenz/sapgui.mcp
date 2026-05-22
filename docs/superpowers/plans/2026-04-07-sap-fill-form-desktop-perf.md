@@ -4,13 +4,13 @@
 
 **Goal:** Stop `desktop.fill_form` from timing out on multi-field calls (e.g. BP person creation) by hoisting the expensive `dump_tree()` work out of the per-field loop. Pass the flattened tree as a required parameter into `find_field_by_label` and its tree-using strategies. Also add a canonical example payload to the `sap_fill_form` tool description so agents stop guessing the wrong shape.
 
-**Architecture:** Single repo, single feature branch (`fix/627-sap-fill-form-desktop-perf`, already created). Pure refactor inside `src/sapwebguimcp/backend/desktop/_element_finder.py` and `src/sapwebguimcp/backend/desktop/__init__.py`, plus a one-line docstring change in `src/sapwebguimcp/tools/sap_tools.py`. No new modules, no public API change.
+**Architecture:** Single repo, single feature branch (`fix/627-sap-fill-form-desktop-perf`, already created). Pure refactor inside `src/sapguimcp/backend/desktop/_element_finder.py` and `src/sapguimcp/backend/desktop/__init__.py`, plus a one-line docstring change in `src/sapguimcp/tools/sap_tools.py`. No new modules, no public API change.
 
 **Tech Stack:** Python 3.12, pytest, pytest-anyio, SAP GUI Scripting COM (via sapsucker/pywin32), FastMCP
 
 **Spec:** `docs/superpowers/specs/2026-04-07-sap-fill-form-desktop-perf-design.md`
 
-**Issue:** Hochfrequenz/sapwebgui.mcp#627
+**Issue:** Hochfrequenz/sapgui.mcp#627
 
 ---
 
@@ -18,9 +18,9 @@
 
 | File | Role | Change |
 |------|------|--------|
-| `src/sapwebguimcp/backend/desktop/_element_finder.py` | Element-finder helpers | Add `_dump_flat_tree` helper. Add required `flat_tree` parameter to `find_field_by_label`, `_find_by_label_text`, `_find_by_readonly_textfield_label`. |
-| `src/sapwebguimcp/backend/desktop/__init__.py` | Desktop backend impl | Five callers of `find_field_by_label` updated to compute `flat_tree` once at the top of their COM closure and pass it in. `fill_form` is the perf-critical one. |
-| `src/sapwebguimcp/tools/sap_tools.py` | MCP tool registrations | Append canonical example payload to `sap_fill_form` description string. |
+| `src/sapguimcp/backend/desktop/_element_finder.py` | Element-finder helpers | Add `_dump_flat_tree` helper. Add required `flat_tree` parameter to `find_field_by_label`, `_find_by_label_text`, `_find_by_readonly_textfield_label`. |
+| `src/sapguimcp/backend/desktop/__init__.py` | Desktop backend impl | Five callers of `find_field_by_label` updated to compute `flat_tree` once at the top of their COM closure and pass it in. `fill_form` is the perf-critical one. |
+| `src/sapguimcp/tools/sap_tools.py` | MCP tool registrations | Append canonical example payload to `sap_fill_form` description string. |
 | `unittests/desktop/test_element_finder.py` | Element-finder unit tests | Update 10 existing `find_field_by_label(...)` call sites to pass a `flat_tree`. Add new regression tests (count assertion, prebuilt-tree assertion). |
 | `unittests/desktop/test_bp_integration.py` | BP integration tests | Add a new `skip_no_sap` test that fills 7 BP fields in one `sap_fill_form` call and asserts it completes under a wall-clock soft limit. |
 
@@ -59,7 +59,7 @@ Expected: all non-`skip_no_sap` tests pass. (The integration tests under `skip_n
 ## Task 2: Add `_dump_flat_tree` helper in `_element_finder.py`
 
 **Files:**
-- Modify: `src/sapwebguimcp/backend/desktop/_element_finder.py` (after `_flatten`, before `_extract_container_path`)
+- Modify: `src/sapguimcp/backend/desktop/_element_finder.py` (after `_flatten`, before `_extract_container_path`)
 - Modify: `unittests/desktop/test_element_finder.py` (add new test class)
 
 - [ ] **Step 1: Write the failing test**
@@ -71,7 +71,7 @@ class TestDumpFlatTree:
     """Helper that dumps and flattens the usr subtree."""
 
     def test_returns_flat_list_from_session(self):
-        from sapwebguimcp.backend.desktop._element_finder import _dump_flat_tree
+        from sapguimcp.backend.desktop._element_finder import _dump_flat_tree
 
         child = _make_elem(
             type_as_number=30,
@@ -96,7 +96,7 @@ class TestDumpFlatTree:
         assert flat[1].name == "CHILD"
 
     def test_uses_given_wnd_id(self):
-        from sapwebguimcp.backend.desktop._element_finder import _dump_flat_tree
+        from sapguimcp.backend.desktop._element_finder import _dump_flat_tree
 
         # Build a session whose wnd[1]/usr returns a single element
         session = MagicMock()
@@ -133,7 +133,7 @@ Expected: `ImportError` or `AttributeError` — `_dump_flat_tree` doesn't exist 
 
 - [ ] **Step 3: Add the helper to `_element_finder.py`**
 
-In `src/sapwebguimcp/backend/desktop/_element_finder.py`, immediately after the `_flatten` function (around line 43), add:
+In `src/sapguimcp/backend/desktop/_element_finder.py`, immediately after the `_flatten` function (around line 43), add:
 
 ```python
 def _dump_flat_tree(session: Any, wnd_id: str = "wnd[0]") -> list[Any]:
@@ -159,7 +159,7 @@ Expected: 2 passed.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/desktop/_element_finder.py unittests/desktop/test_element_finder.py
+git add src/sapguimcp/backend/desktop/_element_finder.py unittests/desktop/test_element_finder.py
 git commit -m "feat(desktop): add _dump_flat_tree helper in _element_finder
 
 Centralises the find_by_id/dump_tree/_flatten idiom so callers can hoist
@@ -173,7 +173,7 @@ Refs #627"
 ## Task 3: Refactor `_find_by_label_text` to take `flat_tree`
 
 **Files:**
-- Modify: `src/sapwebguimcp/backend/desktop/_element_finder.py:70-96`
+- Modify: `src/sapguimcp/backend/desktop/_element_finder.py:70-96`
 
 This helper is currently called only by `find_field_by_label`. After this task it requires a `flat_tree` parameter and no longer dumps the tree itself. We'll fix the one caller in Task 5.
 
@@ -231,7 +231,7 @@ Expected: tests in `TestFindFieldByLabelText` and any other class that exercises
 ## Task 4: Refactor `_find_by_readonly_textfield_label` to take `flat_tree`
 
 **Files:**
-- Modify: `src/sapwebguimcp/backend/desktop/_element_finder.py:99-152`
+- Modify: `src/sapguimcp/backend/desktop/_element_finder.py:99-152`
 
 Same shape as Task 3.
 
@@ -308,7 +308,7 @@ def _find_by_readonly_textfield_label(  # pylint: disable=too-many-locals
 ## Task 5: Refactor `find_field_by_label` to take `flat_tree`
 
 **Files:**
-- Modify: `src/sapwebguimcp/backend/desktop/_element_finder.py:168-204`
+- Modify: `src/sapguimcp/backend/desktop/_element_finder.py:168-204`
 
 - [ ] **Step 1: Update `find_field_by_label` signature and body**
 
@@ -433,7 +433,7 @@ Expected: all tests in this file pass. If a test fails on something other than t
 - [ ] **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/desktop/_element_finder.py unittests/desktop/test_element_finder.py
+git add src/sapguimcp/backend/desktop/_element_finder.py unittests/desktop/test_element_finder.py
 git commit -m "refactor(desktop): require flat_tree on find_field_by_label
 
 Hoist dump_tree out of the per-call path of find_field_by_label and its
@@ -455,18 +455,18 @@ Refs #627"
 ## Task 7: Update production callers in `desktop/__init__.py`
 
 **Files:**
-- Modify: `src/sapwebguimcp/backend/desktop/__init__.py:919-997, 1094-1115, 1117-1155`
+- Modify: `src/sapguimcp/backend/desktop/__init__.py:919-997, 1094-1115, 1117-1155`
 
 There are five callers of `find_field_by_label` in this file. Each must compute `flat_tree` once at the top of its COM closure and pass it in.
 
 - [ ] **Step 1: Verify the import**
 
-Open `src/sapwebguimcp/backend/desktop/__init__.py` and confirm `_dump_flat_tree` is imported. Find the existing import block that pulls names from `._element_finder` and add `_dump_flat_tree` to it. Search for `from ._element_finder import` (or however the existing imports are structured) — add `_dump_flat_tree` to the imported names.
+Open `src/sapguimcp/backend/desktop/__init__.py` and confirm `_dump_flat_tree` is imported. Find the existing import block that pulls names from `._element_finder` and add `_dump_flat_tree` to it. Search for `from ._element_finder import` (or however the existing imports are structured) — add `_dump_flat_tree` to the imported names.
 
 If you need to confirm the exact import pattern:
 
 ```bash
-python -c "from sapwebguimcp.backend.desktop._element_finder import _dump_flat_tree; print('ok')"
+python -c "from sapguimcp.backend.desktop._element_finder import _dump_flat_tree; print('ok')"
 ```
 
 Expected: `ok`. (This validates the helper is importable; the production-file import is what you actually edit.)
@@ -596,7 +596,7 @@ Expected: all non-`skip_no_sap` tests pass.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/desktop/__init__.py
+git add src/sapguimcp/backend/desktop/__init__.py
 git commit -m "fix(desktop): hoist dump_tree out of fill_form per-field loop
 
 Five callers of find_field_by_label now compute flat_tree once at the
@@ -669,7 +669,7 @@ class TestFillFormDumpTreeCount:
 
         # Call find_field_by_label five times the way fill_form does it:
         # one shared flat_tree, reused across iterations.
-        from sapwebguimcp.backend.desktop._element_finder import (
+        from sapguimcp.backend.desktop._element_finder import (
             _dump_flat_tree,
             find_field_by_label,
         )
@@ -710,7 +710,7 @@ Append to the same `TestFillFormDumpTreeCount` class in `unittests/desktop/test_
         """
         import asyncio
 
-        from sapwebguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.backend.desktop import DesktopBackend
 
         labels_and_fields = [
             ("Vorname", "FIRSTNAME"),
@@ -766,7 +766,7 @@ Append to the same `TestFillFormDumpTreeCount` class in `unittests/desktop/test_
         )
 ```
 
-**Note for the implementer:** the exact attribute name for the cached session on `DesktopBackend` (used in `backend._session = session`) may differ — verify by reading `src/sapwebguimcp/backend/desktop/__init__.py` for how `require_session` is implemented and assign whichever attribute it reads. If the codebase uses a different mechanism for backend construction in tests (e.g. a `conftest.py` fixture or a factory), prefer that over `__new__` + manual attribute assignment.
+**Note for the implementer:** the exact attribute name for the cached session on `DesktopBackend` (used in `backend._session = session`) may differ — verify by reading `src/sapguimcp/backend/desktop/__init__.py` for how `require_session` is implemented and assign whichever attribute it reads. If the codebase uses a different mechanism for backend construction in tests (e.g. a `conftest.py` fixture or a factory), prefer that over `__new__` + manual attribute assignment.
 
 If `DesktopBackend.__init__` requires non-trivial wiring that makes `__new__`-based construction fragile, fall back to: keep only the helper-layer test from Step 2 and add a comment at the top of `TestFillFormDumpTreeCount` documenting that the production-caller layer is covered indirectly via the `skip_no_sap` integration test in Task 10.
 
@@ -795,13 +795,13 @@ message pointing at #627."
 ## Task 9: Add the canonical example to the `sap_fill_form` tool description
 
 **Files:**
-- Modify: `src/sapwebguimcp/tools/sap_tools.py:1146-1165`
+- Modify: `src/sapguimcp/tools/sap_tools.py:1146-1165`
 
 This addresses the *first* error in #627 (`Additional properties are not allowed`), which was the agent guessing the wrong payload shape. A visible example in the tool description prevents the same guess.
 
 - [ ] **Step 1: Update the description string**
 
-In `src/sapwebguimcp/tools/sap_tools.py`, find the `@mcp.tool(...)` decorator on `sap_fill_form` (around line 1146). The current `description=` string ends with the session-parameter block. Append the example by adding two new lines at the very end of the description string, just before the closing `)`:
+In `src/sapguimcp/tools/sap_tools.py`, find the `@mcp.tool(...)` decorator on `sap_fill_form` (around line 1146). The current `description=` string ends with the session-parameter block. Append the example by adding two new lines at the very end of the description string, just before the closing `)`:
 
 The current ending looks like:
 
@@ -828,7 +828,7 @@ Change it to:
 - [ ] **Step 2: Smoke-test that the server still imports**
 
 ```bash
-python -c "from sapwebguimcp.server import create_server; print('ok')"
+python -c "from sapguimcp.server import create_server; print('ok')"
 ```
 
 Expected: `ok`. (Validates the docstring change didn't break the module.)
@@ -836,7 +836,7 @@ Expected: `ok`. (Validates the docstring change didn't break the module.)
 - [ ] **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/sap_tools.py
+git add src/sapguimcp/tools/sap_tools.py
 git commit -m "docs(tools): add canonical example payload to sap_fill_form
 
 Addresses the first error in #627: agents guess the payload shape
@@ -946,7 +946,7 @@ python -m pytest unittests/desktop/ -v --tb=short -k "not integration and not ex
 
 Expected: all non-`skip_no_sap` tests pass.
 
-- [ ] **Step 2: Run the broader sapwebguimcp test suite that doesn't need SAP**
+- [ ] **Step 2: Run the broader sapguimcp test suite that doesn't need SAP**
 
 ```bash
 python -m pytest unittests/ -v --tb=short -k "not integration and not exploration and not stress" -x
@@ -959,8 +959,8 @@ Expected: no failures. The `-x` flag stops on the first failure so a regression 
 Per project memory (`feedback_isort_black.md`): always isort + black before any commit. The previous tasks each had their own commit, so run the formatters now and amend only if there are real changes — preferably create a final formatting commit if needed.
 
 ```bash
-python -m isort src/sapwebguimcp/backend/desktop/_element_finder.py src/sapwebguimcp/backend/desktop/__init__.py src/sapwebguimcp/tools/sap_tools.py unittests/desktop/test_element_finder.py unittests/desktop/test_bp_integration.py
-python -m black src/sapwebguimcp/backend/desktop/_element_finder.py src/sapwebguimcp/backend/desktop/__init__.py src/sapwebguimcp/tools/sap_tools.py unittests/desktop/test_element_finder.py unittests/desktop/test_bp_integration.py
+python -m isort src/sapguimcp/backend/desktop/_element_finder.py src/sapguimcp/backend/desktop/__init__.py src/sapguimcp/tools/sap_tools.py unittests/desktop/test_element_finder.py unittests/desktop/test_bp_integration.py
+python -m black src/sapguimcp/backend/desktop/_element_finder.py src/sapguimcp/backend/desktop/__init__.py src/sapguimcp/tools/sap_tools.py unittests/desktop/test_element_finder.py unittests/desktop/test_bp_integration.py
 ```
 
 Expected: either "unchanged" output (if previous edits were already conformant) or a small diff. Inspect with `git diff` before committing.
@@ -979,7 +979,7 @@ If `git status` is clean, skip this step.
 - [ ] **Step 5: Run pylint on the touched modules**
 
 ```bash
-python -m pylint src/sapwebguimcp/backend/desktop/_element_finder.py src/sapwebguimcp/backend/desktop/__init__.py src/sapwebguimcp/tools/sap_tools.py
+python -m pylint src/sapguimcp/backend/desktop/_element_finder.py src/sapguimcp/backend/desktop/__init__.py src/sapguimcp/tools/sap_tools.py
 ```
 
 Expected: same score or better than before the change. New warnings should be either fixed or explicitly justified (e.g. `# pylint: disable=...` with a comment). Do not silence anything just to make the score green.
@@ -1026,7 +1026,7 @@ Per project memory (`feedback_never_merge.md`): never merge to main; create the 
 ```bash
 gh pr create --title "fix(desktop): hoist dump_tree out of fill_form loop (#627)" --body "$(cat <<'EOF'
 ## Summary
-- Fixes Hochfrequenz/sapwebgui.mcp#627 — `sap_fill_form` on the desktop backend timed out when filling many label-matched fields (e.g. BP person creation).
+- Fixes Hochfrequenz/sapgui.mcp#627 — `sap_fill_form` on the desktop backend timed out when filling many label-matched fields (e.g. BP person creation).
 - Root cause: each `find_field_by_label` call internally dumped the SAP GUI tree, and `desktop.fill_form` did this once per field inside one synchronous COM closure. For ~7 fields × up to 2 dumps each, that's ~14 expensive `dump_tree` COM calls in one closure → MCP client timeout.
 - Fix: hoist the tree dump out of the per-field loop. `flat_tree` is now a required parameter on `find_field_by_label`, `_find_by_label_text`, and `_find_by_readonly_textfield_label`. Callers compute it once via `_dump_flat_tree`.
 - Bonus fix: added a canonical example payload to the `sap_fill_form` tool description, addressing the *first* error in the same issue (the agent guessing the wrong payload shape on attempt 1).

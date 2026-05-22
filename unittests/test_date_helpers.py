@@ -2,7 +2,7 @@
 
 import pytest
 
-from sapwebguimcp.utils import format_sap_date
+from sapguimcp.utils import format_sap_date
 
 
 class TestFormatSapDate:

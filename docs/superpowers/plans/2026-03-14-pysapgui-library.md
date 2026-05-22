@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a standalone, spec-compliant Python wrapper for the SAP GUI Scripting API (COM) as a subpackage at `src/sapwebguimcp/sapgui/`.
+**Goal:** Build a standalone, spec-compliant Python wrapper for the SAP GUI Scripting API (COM) as a subpackage at `src/sapguimcp/sapgui/`.
 
 **Architecture:** Thin wrappers around `win32com.client.CDispatch` objects. Each Python class delegates property access to COM — no caching, no state. Two-level type dispatch factory resolves `TypeAsNumber` → class, with a second level for `GuiShell` subtypes via `SubType` string. Entry points connect to running SAP GUI via the Running Object Table (ROT).
 
@@ -16,7 +16,7 @@
 ## File Structure
 
 ```
-src/sapwebguimcp/sapgui/
+src/sapguimcp/sapgui/
   __init__.py              # public API: SapGui.connect(), SapGui.launch()
   _com.py                  # low-level COM helpers (GetObject, polling, CoInitialize)
   _types.py                # GuiComponentType enum, type prefix mappings
@@ -90,7 +90,7 @@ unittests/sapgui/
 
 **Files:**
 
-- Create: `src/sapwebguimcp/sapgui/_errors.py`
+- Create: `src/sapguimcp/sapgui/_errors.py`
 - Test: `unittests/sapgui/test_errors.py`
 
 - [ ] **Step 1: Write error class tests**
@@ -98,7 +98,7 @@ unittests/sapgui/
 ```python
 # unittests/sapgui/test_errors.py
 """Tests for pysapgui error hierarchy."""
-from sapwebguimcp.sapgui._errors import (
+from sapguimcp.sapgui._errors import (
     ElementNotFoundError,
     SapConnectionError,
     SapGuiError,
@@ -124,14 +124,14 @@ def test_element_not_found_stores_element_id():
 - [ ] **Step 2: Run test — expect FAIL (module not found)**
 
 Run: `python -m pytest unittests/sapgui/test_errors.py -v`
-Expected: FAIL — `ModuleNotFoundError: No module named 'sapwebguimcp.sapgui'`
+Expected: FAIL — `ModuleNotFoundError: No module named 'sapguimcp.sapgui'`
 
 - [ ] **Step 3: Create package structure and implement error classes**
 
-Create `src/sapwebguimcp/sapgui/__init__.py` (empty for now), then:
+Create `src/sapguimcp/sapgui/__init__.py` (empty for now), then:
 
 ```python
-# src/sapwebguimcp/sapgui/_errors.py
+# src/sapguimcp/sapgui/_errors.py
 """Exception hierarchy for pysapgui."""
 
 
@@ -163,7 +163,7 @@ Expected: 3 tests PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/__init__.py src/sapwebguimcp/sapgui/_errors.py unittests/sapgui/__init__.py unittests/sapgui/test_errors.py
+git add src/sapguimcp/sapgui/__init__.py src/sapguimcp/sapgui/_errors.py unittests/sapgui/__init__.py unittests/sapgui/test_errors.py
 git commit -m "feat(sapgui): add error class hierarchy"
 ```
 
@@ -173,7 +173,7 @@ git commit -m "feat(sapgui): add error class hierarchy"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/sapgui/_types.py`
+- Create: `src/sapguimcp/sapgui/_types.py`
 - Test: `unittests/sapgui/test_types.py`
 
 - [ ] **Step 1: Write enum tests**
@@ -181,7 +181,7 @@ git commit -m "feat(sapgui): add error class hierarchy"
 ```python
 # unittests/sapgui/test_types.py
 """Tests for GuiComponentType enum and prefix mappings."""
-from sapwebguimcp.sapgui._types import GuiComponentType, PREFIX_TO_TYPE_NAME
+from sapguimcp.sapgui._types import GuiComponentType, PREFIX_TO_TYPE_NAME
 
 
 def test_enum_values_match_sap_spec():
@@ -235,7 +235,7 @@ Expected: FAIL — `ModuleNotFoundError`
 - [ ] **Step 3: Implement \_types.py**
 
 ```python
-# src/sapwebguimcp/sapgui/_types.py
+# src/sapguimcp/sapgui/_types.py
 """SAP GUI component type constants and prefix mappings.
 
 Maps the numeric TypeAsNumber values from the SAP GUI Scripting API spec
@@ -382,7 +382,7 @@ Expected: 3 tests PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/_types.py unittests/sapgui/test_types.py
+git add src/sapguimcp/sapgui/_types.py unittests/sapgui/test_types.py
 git commit -m "feat(sapgui): add GuiComponentType enum and prefix mappings"
 ```
 
@@ -497,8 +497,8 @@ git commit -m "test(sapgui): add shared mock COM fixtures"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/sapgui/components/__init__.py`
-- Create: `src/sapwebguimcp/sapgui/components/base.py`
+- Create: `src/sapguimcp/sapgui/components/__init__.py`
+- Create: `src/sapguimcp/sapgui/components/base.py`
 - Test: `unittests/sapgui/test_base.py`
 
 - [ ] **Step 1: Write base class tests**
@@ -510,7 +510,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.base import (
+from sapguimcp.sapgui.components.base import (
     GuiComponent,
     GuiContainer,
     GuiVComponent,
@@ -643,7 +643,7 @@ class TestGuiContainer:
         result = container.find_by_id("wnd[0]/usr/txtFOO")
         com.FindById.assert_called_once_with("wnd[0]/usr/txtFOO", False)
         # Returns a typed wrapper via wrap_com_object
-        from sapwebguimcp.sapgui.components.field import GuiTextField
+        from sapguimcp.sapgui.components.field import GuiTextField
 
         assert isinstance(result, GuiTextField)
         assert result._com is found
@@ -657,7 +657,7 @@ class TestGuiContainer:
 
     def test_find_by_id_raises_when_not_found(self, mock_com):
         import pytest
-        from sapwebguimcp.sapgui._errors import ElementNotFoundError
+        from sapguimcp.sapgui._errors import ElementNotFoundError
 
         com = mock_com(container_type=True, children=[])
         com.FindById.return_value = None
@@ -695,12 +695,12 @@ Expected: FAIL — `ModuleNotFoundError`
 - [ ] **Step 3: Implement base classes**
 
 ```python
-# src/sapwebguimcp/sapgui/components/__init__.py
+# src/sapguimcp/sapgui/components/__init__.py
 """SAP GUI component wrappers."""
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/base.py
+# src/sapguimcp/sapgui/components/base.py
 """Base classes for SAP GUI component wrappers.
 
 Inheritance hierarchy (mirrors SAP GUI Scripting API):
@@ -713,7 +713,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from sapwebguimcp.sapgui._errors import ElementNotFoundError
+from sapguimcp.sapgui._errors import ElementNotFoundError
 
 if TYPE_CHECKING:
     pass
@@ -876,7 +876,7 @@ class GuiContainer(GuiComponent):
             A typed wrapper (e.g., GuiTextField, GuiButton), or None if
             not found and raise_error=False.
         """
-        from sapwebguimcp.sapgui._factory import wrap_com_object
+        from sapguimcp.sapgui._factory import wrap_com_object
 
         result = self._com.FindById(id, False)
         if result is None:
@@ -918,7 +918,7 @@ Expected: All tests PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/components/__init__.py src/sapwebguimcp/sapgui/components/base.py unittests/sapgui/test_base.py
+git add src/sapguimcp/sapgui/components/__init__.py src/sapguimcp/sapgui/components/base.py unittests/sapgui/test_base.py
 git commit -m "feat(sapgui): add base component classes (GuiComponent, GuiVComponent, GuiContainer, GuiVContainer)"
 ```
 
@@ -928,7 +928,7 @@ git commit -m "feat(sapgui): add base component classes (GuiComponent, GuiVCompo
 
 **Files:**
 
-- Create: `src/sapwebguimcp/sapgui/components/collection.py`
+- Create: `src/sapguimcp/sapgui/components/collection.py`
 - Test: `unittests/sapgui/test_collection.py`
 
 - [ ] **Step 1: Write collection tests**
@@ -940,7 +940,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from sapwebguimcp.sapgui.components.collection import GuiCollection, GuiComponentCollection
+from sapguimcp.sapgui.components.collection import GuiCollection, GuiComponentCollection
 
 
 class TestGuiComponentCollection:
@@ -1010,7 +1010,7 @@ Run: `python -m pytest unittests/sapgui/test_collection.py -v`
 - [ ] **Step 3: Implement collections**
 
 ```python
-# src/sapwebguimcp/sapgui/components/collection.py
+# src/sapguimcp/sapgui/components/collection.py
 """SAP GUI collection wrappers with Python iteration support."""
 from __future__ import annotations
 
@@ -1070,7 +1070,7 @@ Run: `python -m pytest unittests/sapgui/test_collection.py -v`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/components/collection.py unittests/sapgui/test_collection.py
+git add src/sapguimcp/sapgui/components/collection.py unittests/sapgui/test_collection.py
 git commit -m "feat(sapgui): add GuiCollection and GuiComponentCollection wrappers"
 ```
 
@@ -1082,7 +1082,7 @@ git commit -m "feat(sapgui): add GuiCollection and GuiComponentCollection wrappe
 
 **Files:**
 
-- Create: `src/sapwebguimcp/sapgui/_factory.py`
+- Create: `src/sapguimcp/sapgui/_factory.py`
 - Test: `unittests/sapgui/test_factory.py`
 
 - [ ] **Step 1: Write factory tests**
@@ -1096,13 +1096,13 @@ from unittest.mock import MagicMock
 
 from conftest import make_mock_com
 
-from sapwebguimcp.sapgui._factory import wrap_com_object
-from sapwebguimcp.sapgui._types import GuiComponentType
-from sapwebguimcp.sapgui.components.base import GuiComponent, GuiVComponent, GuiVContainer
+from sapguimcp.sapgui._factory import wrap_com_object
+from sapguimcp.sapgui._types import GuiComponentType
+from sapguimcp.sapgui.components.base import GuiComponent, GuiVComponent, GuiVContainer
 
 
 def test_wrap_main_window():
-    from sapwebguimcp.sapgui.components.window import GuiMainWindow
+    from sapguimcp.sapgui.components.window import GuiMainWindow
 
     com = make_mock_com(type_as_number=21, type_name="GuiMainWindow", container_type=True)
     result = wrap_com_object(com)
@@ -1110,7 +1110,7 @@ def test_wrap_main_window():
 
 
 def test_wrap_text_field():
-    from sapwebguimcp.sapgui.components.field import GuiTextField
+    from sapguimcp.sapgui.components.field import GuiTextField
 
     com = make_mock_com(type_as_number=31, type_name="GuiTextField")
     result = wrap_com_object(com)
@@ -1118,7 +1118,7 @@ def test_wrap_text_field():
 
 
 def test_wrap_button():
-    from sapwebguimcp.sapgui.components.button import GuiButton
+    from sapguimcp.sapgui.components.button import GuiButton
 
     com = make_mock_com(type_as_number=40, type_name="GuiButton")
     result = wrap_com_object(com)
@@ -1126,7 +1126,7 @@ def test_wrap_button():
 
 
 def test_wrap_shell_dispatches_to_grid_view():
-    from sapwebguimcp.sapgui.components.grid import GuiGridView
+    from sapguimcp.sapgui.components.grid import GuiGridView
 
     com = make_mock_com(type_as_number=122, type_name="GuiShell", SubType="GridView")
     result = wrap_com_object(com)
@@ -1134,7 +1134,7 @@ def test_wrap_shell_dispatches_to_grid_view():
 
 
 def test_wrap_shell_dispatches_to_tree():
-    from sapwebguimcp.sapgui.components.tree import GuiTree
+    from sapguimcp.sapgui.components.tree import GuiTree
 
     com = make_mock_com(type_as_number=122, type_name="GuiShell", SubType="Tree")
     result = wrap_com_object(com)
@@ -1142,7 +1142,7 @@ def test_wrap_shell_dispatches_to_tree():
 
 
 def test_wrap_shell_unknown_subtype_falls_back_to_gui_shell():
-    from sapwebguimcp.sapgui.components.shell import GuiShell
+    from sapguimcp.sapgui.components.shell import GuiShell
 
     com = make_mock_com(type_as_number=122, type_name="GuiShell", SubType="SomeUnknownControl")
     result = wrap_com_object(com)
@@ -1157,7 +1157,7 @@ def test_wrap_unknown_type_falls_back_to_gui_component():
 
 def test_wrap_all_type_map_entries_resolve():
     """Every entry in _TYPE_MAP should produce a valid class instance."""
-    from sapwebguimcp.sapgui._factory import _TYPE_MAP
+    from sapguimcp.sapgui._factory import _TYPE_MAP
 
     for type_num, cls in _TYPE_MAP.items():
         com = make_mock_com(type_as_number=type_num, container_type=True)
@@ -1167,7 +1167,7 @@ def test_wrap_all_type_map_entries_resolve():
 
 def test_wrap_all_shell_subtypes_resolve():
     """Every entry in _SHELL_SUBTYPE_MAP should produce a valid class instance."""
-    from sapwebguimcp.sapgui._factory import _SHELL_SUBTYPE_MAP
+    from sapguimcp.sapgui._factory import _SHELL_SUBTYPE_MAP
 
     for sub_type, cls in _SHELL_SUBTYPE_MAP.items():
         com = make_mock_com(type_as_number=122, type_name="GuiShell", SubType=sub_type)
@@ -1191,10 +1191,10 @@ stubs here so the factory can import them. They get their full implementations
 in Tasks 8-10, but the stubs must exist now for the factory's \_TYPE_MAP.
 
 ```python
-# src/sapwebguimcp/sapgui/components/application.py
+# src/sapguimcp/sapgui/components/application.py
 """GuiApplication — stub (full implementation in Task 8)."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiContainer
+from sapguimcp.sapgui.components.base import GuiContainer
 
 
 class GuiApplication(GuiContainer):
@@ -1202,10 +1202,10 @@ class GuiApplication(GuiContainer):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/connection.py
+# src/sapguimcp/sapgui/components/connection.py
 """GuiConnection — stub (full implementation in Task 9)."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiContainer
+from sapguimcp.sapgui.components.base import GuiContainer
 
 
 class GuiConnection(GuiContainer):
@@ -1213,10 +1213,10 @@ class GuiConnection(GuiContainer):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/session.py
+# src/sapguimcp/sapgui/components/session.py
 """GuiSession — stub (full implementation in Task 10)."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiContainer
+from sapguimcp.sapgui.components.base import GuiContainer
 
 
 class GuiSession(GuiContainer):
@@ -1224,10 +1224,10 @@ class GuiSession(GuiContainer):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/shell.py
+# src/sapguimcp/sapgui/components/shell.py
 """GuiShell base and shell subclasses."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiVContainer
+from sapguimcp.sapgui.components.base import GuiVContainer
 
 
 class GuiShell(GuiVContainer):
@@ -1370,11 +1370,11 @@ class GuiSplit(GuiShell):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/window.py
+# src/sapguimcp/sapgui/components/window.py
 """Window classes."""
 from __future__ import annotations
 from typing import Any
-from sapwebguimcp.sapgui.components.base import GuiVContainer
+from sapguimcp.sapgui.components.base import GuiVContainer
 
 
 class GuiFrameWindow(GuiVContainer):
@@ -1540,10 +1540,10 @@ class GuiMessageWindow(GuiVComponent):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/field.py
+# src/sapguimcp/sapgui/components/field.py
 """Text field and label classes."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiVComponent
+from sapguimcp.sapgui.components.base import GuiVComponent
 
 
 class GuiTextField(GuiVComponent):
@@ -1686,10 +1686,10 @@ class GuiBox(GuiVComponent):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/button.py
+# src/sapguimcp/sapgui/components/button.py
 """Button class."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiVComponent
+from sapguimcp.sapgui.components.base import GuiVComponent
 
 
 class GuiButton(GuiVComponent):
@@ -1713,10 +1713,10 @@ class GuiButton(GuiVComponent):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/checkbox.py
+# src/sapguimcp/sapgui/components/checkbox.py
 """Checkbox and radio button classes."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiVComponent
+from sapguimcp.sapgui.components.base import GuiVComponent
 
 
 class GuiCheckBox(GuiVComponent):
@@ -1784,11 +1784,11 @@ class GuiRadioButton(GuiVComponent):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/combobox.py
+# src/sapguimcp/sapgui/components/combobox.py
 """ComboBox and ComboBoxEntry classes."""
 from __future__ import annotations
 from typing import Any, Iterator
-from sapwebguimcp.sapgui.components.base import GuiVComponent
+from sapguimcp.sapgui.components.base import GuiVComponent
 
 
 class GuiComboBoxEntry:
@@ -1854,10 +1854,10 @@ class GuiComboBox(GuiVComponent):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/okcode.py
+# src/sapguimcp/sapgui/components/okcode.py
 """OkCode field class."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiVComponent
+from sapguimcp.sapgui.components.base import GuiVComponent
 
 
 class GuiOkCodeField(GuiVComponent):
@@ -1874,10 +1874,10 @@ class GuiOkCodeField(GuiVComponent):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/statusbar.py
+# src/sapguimcp/sapgui/components/statusbar.py
 """Statusbar and StatusPane classes."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiVComponent
+from sapguimcp.sapgui.components.base import GuiVComponent
 
 
 class GuiStatusbar(GuiVComponent):
@@ -1906,10 +1906,10 @@ class GuiStatusPane(GuiVComponent):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/toolbar.py
+# src/sapguimcp/sapgui/components/toolbar.py
 """Toolbar, Menubar, Menu, and Titlebar classes."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiVContainer, GuiVComponent
+from sapguimcp.sapgui.components.base import GuiVContainer, GuiVComponent
 
 
 class GuiToolbar(GuiVContainer):
@@ -1940,10 +1940,10 @@ class GuiTitlebar(GuiVContainer):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/container.py
+# src/sapguimcp/sapgui/components/container.py
 """Container classes for subscreens, shells, and custom controls."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiVContainer
+from sapguimcp.sapgui.components.base import GuiVContainer
 
 
 class GuiUserArea(GuiVContainer):
@@ -1998,10 +1998,10 @@ class GuiSplitterContainer(GuiVContainer):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/tab.py
+# src/sapguimcp/sapgui/components/tab.py
 """Tab strip and tab page classes."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.base import GuiVContainer
+from sapguimcp.sapgui.components.base import GuiVContainer
 
 
 class GuiTabStrip(GuiVContainer):
@@ -2024,11 +2024,11 @@ class GuiTab(GuiVContainer):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/table.py
+# src/sapguimcp/sapgui/components/table.py
 """Table control classes (dynpro tables, NOT ALV grid)."""
 from __future__ import annotations
 from typing import Any
-from sapwebguimcp.sapgui.components.base import GuiVContainer, GuiVComponent, GuiComponent
+from sapguimcp.sapgui.components.base import GuiVContainer, GuiVComponent, GuiComponent
 
 
 class GuiTableControl(GuiVContainer):
@@ -2111,11 +2111,11 @@ class GuiTableColumn(GuiComponent):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/grid.py
+# src/sapguimcp/sapgui/components/grid.py
 """GuiGridView (ALV grid) class."""
 from __future__ import annotations
 from typing import Any
-from sapwebguimcp.sapgui.components.shell import GuiShell
+from sapguimcp.sapgui.components.shell import GuiShell
 
 
 class GuiGridView(GuiShell):
@@ -2268,11 +2268,11 @@ class GuiGridView(GuiShell):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/tree.py
+# src/sapguimcp/sapgui/components/tree.py
 """GuiTree class."""
 from __future__ import annotations
 from typing import Any
-from sapwebguimcp.sapgui.components.shell import GuiShell
+from sapguimcp.sapgui.components.shell import GuiShell
 
 
 class GuiTree(GuiShell):
@@ -2351,10 +2351,10 @@ class GuiTree(GuiShell):
 ```
 
 ```python
-# src/sapwebguimcp/sapgui/components/editor.py
+# src/sapguimcp/sapgui/components/editor.py
 """Text editor classes."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.components.shell import GuiShell
+from sapguimcp.sapgui.components.shell import GuiShell
 
 
 class GuiTextedit(GuiShell):
@@ -2433,7 +2433,7 @@ class GuiAbapEditor(GuiShell):
 - [ ] **Step 4: Implement the factory**
 
 ```python
-# src/sapwebguimcp/sapgui/_factory.py
+# src/sapguimcp/sapgui/_factory.py
 """Two-level type dispatch factory for wrapping COM objects.
 
 Level 1: TypeAsNumber → Python class (covers most types)
@@ -2446,13 +2446,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from sapwebguimcp.sapgui.components.application import GuiApplication
-from sapwebguimcp.sapgui.components.base import GuiComponent, GuiVComponent
-from sapwebguimcp.sapgui.components.button import GuiButton
-from sapwebguimcp.sapgui.components.checkbox import GuiCheckBox, GuiRadioButton
-from sapwebguimcp.sapgui.components.combobox import GuiComboBox
-from sapwebguimcp.sapgui.components.connection import GuiConnection
-from sapwebguimcp.sapgui.components.container import (
+from sapguimcp.sapgui.components.application import GuiApplication
+from sapguimcp.sapgui.components.base import GuiComponent, GuiVComponent
+from sapguimcp.sapgui.components.button import GuiButton
+from sapguimcp.sapgui.components.checkbox import GuiCheckBox, GuiRadioButton
+from sapguimcp.sapgui.components.combobox import GuiComboBox
+from sapguimcp.sapgui.components.connection import GuiConnection
+from sapguimcp.sapgui.components.container import (
     GuiContainerShell,
     GuiCustomControl,
     GuiDialogShell,
@@ -2463,12 +2463,12 @@ from sapwebguimcp.sapgui.components.container import (
     GuiSplitterContainer,
     GuiUserArea,
 )
-from sapwebguimcp.sapgui.components.editor import GuiAbapEditor, GuiTextedit
-from sapwebguimcp.sapgui.components.field import GuiBox, GuiCTextField, GuiLabel, GuiPasswordField, GuiTextField
-from sapwebguimcp.sapgui.components.grid import GuiGridView
-from sapwebguimcp.sapgui.components.okcode import GuiOkCodeField
-from sapwebguimcp.sapgui.components.session import GuiSession
-from sapwebguimcp.sapgui.components.shell import (
+from sapguimcp.sapgui.components.editor import GuiAbapEditor, GuiTextedit
+from sapguimcp.sapgui.components.field import GuiBox, GuiCTextField, GuiLabel, GuiPasswordField, GuiTextField
+from sapguimcp.sapgui.components.grid import GuiGridView
+from sapguimcp.sapgui.components.okcode import GuiOkCodeField
+from sapguimcp.sapgui.components.session import GuiSession
+from sapguimcp.sapgui.components.shell import (
     GuiCalendar,
     GuiColorSelector,
     GuiComboBoxControl,
@@ -2479,12 +2479,12 @@ from sapwebguimcp.sapgui.components.shell import (
     GuiSplit,
     GuiToolbarControl,
 )
-from sapwebguimcp.sapgui.components.statusbar import GuiStatusbar, GuiStatusPane
-from sapwebguimcp.sapgui.components.tab import GuiTab, GuiTabStrip
-from sapwebguimcp.sapgui.components.table import GuiTableControl
-from sapwebguimcp.sapgui.components.toolbar import GuiMenu, GuiMenubar, GuiTitlebar, GuiToolbar
-from sapwebguimcp.sapgui.components.tree import GuiTree
-from sapwebguimcp.sapgui.components.window import GuiFrameWindow, GuiMainWindow, GuiMessageWindow, GuiModalWindow
+from sapguimcp.sapgui.components.statusbar import GuiStatusbar, GuiStatusPane
+from sapguimcp.sapgui.components.tab import GuiTab, GuiTabStrip
+from sapguimcp.sapgui.components.table import GuiTableControl
+from sapguimcp.sapgui.components.toolbar import GuiMenu, GuiMenubar, GuiTitlebar, GuiToolbar
+from sapguimcp.sapgui.components.tree import GuiTree
+from sapguimcp.sapgui.components.window import GuiFrameWindow, GuiMainWindow, GuiMessageWindow, GuiModalWindow
 
 # Level 1: TypeAsNumber → class
 _TYPE_MAP: dict[int, type[GuiComponent]] = {
@@ -2573,7 +2573,7 @@ Expected: All tests PASS
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/components/ src/sapwebguimcp/sapgui/_factory.py unittests/sapgui/test_factory.py
+git add src/sapguimcp/sapgui/components/ src/sapguimcp/sapgui/_factory.py unittests/sapgui/test_factory.py
 git commit -m "feat(sapgui): add two-level type dispatch factory and all component stubs"
 ```
 
@@ -2583,8 +2583,8 @@ git commit -m "feat(sapgui): add two-level type dispatch factory and all compone
 
 **Files:**
 
-- Create: `src/sapwebguimcp/sapgui/_com.py`
-- Modify: `src/sapwebguimcp/sapgui/__init__.py`
+- Create: `src/sapguimcp/sapgui/_com.py`
+- Modify: `src/sapguimcp/sapgui/__init__.py`
 - Test: `unittests/sapgui/test_com.py`
 - Test: `unittests/sapgui/test_init.py`
 
@@ -2599,34 +2599,34 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sapwebguimcp.sapgui._errors import SapConnectionError, ScriptingDisabledError
+from sapguimcp.sapgui._errors import SapConnectionError, ScriptingDisabledError
 
 
 def test_connect_raises_when_sap_not_running():
-    with patch("sapwebguimcp.sapgui._com.win32com.client") as mock_client:
+    with patch("sapguimcp.sapgui._com.win32com.client") as mock_client:
         mock_client.GetObject.side_effect = Exception("not running")
-        from sapwebguimcp.sapgui._com import _connect_to_running_sap_gui
+        from sapguimcp.sapgui._com import _connect_to_running_sap_gui
 
         with pytest.raises(SapConnectionError, match="not running"):
             _connect_to_running_sap_gui()
 
 
 def test_connect_raises_when_scripting_disabled():
-    with patch("sapwebguimcp.sapgui._com.win32com.client") as mock_client, patch(
-        "sapwebguimcp.sapgui._com.pythoncom"
+    with patch("sapguimcp.sapgui._com.win32com.client") as mock_client, patch(
+        "sapguimcp.sapgui._com.pythoncom"
     ):
         rot_entry = MagicMock()
         rot_entry.GetScriptingEngine = None
         mock_client.GetObject.return_value = rot_entry
-        from sapwebguimcp.sapgui._com import _connect_to_running_sap_gui
+        from sapguimcp.sapgui._com import _connect_to_running_sap_gui
 
         with pytest.raises(ScriptingDisabledError):
             _connect_to_running_sap_gui()
 
 
 def test_connect_returns_gui_application():
-    with patch("sapwebguimcp.sapgui._com.win32com.client") as mock_client, patch(
-        "sapwebguimcp.sapgui._com.pythoncom"
+    with patch("sapguimcp.sapgui._com.win32com.client") as mock_client, patch(
+        "sapguimcp.sapgui._com.pythoncom"
     ):
         engine = MagicMock()
         engine.TypeAsNumber = 10
@@ -2637,7 +2637,7 @@ def test_connect_returns_gui_application():
         rot_entry = MagicMock()
         rot_entry.GetScriptingEngine = engine
         mock_client.GetObject.return_value = rot_entry
-        from sapwebguimcp.sapgui._com import _connect_to_running_sap_gui
+        from sapguimcp.sapgui._com import _connect_to_running_sap_gui
 
         result = _connect_to_running_sap_gui()
         assert result._com is engine
@@ -2650,7 +2650,7 @@ Run: `python -m pytest unittests/sapgui/test_com.py -v`
 - [ ] **Step 3: Implement COM helpers**
 
 ```python
-# src/sapwebguimcp/sapgui/_com.py
+# src/sapguimcp/sapgui/_com.py
 """Low-level COM helpers for connecting to SAP GUI.
 
 Handles CoInitialize, Running Object Table (ROT) access, and polling.
@@ -2660,7 +2660,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from sapwebguimcp.sapgui._errors import SapConnectionError, SapGuiTimeoutError, ScriptingDisabledError
+from sapguimcp.sapgui._errors import SapConnectionError, SapGuiTimeoutError, ScriptingDisabledError
 
 try:
     import pythoncom
@@ -2670,7 +2670,7 @@ except ImportError:
     win32com = None  # type: ignore[assignment]
 
 if TYPE_CHECKING:
-    from sapwebguimcp.sapgui.components.application import GuiApplication
+    from sapguimcp.sapgui.components.application import GuiApplication
 
 
 def _connect_to_running_sap_gui() -> GuiApplication:
@@ -2688,7 +2688,7 @@ def _connect_to_running_sap_gui() -> GuiApplication:
             "Scripting engine not available — check server parameter sapgui/user_scripting"
         )
 
-    from sapwebguimcp.sapgui.components.application import GuiApplication
+    from sapguimcp.sapgui.components.application import GuiApplication
 
     return GuiApplication(engine)
 
@@ -2720,11 +2720,11 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from sapwebguimcp.sapgui import SapGui
+from sapguimcp.sapgui import SapGui
 
 
 def test_sap_gui_connect_delegates():
-    with patch("sapwebguimcp.sapgui._com._connect_to_running_sap_gui") as mock:
+    with patch("sapguimcp.sapgui._com._connect_to_running_sap_gui") as mock:
         mock.return_value = MagicMock()
         result = SapGui.connect()
         mock.assert_called_once()
@@ -2732,7 +2732,7 @@ def test_sap_gui_connect_delegates():
 
 
 def test_sap_gui_launch_delegates():
-    with patch("sapwebguimcp.sapgui._com._wait_for_sap_gui") as mock_wait, patch(
+    with patch("sapguimcp.sapgui._com._wait_for_sap_gui") as mock_wait, patch(
         "subprocess.Popen"
     ):
         mock_wait.return_value = MagicMock()
@@ -2743,7 +2743,7 @@ def test_sap_gui_launch_delegates():
 - [ ] **Step 6: Implement **init**.py entry points**
 
 ```python
-# src/sapwebguimcp/sapgui/__init__.py
+# src/sapguimcp/sapgui/__init__.py
 """pysapgui — Pythonic SAP GUI Scripting Library.
 
 Entry points:
@@ -2756,7 +2756,7 @@ import subprocess
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sapwebguimcp.sapgui.components.application import GuiApplication
+    from sapguimcp.sapgui.components.application import GuiApplication
 
 
 class SapGui:
@@ -2765,7 +2765,7 @@ class SapGui:
     @staticmethod
     def connect() -> GuiApplication:
         """Attach to a running SAP GUI instance via the Running Object Table."""
-        from sapwebguimcp.sapgui._com import _connect_to_running_sap_gui
+        from sapguimcp.sapgui._com import _connect_to_running_sap_gui
 
         return _connect_to_running_sap_gui()
 
@@ -2785,7 +2785,7 @@ class SapGui:
         Raises:
             SapGuiTimeoutError: If SAP GUI doesn't become available within timeout.
         """
-        from sapwebguimcp.sapgui._com import _wait_for_sap_gui
+        from sapguimcp.sapgui._com import _wait_for_sap_gui
 
         cmd = [exe_path]
         if connection_string:
@@ -2801,7 +2801,7 @@ Run: `python -m pytest unittests/sapgui/test_init.py -v`
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/_com.py src/sapwebguimcp/sapgui/__init__.py unittests/sapgui/test_com.py unittests/sapgui/test_init.py
+git add src/sapguimcp/sapgui/_com.py src/sapguimcp/sapgui/__init__.py unittests/sapgui/test_com.py unittests/sapgui/test_init.py
 git commit -m "feat(sapgui): add COM helpers and SapGui.connect()/launch() entry points"
 ```
 
@@ -2813,7 +2813,7 @@ git commit -m "feat(sapgui): add COM helpers and SapGui.connect()/launch() entry
 
 **Files:**
 
-- Create: `src/sapwebguimcp/sapgui/components/application.py`
+- Create: `src/sapguimcp/sapgui/components/application.py`
 - Test: `unittests/sapgui/test_application.py`
 
 - [ ] **Step 1: Write tests**
@@ -2824,8 +2824,8 @@ git commit -m "feat(sapgui): add COM helpers and SapGui.connect()/launch() entry
 from __future__ import annotations
 from unittest.mock import MagicMock
 from conftest import make_mock_com
-from sapwebguimcp.sapgui.components.application import GuiApplication
-from sapwebguimcp.sapgui.components.base import GuiContainer
+from sapguimcp.sapgui.components.application import GuiApplication
+from sapguimcp.sapgui.components.base import GuiContainer
 
 
 def test_extends_gui_container():
@@ -2871,11 +2871,11 @@ Run: `python -m pytest unittests/sapgui/test_application.py -v`
 - [ ] **Step 3: Implement GuiApplication**
 
 ```python
-# src/sapwebguimcp/sapgui/components/application.py
+# src/sapguimcp/sapgui/components/application.py
 """GuiApplication — top-level SAP GUI process wrapper."""
 from __future__ import annotations
 from typing import Any
-from sapwebguimcp.sapgui.components.base import GuiContainer
+from sapguimcp.sapgui.components.base import GuiContainer
 
 
 class GuiApplication(GuiContainer):
@@ -2944,7 +2944,7 @@ Run: `python -m pytest unittests/sapgui/test_application.py -v`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/components/application.py unittests/sapgui/test_application.py
+git add src/sapguimcp/sapgui/components/application.py unittests/sapgui/test_application.py
 git commit -m "feat(sapgui): add GuiApplication wrapper"
 ```
 
@@ -2954,7 +2954,7 @@ git commit -m "feat(sapgui): add GuiApplication wrapper"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/sapgui/components/connection.py`
+- Create: `src/sapguimcp/sapgui/components/connection.py`
 - Test: `unittests/sapgui/test_connection.py`
 
 - [ ] **Step 1: Write tests**
@@ -2964,8 +2964,8 @@ git commit -m "feat(sapgui): add GuiApplication wrapper"
 """Tests for GuiConnection wrapper."""
 from __future__ import annotations
 from conftest import make_mock_com
-from sapwebguimcp.sapgui.components.connection import GuiConnection
-from sapwebguimcp.sapgui.components.base import GuiContainer
+from sapguimcp.sapgui.components.connection import GuiConnection
+from sapguimcp.sapgui.components.base import GuiContainer
 
 
 def test_extends_gui_container():
@@ -3008,11 +3008,11 @@ def test_close_session():
 - [ ] **Step 2: Implement GuiConnection**
 
 ```python
-# src/sapwebguimcp/sapgui/components/connection.py
+# src/sapguimcp/sapgui/components/connection.py
 """GuiConnection — SAP connection wrapper."""
 from __future__ import annotations
 from typing import Any
-from sapwebguimcp.sapgui.components.base import GuiContainer
+from sapguimcp.sapgui.components.base import GuiContainer
 
 
 class GuiConnection(GuiContainer):
@@ -3055,7 +3055,7 @@ Run: `python -m pytest unittests/sapgui/test_connection.py -v`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/components/connection.py unittests/sapgui/test_connection.py
+git add src/sapguimcp/sapgui/components/connection.py unittests/sapgui/test_connection.py
 git commit -m "feat(sapgui): add GuiConnection wrapper"
 ```
 
@@ -3065,7 +3065,7 @@ git commit -m "feat(sapgui): add GuiConnection wrapper"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/sapgui/components/session.py`
+- Create: `src/sapguimcp/sapgui/components/session.py`
 - Test: `unittests/sapgui/test_session.py`
 
 - [ ] **Step 1: Write tests**
@@ -3076,8 +3076,8 @@ git commit -m "feat(sapgui): add GuiConnection wrapper"
 from __future__ import annotations
 from unittest.mock import MagicMock
 from conftest import make_mock_com
-from sapwebguimcp.sapgui.components.session import GuiSession, GuiSessionInfo
-from sapwebguimcp.sapgui.components.base import GuiContainer
+from sapguimcp.sapgui.components.session import GuiSession, GuiSessionInfo
+from sapguimcp.sapgui.components.base import GuiContainer
 
 
 def test_extends_gui_container():
@@ -3164,11 +3164,11 @@ def test_session_info_properties():
 - [ ] **Step 2: Implement GuiSession and GuiSessionInfo**
 
 ```python
-# src/sapwebguimcp/sapgui/components/session.py
+# src/sapguimcp/sapgui/components/session.py
 """GuiSession and GuiSessionInfo — session management wrappers."""
 from __future__ import annotations
 from typing import Any
-from sapwebguimcp.sapgui.components.base import GuiContainer
+from sapguimcp.sapgui.components.base import GuiContainer
 
 
 class GuiSessionInfo:
@@ -3325,7 +3325,7 @@ Expected: All tests PASS
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/components/session.py src/sapwebguimcp/sapgui/components/application.py src/sapwebguimcp/sapgui/components/connection.py src/sapwebguimcp/sapgui/_factory.py unittests/sapgui/test_session.py unittests/sapgui/test_application.py unittests/sapgui/test_connection.py
+git add src/sapguimcp/sapgui/components/session.py src/sapguimcp/sapgui/components/application.py src/sapguimcp/sapgui/components/connection.py src/sapguimcp/sapgui/_factory.py unittests/sapgui/test_session.py unittests/sapgui/test_application.py unittests/sapgui/test_connection.py
 git commit -m "feat(sapgui): add GuiSession, GuiConnection, GuiApplication with factory wiring"
 ```
 
@@ -3337,7 +3337,7 @@ git commit -m "feat(sapgui): add GuiSession, GuiConnection, GuiApplication with 
 
 **Files:**
 
-- Create: `src/sapwebguimcp/sapgui/models.py`
+- Create: `src/sapguimcp/sapgui/models.py`
 - Test: `unittests/sapgui/test_models.py`
 
 - [ ] **Step 1: Write tests**
@@ -3346,7 +3346,7 @@ git commit -m "feat(sapgui): add GuiSession, GuiConnection, GuiApplication with 
 # unittests/sapgui/test_models.py
 """Tests for pysapgui Pydantic models."""
 from __future__ import annotations
-from sapwebguimcp.sapgui.models import SessionInfo, ElementInfo
+from sapguimcp.sapgui.models import SessionInfo, ElementInfo
 
 
 def test_session_info_from_dict():
@@ -3415,7 +3415,7 @@ def test_element_info_default_no_children():
 - [ ] **Step 2: Implement models**
 
 ```python
-# src/sapwebguimcp/sapgui/models.py
+# src/sapguimcp/sapgui/models.py
 """Pydantic models for structured data exchange."""
 from __future__ import annotations
 from pydantic import BaseModel
@@ -3455,7 +3455,7 @@ Run: `python -m pytest unittests/sapgui/test_models.py -v`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/models.py unittests/sapgui/test_models.py
+git add src/sapguimcp/sapgui/models.py unittests/sapgui/test_models.py
 git commit -m "feat(sapgui): add SessionInfo and ElementInfo Pydantic models"
 ```
 
@@ -3465,7 +3465,7 @@ git commit -m "feat(sapgui): add SessionInfo and ElementInfo Pydantic models"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/sapgui/components/base.py`
+- Modify: `src/sapguimcp/sapgui/components/base.py`
 - Test: `unittests/sapgui/test_base.py` (add dump_tree tests)
 
 - [ ] **Step 1: Write dump_tree tests**
@@ -3540,7 +3540,7 @@ class TestDumpTree:
 
 - [ ] **Step 2: Implement dump_tree**
 
-Add to `GuiVContainer` in `src/sapwebguimcp/sapgui/components/base.py`:
+Add to `GuiVContainer` in `src/sapguimcp/sapgui/components/base.py`:
 
 ```python
     def dump_tree(self, max_depth: int = 10) -> list[ElementInfo]:
@@ -3548,7 +3548,7 @@ Add to `GuiVContainer` in `src/sapwebguimcp/sapgui/components/base.py`:
 
         This is the desktop equivalent of a screen snapshot.
         """
-        from sapwebguimcp.sapgui.models import ElementInfo
+        from sapguimcp.sapgui.models import ElementInfo
 
         return _dump_tree_recursive(self._com, depth=0, max_depth=max_depth)
 ```
@@ -3558,7 +3558,7 @@ Add the helper function at module level in `base.py`:
 ```python
 def _dump_tree_recursive(com_obj: Any, depth: int, max_depth: int) -> list[ElementInfo]:
     """Walk the COM element tree and build ElementInfo models."""
-    from sapwebguimcp.sapgui.models import ElementInfo
+    from sapguimcp.sapgui.models import ElementInfo
 
     result: list[ElementInfo] = []
     try:
@@ -3597,7 +3597,7 @@ Run: `python -m pytest unittests/sapgui/test_base.py -v`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/components/base.py unittests/sapgui/test_base.py
+git add src/sapguimcp/sapgui/components/base.py unittests/sapgui/test_base.py
 git commit -m "feat(sapgui): add dump_tree() for recursive screen inspection"
 ```
 
@@ -3607,21 +3607,21 @@ git commit -m "feat(sapgui): add dump_tree() for recursive screen inspection"
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/sapgui/components/__init__.py`
+- Modify: `src/sapguimcp/sapgui/components/__init__.py`
 
 - [ ] **Step 1: Add re-exports for all component classes**
 
 ```python
-# src/sapwebguimcp/sapgui/components/__init__.py
+# src/sapguimcp/sapgui/components/__init__.py
 """SAP GUI component wrappers — re-exports all public classes."""
-from sapwebguimcp.sapgui.components.application import GuiApplication
-from sapwebguimcp.sapgui.components.base import GuiComponent, GuiContainer, GuiVComponent, GuiVContainer
-from sapwebguimcp.sapgui.components.button import GuiButton
-from sapwebguimcp.sapgui.components.checkbox import GuiCheckBox, GuiRadioButton
-from sapwebguimcp.sapgui.components.collection import GuiCollection, GuiComponentCollection
-from sapwebguimcp.sapgui.components.combobox import GuiComboBox, GuiComboBoxEntry
-from sapwebguimcp.sapgui.components.connection import GuiConnection
-from sapwebguimcp.sapgui.components.container import (
+from sapguimcp.sapgui.components.application import GuiApplication
+from sapguimcp.sapgui.components.base import GuiComponent, GuiContainer, GuiVComponent, GuiVContainer
+from sapguimcp.sapgui.components.button import GuiButton
+from sapguimcp.sapgui.components.checkbox import GuiCheckBox, GuiRadioButton
+from sapguimcp.sapgui.components.collection import GuiCollection, GuiComponentCollection
+from sapguimcp.sapgui.components.combobox import GuiComboBox, GuiComboBoxEntry
+from sapguimcp.sapgui.components.connection import GuiConnection
+from sapguimcp.sapgui.components.container import (
     GuiContainerShell,
     GuiCustomControl,
     GuiDialogShell,
@@ -3632,12 +3632,12 @@ from sapwebguimcp.sapgui.components.container import (
     GuiSplitterContainer,
     GuiUserArea,
 )
-from sapwebguimcp.sapgui.components.editor import GuiAbapEditor, GuiTextedit
-from sapwebguimcp.sapgui.components.field import GuiBox, GuiCTextField, GuiLabel, GuiPasswordField, GuiTextField
-from sapwebguimcp.sapgui.components.grid import GuiGridView
-from sapwebguimcp.sapgui.components.okcode import GuiOkCodeField
-from sapwebguimcp.sapgui.components.session import GuiSession, GuiSessionInfo
-from sapwebguimcp.sapgui.components.shell import (
+from sapguimcp.sapgui.components.editor import GuiAbapEditor, GuiTextedit
+from sapguimcp.sapgui.components.field import GuiBox, GuiCTextField, GuiLabel, GuiPasswordField, GuiTextField
+from sapguimcp.sapgui.components.grid import GuiGridView
+from sapguimcp.sapgui.components.okcode import GuiOkCodeField
+from sapguimcp.sapgui.components.session import GuiSession, GuiSessionInfo
+from sapguimcp.sapgui.components.shell import (
     GuiCalendar,
     GuiColorSelector,
     GuiComboBoxControl,
@@ -3648,12 +3648,12 @@ from sapwebguimcp.sapgui.components.shell import (
     GuiSplit,
     GuiToolbarControl,
 )
-from sapwebguimcp.sapgui.components.statusbar import GuiStatusbar, GuiStatusPane
-from sapwebguimcp.sapgui.components.tab import GuiTab, GuiTabStrip
-from sapwebguimcp.sapgui.components.table import GuiTableColumn, GuiTableControl, GuiTableRow
-from sapwebguimcp.sapgui.components.toolbar import GuiMenu, GuiMenubar, GuiTitlebar, GuiToolbar
-from sapwebguimcp.sapgui.components.tree import GuiTree
-from sapwebguimcp.sapgui.components.window import GuiFrameWindow, GuiMainWindow, GuiMessageWindow, GuiModalWindow
+from sapguimcp.sapgui.components.statusbar import GuiStatusbar, GuiStatusPane
+from sapguimcp.sapgui.components.tab import GuiTab, GuiTabStrip
+from sapguimcp.sapgui.components.table import GuiTableColumn, GuiTableControl, GuiTableRow
+from sapguimcp.sapgui.components.toolbar import GuiMenu, GuiMenubar, GuiTitlebar, GuiToolbar
+from sapguimcp.sapgui.components.tree import GuiTree
+from sapguimcp.sapgui.components.window import GuiFrameWindow, GuiMainWindow, GuiMessageWindow, GuiModalWindow
 
 __all__ = [
     "GuiAbapEditor", "GuiApplication", "GuiBox", "GuiButton",
@@ -3682,7 +3682,7 @@ Expected: All tests PASS
 - [ ] **Step 3: Commit**
 
 ```bash
-git add src/sapwebguimcp/sapgui/components/__init__.py
+git add src/sapguimcp/sapgui/components/__init__.py
 git commit -m "feat(sapgui): add public API re-exports in components/__init__"
 ```
 
@@ -3722,7 +3722,7 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is 
 def _sap_gui_available() -> bool:
     """Check if SAP GUI is running and scripting is enabled."""
     try:
-        from sapwebguimcp.sapgui import SapGui
+        from sapguimcp.sapgui import SapGui
 
         app = SapGui.connect()
         return app is not None
@@ -3738,23 +3738,23 @@ class TestSapGuiConnect:
     """Tests that connect to a running SAP GUI instance."""
 
     def test_connect_returns_gui_application(self):
-        from sapwebguimcp.sapgui import SapGui
-        from sapwebguimcp.sapgui.components.application import GuiApplication
+        from sapguimcp.sapgui import SapGui
+        from sapguimcp.sapgui.components.application import GuiApplication
 
         app = SapGui.connect()
         assert isinstance(app, GuiApplication)
         assert app.id == "/app"
 
     def test_application_has_connections(self):
-        from sapwebguimcp.sapgui import SapGui
+        from sapguimcp.sapgui import SapGui
 
         app = SapGui.connect()
         connections = app.connections
         assert connections.Count >= 1
 
     def test_connection_has_sessions(self):
-        from sapwebguimcp.sapgui import SapGui
-        from sapwebguimcp.sapgui.components.connection import GuiConnection
+        from sapguimcp.sapgui import SapGui
+        from sapguimcp.sapgui.components.connection import GuiConnection
 
         app = SapGui.connect()
         conn_com = app.connections.Item(0)
@@ -3762,8 +3762,8 @@ class TestSapGuiConnect:
         assert conn.sessions.Count >= 1
 
     def test_session_info(self):
-        from sapwebguimcp.sapgui import SapGui
-        from sapwebguimcp.sapgui.components.session import GuiSession
+        from sapguimcp.sapgui import SapGui
+        from sapguimcp.sapgui.components.session import GuiSession
 
         app = SapGui.connect()
         conn = app.connections.Item(0)
@@ -3775,9 +3775,9 @@ class TestSapGuiConnect:
         assert info.language != ""
 
     def test_find_main_window(self):
-        from sapwebguimcp.sapgui import SapGui
-        from sapwebguimcp.sapgui.components.session import GuiSession
-        from sapwebguimcp.sapgui.components.window import GuiMainWindow
+        from sapguimcp.sapgui import SapGui
+        from sapguimcp.sapgui.components.session import GuiSession
+        from sapguimcp.sapgui.components.window import GuiMainWindow
 
         app = SapGui.connect()
         ses_com = app.connections.Item(0).Children.Item(0)
@@ -3787,9 +3787,9 @@ class TestSapGuiConnect:
         assert isinstance(wnd, GuiMainWindow)
 
     def test_find_statusbar(self):
-        from sapwebguimcp.sapgui import SapGui
-        from sapwebguimcp.sapgui.components.session import GuiSession
-        from sapwebguimcp.sapgui.components.statusbar import GuiStatusbar
+        from sapguimcp.sapgui import SapGui
+        from sapguimcp.sapgui.components.session import GuiSession
+        from sapguimcp.sapgui.components.statusbar import GuiStatusbar
 
         app = SapGui.connect()
         ses_com = app.connections.Item(0).Children.Item(0)
@@ -3799,9 +3799,9 @@ class TestSapGuiConnect:
         assert isinstance(sbar, GuiStatusbar)
 
     def test_find_okcode_field(self):
-        from sapwebguimcp.sapgui import SapGui
-        from sapwebguimcp.sapgui.components.okcode import GuiOkCodeField
-        from sapwebguimcp.sapgui.components.session import GuiSession
+        from sapguimcp.sapgui import SapGui
+        from sapguimcp.sapgui.components.okcode import GuiOkCodeField
+        from sapguimcp.sapgui.components.session import GuiSession
 
         app = SapGui.connect()
         ses_com = app.connections.Item(0).Children.Item(0)
@@ -3812,9 +3812,9 @@ class TestSapGuiConnect:
 
     def test_find_by_id_returns_typed_wrappers(self):
         """find_by_id returns typed wrappers, not raw COM — no need for manual wrap_com_object."""
-        from sapwebguimcp.sapgui import SapGui
-        from sapwebguimcp.sapgui.components.session import GuiSession
-        from sapwebguimcp.sapgui.components.window import GuiMainWindow
+        from sapguimcp.sapgui import SapGui
+        from sapguimcp.sapgui.components.session import GuiSession
+        from sapguimcp.sapgui.components.window import GuiMainWindow
 
         app = SapGui.connect()
         ses_com = app.connections.Item(0).Children.Item(0)
@@ -3823,9 +3823,9 @@ class TestSapGuiConnect:
         assert isinstance(wnd, GuiMainWindow)
 
     def test_dump_tree_on_main_window(self):
-        from sapwebguimcp.sapgui import SapGui
-        from sapwebguimcp.sapgui.components.session import GuiSession
-        from sapwebguimcp.sapgui.models import ElementInfo
+        from sapguimcp.sapgui import SapGui
+        from sapguimcp.sapgui.components.session import GuiSession
+        from sapguimcp.sapgui.models import ElementInfo
 
         app = SapGui.connect()
         ses_com = app.connections.Item(0).Children.Item(0)
@@ -3836,9 +3836,9 @@ class TestSapGuiConnect:
         assert all(isinstance(e, ElementInfo) for e in tree)
 
     def test_read_statusbar_text(self):
-        from sapwebguimcp.sapgui import SapGui
-        from sapwebguimcp.sapgui.components.session import GuiSession
-        from sapwebguimcp.sapgui.components.statusbar import GuiStatusbar
+        from sapguimcp.sapgui import SapGui
+        from sapguimcp.sapgui.components.session import GuiSession
+        from sapguimcp.sapgui.components.statusbar import GuiStatusbar
 
         app = SapGui.connect()
         ses_com = app.connections.Item(0).Children.Item(0)
@@ -3868,8 +3868,8 @@ git commit -m "test(sapgui): add integration tests for live SAP GUI"
 - [ ] **Step 1: Run isort + black**
 
 ```bash
-python -m isort src/sapwebguimcp/sapgui/ unittests/sapgui/ --profile black
-python -m black src/sapwebguimcp/sapgui/ unittests/sapgui/ --line-length 120
+python -m isort src/sapguimcp/sapgui/ unittests/sapgui/ --profile black
+python -m black src/sapguimcp/sapgui/ unittests/sapgui/ --line-length 120
 ```
 
 - [ ] **Step 2: Run full test suite**
@@ -3880,7 +3880,7 @@ Expected: All unit tests PASS, integration tests SKIP (or PASS if SAP GUI availa
 - [ ] **Step 3: Run mypy**
 
 ```bash
-python -m mypy src/sapwebguimcp/sapgui/ --ignore-missing-imports
+python -m mypy src/sapguimcp/sapgui/ --ignore-missing-imports
 ```
 
 - [ ] **Step 4: Fix any issues from formatting or type checking**
@@ -3888,7 +3888,7 @@ python -m mypy src/sapwebguimcp/sapgui/ --ignore-missing-imports
 - [ ] **Step 5: Final commit**
 
 ```bash
-git add -A src/sapwebguimcp/sapgui/ unittests/sapgui/
+git add -A src/sapguimcp/sapgui/ unittests/sapgui/
 git commit -m "chore(sapgui): format with isort+black, fix type annotations"
 ```
 

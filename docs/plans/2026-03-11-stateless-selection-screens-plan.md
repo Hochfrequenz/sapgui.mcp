@@ -16,17 +16,17 @@
 
 | File                                              | Responsibility                                                                                                                              |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/sapwebguimcp/models/screen_state.py`         | `SelectionScreenState`, `StateChange`, `ScreenStateDiff` Pydantic models                                                                    |
-| `src/sapwebguimcp/parsers/screen_state_parser.py` | `parse_selection_screen_state()` — pure ARIA snapshot → state extraction                                                                    |
-| `src/sapwebguimcp/tools/screen_state_helpers.py`  | `ensure_screen_state()`, `bilingual_target()` — transition + verify logic                                                                   |
-| `src/sapwebguimcp/backend/protocol.py`            | Add `set_radio_button()` to `SapUiPrimitives` (line ~87)                                                                                    |
-| `src/sapwebguimcp/backend/webgui/backend.py`      | Implement `set_radio_button()` (after `set_checkbox` at line ~595)                                                                          |
-| `src/sapwebguimcp/models/sap_results.py`          | Add `checked: bool \| None` to `FormField` (line ~31)                                                                                       |
-| `src/sapwebguimcp/js/detect_form_fields.js`       | Return `el.checked` for checkbox/radio (line ~113)                                                                                          |
-| `src/sapwebguimcp/tools/sap_tools.py`             | Register `sap_set_checkbox` and `sap_set_radio_button` MCP tools                                                                            |
-| `src/sapwebguimcp/tools/se09_tools.py`            | Replace `_set_checkbox_state`/`_try_set_checkbox`/`_set_request_type_filter`/`_set_status_filter` (lines 55-111) with `ensure_screen_state` |
-| `src/sapwebguimcp/tools/sm37_tools.py`            | Replace `_set_status_checkboxes` (lines 50-73) + fix default-param vulnerability                                                            |
-| `src/sapwebguimcp/tools/se11_tools.py`            | Replace `_page` radio hacks in `_wait_for_se11_table_screen`/`_wait_for_se11_structure_screen` (lines 228-289)                              |
+| `src/sapguimcp/models/screen_state.py`         | `SelectionScreenState`, `StateChange`, `ScreenStateDiff` Pydantic models                                                                    |
+| `src/sapguimcp/parsers/screen_state_parser.py` | `parse_selection_screen_state()` — pure ARIA snapshot → state extraction                                                                    |
+| `src/sapguimcp/tools/screen_state_helpers.py`  | `ensure_screen_state()`, `bilingual_target()` — transition + verify logic                                                                   |
+| `src/sapguimcp/backend/protocol.py`            | Add `set_radio_button()` to `SapUiPrimitives` (line ~87)                                                                                    |
+| `src/sapguimcp/backend/webgui/backend.py`      | Implement `set_radio_button()` (after `set_checkbox` at line ~595)                                                                          |
+| `src/sapguimcp/models/sap_results.py`          | Add `checked: bool \| None` to `FormField` (line ~31)                                                                                       |
+| `src/sapguimcp/js/detect_form_fields.js`       | Return `el.checked` for checkbox/radio (line ~113)                                                                                          |
+| `src/sapguimcp/tools/sap_tools.py`             | Register `sap_set_checkbox` and `sap_set_radio_button` MCP tools                                                                            |
+| `src/sapguimcp/tools/se09_tools.py`            | Replace `_set_checkbox_state`/`_try_set_checkbox`/`_set_request_type_filter`/`_set_status_filter` (lines 55-111) with `ensure_screen_state` |
+| `src/sapguimcp/tools/sm37_tools.py`            | Replace `_set_status_checkboxes` (lines 50-73) + fix default-param vulnerability                                                            |
+| `src/sapguimcp/tools/se11_tools.py`            | Replace `_page` radio hacks in `_wait_for_se11_table_screen`/`_wait_for_se11_structure_screen` (lines 228-289)                              |
 | `unittests/test_screen_state_parser.py`           | Parser unit tests against existing + new YAML snapshots                                                                                     |
 | `unittests/test_ensure_screen_state.py`           | Transition logic unit tests with mocked backend                                                                                             |
 | `unittests/test_se09_exploration.py`              | New snapshot capture tests for SE09 checkbox variants                                                                                       |
@@ -40,7 +40,7 @@
 
 **Files:**
 
-- Create: `src/sapwebguimcp/models/screen_state.py`
+- Create: `src/sapguimcp/models/screen_state.py`
 - Test: `unittests/test_screen_state_parser.py` (model instantiation tests)
 
 - [ ] **Step 1: Write model file**
@@ -50,7 +50,7 @@
 
 from pydantic import BaseModel, Field
 
-from sapwebguimcp.models.base import ToolResult
+from sapguimcp.models.base import ToolResult
 
 
 class SelectionScreenState(BaseModel):
@@ -137,7 +137,7 @@ Create `unittests/test_screen_state_parser.py` with initial model tests:
 ```python
 """Unit tests for selection screen state parsing and transition models."""
 
-from sapwebguimcp.models.screen_state import (
+from sapguimcp.models.screen_state import (
     ScreenStateDiff,
     SelectionScreenState,
     StateChange,
@@ -194,7 +194,7 @@ Expected: 5 tests PASS
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/screen_state.py unittests/test_screen_state_parser.py
+git add src/sapguimcp/models/screen_state.py unittests/test_screen_state_parser.py
 git commit -m "feat: add SelectionScreenState and ScreenStateDiff models"
 ```
 
@@ -204,7 +204,7 @@ git commit -m "feat: add SelectionScreenState and ScreenStateDiff models"
 
 **Files:**
 
-- Create: `src/sapwebguimcp/parsers/screen_state_parser.py`
+- Create: `src/sapguimcp/parsers/screen_state_parser.py`
 - Modify: `unittests/test_screen_state_parser.py` (add parser tests)
 
 - [ ] **Step 1: Write failing parser tests against existing snapshots**
@@ -216,7 +216,7 @@ from pathlib import Path
 
 import pytest
 
-from sapwebguimcp.parsers.screen_state_parser import parse_selection_screen_state
+from sapguimcp.parsers.screen_state_parser import parse_selection_screen_state
 
 TESTDATA_DIR = Path(__file__).parent / "testdata"
 
@@ -324,11 +324,11 @@ class TestParseSelectionScreenState:
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest unittests/test_screen_state_parser.py::TestParseSelectionScreenState -v`
-Expected: FAIL — `ModuleNotFoundError: No module named 'sapwebguimcp.parsers.screen_state_parser'`
+Expected: FAIL — `ModuleNotFoundError: No module named 'sapguimcp.parsers.screen_state_parser'`
 
 - [ ] **Step 3: Implement the parser**
 
-Create `src/sapwebguimcp/parsers/screen_state_parser.py`:
+Create `src/sapguimcp/parsers/screen_state_parser.py`:
 
 ```python
 """Parse SAP selection screen state from ARIA accessibility snapshots.
@@ -351,7 +351,7 @@ ARIA format examples (from real SAP screens)::
 import re
 from collections import Counter
 
-from sapwebguimcp.models.screen_state import SelectionScreenState
+from sapguimcp.models.screen_state import SelectionScreenState
 
 __all__ = ["parse_selection_screen_state"]
 
@@ -460,7 +460,7 @@ Expected: Clean
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/parsers/screen_state_parser.py unittests/test_screen_state_parser.py
+git add src/sapguimcp/parsers/screen_state_parser.py unittests/test_screen_state_parser.py
 git commit -m "feat: add parse_selection_screen_state() for ARIA snapshot state extraction"
 ```
 
@@ -470,12 +470,12 @@ git commit -m "feat: add parse_selection_screen_state() for ARIA snapshot state 
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/backend/protocol.py:86-87` (add method after `set_checkbox`)
-- Modify: `src/sapwebguimcp/backend/webgui/backend.py:582-595` (add impl after `set_checkbox`)
+- Modify: `src/sapguimcp/backend/protocol.py:86-87` (add method after `set_checkbox`)
+- Modify: `src/sapguimcp/backend/webgui/backend.py:582-595` (add impl after `set_checkbox`)
 
 - [ ] **Step 1: Add to protocol**
 
-In `src/sapwebguimcp/backend/protocol.py`, after the `set_checkbox` method (line 87):
+In `src/sapguimcp/backend/protocol.py`, after the `set_checkbox` method (line 87):
 
 ```python
     async def set_radio_button(self, label: str) -> None:
@@ -484,7 +484,7 @@ In `src/sapwebguimcp/backend/protocol.py`, after the `set_checkbox` method (line
 
 - [ ] **Step 2: Implement in WebGuiBackend**
 
-In `src/sapwebguimcp/backend/webgui/backend.py`, after the `set_checkbox` method (after line 595):
+In `src/sapguimcp/backend/webgui/backend.py`, after the `set_checkbox` method (after line 595):
 
 ```python
     async def set_radio_button(self, label: str) -> None:
@@ -510,7 +510,7 @@ Expected: Clean — the protocol and implementation signatures match
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/backend/protocol.py src/sapwebguimcp/backend/webgui/backend.py
+git add src/sapguimcp/backend/protocol.py src/sapguimcp/backend/webgui/backend.py
 git commit -m "feat: add set_radio_button() to backend protocol and WebGUI implementation"
 ```
 
@@ -520,7 +520,7 @@ git commit -m "feat: add set_radio_button() to backend protocol and WebGUI imple
 
 **Files:**
 
-- Create: `src/sapwebguimcp/tools/screen_state_helpers.py`
+- Create: `src/sapguimcp/tools/screen_state_helpers.py`
 - Create: `unittests/test_ensure_screen_state.py`
 
 - [ ] **Step 1: Write failing transition tests with mocked backend**
@@ -541,8 +541,8 @@ from unittest.mock import AsyncMock, call
 
 import pytest
 
-from sapwebguimcp.models.screen_state import SelectionScreenState
-from sapwebguimcp.tools.screen_state_helpers import ensure_screen_state
+from sapguimcp.models.screen_state import SelectionScreenState
+from sapguimcp.tools.screen_state_helpers import ensure_screen_state
 
 
 def _mock_backend(snapshot_before: str, snapshot_after: str) -> AsyncMock:
@@ -727,11 +727,11 @@ class TestEnsureScreenStateAmbiguity:
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest unittests/test_ensure_screen_state.py -v`
-Expected: FAIL — `ModuleNotFoundError: No module named 'sapwebguimcp.tools.screen_state_helpers'`
+Expected: FAIL — `ModuleNotFoundError: No module named 'sapguimcp.tools.screen_state_helpers'`
 
 - [ ] **Step 3: Implement `ensure_screen_state()` and `bilingual_target()`**
 
-Create `src/sapwebguimcp/tools/screen_state_helpers.py`:
+Create `src/sapguimcp/tools/screen_state_helpers.py`:
 
 ```python
 """Helpers for reading and transitioning SAP selection screen state.
@@ -747,15 +747,15 @@ into a single ``SelectionScreenState``.
 import logging
 from typing import TYPE_CHECKING
 
-from sapwebguimcp.models.screen_state import (
+from sapguimcp.models.screen_state import (
     ScreenStateDiff,
     SelectionScreenState,
     StateChange,
 )
-from sapwebguimcp.parsers.screen_state_parser import parse_selection_screen_state
+from sapguimcp.parsers.screen_state_parser import parse_selection_screen_state
 
 if TYPE_CHECKING:
-    from sapwebguimcp.backend.protocol import SapUiBackend
+    from sapguimcp.backend.protocol import SapUiBackend
 
 logger = logging.getLogger(__name__)
 
@@ -909,7 +909,7 @@ Expected: Clean
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/screen_state_helpers.py unittests/test_ensure_screen_state.py
+git add src/sapguimcp/tools/screen_state_helpers.py unittests/test_ensure_screen_state.py
 git commit -m "feat: add ensure_screen_state() transition logic with verification"
 ```
 
@@ -919,12 +919,12 @@ git commit -m "feat: add ensure_screen_state() transition logic with verificatio
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/models/sap_results.py:25-39`
-- Modify: `src/sapwebguimcp/js/detect_form_fields.js:109-116`
+- Modify: `src/sapguimcp/models/sap_results.py:25-39`
+- Modify: `src/sapguimcp/js/detect_form_fields.js:109-116`
 
 - [ ] **Step 1: Add `checked` field to `FormField`**
 
-In `src/sapwebguimcp/models/sap_results.py`, add after `current_value` (line 31):
+In `src/sapguimcp/models/sap_results.py`, add after `current_value` (line 31):
 
 ```python
     checked: bool | None = Field(
@@ -935,7 +935,7 @@ In `src/sapwebguimcp/models/sap_results.py`, add after `current_value` (line 31)
 
 - [ ] **Step 2: Fix `detect_form_fields.js` to return `el.checked`**
 
-In `src/sapwebguimcp/js/detect_form_fields.js`, replace the field construction (lines 109-116):
+In `src/sapguimcp/js/detect_form_fields.js`, replace the field construction (lines 109-116):
 
 ```javascript
 const field = {
@@ -958,21 +958,21 @@ class TestFormFieldCheckedField:
     """Verify FormField model accepts and serializes the new checked field."""
 
     def test_checkbox_field_checked(self) -> None:
-        from sapwebguimcp.models.sap_results import FormField, SapFieldType
+        from sapguimcp.models.sap_results import FormField, SapFieldType
         field = FormField(id="cb1", label="Workbench", field_type=SapFieldType.CHECKBOX, checked=True)
         assert field.checked is True
         data = field.model_dump()
         assert data["checked"] is True
 
     def test_text_field_checked_is_none(self) -> None:
-        from sapwebguimcp.models.sap_results import FormField, SapFieldType
+        from sapguimcp.models.sap_results import FormField, SapFieldType
         field = FormField(id="txt1", label="Name", field_type=SapFieldType.TEXT)
         assert field.checked is None
         data = field.model_dump()
         assert data["checked"] is None
 
     def test_radio_field_unchecked(self) -> None:
-        from sapwebguimcp.models.sap_results import FormField, SapFieldType
+        from sapguimcp.models.sap_results import FormField, SapFieldType
         field = FormField(id="rb1", label="View", field_type=SapFieldType.RADIO, checked=False)
         assert field.checked is False
 ```
@@ -985,7 +985,7 @@ Expected: All clean
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/models/sap_results.py src/sapwebguimcp/js/detect_form_fields.js unittests/test_screen_state_parser.py
+git add src/sapguimcp/models/sap_results.py src/sapguimcp/js/detect_form_fields.js unittests/test_screen_state_parser.py
 git commit -m "feat: add checked state to FormField model and detect_form_fields.js"
 ```
 
@@ -995,7 +995,7 @@ git commit -m "feat: add checked state to FormField model and detect_form_fields
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sap_tools.py` (add two new tool registrations)
+- Modify: `src/sapguimcp/tools/sap_tools.py` (add two new tool registrations)
 
 These expose the backend's `set_checkbox` and `set_radio_button` as MCP tools so the LLM can toggle controls on unknown screens.
 
@@ -1099,7 +1099,7 @@ Expected: Clean
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/sap_tools.py
+git add src/sapguimcp/tools/sap_tools.py
 git commit -m "feat: expose sap_set_checkbox and sap_set_radio_button as MCP tools"
 ```
 
@@ -1264,21 +1264,21 @@ git commit -m "feat: collect SE09 selection screen snapshots and add snapshot-pa
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/se09_tools.py:55-111` (replace 4 helper functions)
-- Modify: `src/sapwebguimcp/tools/se09_tools.py:282-286` (replace filter calls in `_lookup_transports`)
+- Modify: `src/sapguimcp/tools/se09_tools.py:55-111` (replace 4 helper functions)
+- Modify: `src/sapguimcp/tools/se09_tools.py:282-286` (replace filter calls in `_lookup_transports`)
 
 **Note:** This changes the checkbox labels from substring (`"Workbench"`) to exact ARIA labels (`"Workbench-Aufträge"`). The `set_checkbox` backend method uses `exact=True` first, so exact labels are more robust and skip the case-insensitive fallback path.
 
 - [ ] **Step 1: Replace SE09 checkbox helpers with `ensure_screen_state`**
 
-In `src/sapwebguimcp/tools/se09_tools.py`:
+In `src/sapguimcp/tools/se09_tools.py`:
 
 1. Remove functions `_set_checkbox_state` (lines 55-63), `_set_request_type_filter` (lines 65-80), `_try_set_checkbox` (lines 82-91), `_set_status_filter` (lines 94-111).
 
 2. Add import at top:
 
 ```python
-from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
+from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 ```
 
 3. Replace the filter section in `_lookup_transports` (lines 274-281) with:
@@ -1330,7 +1330,7 @@ Expected: Clean
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/se09_tools.py
+git add src/sapguimcp/tools/se09_tools.py
 git commit -m "refactor: migrate SE09 to ensure_screen_state(), remove ad-hoc checkbox helpers"
 ```
 
@@ -1342,7 +1342,7 @@ git commit -m "refactor: migrate SE09 to ensure_screen_state(), remove ad-hoc ch
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/sm37_tools.py:50-112`
+- Modify: `src/sapguimcp/tools/sm37_tools.py:50-112`
 - Add exploration test or script to capture SM37 snapshots
 
 - [ ] **Step 1: Collect SM37 snapshots (exploration test)**
@@ -1380,14 +1380,14 @@ Add to `unittests/test_screen_state_parser.py`:
 
 - [ ] **Step 3: Migrate SM37 to `ensure_screen_state()`**
 
-In `src/sapwebguimcp/tools/sm37_tools.py`:
+In `src/sapguimcp/tools/sm37_tools.py`:
 
 1. Remove `_set_status_checkboxes` function (lines 50-73).
 
 2. Add import:
 
 ```python
-from sapwebguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
+from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 ```
 
 3. In `_fill_selection_screen` (line ~76), replace the status checkbox block (lines 109-112) with:
@@ -1434,7 +1434,7 @@ Expected: Clean
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/sm37_tools.py unittests/
+git add src/sapguimcp/tools/sm37_tools.py unittests/
 git commit -m "refactor: migrate SM37 to ensure_screen_state(), fix default-param checkbox vulnerability"
 ```
 
@@ -1444,7 +1444,7 @@ git commit -m "refactor: migrate SM37 to ensure_screen_state(), fix default-para
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/tools/se11_tools.py:228-289`
+- Modify: `src/sapguimcp/tools/se11_tools.py:228-289`
 
 - [ ] **Step 1: Replace `_wait_for_se11_table_screen` radio hack**
 
@@ -1554,7 +1554,7 @@ Expected: Clean
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sapwebguimcp/tools/se11_tools.py
+git add src/sapguimcp/tools/se11_tools.py
 git commit -m "refactor: replace SE11 raw _page radio hacks with backend.set_radio_button()"
 ```
 
@@ -1566,7 +1566,7 @@ git commit -m "refactor: replace SE11 raw _page radio hacks with backend.set_rad
 
 **Files:**
 
-- Modify: `src/sapwebguimcp/data/sap_knowledge.md`
+- Modify: `src/sapguimcp/data/sap_knowledge.md`
 
 - [ ] **Step 1: Add selection screen state management section**
 
@@ -1591,7 +1591,7 @@ For general-purpose exploration of unknown screens:
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/sapwebguimcp/data/sap_knowledge.md
+git add src/sapguimcp/data/sap_knowledge.md
 git commit -m "docs: update sap_knowledge.md with selection screen state management pattern"
 ```
 

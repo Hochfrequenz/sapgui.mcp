@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from bs4 import BeautifulSoup
 
-from sapwebguimcp.tools.sap_tools import parse_shortcut_from_title
+from sapguimcp.tools.sap_tools import parse_shortcut_from_title
 
 HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
 
