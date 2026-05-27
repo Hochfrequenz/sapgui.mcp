@@ -8,9 +8,9 @@
 An MCP (Model Context Protocol) server for SAP automation.
 Control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) — via **SAP GUI desktop** or **SAP Web GUI** (browser).
 Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation** — tasks a pure REST-API client cannot do.
-The MCP works with both SAP R/3 and S/4 (because some might even say "they are the same system" with just some different names and labels).
+The MCP works with both SAP R/3 and S/4.
 
-> [!TIP]
+> [!NOTE]
 > **Pairs with [`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `mcp-server-abap` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
 
 > [!TIP]
