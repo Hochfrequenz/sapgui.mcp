@@ -8,9 +8,9 @@
 An MCP (Model Context Protocol) server for SAP automation.
 Control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) - via **SAP GUI desktop** or **SAP Web GUI** (browser).
 Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation** - tasks a pure REST-API client cannot do.
-The MCP works with both SAP R/3 and S/4 (because some might even say "they are the same system" with just some different names and labels).
+The MCP works with both SAP R/3 and S/4.
 
-> [!TIP]
+> [!NOTE]
 > **Pairs with [`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `mcp-server-abap` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
 
 > [!TIP]
@@ -20,6 +20,11 @@ The MCP works with both SAP R/3 and S/4 (because some might even say "they are t
 > **Developers and contributors:** See [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure, request flow diagrams, and how to add new transaction tools. The **Development Setup** section at the bottom of this page covers running from source.
 
 ## Setup
+
+Setup takes two steps, both one-time: create a shared SAP credentials file, then register the MCP server with your AI client. Pick your installation method below and follow the numbered steps inside it.
+
+- [ ] Create `systems.json` with your SAP host, username, and password
+- [ ] Add the MCP server to Claude Desktop, Claude Code, or opencode
 
 Choose one of these three approaches:
 
