@@ -26,9 +26,7 @@ Choose one of these three approaches:
 
 - **Claude Code** — add to `.mcp.json` in your project root (per-project config)
 - **Claude Desktop** — add to `claude_desktop_config.json` (global config, path varies by OS — shown in each section below)
-- **[opencode](https://opencode.ai)** — add to `opencode.json` in your project root. opencode's schema differs slightly from Claude's (`"mcp"` instead of `"mcpServers"`, plus `"type": "local"`, `"command"` as an array, and `"environment"` instead of `"env"`) — see [opencode's MCP docs](https://opencode.ai/docs/mcp-servers) and adapt the Claude Code snippets below.
-
-All three setup approaches below show Claude Desktop and Claude Code snippets; opencode users translate the schema as described.
+- **[opencode](https://opencode.ai)** — add to `opencode.json` in your project root. Each section below includes a ready-to-use `opencode.json` snippet alongside the Claude Code snippet.
 
 > [!WARNING]
 > **Special characters in passwords:** If your SAP password contains `"` or `\` characters, you must escape them in the JSON config files: `"` becomes `\"` and `\` becomes `\\`. For example, `pass"word` becomes `"pass\"word"` and `do\main` becomes `"do\\main"`. Unescaped special characters will silently break the JSON and the MCP server will fail to start.
@@ -94,14 +92,9 @@ Uses [sapsucker](https://github.com/Hochfrequenz/sapsucker) for typed SAP GUI Sc
 
 </details>
 
-#### Claude Desktop
+#### Step 1: Create the SAP config file (`systems.json`)
 
-Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%APPDATA%\Claude`, press Enter. If `claude_desktop_config.json` does not exist, create a new text file with that exact name (make sure it ends in `.json`, not `.json.txt`).
-
-> [!TIP]
-> After downloading the `.exe`, note the full path. For example, if you saved `sapgui_mcp_windows_1.5.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapgui_mcp_windows_1.5.0.exe`. Always use forward slashes (`/`) in the JSON, not backslashes (`\`).
-
-**Step 1:** Create the SAP config file (shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) — configure once, use everywhere).
+This file holds your SAP credentials and is shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) — configure it once and all HF SAP MCP servers will use it.
 
 On **Windows**, open Windows Explorer and paste this into the address bar:
 
@@ -143,9 +136,22 @@ If the `connection_name` doesn't match exactly, you'll get _"SAP Logon connectio
 }
 ```
 
-See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the full config format reference (JSON and YAML supported).
+> [!NOTE]
+> If your SAP system uses a self-signed or internally-signed certificate (common for VPN/intranet systems), add `"tls_skip_verify": true` to the system entry. Leave it out if your system has a publicly-trusted certificate.
 
-**Step 2:** Add to `claude_desktop_config.json`:
+> [!IMPORTANT]
+> After editing `systems.json`, restart Claude Desktop, Claude Code, or opencode for the changes to take effect.
+
+See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the complete field reference — all optional fields, validation rules, YAML support, and a visual guide to finding your `connection_name` in SAP Logon.
+
+#### Step 2: Configure your MCP client
+
+> [!TIP]
+> Note the full path to the downloaded `.exe`. For example, if you saved `sapgui_mcp_windows_1.5.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapgui_mcp_windows_1.5.0.exe`. Always use forward slashes (`/`) in JSON, not backslashes (`\`).
+
+##### Claude Desktop
+
+Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%APPDATA%\Claude`, press Enter. If `claude_desktop_config.json` does not exist, create a new text file with that exact name (make sure it ends in `.json`, not `.json.txt`).
 
 ```json
 {
@@ -160,7 +166,7 @@ See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the ful
 }
 ```
 
-#### Claude Code
+##### Claude Code
 
 Add to `.mcp.json` in your project root:
 
@@ -176,6 +182,29 @@ Add to `.mcp.json` in your project root:
     }
 }
 ```
+
+##### opencode
+
+Add to `opencode.json` in your project root:
+
+```json
+{
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": {
+        "sap-desktop": {
+            "type": "local",
+            "command": ["C:/path/to/sapgui_mcp_windows_<version>.exe"],
+            "enabled": true,
+            "environment": {
+                "BACKEND_TYPE": "desktop"
+            }
+        }
+    }
+}
+```
+
+> [!TIP]
+> In `opencode.json`, you can use either forward slashes (`C:/path/to/...`) or double-escaped backslashes (`C:\\path\\to\\...`) in the `command` path. Single backslashes will break the JSON silently.
 
 #### Multi-system access (desktop backend only)
 
@@ -216,7 +245,31 @@ When `sap_login(system_key="qa")` is called, it looks up `"qa"` in `systems.json
 
 No Chrome, no browser setup required.
 
-> **Getting started:** Save the config file, then restart Claude Desktop. Try asking: _"Log me into SAP"_ or _"Run transaction SE16"_. SAP GUI will open automatically if it is not already running.
+#### Verify the setup
+
+Before your first prompt, check that the MCP server starts correctly. Open PowerShell and run:
+
+**Claude Code:**
+```
+claude mcp list
+```
+Expected output:
+```
+sap-desktop: C:/path/to/sapgui_mcp_windows_<version>.exe ✓ Connected
+```
+
+**opencode:**
+```
+opencode mcp list
+```
+Expected output:
+```
+● ✓ sap-desktop connected
+```
+
+If you see `✗ Failed` or `✗ failed`, the most common cause is a wrong path to the `.exe` in your config file. Double-check the path and that the file exists there. Run `opencode mcp debug sap-desktop` for more detail.
+
+> **Getting started:** Restart Claude Desktop, Claude Code, or opencode, then try: _"Log me into SAP"_ or _"Run transaction SE16"_. SAP GUI will open automatically if it is not already running.
 
 ### Option B: WebGUI Backend (Browser)
 
@@ -239,7 +292,7 @@ Automates SAP Web GUI through Chrome browser automation. Works on all platforms.
 
 #### Step 2: Create `systems.json`
 
-Create the SAP config file if you haven't already (Windows: `%USERPROFILE%\.config\sap-mcp\systems.json`, macOS/Linux: `~/.config/sap-mcp/systems.json`). See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for details.
+Create the SAP config file if you haven't already (Windows: `%USERPROFILE%\.config\sap-mcp\systems.json`, macOS/Linux: `~/.config/sap-mcp/systems.json`). See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the full field reference and YAML support.
 
 ```json
 {
@@ -256,6 +309,12 @@ Create the SAP config file if you haven't already (Windows: `%USERPROFILE%\.conf
 }
 ```
 
+> [!NOTE]
+> If your SAP system uses a self-signed or internally-signed certificate (common for VPN/intranet systems), add `"tls_skip_verify": true` to the system entry. Leave it out if your system has a publicly-trusted certificate.
+
+> [!NOTE]
+> The WebGUI backend connects directly to the `host` URL — there is no SAP Logon application involved, so `connection_name` is not needed here (unlike the Desktop backend).
+
 > The WebGUI URL is derived automatically from `host` as `{host}/sap/bc/gui/sap/its/webgui`. If your SAP system uses a non-standard WebGUI path, set `SAP_URL` in the MCP config below.
 
 #### Step 3: Configure your MCP client
@@ -269,9 +328,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
     "mcpServers": {
         "sap-webgui": {
             "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
-            "env": {
-                "GITHUB_PAT": "your_github_pat"
-            }
+            "env": {}
         }
     }
 }
@@ -286,15 +343,63 @@ Add to `.mcp.json` in your project root:
     "mcpServers": {
         "sap-webgui": {
             "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
-            "env": {
-                "GITHUB_PAT": "your_github_pat"
-            }
+            "env": {}
         }
     }
 }
 ```
 
+##### opencode
+
+Add to `opencode.json` in your project root:
+
+```json
+{
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": {
+        "sap-webgui": {
+            "type": "local",
+            "command": ["C:/path/to/sapgui_mcp_windows_<version>.exe"],
+            "enabled": true,
+            "environment": {}
+        }
+    }
+}
+```
+
+> [!TIP]
+> In `opencode.json`, you can use either forward slashes (`C:/path/to/...`) or double-escaped backslashes (`C:\\path\\to\\...`) in the `command` path. Single backslashes will break the JSON silently.
+
+> [!NOTE]
+> `GITHUB_PAT` is optional — only needed for `log_feedback` (creates GitHub issues) and abapGit operations with private repos. Add it to the `env` / `environment` block only if you need those features.
+
 No Docker, no CDP proxy, no Python required.
+
+#### Verify the setup
+
+Before your first prompt, check that the MCP server starts correctly. Open PowerShell and run:
+
+**Claude Code:**
+```
+claude mcp list
+```
+Expected output:
+```
+sap-webgui: C:/path/to/sapgui_mcp_windows_<version>.exe ✓ Connected
+```
+
+**opencode:**
+```
+opencode mcp list
+```
+Expected output:
+```
+● ✓ sap-webgui connected
+```
+
+If you see `✗ Failed`, the most common cause is a wrong path to the `.exe`. Run `opencode mcp debug sap-webgui` for more detail.
+
+> **Getting started:** Restart Claude Desktop, Claude Code, or opencode, then try: _"Log me into SAP"_ or _"Take a screenshot of the current SAP screen"_.
 
 </details>
 
