@@ -20,10 +20,7 @@ The MCP works with both SAP R/3 and S/4.
 
 ## Setup
 
-Setup takes two steps, both one-time: create a shared SAP credentials file, then register the MCP server with your AI client. Pick your installation method below and follow the numbered steps inside it.
-
-- [ ] Create `systems.json` with your SAP host, username, and password
-- [ ] Add the MCP server to Claude Desktop, Claude Code, or opencode
+Pick an installation method below - each one walks you through two things: creating your SAP credentials file (`systems.json`) and registering the MCP server with your AI client.
 
 Choose one of these three approaches:
 
