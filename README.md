@@ -16,8 +16,7 @@ The MCP works with both SAP R/3 and S/4.
 > [!TIP]
 > **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, the AI agent can write and execute a single Python script that loops, branches, and collects results - all in one shot. You just describe what you need; the agent generates the script automatically. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. Runs in a secure sandbox against the SAP GUI COM API. Desktop backend only. See [Desktop COM Tools](#desktop-com-tools-desktop-backend-only).
 
-> [!NOTE]
-> **Developers and contributors:** See [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure, request flow diagrams, and how to add new transaction tools. The **Development Setup** section at the bottom of this page covers running from source.
+> **Developer?** See [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure, request flow diagrams, and how to add new transaction tools. The **Development Setup** section at the bottom of this page covers running from source.
 
 ## Setup
 
@@ -100,7 +99,7 @@ Uses [sapsucker](https://github.com/Hochfrequenz/sapsucker) for typed SAP GUI Sc
 
 #### Step 1: Create the SAP config file (`systems.json`)
 
-This file holds your SAP credentials and is shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) - configure it once and all HF SAP MCP servers will use it.
+This file holds your SAP credentials and is shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) - configure it once and all Hochfrequenz SAP MCP servers will use it.
 
 On **Windows**, open Windows Explorer and paste this into the address bar:
 
