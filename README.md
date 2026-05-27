@@ -22,6 +22,9 @@ The MCP works with both SAP R/3 and S/4.
 
 Pick an installation method below - each one walks you through two things: creating your SAP credentials file (`systems.json`) and registering the MCP server with your AI client.
 
+> [!NOTE]
+> **Why a separate credentials file?** Most MCP servers put SAP credentials directly in the per-project MCP config (`env` block), which means re-entering them for every tool. Here, credentials live in a single shared file (`systems.json`) that all Hochfrequenz SAP MCP servers read automatically - so this server and [`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap) both work with the same credentials without duplication.
+
 Choose one of these three approaches:
 
 **Where to register the MCP server:**
