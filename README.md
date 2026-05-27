@@ -94,7 +94,7 @@ Uses [sapsucker](https://github.com/Hochfrequenz/sapsucker) for typed SAP GUI Sc
 
 #### Step 1: Create the SAP config file (`systems.json`)
 
-This file holds your SAP credentials and is shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) — configure it once and all HF SAP MCP servers will use it.
+This file holds your SAP credentials and is shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) — configure it once and all Hochfrequenz SAP MCP servers will use it.
 
 On **Windows**, open Windows Explorer and paste this into the address bar:
 
