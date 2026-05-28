@@ -45,7 +45,7 @@ linting = [
 ]
 type_check = [
     "mypy[pydantic]==2.0.0",
-    "types-PyYAML==6.0.12.20260408",
+    "types-PyYAML==6.0.12.20260518",
 ]
 spell_check = [
     "codespell==2.4.2",
