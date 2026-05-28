@@ -37,7 +37,7 @@ tests = [
     "anyio==4.13.0",  # includes pytest-anyio plugin for proper async fixture teardown
     "python-dotenv>=1.0.0",
     "beautifulsoup4==4.14.3",  # HTML parsing for selector unit tests
-    "lxml==6.0.2",  # Fallback parser for Python 3.13+ (html.parser has stricter nesting rules)
+    "lxml==6.1.1",  # Fallback parser for Python 3.13+ (html.parser has stricter nesting rules)
     "respx==0.23.1",  # Mock httpx requests in tests
 ]
 linting = [
@@ -45,7 +45,7 @@ linting = [
 ]
 type_check = [
     "mypy[pydantic]==2.0.0",
-    "types-PyYAML==6.0.12.20260408",
+    "types-PyYAML==6.0.12.20260518",
 ]
 spell_check = [
     "codespell==2.4.2",
