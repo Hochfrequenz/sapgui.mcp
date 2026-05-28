@@ -378,14 +378,13 @@ Add to `opencode.json` in your project root:
 > In `opencode.json`, you can use either forward slashes (`C:/path/to/...`) or double-escaped backslashes (`C:\\path\\to\\...`) in the `command` path. Single backslashes will break the JSON silently.
 
 > [!NOTE]
-> [!NOTE]
 > `GITHUB_PAT` is optional - only needed for `log_feedback` (creates GitHub issues) and abapGit operations with private repos. Add it to the `env` / `environment` block only if you need those features.
 
 No Docker, no CDP proxy, no Python required.
 
 #### Verify the setup
 
-Before your first prompt, check that the MCP server starts correctly. Open PowerShell and run:
+Before your first prompt, check that the MCP server starts correctly. Open a terminal (PowerShell on Windows, Terminal on macOS/Linux) and run:
 
 **Claude Code:**
 ```
