@@ -92,7 +92,7 @@ jeepney==0.9.0
     # via
     #   keyring
     #   secretstorage
-joserfc==1.6.5
+joserfc==1.6.8
     # via authlib
 jsonref==1.1.0
     # via fastmcp-slim
