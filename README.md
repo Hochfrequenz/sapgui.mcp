@@ -668,7 +668,7 @@ playwright install chromium
 ### Run tests
 
 ```bash
-tox -e py312        # unit tests
+tox -e unit_tests   # unit tests only
 tox -e linting      # code quality
 tox -e formatting   # check formatting
 ```
