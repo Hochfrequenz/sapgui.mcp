@@ -200,7 +200,7 @@ secretstorage==3.5.0
     # via keyring
 sse-starlette==3.4.4
     # via mcp
-starlette==1.1.0
+starlette==1.2.0
     # via
     #   mcp
     #   sse-starlette
