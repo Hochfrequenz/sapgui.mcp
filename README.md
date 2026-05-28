@@ -6,29 +6,32 @@
 [![Formatting](https://github.com/Hochfrequenz/sapgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapgui.mcp/actions)
 
 An MCP (Model Context Protocol) server for SAP automation.
-Control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) — via **SAP GUI desktop** or **SAP Web GUI** (browser).
-Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation** — tasks a pure REST-API client cannot do.
+Control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) - via **SAP GUI desktop** or **SAP Web GUI** (browser).
+Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation** - tasks a pure REST-API client cannot do.
 The MCP works with both SAP R/3 and S/4.
 
 > [!NOTE]
 > **Pairs with [`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `mcp-server-abap` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
 
 > [!TIP]
-> **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, the AI agent can write and execute a single Python script that loops, branches, and collects results — all in one shot. You just describe what you need; the agent generates the script automatically. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. Runs in a secure sandbox against the SAP GUI COM API. Desktop backend only. See [Desktop COM Tools](#desktop-com-tools-desktop-backend-only).
+> **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, the AI agent can write and execute a single Python script that loops, branches, and collects results - all in one shot. You just describe what you need; the agent generates the script automatically. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. Runs in a secure sandbox against the SAP GUI COM API. Desktop backend only. See [Desktop COM Tools](#desktop-com-tools-desktop-backend-only).
 
-> **Developer?** See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured, request flow diagrams, and how to add new transaction tools.
+> **Developer?** See [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure, request flow diagrams, and how to add new transaction tools. The **Development Setup** section at the bottom of this page covers running from source.
 
 ## Setup
+
+Pick an installation method below - each one walks you through two things: creating your SAP credentials file (`systems.json`) and registering the MCP server with your AI client.
+
+> [!NOTE]
+> **Why a separate credentials file?** Most MCP servers put SAP credentials directly in the per-project MCP config (`env` block), which means re-entering them for every tool. Here, credentials live in a single shared file (`systems.json`) that all Hochfrequenz SAP MCP servers read automatically - so this server and [`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap) both work with the same credentials without duplication.
 
 Choose one of these three approaches:
 
 **Where to register the MCP server:**
 
-- **Claude Code** — add to `.mcp.json` in your project root (per-project config)
-- **Claude Desktop** — add to `claude_desktop_config.json` (global config, path varies by OS — shown in each section below)
-- **[opencode](https://opencode.ai)** — add to `opencode.json` in your project root. opencode's schema differs slightly from Claude's (`"mcp"` instead of `"mcpServers"`, plus `"type": "local"`, `"command"` as an array, and `"environment"` instead of `"env"`) — see [opencode's MCP docs](https://opencode.ai/docs/mcp-servers) and adapt the Claude Code snippets below.
-
-All three setup approaches below show Claude Desktop and Claude Code snippets; opencode users translate the schema as described.
+- **Claude Code** - add to `.mcp.json` in your project root (per-project config)
+- **Claude Desktop** - add to `claude_desktop_config.json` (global config, path varies by OS - shown in each section below)
+- **[opencode](https://opencode.ai)** - add to `opencode.json` in your project root. Each section below includes a ready-to-use `opencode.json` snippet alongside the Claude Code snippet.
 
 > [!WARNING]
 > **Special characters in passwords:** If your SAP password contains `"` or `\` characters, you must escape them in the JSON config files: `"` becomes `\"` and `\` becomes `\\`. For example, `pass"word` becomes `"pass\"word"` and `do\main` becomes `"do\\main"`. Unescaped special characters will silently break the JSON and the MCP server will fail to start.
@@ -37,7 +40,7 @@ All three setup approaches below show Claude Desktop and Claude Code snippets; o
 > **Windows file extensions:** If file extensions are hidden in Windows Explorer, creating `.mcp.json` via right-click → New → Text File will produce `.mcp.json.txt` (or `.mcp.json.json` if you rename). Make sure "File name extensions" is checked in Explorer's View tab, then rename the file.
 
 <details>
-<summary><strong>📦 Standalone Executable (recommended — no Docker, no Python)</strong></summary>
+<summary><strong>📦 Standalone Executable (recommended - no Docker, no Python)</strong></summary>
 <br>
 
 Download the binary for your platform from
@@ -62,14 +65,14 @@ Choose a backend:
 | **Speed**    | Faster (works directly with SAP GUI) | Slower (works through a web browser)         |
 | **Setup**    | Simpler (just SAP GUI + this tool)   | More steps (also needs Chrome browser setup) |
 
-### Option A: Desktop Backend (SAP GUI) — recommended for Windows users
+### Option A: Desktop Backend (SAP GUI) - recommended for Windows users
 
-Automates SAP GUI directly — no browser needed. Windows only.
+Automates SAP GUI directly - no browser needed. Windows only.
 Uses [sapsucker](https://github.com/Hochfrequenz/sapsucker) for typed SAP GUI Scripting access.
 
 **Prerequisites:**
 
-- SAP GUI for Windows installed (standard path — the server finds it automatically via Windows registry)
+- SAP GUI for Windows installed (standard path - the server finds it automatically via Windows registry)
 - SAP GUI Scripting enabled (one-time setup, see below)
 
 <details>
@@ -78,7 +81,7 @@ Uses [sapsucker](https://github.com/Hochfrequenz/sapsucker) for typed SAP GUI Sc
 **Server side** (requires admin/basis team):
 
 - Transaction `RZ11` → parameter `sapgui/user_scripting` → set to `TRUE`
-- Dynamic parameter — no server restart needed, but users must re-login (close and reopen SAP GUI)
+- Dynamic parameter - no server restart needed, but users must re-login (close and reopen SAP GUI)
 
 **Client side** (your PC):
 
@@ -94,14 +97,9 @@ Uses [sapsucker](https://github.com/Hochfrequenz/sapsucker) for typed SAP GUI Sc
 
 </details>
 
-#### Claude Desktop
+#### Step 1: Create the SAP config file (`systems.json`)
 
-Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%APPDATA%\Claude`, press Enter. If `claude_desktop_config.json` does not exist, create a new text file with that exact name (make sure it ends in `.json`, not `.json.txt`).
-
-> [!TIP]
-> After downloading the `.exe`, note the full path. For example, if you saved `sapgui_mcp_windows_1.5.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapgui_mcp_windows_1.5.0.exe`. Always use forward slashes (`/`) in the JSON, not backslashes (`\`).
-
-**Step 1:** Create the SAP config file (shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) — configure once, use everywhere).
+This file holds your SAP credentials and is shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) - configure it once and all Hochfrequenz SAP MCP servers will use it.
 
 On **Windows**, open Windows Explorer and paste this into the address bar:
 
@@ -111,11 +109,11 @@ On **Windows**, open Windows Explorer and paste this into the address bar:
 
 Create the folder if it doesn't exist, then create a file called `systems.json` inside it. On **macOS/Linux**, the path is `~/.config/sap-mcp/systems.json`.
 
-There are two distinct identifiers per system — don't mix them up:
+There are two distinct identifiers per system - don't mix them up:
 
 | Concept | Example | Where it's used |
 | --- | --- | --- |
-| **System key** (dictionary key) | `"dev"`, `"qa"` | `sap_login(system_key="qa")` — selects which system to log into |
+| **System key** (dictionary key) | `"dev"`, `"qa"` | `sap_login(system_key="qa")` - selects which system to log into |
 | **SAP Logon entry** (`connection_name` field) | `"HF S/4"`, `"DEV - ERP Development"` | Must match the **bold description** in the SAP Logon pad exactly |
 
 The SAP Logon entry is _not_ the 3-character System ID (SID):
@@ -143,9 +141,22 @@ If the `connection_name` doesn't match exactly, you'll get _"SAP Logon connectio
 }
 ```
 
-See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the full config format reference (JSON and YAML supported).
+> [!NOTE]
+> If your SAP system uses a self-signed or internally-signed certificate (common for VPN/intranet systems), add `"tls_skip_verify": true` to the system entry. Leave it out if your system has a publicly-trusted certificate.
 
-**Step 2:** Add to `claude_desktop_config.json`:
+> [!IMPORTANT]
+> After editing `systems.json`, restart Claude Desktop, Claude Code, or opencode for the changes to take effect.
+
+See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the complete field reference - all optional fields, validation rules, YAML support, and a visual guide to finding your `connection_name` in SAP Logon.
+
+#### Step 2: Configure your MCP client
+
+> [!TIP]
+> Note the full path to the downloaded `.exe`. For example, if you saved `sapgui_mcp_windows_1.5.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapgui_mcp_windows_1.5.0.exe`. Always use forward slashes (`/`) in JSON, not backslashes (`\`).
+
+##### Claude Desktop
+
+Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%APPDATA%\Claude`, press Enter. If `claude_desktop_config.json` does not exist, create a new text file with that exact name (make sure it ends in `.json`, not `.json.txt`).
 
 ```json
 {
@@ -160,7 +171,7 @@ See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the ful
 }
 ```
 
-#### Claude Code
+##### Claude Code
 
 Add to `.mcp.json` in your project root:
 
@@ -177,9 +188,32 @@ Add to `.mcp.json` in your project root:
 }
 ```
 
+##### opencode
+
+Add to `opencode.json` in your project root:
+
+```json
+{
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": {
+        "sap-desktop": {
+            "type": "local",
+            "command": ["C:/path/to/sapgui_mcp_windows_<version>.exe"],
+            "enabled": true,
+            "environment": {
+                "BACKEND_TYPE": "desktop"
+            }
+        }
+    }
+}
+```
+
+> [!TIP]
+> In `opencode.json`, you can use either forward slashes (`C:/path/to/...`) or double-escaped backslashes (`C:\\path\\to\\...`) in the `command` path. Single backslashes will break the JSON silently.
+
 #### Multi-system access (desktop backend only)
 
-Multi-system support is built into `systems.json` — add multiple systems and the LLM can switch between them:
+Multi-system support is built into `systems.json` - add multiple systems and the LLM can switch between them:
 
 **How it works:**
 
@@ -216,11 +250,36 @@ When `sap_login(system_key="qa")` is called, it looks up `"qa"` in `systems.json
 
 No Chrome, no browser setup required.
 
-> **Getting started:** Save the config file, then restart Claude Desktop. Try asking: _"Log me into SAP"_ or _"Run transaction SE16"_. SAP GUI will open automatically if it is not already running.
+#### Verify the setup
+
+Before your first prompt, check that the MCP server starts correctly. Open PowerShell and run:
+
+**Claude Code:**
+```
+claude mcp list
+```
+Expected output:
+```
+sap-desktop: C:/path/to/sapgui_mcp_windows_<version>.exe ✓ Connected
+```
+
+**opencode:**
+```
+opencode mcp list
+```
+Expected output:
+```
+● ✓ sap-desktop connected
+```
+
+If you see `✗ Failed` or `✗ failed`, the most common cause is a wrong path to the `.exe` in your config file. Double-check the path and that the file exists there. Run `opencode mcp debug sap-desktop` for more detail.
+
+> [!TIP]
+> **Getting started:** Restart Claude Desktop, Claude Code, or opencode, then try: _"Log me into SAP"_ or _"Run transaction SE16"_. SAP GUI will open automatically if it is not already running.
 
 ### Option B: WebGUI Backend (Browser)
 
-Automates SAP Web GUI through Chrome browser automation. Works on all platforms. This is the default — if you don't set `BACKEND_TYPE`, the server uses WebGUI.
+Automates SAP Web GUI through Chrome browser automation. Works on all platforms. This is the default - if you don't set `BACKEND_TYPE`, the server uses WebGUI.
 
 #### Step 1: Start Chrome with remote debugging
 
@@ -239,7 +298,7 @@ Automates SAP Web GUI through Chrome browser automation. Works on all platforms.
 
 #### Step 2: Create `systems.json`
 
-Create the SAP config file if you haven't already (Windows: `%USERPROFILE%\.config\sap-mcp\systems.json`, macOS/Linux: `~/.config/sap-mcp/systems.json`). See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for details.
+Create the SAP config file if you haven't already (Windows: `%USERPROFILE%\.config\sap-mcp\systems.json`, macOS/Linux: `~/.config/sap-mcp/systems.json`). See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the full field reference and YAML support.
 
 ```json
 {
@@ -256,6 +315,13 @@ Create the SAP config file if you haven't already (Windows: `%USERPROFILE%\.conf
 }
 ```
 
+> [!NOTE]
+> If your SAP system uses a self-signed or internally-signed certificate (common for VPN/intranet systems), add `"tls_skip_verify": true` to the system entry. Leave it out if your system has a publicly-trusted certificate.
+
+> [!NOTE]
+> The WebGUI backend connects directly to the `host` URL - there is no SAP Logon application involved, so `connection_name` is not needed here (unlike the Desktop backend).
+
+> [!NOTE]
 > The WebGUI URL is derived automatically from `host` as `{host}/sap/bc/gui/sap/its/webgui`. If your SAP system uses a non-standard WebGUI path, set `SAP_URL` in the MCP config below.
 
 #### Step 3: Configure your MCP client
@@ -269,9 +335,7 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
     "mcpServers": {
         "sap-webgui": {
             "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
-            "env": {
-                "GITHUB_PAT": "your_github_pat"
-            }
+            "env": {}
         }
     }
 }
@@ -286,15 +350,64 @@ Add to `.mcp.json` in your project root:
     "mcpServers": {
         "sap-webgui": {
             "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
-            "env": {
-                "GITHUB_PAT": "your_github_pat"
-            }
+            "env": {}
         }
     }
 }
 ```
 
+##### opencode
+
+Add to `opencode.json` in your project root:
+
+```json
+{
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": {
+        "sap-webgui": {
+            "type": "local",
+            "command": ["C:/path/to/sapgui_mcp_windows_<version>.exe"],
+            "enabled": true,
+            "environment": {}
+        }
+    }
+}
+```
+
+> [!TIP]
+> In `opencode.json`, you can use either forward slashes (`C:/path/to/...`) or double-escaped backslashes (`C:\\path\\to\\...`) in the `command` path. Single backslashes will break the JSON silently.
+
+> [!NOTE]
+> `GITHUB_PAT` is optional - only needed for `log_feedback` (creates GitHub issues) and abapGit operations with private repos. Add it to the `env` / `environment` block only if you need those features.
+
 No Docker, no CDP proxy, no Python required.
+
+#### Verify the setup
+
+Before your first prompt, check that the MCP server starts correctly. Open a terminal (PowerShell on Windows, Terminal on macOS/Linux) and run:
+
+**Claude Code:**
+```
+claude mcp list
+```
+Expected output:
+```
+sap-webgui: C:/path/to/sapgui_mcp_windows_<version>.exe ✓ Connected
+```
+
+**opencode:**
+```
+opencode mcp list
+```
+Expected output:
+```
+● ✓ sap-webgui connected
+```
+
+If you see `✗ Failed`, the most common cause is a wrong path to the `.exe`. Run `opencode mcp debug sap-webgui` for more detail.
+
+> [!TIP]
+> **Getting started:** Restart Claude Desktop, Claude Code, or opencode, then try: _"Log me into SAP"_ or _"Take a screenshot of the current SAP screen"_.
 
 </details>
 
@@ -433,6 +546,7 @@ docker ps --filter "name=cdp-proxy" --format "table {{.Names}}\t{{.Status}}"
 
 **Required:** `systems.json` with your SAP credentials (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) and [Configuration Reference](#configuration-reference) for the default path per OS). All other env variables are optional. See [Configuration Reference](#configuration-reference) for the full list.
 
+> [!NOTE]
 > `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove the `-e GITHUB_PAT=...` line if you don't need these features.
 
 Choose **one** of the following options based on which Claude client you use.
@@ -472,7 +586,7 @@ Open `%APPDATA%\Claude\claude_desktop_config.json` and add:
 Replace:
 
 - `your-sap-server` with your SAP server hostname
-- `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) (optional — see note above)
+- `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) (optional - see note above)
 - SAP credentials (user, password, mandant, language) are read from `~/.config/sap-mcp/systems.json` which is volume-mounted into the container
 
 #### Option B: Claude Code
@@ -575,9 +689,10 @@ run-sapgui-mcp-server
 
 **Required:** `systems.json` with your SAP credentials (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) and [Configuration Reference](#configuration-reference) for the default path per OS). All other env variables are optional.
 
+> [!NOTE]
 > `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove it if you don't need these features.
 
-When running Python directly (not in Docker), you don't need the CDP proxy — Python can connect to Chrome on localhost.
+When running Python directly (not in Docker), you don't need the CDP proxy - Python can connect to Chrome on localhost.
 
 #### Claude Desktop
 
@@ -710,7 +825,7 @@ Add to `.mcp.json` in your project root:
 `sap_abapgit_pull` and `sap_abapgit_list_repos` require the [`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT) ABAP report installed on the SAP system.
 The report calls the abapGit ABAP API directly instead of automating the UI, which makes pulls much more reliable.
 If the tools fail with `"transaction not found"` or similar, install the report from that repo first.
-For private git repositories, set `GITHUB_PAT` or `ABAPGIT_PAT` (the latter overrides the former) in the MCP server's environment — without a PAT, pulls from private repos will fail.
+For private git repositories, set `GITHUB_PAT` or `ABAPGIT_PAT` (the latter overrides the former) in the MCP server's environment - without a PAT, pulls from private repos will fail.
 
 ### Desktop COM Tools (Desktop backend only)
 
@@ -718,7 +833,7 @@ For private git repositories, set `GITHUB_PAT` or `ABAPGIT_PAT` (the latter over
 | --- | --- |
 | `sap_com_snapshot` | Dump the SAP GUI control tree (object hierarchy) |
 | `sap_com_evaluate` | Execute raw COM operations on SAP GUI objects |
-| `sap_run_script` | 🚀 Run a sandboxed Python script against the SAP GUI COM API — loops, branches, and bulk reads in one call instead of many. Great token saver! |
+| `sap_run_script` | 🚀 Run a sandboxed Python script against the SAP GUI COM API - loops, branches, and bulk reads in one call instead of many. Great token saver! |
 | `sap_tree_context_menu` | Open and interact with tree context menus |
 | `sap_breakpoint_set` | Set an ABAP breakpoint |
 | `sap_breakpoint_delete` | Delete an ABAP breakpoint |
@@ -775,10 +890,10 @@ SAP credentials (user, password, client, language, host) are configured in `syst
 | `CHROME_PATH`        | No                          | Explicit path to Chrome binary. If empty, auto-detected. WebGUI only.  | `""` (auto-detect)           |
 | `CHROME_USER_DATA_DIR` | No                        | User data directory for auto-launched Chrome. WebGUI only.             | `<tempdir>/chrome-debug`     |
 | `COM_MIN_INTERVAL_MS` | No                         | Minimum ms between COM calls (prevents overload). Desktop only.        | `100`                        |
-| `GITHUB_PAT`         | No                          | GitHub PAT for `log_feedback` issues and abapGit auth                  | —                            |
-| `GITHUB_USER`        | No                          | GitHub username for abapGit (falls back to `x-access-token`)           | —                            |
+| `GITHUB_PAT`         | No                          | GitHub PAT for `log_feedback` issues and abapGit auth                  | -                            |
+| `GITHUB_USER`        | No                          | GitHub username for abapGit (falls back to `x-access-token`)           | -                            |
 | `GITHUB_REPO`        | No                          | Repository for feedback issues                                         | `Hochfrequenz/sapgui.mcp` |
-| `ABAPGIT_PAT`        | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)               | —                            |
+| `ABAPGIT_PAT`        | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)               | -                            |
 | `PAPERTRAIL_HOST`    | No                          | Papertrail syslog host (empty to disable)                              | `""` (off)                   |
 | `PAPERTRAIL_PORT`    | No                          | Papertrail syslog port                                                 | `0` (off)                    |
 | `LOG_FORMAT`         | No                          | Set to `json` for JSON log output                                      | `""` (human-readable)        |
@@ -805,9 +920,9 @@ Each release publishes binaries for Windows and macOS:
 
 | Binary | Papertrail default | Intended audience |
 |---|---|---|
-| `sapgui_mcp_windows.exe` | **off** — no defaults bundled | Public / external users |
+| `sapgui_mcp_windows.exe` | **off** - no defaults bundled | Public / external users |
 | `sapgui_mcp_windows_with_remote_logging.exe` | Hochfrequenz endpoint baked in at build time | Hochfrequenz-internal use |
-| `sapgui_mcp_macos_arm64` | **off** — no defaults bundled | Public / macOS (Apple Silicon) users |
+| `sapgui_mcp_macos_arm64` | **off** - no defaults bundled | Public / macOS (Apple Silicon) users |
 
 Both binaries honour user overrides via `.env` or environment variables.
 
@@ -815,7 +930,7 @@ Both binaries honour user overrides via `.env` or environment variables.
 
 ### Finding your Chrome path
 
-The Chrome startup commands in this guide use `C:\Program Files\Google\Chrome\Application\chrome.exe` — the default path for a **system-wide** Chrome installation. If you get an error like _"The system cannot find the path specified"_, Chrome is likely installed in a different location.
+The Chrome startup commands in this guide use `C:\Program Files\Google\Chrome\Application\chrome.exe` - the default path for a **system-wide** Chrome installation. If you get an error like _"The system cannot find the path specified"_, Chrome is likely installed in a different location.
 
 **Common Chrome paths on Windows:**
 
@@ -843,7 +958,7 @@ Then your Chrome startup command is:
 & "C:\Users\JaneDoe\AppData\Local\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug" --ignore-certificate-errors
 ```
 
-**Quick check in PowerShell** — this command finds Chrome automatically:
+**Quick check in PowerShell** - this command finds Chrome automatically:
 
 ```powershell
 Get-Item "C:\Program Files\Google\Chrome\Application\chrome.exe","$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
@@ -893,7 +1008,7 @@ On first use of SAP Web GUI, the transaction input field (called "OK-Code field"
 2. Select "Einstellungen..." / "Settings..."
 3. Enable "OK-Code-Feld anzeigen" (Show OK-Code Field)
 
-![SAP Web GUI Settings — Enable OK-Code Field](https://github.com/user-attachments/assets/9ec83ed4-28fd-4712-af88-f90d515ccd7a)
+![SAP Web GUI Settings - Enable OK-Code Field](https://github.com/user-attachments/assets/9ec83ed4-28fd-4712-af88-f90d515ccd7a)
 
 This is a one-time setting that is saved for subsequent logins.
 
@@ -949,7 +1064,8 @@ You should see: `Login Succeeded`
 docker pull ghcr.io/hochfrequenz/sapgui.mcp:latest
 ```
 
-> **Note:** You only need to do this once per machine. Docker stores your credentials.
+> [!NOTE]
+> You only need to do this once per machine. Docker stores your credentials.
 
 **Still having issues?**
 
@@ -990,12 +1106,12 @@ graph BT
 
 This server is part of a small ecosystem of SAP + AI tooling:
 
-- **[`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap)** — complementary MCP server that talks to SAP via the ADT REST API (read/write source, activate, syntax-check, run unit tests, manage transports). Where `sapgui.mcp` drives SAP through its UI, `mcp-server-abap` talks directly to the ABAP Development Tools HTTP API. The two are designed to coexist and share `~/.config/sap-mcp/systems.json`.
-- **[`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY)** — GitHub template for AI-driven ABAP vibe-coding projects. Documents the two-agent pattern (dev via `mcp-server-abap`, test / documentation / screenshots via `sapgui.mcp`) end-to-end.
-- **[`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT)** — SAP-side ABAP report that `sap_abapgit_pull` calls to pull abapGit repos through the ABAP API. Install it on any SAP system where you want the abapGit pull tools to work.
-- **[`sap-mcp-config`](https://github.com/Hochfrequenz/sap-mcp-config)** — shared config schema for `systems.json`, consumed by both `sapgui.mcp` (Python) and `mcp-server-abap` (Go).
+- **[`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap)** - complementary MCP server that talks to SAP via the ADT REST API (read/write source, activate, syntax-check, run unit tests, manage transports). Where `sapgui.mcp` drives SAP through its UI, `mcp-server-abap` talks directly to the ABAP Development Tools HTTP API. The two are designed to coexist and share `~/.config/sap-mcp/systems.json`.
+- **[`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY)** - GitHub template for AI-driven ABAP vibe-coding projects. Documents the two-agent pattern (dev via `mcp-server-abap`, test / documentation / screenshots via `sapgui.mcp`) end-to-end.
+- **[`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT)** - SAP-side ABAP report that `sap_abapgit_pull` calls to pull abapGit repos through the ABAP API. Install it on any SAP system where you want the abapGit pull tools to work.
+- **[`sap-mcp-config`](https://github.com/Hochfrequenz/sap-mcp-config)** - shared config schema for `systems.json`, consumed by both `sapgui.mcp` (Python) and `mcp-server-abap` (Go).
 
-**Hochfrequenz colleagues:** internal setup docs — including combined `.mcp.json` / `opencode.json` examples that register both MCPs together in one project — live at <https://brain.hochfrequenz.de/books/ki-tools-bei-hochfrequenz/chapter/sap-mcps>.
+**Hochfrequenz colleagues:** internal setup docs - including combined `.mcp.json` / `opencode.json` examples that register both MCPs together in one project - live at <https://brain.hochfrequenz.de/books/ki-tools-bei-hochfrequenz/chapter/sap-mcps>.
 
 ## Contributing
 
