@@ -122,7 +122,7 @@ packaging==26.2
     # via fastmcp-slim
 pathable==0.6.0
     # via jsonschema-path
-platformdirs==4.9.6
+platformdirs==4.10.0
     # via fastmcp-slim
 playwright==1.60.0
     # via sapguimcp (pyproject.toml)
