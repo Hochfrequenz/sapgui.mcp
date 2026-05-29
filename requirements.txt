@@ -128,7 +128,7 @@ playwright==1.60.0
     # via sapguimcp (pyproject.toml)
 prefab-ui==0.20.1
     # via fastmcp-slim
-py-key-value-aio[filetree,keyring,memory]==0.4.4
+py-key-value-aio[filetree,keyring,memory]==0.4.5
     # via fastmcp-slim
 pycparser==3.0
     # via cffi
