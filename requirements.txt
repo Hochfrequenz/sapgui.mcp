@@ -155,7 +155,7 @@ pygments==2.20.0
     # via
     #   rich
     #   rich-rst
-pyjwt[crypto]==2.12.1
+pyjwt[crypto]==2.13.0
     # via mcp
 pyperclip==1.11.0
     # via fastmcp-slim
