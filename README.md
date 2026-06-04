@@ -11,7 +11,7 @@ Because it drives the real SAP UI (not a headless API), it is especially well-su
 The MCP works with both SAP R/3 and S/4.
 
 > [!NOTE]
-> **Pairs with [`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `mcp-server-abap` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
+> **Pairs with [`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `aibap.mcp` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
 
 > [!TIP]
 > **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, the AI agent can write and execute a single Python script that loops, branches, and collects results - all in one shot. You just describe what you need; the agent generates the script automatically. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. Runs in a secure sandbox against the SAP GUI COM API. Desktop backend only. See [Desktop COM Tools](#desktop-com-tools-desktop-backend-only).
@@ -23,7 +23,7 @@ The MCP works with both SAP R/3 and S/4.
 Pick an installation method below - each one walks you through two things: creating your SAP credentials file (`systems.json`) and registering the MCP server with your AI client.
 
 > [!NOTE]
-> **Why a separate credentials file?** Most MCP servers put SAP credentials directly in the per-project MCP config (`env` block), which means re-entering them for every tool. Here, credentials live in a single shared file (`systems.json`) that all Hochfrequenz SAP MCP servers read automatically - so this server and [`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap) both work with the same credentials without duplication.
+> **Why a separate credentials file?** Most MCP servers put SAP credentials directly in the per-project MCP config (`env` block), which means re-entering them for every tool. Here, credentials live in a single shared file (`systems.json`) that all Hochfrequenz SAP MCP servers read automatically - so this server and [`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp) both work with the same credentials without duplication.
 
 Choose one of these three approaches:
 
@@ -99,7 +99,7 @@ Uses [sapsucker](https://github.com/Hochfrequenz/sapsucker) for typed SAP GUI Sc
 
 #### Step 1: Create the SAP config file (`systems.json`)
 
-This file holds your SAP credentials and is shared with [mcp-server-abap](https://github.com/Hochfrequenz/mcp-server-abap) - configure it once and all Hochfrequenz SAP MCP servers will use it.
+This file holds your SAP credentials and is shared with [aibap.mcp](https://github.com/Hochfrequenz/aibap.mcp) - configure it once and all Hochfrequenz SAP MCP servers will use it.
 
 On **Windows**, open Windows Explorer and paste this into the address bar:
 
@@ -1106,10 +1106,10 @@ graph BT
 
 This server is part of a small ecosystem of SAP + AI tooling:
 
-- **[`mcp-server-abap`](https://github.com/Hochfrequenz/mcp-server-abap)** - complementary MCP server that talks to SAP via the ADT REST API (read/write source, activate, syntax-check, run unit tests, manage transports). Where `sapgui.mcp` drives SAP through its UI, `mcp-server-abap` talks directly to the ABAP Development Tools HTTP API. The two are designed to coexist and share `~/.config/sap-mcp/systems.json`.
-- **[`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY)** - GitHub template for AI-driven ABAP vibe-coding projects. Documents the two-agent pattern (dev via `mcp-server-abap`, test / documentation / screenshots via `sapgui.mcp`) end-to-end.
+- **[`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp)** - complementary MCP server that talks to SAP via the ADT REST API (read/write source, activate, syntax-check, run unit tests, manage transports). Where `sapgui.mcp` drives SAP through its UI, `aibap.mcp` talks directly to the ABAP Development Tools HTTP API. The two are designed to coexist and share `~/.config/sap-mcp/systems.json`.
+- **[`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY)** - GitHub template for AI-driven ABAP vibe-coding projects. Documents the two-agent pattern (dev via `aibap.mcp`, test / documentation / screenshots via `sapgui.mcp`) end-to-end.
 - **[`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT)** - SAP-side ABAP report that `sap_abapgit_pull` calls to pull abapGit repos through the ABAP API. Install it on any SAP system where you want the abapGit pull tools to work.
-- **[`sap-mcp-config`](https://github.com/Hochfrequenz/sap-mcp-config)** - shared config schema for `systems.json`, consumed by both `sapgui.mcp` (Python) and `mcp-server-abap` (Go).
+- **[`sap-mcp-config`](https://github.com/Hochfrequenz/sap-mcp-config)** - shared config schema for `systems.json`, consumed by both `sapgui.mcp` (Python) and `aibap.mcp` (Go).
 
 **Hochfrequenz colleagues:** internal setup docs - including combined `.mcp.json` / `opencode.json` examples that register both MCPs together in one project - live at <https://brain.hochfrequenz.de/books/ki-tools-bei-hochfrequenz/chapter/sap-mcps>.
 
