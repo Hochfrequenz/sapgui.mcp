@@ -106,7 +106,7 @@ keyring==25.7.0
     # via py-key-value-aio
 markdown-it-py==4.2.0
     # via rich
-mcp==1.27.1
+mcp==1.27.2
     # via fastmcp-slim
 mdurl==0.1.2
     # via markdown-it-py
