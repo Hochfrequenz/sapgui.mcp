@@ -60,7 +60,7 @@ fastmcp[apps]==3.4.0
     # via sapguimcp (pyproject.toml)
 fastmcp-slim[apps,client,server]==3.4.0
     # via fastmcp
-greenlet==3.5.1
+greenlet==3.5.2
     # via playwright
 griffelib==2.0.2
     # via fastmcp-slim
