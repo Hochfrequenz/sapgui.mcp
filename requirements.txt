@@ -126,7 +126,7 @@ platformdirs==4.10.0
     # via fastmcp-slim
 playwright==1.60.0
     # via sapguimcp (pyproject.toml)
-prefab-ui==0.20.1
+prefab-ui==0.20.2
     # via fastmcp-slim
 py-key-value-aio[filetree,keyring,memory]==0.4.5
     # via fastmcp-slim
