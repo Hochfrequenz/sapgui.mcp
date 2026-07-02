@@ -487,9 +487,18 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             "Provide either line_number (1-indexed SAP display line) or match_pattern "
             "(substring or regex matched against source lines).\n\n"
             "SAP toggles breakpoints: if the line already has a breakpoint, VKey 45 deletes it. "
-            "This tool detects that and re-applies to ensure the breakpoint ends up set."
+            "This tool only sets the breakpoint — it does not run anything.\n\n"
+            "IMPORTANT — before calling this tool, ask the human operator for explicit permission "
+            "and explain the consequences: there is NO tool to step, continue, or read variables in "
+            "the resulting debugger. If the breakpoint later fires during a GUI run, SAP GUI opens a "
+            "modal interactive ABAP debugger that only a human can drive — the agent cannot see or "
+            "control it, and it may fire once per row/iteration if the code path repeats. Other "
+            "session-scoped tools will report the session as busy for as long as the debugger stays "
+            "open. Only proceed once the human has confirmed they intend to sit at the SAP GUI and "
+            "step through the debugger themselves; do not use this to silently 'verify a code path is "
+            "reached' from an unattended flow."
         ),
-        annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
+        annotations={"readOnlyHint": False, "destructiveHint": True, "idempotentHint": False},
     )
     async def sap_breakpoint_set(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements,too-many-branches
         object_type: Literal["PROG", "CLAS", "FUGR"],
@@ -666,7 +675,10 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             "Provide either line_number (1-indexed SAP display line) or match_pattern "
             "(substring or regex matched against source lines).\n\n"
             "If the line has no breakpoint, SAP sets one. This tool detects that and "
-            "re-applies to undo it, then reports action='was_not_set'."
+            "re-applies to undo it, then reports action='was_not_set'.\n\n"
+            "Note: this only removes the breakpoint from the source editor. It does NOT step or "
+            "continue a debugger that is currently stopped and showing a modal dialog — there is no "
+            "tool for that; only a human at the SAP GUI can dismiss it."
         ),
         annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
     )
@@ -843,7 +855,10 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             "List all external ABAP breakpoints for the current user on a program, "
             "class method, or function module. Desktop backend only.\n\n"
             "Opens 'Hilfsmittel > Breakpoints > Anzeigen...' dialog in the source editor, "
-            "reads the grid, and returns matching breakpoints."
+            "reads the grid, and returns matching breakpoints.\n\n"
+            "Note: if a breakpoint is currently stopped in a modal debugger on this session, this "
+            "tool will report the session as busy rather than opening the dialog — dismiss the "
+            "debugger in the SAP GUI first."
         ),
         annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True},
     )

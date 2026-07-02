@@ -300,3 +300,86 @@ class TestPrune:
         records = [r for r in caplog.records if "Pruned" in r.message]
         assert records, "expected a Pruned log entry"
         assert getattr(records[0], "bound_to", None) == "agent_a"
+
+
+# ---------------------------------------------------------------------------
+# busy state (issue #791 follow-up)
+# ---------------------------------------------------------------------------
+
+
+class TestBusyState:
+    """A session flagged 'busy' (e.g. modal ABAP debugger) is not dead.
+
+    ``DesktopBackend._reconcile_locked`` uses ``mark_busy``/``mark_alive`` to
+    record this; the registry itself uses it to steer default-session
+    resolution away from a currently-blocked session.
+    """
+
+    def test_mark_busy_then_is_busy(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.mark_busy("s1", 100.0)
+        assert reg.is_busy("s1")
+        assert reg.busy_since("s1") == 100.0
+
+    def test_mark_busy_is_idempotent_keeps_first_timestamp(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.mark_busy("s1", 100.0)
+        reg.mark_busy("s1", 200.0)
+        assert reg.busy_since("s1") == 100.0
+
+    def test_mark_alive_clears_busy_state(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.mark_busy("s1", 100.0)
+        reg.mark_alive("s1")
+        assert not reg.is_busy("s1")
+        assert reg.busy_since("s1") is None
+
+    def test_unregister_clears_busy_state(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.mark_busy("s1", 100.0)
+        reg.unregister("s1")
+        assert not reg.is_busy("s1")
+
+    def test_prune_clears_busy_state(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.mark_busy("s1", 100.0)
+        reg.prune(["s1"])
+        assert not reg.is_busy("s1")
+
+    def test_clear_clears_busy_state(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())
+        reg.mark_busy("s1", 100.0)
+        reg.clear()
+        assert not reg.is_busy("s1")
+
+    def test_default_session_prefers_non_busy_over_s1(self) -> None:
+        """A busy s1 must not shadow a healthy s2 as the default target.
+
+        Regression test: before this, a fresh login's session could be
+        unreachable via the default (session=None) path because a stuck,
+        busy s1 always won as 'primary' — see issue #791 follow-up.
+        """
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())  # s1
+        reg.register(_make_mock_session())  # s2
+        reg.mark_busy("s1", 100.0)
+        assert reg.primary_session == "s2"
+
+    def test_default_session_falls_back_to_busy_when_all_busy(self) -> None:
+        """Returning the busy session beats raising when there's no alternative."""
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())  # s1
+        reg.mark_busy("s1", 100.0)
+        assert reg.primary_session == "s1"
+
+    def test_default_session_prefers_s1_when_neither_busy(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())  # s1
+        reg.register(_make_mock_session())  # s2
+        assert reg.primary_session == "s1"

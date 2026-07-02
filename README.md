@@ -835,7 +835,7 @@ For private git repositories, set `GITHUB_PAT` or `ABAPGIT_PAT` (the latter over
 | `sap_com_evaluate` | Execute raw COM operations on SAP GUI objects |
 | `sap_run_script` | 🚀 Run a sandboxed Python script against the SAP GUI COM API - loops, branches, and bulk reads in one call instead of many. Great token saver! |
 | `sap_tree_context_menu` | Open and interact with tree context menus |
-| `sap_breakpoint_set` | Set an ABAP breakpoint |
+| `sap_breakpoint_set` | Set an ABAP breakpoint — ask the human first; there's no tool to drive the resulting debugger, only a human at the SAP GUI can |
 | `sap_breakpoint_delete` | Delete an ABAP breakpoint |
 | `sap_breakpoint_list` | List active ABAP breakpoints |
 

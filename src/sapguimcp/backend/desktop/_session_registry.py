@@ -31,11 +31,39 @@ class DesktopSessionRegistry:
         self._sessions: dict[str, GuiSession] = {}
         self._bindings: dict[str, str] = {}  # session_id -> agent_id
         self._counter: int = 0
+        # session_id -> monotonic timestamp of when it was first observed
+        # "busy" (a modal dialog blocking the SAP GUI message loop — see
+        # ``DesktopBackend._reconcile_locked`` / issue #791). A busy session
+        # is NOT dead, but default-session resolution should still prefer a
+        # responsive session over one that's currently blocked.
+        self._busy_since: dict[str, float] = {}
 
     @property
     def primary_session(self) -> str:
         """Primary session ID: 's1' if present, else lowest available."""
         return self._default_session_id()
+
+    def mark_busy(self, session_id: str, now: float) -> float:
+        """Record *session_id* as busy, returning when it was first seen busy.
+
+        Idempotent: the first call for a still-busy session stores ``now``
+        and returns it; later calls (while it remains busy) keep returning
+        that original timestamp so the caller can measure how long it has
+        been stuck.
+        """
+        return self._busy_since.setdefault(session_id, now)
+
+    def mark_alive(self, session_id: str) -> None:
+        """Clear busy tracking for *session_id* — the probe succeeded again."""
+        self._busy_since.pop(session_id, None)
+
+    def is_busy(self, session_id: str) -> bool:
+        """Whether *session_id* is currently flagged busy (not dead)."""
+        return session_id in self._busy_since
+
+    def busy_since(self, session_id: str) -> float | None:
+        """Monotonic timestamp *session_id* was first observed busy, or None."""
+        return self._busy_since.get(session_id)
 
     def register(self, session: GuiSession) -> str:
         """Register a session and return its ID (s1, s2, ...)."""
@@ -67,17 +95,27 @@ class DesktopSessionRegistry:
         return self._sessions[sid]
 
     def _default_session_id(self) -> str:
-        """Return the best default session: 's1' if present, else lowest available."""
-        if "s1" in self._sessions:
-            return "s1"
-        if self._sessions:
-            return min(self._sessions.keys(), key=lambda k: int(k[1:]))
-        return "s1"  # will raise in caller
+        """Return the best default session: 's1' if present, else lowest available.
+
+        Prefers a responsive (non-busy) session over one currently blocked by
+        a modal dialog (issue #791) — otherwise a fresh login would silently
+        keep resolving to a stuck ``s1`` instead of the newly opened session.
+        Falls back to the busy candidate if it's the only one, since
+        returning *something* beats raising for an operator who explicitly
+        wants to poke the busy session.
+        """
+        candidates = sorted(self._sessions.keys(), key=lambda k: int(k[1:]))
+        if not candidates:
+            return "s1"  # will raise in caller
+        responsive = [sid for sid in candidates if not self.is_busy(sid)]
+        pool = responsive or candidates
+        return "s1" if "s1" in pool else pool[0]
 
     def unregister(self, session_id: str) -> None:
         """Remove a session from the registry."""
         self._sessions.pop(session_id, None)
         self._bindings.pop(session_id, None)
+        self._busy_since.pop(session_id, None)
         logger.info("Unregistered desktop session", extra={"session": session_id})
 
     def prune(self, dead_ids: Iterable[str]) -> list[str]:
@@ -105,6 +143,7 @@ class DesktopSessionRegistry:
             if self._sessions.pop(sid, None) is not None:
                 removed.append(sid)
                 self._bindings.pop(sid, None)
+                self._busy_since.pop(sid, None)
                 logger.info(
                     "Pruned dead desktop session",
                     extra={"session": sid, "bound_to": agent},
@@ -129,6 +168,7 @@ class DesktopSessionRegistry:
         had_sessions = bool(self._sessions)
         self._sessions.clear()
         self._bindings.clear()
+        self._busy_since.clear()
         self._counter = 0
         if had_sessions:
             logger.info("Cleared desktop session registry")

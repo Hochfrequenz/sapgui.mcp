@@ -23,7 +23,7 @@ try:
 except ImportError:
     GuiGridView = None  # type: ignore[misc,assignment]
 
-from sapguimcp.backend.desktop._com_thread import ComThread
+from sapguimcp.backend.desktop._com_thread import ComThread, is_transient_busy_error
 from sapguimcp.backend.desktop._landscape import _find_landscape_path, _parse_landscape_xml
 from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
@@ -535,6 +535,14 @@ class DesktopBackend:
         pre-resolved IDs would point at the wrong window after the first
         close. The Python registry is updated regardless of the COM result
         — even on failure we drop the dead reference to avoid drift.
+
+        Exception: a "busy" COM error (``is_transient_busy_error``) — e.g. a
+        modal ABAP debugger blocking the message loop — does NOT drop the
+        reference. The session is very much alive, just not accepting the
+        close command right now; unregistering it here would silently orphan
+        a live, in-use session from the registry's point of view, which is
+        exactly the collapse issue #791 was about. The caller sees
+        ``success=False`` and the session stays put for a retry.
         """
         if not self.registry.has_session(session_id):
             return False
@@ -550,7 +558,13 @@ class DesktopBackend:
                 return True
 
             result = await self.com.run(_close)
-        except Exception:  # pylint: disable=broad-exception-caught
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            if is_transient_busy_error(exc):
+                logger.info(
+                    "close_session_busy",
+                    extra={"session_id": session_id, "error": repr(exc)[:200]},
+                )
+                return False
             result = False
         self.registry.unregister(session_id)
         logger.info("close_session", extra={"session_id": session_id, "success": result})
@@ -574,6 +588,16 @@ class DesktopBackend:
         The probe call uses ``max_retries=0`` so the COM thread does NOT
         retry on ``RPC_S_UNKNOWN_IF`` — a stale-interface error on a probe
         means "this session is dead", not "transient — try again".
+
+        A "server busy" error (``RPC_E_SERVERCALL_RETRYLATER`` /
+        ``RPC_E_CALL_REJECTED``) is **not** treated as dead: it means the SAP
+        GUI process's message loop is currently blocked and rejected the
+        call outright — most commonly because a modal dialog (e.g. an ABAP
+        debugger stopped at a breakpoint) is running its own nested message
+        loop. That is a different failure mode than a stale/dead interface,
+        and pruning the session for it destroyed the registry the moment a
+        breakpoint fired (issue #791). Busy sessions are kept in ``alive``
+        so the caller can retry once the dialog is dismissed.
         """
         async with self._mutation_lock:
             return await self._reconcile_locked()
@@ -583,6 +607,15 @@ class DesktopBackend:
     #: agents reach for when COM is misbehaving.  ``asyncio.wait_for`` raises
     #: ``TimeoutError`` past this point and the session is treated as dead.
     _RECONCILE_PROBE_TIMEOUT_S: float = 2.0
+
+    #: How long a session may stay classified "busy" (see
+    #: ``is_transient_busy_error``) before reconcile gives up and prunes it
+    #: like any other dead session. A modal ABAP debugger is expected to
+    #: clear within minutes; without this cap a genuinely wedged/corrupted
+    #: COM proxy that happens to raise the same busy-flavoured error on every
+    #: probe would stay "alive" forever — never pruned, its binding never
+    #: freed, with no recovery path (issue #791 follow-up).
+    _RECONCILE_BUSY_DEAD_TIMEOUT_S: float = 900.0
 
     async def _reconcile_locked(self) -> dict[str, list[str]]:
         """``reconcile`` body — caller must hold ``_mutation_lock``."""
@@ -607,6 +640,7 @@ class DesktopBackend:
                     self.com.run(_probe, max_retries=0),
                     timeout=self._RECONCILE_PROBE_TIMEOUT_S,
                 )
+                self.registry.mark_alive(sid)
                 alive.append(sid)
             except (TimeoutError, asyncio.TimeoutError) as exc:
                 # Wedged COM thread → can't prove the session is alive,
@@ -622,6 +656,40 @@ class DesktopBackend:
                 )
                 dead.append(sid)
             except Exception as exc:  # pylint: disable=broad-exception-caught
+                if is_transient_busy_error(exc):
+                    # The process is there, it just rejected the call while
+                    # busy (e.g. a modal ABAP debugger). Not proof of death —
+                    # keep the session, but only for as long as
+                    # _RECONCILE_BUSY_DEAD_TIMEOUT_S: a session that never
+                    # recovers from "busy" is indistinguishable from a truly
+                    # wedged one and must eventually be reclaimable.
+                    now = time.monotonic()
+                    busy_since = self.registry.mark_busy(sid, now)
+                    busy_for_s = now - busy_since
+                    if busy_for_s <= self._RECONCILE_BUSY_DEAD_TIMEOUT_S:
+                        logger.info(
+                            "reconcile_session_busy",
+                            extra={
+                                "session_id": sid,
+                                "bound_to": self.registry.get_bound_agent(sid),
+                                "busy_for_s": round(busy_for_s, 1),
+                                "error": repr(exc)[:200],
+                            },
+                        )
+                        alive.append(sid)
+                        continue
+                    logger.warning(
+                        "reconcile_busy_timeout_exceeded",
+                        extra={
+                            "session_id": sid,
+                            "bound_to": self.registry.get_bound_agent(sid),
+                            "busy_for_s": round(busy_for_s, 1),
+                            "timeout_s": self._RECONCILE_BUSY_DEAD_TIMEOUT_S,
+                            "error": repr(exc)[:200],
+                        },
+                    )
+                    dead.append(sid)
+                    continue
                 logger.info(
                     "reconcile_dead_session",
                     extra={
@@ -676,13 +744,18 @@ class DesktopBackend:
                     if self.registry.has_session(sid):
                         self.registry.prune([sid])
                     continue
-                # ``_close_session_locked`` always unregisters before
-                # returning — even when CloseSession raised internally.
-                # So "registry slot freed" is the right success signal,
-                # not the COM-level boolean. ``ok=False`` just means COM
-                # complained on the way out; we still mark it as closed
-                # AND record the COM warning so the agent can see the
-                # backend chatter without misreading "still pending".
+                # ``_close_session_locked`` unregisters before returning in
+                # almost every case — even when CloseSession raised
+                # internally — so "registry slot freed" is normally the
+                # right success signal, not the COM-level boolean. The one
+                # exception is a "busy" COM error (issue #791: e.g. a modal
+                # debugger), where it deliberately leaves the session
+                # registered rather than orphaning a live session — that
+                # case falls into the ``else`` branch below as a real error.
+                # ``ok=False`` with a freed slot just means COM complained on
+                # the way out; we still mark it as closed AND record the COM
+                # warning so the agent can see the backend chatter without
+                # misreading "still pending".
                 slot_freed = not self.registry.has_session(sid)
                 if slot_freed:
                     closed.append(sid)
