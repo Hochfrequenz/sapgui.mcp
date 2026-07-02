@@ -482,6 +482,13 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
 
     @mcp.tool(
         description=(
+            "HIGHLY DANGEROUS — DO NOT CALL unless a human user has explicitly asked for a breakpoint "
+            "to be set. Live-verified (issue #791): once the breakpoint fires, the SAP GUI Scripting "
+            "connection can go into a state that destroys ALL open sessions for the agent at once — "
+            "not just the one that hit the breakpoint. In one reproduction, 5 unrelated healthy "
+            "sessions (s1-s5) all became unreachable ('Session not found. Active: (none)') the instant "
+            "the breakpoint fired in just one of them. There is currently no known reliable recovery "
+            "from this in-band; expect to lose your whole session set and need to log in again.\n\n"
             "Set an external ABAP breakpoint on a specific line of a program, class method, "
             "or function module. Desktop backend only — WebGUI does not support external breakpoints.\n\n"
             "Provide either line_number (1-indexed SAP display line) or match_pattern "
@@ -492,11 +499,11 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             "and explain the consequences: there is NO tool to step, continue, or read variables in "
             "the resulting debugger. If the breakpoint later fires during a GUI run, SAP GUI opens a "
             "modal interactive ABAP debugger that only a human can drive — the agent cannot see or "
-            "control it, and it may fire once per row/iteration if the code path repeats. Other "
-            "session-scoped tools will report the session as busy for as long as the debugger stays "
-            "open. Only proceed once the human has confirmed they intend to sit at the SAP GUI and "
-            "step through the debugger themselves; do not use this to silently 'verify a code path is "
-            "reached' from an unattended flow."
+            "control it, and it may fire once per row/iteration if the code path repeats. Firing it "
+            "can also destroy every other open session for this agent, as described above. Only "
+            "proceed once the human has confirmed they intend to sit at the SAP GUI and step through "
+            "the debugger themselves and accept the risk of losing all sessions; do not use this to "
+            "silently 'verify a code path is reached' from an unattended flow."
         ),
         annotations={"readOnlyHint": False, "destructiveHint": True, "idempotentHint": False},
     )
