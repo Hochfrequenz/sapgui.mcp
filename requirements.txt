@@ -44,7 +44,7 @@ cryptography==48.0.1
     #   joserfc
     #   pyjwt
     #   secretstorage
-cyclopts==4.14.1
+cyclopts==4.20.0
     # via
     #   fastmcp-slim
     #   prefab-ui
