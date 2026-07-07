@@ -8,7 +8,7 @@ import re
 import time
 from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 from pydantic import Field as PydanticField
 
 from sapguimcp.backend.manager import get_backend
@@ -18,6 +18,7 @@ from sapguimcp.models.breakpoint_models import (
     BreakpointListResult,
     BreakpointSetResult,
 )
+from sapguimcp.tools.confirmation_helpers import confirm_destructive_action
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard
 
 if TYPE_CHECKING:
@@ -477,6 +478,35 @@ async def _resolve_line_number(
     return resolved, None
 
 
+def _build_breakpoint_confirm_message(
+    object_type: Literal["PROG", "CLAS", "FUGR"],
+    object_name: str,
+    method_name: str | None,
+    line_number: int,
+) -> str:
+    """Build the elicitation confirmation message for sap_breakpoint_set.
+
+    Described as a toggle, not an unconditional "set" — _toggle_breakpoint_com
+    deletes an existing breakpoint at the exact line instead of setting a new one,
+    and this isn't known in advance without an extra COM round trip.
+    """
+    target = f"{object_type} {object_name}"
+    if method_name:
+        target += f" ({method_name})"
+    return (
+        f"About to toggle the external ABAP breakpoint on {target}, line {line_number}: "
+        "if no breakpoint exists there yet, this SETS one; if one already exists at "
+        "this exact line, this DELETES it instead.\n\n"
+        "Setting a breakpoint is dangerous: once it fires, SAP GUI opens a modal ABAP "
+        "debugger that only a human can drive — there is no tool to step, continue, "
+        "or read variables. Live-verified (issue #791): firing it can destroy ALL "
+        "open sessions for this agent at once, not just this one, with no known "
+        "in-band recovery.\n\n"
+        "Proceed only if you intend to sit at the SAP GUI yourself and step through "
+        "the debugger when it fires."
+    )
+
+
 def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements
     """Register breakpoint management tools with the MCP server."""
 
@@ -515,6 +545,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
         method_name: str | None = None,
         session: str | None = None,
         agent_id: str | None = None,
+        ctx: Context | None = None,
     ) -> BreakpointSetResult:
         """Set an external ABAP breakpoint.
 
@@ -526,6 +557,9 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             method_name: Required for CLAS (method name) and FUGR (function module name).
             session: Session ID (e.g., "s1"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
+            ctx: MCP request context, auto-injected by FastMCP. Used to ask the
+                connected client for explicit confirmation before arming the
+                breakpoint. Not part of the tool's client-visible parameters.
         """
         object_name = object_name.strip().upper()
         if method_name:
@@ -599,6 +633,17 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 )
             assert resolved_line is not None
 
+            confirm_message = _build_breakpoint_confirm_message(object_type, object_name, method_name, resolved_line)
+            proceed, reason, confirmation_skipped = await confirm_destructive_action(ctx, confirm_message)
+            if not proceed:
+                return BreakpointSetResult.failure(
+                    error=f"sap_breakpoint_set aborted: {reason}",
+                    object_type=object_type,
+                    object_name=object_name,
+                    method_name=method_name,
+                    line_number=resolved_line,
+                )
+
             session_com = backend.require_session()
             shell_path = await backend.com.run(lambda: _resolve_shell_path_com(session_com, object_type))
             if shell_path is None:
@@ -646,6 +691,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                     line_number=resolved_line,
                     action="set",
                     status_message=status_msg2,
+                    confirmation_skipped=confirmation_skipped,
                 )
             if outcome == "set":
                 return BreakpointSetResult(
@@ -656,6 +702,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                     line_number=resolved_line,
                     action="set",
                     status_message=status_msg,
+                    confirmation_skipped=confirmation_skipped,
                 )
             return BreakpointSetResult.failure(
                 error=f"Unrecognized status bar message: '{status_msg}'",
