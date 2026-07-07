@@ -505,7 +505,7 @@ def _build_breakpoint_confirm_message(
         "Setting a breakpoint is dangerous: once it fires, SAP GUI opens a modal ABAP "
         "debugger that only a human can drive — there is no tool to step, continue, "
         "or read variables. While the debugger is open, COM calls may fail with a transient 'server busy' "
-        "error until you dismiss it in SAP GUI (see issue #791).\n\n"
+        "error until you dismiss it in SAP GUI.\n\n"
         "Proceed only if you intend to sit at the SAP GUI yourself and step through "
         "the debugger when it fires."
     )
