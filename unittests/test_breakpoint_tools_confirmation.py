@@ -44,8 +44,12 @@ def _patches(backend):
         patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         patch("sapguimcp.tools.breakpoint_tools._navigate_to_editor", new=AsyncMock(return_value=None)),
         patch("sapguimcp.tools.breakpoint_tools._resolve_line_number", new=AsyncMock(return_value=(250, None))),
-        patch("sapguimcp.tools.breakpoint_tools._resolve_shell_path_com", return_value="usr/cntlEDITOR/shellcont/shell"),
-        patch("sapguimcp.tools.breakpoint_tools._toggle_breakpoint_com", return_value=(True, "Breakpoint wurde gesetzt")),
+        patch(
+            "sapguimcp.tools.breakpoint_tools._resolve_shell_path_com", return_value="usr/cntlEDITOR/shellcont/shell"
+        ),
+        patch(
+            "sapguimcp.tools.breakpoint_tools._toggle_breakpoint_com", return_value=(True, "Breakpoint wurde gesetzt")
+        ),
     )
 
 

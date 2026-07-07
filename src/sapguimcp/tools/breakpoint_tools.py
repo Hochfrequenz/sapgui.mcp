@@ -1,5 +1,7 @@
 """ABAP external breakpoint management tools (desktop backend only)."""
 
+# pylint: disable=too-many-lines
+
 from __future__ import annotations
 
 import asyncio
@@ -915,7 +917,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
         ),
         annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True},
     )
-    async def sap_breakpoint_list(  # pylint: disable=too-many-return-statements
+    async def sap_breakpoint_list(  # pylint: disable=too-many-return-statements,too-many-locals
         object_type: Literal["PROG", "CLAS", "FUGR"],
         object_name: str,
         method_name: str | None = None,
@@ -953,7 +955,9 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 method_name=method_name,
             )
         from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-        from sapguimcp.backend.desktop._com_thread import is_transient_busy_error  # pylint: disable=import-outside-toplevel
+
+        # pylint: disable-next=import-outside-toplevel
+        from sapguimcp.backend.desktop._com_thread import is_transient_busy_error
 
         assert isinstance(backend, DesktopBackend)  # noqa: S101
 
