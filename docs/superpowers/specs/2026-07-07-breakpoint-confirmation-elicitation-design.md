@@ -34,7 +34,13 @@ responds. This design ports that pattern to Python/FastMCP for `sap_breakpoint_s
   the MCP elicitation protocol (not just docstring prose).
 - The confirmation message must state what is about to happen (exact object/line) and
   why setting a breakpoint is dangerous (modal debugger, no step/continue tooling,
-  session-collapse risk per #791).
+  session-collapse risk per #791). It must also be honest about the underlying **toggle**
+  semantics (see Design §2) — it must not claim "set" when the action could equally
+  delete an existing breakpoint at that line.
+- The tool's result must indicate when a breakpoint was armed *without* a real human
+  confirmation (fail-open triggered because the client can't do elicitation), so a human
+  reviewing the transcript can tell "confirmed" apart from "confirmation unavailable,
+  proceeded anyway."
 - DRY: the confirmation mechanism must be a standalone, reusable helper — not
   breakpoint-specific — so future destructive tools (e.g. a future `update_customizing`
   equivalent) can adopt it with one call.
@@ -59,28 +65,34 @@ plain async functions, imported and called explicitly by tool implementations �
 decorators, no registration side effects.
 
 ```python
-async def confirm_destructive_action(ctx: Context | None, message: str) -> tuple[bool, str]:
+async def confirm_destructive_action(ctx: Context | None, message: str) -> tuple[bool, str, bool]:
     """Ask the client to confirm a destructive action via MCP elicitation.
 
-    Returns (True, "") when the operation should proceed, or (False, reason) when the
-    user declined/cancelled. Mirrors aibap.mcp's Go ConfirmDestructive helper.
+    Returns (proceed, reason, skipped):
+    - proceed: True when the operation should proceed, False when the user
+      declined/cancelled.
+    - reason: empty when proceed=True and not skipped; otherwise a human-readable
+      explanation.
+    - skipped: True when no real human confirmation was obtained — ctx is None, the
+      client doesn't support elicitation, or any other error occurred while asking.
+      Whenever skipped=True, proceed is always True (fail-open); skipped=False means
+      the client actually rendered the form and a human answered it.
 
-    Fails open: if ctx is None, the client doesn't support elicitation, or any other
-    error occurs while asking, returns (True, "") so tool behavior is unchanged for
-    clients/contexts where a real confirmation dialog isn't possible.
+    Mirrors aibap.mcp's Go ConfirmDestructive helper, extended with the `skipped` flag
+    so callers can surface "armed without confirmation" distinctly from "human confirmed."
     """
 ```
 
 Behavior:
 
-| Condition | Result |
+| Condition | Result `(proceed, reason, skipped)` |
 |---|---|
-| `ctx is None` | `(True, "")` — no client context available (e.g. bare unit test) |
-| `ctx.elicit(...)` raises any exception | Logged as a warning, then `(True, "")` (fail-open) |
-| Client accepts, `value=True` | `(True, "")` |
-| Client accepts, `value=False` | `(False, "user declined via confirmation form")` |
-| Client declines the form | `(False, "user declined the confirmation")` |
-| Client cancels the form | `(False, "user cancelled the confirmation")` |
+| `ctx is None` | `(True, "", True)` — no client context available (e.g. bare unit test) |
+| `ctx.elicit(...)` raises any exception | Logged as a warning, then `(True, "", True)` (fail-open) |
+| Client accepts, `value=True` | `(True, "", False)` |
+| Client accepts, `value=False` | `(False, "user declined via confirmation form", False)` |
+| Client declines the form | `(False, "user declined the confirmation", False)` |
+| Client cancels the form | `(False, "user cancelled the confirmation", False)` |
 
 Implementation calls `ctx.elicit(message, response_type=bool, response_title="Proceed?")`.
 FastMCP auto-generates a single-field `{value: boolean}` schema for a primitive
@@ -100,16 +112,29 @@ File: `src/sapguimcp/tools/breakpoint_tools.py`.
   line is known, so the confirmation message can name it. Navigation itself has no
   destructive effect, so doing it before asking is safe.
 - New helper `_build_breakpoint_confirm_message(object_type, object_name, method_name,
-  resolved_line) -> str` builds the message text, e.g.:
+  resolved_line) -> str` builds the message text. It must describe the action as a
+  **toggle**, not an unconditional "set" — `_toggle_breakpoint_com` deletes an existing
+  breakpoint at that exact line instead of setting a new one (see the tool's own
+  docstring: "SAP toggles breakpoints: if the line already has a breakpoint, VKey 45
+  deletes it"). The message doesn't know in advance which of the two will happen (that's
+  only discovered after the toggle, via the status-bar text), so it states both outcomes
+  honestly rather than pre-checking with an extra COM round trip:
 
-  > "About to set an external ABAP breakpoint on PROG Z_TICTACTOE, line 250.
-  > This is dangerous: once the breakpoint fires, SAP GUI opens a modal debugger that
-  > only a human can drive — there is no tool to step, continue, or read variables.
-  > Live-verified: firing it can destroy ALL open sessions for this agent at once
-  > (issue #791), not just this one. Proceed?"
+  > "About to toggle the external ABAP breakpoint on PROG Z_TICTACTOE, line 250: if no
+  > breakpoint exists there yet, this SETS one; if one already exists at this exact
+  > line, this DELETES it instead.
+  >
+  > Setting a breakpoint is dangerous: once it fires, SAP GUI opens a modal debugger
+  > that only a human can drive — there is no tool to step, continue, or read
+  > variables. Live-verified: firing it can destroy ALL open sessions for this agent at
+  > once (issue #791), not just this one. Proceed?"
 
 - On `proceed=False`: return `BreakpointSetResult.failure(error=f"sap_breakpoint_set
   aborted: {reason}", ...)` immediately. The COM toggle is never invoked.
+- On `proceed=True`: pass `skipped` through to a new `confirmation_skipped: bool` field
+  on `BreakpointSetResult` (default `False`), set to the helper's `skipped` value on the
+  success path. This is how the fail-open case (§ Goals) becomes visible to whoever reads
+  the result, instead of only appearing in a server-side log line.
 
 ### 3. Scope: `sap_breakpoint_set` only
 
@@ -139,10 +164,11 @@ or to a future destructive tool elsewhere in the codebase — is a small, additi
 
 New test file `unittests/test_confirmation_helpers.py`:
 
-- `ctx=None` → `(True, "")`, `ctx.elicit` never called.
+- `ctx=None` → `(True, "", True)`, `ctx.elicit` never called.
 - Stub `ctx` with `.elicit` as an `AsyncMock` returning each of: accepted+`True`,
   accepted+`False`, declined, cancelled, and a raised exception — assert the five
-  documented outcomes.
+  documented `(proceed, reason, skipped)` outcomes, in particular that `skipped=True`
+  only for the `ctx=None` and exception cases.
 
 New test file `unittests/test_breakpoint_tools_confirmation.py` (unit-level, mocked
 backend — does not require live SAP GUI, unlike the existing integration tests):
@@ -151,9 +177,9 @@ backend — does not require live SAP GUI, unlike the existing integration tests
   `ctx.elicit` returning decline → asserts `_toggle_breakpoint_com` is never called and
   the result is `success=False` with `"aborted"` in the error message.
 - Same setup with `ctx.elicit` returning accept+`True` → asserts the toggle path runs
-  as before (no behavior change on confirm).
-- `ctx=None` → asserts existing behavior is unchanged (breakpoint set proceeds without
-  any elicitation attempt).
+  as before, and `confirmation_skipped=False` in the result.
+- `ctx=None` (or a client with no elicitation handler) → asserts the breakpoint set
+  still proceeds (fail-open), but `confirmation_skipped=True` in the result.
 
 Existing integration tests in `unittests/desktop/test_breakpoint_tools_integration.py`
 exercise internal helpers (`_navigate_prog`, `_toggle_breakpoint_com`, etc.) directly,
