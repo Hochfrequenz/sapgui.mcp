@@ -122,7 +122,8 @@ File: `src/sapguimcp/tools/breakpoint_tools.py`.
 
   > "About to toggle the external ABAP breakpoint on PROG Z_TICTACTOE, line 250: if no
   > breakpoint exists there yet, this SETS one; if one already exists at this exact
-  > line, this DELETES it instead.
+  > line, SAP briefly clears it and this tool immediately re-arms it — either way the
+  > breakpoint ends up ARMED.
   >
   > Setting a breakpoint is dangerous: once it fires, SAP GUI opens a modal debugger
   > that only a human can drive — there is no tool to step, continue, or read

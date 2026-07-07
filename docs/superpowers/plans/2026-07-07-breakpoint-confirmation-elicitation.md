@@ -372,7 +372,9 @@ def _build_breakpoint_confirm_message(
 
     Described as a toggle, not an unconditional "set" — _toggle_breakpoint_com
     deletes an existing breakpoint at the exact line instead of setting a new one,
-    and this isn't known in advance without an extra COM round trip.
+    and this isn't known in advance without an extra COM round trip. However, when
+    a deletion is detected, the tool re-applies the toggle to ensure the breakpoint
+    ends up armed.
     """
     target = f"{object_type} {object_name}"
     if method_name:
@@ -380,7 +382,8 @@ def _build_breakpoint_confirm_message(
     return (
         f"About to toggle the external ABAP breakpoint on {target}, line {line_number}: "
         "if no breakpoint exists there yet, this SETS one; if one already exists at "
-        "this exact line, this DELETES it instead.\n\n"
+        "this exact line, SAP briefly clears it and this tool immediately re-arms it — "
+        "either way the breakpoint ends up ARMED.\n\n"
         "Setting a breakpoint is dangerous: once it fires, SAP GUI opens a modal ABAP "
         "debugger that only a human can drive — there is no tool to step, continue, "
         "or read variables. Live-verified (issue #791): firing it can destroy ALL "
