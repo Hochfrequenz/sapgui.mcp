@@ -516,12 +516,9 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
     @mcp.tool(
         description=(
             "HIGHLY DANGEROUS — DO NOT CALL unless a human user has explicitly asked for a breakpoint "
-            "to be set. Live-verified (issue #791): once the breakpoint fires, the SAP GUI Scripting "
-            "connection can go into a state that destroys ALL open sessions for the agent at once — "
-            "not just the one that hit the breakpoint. In one reproduction, 5 unrelated healthy "
-            "sessions (s1-s5) all became unreachable ('Session not found. Active: (none)') the instant "
-            "the breakpoint fired in just one of them. There is currently no known reliable recovery "
-            "from this in-band; expect to lose your whole session set and need to log in again.\n\n"
+            "to be set. Live-verified (issue #791): once the breakpoint fires, SAP GUI opens a modal ABAP debugger "
+            "that blocks the SAP GUI message loop. While it is open, COM calls may fail with a transient 'server busy' "
+            "error and can affect multiple sessions in the same SAP GUI process. Dismiss the debugger in SAP GUI before retrying.\n\n"
             "Set an external ABAP breakpoint on a specific line of a program, class method, "
             "or function module. Desktop backend only — WebGUI does not support external breakpoints.\n\n"
             "Provide either line_number (1-indexed SAP display line) or match_pattern "
