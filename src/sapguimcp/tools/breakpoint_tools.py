@@ -957,6 +957,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 method_name=method_name,
             )
         from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+        from sapguimcp.backend.desktop._com_thread import is_transient_busy_error  # pylint: disable=import-outside-toplevel
 
         assert isinstance(backend, DesktopBackend)  # noqa: S101
 
@@ -1008,6 +1009,17 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             )
 
         except Exception as exc:  # pylint: disable=broad-exception-caught
+            if is_transient_busy_error(exc):
+                return BreakpointListResult.failure(
+                    error=(
+                        "Session busy: a modal dialog (e.g. an ABAP debugger stopped at a "
+                        "breakpoint) is blocking the SAP GUI message loop. Dismiss it in the "
+                        "SAP GUI, then retry."
+                    ),
+                    object_type=object_type,
+                    object_name=object_name,
+                    method_name=method_name,
+                )
             logger.exception("sap_breakpoint_list failed for %s/%s", object_type, object_name)
             return BreakpointListResult.failure(
                 error=f"Unexpected error: {exc}",
