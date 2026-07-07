@@ -1,5 +1,7 @@
 """ABAP external breakpoint management tools (desktop backend only)."""
 
+# pylint: disable=too-many-lines
+
 from __future__ import annotations
 
 import asyncio
@@ -8,7 +10,7 @@ import re
 import time
 from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 from pydantic import Field as PydanticField
 
 from sapguimcp.backend.manager import get_backend
@@ -18,6 +20,7 @@ from sapguimcp.models.breakpoint_models import (
     BreakpointListResult,
     BreakpointSetResult,
 )
+from sapguimcp.tools.confirmation_helpers import confirm_destructive_action
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard
 
 if TYPE_CHECKING:
@@ -477,19 +480,64 @@ async def _resolve_line_number(
     return resolved, None
 
 
+def _build_breakpoint_confirm_message(
+    object_type: Literal["PROG", "CLAS", "FUGR"],
+    object_name: str,
+    method_name: str | None,
+    line_number: int,
+) -> str:
+    """Build the elicitation confirmation message for sap_breakpoint_set.
+
+    Described as a toggle, not an unconditional "set" — _toggle_breakpoint_com
+    deletes an existing breakpoint at the exact line instead of setting a new one,
+    and this isn't known in advance without an extra COM round trip. However, when
+    a deletion is detected, the tool re-applies the toggle to ensure the breakpoint
+    ends up armed.
+    """
+    target = f"{object_type} {object_name}"
+    if method_name:
+        target += f" ({method_name})"
+    return (
+        f"About to toggle the external ABAP breakpoint on {target}, line {line_number}: "
+        "if no breakpoint exists there yet, this SETS one; if one already exists at "
+        "this exact line, SAP briefly clears it and this tool immediately re-arms it — "
+        "either way the breakpoint ends up ARMED.\n\n"
+        "Setting a breakpoint is dangerous: once it fires, SAP GUI opens a modal ABAP "
+        "debugger that only a human can drive — there is no tool to step, continue, "
+        "or read variables. While the debugger is open, COM calls may fail with a transient 'server busy' "
+        "error until you dismiss it in SAP GUI.\n\n"
+        "Proceed only if you intend to sit at the SAP GUI yourself and step through "
+        "the debugger when it fires."
+    )
+
+
 def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements
     """Register breakpoint management tools with the MCP server."""
 
     @mcp.tool(
         description=(
+            "HIGHLY DANGEROUS — DO NOT CALL unless a human user has explicitly asked for a breakpoint "
+            "to be set. Live-verified (issue #791): once the breakpoint fires, SAP GUI opens a modal ABAP debugger "
+            "that blocks the SAP GUI message loop. While it is open, COM calls may fail with a transient 'server busy' "
+            "error and can affect multiple sessions in the same SAP GUI process. Dismiss the debugger in SAP "
+            "GUI before retrying.\n\n"
             "Set an external ABAP breakpoint on a specific line of a program, class method, "
             "or function module. Desktop backend only — WebGUI does not support external breakpoints.\n\n"
             "Provide either line_number (1-indexed SAP display line) or match_pattern "
             "(substring or regex matched against source lines).\n\n"
             "SAP toggles breakpoints: if the line already has a breakpoint, VKey 45 deletes it. "
-            "This tool detects that and re-applies to ensure the breakpoint ends up set."
+            "This tool only sets the breakpoint — it does not run anything.\n\n"
+            "IMPORTANT — before calling this tool, ask the human operator for explicit permission "
+            "and explain the consequences: there is NO tool to step, continue, or read variables in "
+            "the resulting debugger. If the breakpoint later fires during a GUI run, SAP GUI opens a "
+            "modal interactive ABAP debugger that only a human can drive — the agent cannot see or "
+            "control it, and it may fire once per row/iteration if the code path repeats. Firing it "
+            "can also destroy every other open session for this agent, as described above. Only "
+            "proceed once the human has confirmed they intend to sit at the SAP GUI and step through "
+            "the debugger themselves and accept the risk of losing all sessions; do not use this to "
+            "silently 'verify a code path is reached' from an unattended flow."
         ),
-        annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
+        annotations={"readOnlyHint": False, "destructiveHint": True, "idempotentHint": False},
     )
     async def sap_breakpoint_set(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements,too-many-branches
         object_type: Literal["PROG", "CLAS", "FUGR"],
@@ -499,6 +547,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
         method_name: str | None = None,
         session: str | None = None,
         agent_id: str | None = None,
+        ctx: Context | None = None,
     ) -> BreakpointSetResult:
         """Set an external ABAP breakpoint.
 
@@ -510,6 +559,9 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             method_name: Required for CLAS (method name) and FUGR (function module name).
             session: Session ID (e.g., "s1"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
+            ctx: MCP request context, auto-injected by FastMCP. Used to ask the
+                connected client for explicit confirmation before arming the
+                breakpoint. Not part of the tool's client-visible parameters.
         """
         object_name = object_name.strip().upper()
         if method_name:
@@ -583,6 +635,17 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 )
             assert resolved_line is not None
 
+            confirm_message = _build_breakpoint_confirm_message(object_type, object_name, method_name, resolved_line)
+            proceed, reason, confirmation_skipped = await confirm_destructive_action(ctx, confirm_message)
+            if not proceed:
+                return BreakpointSetResult.failure(
+                    error=f"sap_breakpoint_set aborted: {reason}",
+                    object_type=object_type,
+                    object_name=object_name,
+                    method_name=method_name,
+                    line_number=resolved_line,
+                )
+
             session_com = backend.require_session()
             shell_path = await backend.com.run(lambda: _resolve_shell_path_com(session_com, object_type))
             if shell_path is None:
@@ -630,6 +693,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                     line_number=resolved_line,
                     action="set",
                     status_message=status_msg2,
+                    confirmation_skipped=confirmation_skipped,
                 )
             if outcome == "set":
                 return BreakpointSetResult(
@@ -640,6 +704,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                     line_number=resolved_line,
                     action="set",
                     status_message=status_msg,
+                    confirmation_skipped=confirmation_skipped,
                 )
             return BreakpointSetResult.failure(
                 error=f"Unrecognized status bar message: '{status_msg}'",
@@ -666,7 +731,10 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             "Provide either line_number (1-indexed SAP display line) or match_pattern "
             "(substring or regex matched against source lines).\n\n"
             "If the line has no breakpoint, SAP sets one. This tool detects that and "
-            "re-applies to undo it, then reports action='was_not_set'."
+            "re-applies to undo it, then reports action='was_not_set'.\n\n"
+            "Note: this only removes the breakpoint from the source editor. It does NOT step or "
+            "continue a debugger that is currently stopped and showing a modal dialog — there is no "
+            "tool for that; only a human at the SAP GUI can dismiss it."
         ),
         annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
     )
@@ -843,11 +911,14 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             "List all external ABAP breakpoints for the current user on a program, "
             "class method, or function module. Desktop backend only.\n\n"
             "Opens 'Hilfsmittel > Breakpoints > Anzeigen...' dialog in the source editor, "
-            "reads the grid, and returns matching breakpoints."
+            "reads the grid, and returns matching breakpoints.\n\n"
+            "Note: if a breakpoint is currently stopped in a modal debugger on this session, this "
+            "tool will report the session as busy rather than opening the dialog — dismiss the "
+            "debugger in the SAP GUI first."
         ),
         annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True},
     )
-    async def sap_breakpoint_list(  # pylint: disable=too-many-return-statements
+    async def sap_breakpoint_list(  # pylint: disable=too-many-return-statements,too-many-locals
         object_type: Literal["PROG", "CLAS", "FUGR"],
         object_name: str,
         method_name: str | None = None,
@@ -885,6 +956,9 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 method_name=method_name,
             )
         from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+        # pylint: disable-next=import-outside-toplevel
+        from sapguimcp.backend.desktop._com_thread import is_transient_busy_error
 
         assert isinstance(backend, DesktopBackend)  # noqa: S101
 
@@ -936,6 +1010,17 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             )
 
         except Exception as exc:  # pylint: disable=broad-exception-caught
+            if is_transient_busy_error(exc):
+                return BreakpointListResult.failure(
+                    error=(
+                        "Session busy: a modal dialog (e.g. an ABAP debugger stopped at a "
+                        "breakpoint) is blocking the SAP GUI message loop. Dismiss it in the "
+                        "SAP GUI, then retry."
+                    ),
+                    object_type=object_type,
+                    object_name=object_name,
+                    method_name=method_name,
+                )
             logger.exception("sap_breakpoint_list failed for %s/%s", object_type, object_name)
             return BreakpointListResult.failure(
                 error=f"Unexpected error: {exc}",

@@ -25,6 +25,15 @@ class BreakpointSetResult(ToolResult):
     line_number: int | None = Field(default=None, description="Resolved 1-indexed line number")
     action: Literal["set"] = Field(default="set", description="What actually happened")
     status_message: str = Field(default="", description="Raw SAP status bar message")
+    confirmation_skipped: bool = Field(
+        default=False,
+        description=(
+            "True if the breakpoint was armed without a real human confirmation "
+            "(the connected MCP client doesn't support elicitation, or asking failed) — "
+            "fail-open. False means a human explicitly confirmed via the client's "
+            "confirmation dialog."
+        ),
+    )
 
 
 class BreakpointDeleteResult(ToolResult):

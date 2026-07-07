@@ -54,6 +54,25 @@ def _get_com_error_code(exc: Exception) -> int | None:
     return code
 
 
+def is_transient_busy_error(exc: Exception) -> bool:
+    """True if *exc* is a "server busy" COM signal, not a dead session.
+
+    ``RPC_E_SERVERCALL_RETRYLATER`` / ``RPC_E_CALL_REJECTED`` mean the SAP GUI
+    process's message loop is currently blocked and rejected the call — most
+    commonly because a modal dialog (e.g. an ABAP debugger stopped at a
+    breakpoint) is running its own nested message loop. That is temporary and
+    usually clears once the dialog is dismissed.
+
+    This is deliberately narrower than ``_RETRYABLE_COM_ERRORS``, which also
+    includes ``RPC_S_UNKNOWN_IF`` (stale interface — the session's window is
+    actually gone). Callers that need to tell "busy" apart from "dead" — e.g.
+    a liveness probe deciding whether to prune a session — must use this
+    instead of checking membership in ``_RETRYABLE_COM_ERRORS`` (issue #791:
+    a modal debugger's busy signal was being treated as a dead session).
+    """
+    return _get_com_error_code(exc) in (_RPC_E_SERVERCALL_RETRYLATER, _RPC_E_CALL_REJECTED)
+
+
 class ComThread:  # pylint: disable=too-many-instance-attributes
     """Dedicated thread for all SAP GUI COM calls.
 
