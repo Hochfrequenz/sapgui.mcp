@@ -411,6 +411,34 @@ class TestResetToPrimary:
         assert backend.registry.get_bound_agent("s2") == "agent-debugging"
 
     @pytest.mark.anyio
+    async def test_busy_primary_session_is_kept_not_treated_as_victim(self) -> None:
+        """A busy PRIMARY session must stay the keeper, not become a victim.
+
+        Regression test for a reset_to_primary() inversion found by review:
+        it used to resolve "primary" via the busy-aware `registry.primary_session`
+        (correct for call routing, wrong here). With a busy s1 (e.g. a human
+        mid-breakpoint-debug) and an idle stray s2, that made s2 look
+        "primary" and put the actively-used s1 in the victims list — trying
+        to close the session a human is using while leaving the real stray
+        session (s2) untouched. `canonical_primary_session` fixes this: s1
+        stays primary regardless of busy status, so s2 (the real stray) is
+        the only victim, and closing it never even touches s1's busy COM.
+        """
+        backend = _make_backend()
+        backend.registry.register(_make_busy_session("s1"))
+        backend.registry.bind("s1", "agent-debugging")
+        backend.registry.register(_make_mock_session("s2", alive=True))
+        backend.com.run = _passthrough_run
+
+        report = await backend.reset_to_primary()
+
+        assert report["closed"] == ["s2"]
+        assert report["errors"] == []
+        assert report["killed_agents"] == []
+        assert "s1" in backend.registry.list_sessions()
+        assert backend.registry.get_bound_agent("s1") == "agent-debugging"
+
+    @pytest.mark.anyio
     async def test_reconciles_dead_session_before_closing(self) -> None:
         """Dead sessions in the registry are pruned by reconcile, not 'closed'.
 

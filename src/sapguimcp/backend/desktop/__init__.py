@@ -727,7 +727,13 @@ class DesktopBackend:
         """
         async with self._mutation_lock:
             await self._reconcile_locked()
-            primary = self.registry.primary_session
+            # Busy-agnostic on purpose (issue #791 follow-up): the responsive-
+            # preferring `registry.primary_session` would make a busy primary
+            # (e.g. mid-breakpoint-debug) look like a victim while an idle
+            # stray session looks "primary" — exactly inverting this sweep's
+            # contract. `canonical_primary_session` always keeps 's1' (or the
+            # lowest id) regardless of busy state.
+            primary = self.registry.canonical_primary_session()
             victims = [sid for sid in self.registry.list_sessions() if sid != primary]
             closed: list[str] = []
             errors: list[str] = []

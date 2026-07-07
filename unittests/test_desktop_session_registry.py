@@ -383,3 +383,27 @@ class TestBusyState:
         reg.register(_make_mock_session())  # s1
         reg.register(_make_mock_session())  # s2
         assert reg.primary_session == "s1"
+
+    def test_canonical_primary_ignores_busy_status(self) -> None:
+        """canonical_primary_session() must NOT hand the 'primary' title to a
+        responsive s2 just because s1 is busy — unlike primary_session, which
+        deliberately does exactly that for call-routing purposes.
+
+        Regression test for the reset_to_primary() inversion: reset_to_primary
+        uses this method to decide which session to keep, and a busy s1 (e.g.
+        mid-breakpoint-debug) is still the canonical primary, not a victim.
+        """
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())  # s1
+        reg.register(_make_mock_session())  # s2
+        reg.mark_busy("s1", 100.0)
+        assert reg.canonical_primary_session() == "s1"
+        assert reg.primary_session == "s2"  # the busy-aware default still differs
+
+    def test_canonical_primary_falls_back_to_lowest_when_no_s1(self) -> None:
+        reg = DesktopSessionRegistry()
+        reg.register(_make_mock_session())  # s1
+        reg.register(_make_mock_session())  # s2
+        reg.unregister("s1")  # only s2 left
+        reg.mark_busy("s2", 100.0)
+        assert reg.canonical_primary_session() == "s2"

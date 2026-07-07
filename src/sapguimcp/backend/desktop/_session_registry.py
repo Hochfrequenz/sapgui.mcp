@@ -40,8 +40,32 @@ class DesktopSessionRegistry:
 
     @property
     def primary_session(self) -> str:
-        """Primary session ID: 's1' if present, else lowest available."""
+        """Best session to route a new call to: 's1' if present and responsive,
+        else the lowest-numbered responsive session, else 's1'/lowest if all
+        are busy.
+
+        Deliberately busy-aware (issue #791) so call routing (``get_session(None)``,
+        ``BackendManager`` default-session resolution) doesn't keep hammering a
+        session stuck behind a modal dialog. Do NOT use this to decide which
+        session a cleanup sweep should *keep* — see ``canonical_primary_session``.
+        """
         return self._default_session_id()
+
+    def canonical_primary_session(self) -> str:
+        """The session that defines "primary" for cleanup purposes: 's1' if
+        present, else the lowest-numbered session — ignoring busy status.
+
+        ``reset_to_primary()`` uses this (not ``primary_session``) to decide
+        which session survives a sweep. A session being busy (e.g. a human
+        mid-breakpoint-debug, issue #791) does not make it less "primary" —
+        conflating this with the busy-aware call-routing default would make
+        reset_to_primary try to close the very session a human is actively
+        using while leaving an idle stray session untouched.
+        """
+        candidates = sorted(self._sessions.keys(), key=lambda k: int(k[1:]))
+        if not candidates:
+            return "s1"  # will raise in caller
+        return "s1" if "s1" in candidates else candidates[0]
 
     def mark_busy(self, session_id: str, now: float) -> float:
         """Record *session_id* as busy, returning when it was first seen busy.
