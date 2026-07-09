@@ -204,7 +204,7 @@ starlette==1.2.0
     # via
     #   mcp
     #   sse-starlette
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   anyio
     #   exceptiongroup
