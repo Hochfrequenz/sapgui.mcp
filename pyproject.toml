@@ -33,7 +33,7 @@ dynamic = ["readme", "version"]
 
 [project.optional-dependencies]
 tests = [
-    "pytest==9.0.3",
+    "pytest==9.1.1",
     "anyio==4.13.0",  # includes pytest-anyio plugin for proper async fixture teardown
     "python-dotenv>=1.0.0",
     "beautifulsoup4==4.15.0",  # HTML parsing for selector unit tests
