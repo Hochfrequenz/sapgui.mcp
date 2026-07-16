@@ -58,7 +58,7 @@ exceptiongroup==1.3.1
     # via fastmcp-slim
 fastmcp[apps]==3.4.0
     # via sapguimcp (pyproject.toml)
-fastmcp-slim[apps,client,server]==3.4.0
+fastmcp-slim[apps,client,server]==3.4.4
     # via fastmcp
 greenlet==3.5.2
     # via playwright
