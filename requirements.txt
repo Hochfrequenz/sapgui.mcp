@@ -142,7 +142,7 @@ pydantic[email]==2.13.4
     #   sap-mcp-config
     #   sapsucker
     #   sapguimcp (pyproject.toml)
-pydantic-core==2.46.4
+pydantic-core==2.47.0
     # via pydantic
 pydantic-settings==2.14.1
     # via
