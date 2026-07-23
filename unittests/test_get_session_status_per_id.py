@@ -53,7 +53,7 @@ class TestDesktopGetSessionStatusPerID:
         backend.registry.register(s2)
 
         # Pass-through com.run that just calls the lambda.
-        async def passthrough(fn: Any) -> Any:
+        async def passthrough(fn: Any, **kwargs: Any) -> Any:
             return fn()
 
         backend.com.run = passthrough
@@ -72,7 +72,7 @@ class TestDesktopGetSessionStatusPerID:
         backend.registry.register(s1)
         backend.registry.register(s2)
 
-        async def passthrough(fn: Any) -> Any:
+        async def passthrough(fn: Any, **kwargs: Any) -> Any:
             return fn()
 
         backend.com.run = passthrough
@@ -88,7 +88,7 @@ class TestDesktopGetSessionStatusPerID:
         s1 = _make_mock_gui_session(user="DEFAULT")
         backend.registry.register(s1)
 
-        async def passthrough(fn: Any) -> Any:
+        async def passthrough(fn: Any, **kwargs: Any) -> Any:
             return fn()
 
         backend.com.run = passthrough
@@ -115,7 +115,7 @@ class TestDesktopGetSessionStatusPerID:
         backend.registry.register(s1)
         backend.registry.register(s2)
 
-        async def passthrough(fn: Any) -> Any:
+        async def passthrough(fn: Any, **kwargs: Any) -> Any:
             return fn()
 
         backend.com.run = passthrough
@@ -153,7 +153,7 @@ class TestDesktopGetSessionStatusPerID:
         backend = _make_desktop_backend()
         backend.registry.register(_make_mock_gui_session())
 
-        async def failing_run(fn: Any) -> Any:
+        async def failing_run(fn: Any, **kwargs: Any) -> Any:
             raise RuntimeError("COM dead")
 
         backend.com.run = failing_run
@@ -359,3 +359,111 @@ class TestWebGuiGetSessionStatusPerID:
 
         assert result.status == "no_page"
         assert "s2" in result.message or "not found" in result.message
+
+
+class _FakeComError(Exception):
+    """Stand-in for pywintypes.com_error (HRESULT in args[0])."""
+
+
+class TestDesktopGetSessionStatusHealthCheck:
+    """Issue #789: status must reflect a real COM round-trip, not cached info.
+
+    ``session.info`` returns cached values even for a dead window, so probing
+    ``info.user`` alone reports a stale handle as "active". The probe must
+    force a real COM call (FindById on wnd[0]) so a dead handle is detected,
+    and a known fatal COM error must surface an actionable message.
+    """
+
+    @staticmethod
+    def _register(backend: DesktopBackend, session: Any) -> None:
+        backend.registry.register(session)
+
+        async def passthrough(fn: Any, **kwargs: Any) -> Any:
+            return fn()
+
+        backend.com.run = passthrough
+
+    @pytest.mark.anyio
+    async def test_stale_handle_not_reported_active(self) -> None:
+        backend = _make_desktop_backend()
+        session = MagicMock()
+        session.info.user = "GHOST"  # cached value survives on a dead handle
+        session.com.FindById.side_effect = _FakeComError(-2147023179, "Die Schnittstelle ist unbekannt.", None, None)
+        self._register(backend, session)
+
+        result = await backend.get_session_status(session_id="s1")
+
+        assert result.status != "active"
+        assert result.status == "unknown"
+        assert "GHOST" not in result.message
+        assert "sap_login" in result.message.lower() or "restart" in result.message.lower()
+
+    @pytest.mark.anyio
+    async def test_live_handle_reported_active(self) -> None:
+        backend = _make_desktop_backend()
+        session = MagicMock()
+        session.info.user = "KLEINK"
+        session.com.FindById.return_value = MagicMock()  # round-trip succeeds
+        self._register(backend, session)
+
+        result = await backend.get_session_status(session_id="s1")
+
+        assert result.status == "active"
+        assert "KLEINK" in result.message
+
+    @pytest.mark.anyio
+    async def test_busy_handle_reported_not_dead(self) -> None:
+        backend = _make_desktop_backend()
+        session = MagicMock()
+        session.info.user = "BUSY"
+        session.com.FindById.side_effect = _FakeComError(
+            -2147417851, "server call retry later", None, None  # RPC_E_SERVERCALL_RETRYLATER
+        )
+        self._register(backend, session)
+
+        result = await backend.get_session_status(session_id="s1")
+
+        assert result.status != "active"
+        assert "busy" in result.message.lower()
+
+    @pytest.mark.anyio
+    async def test_probe_disables_retries(self) -> None:
+        """The liveness probe must fail fast — com.run is called with
+        max_retries=0 so a dead RPC_S_UNKNOWN_IF interface is not retried."""
+        backend = _make_desktop_backend()
+        session = MagicMock()
+        session.info.user = "X"
+        session.com.FindById.return_value = MagicMock()
+        backend.registry.register(session)
+
+        captured: dict[str, Any] = {}
+
+        async def capturing(fn: Any, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return fn()
+
+        backend.com.run = capturing
+
+        await backend.get_session_status(session_id="s1")
+
+        assert captured.get("max_retries") == 0
+
+    @pytest.mark.anyio
+    async def test_wedged_probe_times_out_to_unknown(self) -> None:
+        """A COM thread that never returns must not hang get_session_status."""
+        backend = _make_desktop_backend()
+        session = MagicMock()
+        session.info.user = "X"
+        backend.registry.register(session)
+
+        async def hang(fn: Any, **kwargs: Any) -> Any:
+            await asyncio.sleep(10)
+            return fn()
+
+        backend.com.run = hang
+        backend._STATUS_PROBE_TIMEOUT_S = 0.05  # shrink so the test is fast
+
+        result = await backend.get_session_status(session_id="s1")
+
+        assert result.status == "unknown"
+        assert "did not respond" in result.message.lower()
