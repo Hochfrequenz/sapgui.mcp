@@ -678,3 +678,147 @@ class TestDesktopBackendReadTable:
         assert result.success is True
         assert result.headers == ["COL_X", "COL_Y"]
         assert len(result.rows) == 1
+
+    @pytest.mark.anyio
+    async def test_read_table_empty_grid_does_not_crash(self):
+        """#799: a grid reporting row_count=0 must return an empty result, not a
+        pydantic validation error from an internally-computed end_row=0."""
+        from sapsucker.components.grid import GuiGridView
+
+        from sapguimcp.backend.desktop import DesktopBackend
+
+        session = make_mock_session()
+        backend = DesktopBackend.__new__(DesktopBackend)
+        backend._session = session
+
+        mock_grid = MagicMock(spec=GuiGridView)
+        mock_grid.row_count = 0
+        mock_grid.column_order = ["COL_A", "COL_B"]
+        mock_grid.get_cell_value = MagicMock(return_value="")
+
+        mock_elem = MagicMock()
+        mock_elem.type_as_number = 122
+        mock_elem.id = "wnd[0]/shellcont/shell"
+        mock_elem.children = []
+
+        wnd = session.find_by_id("wnd[0]")
+        wnd.dump_tree = MagicMock(return_value=[mock_elem])
+
+        original_find = session.find_by_id
+
+        def patched_find(element_id, raise_error=True):
+            if element_id == "wnd[0]/shellcont/shell":
+                return mock_grid
+            return original_find(element_id, raise_error)
+
+        session.find_by_id = patched_find
+
+        async def mock_run(fn):
+            return fn()
+
+        backend.com = MagicMock()
+        backend.com.run = mock_run
+
+        result = await backend.read_table(start_row=1, max_rows=100)
+
+        assert result.success is True
+        assert result.rows == []
+        assert result.total_rows == 0
+        assert result.end_row is None
+
+    @pytest.mark.anyio
+    async def test_read_table_empty_grid_with_explicit_end_row_does_not_crash(self):
+        """#799: passing an explicit end_row must also not crash on an empty grid
+        (row_count clamps actual_end to 0)."""
+        from sapsucker.components.grid import GuiGridView
+
+        from sapguimcp.backend.desktop import DesktopBackend
+
+        session = make_mock_session()
+        backend = DesktopBackend.__new__(DesktopBackend)
+        backend._session = session
+
+        mock_grid = MagicMock(spec=GuiGridView)
+        mock_grid.row_count = 0
+        mock_grid.column_order = ["COL_A"]
+        mock_grid.get_cell_value = MagicMock(return_value="")
+
+        mock_elem = MagicMock()
+        mock_elem.type_as_number = 122
+        mock_elem.id = "wnd[0]/shellcont/shell"
+        mock_elem.children = []
+
+        wnd = session.find_by_id("wnd[0]")
+        wnd.dump_tree = MagicMock(return_value=[mock_elem])
+
+        original_find = session.find_by_id
+
+        def patched_find(element_id, raise_error=True):
+            if element_id == "wnd[0]/shellcont/shell":
+                return mock_grid
+            return original_find(element_id, raise_error)
+
+        session.find_by_id = patched_find
+
+        async def mock_run(fn):
+            return fn()
+
+        backend.com = MagicMock()
+        backend.com.run = mock_run
+
+        result = await backend.read_table(start_row=1, end_row=5, max_rows=5)
+
+        assert result.success is True
+        assert result.rows == []
+        assert result.end_row is None
+
+
+class TestDesktopBackendClickTableCell:
+    """#799: click_table_cell must not surface a raw 'list index out of range'."""
+
+    def _wire_grid(self, backend, session, mock_grid):
+        mock_elem = MagicMock()
+        mock_elem.type_as_number = 122
+        mock_elem.id = "wnd[0]/shellcont/shell"
+        mock_elem.children = []
+
+        wnd = session.find_by_id("wnd[0]")
+        wnd.dump_tree = MagicMock(return_value=[mock_elem])
+
+        original_find = session.find_by_id
+
+        def patched_find(element_id, raise_error=True):
+            if element_id == "wnd[0]/shellcont/shell":
+                return mock_grid
+            return original_find(element_id, raise_error)
+
+        session.find_by_id = patched_find
+
+        async def mock_run(fn):
+            return fn()
+
+        backend.com = MagicMock()
+        backend.com.run = mock_run
+
+    @pytest.mark.anyio
+    async def test_click_table_cell_column_index_out_of_range_clear_error(self):
+        """A column index beyond the grid's columns yields a clear message, not
+        a raw IndexError 'list index out of range'."""
+        from sapsucker.components.grid import GuiGridView
+
+        from sapguimcp.backend.desktop import DesktopBackend
+
+        session = make_mock_session()
+        backend = DesktopBackend.__new__(DesktopBackend)
+        backend._session = session
+
+        mock_grid = MagicMock(spec=GuiGridView)
+        mock_grid.column_order = []  # grid reports no columns
+        self._wire_grid(backend, session, mock_grid)
+
+        result = await backend.click_table_cell(row=1, column=0)
+
+        assert result.success is False
+        assert "list index out of range" not in (result.error or "")
+        assert "column" in (result.error or "").lower()
+        assert "range" in (result.error or "").lower()
