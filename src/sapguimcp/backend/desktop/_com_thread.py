@@ -54,6 +54,37 @@ def _get_com_error_code(exc: Exception) -> int | None:
     return code
 
 
+#: Actionable, human-readable hints for known connection-level COM errors — the
+#: raw HRESULT + localized COM message (e.g. ``-2147023179 'Die Schnittstelle ist
+#: unbekannt.'``) is meaningless to an agent/operator. Keyed by HRESULT.
+_FATAL_COM_ERROR_HINTS: dict[int, str] = {
+    _RPC_S_UNKNOWN_IF: (
+        "The SAP GUI session handle is stale or no longer valid (interface unknown). This can be a "
+        "transient stale proxy or a genuinely gone session. Retry the operation; if it persists, run "
+        "sap_login to open a fresh session, and restart SAP Logon if that still fails."
+    ),
+    _RPC_E_DISCONNECTED: (
+        "The SAP GUI connection was lost (RPC disconnected). Run sap_login to reconnect; "
+        "if that fails, restart SAP Logon."
+    ),
+}
+
+
+def describe_com_error(exc: Exception) -> str | None:
+    """Return an actionable remediation hint for a known connection-level COM error.
+
+    Maps cryptic HRESULTs like ``-2147023179`` ("Die Schnittstelle ist
+    unbekannt." / interface unknown) to a plain-language message telling the
+    caller what to do, so tools can surface that instead of the raw
+    ``pywintypes.com_error`` tuple (issue #789). Returns ``None`` for errors
+    that aren't a recognised connection-level COM code.
+    """
+    code = _get_com_error_code(exc)
+    if code is None:
+        return None
+    return _FATAL_COM_ERROR_HINTS.get(code)
+
+
 def is_transient_busy_error(exc: Exception) -> bool:
     """True if *exc* is a "server busy" COM signal, not a dead session.
 
@@ -212,7 +243,16 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
 
                 self._calls_succeeded += 1
                 self._last_success_at = time.monotonic()
-                cf_future.set_result(result)
+                # Guard against a caller that already gave up: asyncio.wait_for
+                # (used by the liveness probes in get_session_status /
+                # _reconcile_locked) cancels the wrapping future on timeout, and
+                # since this worker never calls set_running_or_notify_cancel the
+                # concurrent.futures.Future is cancellable while we run fn(). A
+                # set_result on a cancelled future raises InvalidStateError,
+                # which would crash the worker loop — precisely the wedged-COM
+                # scenario those probes exist to survive (issue #789).
+                if not cf_future.done():
+                    cf_future.set_result(result)
                 return
 
             except Exception as exc:
@@ -240,16 +280,19 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
 
                 self._calls_failed += 1
                 if error_code == _RPC_E_DISCONNECTED:
-                    wrapped = RuntimeError(
+                    wrapped: BaseException = RuntimeError(
                         "SAP GUI COM connection lost (RPC_E_DISCONNECTED). "
                         "This typically happens when too many parallel agents "
                         "overload the COM interface or SAP GUI was closed. "
                         "Call sap_login to re-establish the connection."
                     )
                     wrapped.__cause__ = exc
-                    cf_future.set_exception(wrapped)
                 else:
-                    cf_future.set_exception(exc)
+                    wrapped = exc
+                # See the set_result guard above — a cancelled caller future
+                # must not crash the worker with InvalidStateError.
+                if not cf_future.done():
+                    cf_future.set_exception(wrapped)
                 return
 
     def _increase_interval(self, reason: str, observed_delay: float) -> None:

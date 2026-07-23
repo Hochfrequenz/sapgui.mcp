@@ -171,3 +171,71 @@ class TestComThread:
             await thread.run(lambda: 42)
         # The old, misleading guidance must be gone.
         assert "call sap_login" not in str(exc_info.value)
+
+
+class _FakeComError(Exception):
+    """Stand-in for pywintypes.com_error (unavailable on Linux CI).
+
+    ``com_error`` exposes the HRESULT as ``args[0]``; that's all
+    ``_get_com_error_code`` reads.
+    """
+
+
+class TestDescribeComError:
+    """#789: known fatal COM errors get an actionable remediation hint."""
+
+    def test_stale_interface_maps_to_relogin_hint(self):
+        from sapguimcp.backend.desktop._com_thread import describe_com_error
+
+        exc = _FakeComError(-2147023179, "Die Schnittstelle ist unbekannt.", None, None)
+        hint = describe_com_error(exc)
+        assert hint is not None
+        assert "sap_login" in hint.lower()
+        # No raw HRESULT / cryptic German leaks into the friendly message.
+        assert "-2147023179" not in hint
+        assert "Die Schnittstelle" not in hint
+
+    def test_disconnected_maps_to_hint(self):
+        from sapguimcp.backend.desktop._com_thread import describe_com_error
+
+        exc = _FakeComError(-2147417848, "The object invoked has disconnected", None, None)
+        assert describe_com_error(exc) is not None
+
+    def test_unknown_code_returns_none(self):
+        from sapguimcp.backend.desktop._com_thread import describe_com_error
+
+        assert describe_com_error(_FakeComError(-42, "some other error")) is None
+
+    def test_non_com_exception_returns_none(self):
+        from sapguimcp.backend.desktop._com_thread import describe_com_error
+
+        assert describe_com_error(RuntimeError("boom")) is None
+
+
+class TestWorkerSurvivesCancelledFuture:
+    """#789: a caller timing out (asyncio.wait_for) cancels the wrapping future
+    while the worker is still running fn(). Settling a cancelled future must not
+    crash the COM worker — that would defeat the liveness probes that rely on
+    the timeout to survive a slow/wedged COM call."""
+
+    @pytest.mark.anyio
+    async def test_timeout_cancellation_does_not_kill_worker(self, com_thread):
+        import threading
+
+        release = threading.Event()
+
+        def slow():
+            release.wait(2.0)  # block the worker past the caller's timeout
+            return "slow-done"
+
+        with pytest.raises((asyncio.TimeoutError, TimeoutError)):
+            await asyncio.wait_for(com_thread.run(slow), timeout=0.1)
+
+        # Let the in-flight call complete; it will try to settle a now-cancelled
+        # future. Without the guard this raises InvalidStateError in the worker.
+        release.set()
+        await asyncio.sleep(0.3)
+
+        # The worker must still be alive and usable.
+        assert com_thread.is_alive
+        assert await com_thread.run(lambda: 42) == 42

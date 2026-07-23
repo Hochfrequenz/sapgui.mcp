@@ -107,7 +107,7 @@ class TestDesktopBackendSessionStatus:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()

@@ -23,7 +23,7 @@ try:
 except ImportError:
     GuiGridView = None  # type: ignore[misc,assignment]
 
-from sapguimcp.backend.desktop._com_thread import ComThread, is_transient_busy_error
+from sapguimcp.backend.desktop._com_thread import ComThread, describe_com_error, is_transient_busy_error
 from sapguimcp.backend.desktop._landscape import _find_landscape_path, _parse_landscape_xml
 from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
@@ -365,6 +365,12 @@ class DesktopBackend:
             logger.warning("transaction", extra={"tcode": base_tcode, "success": False, "error": str(e)})
             return TransactionResult(success=False, tcode=base_tcode, error=str(e))
 
+    #: Per-probe timeout for ``get_session_status`` (seconds). A status check
+    #: is the diagnostic call agents reach for when COM is misbehaving, so it
+    #: must not hang on a wedged COM thread — ``asyncio.wait_for`` past this
+    #: point reports the session as unresponsive rather than blocking forever.
+    _STATUS_PROBE_TIMEOUT_S: float = 5.0
+
     async def get_session_status(self, session_id: str | None = None) -> SessionStatus:
         """Check whether the SAP session is logged in and responsive.
 
@@ -386,11 +392,49 @@ class DesktopBackend:
                 session = self.require_session()
         except ValueError:
             return SessionStatus(success=True, status="logged_off", message="Not logged in")
+
+        def _probe() -> str:
+            # Force a real COM round-trip before trusting the session. Reading
+            # ``session.info`` alone is not enough — Info returns cached values
+            # even for a dead window, so a stale handle would be reported as
+            # "active" while every real action fails with -2147023179 (issue
+            # #789). FindById + reading ``.Type`` actually touches the live GUI
+            # (mirrors ``_reconcile_locked``'s probe exactly).
+            _ = session.com.FindById("wnd[0]").Type
+            return str(session.info.user)
+
         try:
-            user = await self.com.run(lambda: str(session.info.user))
+            # max_retries=0: a liveness probe must fail fast, not retry a dead
+            # interface (which is in _RETRYABLE_COM_ERRORS). Bounded by
+            # asyncio.wait_for so a wedged COM thread can't hang the very
+            # diagnostic call agents reach for — same rationale as
+            # _reconcile_locked's probe.
+            user = await asyncio.wait_for(
+                self.com.run(_probe, max_retries=0),
+                timeout=self._STATUS_PROBE_TIMEOUT_S,
+            )
             return SessionStatus(success=True, status="active", message=f"Logged in as {user}")
-        except Exception:
-            return SessionStatus(success=True, status="unknown", message="Session not responsive")
+        except (TimeoutError, asyncio.TimeoutError):
+            return SessionStatus(
+                success=True,
+                status="unknown",
+                message=(
+                    f"Session did not respond within {self._STATUS_PROBE_TIMEOUT_S:g}s — the SAP GUI "
+                    "may be busy or wedged. Retry shortly; if it persists, restart SAP Logon."
+                ),
+            )
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            if is_transient_busy_error(exc):
+                return SessionStatus(
+                    success=True,
+                    status="unknown",
+                    message=(
+                        "Session is busy — a modal dialog may be blocking the SAP GUI. "
+                        "It is not dead; retry shortly."
+                    ),
+                )
+            hint = describe_com_error(exc)
+            return SessionStatus(success=True, status="unknown", message=hint or "Session not responsive")
 
     async def wait_for_ready(self, timeout_ms: int = 15000) -> None:
         """Wait until the session is no longer busy."""
