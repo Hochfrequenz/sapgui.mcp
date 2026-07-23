@@ -231,5 +231,5 @@ uvicorn==0.49.0
     #   mcp
 watchfiles==1.2.0
     # via fastmcp-slim
-websockets==16.0
+websockets==16.1.1
     # via fastmcp-slim
