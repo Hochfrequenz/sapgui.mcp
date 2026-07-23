@@ -47,6 +47,45 @@ async def go_home(backend) -> None:  # type: ignore[no-untyped-def]
         await backend.press_key("F3")
 
 
+async def bp_teardown(backend) -> None:  # type: ignore[no-untyped-def]
+    """Guaranteed post-BP cleanup (issue #756).
+
+    Navigate back to Easy Access and then wait for the COM STA to drain
+    (``com_call_retry`` storms on an unresponsive BDT screen can otherwise
+    bleed into the next test module and fail it at its first COM call).
+
+    Both steps are exception-safe: a teardown must never mask the original
+    test failure, and a failed ``go_home`` must not skip the cool-down drain.
+    """
+    try:
+        await go_home(backend)
+    except Exception:  # pylint: disable=broad-except
+        pass
+    try:
+        await backend.wait_for_ready()
+    except Exception:  # pylint: disable=broad-except
+        pass
+
+
+def _reorder_bp_last(items) -> None:  # type: ignore[no-untyped-def]
+    """Sort BP integration items to the end of ``items`` in place (#756).
+
+    BP tests can time out for minutes under ``com_call_retry`` storms; running
+    them last keeps a BP failure from poisoning the other desktop tool tests.
+    Relative order within the BP group and within the rest is preserved.
+    """
+    bp = [it for it in items if "test_bp_integration.py" in it.nodeid]
+    if not bp:
+        return
+    rest = [it for it in items if "test_bp_integration.py" not in it.nodeid]
+    items[:] = rest + bp
+
+
+def pytest_collection_modifyitems(items) -> None:  # type: ignore[no-untyped-def]
+    """Ensure BP integration tests run after the other desktop tests (#756)."""
+    _reorder_bp_last(items)
+
+
 # ---------------------------------------------------------------------------
 # Integration backend fixture (auto-discovered by pytest)
 # ---------------------------------------------------------------------------
