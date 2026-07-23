@@ -287,7 +287,10 @@ Use `log_feedback` to report if you encounter a transaction that needs paginatio
 
 ## Multi-Session Support (Parallel Agents)
 
-For bulk operations (create 100 business partners, process many orders, etc.), you can run **parallel sub-agents**, each with their own SAP session.
+For bulk operations, keep in mind that sessions opened on the **same SAP GUI connection** share one
+single-threaded COM scripting engine. Parallel `sap_run_script` / COM loops on that connection are
+serialized (no speedup). For one connection, prefer a single script with a larger loop.
+Parallel sub-agents help only across genuinely separate connections (different systems/clients).
 
 ### Session Management Tools
 

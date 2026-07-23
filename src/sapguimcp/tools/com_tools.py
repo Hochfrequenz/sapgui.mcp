@@ -297,6 +297,9 @@ def register_com_tools(mcp: FastMCP) -> None:
             "8=F8/Execute, 11=F11/Save, 12=F12/Cancel.\n\n"
             "**Batch:** Operations run sequentially. If op N fails, ops 1..N-1 already took effect. "
             "Check each operation's `success` field.\n\n"
+            "**Concurrency note:** all sessions of one SAP GUI connection share a single-threaded "
+            "COM scripting engine. Parallel COM/script loops on that same connection are serialized "
+            "(no speedup). For bulk work on one connection, prefer one script with a larger loop.\n\n"
             "**Example** (fill field + press Enter):\n"
             "```json\n"
             '{"operations": [\n'
