@@ -624,3 +624,29 @@ class TestToolDescriptionsIssue613:
     def test_sap_abapgit_pull_description_length(self) -> None:
         desc = self._get_tools()["sap_abapgit_pull"].description or ""
         assert len(desc) < 480, f"sap_abapgit_pull description too long: {len(desc)} chars"
+
+
+class TestConcurrencyNotesInSapToolDescriptions:
+    """Regression tests for serialization guidance in SAP scripting tool descriptions."""
+
+    @classmethod
+    def _get_tools(cls) -> dict:
+        return {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
+
+    def test_scripting_tools_document_same_connection_serialization(self) -> None:
+        tools = self._get_tools()
+        for tool_name in ["sap_login", "sap_transaction"]:
+            desc = tools[tool_name].description or ""
+            assert "Concurrency note" in desc, f"{tool_name} should include a concurrency note"
+            assert (
+                "serialized (no speedup)" in desc or "sequentially (no speedup)" in desc
+            ), f"{tool_name} should document serialization behavior"
+
+        for tool_name in ["sap_run_script", "sap_com_evaluate"]:
+            if tool_name not in tools:
+                continue
+            desc = tools[tool_name].description or ""
+            assert "Concurrency note" in desc, f"{tool_name} should include a concurrency note"
+            assert (
+                "serialized (no speedup)" in desc or "sequentially (no speedup)" in desc
+            ), f"{tool_name} should document serialization behavior"

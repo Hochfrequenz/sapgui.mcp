@@ -236,6 +236,10 @@ of the new session; pass that as the `session` / `session_id` parameter
 on subsequent tool calls to address THIS specific login. Use
 sap_session_list to see all currently active sessions, and
 sap_session_close to close any of them (including 's1' if you want).
+Concurrency note: sessions of one SAP GUI connection share a single-threaded
+COM scripting engine. Parallel scripting loops on that same connection are
+serialized (no speedup). For bulk work on one connection, prefer one large
+script loop; parallelism helps only across separate connections/systems.
 
 ESCAPE HATCHES (when SAP-specific tools are insufficient):
 - sap_com_snapshot: Get element tree with IDs (e.g., wnd[0]/usr/txtFIELD_NAME)
