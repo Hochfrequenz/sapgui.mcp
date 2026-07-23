@@ -1118,7 +1118,10 @@ class DesktopBackend:
                     "rows": rows,
                     "total_rows": row_count,
                     "start_row": start_row,
-                    "end_row": actual_end,
+                    # No rows in range (e.g. an empty grid clamps actual_end to 0):
+                    # report end_row=None rather than an out-of-range 0, which the
+                    # TableData model rejects (end_row has ge=1). See issue #799.
+                    "end_row": actual_end if actual_end >= start_row else None,
                 }
 
             return {"headers": [], "rows": [], "total_rows": 0, "start_row": 1}
@@ -1151,6 +1154,13 @@ class DesktopBackend:
                         col_name = str(column)
                         if isinstance(column, int):
                             col_order = cast(Any, grid).column_order
+                            col_count = len(col_order) if isinstance(col_order, list) else col_order.Count
+                            if not 0 <= column < col_count:
+                                # Clearer than the raw IndexError ("list index out of
+                                # range") the COM/list access would otherwise raise. #799
+                                raise ValueError(
+                                    f"Column index {column} is out of range: grid has {col_count} column(s)"
+                                )
                             col_name = str(col_order[column]) if isinstance(col_order, list) else str(col_order(column))
                         if action in ("dblclick", "double_click"):
                             cast(Any, grid).double_click(row - 1, col_name)
