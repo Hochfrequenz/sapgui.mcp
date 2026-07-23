@@ -7,9 +7,21 @@ discoverable and interactable via the improved COM tools.
 
 import pytest
 
-from unittests.desktop.conftest import go_home, skip_no_sap
+from unittests.desktop.conftest import bp_teardown, skip_no_sap
 
 pytestmark = [skip_no_sap]
+
+
+@pytest.fixture(autouse=True)
+async def _bp_cleanup(backend):
+    """Guarantee cleanup after every BP test, even when it fails mid-run (#756).
+
+    Previously each test called ``go_home`` as its last line, so a failure
+    (e.g. a ``com_call_retry`` storm) skipped cleanup and poisoned later test
+    modules. Running it in fixture teardown makes it unconditional.
+    """
+    yield
+    await bp_teardown(backend)
 
 
 @pytest.mark.anyio
@@ -25,7 +37,6 @@ async def test_bp_snapshot_shows_fields(backend):
     assert (
         "BUS_JOEL" in snapshot_text or "BUT000" in snapshot_text
     ), f"BDT fields not found in snapshot. First 500 chars: {snapshot_text[:500]}"
-    await go_home(backend)
 
 
 @pytest.mark.anyio
@@ -36,7 +47,6 @@ async def test_bp_discover_fields_returns_fields(backend):
 
     fields = await backend.discover_fields()
     assert len(fields) > 0, "discover_fields returned 0 fields on BP detail screen"
-    await go_home(backend)
 
 
 @pytest.mark.anyio
@@ -57,7 +67,6 @@ async def test_bp_com_evaluate_find_by_name_read(backend):
 
     result = await backend.com.run(lambda: _execute_single_op(session, op))
     assert result.success, f"FindByName read failed: {result.error}"
-    await go_home(backend)
 
 
 @pytest.mark.anyio
@@ -80,7 +89,6 @@ async def test_bp_com_evaluate_find_by_name_write(backend):
     result = await backend.com.run(lambda: _execute_single_op(session, op))
     assert result.success, f"FindByName write failed: {result.error}"
     assert '"TestName"' in (result.result or ""), f"Value not written back: {result.result}"
-    await go_home(backend)
 
 
 @pytest.mark.anyio
@@ -98,7 +106,6 @@ async def test_bp_fill_form_with_labels(backend):
     assert "Vorname" in result.filled
     assert "Land" in result.filled
     assert len(result.not_found) == 0, f"Fields not found: {result.not_found}"
-    await go_home(backend)
 
 
 @pytest.mark.anyio
@@ -123,7 +130,6 @@ async def test_bp_fill_form_with_dropdown(backend):
     assert "Nachname" in result.filled
     assert len(result.not_found) == 0, f"Fields not found: {result.not_found}"
     assert len(result.errors) == 0, f"Errors: {result.errors}"
-    await go_home(backend)
 
 
 @pytest.mark.anyio
@@ -173,7 +179,6 @@ async def test_bp_fill_form_seven_fields_under_timeout(backend):
         f"Expected at least 5 of 7 fields filled, got: filled={result.filled}, "
         f"not_found={result.not_found}, errors={result.errors}"
     )
-    await go_home(backend)
 
 
 @pytest.mark.anyio
@@ -201,7 +206,6 @@ async def test_bp_get_dropdown_options_anrede(backend):
     snapshot = await backend.get_snapshot()
     snapshot_text = str(snapshot)
     assert "Frau" in snapshot_text, f"'Frau' not found in snapshot after setting dropdown: {snapshot_text[:500]}"
-    await go_home(backend)
 
 
 @pytest.mark.anyio
@@ -222,7 +226,6 @@ async def test_bp_get_form_fields_with_dropdown_options(backend):
         f"Expected at least 1 dropdown with options, got {len(dropdowns_with_options)}. "
         f"Dropdowns: {[(f.label, f.options) for f in result.fields if f.field_type == 'dropdown']}"
     )
-    await go_home(backend)
 
 
 @pytest.mark.anyio
@@ -231,4 +234,3 @@ async def test_se16_regression(backend):
     await backend.enter_transaction("SE16")
     fields = await backend.discover_fields()
     assert len(fields) > 0, "discover_fields returned 0 fields on SE16"
-    await go_home(backend)
