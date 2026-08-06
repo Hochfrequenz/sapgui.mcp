@@ -144,7 +144,7 @@ pydantic[email]==2.13.4
     #   sapguimcp (pyproject.toml)
 pydantic-core==2.46.4
     # via pydantic
-pydantic-settings==2.14.1
+pydantic-settings==2.14.2
     # via
     #   fastmcp-slim
     #   mcp
