@@ -1,7 +1,10 @@
 """Shared utility functions for SAP WebGUI MCP."""
 
+import logging
 from datetime import datetime
 from typing import Literal
+
+logger = logging.getLogger(__name__)
 
 SapLanguage = Literal["DE", "EN"]
 
@@ -17,9 +20,19 @@ def as_sap_language(value: str) -> SapLanguage:
 
     Narrowing at runtime rather than with a ``cast`` keeps this correct even if
     the upstream guarantee changes again.  Anything unrecognised becomes ``EN``,
-    which is the same default the config layer applies for a missing language.
+    which is the same default the config layer applies for a missing language —
+    but it is logged, because an EN fallback formats dates as ``MM/DD/YYYY``,
+    and typing that into a DE selection screen silently selects the wrong range.
     """
-    return "DE" if value.strip().upper() == "DE" else "EN"
+    normalized = value.strip().upper()
+    if normalized == "DE":
+        return "DE"
+    if normalized != "EN":
+        logger.warning(
+            "unexpected configured language, falling back to EN",
+            extra={"language": value},
+        )
+    return "EN"
 
 
 def format_sap_date(iso_date: str, language: SapLanguage) -> str:

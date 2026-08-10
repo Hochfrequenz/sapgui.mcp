@@ -1,8 +1,13 @@
-"""Tests for sapguimcp.utils."""
+"""Tests for sapguimcp.utils.
+
+``format_sap_date`` is covered separately in ``test_date_helpers.py``.
+"""
+
+import logging
 
 import pytest
 
-from sapguimcp.utils import as_sap_language, format_sap_date
+from sapguimcp.utils import as_sap_language
 
 
 class TestAsSapLanguage:
@@ -21,14 +26,16 @@ class TestAsSapLanguage:
         """EN is the same default the config layer applies for a missing language."""
         assert as_sap_language(value) == "EN"
 
+    def test_unrecognised_is_logged(self, caplog: pytest.LogCaptureFixture) -> None:
+        """The fallback must not be silent: EN dates are MM/DD/YYYY, which a DE screen misreads."""
+        with caplog.at_level(logging.WARNING, logger="sapguimcp.utils"):
+            as_sap_language("FR")
+        assert len(caplog.records) == 1
+        # The value travels as structured context, not in the message text.
+        assert getattr(caplog.records[0], "language", None) == "FR"
 
-class TestFormatSapDate:
-    def test_german_format(self) -> None:
-        assert format_sap_date("2026-02-22", "DE") == "22.02.2026"
-
-    def test_english_format(self) -> None:
-        assert format_sap_date("2026-02-22", "EN") == "02/22/2026"
-
-    def test_invalid_date_raises(self) -> None:
-        with pytest.raises(ValueError, match="Expected YYYY-MM-DD format"):
-            format_sap_date("22.02.2026", "DE")
+    @pytest.mark.parametrize("value", ["de", "DE", "en", "EN"])
+    def test_recognised_is_not_logged(self, value: str, caplog: pytest.LogCaptureFixture) -> None:
+        with caplog.at_level(logging.WARNING, logger="sapguimcp.utils"):
+            as_sap_language(value)
+        assert caplog.records == []
