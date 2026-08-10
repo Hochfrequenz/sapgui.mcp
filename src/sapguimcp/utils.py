@@ -6,6 +6,22 @@ from typing import Literal
 SapLanguage = Literal["DE", "EN"]
 
 
+def as_sap_language(value: str) -> SapLanguage:
+    """Narrow a configured language string to the two values date formatting handles.
+
+    ``sap-mcp-config`` still guarantees a system's language is ``DE`` or ``EN``,
+    but since 1.1.0 it *types* the field as ``str``: the check moved off the
+    field onto the ``Config`` model validator, so that one invalid language no
+    longer aborts validation and hides every other error.  That leaves the
+    static type too wide to assign straight to :data:`SapLanguage`.
+
+    Narrowing at runtime rather than with a ``cast`` keeps this correct even if
+    the upstream guarantee changes again.  Anything unrecognised becomes ``EN``,
+    which is the same default the config layer applies for a missing language.
+    """
+    return "DE" if value.strip().upper() == "DE" else "EN"
+
+
 def format_sap_date(iso_date: str, language: SapLanguage) -> str:
     """
     Convert ISO date (YYYY-MM-DD) to SAP locale format.

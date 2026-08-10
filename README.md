@@ -155,7 +155,7 @@ If the `connection_name` doesn't match exactly, you'll get _"SAP Logon connectio
 > "password": "${env:SAP_DEV_PASSWORD}"
 > ```
 >
-> The file then holds only structure - which systems exist, their hosts and connection names - so it is safe to commit and share with your team, while the credentials come from your environment or password manager. If a referenced variable is unset or empty, the server refuses to start and tells you which one, rather than silently logging in as nobody.
+> The file then holds only structure - which systems exist, their hosts and connection names - so it is safe to commit and share with your team, while the credentials come from your environment or password manager. If a referenced variable is unset or empty, the first SAP tool call fails with an error naming the variable, rather than logging in with an empty password.
 
 See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the complete field reference - all optional fields, validation rules, YAML support, `${env:VAR}` placeholder rules, and a visual guide to finding your `connection_name` in SAP Logon.
 
@@ -881,7 +881,9 @@ The SAP-specific tools above handle most interactions; reach for the browser too
 
 SAP credentials (user, password, client, language, host) are configured in `systems.json` (or `systems.yaml`), **not** via server environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`.
 
-Individual fields may still be sourced from the environment with an `${env:VAR}` placeholder - e.g. `"password": "${env:SAP_DEV_PASSWORD}"` - which keeps secrets out of the file while the structure stays in it. Placeholders work in `connection_name`, `host`, `client`, `user`, `password`, `language` and `oauth2_client_id`. An unset or empty variable is a startup error, never a silently empty credential.
+Individual fields may still be sourced from the environment with an `${env:VAR}` placeholder - e.g. `"password": "${env:SAP_DEV_PASSWORD}"` - which keeps secrets out of the file while the structure stays in it. Placeholders work in `connection_name`, `host`, `client`, `user`, `password`, `language`, `oauth2_client_id` and the top-level `default_system`.
+
+An unset or empty variable makes the config invalid, so the first tool call that needs it fails with an error naming the variable - never a silently empty credential. Note that the server itself still starts: config loading is lazy, so the failure surfaces on first use rather than at launch. Text that only *looks* like a placeholder is used verbatim, so a typo such as `${SAP_PASSWORD}` (missing the `env:` prefix) becomes your literal password rather than an error - see the [placeholder rules](https://github.com/Hochfrequenz/sap-mcp-config#keeping-secrets-out-of-the-config-file) for the exact forms.
 
 | OS          | Default path                                 |
 | ----------- | -------------------------------------------- |
