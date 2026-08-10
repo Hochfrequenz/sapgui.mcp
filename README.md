@@ -147,7 +147,17 @@ If the `connection_name` doesn't match exactly, you'll get _"SAP Logon connectio
 > [!IMPORTANT]
 > After editing `systems.json`, restart Claude Desktop, Claude Code, or opencode for the changes to take effect.
 
-See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the complete field reference - all optional fields, validation rules, YAML support, and a visual guide to finding your `connection_name` in SAP Logon.
+> [!TIP]
+> **Don't want your password sitting in the file?** Any string field may reference an environment variable instead, using `${env:VAR}`:
+>
+> ```json
+> "user": "${env:SAP_DEV_USER}",
+> "password": "${env:SAP_DEV_PASSWORD}"
+> ```
+>
+> The file then holds only structure - which systems exist, their hosts and connection names - so it is safe to commit and share with your team, while the credentials come from your environment or password manager. If a referenced variable is unset or empty, the server refuses to start and tells you which one, rather than silently logging in as nobody.
+
+See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the complete field reference - all optional fields, validation rules, YAML support, `${env:VAR}` placeholder rules, and a visual guide to finding your `connection_name` in SAP Logon.
 
 #### Step 2: Configure your MCP client
 
@@ -869,7 +879,9 @@ The SAP-specific tools above handle most interactions; reach for the browser too
 
 ### SAP Credentials (via `systems.json`)
 
-SAP credentials (user, password, client, language, host) are configured in `systems.json` (or `systems.yaml`), **not** via environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`.
+SAP credentials (user, password, client, language, host) are configured in `systems.json` (or `systems.yaml`), **not** via server environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`.
+
+Individual fields may still be sourced from the environment with an `${env:VAR}` placeholder - e.g. `"password": "${env:SAP_DEV_PASSWORD}"` - which keeps secrets out of the file while the structure stays in it. Placeholders work in `connection_name`, `host`, `client`, `user`, `password`, `language` and `oauth2_client_id`. An unset or empty variable is a startup error, never a silently empty credential.
 
 | OS          | Default path                                 |
 | ----------- | -------------------------------------------- |

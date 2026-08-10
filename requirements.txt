@@ -192,7 +192,7 @@ rpds-py==2026.6.3
     # via
     #   jsonschema
     #   referencing
-sap-mcp-config==1.0.0
+sap-mcp-config==1.1.0
     # via sapguimcp (pyproject.toml)
 sapsucker==1.1.2
     # via sapguimcp (pyproject.toml)
