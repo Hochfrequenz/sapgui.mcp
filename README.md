@@ -148,7 +148,7 @@ If the `connection_name` doesn't match exactly, you'll get _"SAP Logon connectio
 > After editing `systems.json`, restart Claude Desktop, Claude Code, or opencode for the changes to take effect.
 
 > [!TIP]
-> **Don't want your password sitting in the file?** Any string field may reference an environment variable instead, using `${env:VAR}`:
+> **Don't want your password sitting in the file?** A system's string fields - `connection_name`, `host`, `client`, `user`, `password`, `language`, `oauth2_client_id` - may reference an environment variable instead, using `${env:VAR}`:
 >
 > ```json
 > "user": "${env:SAP_DEV_USER}",
