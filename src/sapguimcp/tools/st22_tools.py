@@ -40,7 +40,7 @@ from sapguimcp.models.st22_models import (
     ST22DumpDetailResult,
     ST22DumpListResult,
 )
-from sapguimcp.utils import SapLanguage, format_sap_date
+from sapguimcp.utils import SapLanguage, as_sap_language, format_sap_date
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -152,7 +152,7 @@ async def _execute_search(backend: "WebGuiBackend | DesktopBackend", target_date
     2. Fall back to clearing user field + filling date + F8
     """
     sap_cfg = get_sap_config()
-    language: SapLanguage = sap_cfg.get_default().language
+    language: SapLanguage = as_sap_language(sap_cfg.get_default().language)
 
     # Strategy 1: Quick buttons for today/yesterday
     if await _try_quick_button(backend, target_date):

@@ -30,7 +30,7 @@ from sapguimcp.models.slg1_models import (
     SLG1LogEntry,
     SLG1LogListResult,
 )
-from sapguimcp.utils import SapLanguage, format_sap_date
+from sapguimcp.utils import SapLanguage, as_sap_language, format_sap_date
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -61,7 +61,7 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
     """Desktop-specific SLG1 lookup using read_table instead of ARIA parsing."""
     now = datetime.now(UTC)
     sap_cfg = get_sap_config()
-    language: SapLanguage = sap_cfg.get_default().language
+    language: SapLanguage = as_sap_language(sap_cfg.get_default().language)
     logger.info("SLG1 desktop backend path", extra={"object": object_name})
 
     tx_result = await backend.enter_transaction("SLG1")
@@ -184,7 +184,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
         return await _slg1_lookup_desktop(backend, object_name, subobject, external_id, from_date, to_date)
 
     sap_cfg = get_sap_config()
-    language: SapLanguage = sap_cfg.get_default().language
+    language: SapLanguage = as_sap_language(sap_cfg.get_default().language)
 
     # Navigate to SLG1
     tx_result = await backend.enter_transaction("SLG1")
