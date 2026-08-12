@@ -120,9 +120,9 @@ async def test_set_checkbox_state_visible_in_snapshot(sap_mcp_client: ClientSess
 
     # Verify via ARIA snapshot
     state_after = await _get_screen_state(sap_mcp_client)
-    assert (
-        target_label in state_after["checkboxes"]
-    ), f"'{target_label}' should still appear in snapshot after unchecking"
+    assert target_label in state_after["checkboxes"], (
+        f"'{target_label}' should still appear in snapshot after unchecking"
+    )
     assert state_after["checkboxes"][target_label] is False, f"'{target_label}' should be unchecked in snapshot"
 
 
@@ -223,9 +223,9 @@ async def test_set_radio_button_state_visible_in_snapshot(sap_mcp_client: Client
 
     # Verify via ARIA snapshot
     state_after = await _get_screen_state(sap_mcp_client)
-    assert (
-        state_after["radios"][target_label] is True
-    ), f"'{target_label}' should be selected in snapshot after set_radio_button"
+    assert state_after["radios"][target_label] is True, (
+        f"'{target_label}' should be selected in snapshot after set_radio_button"
+    )
 
 
 # =============================================================================

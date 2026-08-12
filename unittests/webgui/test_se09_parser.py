@@ -186,9 +186,9 @@ class TestWorkbenchOnlyParsing:
 
         for req in result.requests:
             if req.request_type:
-                assert (
-                    req.request_type == "Workbench"
-                ), f"Expected Workbench, got {req.request_type} for {req.request_number}"
+                assert req.request_type == "Workbench", (
+                    f"Expected Workbench, got {req.request_type} for {req.request_number}"
+                )
 
     def test_workbench_requests_are_modifiable(self) -> None:
         """Workbench snapshot (KLEINK, modifiable) should have Modifiable status."""
@@ -211,7 +211,7 @@ class TestRequestTypeConsistency:
         for req in result.requests:
             if req.request_type:
                 assert req.request_type != "Workbench", (
-                    f"Unexpected Workbench request {req.request_number} " "in customizing-only snapshot"
+                    f"Unexpected Workbench request {req.request_number} in customizing-only snapshot"
                 )
 
     def test_workbench_snapshot_has_no_customizing(self) -> None:
@@ -222,7 +222,7 @@ class TestRequestTypeConsistency:
         for req in result.requests:
             if req.request_type:
                 assert req.request_type != "Customizing", (
-                    f"Unexpected Customizing request {req.request_number} " "in workbench-only snapshot"
+                    f"Unexpected Customizing request {req.request_number} in workbench-only snapshot"
                 )
 
     def test_modifiable_only_parses_successfully(self) -> None:

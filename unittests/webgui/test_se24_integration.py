@@ -599,7 +599,7 @@ async def test_se24_lookup_attributes_parsing(sap_mcp_client: ClientSession) -> 
     assert entry.class_name == "CL_ABAP_CHAR_UTILITIES"
     # CL_ABAP_CHAR_UTILITIES has 13+ public constants
     assert len(entry.attributes) >= 13, (
-        f"Expected >=13 attributes, got {len(entry.attributes)}: " f"{[a.name for a in entry.attributes]}"
+        f"Expected >=13 attributes, got {len(entry.attributes)}: {[a.name for a in entry.attributes]}"
     )
 
     attr_names = {a.name for a in entry.attributes}

@@ -243,9 +243,9 @@ async def test_04_fill_popup_field_e2e(backend):
     # Verify the value was actually set by re-reading
     popup_form2 = await backend.get_form_fields()
     desc_field = [f for f in popup_form2.fields if "Kurzbeschreibung" in (f.label or "")][0]
-    assert (
-        desc_field.current_value == "Test popup fill"
-    ), f"Field value should be 'Test popup fill', got '{desc_field.current_value}'"
+    assert desc_field.current_value == "Test popup fill", (
+        f"Field value should be 'Test popup fill', got '{desc_field.current_value}'"
+    )
     print(f"  Verified: Kurzbeschreibung = '{desc_field.current_value}'")
 
 
@@ -275,9 +275,9 @@ async def test_05_press_key_closes_popup(backend):
     result = await backend.press_key("Escape")
     assert result.success, f"Escape should succeed, got: {result.error}"
     print(f"\n=== After Escape: active_window={result.active_window} ===")
-    assert (
-        result.active_window == "wnd[0]"
-    ), f"After closing popup, active_window should be wnd[0], got {result.active_window}"
+    assert result.active_window == "wnd[0]", (
+        f"After closing popup, active_window should be wnd[0], got {result.active_window}"
+    )
 
     # Verify popup is gone
     popup_after = await backend.check_popup()

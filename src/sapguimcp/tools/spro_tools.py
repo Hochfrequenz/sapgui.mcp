@@ -72,7 +72,7 @@ async def _click_sap_ref_img(backend: "WebGuiBackend | DesktopBackend") -> str |
     snapshot = await backend.get_snapshot()
     snapshot_str = str(snapshot)
     if SPRO_INITIAL_SCREEN_DE not in snapshot_str and SPRO_INITIAL_SCREEN_EN not in snapshot_str:
-        return "Not on SPRO initial screen " f"(expected '{SPRO_INITIAL_SCREEN_DE}' or '{SPRO_INITIAL_SCREEN_EN}')"
+        return f"Not on SPRO initial screen (expected '{SPRO_INITIAL_SCREEN_DE}' or '{SPRO_INITIAL_SCREEN_EN}')"
 
     await backend.press_key("F5")
     await backend.wait_for_ready()

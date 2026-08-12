@@ -161,9 +161,9 @@ async def test_se16_query_small_table(sap_mcp_client: ClientSession) -> None:
     assert result.truncated is False, "Should not be truncated"
     assert len(result.columns) > 0, "Expected columns"
     # Column name varies by language: English "Client", German "Mandant" or abbreviated "Mdt"
-    assert (
-        "Client" in result.columns or "Mandant" in result.columns or "Mdt" in result.columns
-    ), "Expected Client/Mandant/Mdt column"
+    assert "Client" in result.columns or "Mandant" in result.columns or "Mdt" in result.columns, (
+        "Expected Client/Mandant/Mdt column"
+    )
     assert len(result.rows) == result.returned_rows
 
     # Verify row structure - column name varies by language
@@ -237,9 +237,9 @@ async def test_se16_query_table_not_found(sap_mcp_client: ClientSession) -> None
     assert result.success is False, "Expected failure for non-existent table"
     assert result.error is not None
     error_lower = result.error.lower()
-    assert any(
-        x in error_lower for x in ["not found", "existiert nicht", "nicht gefunden", "not exist"]
-    ), f"Unexpected error: {result.error}"
+    assert any(x in error_lower for x in ["not found", "existiert nicht", "nicht gefunden", "not exist"]), (
+        f"Unexpected error: {result.error}"
+    )
 
 
 @pytest.mark.anyio
@@ -597,7 +597,7 @@ async def test_se16_table_content_t000(sap_mcp_client: ClientSession) -> None:
     has_content = table_result.total_rows is not None and table_result.total_rows > 0
 
     assert has_rows and has_content, (
-        f"SE16 T000 should return table content with at least one client. " f"Response: {table_result}"
+        f"SE16 T000 should return table content with at least one client. Response: {table_result}"
     )
 
 
@@ -630,7 +630,7 @@ async def test_se16_query_basic(sap_mcp_client: ClientSession) -> None:
     # T000's MANDT field is shown as "Mdt" (DE) or "Clnt" (EN)
     first_col = result.columns[0].lower()
     assert first_col in ("mdt", "clnt", "mandt", "client"), (
-        f"T000 should have client/mandt as first column, got '{result.columns[0]}'. " f"All columns: {result.columns}"
+        f"T000 should have client/mandt as first column, got '{result.columns[0]}'. All columns: {result.columns}"
     )
 
 
@@ -660,8 +660,7 @@ async def test_se16_query_with_filter(sap_mcp_client: ClientSession) -> None:
 
     # With exact filter TCODE='SE16', we should get exactly 1 row
     assert result.total_hits == 1, (
-        f"Filter TCODE='SE16' should return exactly 1 hit, got {result.total_hits}. "
-        "Filter may not have been applied."
+        f"Filter TCODE='SE16' should return exactly 1 hit, got {result.total_hits}. Filter may not have been applied."
     )
     assert result.returned_rows == 1, f"Should return exactly 1 row, got {result.returned_rows}"
 
@@ -673,7 +672,7 @@ async def test_se16_query_with_filter(sap_mcp_client: ClientSession) -> None:
     first_col_name = result.columns[0]
     first_col_value = row_data.get(first_col_name, "")
     assert first_col_value == "SE16", (
-        f"Expected first column to contain 'SE16', got '{first_col_value}'. " f"Row data: {row_data}"
+        f"Expected first column to contain 'SE16', got '{first_col_value}'. Row data: {row_data}"
     )
 
 
@@ -713,7 +712,7 @@ async def test_se16_query_filter_multiple_results(sap_mcp_client: ClientSession)
     for row in result.rows:
         tcode = str(row.data.get(first_col_name, ""))
         assert tcode.startswith("SE1"), (
-            f"Expected transaction code starting with 'SE1', got '{tcode}'. " f"Row data: {row.data}"
+            f"Expected transaction code starting with 'SE1', got '{tcode}'. Row data: {row.data}"
         )
 
 
@@ -767,9 +766,9 @@ async def test_sap_get_screen_text_from_se16(sap_mcp_client: ClientSession) -> N
     else:
         expected_phrases = ["table name", "table", "data browser"]
 
-    assert any(
-        phrase in combined_text for phrase in expected_phrases
-    ), f"SE16 screen text should contain table-related labels. Language: {sap_language}. Got: {combined_text[:500]}"
+    assert any(phrase in combined_text for phrase in expected_phrases), (
+        f"SE16 screen text should contain table-related labels. Language: {sap_language}. Got: {combined_text[:500]}"
+    )
 
     # Capture HTML snapshot for offline selector testing
     await capture_html_snapshot(sap_mcp_client, "se16_initial")

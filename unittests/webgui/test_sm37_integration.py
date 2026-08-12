@@ -223,7 +223,7 @@ async def test_sm37_lookup_canceled_status_filter(sap_mcp_client: ClientSession)
     for job in result.jobs:
         status_lower = (job.status or "").lower()
         assert status_lower in ("canceled", "abgebrochen"), (
-            f"Expected 'canceled'/'abgebrochen' status but got '{job.status}'. " "Checkbox filter may not be working."
+            f"Expected 'canceled'/'abgebrochen' status but got '{job.status}'. Checkbox filter may not be working."
         )
 
 
@@ -261,9 +261,9 @@ async def test_sm37_lookup_with_date_filter(sap_mcp_client: ClientSession) -> No
     )
 
     assert result.success, f"sap_sm37_lookup with date filter failed: {result.error}"
-    assert (
-        result.filters_applied.get("from_date") == today
-    ), f"Expected from_date='{today}' in filters, got {result.filters_applied}"
-    assert (
-        result.filters_applied.get("to_date") == today
-    ), f"Expected to_date='{today}' in filters, got {result.filters_applied}"
+    assert result.filters_applied.get("from_date") == today, (
+        f"Expected from_date='{today}' in filters, got {result.filters_applied}"
+    )
+    assert result.filters_applied.get("to_date") == today, (
+        f"Expected to_date='{today}' in filters, got {result.filters_applied}"
+    )

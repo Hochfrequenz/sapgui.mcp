@@ -281,7 +281,7 @@ async def test_se09_customizing_then_workbench(sap_mcp_client: ClientSession) ->
     )
     assert result.success, f"workbench lookup failed: {result.error}"
     assert result.request_count > 0, (
-        "workbench: expected results — " "Workbench checkbox was likely not re-checked after customizing step"
+        "workbench: expected results — Workbench checkbox was likely not re-checked after customizing step"
     )
     for req in result.requests:
         if req.request_type:
@@ -321,7 +321,7 @@ async def test_se09_workbench_then_customizing(sap_mcp_client: ClientSession) ->
     )
     assert result.success, f"customizing lookup failed: {result.error}"
     assert result.request_count > 0, (
-        "customizing: expected results — " "Customizing checkbox was likely not re-checked after workbench step"
+        "customizing: expected results — Customizing checkbox was likely not re-checked after workbench step"
     )
     for req in result.requests:
         if req.request_type:
@@ -437,7 +437,7 @@ async def test_se09_released_then_modifiable(sap_mcp_client: ClientSession) -> N
     )
     assert result.success, f"modifiable lookup failed: {result.error}"
     assert result.request_count > 0, (
-        "modifiable: expected results — " "Modifiable checkbox was likely not re-checked after released step"
+        "modifiable: expected results — Modifiable checkbox was likely not re-checked after released step"
     )
     for req in result.requests:
         if req.status:
@@ -477,7 +477,7 @@ async def test_se09_modifiable_then_released(sap_mcp_client: ClientSession) -> N
     )
     assert result.success, f"released lookup failed: {result.error}"
     assert result.request_count > 0, (
-        "released: expected results — " "Released checkbox was likely not re-checked after modifiable step"
+        "released: expected results — Released checkbox was likely not re-checked after modifiable step"
     )
     for req in result.requests:
         if req.status:
@@ -512,7 +512,7 @@ async def test_se09_user_filter(sap_mcp_client: ClientSession) -> None:
     assert result_all.success, f"wildcard lookup failed: {result_all.error}"
     assert result_all.request_count > 0, "wildcard: expected results"
     assert result_all.request_count >= result_kleink.request_count, (
-        f"wildcard ({result_all.request_count}) should have >= " f"KLEINK ({result_kleink.request_count}) results"
+        f"wildcard ({result_all.request_count}) should have >= KLEINK ({result_kleink.request_count}) results"
     )
 
 

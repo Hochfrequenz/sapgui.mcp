@@ -123,7 +123,7 @@ class TestComThread:
                 await thread.run(lambda: None)
             elapsed = time.monotonic() - start
             # 5 calls with 100ms interval → at least 400ms total (first call is immediate)
-            assert elapsed >= 0.35, f"Expected ≥350ms, got {elapsed*1000:.0f}ms"
+            assert elapsed >= 0.35, f"Expected ≥350ms, got {elapsed * 1000:.0f}ms"
         finally:
             thread.shutdown()
 
@@ -139,7 +139,7 @@ class TestComThread:
                 await thread.run(lambda: None)
             elapsed = time.monotonic() - start
             # 10 calls with no throttle should be very fast
-            assert elapsed < 0.5, f"Expected <500ms, got {elapsed*1000:.0f}ms"
+            assert elapsed < 0.5, f"Expected <500ms, got {elapsed * 1000:.0f}ms"
         finally:
             thread.shutdown()
 

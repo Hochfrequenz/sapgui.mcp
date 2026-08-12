@@ -34,9 +34,9 @@ async def test_bp_snapshot_shows_fields(backend):
     snapshot_text = str(snapshot)
     # BDT fields should now appear in the snapshot (BUS_JOEL on create screen,
     # BUT000 on detail screen — either confirms the BDT fallback works)
-    assert (
-        "BUS_JOEL" in snapshot_text or "BUT000" in snapshot_text
-    ), f"BDT fields not found in snapshot. First 500 chars: {snapshot_text[:500]}"
+    assert "BUS_JOEL" in snapshot_text or "BUT000" in snapshot_text, (
+        f"BDT fields not found in snapshot. First 500 chars: {snapshot_text[:500]}"
+    )
 
 
 @pytest.mark.anyio

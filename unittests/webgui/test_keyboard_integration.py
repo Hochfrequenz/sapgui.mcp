@@ -72,6 +72,6 @@ async def test_sap_press_key_f8_triggers_execution(sap_mcp_client: ClientSession
     else:
         expected_phrases = ["enter", "table", "error", "required", "specify", "fill"]
 
-    assert any(
-        phrase in page_html for phrase in expected_phrases
-    ), f"F8 without input should trigger error or prompt. Language: {sap_language}"
+    assert any(phrase in page_html for phrase in expected_phrases), (
+        f"F8 without input should trigger error or prompt. Language: {sap_language}"
+    )

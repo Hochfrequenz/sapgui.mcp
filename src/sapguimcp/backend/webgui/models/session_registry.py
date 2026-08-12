@@ -100,9 +100,7 @@ class SessionRegistry:
 
         if sid not in self._sessions:
             available = ", ".join(sorted(self._sessions.keys())) or "(none)"
-            raise ValueError(
-                f"Session '{sid}' not found. Active: {available}. " "Use sap_session_list() to see sessions."
-            )
+            raise ValueError(f"Session '{sid}' not found. Active: {available}. Use sap_session_list() to see sessions.")
 
         page = self._sessions[sid]
         if page.is_closed():
