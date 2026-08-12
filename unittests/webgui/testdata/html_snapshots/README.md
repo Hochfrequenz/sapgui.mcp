@@ -46,7 +46,7 @@ To capture snapshots in a specific language only:
 SAP_LANGUAGE=EN  # or DE
 
 # Run integration tests
-tox -e integration_tests
+uv run --group tests python -m pytest unittests/ -k integration
 ```
 
 ## Adding New Snapshots Manually

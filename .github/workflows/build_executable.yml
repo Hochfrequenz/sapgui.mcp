@@ -15,11 +15,9 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            tox_env: build_executable
             artifact: sapgui_mcp_windows
             binary: sapgui_mcp_windows.exe
           - os: macos-latest
-            tox_env: build_executable_macos
             artifact: sapgui_mcp_macos_arm64
             binary: sapgui_mcp_macos_arm64
     runs-on: ${{ matrix.os }}
@@ -27,18 +25,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v9.0.0
         with:
           python-version: "3.14"
 
-      - name: Build Executable
+      - name: Build Executable (Windows)
+        if: matrix.os == 'windows-latest'
+        run: uv run --locked --group build_executable pyinstaller --noconfirm sapgui_mcp_windows.spec
+
+      - name: Build Executable (macOS)
+        if: matrix.os == 'macos-latest'
         run: |
-          pip install tox
-          tox -e ${{ matrix.tox_env }}
+          uv run --locked --group build_executable pyinstaller --onefile --name sapgui_mcp_macos_arm64 \
+            --copy-metadata fastmcp \
+            --collect-submodules lupa \
+            --collect-data fakeredis \
+            --collect-data sapguimcp \
+            src/sapguimcp/server.py
+          codesign --force --deep --sign - dist/sapgui_mcp_macos_arm64
 
       - name: Freeze build dependencies
-        run: tox exec -e ${{ matrix.tox_env }} -- pip freeze > dist/build-dependencies.txt
+        run: uv pip freeze > dist/build-dependencies.txt
 
       - name: Upload Executable as Artifact
         uses: actions/upload-artifact@v7
@@ -58,8 +66,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v9.0.0
         with:
           python-version: "3.14"
 
@@ -79,12 +87,10 @@ jobs:
       - name: Build Executable
         env:
           SAPGUI_BUILD_NAME: sapgui_mcp_windows_with_remote_logging
-        run: |
-          pip install tox
-          tox -e build_executable
+        run: uv run --locked --group build_executable pyinstaller --noconfirm sapgui_mcp_windows.spec
 
       - name: Freeze build dependencies
-        run: tox exec -e build_executable -- pip freeze > dist/build-dependencies.txt
+        run: uv pip freeze > dist/build-dependencies.txt
 
       - name: Upload Executable as Artifact
         uses: actions/upload-artifact@v7
@@ -117,8 +123,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v9.0.0
         with:
           python-version: "3.14"
 
@@ -174,7 +180,7 @@ jobs:
         shell: bash
 
       - name: Smoke Test
-        run: python unittests/webgui/smoke_test_exe.py dist/${{ matrix.binary }}
+        run: uv run --no-project --python 3.14 python unittests/webgui/smoke_test_exe.py dist/${{ matrix.binary }}
 
   release:
     needs: [build, build_with_remote_logging, smoke_test]

@@ -255,13 +255,13 @@ MY_SELECTORS = {
 Run tool tests with:
 
 ```bash
-tox -e tests
+uv run --group tests python -m pytest
 ```
 
 For coverage:
 
 ```bash
-tox -e coverage
+uv run --group coverage coverage run -m pytest
 ```
 
 ## Debugging Tips

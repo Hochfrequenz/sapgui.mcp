@@ -54,7 +54,7 @@ CI enforces:
 Run locally:
 
 ```bash
-tox -e unit_tests  # Validates prompt files
+uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"  # Validates prompt files
 npm run format     # Formats markdown
 ```
 

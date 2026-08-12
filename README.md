@@ -671,16 +671,17 @@ For contributors who want to run from source.
 ```bash
 git clone https://github.com/Hochfrequenz/sapgui.mcp.git
 cd sapgui.mcp
-pip install -e ".[dev]"
-playwright install chromium
+# Install uv: https://docs.astral.sh/uv/getting-started/installation/
+uv sync --group dev
+uv run playwright install chromium
 ```
 
 ### Run tests
 
 ```bash
-tox -e unit_tests   # unit tests only
-tox -e linting      # code quality
-tox -e formatting   # check formatting
+uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"  # unit tests only
+uv run --group linting pylint sapguimcp                                                     # code quality
+uv run --group formatting black --check src/sapguimcp unittests                             # check formatting
 ```
 
 ### Run the MCP server locally
