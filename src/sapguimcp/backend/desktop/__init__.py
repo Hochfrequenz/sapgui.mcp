@@ -429,8 +429,7 @@ class DesktopBackend:
                     success=True,
                     status="unknown",
                     message=(
-                        "Session is busy — a modal dialog may be blocking the SAP GUI. "
-                        "It is not dead; retry shortly."
+                        "Session is busy — a modal dialog may be blocking the SAP GUI. It is not dead; retry shortly."
                     ),
                 )
             hint = describe_com_error(exc)

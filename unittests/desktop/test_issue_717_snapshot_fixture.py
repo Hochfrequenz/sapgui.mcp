@@ -35,7 +35,7 @@ def test_reporter_dock_shell_has_resolvable_id(snapshot_text: str):
     # Exact-end match so the assertion fails if the ID is e.g.
     # ``wnd[0]/shellcont/shell`` by mistake.
     assert any(ln.rstrip().endswith("id=wnd[0]/shellcont") for ln in dock_lines), (
-        "the reporter's DockShell should now surface its full ID in the snapshot — " f"got: {dock_lines}"
+        f"the reporter's DockShell should now surface its full ID in the snapshot — got: {dock_lines}"
     )
 
 
@@ -44,7 +44,7 @@ def test_reporter_tree_shell_has_resolvable_id(snapshot_text: str):
     shell_lines = [ln for ln in snapshot_text.splitlines() if "GuiShell[shell]" in ln]
     assert shell_lines, "fixture should contain the tree shell line"
     assert any(ln.rstrip().endswith("id=wnd[0]/shellcont/shell") for ln in shell_lines), (
-        "the tree shell's ID must be present so the LLM can call nodeContextMenu etc. — " f"got: {shell_lines}"
+        f"the tree shell's ID must be present so the LLM can call nodeContextMenu etc. — got: {shell_lines}"
     )
 
 
@@ -64,5 +64,5 @@ def test_actual_dcs_tree_lives_outside_usr(snapshot_text: str):
     tree_id_lines = [ln for ln in snapshot_text.splitlines() if "id=wnd[0]/shellcont/shell" in ln]
     assert tree_id_lines, "expected the tree shell at window-level shellcont"
     assert not any("id=wnd[0]/usr/shellcont/shell" in ln for ln in snapshot_text.splitlines()), (
-        "on /NA2/DCS the tree is at wnd[0]/shellcont/shell, not under /usr — " "this is the bug's root cause"
+        "on /NA2/DCS the tree is at wnd[0]/shellcont/shell, not under /usr — this is the bug's root cause"
     )

@@ -34,9 +34,9 @@ async def test_sap_get_shortcuts_returns_shortcuts(sap_mcp_client: ClientSession
 
     # SE16 should have at least some common shortcuts (F3=Back, F8=Execute)
     shortcut_keys = [s.shortcut for s in shortcuts]
-    assert any(
-        "F" in k for k in shortcut_keys
-    ), f"Expected at least one F-key shortcut on SE16 screen. Found: {shortcut_keys}"
+    assert any("F" in k for k in shortcut_keys), (
+        f"Expected at least one F-key shortcut on SE16 screen. Found: {shortcut_keys}"
+    )
 
 
 @pytest.mark.anyio
@@ -78,9 +78,9 @@ async def test_sap_get_shortcuts_has_back_f3(sap_mcp_client: ClientSession) -> N
     shortcuts = data.shortcuts
     f3_shortcuts = [s for s in shortcuts if s.shortcut == "F3"]
 
-    assert (
-        len(f3_shortcuts) >= 1
-    ), f"Screen should have F3 (Back) shortcut. Found shortcuts: {[s.shortcut for s in shortcuts]}"
+    assert len(f3_shortcuts) >= 1, (
+        f"Screen should have F3 (Back) shortcut. Found shortcuts: {[s.shortcut for s in shortcuts]}"
+    )
 
 
 @pytest.mark.anyio

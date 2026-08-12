@@ -53,7 +53,7 @@ async def test_sap_transaction(sap_mcp_client: ClientSession) -> None:
         expected_phrases = ["user profile", "own data", "maintain user"]
 
     assert any(phrase in page_html for phrase in expected_phrases), (
-        f"SU3 transaction screen not detected for language '{sap_language}'. " f"Expected one of: {expected_phrases}."
+        f"SU3 transaction screen not detected for language '{sap_language}'. Expected one of: {expected_phrases}."
     )
 
     # Capture HTML snapshot for offline selector testing
@@ -137,13 +137,13 @@ async def test_sap_transaction_same_window_replaces_previous(sap_mcp_client: Cli
     # Verify SE11 is displayed (ABAP Dictionary / Data Dictionary)
     page_html1 = (await get_html_content(sap_mcp_client)).lower()
     if sap_language == "DE":
-        assert any(
-            phrase in page_html1 for phrase in ["dictionary", "wörterbuch", "se11"]
-        ), "SE11 (ABAP Dictionary) should be displayed"
+        assert any(phrase in page_html1 for phrase in ["dictionary", "wörterbuch", "se11"]), (
+            "SE11 (ABAP Dictionary) should be displayed"
+        )
     else:
-        assert any(
-            phrase in page_html1 for phrase in ["dictionary", "se11"]
-        ), "SE11 (ABAP Dictionary) should be displayed"
+        assert any(phrase in page_html1 for phrase in ["dictionary", "se11"]), (
+            "SE11 (ABAP Dictionary) should be displayed"
+        )
 
     # Step 2: Open SE16 (Data Browser) - this should REPLACE SE11
     result2 = await call_tool_typed(
@@ -204,6 +204,6 @@ async def test_sap_transaction_new_window_preserves_previous(sap_mcp_client: Cli
     assert result2.session_count is not None, f"Response should report session count: {result2}"
 
     # Should have at least 2 sessions (original + new)
-    assert (
-        result2.session_count >= 2
-    ), f"Expected at least 2 SAP sessions after opening new window, got {result2.session_count}"
+    assert result2.session_count >= 2, (
+        f"Expected at least 2 SAP sessions after opening new window, got {result2.session_count}"
+    )

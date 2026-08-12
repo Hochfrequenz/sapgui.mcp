@@ -159,7 +159,8 @@ async def test_spro_capture_search_via_button_click(sap_mcp_client: ClientSessio
     discovery = await call_tool_typed(
         sap_mcp_client,
         "browser_evaluate",
-        {"script": """(() => {
+        {
+            "script": """(() => {
             const results = [];
             const all = document.querySelectorAll('*');
             for (const el of all) {
@@ -183,7 +184,8 @@ async def test_spro_capture_search_via_button_click(sap_mcp_client: ClientSessio
                 }
             }
             return JSON.stringify(results.slice(0, 10));
-        })()"""},
+        })()"""
+        },
         EvaluateResult,
     )
     print(f"Search button discovery: {discovery.result}")
@@ -192,7 +194,8 @@ async def test_spro_capture_search_via_button_click(sap_mcp_client: ClientSessio
     js_click = await call_tool_typed(
         sap_mcp_client,
         "browser_evaluate",
-        {"script": """(() => {
+        {
+            "script": """(() => {
             // Try title attribute first (SAP WebGUI toolbar buttons often use title)
             let btn = document.querySelector('[title*="Such"][title*="Strg"]') ||
                       document.querySelector('[title*="Find"][title*="Ctrl"]') ||
@@ -212,7 +215,8 @@ async def test_spro_capture_search_via_button_click(sap_mcp_client: ClientSessio
                 }
             }
             return 'not_found';
-        })()"""},
+        })()"""
+        },
         EvaluateResult,
     )
     print(f"Button click result: {js_click.result}")
@@ -243,12 +247,14 @@ async def test_spro_capture_search_results(sap_mcp_client: ClientSession) -> Non
     await call_tool_typed(
         sap_mcp_client,
         "browser_evaluate",
-        {"script": """(() => {
+        {
+            "script": """(() => {
             let btn = document.querySelector('[title*="Such"][title*="Strg"]') ||
                       document.querySelector('[title*="Find"][title*="Ctrl"]');
             if (btn) { btn.click(); return 'ok'; }
             return 'not_found';
-        })()"""},
+        })()"""
+        },
         EvaluateResult,
     )
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})
@@ -323,12 +329,14 @@ async def test_spro_capture_search_results_country(sap_mcp_client: ClientSession
     await call_tool_typed(
         sap_mcp_client,
         "browser_evaluate",
-        {"script": """(() => {
+        {
+            "script": """(() => {
             let btn = document.querySelector('[title*="Such"][title*="Strg"]') ||
                       document.querySelector('[title*="Find"][title*="Ctrl"]');
             if (btn) { btn.click(); return 'ok'; }
             return 'not_found';
-        })()"""},
+        })()"""
+        },
         EvaluateResult,
     )
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 2000})

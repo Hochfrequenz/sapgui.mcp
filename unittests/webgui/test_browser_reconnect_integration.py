@@ -75,7 +75,7 @@ async def test_browser_reconnect_multiple_times(sap_mcp_client: ClientSession) -
 
         # Verify session is still valid
         status = await call_tool_typed(sap_mcp_client, "sap_session_status", {}, SessionStatus)
-        assert status.status is not None, f"Expected valid status after transaction {i+1}: {status}"
+        assert status.status is not None, f"Expected valid status after transaction {i + 1}: {status}"
 
 
 @pytest.mark.anyio
@@ -121,7 +121,7 @@ async def test_browser_screenshot_returns_mcp_image_content(sap_mcp_client: Clie
     # PNG files start with the magic bytes: 0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
     png_magic = b"\x89PNG\r\n\x1a\n"
     assert image_bytes[:8] == png_magic, (
-        f"Image data does not start with PNG magic bytes. " f"Got: {image_bytes[:8].hex()}, expected: {png_magic.hex()}"
+        f"Image data does not start with PNG magic bytes. Got: {image_bytes[:8].hex()}, expected: {png_magic.hex()}"
     )
 
     # Verify reasonable image size (at least 1KB, at most 10MB)

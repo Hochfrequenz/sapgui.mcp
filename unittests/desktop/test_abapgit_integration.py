@@ -55,7 +55,7 @@ async def test_abapgit_pull_returns_status_message(backend) -> None:
     assert result.success, f"Pull failed: {result.error}"
     assert result.message is not None, "Expected a status message, got None"
     assert "unknown" not in (result.message or "").lower(), (
-        f"Got ambiguous status: {result.message}. " "Wait should have captured the ABAP MESSAGE."
+        f"Got ambiguous status: {result.message}. Wait should have captured the ABAP MESSAGE."
     )
     await go_home(backend)
 
@@ -139,9 +139,9 @@ async def test_abapgit_list_repos(backend) -> None:
     assert len(result.repos) > 0, "Expected at least one repo"
 
     repo_names = [r.name for r in result.repos]
-    assert (
-        "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY" in repo_names
-    ), f"Expected Z_PUBLIC_ABAPGIT_TEST_REPOSITORY in {repo_names}"
+    assert "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY" in repo_names, (
+        f"Expected Z_PUBLIC_ABAPGIT_TEST_REPOSITORY in {repo_names}"
+    )
 
     public_repo = next(r for r in result.repos if r.name == "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY")
     assert "github.com" in public_repo.url

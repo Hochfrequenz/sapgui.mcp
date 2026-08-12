@@ -61,9 +61,9 @@ Language and credentials are loaded from your `.env` file.
 
 ```bash
 uv run --group coverage coverage run -m pytest  # Run tests with coverage report
-uv run --group linting pylint sapguimcp         # Run pylint
-uv run --group formatting black --check src/sapguimcp unittests  # Check black formatting
-uv run --group formatting isort --check src/sapguimcp unittests  # Check isort import order
+uv run --group linting ruff check .             # Run ruff (lint)
+uv run --group linting ruff format --check .     # Check formatting
+uv run --group linting ruff check --select I .   # Check import order
 uv run --group type_check mypy --show-error-codes src/sapguimcp --strict  # Run mypy type checking
 uv run --group spell_check codespell --ignore-words=domain-specific-terms.txt src  # Run codespell
 ```
@@ -168,25 +168,23 @@ def test_my_com_feature():
 
 This project uses:
 
-- [Black](https://github.com/psf/black) for code formatting
-- [isort](https://pycqa.github.io/isort/) for import sorting
-- [pylint](https://pylint.org/) for linting — when disabling rules use **speaking names** (`# pylint: disable=too-many-lines`), not codes (`# pylint: disable=C0302`)
+- [ruff](https://docs.astral.sh/ruff/) for linting, import sorting and code formatting (replaces black, isort and pylint) — when adding per-file ignores keep the human-readable rule **name** as a trailing comment (`# too-many-arguments`), not just the code
 - [mypy](https://mypy.readthedocs.io/) for type checking
 - [codespell](https://github.com/codespell-project/codespell) for spell checking
 
 ### Python
 
-The `dev` and `formatting` dependency groups install black and isort.
+The `dev` and `linting` dependency groups install ruff.
 
 ```bash
-uv run --group formatting black .   # Format code
-uv run --group formatting isort .   # Sort imports
+uv run --group linting ruff format .   # Format code
+uv run --group linting ruff check --fix .   # Lint and auto-fix (incl. import sorting)
 ```
 
 Linting and type checking:
 
 ```bash
-uv run --group linting pylint sapguimcp
+uv run --group linting ruff check .
 uv run --group type_check mypy --show-error-codes src/sapguimcp --strict
 ```
 
@@ -288,7 +286,7 @@ You don't need to put any effort in rebases, amends or similar.
 1. Create a feature branch: `feat/my-feature` or `fix/my-bug`
 2. Write tests for new functionality
 3. Ensure all tests pass: `uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"`
-4. Ensure linting passes: `uv run --group linting pylint sapguimcp`, `uv run --group type_check mypy --show-error-codes src/sapguimcp --strict`
+4. Ensure linting passes: `uv run --group linting ruff check .`, `uv run --group type_check mypy --show-error-codes src/sapguimcp --strict`
 5. Create PR with clear description
 
 ## Extending the Server

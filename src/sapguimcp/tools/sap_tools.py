@@ -162,7 +162,7 @@ def parse_shortcut_from_title(title: str) -> ShortcutInfo | None:
 
 SELECTORS: dict[str, str] = {
     "okcode_field": (
-        'input[id*="ToolbarOkCode"], ' 'input[name*="okcode" i], ' 'input[id*="okcd" i], ' 'input[id*="OkCodeField" i]'
+        'input[id*="ToolbarOkCode"], input[name*="okcode" i], input[id*="okcd" i], input[id*="OkCodeField" i]'
     ),
     "settings_button": (
         '[id*="settingsButton"], '
@@ -1610,7 +1610,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     # Session Management Tools
     # =========================================================================
 
-    @mcp.tool(description="""List all active SAP sessions.
+    @mcp.tool(
+        description="""List all active SAP sessions.
 
 Returns session IDs, current transaction, screen title, client, user, and
 system_name for each. Use this to see what sessions exist before targeting one.
@@ -1620,12 +1621,14 @@ The first sap_login() registers "s1". Additional sessions come from:
   a session alongside the existing ones, not replacing them — see #671)
 - sap_transaction(tcode, new_window=True) (a /o sub-session of an existing
   connection, sharing its login)
-""")
+"""
+    )
     async def sap_session_list() -> SessionListResult:
         """List all active sessions."""
         return await sap_session_list_impl()
 
-    @mcp.tool(description="""Close a SAP session.
+    @mcp.tool(
+        description="""Close a SAP session.
 
 Closes the underlying SAP GUI session/tab and removes it from the registry.
 Any session ID can be closed, including "s1". With the parallel-multi-mandant
@@ -1636,7 +1639,8 @@ a clear "no session" error and you should call sap_login() again.
 
 Args:
     session_id: Session to close (e.g. "s1", "s2", ...)
-""")
+"""
+    )
     async def sap_session_close(session_id: str) -> SessionCloseResult:
         """Close a specific session."""
         return await sap_session_close_impl(session_id)

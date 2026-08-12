@@ -163,7 +163,7 @@ class TestOkCodeFieldSelector:
         elements = css_select(soup, SELECTORS["okcode_field"])
 
         assert len(elements) >= 1, (
-            f"OK-Code field selector should find at least one element. " f"Selector: {SELECTORS['okcode_field']}"
+            f"OK-Code field selector should find at least one element. Selector: {SELECTORS['okcode_field']}"
         )
 
         # Verify it's an input element
@@ -180,7 +180,7 @@ class TestOkCodeFieldSelector:
         elements = css_select(soup, SELECTORS["okcode_field"])
 
         assert len(elements) >= 1, (
-            f"OK-Code field should be present in SU3 screen. " f"Selector: {SELECTORS['okcode_field']}"
+            f"OK-Code field should be present in SU3 screen. Selector: {SELECTORS['okcode_field']}"
         )
 
     def test_okcode_field_in_se16(self, html_snapshots_path: Path) -> None:
@@ -193,7 +193,7 @@ class TestOkCodeFieldSelector:
         elements = css_select(soup, SELECTORS["okcode_field"])
 
         assert len(elements) >= 1, (
-            f"OK-Code field should be present in SE16 screen. " f"Selector: {SELECTORS['okcode_field']}"
+            f"OK-Code field should be present in SE16 screen. Selector: {SELECTORS['okcode_field']}"
         )
 
 
@@ -221,7 +221,7 @@ class TestStatusBarSelector:
 
         found_error = any(indicator in html_text for indicator in error_indicators)
         assert found_error, (
-            "Status bar error HTML should contain error indicators. " "This snapshot may not contain an error message."
+            "Status bar error HTML should contain error indicators. This snapshot may not contain an error message."
         )
 
 
@@ -286,7 +286,7 @@ class TestTransactionFieldSelectors:
         elements = find_sap_field_by_sid(soup, "JOBNAME")
 
         assert len(elements) >= 1, (
-            "SM37 MUST find the job name field. " "This field is used to filter background jobs by name."
+            "SM37 MUST find the job name field. This field is used to filter background jobs by name."
         )
 
     def test_sm37_finds_username_field(self, html_snapshots_path: Path) -> None:
@@ -299,7 +299,7 @@ class TestTransactionFieldSelectors:
         elements = find_sap_field_by_sid(soup, "USERNAME")
 
         assert len(elements) >= 1, (
-            "SM37 MUST find the username field. " "This field filters background jobs by the user who scheduled them."
+            "SM37 MUST find the username field. This field filters background jobs by the user who scheduled them."
         )
 
     def test_sm37_finds_date_fields(self, html_snapshots_path: Path) -> None:
@@ -369,7 +369,7 @@ class TestSettingsDialogSelectors:
 
         # Settings button should be findable on main SAP screen
         assert len(elements) >= 1, (
-            f"Settings button should be found on Easy Access screen. " f"Selector: {SELECTORS['settings_button']}"
+            f"Settings button should be found on Easy Access screen. Selector: {SELECTORS['settings_button']}"
         )
 
     def test_settings_dialog_has_checkboxes(self, html_snapshots_path: Path) -> None:
@@ -637,8 +637,7 @@ class TestTableContentExtraction:
 
         # MANDT is the standard SAP client/mandant field name
         assert "MANDT" in html_text, (
-            "SE16 T000 content should contain 'MANDT' column header or data. "
-            "This is the primary key of the T000 table."
+            "SE16 T000 content should contain 'MANDT' column header or data. This is the primary key of the T000 table."
         )
 
     def test_sm37_results_has_job_rows(self, html_snapshots_path: Path) -> None:
@@ -678,9 +677,9 @@ class TestTableContentExtraction:
         # Also check by any visible text input that could be the object name field
         visible_inputs = [inp for inp in inputs if inp.get("type", "text") == "text"]
 
-        assert (
-            len(object_fields) >= 1 or len(visible_inputs) >= 1
-        ), "SE11 initial screen should have an object name input field"
+        assert len(object_fields) >= 1 or len(visible_inputs) >= 1, (
+            "SE11 initial screen should have an object name input field"
+        )
 
     def test_se11_t000_content_shows_fields(self, html_snapshots_path: Path) -> None:
         """Verify SE11 T000 content shows table field names.
@@ -700,7 +699,7 @@ class TestTableContentExtraction:
         has_field_indicator = "FIELD" in html_text or "COMPONENT" in html_text
 
         assert has_mandt or has_cccategory or has_field_indicator, (
-            "SE11 T000 definition should show field names. " "Expected MANDT, CCCATEGORY, or FIELD/COMPONENT labels."
+            "SE11 T000 definition should show field names. Expected MANDT, CCCATEGORY, or FIELD/COMPONENT labels."
         )
 
 
@@ -727,7 +726,7 @@ class TestAlvGridDetection:
         has_stcs = 'ct=\\"STCS\\"' in html_content or 'ct="STCS"' in html_content
 
         assert has_stcs, (
-            "EMMACL results should contain at least one ALV grid table. " "ALV tables have ct='STCS' attribute."
+            "EMMACL results should contain at least one ALV grid table. ALV tables have ct='STCS' attribute."
         )
 
         # Verify the table has an ID (look for id="C followed by digits)
@@ -751,7 +750,7 @@ class TestAlvGridDetection:
         grid_ids = re.findall(r'id=\\"(grid#[^\\"]+)\\"', html_content)
 
         assert len(grid_ids) >= 1, (
-            "EMMACL results should contain grid# pattern cell IDs. " "Pattern: grid#<table_id>#<row>,<col>"
+            "EMMACL results should contain grid# pattern cell IDs. Pattern: grid#<table_id>#<row>,<col>"
         )
 
     def test_emmacl_results_has_hotspot_cells(self, html_snapshots_path: Path) -> None:
@@ -784,7 +783,7 @@ class TestAlvGridDetection:
         has_hotspots = "UNDERLINE_HOTSPOT" in html_content
 
         assert has_fall_column and has_hotspots, (
-            "EMMACL results should have a clickable 'Fall' (case) column " "with hotspot cells for navigation."
+            "EMMACL results should have a clickable 'Fall' (case) column with hotspot cells for navigation."
         )
 
 
@@ -854,9 +853,9 @@ class TestFillFormLsdataLabelParsing:
             f"Failed to find input for '{first_name_label}' label via lsdata parsing. "
             f"The label should have lsdata with key '3' = '{first_name_label}' and key '1' pointing to input ID."
         )
-        assert (
-            first_name_input.name == "input"
-        ), f"{first_name_label} field should be an input, got: {first_name_input.name}"
+        assert first_name_input.name == "input", (
+            f"{first_name_label} field should be an input, got: {first_name_input.name}"
+        )
 
         # Test last name
         last_name_input = self._find_input_by_label(soup, last_name_label)
@@ -864,9 +863,9 @@ class TestFillFormLsdataLabelParsing:
             f"Failed to find input for '{last_name_label}' label via lsdata parsing. "
             f"The label should have lsdata with key '3' = '{last_name_label}' and key '1' pointing to input ID."
         )
-        assert (
-            last_name_input.name == "input"
-        ), f"{last_name_label} field should be an input, got: {last_name_input.name}"
+        assert last_name_input.name == "input", (
+            f"{last_name_label} field should be an input, got: {last_name_input.name}"
+        )
 
     def test_bp_person_form_label_lsdata_structure(self, html_snapshots_path: Path) -> None:
         """Verify BP person form has labels with lsdata containing expected keys."""
@@ -1204,9 +1203,9 @@ class TestPopupDetection:
         if blocking_layer:
             # Check if it's hidden (display: none)
             style = blocking_layer.get("style", "")
-            assert (
-                "display: none" in style or "display:none" in style
-            ), "Blocking layer exists but should be hidden on initial screen"
+            assert "display: none" in style or "display:none" in style, (
+                "Blocking layer exists but should be hidden on initial screen"
+            )
 
 
 class TestDropdownDetection:
@@ -1246,9 +1245,9 @@ class TestDropdownDetection:
                 break
 
         assert gp_rolle_dropdown is not None, f"Expected {role_label} dropdown field"
-        assert gp_rolle_dropdown.get("readonly") is not None or gp_rolle_dropdown.has_attr(
-            "readonly"
-        ), "Dropdown should be readonly"
+        assert gp_rolle_dropdown.get("readonly") is not None or gp_rolle_dropdown.has_attr("readonly"), (
+            "Dropdown should be readonly"
+        )
         assert gp_rolle_dropdown.get("aria-haspopup") == "true", "Dropdown should have aria-haspopup=true"
 
     def test_bp_create_person_dropdown_has_value(self, html_snapshots_path: Path, lang_strings: dict[str, str]) -> None:
@@ -1649,8 +1648,7 @@ class TestAmbiguousLabelDetection:
         has_post_code2 = any("POST_CODE2" in (f or "") for f in lsdata_fields)
 
         assert has_post_code1 and has_post_code2, (
-            f"BP Person form should have both POST_CODE1 and POST_CODE2 fields. "
-            f"Found lsdata fields: {lsdata_fields}"
+            f"BP Person form should have both POST_CODE1 and POST_CODE2 fields. Found lsdata fields: {lsdata_fields}"
         )
 
     def test_bp_person_form_unique_label(self, html_snapshots_path: Path) -> None:

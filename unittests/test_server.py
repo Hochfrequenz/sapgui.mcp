@@ -101,9 +101,9 @@ class TestMcpServer:
             "search_transactions",
             "search_tables",
         }
-        assert expected_catalog_tools.issubset(
-            tool_names
-        ), f"Missing catalog tools: {expected_catalog_tools - tool_names}"
+        assert expected_catalog_tools.issubset(tool_names), (
+            f"Missing catalog tools: {expected_catalog_tools - tool_names}"
+        )
 
     def test_search_transactions_has_description(self) -> None:
         """Test that search_transactions has a descriptive docstring."""
@@ -638,15 +638,15 @@ class TestConcurrencyNotesInSapToolDescriptions:
         for tool_name in ["sap_login", "sap_transaction"]:
             desc = tools[tool_name].description or ""
             assert "Concurrency note" in desc, f"{tool_name} should include a concurrency note"
-            assert (
-                "serialized (no speedup)" in desc or "sequentially (no speedup)" in desc
-            ), f"{tool_name} should document serialization behavior"
+            assert "serialized (no speedup)" in desc or "sequentially (no speedup)" in desc, (
+                f"{tool_name} should document serialization behavior"
+            )
 
         for tool_name in ["sap_run_script", "sap_com_evaluate"]:
             if tool_name not in tools:
                 continue
             desc = tools[tool_name].description or ""
             assert "Concurrency note" in desc, f"{tool_name} should include a concurrency note"
-            assert (
-                "serialized (no speedup)" in desc or "sequentially (no speedup)" in desc
-            ), f"{tool_name} should document serialization behavior"
+            assert "serialized (no speedup)" in desc or "sequentially (no speedup)" in desc, (
+                f"{tool_name} should document serialization behavior"
+            )

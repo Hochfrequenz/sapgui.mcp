@@ -48,7 +48,7 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
 
     # SAP Easy Access page should have the OK-Code field
     assert "toolbarokcode" in page_html.lower(), (
-        "Browser does not show SAP Easy Access screen. " "Login may have failed or a dialog is blocking."
+        "Browser does not show SAP Easy Access screen. Login may have failed or a dialog is blocking."
     )
 
     # Verify the login language is correct by checking UI text
@@ -81,7 +81,8 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
     settings_eval = await call_tool_typed(
         sap_mcp_client,
         "browser_evaluate",
-        {"script": """
+        {
+            "script": """
         (function() {
             // Try various settings button selectors
             var selectors = [
@@ -100,7 +101,8 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
             }
             return 'not found';
         })()
-        """},
+        """
+        },
         EvaluateResult,
     )
 
@@ -112,7 +114,8 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
         await call_tool_typed(
             sap_mcp_client,
             "browser_evaluate",
-            {"script": """
+            {
+                "script": """
             (function() {
                 var selectors = [
                     'button:contains("Close")',
@@ -129,7 +132,8 @@ async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
                 // Try pressing Escape
                 return 'escape';
             })()
-            """},
+            """
+            },
             EvaluateResult,
         )
         await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "Escape"}, KeyboardResult)

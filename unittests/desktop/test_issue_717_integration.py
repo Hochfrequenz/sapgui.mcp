@@ -95,7 +95,7 @@ async def test_na2_dcs_shell_ids_are_reachable(backend):
                 failures.append(f"{element_id}: {err}")
 
         assert not failures, (
-            "every Shell/DockShell id in the snapshot must resolve via sap_com_evaluate — " f"failures: {failures}"
+            f"every Shell/DockShell id in the snapshot must resolve via sap_com_evaluate — failures: {failures}"
         )
     finally:
         await go_home(backend)

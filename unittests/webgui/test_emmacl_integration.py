@@ -189,9 +189,9 @@ async def test_emmacl_execute_with_filter(sap_mcp_client: ClientSession) -> None
     print(f"\nFilled filter fields: {fill_result.filled}")
 
     # Verify filter field was filled
-    assert len(fill_result.filled or []) == len(
-        filter_values
-    ), f"Expected {len(filter_values)} fields filled, got: {fill_result}"
+    assert len(fill_result.filled or []) == len(filter_values), (
+        f"Expected {len(filter_values)} fields filled, got: {fill_result}"
+    )
 
     # Execute with filter (F8)
     kb_result = await call_tool_typed(sap_mcp_client, "sap_press_key", {"key": "F8"}, KeyboardResult)
@@ -221,9 +221,9 @@ async def test_emmacl_execute_with_filter(sap_mcp_client: ClientSession) -> None
     total_rows = table_result.total_rows or 0
 
     # Either we got some rows, or we got a status message about no data
-    assert (
-        total_rows > 0 or "keine" in status_msg or "no " in status_msg or status_msg == ""
-    ), f"Expected either results or 'no data' message. Got rows={total_rows}, status='{status_msg}'"
+    assert total_rows > 0 or "keine" in status_msg or "no " in status_msg or status_msg == "", (
+        f"Expected either results or 'no data' message. Got rows={total_rows}, status='{status_msg}'"
+    )
 
 
 @pytest.mark.anyio
@@ -279,7 +279,7 @@ async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None
     cells = first_row.cells or {}
     print(f"  First row cells metadata: {cells}")
 
-    assert cells, "First row should have cells metadata with click selectors. " f"Got row: {first_row}"
+    assert cells, f"First row should have cells metadata with click selectors. Got row: {first_row}"
 
     # Find a hotspot cell (one that can be clicked to navigate)
     hotspot_cell = None
@@ -290,9 +290,7 @@ async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None
             hotspot_column = col_name
             break
 
-    assert hotspot_cell, (
-        "EMMACL results should have at least one hotspot cell (e.g., 'Fall' column). " f"Cells: {cells}"
-    )
+    assert hotspot_cell, f"EMMACL results should have at least one hotspot cell (e.g., 'Fall' column). Cells: {cells}"
 
     print(f"\n  Found hotspot in column '{hotspot_column}': {hotspot_cell}")
 
@@ -327,14 +325,14 @@ async def test_emmacl_alv_grid_click_cell(sap_mcp_client: ClientSession) -> None
     # German: "Klärungsfall XXXXXXXXX anzeigen" (Show case XXXXXXXXX)
     # English: "Display Case XXXXXXXXX"
     assert title_before != title_after, (
-        f"Page title should change after clicking hotspot cell. " f"Before: '{title_before}', After: '{title_after}'"
+        f"Page title should change after clicking hotspot cell. Before: '{title_before}', After: '{title_after}'"
     )
 
     # Verify we're on a detail screen (not still on the list)
     detail_indicators = ["anzeigen", "display", "case", "fall", "klärungsfall"]
-    assert any(
-        ind in title_after.lower() for ind in detail_indicators
-    ), f"Should navigate to detail view. Got title: '{title_after}'"
+    assert any(ind in title_after.lower() for ind in detail_indicators), (
+        f"Should navigate to detail view. Got title: '{title_after}'"
+    )
 
     print(f"\n  SUCCESS: Navigated from '{title_before}' to '{title_after}'")
 
@@ -408,7 +406,7 @@ async def test_emmacl_alv_click_with_browser_click(sap_mcp_client: ClientSession
     print(f"Title after: {title_after}")
 
     assert title_before != title_after, (
-        f"Page title should change after clicking hotspot. " f"Before: '{title_before}', After: '{title_after}'"
+        f"Page title should change after clicking hotspot. Before: '{title_before}', After: '{title_after}'"
     )
 
     # Go back
@@ -520,9 +518,9 @@ async def test_emmacl_manual_iteration_15_cases(sap_mcp_client: ClientSession) -
     print(f"Failed: {failed_clicks}")
 
     # At least half should succeed for the test to pass
-    assert (
-        successful_clicks >= cases_to_process // 2
-    ), f"Expected at least {cases_to_process // 2} successful clicks, got {successful_clicks}"
+    assert successful_clicks >= cases_to_process // 2, (
+        f"Expected at least {cases_to_process // 2} successful clicks, got {successful_clicks}"
+    )
 
     # This test documents the context cost of manual iteration:
     # - Each sap_click_table_cell call: ~300 tokens (call + result)

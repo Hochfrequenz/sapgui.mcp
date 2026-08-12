@@ -23,5 +23,5 @@ jobs:
 
       - name: Check formatting
         run: |
-          uv run --locked --group formatting black --check src/sapguimcp unittests
-          uv run --locked --group formatting isort --check src/sapguimcp unittests
+          uv run --locked --group linting ruff format --check .
+          uv run --locked --group linting ruff check --select I .
