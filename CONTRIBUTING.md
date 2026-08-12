@@ -13,7 +13,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture overview — la
 git clone https://github.com/Hochfrequenz/sapgui.mcp.git
 cd sapgui.mcp
 
-# Create development environment (installs uv; see https://docs.astral.sh/uv/)
+# Install uv first: https://docs.astral.sh/uv/getting-started/installation/
+# Then create the development environment
 uv sync --group dev
 
 # Activate the environment
