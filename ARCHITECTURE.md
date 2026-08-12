@@ -207,10 +207,10 @@ In `server.py`, add the import and call `register_se99_tools(mcp)` alongside the
 
 | Category | Examples | Needs SAP? | How to run |
 |----------|----------|-----------|------------|
-| **Root unit tests** | `unittests/test_models.py`, `test_config.py`, `test_catalog.py`, ... | No | `tox -e unit_tests` |
-| **Desktop unit tests** | `unittests/desktop/test_desktop_backend.py`, `test_com_thread.py`, `test_element_finder.py`, `test_key_mapping.py`, ... | No (mocked) | `tox -e unit_tests` |
-| **Desktop integration** | `unittests/desktop/test_se16_integration.py`, `test_se24_integration.py`, ... | Yes (SAP GUI) | `tox -e integration_tests` |
-| **WebGUI integration** | `unittests/webgui/test_se16_integration.py`, `test_*_exploration.py`, ... | Yes (SAP WebGUI) | `tox -e integration_tests` |
+| **Root unit tests** | `unittests/test_models.py`, `test_config.py`, `test_catalog.py`, ... | No | `uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"` |
+| **Desktop unit tests** | `unittests/desktop/test_desktop_backend.py`, `test_com_thread.py`, `test_element_finder.py`, `test_key_mapping.py`, ... | No (mocked) | `uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"` |
+| **Desktop integration** | `unittests/desktop/test_se16_integration.py`, `test_se24_integration.py`, ... | Yes (SAP GUI) | `uv run --group tests python -m pytest unittests/ -k integration` |
+| **WebGUI integration** | `unittests/webgui/test_se16_integration.py`, `test_*_exploration.py`, ... | Yes (SAP WebGUI) | `uv run --group tests python -m pytest unittests/ -k integration` |
 
 ### Skip Mechanism
 
@@ -225,12 +225,12 @@ Desktop test files include `pytestmark = pytest.mark.skipif(sys.platform != "win
 ### Running Tests
 
 ```bash
-tox -e tests               # Full suite (integration auto-skips without SAP)
-tox -e unit_tests          # All offline tests (no SAP needed)
-tox -e integration_tests   # SAP integration tests only
-tox -e linting             # pylint
-tox -e type_check          # mypy --strict
-tox -e formatting          # black + isort check
+uv run --group tests python -m pytest                                                       # Full suite (integration auto-skips without SAP)
+uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"   # All offline tests (no SAP needed)
+uv run --group tests python -m pytest unittests/ -k integration                             # SAP integration tests only
+uv run --group linting pylint sapguimcp                                                      # pylint
+uv run --group type_check mypy --show-error-codes src/sapguimcp --strict                     # mypy --strict
+uv run --group formatting black --check src/sapguimcp unittests                              # black check
 ```
 
 ## Configuration

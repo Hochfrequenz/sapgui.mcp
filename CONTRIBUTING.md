@@ -13,16 +13,16 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture overview — la
 git clone https://github.com/Hochfrequenz/sapgui.mcp.git
 cd sapgui.mcp
 
-# Create development environment
-tox -e dev
+# Create development environment (installs uv; see https://docs.astral.sh/uv/)
+uv sync --group dev
 
 # Activate the environment
-source .tox/dev/bin/activate  # Linux/macOS
+source .venv/bin/activate  # Linux/macOS
 # or
-.tox\dev\Scripts\activate  # Windows
+.venv\Scripts\activate  # Windows
 
 # Install Playwright browsers (WebGUI backend only)
-playwright install chromium
+uv run playwright install chromium
 ```
 
 ### SAP Test System Setup
@@ -35,38 +35,36 @@ To run integration tests, you need a configured SAP system. See **[docs/SAP_TEST
 
 ## Running Tests
 
-This project uses [tox](https://tox.wiki/) to run all tests and checks. The test suite includes:
+This project uses [uv](https://docs.astral.sh/uv/) to run all tests and checks. The test suite includes:
 
 - **Unit tests**: Offline tests using HTML snapshots and mocked COM (no SAP required)
 - **WebGUI integration tests**: Tests against real SAP Web GUI (auto-skipped on non-SAP machines)
 - **Desktop integration tests**: Tests against SAP GUI via COM (auto-skipped without SAP credentials)
 
-### Tox Environments
+### Commands
 
 ```bash
 # Run all tests (integration tests auto-skip if SAP not accessible)
-tox -e tests
+uv run --group tests python -m pytest
 
 # Run only unit tests (fast, no SAP needed)
-tox -e unit_tests
+uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"
 
 # Run only SAP integration tests (requires SAP access)
-tox -e integration_tests
-
-# Run all checks (tests, linting, formatting, type checking)
-tox
+uv run --group tests python -m pytest unittests/ -k integration
 ```
 
 Language and credentials are loaded from your `.env` file.
 
-**Other tox environments:**
+**Other checks:**
 
 ```bash
-tox -e coverage     # Run tests with coverage report
-tox -e linting      # Run pylint
-tox -e formatting   # Check black/isort formatting
-tox -e type_check   # Run mypy type checking
-tox -e spell_check  # Run codespell
+uv run --group coverage coverage run -m pytest  # Run tests with coverage report
+uv run --group linting pylint sapguimcp         # Run pylint
+uv run --group formatting black --check src/sapguimcp unittests  # Check black formatting
+uv run --group formatting isort --check src/sapguimcp unittests  # Check isort import order
+uv run --group type_check mypy --show-error-codes src/sapguimcp --strict  # Run mypy type checking
+uv run --group spell_check codespell --ignore-words=domain-specific-terms.txt src  # Run codespell
 ```
 
 ### Running Tests in PyCharm
@@ -78,7 +76,7 @@ You can run tests directly in PyCharm. Settings are loaded from your `.env` file
 
 To change language, edit `SAP_LANGUAGE` in your `.env` file.
 
-**Tox vs PyCharm**: Tox creates isolated virtualenvs (good for CI), PyCharm uses your current interpreter (faster for development).
+**uv vs PyCharm**: uv creates an isolated virtualenv (good for CI), PyCharm uses your current interpreter (faster for development).
 
 ### HTML Snapshot Testing
 
@@ -91,8 +89,8 @@ We use HTML snapshots captured from real SAP Web GUI sessions to test CSS select
 To capture new snapshots, set `SAP_LANGUAGE` in your `.env` file and run integration tests:
 
 ```bash
-tox -e integration_tests   # Captures snapshots in configured language
-tox -e unit_tests          # Run offline selector tests (no SAP needed)
+uv run --group tests python -m pytest unittests/ -k integration   # Captures snapshots in configured language
+uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"  # Run offline selector tests (no SAP needed)
 ```
 
 Snapshots are stored in `unittests/webgui/testdata/html_snapshots/`.
@@ -177,18 +175,18 @@ This project uses:
 
 ### Python
 
-In the tox `dev` and `formatting` venv black and isort are installed.
+The `dev` and `formatting` dependency groups install black and isort.
 
 ```bash
-black .   # Format code
-isort .   # Sort imports
+uv run --group formatting black .   # Format code
+uv run --group formatting isort .   # Sort imports
 ```
 
-Linting and type checking should happen via tox:
+Linting and type checking:
 
 ```bash
-tox -e linting
-tox -e type_check
+uv run --group linting pylint sapguimcp
+uv run --group type_check mypy --show-error-codes src/sapguimcp --strict
 ```
 
 ### JavaScript and Markdown
@@ -288,8 +286,8 @@ You don't need to put any effort in rebases, amends or similar.
 
 1. Create a feature branch: `feat/my-feature` or `fix/my-bug`
 2. Write tests for new functionality
-3. Ensure all tests pass: `tox -e unit_tests`
-4. Ensure linting passes: `tox -e linting`, `tox -e type_check`
+3. Ensure all tests pass: `uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"`
+4. Ensure linting passes: `uv run --group linting pylint sapguimcp`, `uv run --group type_check mypy --show-error-codes src/sapguimcp --strict`
 5. Create PR with clear description
 
 ## Extending the Server

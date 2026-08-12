@@ -31,7 +31,11 @@ dependencies = [
 ]
 dynamic = ["readme", "version"]
 
-[project.optional-dependencies]
+[project.urls]
+Changelog = "https://github.com/Hochfrequenz/sapgui.mcp/releases"
+Homepage = "https://github.com/Hochfrequenz/sapgui.mcp"
+
+[dependency-groups]
 tests = [
     "pytest==9.1.1",
     "anyio==4.13.0",  # includes pytest-anyio plugin for proper async fixture teardown
@@ -42,36 +46,38 @@ tests = [
 ]
 linting = [
     "pylint==4.0.6",
+    { include-group = "tests" },
 ]
 type_check = [
     "mypy[pydantic]==2.1.0",
     "types-PyYAML==6.0.12.20260518",
+    { include-group = "tests" },
 ]
 spell_check = [
     "codespell==2.4.2",
 ]
 coverage = [
     "coverage==7.14.1",
+    { include-group = "tests" },
 ]
 formatting = [
     "black==26.5.1",
     "isort==8.0.1",
 ]
-packaging = [
-    "build==1.5.0",
-    "twine==6.2.0",
-]
-dev = [
-    "pip-tools",
-    "uv",
-]
 build_executable = [
     "pyinstaller==6.21.0",
 ]
+dev = [
+    { include-group = "tests" },
+    { include-group = "linting" },
+    { include-group = "type_check" },
+    { include-group = "spell_check" },
+    { include-group = "coverage" },
+    { include-group = "formatting" },
+]
 
-[project.urls]
-Changelog = "https://github.com/Hochfrequenz/sapgui.mcp/releases"
-Homepage = "https://github.com/Hochfrequenz/sapgui.mcp"
+[tool.uv]
+default-groups = []
 
 [project.scripts]
 run-sapgui-mcp-server = "sapguimcp.server:main"

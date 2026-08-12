@@ -90,4 +90,4 @@ All models use proper type hints for mypy strict mode. When adding new models:
 - Use `Optional[T]` for nullable types
 - Use `list[T]` instead of `List[T]` (Python 3.9+)
 - Add `__all__` exports for public API
-- Run `tox -e type_check` to verify type correctness
+- Run `uv run --group type_check mypy --show-error-codes src/sapguimcp --strict` to verify type correctness

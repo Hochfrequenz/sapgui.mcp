@@ -11,24 +11,22 @@ jobs:
     strategy:
       matrix:
         linter-env: ["linting", "type_check", "spell_check"]
+    env:
+      PYTHONPATH: src
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v9.0.0
         with:
-          python-version: 3.14
-          # Cache pip's HTTP downloads. tox creates a fresh venv per run
-          # but its inner ``pip install`` reuses ``~/.cache/pip``, so caching
-          # here also speeds up the tox env build (see #629 for the incident
-          # where a single virtualenv download stalled CI for 13 minutes).
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            pyproject.toml
-      - name: Install Dependencies
+          python-version: "3.14"
+      - name: Run pylint
+        if: matrix.linter-env == 'linting'
+        run: uv run --locked --group linting pylint sapguimcp
+      - name: Run mypy
+        if: matrix.linter-env == 'type_check'
+        run: uv run --locked --group type_check mypy --show-error-codes src/sapguimcp --strict
+      - name: Run codespell
+        if: matrix.linter-env == 'spell_check'
         run: |
-          python -m pip install --upgrade pip
-          pip install tox
-      - name: Run ${{ matrix.linter-env }} via Tox
-        run: |
-          tox -e ${{ matrix.linter-env }}
+          uv run --locked --group spell_check codespell --ignore-words=domain-specific-terms.txt src
+          uv run --locked --group spell_check codespell --ignore-words=domain-specific-terms.txt README.md

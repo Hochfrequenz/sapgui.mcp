@@ -1,17 +1,23 @@
 FROM python:3.14-slim
 
+# Pin the uv version (matches ebd_toolchain); the base image ships pip but no uv.
+COPY --from=ghcr.io/astral-sh/uv:0.11.32 /uv /uvx /bin/
+
 LABEL org.opencontainers.image.source="https://github.com/Hochfrequenz/sapgui.mcp"
 LABEL org.opencontainers.image.description="MCP server for SAP Web GUI browser automation"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL authors="Hochfrequenz Unternehmensberatung GmbH"
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    # Use the image's interpreter instead of downloading a managed CPython.
+    UV_PYTHON_DOWNLOADS=never \
+    # Download the browser to a shared location readable by appuser (the install
+    # runs as root, the entrypoint runs as appuser).
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 RUN adduser --disabled-password --gecos "" appuser
 WORKDIR /app
 
-COPY --chown=appuser:appuser src/ ./src/
-COPY --chown=appuser:appuser requirements.txt .
 # Install system dependencies for Playwright
 RUN apt-get update && apt-get install -y \
     wget \
@@ -19,24 +25,25 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
-# If you try to run `pip install .` with a pyproject.toml, you'll have problems with the build, because the git tag version is undefined.
-# LookupError: Error getting the version from source `vcs`: setuptools-scm was unable to detect version for /app
-# That's why we cannot use the CLI shortcut in the entrypoint below.
-
-# Install Playwright and Chromium browser with dependencies
-RUN pip install playwright && playwright install chromium --with-deps
-
-COPY --chown=appuser:appuser src/ ./src/
-COPY pyproject.toml .
-COPY README.md .
-
-# Install the package (must be done as root before switching user)
-# Set fake version only if not provided - Docker build has no git metadata for hatch-vcs
+# Install dependencies first (cached layer). The project has a dynamic version
+# (hatch-vcs) so a SETUPTOOLS_SCM_PRETEND_VERSION is supplied for any build step;
+# --locked only checks that the resolved dependencies match uv.lock, which is
+# unaffected by the pretend version because uv.lock records no version for the
+# dynamic root package.
+COPY pyproject.toml uv.lock README.md ./
 RUN SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION:-0.0.0.dev0+docker} \
-    pip install --no-cache-dir .
+    uv sync --locked --no-dev --no-install-project --no-editable
+
+# Install Chromium browser (with OS deps) from the synced venv, as root.
+RUN /app/.venv/bin/playwright install chromium --with-deps
+
+# Install the project itself. --no-editable installs a real copy (as pip did),
+# which the run-sapgui-mcp-server console script needs.
+COPY --chown=appuser:appuser src/ ./src/
+RUN SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION:-0.0.0.dev0+docker} \
+    uv sync --locked --no-dev --no-editable
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 USER appuser
 
