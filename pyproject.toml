@@ -54,7 +54,7 @@ type_check = [
     { include-group = "tests" },
 ]
 spell_check = [
-    "codespell==2.4.2",
+    "codespell==2.4.3",
 ]
 coverage = [
     "coverage==7.15.4",
