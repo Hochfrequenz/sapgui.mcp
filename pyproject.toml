@@ -38,7 +38,7 @@ Homepage = "https://github.com/Hochfrequenz/sapgui.mcp"
 [dependency-groups]
 tests = [
     "pytest==9.1.1",
-    "anyio==4.13.0",  # includes pytest-anyio plugin for proper async fixture teardown
+    "anyio==4.14.2",  # includes pytest-anyio plugin for proper async fixture teardown
     "python-dotenv>=1.0.0",
     "beautifulsoup4==4.15.0",  # HTML parsing for selector unit tests
     "lxml==6.1.1",  # Fallback parser for Python 3.13+ (html.parser has stricter nesting rules)
