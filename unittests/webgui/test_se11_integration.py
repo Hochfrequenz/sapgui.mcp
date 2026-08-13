@@ -435,5 +435,5 @@ async def test_se11_table_definition_t000(sap_mcp_client: ClientSession) -> None
     has_fields = "FIELD" in page_html or "COMPONENT" in page_html or "CCCATEGORY" in page_html
 
     assert has_mandt or has_fields, (
-        "SE11 T000 definition should show table fields. " "Expected MANDT or other field indicators in the page."
+        "SE11 T000 definition should show table fields. Expected MANDT or other field indicators in the page."
     )

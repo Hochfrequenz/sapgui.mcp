@@ -417,7 +417,10 @@ class TestDesktopGetSessionStatusHealthCheck:
         session = MagicMock()
         session.info.user = "BUSY"
         session.com.FindById.side_effect = _FakeComError(
-            -2147417851, "server call retry later", None, None  # RPC_E_SERVERCALL_RETRYLATER
+            -2147417851,
+            "server call retry later",
+            None,
+            None,  # RPC_E_SERVERCALL_RETRYLATER
         )
         self._register(backend, session)
 

@@ -317,9 +317,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 if "already logged" in page_content.lower() or "bereits angemeldet" in page_content.lower():
                     try:
                         await self._page.click(
-                            'button:has-text("Continue"), '
-                            'button:has-text("Weiter"), '
-                            'button:has-text("Fortfahren")',
+                            'button:has-text("Continue"), button:has-text("Weiter"), button:has-text("Fortfahren")',
                             timeout=5000,
                         )
                         await self._page.wait_for_selector("#ToolbarOkCode", timeout=10000, state="visible")

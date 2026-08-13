@@ -676,8 +676,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 if not shell_found2 or _classify_toggle_status(status_msg2) != "set":
                     return BreakpointSetResult.failure(
                         error=(
-                            f"Toggle correction failed. "
-                            f"First toggle: '{status_msg}', second toggle: '{status_msg2}'"
+                            f"Toggle correction failed. First toggle: '{status_msg}', second toggle: '{status_msg2}'"
                         ),
                         object_type=object_type,
                         object_name=object_name,
@@ -860,8 +859,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 if not shell_found2 or _classify_toggle_status(status_msg2) != "deleted":
                     return BreakpointDeleteResult.failure(
                         error=(
-                            f"Toggle correction failed. "
-                            f"First toggle: '{status_msg}', second toggle: '{status_msg2}'"
+                            f"Toggle correction failed. First toggle: '{status_msg}', second toggle: '{status_msg2}'"
                         ),
                         object_type=object_type,
                         object_name=object_name,

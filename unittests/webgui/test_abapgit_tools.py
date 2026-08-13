@@ -446,7 +446,7 @@ async def test_abapgit_pull_returns_status_message(sap_mcp_client: ClientSession
     assert result.success, f"Pull failed: {result.error}"
     assert result.message is not None, "Expected a status message, got None"
     assert "unknown" not in (result.message or "").lower(), (
-        f"Got ambiguous status: {result.message}. " "networkidle wait should have captured the ABAP MESSAGE."
+        f"Got ambiguous status: {result.message}. networkidle wait should have captured the ABAP MESSAGE."
     )
 
 
@@ -585,7 +585,7 @@ async def test_abapgit_e2e_public_repo_pull_and_verify(sap_mcp_client: ClientSes
     assert verify_result.get("success"), f"SE38 read failed: {verify_result.get('error')}"
     source_code = verify_result.get("source_code", "")
     assert expected_text in source_code, (
-        f"Expected text '{expected_text}' not found in source code. " f"Got source: {source_code[:500]}..."
+        f"Expected text '{expected_text}' not found in source code. Got source: {source_code[:500]}..."
     )
 
 
@@ -640,7 +640,7 @@ async def test_abapgit_e2e_private_repo_pull_and_verify(sap_mcp_client: ClientSe
     assert verify_result.get("success"), f"SE38 read failed: {verify_result.get('error')}"
     source_code = verify_result.get("source_code", "")
     assert expected_text in source_code, (
-        f"Expected text '{expected_text}' not found in source code. " f"Got source: {source_code[:500]}..."
+        f"Expected text '{expected_text}' not found in source code. Got source: {source_code[:500]}..."
     )
 
 
@@ -665,9 +665,9 @@ async def test_abapgit_list_repos(sap_mcp_client: ClientSession) -> None:
 
     # Check that known test repos are present
     repo_names = [r.name for r in result.repos]
-    assert (
-        "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY" in repo_names
-    ), f"Expected Z_PUBLIC_ABAPGIT_TEST_REPOSITORY in {repo_names}"
+    assert "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY" in repo_names, (
+        f"Expected Z_PUBLIC_ABAPGIT_TEST_REPOSITORY in {repo_names}"
+    )
 
     # Check that the public repo has expected metadata
     public_repo = next(r for r in result.repos if r.name == "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY")

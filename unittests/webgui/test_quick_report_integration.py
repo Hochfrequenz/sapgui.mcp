@@ -64,9 +64,9 @@ async def test_quick_report_invalid_tcode(sap_mcp_client: ClientSession) -> None
     )
 
     if result.success:
-        assert (
-            result.screen_type == ScreenClassification.ERROR
-        ), f"Expected ERROR for invalid tcode, got: {result.screen_type}"
+        assert result.screen_type == ScreenClassification.ERROR, (
+            f"Expected ERROR for invalid tcode, got: {result.screen_type}"
+        )
     else:
         assert result.error is not None
 
@@ -202,9 +202,9 @@ async def test_quick_report_warnings_on_unknown_field(sap_mcp_client: ClientSess
     )
 
     assert result.success, f"sap_quick_report failed: {result.error}"
-    assert any(
-        "ZZZFAKEFIELD" in w for w in result.warnings
-    ), f"Expected warning about ZZZFAKEFIELD, got warnings: {result.warnings}"
+    assert any("ZZZFAKEFIELD" in w for w in result.warnings), (
+        f"Expected warning about ZZZFAKEFIELD, got warnings: {result.warnings}"
+    )
 
 
 # ---------------------------------------------------------------------------

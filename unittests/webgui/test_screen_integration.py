@@ -34,9 +34,9 @@ async def test_sap_get_screen_text_structure(sap_mcp_client: ClientSession) -> N
     has_content = bool(result.main_content)
     has_buttons = bool(result.buttons)
 
-    assert (
-        has_labels or has_content or has_buttons
-    ), f"Screen text should contain labels, content, or buttons. Got: {result}"
+    assert has_labels or has_content or has_buttons, (
+        f"Screen text should contain labels, content, or buttons. Got: {result}"
+    )
 
 
 @pytest.mark.anyio
@@ -50,9 +50,9 @@ async def test_sap_read_status_bar_after_navigation(sap_mcp_client: ClientSessio
     result = await call_tool_typed(sap_mcp_client, "sap_read_status_bar", {}, StatusBarInfo)
 
     # Should return with type or message fields
-    assert (
-        result.type is not None or result.message is not None
-    ), f"Status bar should return type/message info: {result}"
+    assert result.type is not None or result.message is not None, (
+        f"Status bar should return type/message info: {result}"
+    )
 
 
 @pytest.mark.anyio
@@ -93,6 +93,6 @@ async def test_sap_get_screen_info_different_transactions(sap_mcp_client: Client
     result2 = await call_tool_typed(sap_mcp_client, "sap_get_screen_info", {}, ScreenInfo)
 
     # The title or content should be different
-    assert (
-        result1.title != result2.title or result1.url != result2.url
-    ), "Screen info should differ between SE16 and SM37"
+    assert result1.title != result2.title or result1.url != result2.url, (
+        "Screen info should differ between SE16 and SM37"
+    )

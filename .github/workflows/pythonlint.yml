@@ -19,9 +19,9 @@ jobs:
         uses: astral-sh/setup-uv@v9.0.0
         with:
           python-version: "3.14"
-      - name: Run pylint
+      - name: Run ruff check
         if: matrix.linter-env == 'linting'
-        run: uv run --locked --group linting pylint sapguimcp
+        run: uv run --locked --group linting ruff check .
       - name: Run mypy
         if: matrix.linter-env == 'type_check'
         run: uv run --locked --group type_check mypy --show-error-codes src/sapguimcp --strict

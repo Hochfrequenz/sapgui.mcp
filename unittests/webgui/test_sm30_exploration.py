@@ -80,7 +80,8 @@ async def _fill_view_name_and_display(client: ClientSession, view_name: str) -> 
     js_click = await call_tool_typed(
         client,
         "browser_evaluate",
-        {"script": """(() => {
+        {
+            "script": """(() => {
             const buttons = document.querySelectorAll('button, [role="button"], span[ct="BUTTON"]');
             for (const btn of buttons) {
                 const text = btn.textContent || btn.getAttribute('title') || '';
@@ -90,7 +91,8 @@ async def _fill_view_name_and_display(client: ClientSession, view_name: str) -> 
                 }
             }
             return 'not_found';
-            })()"""},
+            })()"""
+        },
         EvaluateResult,
     )
     assert js_click.success, f"JS click failed: {js_click.error}"

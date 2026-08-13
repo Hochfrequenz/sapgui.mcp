@@ -244,7 +244,8 @@ async def test_se38_edit_04_read_editor_content(sap_mcp_client: ClientSession) -
     # Try to read editor content via JavaScript
     result = await sap_mcp_client.call_tool(
         "browser_evaluate",
-        {"script": """
+        {
+            "script": """
             (() => {
                 // Try multiple strategies to find the editor content
                 const strategies = [];
@@ -294,7 +295,8 @@ async def test_se38_edit_04_read_editor_content(sap_mcp_client: ClientSession) -
 
                 return JSON.stringify(strategies, null, 2);
             })()
-        """},
+        """
+        },
     )
     print("=" * 80)
     print("Editor Content Discovery")
@@ -461,7 +463,7 @@ async def test_se38_edit_round_trip(sap_mcp_client: ClientSession) -> None:
     assert login.success, f"Login failed: {login.error}"
 
     # First edit: add a comment line
-    modified_source = "REPORT ZTEST_MCP_EDIT.\n" "WRITE 'HELLO WORLD'.\n" "* MCP edit integration test."
+    modified_source = "REPORT ZTEST_MCP_EDIT.\nWRITE 'HELLO WORLD'.\n* MCP edit integration test."
 
     edit_result = await call_tool_typed(
         sap_mcp_client,

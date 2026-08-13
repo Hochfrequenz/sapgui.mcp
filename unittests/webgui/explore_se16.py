@@ -333,7 +333,7 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
     for i in range(5):
         await sap_mcp_client.call_tool("sap_press_key", {"key": "PageDown"})
         await asyncio.sleep(2)
-        print(f"  PageDown {i+1} done")
+        print(f"  PageDown {i + 1} done")
 
     result = await sap_mcp_client.call_tool("browser_snapshot", {})
     raw = _get_content_text(result.content[0])
@@ -352,7 +352,7 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
         await sap_mcp_client.call_tool("sap_press_key", {"key": "ArrowDown"})
         if i % 10 == 9:
             await asyncio.sleep(0.5)
-            print(f"  ArrowDown {i+1} done")
+            print(f"  ArrowDown {i + 1} done")
 
     await asyncio.sleep(2)
     result = await sap_mcp_client.call_tool("browser_snapshot", {})
@@ -395,7 +395,8 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
     try:
         result = await sap_mcp_client.call_tool(
             "browser_evaluate",
-            {"script": """(() => {
+            {
+                "script": """(() => {
                 const grid = document.querySelector('[role="grid"]');
                 if (grid) {
                     grid.scrollTop = 5000;
@@ -408,7 +409,8 @@ async def test_explore_se16n_pagination_aggressive(sap_mcp_client: ClientSession
                 }
                 window.scrollBy(0, 2000);
                 return 'scrolled window';
-            })()"""},
+            })()"""
+            },
         )
         text = _get_content_text(result.content[0])
         print(f"JS scroll result: {text[:200]}")

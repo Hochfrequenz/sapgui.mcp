@@ -634,6 +634,6 @@ async def test_sap_read_table_from_se93(sap_mcp_client: ClientSession) -> None:
     has_se_transactions = "se11" in rows_str or "se16" in rows_str or "se80" in rows_str
     has_table_structure = table_result.rows is not None or table_result.headers is not None
 
-    assert (
-        has_se_transactions or has_table_structure
-    ), f"Expected to find standard SE* transactions or table structure: {table_result}"
+    assert has_se_transactions or has_table_structure, (
+        f"Expected to find standard SE* transactions or table structure: {table_result}"
+    )

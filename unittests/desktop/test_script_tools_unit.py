@@ -113,13 +113,7 @@ class TestRunInSandbox:
         assert isinstance(r.output[0], str)
 
     def test_loops_and_conditionals_work(self):
-        script = (
-            "result = []\n"
-            "for i in range(5):\n"
-            "    if i % 2 == 0:\n"
-            "        result.append(i)\n"
-            "output(result)\n"
-        )
+        script = "result = []\nfor i in range(5):\n    if i % 2 == 0:\n        result.append(i)\noutput(result)\n"
         r = _run_in_sandbox(_c(script), self._session())
         assert r.success is True
         assert r.output == [[0, 2, 4]]

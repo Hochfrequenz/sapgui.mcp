@@ -228,9 +228,9 @@ Desktop test files include `pytestmark = pytest.mark.skipif(sys.platform != "win
 uv run --group tests python -m pytest                                                       # Full suite (integration auto-skips without SAP)
 uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"   # All offline tests (no SAP needed)
 uv run --group tests python -m pytest unittests/ -k integration                             # SAP integration tests only
-uv run --group linting pylint sapguimcp                                                      # pylint
+uv run --group linting ruff check .                                                          # ruff lint
 uv run --group type_check mypy --show-error-codes src/sapguimcp --strict                     # mypy --strict
-uv run --group formatting black --check src/sapguimcp unittests                              # black check
+uv run --group linting ruff format --check .                                                 # ruff format check
 ```
 
 ## Configuration

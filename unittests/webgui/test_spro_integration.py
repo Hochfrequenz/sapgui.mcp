@@ -130,6 +130,4 @@ async def test_spro_search_utilities_customizing(sap_mcp_client: ClientSession) 
             "meter",
             "ablesung",
         ]
-    ), (
-        "No IS-U related activity found in results: " f"{[a.activity_name for a in result.activities[:5]]}"
-    )
+    ), f"No IS-U related activity found in results: {[a.activity_name for a in result.activities[:5]]}"

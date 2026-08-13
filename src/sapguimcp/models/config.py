@@ -165,7 +165,7 @@ class SapGuiSettings(BaseSettings):
     browser_mode: BrowserMode = Field(
         default=BrowserMode.CONNECT,
         description=(
-            "Browser mode: 'connect' (default, use existing Chrome with CDP) " "or 'launch' (start new via Playwright)"
+            "Browser mode: 'connect' (default, use existing Chrome with CDP) or 'launch' (start new via Playwright)"
         ),
         json_schema_extra={"env": "BROWSER_MODE"},
     )
@@ -267,7 +267,7 @@ class SapGuiSettings(BaseSettings):
         system = sap_cfg.systems.get(system_key)
         if system is None:
             available = list(sap_cfg.systems.keys())
-            raise KeyError(f"System key {system_key!r} not found in systems.json. " f"Available: {available}")
+            raise KeyError(f"System key {system_key!r} not found in systems.json. Available: {available}")
         return system.user, system.password.get_secret_value()
 
     def validate_for_browser(self) -> list[str]:

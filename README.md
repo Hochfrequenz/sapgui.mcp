@@ -680,8 +680,8 @@ uv run playwright install chromium
 
 ```bash
 uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"  # unit tests only
-uv run --group linting pylint sapguimcp                                                     # code quality
-uv run --group formatting black --check src/sapguimcp unittests                             # check formatting
+uv run --group linting ruff check .                                                         # code quality
+uv run --group linting ruff format --check .                                                # check formatting
 ```
 
 ### Run the MCP server locally

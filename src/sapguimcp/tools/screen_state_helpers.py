@@ -131,7 +131,7 @@ async def ensure_screen_state(
     ambiguous_hits = ambiguous_targets & set(current.ambiguous_labels)
     if ambiguous_hits:
         return ScreenStateDiff.failure(
-            error=f"Ambiguous labels on screen — cannot safely target: " f"{', '.join(sorted(ambiguous_hits))}",
+            error=f"Ambiguous labels on screen — cannot safely target: {', '.join(sorted(ambiguous_hits))}",
         )
 
     diff = ScreenStateDiff()

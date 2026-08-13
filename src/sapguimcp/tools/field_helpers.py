@@ -206,4 +206,4 @@ async def fill_and_display(
     final_status = await backend.get_status_bar()
     status_hint = f" (status: {final_status.message})" if final_status.message else ""
 
-    return f"{tcode_label.capitalize()} '{name}' not found " f"(still on initial screen after retries){status_hint}"
+    return f"{tcode_label.capitalize()} '{name}' not found (still on initial screen after retries){status_hint}"

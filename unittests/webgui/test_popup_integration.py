@@ -65,9 +65,9 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
         popup = kb_data.popup
         assert popup.message, f"F5 popup should have a message. Got: {popup}"
         # Message should mention "Person" or "Wechsel" (DE) / "Switch" (EN)
-        assert (
-            "Person" in popup.message or "Wechsel" in popup.message or "Switch" in popup.message
-        ), f"F5 popup should mention 'Person', 'Wechsel' or 'Switch'. Got: {popup.message}"
+        assert "Person" in popup.message or "Wechsel" in popup.message or "Switch" in popup.message, (
+            f"F5 popup should mention 'Person', 'Wechsel' or 'Switch'. Got: {popup.message}"
+        )
 
         # Dismiss with "Ja"/"Yes" to proceed to person creation
         dismiss_data = await call_tool_typed(
@@ -109,12 +109,12 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
     buttons = popup.buttons or []
     button_labels = [b.label for b in buttons]
     assert len(buttons) >= 2, f"Popup should have at least 2 buttons. Got: {button_labels}"
-    assert any(
-        "Ja" in label or "Yes" in label for label in button_labels
-    ), f"Should have 'Ja' or 'Yes' button. Got: {button_labels}"
-    assert any(
-        "Nein" in label or "No" in label for label in button_labels
-    ), f"Should have 'Nein' or 'No' button. Got: {button_labels}"
+    assert any("Ja" in label or "Yes" in label for label in button_labels), (
+        f"Should have 'Ja' or 'Yes' button. Got: {button_labels}"
+    )
+    assert any("Nein" in label or "No" in label for label in button_labels), (
+        f"Should have 'Nein' or 'No' button. Got: {button_labels}"
+    )
 
     # Dismiss with "Ja"/"Yes" to go back without saving
     dismiss_data = await call_tool_typed(sap_mcp_client, "sap_close_popup", {"button": yes_button}, ClosePopupResult)

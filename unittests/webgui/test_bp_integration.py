@@ -118,9 +118,9 @@ async def test_bp_fill_form_batch_fill(sap_mcp_client: ClientSession) -> None:
     assert len(error_fields) == 0, f"All fields must fill without errors. Errors: {error_fields}"
 
     # All requested fields must be in the filled list
-    assert (
-        filled_fields == expected_fields
-    ), f"All fields must be filled. Expected: {expected_fields}, Filled: {filled_fields}"
+    assert filled_fields == expected_fields, (
+        f"All fields must be filled. Expected: {expected_fields}, Filled: {filled_fields}"
+    )
 
 
 @pytest.mark.anyio
@@ -190,9 +190,9 @@ async def test_bp_fill_form_with_css_selectors(sap_mcp_client: ClientSession) ->
     assert len(error_fields) == 0, f"All fields must fill without errors. Errors: {error_fields}"
 
     # All requested fields must be in the filled list
-    assert (
-        filled_fields == expected_fields
-    ), f"All fields must be filled. Expected: {expected_fields}, Filled: {filled_fields}"
+    assert filled_fields == expected_fields, (
+        f"All fields must be filled. Expected: {expected_fields}, Filled: {filled_fields}"
+    )
 
 
 @pytest.mark.anyio
@@ -275,9 +275,9 @@ async def test_sap_fill_form_strict_mode(sap_mcp_client: ClientSession) -> None:
 
     # Strict mode should report failure when field not found
     assert not fill_result.success, f"Strict mode should fail when field not found. Response: {fill_result}"
-    assert (
-        fill_result.not_found and "NONEXISTENT_FIELD_12345" in fill_result.not_found
-    ), f"Field should be in not_found list: {fill_result}"
+    assert fill_result.not_found and "NONEXISTENT_FIELD_12345" in fill_result.not_found, (
+        f"Field should be in not_found list: {fill_result}"
+    )
 
 
 @pytest.mark.anyio
@@ -333,7 +333,7 @@ async def test_bp_fill_form_ambiguous_label_rejected(sap_mcp_client: ClientSessi
     # The field should NOT be filled successfully
     filled_fields = fill_result.filled or []
     assert ambiguous_label not in filled_fields, (
-        f"Ambiguous label '{ambiguous_label}' should NOT be filled. " f"Response: {fill_result}"
+        f"Ambiguous label '{ambiguous_label}' should NOT be filled. Response: {fill_result}"
     )
 
     # There should be an error about the ambiguous label
@@ -342,12 +342,12 @@ async def test_bp_fill_form_ambiguous_label_rejected(sap_mcp_client: ClientSessi
     error_text = " ".join(error_messages)
 
     assert any(ambiguous_label in msg or "matches" in msg.lower() for msg in error_messages), (
-        f"Expected an error mentioning '{ambiguous_label}' ambiguity. " f"Errors: {errors}, Response: {fill_result}"
+        f"Expected an error mentioning '{ambiguous_label}' ambiguity. Errors: {errors}, Response: {fill_result}"
     )
 
     # The error should mention POST_CODE1 and/or POST_CODE2 as alternatives
     assert "POST_CODE" in error_text or "#" in error_text, (
-        f"Error should include CSS selectors as alternatives. " f"Errors: {errors}"
+        f"Error should include CSS selectors as alternatives. Errors: {errors}"
     )
 
 
@@ -389,14 +389,14 @@ async def test_bp_set_field_ambiguous_label_rejected(sap_mcp_client: ClientSessi
 
     # Should fail due to ambiguity
     assert not set_result.success, (
-        f"sap_set_field should fail for ambiguous label 'Postleitzahl'. " f"Response: {set_result}"
+        f"sap_set_field should fail for ambiguous label 'Postleitzahl'. Response: {set_result}"
     )
 
     # Error should mention the ambiguity
     error = set_result.error or ""
-    assert (
-        "Postleitzahl" in error or "matches" in error.lower() or "ambiguous" in error.lower()
-    ), f"Error should mention ambiguity. Error: {error}"
+    assert "Postleitzahl" in error or "matches" in error.lower() or "ambiguous" in error.lower(), (
+        f"Error should mention ambiguity. Error: {error}"
+    )
 
 
 @pytest.mark.anyio
@@ -438,18 +438,18 @@ async def test_bp_get_form_fields_discovers_dropdowns(sap_mcp_client: ClientSess
 
     # Find dropdown fields
     dropdown_fields = [f for f in fields if f.field_type == "dropdown"]
-    assert (
-        len(dropdown_fields) >= 2
-    ), f"Expected at least 2 dropdowns (GP-Rolle, Gruppierung), found {len(dropdown_fields)}"
+    assert len(dropdown_fields) >= 2, (
+        f"Expected at least 2 dropdowns (GP-Rolle, Gruppierung), found {len(dropdown_fields)}"
+    )
 
     # Check for GP-Rolle dropdown
     gp_rolle_dropdown = next(
         (f for f in dropdown_fields if "GP-Rolle" in f.label or "Role" in f.label),
         None,
     )
-    assert (
-        gp_rolle_dropdown is not None
-    ), f"Expected GP-Rolle dropdown. Found dropdowns: {[f.label for f in dropdown_fields]}"
+    assert gp_rolle_dropdown is not None, (
+        f"Expected GP-Rolle dropdown. Found dropdowns: {[f.label for f in dropdown_fields]}"
+    )
     assert gp_rolle_dropdown.id, "Dropdown should have an ID"
 
 
@@ -798,9 +798,9 @@ async def test_bp_dropdown_value_actually_applied(sap_mcp_client: ClientSession)
             option_to_select = opt
             break
 
-    assert (
-        option_to_select is not None
-    ), f"Could not find different option. Current: {original_value}, Options: {options}"
+    assert option_to_select is not None, (
+        f"Could not find different option. Current: {original_value}, Options: {options}"
+    )
 
     # Extract just the key from "KEY - Description" format for matching
     option_key = option_to_select.split(" - ")[0].strip() if " - " in option_to_select else option_to_select
