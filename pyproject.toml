@@ -45,7 +45,7 @@ tests = [
     "respx==0.23.1",  # Mock httpx requests in tests
 ]
 linting = [
-    "pylint==4.0.6",
+    "pylint==4.0.7",
     { include-group = "tests" },
 ]
 type_check = [
