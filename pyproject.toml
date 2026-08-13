@@ -65,7 +65,7 @@ formatting = [
     "isort==8.0.1",
 ]
 build_executable = [
-    "pyinstaller==6.21.0",
+    "pyinstaller==6.22.0",
 ]
 dev = [
     { include-group = "tests" },
