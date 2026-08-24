@@ -48,7 +48,7 @@ linting = [
     "ruff==0.16.4",
 ]
 type_check = [
-    "mypy[pydantic]==2.3.0",
+    "mypy[pydantic]==2.3.1",
     "types-PyYAML==6.0.12.20260518",
     { include-group = "tests" },
 ]
