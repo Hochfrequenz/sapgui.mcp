@@ -2226,15 +2226,15 @@ type-check = [
 
 [[package]]
 name = "sapsucker"
-version = "1.1.2"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/46/01/edb0ffea5b31804e3d8aea2957dcc86b22e80b32280aec00f1cd1fded7ff/sapsucker-1.1.2.tar.gz", hash = "sha256:545b9cee9c1b53514177cd9ce9ad983241cbb95daeafe64764beadc305aab774", size = 119710, upload-time = "2026-07-23T08:12:54.595Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/d4/574ca4a5b130b3de96b0e69e0d908aa94cdb888940cf8505cb1e82a9985b/sapsucker-1.2.0.tar.gz", hash = "sha256:42b132d637a788300834e34a2e271607366bc06dbbd675dec3b33d0431730a1b", size = 137213, upload-time = "2026-08-26T19:04:47.494Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/71/9f/e025937a6b351946bff4b12f22a8c7731f73a97bb28d5fd8a4903a3c445c/sapsucker-1.1.2-py3-none-any.whl", hash = "sha256:2bc0cf25d69eefae062da4e92d7ff0de45abca5ff2eaaaa8da93fc981b4f3527", size = 56234, upload-time = "2026-07-23T08:12:53.291Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/e4/1760257d83ce42b38bb84698c2ec167de9f8aeca3d4ed19f7eb676c3b792/sapsucker-1.2.0-py3-none-any.whl", hash = "sha256:0f3ad91f65e48a49c274e9bc9db87df8ba4468b05e4722cb4016a82a6749ed90", size = 67751, upload-time = "2026-08-26T19:04:45.957Z" },
 ]
 
 [[package]]
