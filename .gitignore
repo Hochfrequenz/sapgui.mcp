@@ -116,3 +116,10 @@ docs/sap_gui_scripting_api_800/
 
 # Git worktrees
 .worktrees/
+
+# Local MCP client config — contains SAP credentials for the developer's
+# own MCP server setup, never shared/committed.
+/.mcp.json
+
+# lokale MCP-Konfiguration (enthaelt Zugangsdaten)
+.mcp.json
