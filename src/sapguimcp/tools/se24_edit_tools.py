@@ -18,6 +18,7 @@ from fastmcp import FastMCP
 
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.se24_edit_models import SE24EditResult
+from sapguimcp.tools.edit_helpers import describe_failed_replace
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard, toggle_to_change_mode
 
 if TYPE_CHECKING:
@@ -298,7 +299,7 @@ async def _edit_check_activate_method(
     replaced = await backend.replace_editor_source(new_source)
     if not replaced:
         return SE24EditResult.failure(
-            error="Failed to replace editor content",
+            error=await describe_failed_replace(backend, backup_source),
             class_name=class_name,
             method_name=method_name,
             backup_source=backup_source,

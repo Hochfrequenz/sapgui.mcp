@@ -15,6 +15,7 @@ from fastmcp import FastMCP
 
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.se38_edit_models import SE38EditResult
+from sapguimcp.tools.edit_helpers import describe_failed_replace
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard
 
 if TYPE_CHECKING:
@@ -162,11 +163,12 @@ async def _edit_check_activate(
 
     logger.info("SE38 edit: backup saved for %s (%d chars)", program_name, len(backup_source))
 
-    # Replace editor content
+    # Replace editor content. The backend verifies the buffer afterwards, so a
+    # False here means the editor content does not match new_source (#859).
     replaced = await backend.replace_editor_source(new_source)
     if not replaced:
         return SE38EditResult.failure(
-            error="Failed to replace editor content",
+            error=await describe_failed_replace(backend, backup_source),
             program_name=program_name,
             backup_source=backup_source,
             activated=False,
