@@ -39,7 +39,7 @@ Install via abapGit pull, or create manually:
 Creating these objects generates **transport requests** owned by the test user (needed for SE09 tests).
 
 > **Note**: The ABAP editor exists in two flavours, selected per user in
-> *SE38 → Hilfsmittel/Utilities → Einstellungen/Settings → ABAP Editor → Editor*:
+> _SE38 → Hilfsmittel/Utilities → Einstellungen/Settings → ABAP Editor → Editor_:
 > "Quellcode-basierter Editor" drives the `GuiAbapEditor` control, "Text-basierter Editor"
 > the `GuiTextedit` control. The backend takes a different code path for each
 > (see `src/sapguimcp/backend/desktop/_abap_editor.py`), so the edit tests only cover the

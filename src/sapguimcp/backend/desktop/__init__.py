@@ -84,7 +84,8 @@ _ACTIVATION_CONFIRMED = ("aktiviert", "activated")
 #: above are only trusted when none of these appear.
 _ACTIVATION_DENIED = (
     "nicht aktiv",
-    "not activ",
+    "not activated",
+    "not active",
     "konnte nicht",
     "kann nicht",
     "could not",
