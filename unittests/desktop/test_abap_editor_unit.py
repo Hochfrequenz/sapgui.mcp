@@ -155,7 +155,7 @@ class TestWriteSource:
 
     def test_does_not_duplicate_the_previous_last_line(self):
         shell = FakeOneBasedEditor(["REPORT ztest.", "* PREVIOUS LAST LINE"])
-        _abap_editor.write_source(shell, ENDFORM_SOURCE)
+        assert _abap_editor.write_source(shell, ENDFORM_SOURCE) is True
         assert "* PREVIOUS LAST LINE" not in shell.lines
 
     def test_accepts_source_with_trailing_newline(self):
@@ -182,3 +182,116 @@ class TestNormalize:
 
     def test_empty_input(self):
         assert _abap_editor.normalize([]) == []
+
+
+class RaisingOneBasedEditor(FakeOneBasedEditor):
+    """1-based control that raises on out-of-range indices, as real COM does."""
+
+    def GetLineText(self, index: int) -> str:  # noqa: N802
+        if 1 <= index <= len(self.lines):
+            return self.lines[index - 1]
+        raise RuntimeError(f"index out of range: {index}")
+
+
+class RaisingZeroBasedEditor(FakeZeroBasedEditor):
+    """0-based control that raises on out-of-range indices."""
+
+    def GetLineText(self, index: int) -> str:  # noqa: N802
+        if 0 <= index < len(self.lines):
+            return self.lines[index]
+        raise RuntimeError(f"index out of range: {index}")
+
+
+class TruncatingTextEdit:
+    """GuiTextedit that clips every line to a fixed width, as the control does."""
+
+    def __init__(self, width: int = 72) -> None:
+        self.width = width
+        self.Text = ""
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if name == "Text" and isinstance(value, str):
+            normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+            clipped = "\r".join(line[: self.width] for line in normalized.split("\n"))
+            object.__setattr__(self, "Text", clipped)
+            return
+        object.__setattr__(self, name, value)
+
+
+class TestRowBaseWithRaisingControls:
+    """An out-of-range index that raises is the most conclusive signal."""
+
+    def test_one_based(self):
+        shell = RaisingOneBasedEditor(["REPORT ztest.", "WRITE 'x'."])
+        assert _abap_editor.detect_row_base(shell, shell.GetLineCount()) == 1
+        assert _abap_editor.read_lines(shell) == ["REPORT ztest.", "WRITE 'x'."]
+
+    def test_zero_based(self):
+        shell = RaisingZeroBasedEditor(["REPORT ztest.", "WRITE 'x'."])
+        assert _abap_editor.detect_row_base(shell, shell.GetLineCount()) == 0
+        assert _abap_editor.read_lines(shell) == ["REPORT ztest.", "WRITE 'x'."]
+
+    def test_zero_based_with_blank_first_line(self):
+        """The ambiguous case: a raising control resolves it conclusively."""
+        shell = RaisingZeroBasedEditor(["", "REPORT ztest."])
+        assert _abap_editor.detect_row_base(shell, shell.GetLineCount()) == 0
+        assert _abap_editor.read_lines(shell) == ["", "REPORT ztest."]
+
+
+class TestWriteSurvivesRowBaseAmbiguity:
+    def test_zero_based_blank_first_line_still_verifies(self):
+        """A mis-probed base must not report corruption for a correct buffer."""
+        shell = FakeZeroBasedEditor(["OLD."])
+        source = "\nREPORT ztest.\nWRITE 'x'."
+        assert _abap_editor.write_source(shell, source) is True
+        assert shell.lines[:3] == ["", "REPORT ztest.", "WRITE 'x'."]
+
+    def test_row_base_override_is_respected(self):
+        shell = FakeZeroBasedEditor(["REPORT ztest.", "WRITE 'x'."])
+        assert _abap_editor.read_lines(shell, row_base=0) == ["REPORT ztest.", "WRITE 'x'."]
+
+
+class TestMatches:
+    def test_detects_a_changed_middle_line(self):
+        shell = FakeOneBasedEditor(["REPORT ztest.", "WRITE 'WRONG'.", "ENDFORM."])
+        expected = ["REPORT ztest.", "WRITE 'right'.", "ENDFORM."]
+        assert _abap_editor.matches(shell, expected) is False
+
+    def test_detects_a_stale_trailing_line(self):
+        """The #859 corruption, under either row base."""
+        shell = FakeOneBasedEditor(["REPORT ztest.", "ENDFORM.", "* STALE"])
+        assert _abap_editor.matches(shell, ["REPORT ztest.", "ENDFORM."]) is False
+
+
+class TestWriteTextProperty:
+    def test_writes_and_confirms(self):
+        shell = TruncatingTextEdit()
+        assert _abap_editor.write_text_property(shell, "REPORT ztest.\nWRITE 'x'.") is True
+        assert shell.Text == "REPORT ztest.\rWRITE 'x'."
+
+    def test_truncation_is_advisory_not_a_failure(self, caplog):
+        """The control's line width is unmeasured, so a mismatch must not fail the write."""
+        shell = TruncatingTextEdit(width=20)
+        long_source = "REPORT ztest.\nWRITE '" + "A" * 100 + "'."
+        assert _abap_editor.write_text_property(shell, long_source) is True
+        assert "text_edit_write_mismatch" in caplog.text
+
+    def test_control_name_readback_is_tolerated(self):
+        class NameEcho:
+            Text = ""
+
+            def __setattr__(self, name, value):
+                object.__setattr__(self, "Text", "SAPGUI.TextEdit.1")
+
+        assert _abap_editor.write_text_property(NameEcho(), "REPORT ztest.") is True
+
+
+class TestFirstDiff:
+    def test_reports_the_first_differing_line(self):
+        assert "line 2" in _abap_editor._first_diff(["a", "b"], ["a", "c"])
+
+    def test_reports_a_missing_line(self):
+        assert "<missing>" in _abap_editor._first_diff(["a", "b"], ["a"])
+
+    def test_identical_input_has_no_diff(self):
+        assert _abap_editor._first_diff(["a"], ["a"]) == ""

@@ -117,10 +117,14 @@ async def test_se38_edit_source_ending_in_closing_statement(backend):
         )
         assert _trim(persisted).count("ENDFORM.") == 1, "ENDFORM. was duplicated (#859)"
     finally:
-        # Always put the canonical test report back, whatever happened above.
-        await go_home(backend)
-        await _edit_check_activate(backend, _TEST_REPORT, original)
-        await go_home(backend)
+        # Always put the canonical test report back, whatever happened above —
+        # and never let a cleanup failure mask the real assertion error.
+        try:
+            await go_home(backend)
+            await _edit_check_activate(backend, _TEST_REPORT, original)
+            await go_home(backend)
+        except Exception as exc:  # pylint: disable=broad-except
+            print(f"WARNING: could not restore {_TEST_REPORT}: {exc}")
 
 
 @skip_no_sap

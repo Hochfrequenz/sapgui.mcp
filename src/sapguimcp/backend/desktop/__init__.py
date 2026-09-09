@@ -79,8 +79,36 @@ _ERROR_MESSAGE_TYPES = frozenset({"E", "A", "X"})
 #: Message fragments (DE/EN) that positively confirm an activation.
 _ACTIVATION_CONFIRMED = ("aktiviert", "activated")
 
+#: Fragments that negate a confirmation.  "aktiviert" is a substring of
+#: "konnte nicht aktiviert werden" and "deaktiviert", so the positive tokens
+#: above are only trusted when none of these appear.
+_ACTIVATION_DENIED = (
+    "nicht aktiv",
+    "not activ",
+    "konnte nicht",
+    "kann nicht",
+    "could not",
+    "cannot",
+    "can't",
+    "fehlgeschlagen",
+    "failed",
+    "deaktiv",
+    "inaktiv",
+)
+
+#: Popups that are safe to confirm with Enter during check/activate.
+_KNOWN_SAFE_POPUPS = ("inaktive objekte", "inactive objects")
+
 #: How often to re-read the status bar while answering stacked popups.
 _MAX_POPUP_ROUNDS = 3
+
+
+def _confirms_activation(message: str) -> bool:
+    """True when ``message`` positively reports a completed activation."""
+    text = message.lower()
+    if any(token in text for token in _ACTIVATION_DENIED):
+        return False
+    return any(token in text for token in _ACTIVATION_CONFIRMED)
 
 
 def _unwrap_com(field: Any) -> Any:
@@ -1577,9 +1605,11 @@ class DesktopBackend:
                     logger.debug("read_editor_source: Text property failed", extra={"sub_type": sub_type})
 
             # Strategy 2: GetLineCount + GetLineText (source-code-based editor).
-            # Row indices are probed, not assumed to be 0-based — see #859.
+            # GuiAbapEditor rows are 1-based and the base is probed (#859);
+            # GuiTextedit is 0-based, so it is pinned rather than probed.
+            row_base = None if sub_type == "AbapEditor" else 0
             try:
-                return "\n".join(_abap_editor.read_lines(raw_shell))
+                return "\n".join(_abap_editor.read_lines(raw_shell, row_base=row_base))
             except Exception:  # pylint: disable=broad-exception-caught
                 logger.debug("read_editor_source: GetLineCount/GetLineText failed", extra={"sub_type": sub_type})
 
@@ -1657,28 +1687,44 @@ class DesktopBackend:
         def _check_activate() -> tuple[list[str], bool, bool]:
             wnd = session.find_by_id("wnd[0]")
             messages: list[str] = []
+            unexpected_dialogs: list[str] = []
 
             def read_sbar() -> tuple[str, str]:
                 sbar = session.find_by_id("wnd[0]/sbar")
                 return str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
 
+            def note(label: str, msg: str) -> None:
+                entry = f"{label}: {msg}"
+                if entry not in messages:
+                    messages.append(entry)
+
             def collect(label: str) -> tuple[str, str]:
                 """Read the status bar, answering popups until none is left.
 
-                Returns the last non-empty (message, message_type) seen.
+                Every Enter is followed by another read, so the outcome that
+                only appears once the last dialog is gone is never missed
+                (#859).  Unrecognised dialogs are still confirmed — leaving a
+                modal standing would block every later call — but they are
+                recorded, and they stop us claiming a confirmed activation.
                 """
                 last_msg, last_type = "", ""
-                for _ in range(_MAX_POPUP_ROUNDS):
+                for _ in range(_MAX_POPUP_ROUNDS + 1):
                     msg, msg_type = read_sbar()
                     if msg:
                         last_msg, last_type = msg, msg_type
-                        entry = f"{label}: {msg}"
-                        if entry not in messages:
-                            messages.append(entry)
+                        note(label, msg)
                     popup = session.find_by_id("wnd[1]", raise_error=False)
                     if popup is None:
-                        break
+                        return last_msg, last_type
+                    title = str(cast(Any, popup).text)
+                    if not any(known in title.lower() for known in _KNOWN_SAFE_POPUPS):
+                        unexpected_dialogs.append(title)
+                        logger.warning("check_and_activate_unexpected_dialog", extra={"title": title})
                     cast(Any, popup).send_v_key(0)  # Confirm with Enter
+
+                if session.find_by_id("wnd[1]", raise_error=False) is not None:
+                    unexpected_dialogs.append("<dialog still open>")
+                    note(label, f"a dialog was still open after {_MAX_POPUP_ROUNDS} confirmations")
                 return last_msg, last_type
 
             # Check (Ctrl+F2 = VKey 26)
@@ -1692,11 +1738,16 @@ class DesktopBackend:
             msg, msg_type = collect("Activate")
 
             failed = msg_type in _ERROR_MESSAGE_TYPES
-            activated = not failed and any(token in msg.lower() for token in _ACTIVATION_CONFIRMED)
+            activated = not failed and not unexpected_dialogs and _confirms_activation(msg)
             if not failed and not activated:
+                detail = (
+                    f" Unexpected dialog(s) were confirmed with Enter: {'; '.join(unexpected_dialogs)}."
+                    if unexpected_dialogs
+                    else ""
+                )
                 messages.append(
                     "Activation could not be confirmed — the object may still be inactive. "
-                    "Check the object in SE38 before relying on it."
+                    f"Check the object in SE38 before relying on it.{detail}"
                 )
             return messages, activated, not failed
 
