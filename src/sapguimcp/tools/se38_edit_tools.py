@@ -162,11 +162,15 @@ async def _edit_check_activate(
 
     logger.info("SE38 edit: backup saved for %s (%d chars)", program_name, len(backup_source))
 
-    # Replace editor content
+    # Replace editor content. The backend verifies the buffer afterwards, so a
+    # False here means the editor content does not match new_source (#859).
     replaced = await backend.replace_editor_source(new_source)
     if not replaced:
         return SE38EditResult.failure(
-            error="Failed to replace editor content",
+            error=(
+                "Failed to replace editor content: the editor buffer does not match new_source. "
+                "The source was NOT saved or activated."
+            ),
             program_name=program_name,
             backup_source=backup_source,
             activated=False,

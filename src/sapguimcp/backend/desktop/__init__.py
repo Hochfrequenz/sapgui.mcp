@@ -23,6 +23,7 @@ try:
 except ImportError:
     GuiGridView = None  # type: ignore[misc,assignment]
 
+from sapguimcp.backend.desktop import _abap_editor
 from sapguimcp.backend.desktop._com_thread import ComThread, describe_com_error, is_transient_busy_error
 from sapguimcp.backend.desktop._landscape import _find_landscape_path, _parse_landscape_xml
 from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
@@ -71,6 +72,15 @@ if TYPE_CHECKING:
     from sapsucker.components.session import GuiSession
 
 logger = logging.getLogger(__name__)
+
+#: Status-bar message types that mean the step failed.
+_ERROR_MESSAGE_TYPES = frozenset({"E", "A", "X"})
+
+#: Message fragments (DE/EN) that positively confirm an activation.
+_ACTIVATION_CONFIRMED = ("aktiviert", "activated")
+
+#: How often to re-read the status bar while answering stacked popups.
+_MAX_POPUP_ROUNDS = 3
 
 
 def _unwrap_com(field: Any) -> Any:
@@ -1566,11 +1576,10 @@ class DesktopBackend:
                 except Exception:  # pylint: disable=broad-exception-caught
                     logger.debug("read_editor_source: Text property failed", extra={"sub_type": sub_type})
 
-            # Strategy 2: GetLineCount + GetLineText (AbapEditor on S/4)
+            # Strategy 2: GetLineCount + GetLineText (source-code-based editor).
+            # Row indices are probed, not assumed to be 0-based — see #859.
             try:
-                num_lines = raw_shell.GetLineCount()
-                lines = [str(raw_shell.GetLineText(i)) for i in range(num_lines)]
-                return "\n".join(lines)
+                return "\n".join(_abap_editor.read_lines(raw_shell))
             except Exception:  # pylint: disable=broad-exception-caught
                 logger.debug("read_editor_source: GetLineCount/GetLineText failed", extra={"sub_type": sub_type})
 
@@ -1608,31 +1617,16 @@ class DesktopBackend:
             # SelectRange(startLine, startCol, endLine, endCol) creates a proper
             # selection that Delete() respects (unlike SelectAll which doesn't).
             # InsertText signature: (text: str, line: int, col: int) — undocumented.
-            # InsertText drops the last segment after \n, so append \n to the code.
-            max_col = 9999  # SAP clamps to actual line length
+            # Row indexing and write verification live in _abap_editor (#859).
             if sub_type == "AbapEditor":
                 try:
-                    # Clear: SelectRange all + Delete, repeated because the first
-                    # pass may leave a residual empty line that still has content
-                    # in the editor buffer.
-                    for _ in range(2):
-                        cnt = raw_shell.GetLineCount()
-                        raw_shell.SelectRange(0, 0, cnt - 1, max_col)
-                        time.sleep(0.1)
-                        raw_shell.Delete()
-                        time.sleep(0.1)
-                    # Insert new code (trailing \n ensures last line is included)
-                    insert_code = code if code.endswith("\n") else code + "\n"
-                    raw_shell.InsertText(insert_code, 0, 0)
-                    time.sleep(0.2)
-                    return True
+                    return _abap_editor.write_source(raw_shell, code)
                 except Exception as exc:  # pylint: disable=broad-exception-caught
                     logger.warning("replace_editor_source AbapEditor failed: %s", exc)
                     return False
-            # GuiTextedit: set Text property
+            # GuiTextedit: set Text property, then verify it took (#859).
             try:
-                raw_shell.Text = code
-                return True
+                return _abap_editor.write_text_property(raw_shell, code)
             except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning(
                     "replace_editor_source",
@@ -1647,55 +1641,78 @@ class DesktopBackend:
     async def check_and_activate(self) -> CheckActivateResult:
         """Run syntax check (Ctrl+F2) and activate (Ctrl+F3).
 
-        Sends VKey 26 (check), reads status bar, handles "Inactive Objects"
-        popup, then sends VKey 27 (activate) and reads status bar again.
+        Sends VKey 26 (check) and VKey 27 (activate), dismissing the
+        "Inactive Objects" popup in between and re-reading the status bar
+        after every dismissal — the message shown *before* a popup is
+        answered is only an intermediate one (typically "... saved"), not the
+        activation outcome (#859).
+
+        ``activated`` is only True when the final message positively confirms
+        an activation; ``success`` is False only on explicit error evidence,
+        so a merely unconfirmed activation does not trigger an auto-revert.
         """
 
         session = self.require_session()
 
-        def _check_activate() -> tuple[list[str], bool]:
+        def _check_activate() -> tuple[list[str], bool, bool]:
             wnd = session.find_by_id("wnd[0]")
             messages: list[str] = []
 
+            def read_sbar() -> tuple[str, str]:
+                sbar = session.find_by_id("wnd[0]/sbar")
+                return str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
+
+            def collect(label: str) -> tuple[str, str]:
+                """Read the status bar, answering popups until none is left.
+
+                Returns the last non-empty (message, message_type) seen.
+                """
+                last_msg, last_type = "", ""
+                for _ in range(_MAX_POPUP_ROUNDS):
+                    msg, msg_type = read_sbar()
+                    if msg:
+                        last_msg, last_type = msg, msg_type
+                        entry = f"{label}: {msg}"
+                        if entry not in messages:
+                            messages.append(entry)
+                    popup = session.find_by_id("wnd[1]", raise_error=False)
+                    if popup is None:
+                        break
+                    cast(Any, popup).send_v_key(0)  # Confirm with Enter
+                return last_msg, last_type
+
             # Check (Ctrl+F2 = VKey 26)
             cast(Any, wnd).send_v_key(26)
-            sbar = session.find_by_id("wnd[0]/sbar")
-            msg = str(cast(Any, sbar).text)
-            check_type = str(cast(Any, sbar).message_type)
-            if msg:
-                messages.append(f"Check: {msg}")
-
-            # If check failed, return early without activating
-            if check_type == "E":
-                return messages, False
-
-            # Handle "Inactive Objects" popup if it appears
-            popup = session.find_by_id("wnd[1]", raise_error=False)
-            if popup is not None:
-                cast(Any, popup).send_v_key(0)  # Confirm with Enter
+            _, check_type = collect("Check")
+            if check_type in _ERROR_MESSAGE_TYPES:
+                return messages, False, False
 
             # Activate (Ctrl+F3 = VKey 27)
             cast(Any, wnd).send_v_key(27)
-            sbar = session.find_by_id("wnd[0]/sbar")
-            msg = str(cast(Any, sbar).text)
-            msg_type = str(cast(Any, sbar).message_type)
-            if msg:
-                messages.append(f"Activate: {msg}")
+            msg, msg_type = collect("Activate")
 
-            # Handle "Inactive Objects" popup again
-            popup = session.find_by_id("wnd[1]", raise_error=False)
-            if popup is not None:
-                cast(Any, popup).send_v_key(0)
-
-            activated = msg_type != "E"
-            return messages, activated
+            failed = msg_type in _ERROR_MESSAGE_TYPES
+            activated = not failed and any(token in msg.lower() for token in _ACTIVATION_CONFIRMED)
+            if not failed and not activated:
+                messages.append(
+                    "Activation could not be confirmed — the object may still be inactive. "
+                    "Check the object in SE38 before relying on it."
+                )
+            return messages, activated, not failed
 
         try:
-            messages, activated = await self.com.run(_check_activate)
+            messages, activated, ok = await self.com.run(_check_activate)
             logger.info(
                 "check_and_activate",
-                extra={"activated": activated, "message_count": len(messages)},
+                extra={"activated": activated, "success": ok, "message_count": len(messages)},
             )
+            if not ok:
+                return CheckActivateResult(
+                    success=False,
+                    error="; ".join(messages) or "Check/activate reported an error",
+                    messages=messages,
+                    activated=False,
+                )
             return CheckActivateResult(success=True, messages=messages, activated=activated)
         except Exception as e:
             logger.warning("check_and_activate", extra={"error": str(e)})
