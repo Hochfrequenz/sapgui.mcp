@@ -67,8 +67,8 @@ def register_table_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            readOnlyHint=True,
-            openWorldHint=False,
+            read_only_hint=True,
+            open_world_hint=False,
         ),
         description=(
             "Search for SAP tables by name, description, or field. "

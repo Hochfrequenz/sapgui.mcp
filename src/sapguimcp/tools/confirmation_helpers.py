@@ -40,12 +40,7 @@ async def confirm_destructive_action(  # pylint: disable=too-many-return-stateme
         return True, "", True
 
     try:
-        # mypy (strict) misresolves this to the `response_type: None` overload
-        # regardless of the actual type passed (reproduces even for `str`) —
-        # a mypy/fastmcp overload-matching quirk on fastmcp>=3.4, not a real
-        # type error; the runtime behavior (and the isinstance checks below)
-        # is correct.
-        result = await ctx.elicit(message, response_type=bool, response_title="Proceed?")  # type: ignore[arg-type]
+        result = await ctx.elicit(message, response_type=bool, response_title="Proceed?")
     except Exception as exc:  # pylint: disable=broad-exception-caught
         logger.warning("Elicitation failed or unsupported by client, proceeding without confirmation: %s", exc)
         return True, "", True
