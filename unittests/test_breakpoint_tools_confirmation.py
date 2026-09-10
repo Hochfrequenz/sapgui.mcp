@@ -64,7 +64,7 @@ async def test_breakpoint_set_aborts_on_decline():
 
     p_backend, p_nav, p_line, p_shell, p_toggle = _patches(backend)
     with p_backend, p_nav, p_line, p_shell, p_toggle as mock_toggle:
-        async with Client(mcp, elicitation_handler=decline_handler) as client:
+        async with Client(mcp, elicitation_handler=decline_handler, mode="legacy") as client:
             raw = await client.call_tool("sap_breakpoint_set", _ARGS)
     data = _parse_result(raw)
     assert data["success"] is False
@@ -81,7 +81,7 @@ async def test_breakpoint_set_aborts_on_confirm_false():
 
     p_backend, p_nav, p_line, p_shell, p_toggle = _patches(backend)
     with p_backend, p_nav, p_line, p_shell, p_toggle as mock_toggle:
-        async with Client(mcp, elicitation_handler=decline_via_false) as client:
+        async with Client(mcp, elicitation_handler=decline_via_false, mode="legacy") as client:
             raw = await client.call_tool("sap_breakpoint_set", _ARGS)
     data = _parse_result(raw)
     assert data["success"] is False
@@ -98,7 +98,7 @@ async def test_breakpoint_set_proceeds_on_accept():
 
     p_backend, p_nav, p_line, p_shell, p_toggle = _patches(backend)
     with p_backend, p_nav, p_line, p_shell, p_toggle as mock_toggle:
-        async with Client(mcp, elicitation_handler=accept_handler) as client:
+        async with Client(mcp, elicitation_handler=accept_handler, mode="legacy") as client:
             raw = await client.call_tool("sap_breakpoint_set", _ARGS)
     data = _parse_result(raw)
     assert data["success"] is True

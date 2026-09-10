@@ -356,8 +356,8 @@ def register_spro_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            readOnlyHint=True,
-            openWorldHint=False,
+            read_only_hint=True,
+            open_world_hint=False,
         ),
         description=(
             "Search the SAP Implementation Guide (IMG) for customizing activities by keyword. "
