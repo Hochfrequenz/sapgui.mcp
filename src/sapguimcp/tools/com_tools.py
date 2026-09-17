@@ -199,8 +199,8 @@ def register_com_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            readOnlyHint=True,
-            openWorldHint=False,
+            read_only_hint=True,
+            open_world_hint=False,
         ),
         description=(
             "Get the SAP GUI element tree with element IDs (desktop backend only). "
@@ -259,9 +259,9 @@ def register_com_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            readOnlyHint=False,
-            destructiveHint=True,
-            openWorldHint=False,
+            read_only_hint=False,
+            destructive_hint=True,
+            open_world_hint=False,
         ),
         description=(
             "Execute COM operations on SAP GUI elements (desktop backend only). "
