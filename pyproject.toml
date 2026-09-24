@@ -45,7 +45,7 @@ tests = [
     "respx==0.23.1",  # Mock httpx requests in tests
 ]
 linting = [
-    "ruff==0.16.6",
+    "ruff==0.16.8",
 ]
 type_check = [
     "mypy[pydantic]==2.3.1",
@@ -56,11 +56,11 @@ spell_check = [
     "codespell==2.4.2",
 ]
 coverage = [
-    "coverage==7.16.0",
+    "coverage==7.16.1",
     { include-group = "tests" },
 ]
 build_executable = [
-    "pyinstaller==6.22.2",
+    "pyinstaller==6.22.3",
 ]
 dev = [
     { include-group = "tests" },
