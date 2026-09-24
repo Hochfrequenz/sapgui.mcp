@@ -2243,7 +2243,7 @@ type-check = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastmcp", extras = ["apps"], specifier = ">=3.4.6,<5.0.0" },
+    { name = "fastmcp", extras = ["apps"], specifier = ">=4.0.0,<5.0.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "playwright", specifier = ">=1.40.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -2271,7 +2271,7 @@ dev = [
     { name = "codespell", specifier = "==2.4.2" },
     { name = "coverage", specifier = "==7.16.1" },
     { name = "lxml", specifier = "==6.1.3" },
-    { name = "mypy", extras = ["pydantic"], specifier = "==2.3.1" },
+    { name = "mypy", specifier = "==2.3.1" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "respx", specifier = "==0.23.1" },
@@ -2292,7 +2292,7 @@ type-check = [
     { name = "anyio", specifier = "==4.15.1" },
     { name = "beautifulsoup4", specifier = "==4.15.0" },
     { name = "lxml", specifier = "==6.1.3" },
-    { name = "mypy", extras = ["pydantic"], specifier = "==2.3.1" },
+    { name = "mypy", specifier = "==2.3.1" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "respx", specifier = "==0.23.1" },
