@@ -118,7 +118,7 @@ async def test_sap_screenshot_returns_content(sap_mcp_client: ClientSession) -> 
     assert result.content, "Screenshot should return content"
     assert len(result.content) > 0
     # The content should be an image (not a JSON error)
-    assert not result.isError, f"Screenshot returned error: {result.content}"
+    assert not result.is_error, f"Screenshot returned error: {result.content}"
 
 
 @pytest.mark.anyio
@@ -130,4 +130,4 @@ async def test_sap_screenshot_after_transaction(sap_mcp_client: ClientSession) -
 
     result = await sap_mcp_client.call_tool("sap_screenshot", {})
     assert result.content
-    assert not result.isError
+    assert not result.is_error

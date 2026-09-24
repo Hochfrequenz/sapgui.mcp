@@ -11,6 +11,7 @@ import time
 from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from fastmcp import Context, FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import Field as PydanticField
 
 from sapguimcp.backend.manager import get_backend
@@ -537,7 +538,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             "the debugger themselves and accept the risk of losing all sessions; do not use this to "
             "silently 'verify a code path is reached' from an unattended flow."
         ),
-        annotations={"readOnlyHint": False, "destructiveHint": True, "idempotentHint": False},
+        annotations=ToolAnnotations(read_only_hint=False, destructive_hint=True, idempotent_hint=False),
     )
     async def sap_breakpoint_set(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements,too-many-branches
         object_type: Literal["PROG", "CLAS", "FUGR"],
@@ -735,7 +736,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             "continue a debugger that is currently stopped and showing a modal dialog — there is no "
             "tool for that; only a human at the SAP GUI can dismiss it."
         ),
-        annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
+        annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=False),
     )
     async def sap_breakpoint_delete(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements,too-many-branches
         object_type: Literal["PROG", "CLAS", "FUGR"],
@@ -914,7 +915,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             "tool will report the session as busy rather than opening the dialog — dismiss the "
             "debugger in the SAP GUI first."
         ),
-        annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True},
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True),
     )
     async def sap_breakpoint_list(  # pylint: disable=too-many-return-statements,too-many-locals
         object_type: Literal["PROG", "CLAS", "FUGR"],

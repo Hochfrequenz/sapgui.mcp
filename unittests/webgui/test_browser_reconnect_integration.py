@@ -109,7 +109,7 @@ async def test_browser_screenshot_returns_mcp_image_content(sap_mcp_client: Clie
 
     # Verify the ImageContent structure
     assert content.type == "image", f"Expected type='image', got '{content.type}'"
-    assert content.mimeType == "image/png", f"Expected mimeType='image/png', got '{content.mimeType}'"
+    assert content.mime_type == "image/png", f"Expected mime_type='image/png', got '{content.mime_type}'"
     assert content.data, "Expected non-empty image data"
 
     # Verify the base64 data is valid and decodes to PNG
@@ -131,5 +131,5 @@ async def test_browser_screenshot_returns_mcp_image_content(sap_mcp_client: Clie
 
     print(f"\nScreenshot captured successfully:")
     print(f"  - Type: {content.type}")
-    print(f"  - MIME type: {content.mimeType}")
+    print(f"  - MIME type: {content.mime_type}")
     print(f"  - Size: {image_size:,} bytes")
