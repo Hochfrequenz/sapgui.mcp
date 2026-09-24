@@ -134,9 +134,9 @@ def register_tree_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            readOnlyHint=False,
-            destructiveHint=True,
-            openWorldHint=False,
+            read_only_hint=False,
+            destructive_hint=True,
+            open_world_hint=False,
         ),
         description=(
             "Invoke the right-click context menu on a ``GuiShell``/``GuiTree`` node "

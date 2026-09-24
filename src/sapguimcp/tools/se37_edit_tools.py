@@ -182,9 +182,9 @@ def register_se37_edit_tools(mcp: FastMCP) -> None:
             "modify it, then call this tool with the full new source."
         ),
         annotations=ToolAnnotations(
-            destructiveHint=True,
-            readOnlyHint=False,
-            idempotentHint=False,
+            destructive_hint=True,
+            read_only_hint=False,
+            idempotent_hint=False,
         ),
     )
     async def sap_se37_edit(

@@ -382,7 +382,7 @@ def register_quick_report_tools(mcp: FastMCP) -> None:
             "- SE11/SE24/SE37 (use dedicated lookup tools)\n\n"
             "WebGUI-only. Returns an error on desktop backend."
         ),
-        annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=False),
+        annotations=ToolAnnotations(read_only_hint=False, open_world_hint=False),
     )
     async def sap_quick_report(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         tcode: str,
