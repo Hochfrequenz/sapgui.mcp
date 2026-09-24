@@ -7,6 +7,7 @@ SAP GUI COM objects.
 """
 
 import json
+from inspect import signature
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -37,6 +38,12 @@ def _parse_result(raw) -> dict:
     return json.loads(raw.content[0].text)
 
 
+def _client_kwargs(**kwargs):
+    if "mode" in signature(Client).parameters:
+        kwargs["mode"] = "legacy"
+    return kwargs
+
+
 def _patches(backend):
     """Common patches: real navigation/COM steps replaced with stand-ins so only
     the confirmation gate itself is under test."""
@@ -64,7 +71,7 @@ async def test_breakpoint_set_aborts_on_decline():
 
     p_backend, p_nav, p_line, p_shell, p_toggle = _patches(backend)
     with p_backend, p_nav, p_line, p_shell, p_toggle as mock_toggle:
-        async with Client(mcp, elicitation_handler=decline_handler, mode="legacy") as client:
+        async with Client(mcp, elicitation_handler=decline_handler, **_client_kwargs()) as client:
             raw = await client.call_tool("sap_breakpoint_set", _ARGS)
     data = _parse_result(raw)
     assert data["success"] is False
@@ -81,7 +88,7 @@ async def test_breakpoint_set_aborts_on_confirm_false():
 
     p_backend, p_nav, p_line, p_shell, p_toggle = _patches(backend)
     with p_backend, p_nav, p_line, p_shell, p_toggle as mock_toggle:
-        async with Client(mcp, elicitation_handler=decline_via_false, mode="legacy") as client:
+        async with Client(mcp, elicitation_handler=decline_via_false, **_client_kwargs()) as client:
             raw = await client.call_tool("sap_breakpoint_set", _ARGS)
     data = _parse_result(raw)
     assert data["success"] is False
@@ -98,7 +105,7 @@ async def test_breakpoint_set_proceeds_on_accept():
 
     p_backend, p_nav, p_line, p_shell, p_toggle = _patches(backend)
     with p_backend, p_nav, p_line, p_shell, p_toggle as mock_toggle:
-        async with Client(mcp, elicitation_handler=accept_handler, mode="legacy") as client:
+        async with Client(mcp, elicitation_handler=accept_handler, **_client_kwargs()) as client:
             raw = await client.call_tool("sap_breakpoint_set", _ARGS)
     data = _parse_result(raw)
     assert data["success"] is True

@@ -911,10 +911,10 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
     @mcp.tool(
         annotations=ToolAnnotations(
             title="abapGit List Repositories",
-            read_only_hint=True,
-            destructive_hint=False,
-            idempotent_hint=True,
-            open_world_hint=False,
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
         ),
         description=(
             "List all registered abapGit repositories with their metadata. "
@@ -948,10 +948,10 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
     @mcp.tool(
         annotations=ToolAnnotations(
             title="abapGit Pull",
-            read_only_hint=False,
-            destructive_hint=True,
-            idempotent_hint=True,
-            open_world_hint=True,
+            readOnlyHint=False,
+            destructiveHint=True,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
         description=(
             "Pull changes from a remote git repository using abapGit API. "
@@ -1004,10 +1004,10 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
     @mcp.tool(
         annotations=ToolAnnotations(
             title="Read SE38 Source",
-            read_only_hint=True,
-            destructive_hint=False,
-            idempotent_hint=True,
-            open_world_hint=False,
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
         ),
         description=(
             "Read ABAP report source code from SE38. "

@@ -126,9 +126,9 @@ def register_script_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            read_only_hint=False,
-            destructive_hint=True,
-            open_world_hint=False,
+            readOnlyHint=False,
+            destructiveHint=True,
+            openWorldHint=False,
         ),
         description=(
             "Execute a Python script against the live SAP GUI session (desktop backend only).\n\n"

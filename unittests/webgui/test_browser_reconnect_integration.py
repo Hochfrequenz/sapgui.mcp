@@ -17,6 +17,12 @@ from .conftest import call_tool_typed
 from .integration_helpers import _wait_for_transaction_screen
 
 
+def _image_content_mime_type(content: ImageContent) -> str:
+    if hasattr(content, "mime_type"):
+        return content.mime_type
+    return content.mimeType
+
+
 @pytest.mark.anyio
 async def test_browser_reconnect_after_idle(sap_mcp_client: ClientSession) -> None:
     """
@@ -109,7 +115,9 @@ async def test_browser_screenshot_returns_mcp_image_content(sap_mcp_client: Clie
 
     # Verify the ImageContent structure
     assert content.type == "image", f"Expected type='image', got '{content.type}'"
-    assert content.mime_type == "image/png", f"Expected mime_type='image/png', got '{content.mime_type}'"
+    assert _image_content_mime_type(content) == "image/png", (
+        f"Expected mime_type='image/png', got '{_image_content_mime_type(content)}'"
+    )
     assert content.data, "Expected non-empty image data"
 
     # Verify the base64 data is valid and decodes to PNG
@@ -131,5 +139,5 @@ async def test_browser_screenshot_returns_mcp_image_content(sap_mcp_client: Clie
 
     print(f"\nScreenshot captured successfully:")
     print(f"  - Type: {content.type}")
-    print(f"  - MIME type: {content.mime_type}")
+    print(f"  - MIME type: {_image_content_mime_type(content)}")
     print(f"  - Size: {image_size:,} bytes")

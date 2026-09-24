@@ -90,8 +90,8 @@ def register_fm_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            read_only_hint=True,
-            open_world_hint=False,
+            readOnlyHint=True,
+            openWorldHint=False,
         ),
         description=(
             "Search for SAP function modules by name, description, or parameter. "

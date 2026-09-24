@@ -18,7 +18,7 @@ DESIGN DECISIONS:
    CatalogSearchResponse ensures Claude always gets usable data with
    hints about what went wrong (no matches, etc.)
 
-3. WHY `read_only_hint=True`?
+3. WHY `readOnlyHint=True`?
    This tool only reads the bundled JSON catalog - it never modifies
    it or makes SAP calls. This hint lets clients skip confirmation dialogs.
 
@@ -82,8 +82,8 @@ def register_catalog_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            read_only_hint=True,
-            open_world_hint=False,
+            readOnlyHint=True,
+            openWorldHint=False,
         ),
         description=(
             "Search for SAP transactions by description or transaction code. "

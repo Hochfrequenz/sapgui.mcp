@@ -358,9 +358,9 @@ def register_se24_edit_tools(mcp: FastMCP) -> None:
             "then call this tool with the full new method source."
         ),
         annotations=ToolAnnotations(
-            destructive_hint=True,
-            read_only_hint=False,
-            idempotent_hint=False,
+            destructiveHint=True,
+            readOnlyHint=False,
+            idempotentHint=False,
         ),
     )
     async def sap_se24_edit(

@@ -250,8 +250,8 @@ def register_se93_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            read_only_hint=True,
-            open_world_hint=False,
+            readOnlyHint=True,
+            openWorldHint=False,
         ),
         description=(
             "Look up transaction metadata from SE93 (Transaction Maintenance). "

@@ -616,8 +616,8 @@ def register_se09_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            read_only_hint=True,
-            open_world_hint=False,
+            readOnlyHint=True,
+            openWorldHint=False,
         ),
         description=(
             "Look up transport requests from SE09 (Transport Organizer). "
