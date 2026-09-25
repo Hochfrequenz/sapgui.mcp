@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -15,7 +16,7 @@ from sapguimcp.models.sm30_models import SM30Row, SM30ViewResult
 from sapguimcp.tools.se09_tools import register_se09_tools
 from sapguimcp.tools.se16_tools import register_se16_tools
 from sapguimcp.tools.sm30_tools import register_sm30_tools
-from sapguimcp.utils import resolve_output_file_path
+from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 
 def _tool_fn(mcp: FastMCP, tool_name: str):
@@ -59,6 +60,21 @@ def test_resolve_output_file_path_rejects_parent_traversal(tmp_path: Path, monke
 
     with pytest.raises(ValueError, match="working directory"):
         resolve_output_file_path("../escape.json")
+
+
+def test_write_json_output_file_rejects_symlinked_parent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    real_dir = tmp_path / "real"
+    link_path = tmp_path / "linked"
+    real_dir.mkdir()
+
+    try:
+        os.symlink(real_dir, link_path, target_is_directory=True)
+    except (NotImplementedError, OSError) as exc:
+        pytest.skip(f"symlinks unavailable: {exc}")
+
+    with pytest.raises(ValueError, match="symlinks"):
+        write_json_output_file("linked/result.json", {"ok": True})
 
 
 def test_se16_query_writes_output_within_working_directory(

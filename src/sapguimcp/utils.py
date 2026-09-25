@@ -1,9 +1,10 @@
 """Shared utility functions for SAP WebGUI MCP."""
 
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 logger = logging.getLogger(__name__)
 
@@ -81,3 +82,43 @@ def resolve_output_file_path(output_file: str, base_dir: Path | None = None) -> 
         ) from e
 
     return resolved_path
+
+
+def _reject_symlink_path_components(path: Path, safe_base_dir: Path) -> None:
+    current_path = safe_base_dir
+    for part in path.relative_to(safe_base_dir).parts:
+        current_path /= part
+        if current_path.is_symlink():
+            raise ValueError("output_file must not traverse symlinks")
+
+
+def write_json_output_file(output_file: str, payload: Any, base_dir: Path | None = None) -> Path:
+    """Write JSON output to a sandboxed ``output_file`` path."""
+    safe_base_dir = (base_dir or Path.cwd()).expanduser().resolve()
+    candidate = Path(output_file).expanduser()
+
+    lexical_relative_path: Path | None
+    if candidate.is_absolute():
+        try:
+            lexical_relative_path = candidate.relative_to(safe_base_dir)
+        except ValueError:
+            lexical_relative_path = None
+    else:
+        lexical_relative_path = candidate
+
+    if lexical_relative_path is not None:
+        _reject_symlink_path_components(safe_base_dir / lexical_relative_path.parent, safe_base_dir)
+
+    output_path = resolve_output_file_path(output_file, base_dir)
+
+    _reject_symlink_path_components(output_path.parent, safe_base_dir)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    _reject_symlink_path_components(output_path.parent, safe_base_dir)
+
+    if output_path.exists() and output_path.is_symlink():
+        raise ValueError("output_file must not traverse symlinks")
+
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+
+    return output_path

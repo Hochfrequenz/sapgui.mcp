@@ -7,7 +7,6 @@ returning structured data with dynamically-parsed columns and rows.
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
@@ -26,7 +25,7 @@ from sapguimcp.lang import (
 )
 from sapguimcp.models import TableData
 from sapguimcp.models.sm30_models import SM30FileSummary, SM30Row, SM30ViewResult
-from sapguimcp.utils import resolve_output_file_path
+from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -306,10 +305,19 @@ def register_sm30_tools(mcp: FastMCP) -> None:
             )
         # Write to file if requested
         if output_path and result.success:
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with output_path.open("w", encoding="utf-8") as f:
-                json.dump(result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
+            try:
+                output_path = write_json_output_file(output_file, result.model_dump(mode="json"))
+            except ValueError as e:
+                return SM30ViewResult.failure(
+                    error=str(e),
+                    view_name=view_name,
+                    description="",
+                    view_type="unsupported",
+                    columns=[],
+                    rows=[],
+                    row_count=0,
+                    retrieved_at=result.retrieved_at,
+                )
 
             return SM30FileSummary(
                 success=True,

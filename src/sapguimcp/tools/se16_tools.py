@@ -8,7 +8,6 @@ returning structured row data with automatic pagination for large result sets.
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
@@ -22,7 +21,7 @@ from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.lang import SE16_NO_ENTRIES_DE, SE16_NO_ENTRIES_EN
 from sapguimcp.models import SE16FileSummary, SE16Result, SE16Row, TableData
 from sapguimcp.tools.se11_tools import _lookup_object_on_initial_screen
-from sapguimcp.utils import resolve_output_file_path
+from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -1015,10 +1014,19 @@ def register_se16_tools(mcp: FastMCP) -> None:
 
         # Write to file if requested
         if output_path and result.success:
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with output_path.open("w", encoding="utf-8") as f:
-                json.dump(result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
+            try:
+                output_path = write_json_output_file(output_file, result.model_dump(mode="json"))
+            except ValueError as e:
+                return SE16Result.failure(
+                    error=str(e),
+                    table=table,
+                    total_hits=0,
+                    returned_rows=0,
+                    truncated=False,
+                    columns=[],
+                    rows=[],
+                    retrieved_at=result.retrieved_at,
+                )
 
             return SE16FileSummary(
                 success=True,

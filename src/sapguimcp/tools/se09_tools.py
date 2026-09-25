@@ -9,7 +9,6 @@ and parses the flat text list from the ARIA snapshot.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import re
 import time
@@ -28,7 +27,7 @@ from sapguimcp.lang import (
 )
 from sapguimcp.models.se09_models import TransportListResult, TransportObject, TransportRequest, TransportTask
 from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
-from sapguimcp.utils import resolve_output_file_path
+from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -698,8 +697,14 @@ def register_se09_tools(mcp: FastMCP) -> None:
             )
         # Write to file if requested
         if output_path and result.success:
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            with output_path.open("w", encoding="utf-8") as f:
-                json.dump(result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
+            try:
+                write_json_output_file(output_file, result.model_dump(mode="json"))
+            except ValueError as e:
+                return TransportListResult.failure(
+                    error=str(e),
+                    requests=[],
+                    request_count=0,
+                    retrieved_at=result.retrieved_at,
+                )
 
         return result
