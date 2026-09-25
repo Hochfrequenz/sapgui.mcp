@@ -200,9 +200,9 @@ class TestDesktopBackendFillField:
                 "sapguimcp.backend.desktop.find_field_by_label",
                 return_value=field_mock,
             ):
-                await backend.fill_field("Material", "123")
-                assert field_mock.Text == "123"
-        assert "123" not in caplog.text
+                await backend.fill_field("Material", "s3cr3t-value")
+                assert field_mock.Text == "s3cr3t-value"
+        assert "s3cr3t-value" not in caplog.text
 
     @pytest.mark.anyio
     async def test_fill_field_raises_when_not_found(self):

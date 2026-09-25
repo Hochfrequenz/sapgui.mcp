@@ -30,6 +30,7 @@ from datetime import timedelta
 from typing import Any
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
+from fastmcp.server.middleware.logging import default_serializer
 
 from sapguimcp.mcp_session import get_mcp_session_id
 from sapguimcp.models.middleware import SapIdentity, SessionStats, ToolCall
@@ -74,6 +75,40 @@ def _is_sensitive_arg(name: str) -> bool:
     return any(s in lowered for s in _SENSITIVE_ARG_SUBSTRINGS) or "pat" in lowered.split("_")
 
 
+#: Arguments that carry what gets typed into SAP fields or the browser — e.g. a password
+#: set with ``sap_set_field`` on SU01. Masked unconditionally: the field's label alone
+#: doesn't reliably tell whether the value is a secret.
+_TYPED_INPUT_ARGS = frozenset({"value", "text"})
+
+
+def mask_tool_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
+    """Tool arguments with credentials and typed input replaced by ``***`` (#880).
+
+    ``fields`` (``sap_fill_form``) keeps its field names so the log still shows what was filled.
+    """
+    masked: dict[str, Any] = {}
+    for name, value in arguments.items():
+        lowered = name.lower()
+        if _is_sensitive_arg(name) or lowered in _TYPED_INPUT_ARGS:
+            masked[name] = "***"
+        elif lowered == "fields" and isinstance(value, dict):
+            masked[name] = dict.fromkeys(value, "***")
+        else:
+            masked[name] = value
+    return masked
+
+
+def masked_payload_serializer(message: Any) -> str:
+    """``payload_serializer`` for fastmcp's ``LoggingMiddleware``: tool arguments masked.
+
+    Without it, that middleware logs the raw request — a PAT or a typed password included.
+    """
+    arguments = getattr(message, "arguments", None)
+    if isinstance(arguments, dict) and hasattr(message, "model_copy"):
+        message = message.model_copy(update={"arguments": mask_tool_arguments(arguments)})
+    return default_serializer(message)
+
+
 def set_sap_identity(session_id: str | None, identity: SapIdentity) -> None:
     """Set SAP identity for a session. Called by sap_login after successful login."""
     key = session_id or "unknown"
@@ -110,10 +145,7 @@ class ToolCallLoggingMiddleware(Middleware):
         """Format tool arguments for logging, masking sensitive values."""
         if not arguments:
             return {}
-        result: dict[str, str] = {}
-        for k, v in arguments.items():
-            result[k] = "***" if _is_sensitive_arg(k) else str(v)
-        return result
+        return {k: str(v) for k, v in mask_tool_arguments(arguments).items()}
 
     async def on_call_tool(self, context: MiddlewareContext, call_next: Any) -> Any:  # pylint: disable=too-many-locals
         """Log tool call with per-session timing."""
