@@ -274,6 +274,7 @@ class TestHaltedByDebugger:
 
         thread._list_debugger_sessions = fake_scan  # type: ignore[method-assign]
         thread._cancel_worker_call = fake_cancel  # type: ignore[method-assign]
+        thread._debugger_window_open = lambda: bool(debuggers)  # type: ignore[method-assign]
         return thread, cancelled, scans
 
     def _blocking_call(self, cancelled, *, max_wait: float = 5.0):
@@ -305,6 +306,7 @@ class TestHaltedByDebugger:
         import time as _time
 
         thread, cancelled, scans = self._thread_with_fakes({})
+        thread._debugger_window_open = lambda: True  # type: ignore[method-assign]  # e.g. the user's own debugger
         thread.watch_connection("/app/con[1]")
         try:
 
@@ -479,3 +481,23 @@ class TestAbandonedCallsAreSkipped:
         await blocker
         assert await com_thread.run(lambda: 42) == 42
         assert ran == []
+
+
+class TestNoComAccessWithoutDebugger:
+    @pytest.mark.anyio
+    async def test_no_com_scan_without_a_debugger_window(self):
+        """Without an ABAP debugger window, the watchdog must not touch SAP GUI at all:
+        reading its objects from a second thread while the worker drives them made
+        sessions die in long runs."""
+        thread, cancelled, scans = TestHaltedByDebugger()._thread_with_fakes({"/app/con[1]": "ABAP Debugger(1)"})
+        thread._debugger_window_open = lambda: False  # type: ignore[method-assign]
+        thread.watch_connection("/app/con[1]")
+        try:
+            result = await asyncio.wait_for(
+                thread.run(TestHaltedByDebugger()._blocking_call(cancelled, max_wait=0.8)), timeout=4.0
+            )
+            assert result == "completed without cancel"
+            assert await thread.halted_connections() == {}
+            assert not scans
+        finally:
+            thread.shutdown()

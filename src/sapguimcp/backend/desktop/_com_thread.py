@@ -590,6 +590,12 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             watched = set(self._watched_connections)
         if not watched:
             return {}
+        # Reading SAP GUI objects from this thread while the worker drives them is the
+        # concurrent scripting access the single worker exists to avoid — it made SAP
+        # sessions die in long test runs. A top-level window check costs no COM call,
+        # so only look inside SAP GUI while an ABAP debugger window is actually open.
+        if not self._debugger_window_open():
+            return {}
         # The scan skips busy sessions, but one can turn busy right after its Busy
         # check (the worker starts a roundtrip on it); the next read would then block
         # for that whole roundtrip — or, if it hits the breakpoint, until a human is
@@ -605,6 +611,10 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         finally:
             guard.cancel()
         return {connection_id: title for connection_id, title in found.items() if connection_id in watched}
+
+    def _debugger_window_open(self) -> bool:
+        """True if any top-level window is titled like an ABAP debugger (no COM involved)."""
+        return _debugger_window_open()
 
     def _list_debugger_sessions(self, connection_ids: set[str]) -> dict[str, str]:
         """Find an ABAP debugger session in the given SAP GUI connections (watchdog thread).
@@ -658,6 +668,37 @@ def _enable_call_cancellation() -> None:
             logger.warning("com_enable_call_cancellation_failed", extra={"hresult": hresult})
     except Exception:
         logger.warning("com_enable_call_cancellation_failed", exc_info=True)
+
+
+_DEBUGGER_WINDOW_TITLE_PREFIXES = ("ABAP Debugger", "ABAP-Debugger")
+
+
+def _debugger_window_open() -> bool:
+    """Look for an ABAP debugger among the top-level windows via ``EnumWindows``."""
+    try:
+        user32 = ctypes.windll.user32  # type: ignore[attr-defined,unused-ignore]
+    except AttributeError:  # not Windows
+        return False
+    found = False
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)  # type: ignore[attr-defined,unused-ignore,misc,untyped-decorator]
+    def check(hwnd: Any, _lparam: Any) -> bool:
+        nonlocal found
+        length = user32.GetWindowTextLengthW(hwnd)
+        if length:
+            buffer = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buffer, length + 1)
+            if buffer.value.startswith(_DEBUGGER_WINDOW_TITLE_PREFIXES):
+                found = True
+                return False  # stop enumerating
+        return True
+
+    try:
+        user32.EnumWindows(check, None)
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.debug("debugger_window_check_failed", exc_info=True)
+        return True  # can't tell: fall back to the COM scan
+    return found
 
 
 def _ole32() -> Any:
