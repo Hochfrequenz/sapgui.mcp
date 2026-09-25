@@ -36,6 +36,10 @@ class SE16Result(ToolResult):
     truncated: bool = Field(description="True if total_hits >= max_hits (more data may exist in table)")
     columns: list[str] = Field(description="Column names in order")
     rows: list[SE16Row] = Field(default_factory=list, description="All collected rows")
+    filter_warnings: list[str] = Field(
+        default_factory=list,
+        description="Requested filters that could not be applied, including the reason for each failure",
+    )
     retrieved_at: AwareDatetime = Field(description="UTC timestamp when query completed")
 
 

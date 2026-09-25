@@ -656,6 +656,8 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     ctx: Context | None = None,  # TODO: progress reporting via ctx not yet implemented on desktop
 ) -> SE16Result:
     """Desktop-specific SE16N query using read_table instead of ARIA parsing."""
+    filter_warnings: list[str] = []
+
     # Navigate to SE16N
     tx = await backend.enter_transaction("SE16N")
     if not tx.success:
@@ -705,6 +707,7 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
         await backend.wait(2000)
         filter_errors = await _fill_se16n_filters_desktop(backend, filters)
         if filter_errors:
+            filter_warnings = filter_errors
             logger.warning("Some desktop filters could not be applied", extra={"errors": filter_errors})
 
     # Set max hits (best effort)
@@ -735,6 +738,7 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
             truncated=False,
             columns=[],
             rows=[],
+            filter_warnings=filter_warnings,
             retrieved_at=now,
         )
 
@@ -766,6 +770,7 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
         truncated=len(rows) < total_hits,
         columns=table_data.headers,
         rows=rows,
+        filter_warnings=filter_warnings,
         retrieved_at=now,
     )
 
@@ -791,6 +796,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
         SE16Result with collected data
     """
     now = datetime.now(UTC)
+    filter_warnings: list[str] = []
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
     if backend.backend_type == "desktop":
@@ -824,6 +830,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
             await _wait_for_grid_rows(backend, timeout_seconds=5)
             filter_errors = await _fill_se16n_filters(backend, filters, field_order)
             if filter_errors:
+                filter_warnings = filter_errors
                 logger.warning("Some filters could not be applied", extra={"errors": filter_errors})
             # Re-fill table name after filter filling — filter input via
             # page.keyboard could have corrupted it (fixes #289, #290)
@@ -889,6 +896,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
                 truncated=False,
                 columns=[],
                 rows=[],
+                filter_warnings=filter_warnings,
                 retrieved_at=now,
             )
         logger.info("Parsed selection screen columns, table likely doesn't exist", extra={"table": table})
@@ -907,6 +915,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
             truncated=False,
             columns=columns,
             rows=[],
+            filter_warnings=filter_warnings,
             retrieved_at=now,
         )
 
@@ -921,6 +930,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
         truncated=total_hits >= max_hits,
         columns=columns,
         rows=rows,
+        filter_warnings=filter_warnings,
         retrieved_at=now,
     )
 
