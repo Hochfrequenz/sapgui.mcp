@@ -7,6 +7,26 @@ import pytest
 import sapguimcp.backend.webgui.browser as browser_module
 
 
+def test_get_browser_manager_init_lock_is_per_event_loop() -> None:
+    """The singleton init lock must be recreated when the event loop changes."""
+
+    async def get_lock() -> asyncio.Lock:
+        return browser_module._get_browser_manager_init_lock()
+
+    original_lock = browser_module._browser_manager_init_lock
+    original_lock_loop = browser_module._browser_manager_init_lock_loop
+    try:
+        with asyncio.Runner() as first_runner:
+            first_lock = first_runner.run(get_lock())
+        with asyncio.Runner() as second_runner:
+            second_lock = second_runner.run(get_lock())
+
+        assert first_lock is not second_lock
+    finally:
+        browser_module._browser_manager_init_lock = original_lock
+        browser_module._browser_manager_init_lock_loop = original_lock_loop
+
+
 @pytest.mark.anyio
 async def test_get_browser_manager_waits_for_initialization(monkeypatch) -> None:
     """Concurrent callers must wait for the singleton to finish initializing."""
