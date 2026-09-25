@@ -30,6 +30,7 @@ from datetime import timedelta
 from typing import Any
 
 import pydantic
+from fastmcp.exceptions import ValidationError as FastMCPValidationError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.logging import default_serializer
 
@@ -100,14 +101,14 @@ def mask_tool_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _find_validation_error(exc: BaseException) -> pydantic.ValidationError | None:
-    """The pydantic ValidationError *exc* is or was raised from, if any."""
-    seen: set[int] = set()
-    current: BaseException | None = exc
-    while current is not None and id(current) not in seen:
-        if isinstance(current, pydantic.ValidationError):
-            return current
-        seen.add(id(current))
-        current = current.__cause__ or current.__context__
+    """The argument-validation error behind *exc*, if fastmcp rejected the call's arguments.
+
+    fastmcp raises its own ``ValidationError`` from pydantic's. A pydantic error raised
+    inside a tool body is a server bug instead and is not matched, so it keeps its
+    full message and traceback in the log.
+    """
+    if isinstance(exc, FastMCPValidationError) and isinstance(exc.__cause__, pydantic.ValidationError):
+        return exc.__cause__
     return None
 
 

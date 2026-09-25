@@ -314,3 +314,34 @@ async def test_validation_error_does_not_log_the_arguments(caplog):
     record = failed[0]
     assert "ghp_LEAKME" not in str(record.__dict__)
     assert "repo" in record.error  # still says what was wrong
+
+
+@pytest.mark.anyio
+async def test_pydantic_error_inside_a_tool_keeps_its_traceback(caplog):
+    """A model that fails to validate inside the tool body is a server bug, not bad arguments:
+    it must be logged in full, with traceback."""
+    import contextlib
+    import logging
+
+    import pydantic
+    from fastmcp import Client, FastMCP
+
+    class Row(pydantic.BaseModel):
+        rows: int
+
+    server = FastMCP("t")
+    server.add_middleware(ToolCallLoggingMiddleware())
+
+    @server.tool
+    def sap_se16_query(table: str) -> str:
+        return str(Row(rows=f"garbage from {table}"))  # type: ignore[arg-type]
+
+    caplog.set_level(logging.INFO, logger="sapguimcp.middleware.logging")
+    async with Client(server) as client:
+        # fastmcp surfaces a pydantic error from a tool body as a protocol error.
+        with contextlib.suppress(Exception):
+            await client.call_tool("sap_se16_query", {"table": "TSTC"}, raise_on_error=False)
+
+    record = next(r for r in caplog.records if r.getMessage() == "Tool failed")
+    assert record.exc_info is not None
+    assert not record.error.startswith("invalid arguments")
