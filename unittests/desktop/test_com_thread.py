@@ -239,3 +239,99 @@ class TestWorkerSurvivesCancelledFuture:
         # The worker must still be alive and usable.
         assert com_thread.is_alive
         assert await com_thread.run(lambda: 42) == 42
+
+
+class TestHaltedByDebugger:
+    """A COM call that triggered ABAP which stopped at a breakpoint blocks until a human
+    finishes in the ABAP debugger. The single COM worker must not stay wedged behind it:
+    the watchdog cancels the stuck call once a debugger is open in a watched connection."""
+
+    _CANCELLED = -2147418110  # RPC_E_CALL_CANCELED, what CoCancelCall makes the blocked call raise
+
+    def _thread_with_fakes(self, debuggers: dict[str, str]):
+        import threading
+
+        thread = ComThread(init_com=False, min_interval_ms=0, halt_check_after_s=0.2)
+        cancelled = threading.Event()
+        scans: list[int] = []
+
+        def fake_scan(*_args) -> dict[str, str]:
+            scans.append(1)
+            return dict(debuggers)
+
+        thread._list_debugger_sessions = fake_scan  # type: ignore[method-assign]
+        thread._cancel_worker_call = cancelled.set  # type: ignore[method-assign]
+        return thread, cancelled, scans
+
+    def _blocking_call(self, cancelled, *, max_wait: float = 5.0):
+        def blocked():
+            if cancelled.wait(max_wait):
+                raise _FakeComError(self._CANCELLED, "Aufruf wurde durch Messagefilter abgebrochen.", None, None)
+            return "completed without cancel"
+
+        return blocked
+
+    @pytest.mark.anyio
+    async def test_call_stuck_behind_debugger_is_cancelled(self):
+        from sapguimcp.backend.desktop._com_thread import SapSessionHaltedError
+
+        thread, cancelled, _ = self._thread_with_fakes({"/app/con[1]": "ABAP Debugger(1)  (exklusiv)"})
+        thread.watch_connection("/app/con[1]")
+        try:
+            with pytest.raises(SapSessionHaltedError, match="ABAP Debugger") as exc_info:
+                await asyncio.wait_for(thread.run(self._blocking_call(cancelled)), timeout=4.0)
+            assert "human" in str(exc_info.value).lower()
+            assert cancelled.is_set()
+            # The worker is free again and keeps serving calls.
+            assert await asyncio.wait_for(thread.run(lambda: 42), timeout=2.0) == 42
+        finally:
+            thread.shutdown()
+
+    @pytest.mark.anyio
+    async def test_slow_call_without_debugger_is_not_cancelled(self):
+        import time as _time
+
+        thread, cancelled, scans = self._thread_with_fakes({})
+        thread.watch_connection("/app/con[1]")
+        try:
+
+            def slow():
+                _time.sleep(0.8)  # well past halt_check_after_s
+                return "done"
+
+            assert await asyncio.wait_for(thread.run(slow), timeout=4.0) == "done"
+            assert scans, "the watchdog should have looked for a debugger"
+            assert not cancelled.is_set()
+        finally:
+            thread.shutdown()
+
+    @pytest.mark.anyio
+    async def test_debugger_in_unwatched_connection_is_ignored(self):
+        """A debugger the user opened in their own connection must not cancel our calls."""
+        thread, cancelled, _ = self._thread_with_fakes({"/app/con[0]": "ABAP Debugger(1)"})
+        thread.watch_connection("/app/con[1]")
+        try:
+            result = await asyncio.wait_for(thread.run(self._blocking_call(cancelled, max_wait=0.8)), timeout=4.0)
+            assert result == "completed without cancel"
+            assert not cancelled.is_set()
+        finally:
+            thread.shutdown()
+
+    @pytest.mark.anyio
+    async def test_no_scan_without_watched_connections(self):
+        thread, cancelled, scans = self._thread_with_fakes({"/app/con[1]": "ABAP Debugger(1)"})
+        try:
+            result = await asyncio.wait_for(thread.run(self._blocking_call(cancelled, max_wait=0.6)), timeout=4.0)
+            assert result == "completed without cancel"
+            assert not scans
+        finally:
+            thread.shutdown()
+
+    @pytest.mark.anyio
+    async def test_halted_connections_reports_only_watched(self):
+        thread, _, _ = self._thread_with_fakes({"/app/con[0]": "ABAP Debugger(1)", "/app/con[1]": "ABAP Debugger(2)"})
+        thread.watch_connection("/app/con[1]")
+        try:
+            assert await thread.halted_connections() == {"/app/con[1]": "ABAP Debugger(2)"}
+        finally:
+            thread.shutdown()
