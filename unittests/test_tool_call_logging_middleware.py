@@ -279,7 +279,7 @@ async def test_no_secret_reaches_any_log_record(caplog):
         return f"{repo}:{len(pat)}"
 
     caplog.set_level(logging.INFO)
-    logging.getLogger("fastmcp.middleware.logging").propagate = True
+
     async with Client(server) as client:
         await client.call_tool("sap_set_field", {"label": "Password", "value": "Hunter2Secret"})
         await client.call_tool("sap_abapgit_pull", {"repo": "r", "pat": "ghp_SECRETSECRET"})
@@ -287,3 +287,30 @@ async def test_no_secret_reaches_any_log_record(caplog):
     assert "sap_abapgit_pull" in caplog.text  # the calls were logged at all
     assert "Hunter2Secret" not in caplog.text
     assert "ghp_SECRETSECRET" not in caplog.text
+
+
+@pytest.mark.anyio
+async def test_validation_error_does_not_log_the_arguments(caplog):
+    """Pydantic validation errors echo the raw input: a call missing a required argument
+    next to a PAT must not put the PAT into the 'Tool failed' record."""
+    import logging
+
+    from fastmcp import Client, FastMCP
+
+    server = FastMCP("t")
+    server.add_middleware(ToolCallLoggingMiddleware())
+
+    @server.tool
+    def sap_abapgit_pull(repo: str, pat: str) -> str:
+        return f"{repo}:{len(pat)}"
+
+    caplog.set_level(logging.INFO, logger="sapguimcp.middleware.logging")
+    async with Client(server) as client:
+        result = await client.call_tool("sap_abapgit_pull", {"pat": "ghp_LEAKME"}, raise_on_error=False)
+
+    assert result.is_error
+    failed = [r for r in caplog.records if r.getMessage() == "Tool failed"]
+    assert failed, "the failed call must still be logged"
+    record = failed[0]
+    assert "ghp_LEAKME" not in str(record.__dict__)
+    assert "repo" in record.error  # still says what was wrong

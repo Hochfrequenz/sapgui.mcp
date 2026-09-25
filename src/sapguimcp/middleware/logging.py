@@ -29,6 +29,7 @@ import uuid
 from datetime import timedelta
 from typing import Any
 
+import pydantic
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.logging import default_serializer
 
@@ -98,15 +99,31 @@ def mask_tool_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
     return masked
 
 
+def _find_validation_error(exc: BaseException) -> pydantic.ValidationError | None:
+    """The pydantic ValidationError *exc* is or was raised from, if any."""
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        if isinstance(current, pydantic.ValidationError):
+            return current
+        seen.add(id(current))
+        current = current.__cause__ or current.__context__
+    return None
+
+
 def masked_payload_serializer(message: Any) -> str:
     """``payload_serializer`` for fastmcp's ``LoggingMiddleware``: tool arguments masked.
 
     Without it, that middleware logs the raw request — a PAT or a typed password included.
     """
-    arguments = getattr(message, "arguments", None)
-    if isinstance(arguments, dict) and hasattr(message, "model_copy"):
-        message = message.model_copy(update={"arguments": mask_tool_arguments(arguments)})
-    return default_serializer(message)
+    try:
+        arguments = getattr(message, "arguments", None)
+        if isinstance(arguments, dict) and hasattr(message, "model_copy"):
+            message = message.model_copy(update={"arguments": mask_tool_arguments(arguments)})
+        return default_serializer(message)
+    except Exception:  # pylint: disable=broad-exception-caught
+        # Never raise: fastmcp would fall back to serializing the unmasked message.
+        return '{"payload": "<unserializable, redacted>"}
 
 
 def set_sap_identity(session_id: str | None, identity: SapIdentity) -> None:
@@ -177,11 +194,20 @@ class ToolCallLoggingMiddleware(Middleware):
                 "tool": tool_name,
                 "session": session_id,
                 "duration_ms": int(duration.total_seconds() * 1000),
-                "error": str(e),
                 "seq": session.format_sequence(last_n=20),
             }
+            validation_error = _find_validation_error(e)
+            if validation_error is None:
+                extra["error"] = str(e)
+            else:
+                # pydantic echoes the raw input — PATs and typed values included — in its
+                # message and traceback; log only where and why validation failed.
+                extra["error"] = "invalid arguments: " + "; ".join(
+                    f"{'.'.join(str(part) for part in error['loc'])}: {error['type']}"
+                    for error in validation_error.errors()
+                )
             extra.update(self._identity_extra(session))
-            _logger.warning("Tool failed", extra=extra, exc_info=True)
+            _logger.warning("Tool failed", extra=extra, exc_info=validation_error is None)
             raise
 
         # Update session stats and log success
