@@ -15,6 +15,7 @@ import httpx
 from fastmcp import Context, FastMCP
 from pydantic import BeforeValidator
 
+from sapguimcp.mcp_session import get_mcp_session_id
 from sapguimcp.models import FeedbackEntry, FeedbackLogResult
 from sapguimcp.models.config import get_settings
 
@@ -140,7 +141,7 @@ def register_feedback_tools(mcp: FastMCP) -> None:
         tags: Tags = None,
         ctx: Context | None = None,
     ) -> FeedbackLogResult:
-        session_id = getattr(ctx, "session_id", None) if ctx else None
+        session_id = get_mcp_session_id(ctx)
         session_key = session_id or "unknown"
 
         entry = FeedbackEntry(

@@ -12,6 +12,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.se37_edit_models import SE37EditResult
@@ -180,11 +181,11 @@ def register_se37_edit_tools(mcp: FastMCP) -> None:
             "**Workflow:** Read current source with sap_se37_lookup first (check the Quelltext/Source Code tab), "
             "modify it, then call this tool with the full new source."
         ),
-        annotations={
-            "destructiveHint": True,
-            "readOnlyHint": False,
-            "idempotentHint": False,
-        },
+        annotations=ToolAnnotations(
+            destructive_hint=True,
+            read_only_hint=False,
+            idempotent_hint=False,
+        ),
     )
     async def sap_se37_edit(
         function_module: str,

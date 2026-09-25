@@ -935,8 +935,8 @@ def register_se16_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            readOnlyHint=True,
-            openWorldHint=False,
+            read_only_hint=True,
+            open_world_hint=False,
         ),
         description=(
             "Query SAP table data via SE16N (Data Browser). "

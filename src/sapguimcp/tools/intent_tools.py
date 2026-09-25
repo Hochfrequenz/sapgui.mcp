@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 from fastmcp import Context, FastMCP
 
+from sapguimcp.mcp_session import get_mcp_session_id
 from sapguimcp.models import IntentEntry, IntentLogResult
 
 __all__ = ["register_intent_tools", "get_session_intents", "clear_session_intents"]
@@ -51,7 +52,7 @@ def register_intent_tools(mcp: FastMCP) -> None:
         context: dict[str, str] | None = None,
         ctx: Context | None = None,
     ) -> IntentLogResult:
-        session_id = getattr(ctx, "session_id", None) if ctx else None
+        session_id = get_mcp_session_id(ctx)
         session_key = session_id or "unknown"
 
         entry = IntentEntry(

@@ -31,6 +31,7 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
+from sapguimcp.mcp_session import get_mcp_session_id
 from sapguimcp.models.middleware import SapIdentity, SessionStats, ToolCall
 
 __all__ = ["ToolCallLoggingMiddleware", "new_request_id", "set_sap_identity"]
@@ -111,7 +112,7 @@ class ToolCallLoggingMiddleware(Middleware):
         start = time.perf_counter()
 
         ctx = context.fastmcp_context
-        session_id = getattr(ctx, "session_id", None) if ctx else None
+        session_id = get_mcp_session_id(ctx)
         session = self._get_session(session_id)
         current_call = ToolCall(name=tool_name, args=args)
 

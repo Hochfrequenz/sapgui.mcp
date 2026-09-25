@@ -224,8 +224,8 @@ def register_sm30_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
-            readOnlyHint=True,
-            openWorldHint=False,
+            read_only_hint=True,
+            open_world_hint=False,
         ),
         description=(
             "Look up SAP table maintenance view entries from SM30 (read-only display mode). "

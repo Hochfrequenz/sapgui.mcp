@@ -15,6 +15,7 @@ import logging
 from typing import TYPE_CHECKING, Any, cast
 
 from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.se24_edit_models import SE24EditResult
@@ -356,11 +357,11 @@ def register_se24_edit_tools(mcp: FastMCP) -> None:
             "**Workflow:** Read current class with sap_se24_lookup first to see methods, "
             "then call this tool with the full new method source."
         ),
-        annotations={
-            "destructiveHint": True,
-            "readOnlyHint": False,
-            "idempotentHint": False,
-        },
+        annotations=ToolAnnotations(
+            destructive_hint=True,
+            read_only_hint=False,
+            idempotent_hint=False,
+        ),
     )
     async def sap_se24_edit(
         class_name: str,

@@ -29,8 +29,10 @@ from typing import Any, Optional
 
 from fastmcp import Context, FastMCP
 from fastmcp.utilities.types import Image
+from mcp.types import ToolAnnotations
 
 from sapguimcp.backend.manager import get_backend
+from sapguimcp.mcp_session import get_mcp_session_id
 from sapguimcp.models import (
     CapabilitiesResult,
     ClickButtonResult,
@@ -307,7 +309,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             ``session`` / ``session_id`` parameter can use that ID to
             address this specific login when multiple sessions are active.
         """
-        session_id = getattr(ctx, "session_id", None) if ctx else None
+        session_id = get_mcp_session_id(ctx)
         return await sap_login_impl(url=url, client=client, system_key=system_key, session_id=session_id)
 
     @mcp.tool(
@@ -1438,7 +1440,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     # =========================================================================
 
     @mcp.tool(
-        annotations={"readOnlyHint": False, "openWorldHint": False},
+        annotations=ToolAnnotations(read_only_hint=False, open_world_hint=False),
         description=(
             "Click a button on the current SAP screen by its label text.\n\n"
             "Use sap_discover_buttons first to see available buttons. "
@@ -1484,7 +1486,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return ClickButtonResult.failure(f"Error clicking button: {e}", label=label)
 
     @mcp.tool(
-        annotations={"readOnlyHint": False, "openWorldHint": False},
+        annotations=ToolAnnotations(read_only_hint=False, open_world_hint=False),
         description=(
             "Select a tab on the current SAP screen by its label text.\n\n"
             "Use sap_get_screen_text to see available tab labels on the current screen.\n\n"
@@ -1528,7 +1530,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SelectTabResult.failure(f"Error selecting tab: {e}", label=label)
 
     @mcp.tool(
-        annotations={"readOnlyHint": False, "openWorldHint": False},
+        annotations=ToolAnnotations(read_only_hint=False, open_world_hint=False),
         description=(
             "Select a value from a dropdown (combobox) field on the current SAP screen.\n\n"
             "Use sap_get_form_fields(include_dropdown_options=True) first to see available "
@@ -1581,7 +1583,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SelectDropdownResult.failure(f"Error selecting dropdown: {e}", label=label, value=value)
 
     @mcp.tool(
-        annotations={"readOnlyHint": True, "openWorldHint": False},
+        annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False),
         description=(
             "Take a screenshot of the current SAP screen.\n\n"
             "Returns a PNG screenshot as an image. Works on both WebGUI and Desktop backends.\n"
