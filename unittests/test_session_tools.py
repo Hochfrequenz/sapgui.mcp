@@ -491,8 +491,8 @@ class TestWebGuiCloseSession:
         backend._page = page1  # pylint: disable=protected-access
         backend._keepalive_task = None  # pylint: disable=protected-access
 
-        _PATCH_REGISTRY = "sapguimcp.backend.webgui.backend.WebGuiBackend._get_registry"
-        with patch(_PATCH_REGISTRY, new=AsyncMock(return_value=registry)):
+        patch_registry_target = "sapguimcp.backend.webgui.backend.WebGuiBackend._get_registry"
+        with patch(patch_registry_target, new=AsyncMock(return_value=registry)):
             closed = await backend.close_session(session_id)
 
         assert closed is True
