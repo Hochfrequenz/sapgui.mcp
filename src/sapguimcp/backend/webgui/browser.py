@@ -5,6 +5,7 @@ This module provides a BrowserManager class that maintains a persistent browser
 session across multiple tool calls, following the dev-browser pattern.
 """
 
+import asyncio
 import logging
 import subprocess
 from datetime import timedelta
@@ -519,6 +520,18 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
 
 # Global browser manager instance (singleton)
 _browser_manager: Optional[BrowserManager] = None
+_browser_manager_init_lock: asyncio.Lock | None = None
+_browser_manager_init_lock_loop: asyncio.AbstractEventLoop | None = None
+
+
+def _get_browser_manager_init_lock() -> asyncio.Lock:
+    """Get the singleton init lock for the active event loop."""
+    global _browser_manager_init_lock, _browser_manager_init_lock_loop  # pylint: disable=global-statement
+    current_loop = asyncio.get_running_loop()
+    if _browser_manager_init_lock is None or _browser_manager_init_lock_loop is not current_loop:
+        _browser_manager_init_lock = asyncio.Lock()
+        _browser_manager_init_lock_loop = current_loop
+    return _browser_manager_init_lock
 
 
 async def get_browser_manager() -> BrowserManager:
@@ -529,8 +542,11 @@ async def get_browser_manager() -> BrowserManager:
     """
     global _browser_manager  # pylint: disable=global-statement
     if _browser_manager is None:
-        _browser_manager = BrowserManager()
-        await _browser_manager.initialize()
+        async with _get_browser_manager_init_lock():
+            if _browser_manager is None:
+                manager = BrowserManager()
+                await manager.initialize()
+                _browser_manager = manager
     return _browser_manager
 
 
