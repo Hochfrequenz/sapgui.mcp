@@ -32,11 +32,18 @@ def test_2026_07_28_uses_one_id_for_the_whole_process():
     assert get_mcp_session_id(first) not in ("per-request-1", "per-request-2")
 
 
+@pytest.fixture
+def clean_sessions():
+    _sessions_ref.clear()
+    yield
+    _sessions_ref.clear()
+
+
 @pytest.mark.anyio
+@pytest.mark.usefixtures("clean_sessions")
 @pytest.mark.parametrize("mode", ["legacy", "2026-07-28"])
 async def test_tool_calls_share_one_logging_session(mode):
     """Repeated calls from one client must accumulate in one SessionStats, not one per call."""
-    _sessions_ref.clear()
     async with Client(mcp, mode=mode) as client:
         for _ in range(3):
             await client.call_tool("search_tables", {"query": "TSTC"})

@@ -349,7 +349,8 @@ register_feedback_resources(mcp)
 def main() -> None:
     """Main entry point for the MCP server."""
     try:
-        mcp.run(show_banner=False)
+        # stdio only: one process serves one client, which sapguimcp.mcp_session relies on.
+        mcp.run(transport="stdio", show_banner=False)
     except Exception:
         logger.critical("[CRASHED] Server crashed with unhandled exception", exc_info=True)
         raise
