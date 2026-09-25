@@ -9,7 +9,7 @@ import pytest
 from fastmcp import FastMCP
 
 from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
-from sapguimcp.tools.script_tools import _run_in_sandbox, register_script_tools
+from sapguimcp.tools.script_tools import SAFE_BUILTINS, _run_in_sandbox, register_script_tools
 
 _FILENAME = "<sap_script>"
 
@@ -128,6 +128,23 @@ class TestRunInSandbox:
         r = _run_in_sandbox(_c(script), self._session())
         assert r.success is True
         assert r.output == [{"sum": 12, "max": 8}]
+
+    def test_builtins_mutation_does_not_leak_to_next_call(self):
+        """A script mutating __builtins__ must not affect any later call."""
+        mutate = "__builtins__['len'] = lambda x: 999\ndel __builtins__['sorted']\noutput('mutated')"
+        r1 = _run_in_sandbox(_c(mutate), self._session())
+        assert r1.success is True
+
+        r2 = _run_in_sandbox(_c("output(len([1, 2, 3]))"), self._session())
+        assert r2.success is True
+        assert r2.output == [3]
+
+        r3 = _run_in_sandbox(_c("output(sorted([3, 1, 2]))"), self._session())
+        assert r3.success is True
+        assert r3.output == [[1, 2, 3]]
+
+        assert SAFE_BUILTINS["len"] is len
+        assert "sorted" in SAFE_BUILTINS
 
     def test_session_accessible_in_script(self):
         session = self._session()
