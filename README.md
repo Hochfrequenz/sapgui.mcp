@@ -10,6 +10,14 @@ Control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.
 Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation** - tasks a pure REST-API client cannot do.
 The MCP works with both SAP R/3 and S/4.
 
+**What sets this server apart from a generic "wrap SAP GUI scripting in an MCP tool" project:**
+
+- **Both backends, one tool surface.** SAP GUI desktop (COM scripting) *and* SAP Web GUI (browser) are driven through the same set of MCP tools - pick whichever is available on your platform, or run both side by side.
+- **Deep, transaction-specific tools**, not just screen primitives: SE16N table queries with pagination, SM37 job search, SLG1 application logs, ST22 short dumps, SPRO customizing search, abapGit pulls, and correctness-hardened ABAP source editing for SE38/SE24/SE37 (see [Available Tools](#available-tools)).
+- **Human-in-the-loop confirmation for dangerous actions.** Setting an ABAP breakpoint pauses the tool call and asks the connected MCP client for real confirmation via [elicitation](https://modelcontextprotocol.io/specification/2026-06-18/client/elicitation) before it proceeds - not just a docstring telling the agent to "ask a human first". (Currently covers breakpoint tools; extending it to other destructive tools is tracked in [#888](https://github.com/Hochfrequenz/sapgui.mcp/issues/888).)
+- **Offline SAP knowledge**, bundled and searchable without a live connection: ~4000 transactions, tables, function modules and classes, plus MCP prompts that teach an agent SAP GUI conventions.
+- **Multi-session aware**, so several agents can drive independent SAP GUI sessions in parallel without stepping on each other.
+
 > [!NOTE]
 > **Pairs with [`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `aibap.mcp` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
 
@@ -757,7 +765,7 @@ Add to `.mcp.json` in your project root:
 | `sap_transaction` | Enter and execute a transaction code |
 | `sap_list_connections` | List configured SAP systems and SAP Logon entries |
 | `sap_screenshot` | Take a screenshot of the current SAP screen |
-| `sap_keepalive_start` | Prevent session timeout (pings every 5 minutes) |
+| `sap_keepalive_start` | Attempt to prevent session timeout (pings every 5 minutes). **WebGUI backend: currently a no-op, tracked in [#877](https://github.com/Hochfrequenz/sapgui.mcp/issues/877).** |
 | `sap_keepalive_stop` | Stop the keepalive task |
 | `sap_get_capabilities` | Query which features the current backend supports |
 
@@ -929,7 +937,7 @@ PAPERTRAIL_HOST=logs.example.com
 PAPERTRAIL_PORT=12345
 ```
 
-When enabled, tool call names, SAP hostnames, and operational metadata are sent to the configured Papertrail endpoint for monitoring and debugging. No SAP credentials or business data are transmitted.
+When enabled, tool call names, SAP hostnames, and operational metadata are sent to the configured Papertrail endpoint for monitoring and debugging. SAP passwords are never included. However, two known gaps mean other sensitive values can currently leak into logs (and, with Papertrail on, off the machine): a GitHub PAT passed to `sap_abapgit_pull` isn't masked, and raw field values (which can include passwords typed into SAP forms, e.g. via `sap_set_field` on a password field) are logged on the desktop backend - see [#880](https://github.com/Hochfrequenz/sapgui.mcp/issues/880). Until that's fixed, avoid enabling Papertrail on systems where those tools handle sensitive input.
 
 Each release publishes binaries for Windows and macOS:
 
