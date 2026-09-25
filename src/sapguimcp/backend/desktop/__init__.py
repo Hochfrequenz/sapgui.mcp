@@ -12,6 +12,7 @@ import asyncio
 import logging
 import os
 import tempfile
+import threading
 import time
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
@@ -686,8 +687,10 @@ class DesktopBackend:
 
     #: Per-probe timeout, in seconds. Reconciliation must not block forever
     #: on a wedged COM thread — that would deadlock the very recovery path
-    #: agents reach for when COM is misbehaving.  ``asyncio.wait_for`` raises
-    #: ``TimeoutError`` past this point and the session is treated as dead.
+    #: agents reach for when COM is misbehaving. ``asyncio.wait_for`` bounds
+    #: the total queue-wait + execution time; reconcile distinguishes probes
+    #: that never got a turn on the worker from probes that actually started
+    #: and then hung.
     _RECONCILE_PROBE_TIMEOUT_S: float = 2.0
 
     #: How long a session may stay classified "busy" (see
@@ -712,7 +715,12 @@ class DesktopBackend:
                 dead.append(sid)
                 continue
 
-            def _probe(s: Any = ses) -> str:
+            # Set by the probe itself once the COM worker actually runs it, i.e. after
+            # any queue and throttle wait behind other calls.
+            probe_started = threading.Event()
+
+            def _probe(s: Any = ses, started: threading.Event = probe_started) -> str:
+                started.set()
                 # FindById on wnd[0] forces a real COM round-trip — Info
                 # would happily return cached values for a dead window.
                 return str(s.com.FindById("wnd[0]").Type)
@@ -725,8 +733,41 @@ class DesktopBackend:
                 self.registry.mark_alive(sid)
                 alive.append(sid)
             except (TimeoutError, asyncio.TimeoutError) as exc:
-                # Wedged COM thread → can't prove the session is alive,
-                # treat it as dead so recovery can proceed.
+                if not probe_started.is_set():
+                    # The probe never got a turn on the single COM worker
+                    # within the timeout window, so this was queue/throttle
+                    # delay, not proof that *this* session is dead.
+                    now = time.monotonic()
+                    busy_since = self.registry.mark_busy(sid, now)
+                    busy_for_s = now - busy_since
+                    if busy_for_s <= self._RECONCILE_BUSY_DEAD_TIMEOUT_S:
+                        logger.info(
+                            "reconcile_probe_worker_busy",
+                            extra={
+                                "session_id": sid,
+                                "bound_to": self.registry.get_bound_agent(sid),
+                                "busy_for_s": round(busy_for_s, 1),
+                                "timeout_s": self._RECONCILE_PROBE_TIMEOUT_S,
+                                "error": repr(exc)[:200],
+                            },
+                        )
+                        alive.append(sid)
+                        continue
+                    logger.warning(
+                        "reconcile_probe_worker_busy_timeout_exceeded",
+                        extra={
+                            "session_id": sid,
+                            "bound_to": self.registry.get_bound_agent(sid),
+                            "busy_for_s": round(busy_for_s, 1),
+                            "timeout_s": self._RECONCILE_BUSY_DEAD_TIMEOUT_S,
+                            "probe_timeout_s": self._RECONCILE_PROBE_TIMEOUT_S,
+                            "error": repr(exc)[:200],
+                        },
+                    )
+                    dead.append(sid)
+                    continue
+                # The probe itself started and still timed out: the target
+                # session stayed unresponsive past the probe budget.
                 logger.warning(
                     "reconcile_probe_timeout",
                     extra={
