@@ -12,7 +12,7 @@ The MCP works with both SAP R/3 and S/4.
 
 **What sets this server apart from a generic "wrap SAP GUI scripting in an MCP tool" project:**
 
-- **Both backends, one tool surface.** SAP GUI desktop (COM scripting) *and* SAP Web GUI (browser) are driven through the same set of MCP tools - pick whichever is available on your platform, or run both side by side.
+- **Both backends, one shared core tool surface.** SAP GUI desktop (COM scripting) *and* SAP Web GUI (browser) are driven through the same core MCP tools (login, navigation, screen reading, form filling) - pick whichever is available on your platform, or run both side by side. A handful of tools are backend-specific: `sap_run_script`, `sap_com_evaluate` and the breakpoint tools are desktop-only; the `browser_*` low-level tools are WebGUI-only (see [Available Tools](#available-tools)).
 - **Deep, transaction-specific tools**, not just screen primitives: SE16N table queries with pagination, SM37 job search, SLG1 application logs, ST22 short dumps, SPRO customizing search, abapGit pulls, and correctness-hardened ABAP source editing for SE38/SE24/SE37 (see [Available Tools](#available-tools)).
 - **Human-in-the-loop confirmation for dangerous actions.** Setting an ABAP breakpoint pauses the tool call and asks the connected MCP client for real confirmation via [elicitation](https://modelcontextprotocol.io/specification/2026-06-18/client/elicitation) before it proceeds - not just a docstring telling the agent to "ask a human first". (Currently covers breakpoint tools; extending it to other destructive tools is tracked in [#888](https://github.com/Hochfrequenz/sapgui.mcp/issues/888).)
 - **Offline SAP knowledge**, bundled and searchable without a live connection: ~4000 transactions, tables, function modules and classes, plus MCP prompts that teach an agent SAP GUI conventions.
@@ -1040,7 +1040,7 @@ This is a one-time setting that is saved for subsequent logins.
 SAP Web GUI can be slow. If operations timeout:
 
 1. Check the Chrome window - is SAP responding?
-2. Try `sap_keepalive_start` to prevent session timeouts
+2. `sap_keepalive_start` is currently a no-op on the WebGUI backend ([#877](https://github.com/Hochfrequenz/sapgui.mcp/issues/877)) and won't prevent session timeouts here - re-login instead if the session has timed out
 3. Check Docker container logs: `docker logs <container-id>`
 
 ### "Port 9223 already in use"
