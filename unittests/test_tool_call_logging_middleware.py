@@ -77,6 +77,12 @@ def test_middleware_shares_sessions_ref():
     assert mw._sessions is _sessions_ref
 
 
+@pytest.mark.parametrize("key", ["pat", "access_token", "auth_token"])
+def test_format_args_masks_credential_arguments(key):
+    """Credential-shaped tool arguments must never be included in logs."""
+    assert ToolCallLoggingMiddleware()._format_args({key: "sensitive-value"}) == {key: "***"}
+
+
 def test_extract_sap_user_js_exists():
     """The JS file should be loadable and contain expected selectors."""
     from importlib import resources
@@ -220,3 +226,122 @@ def test_on_call_tool_request_id_distinct_across_calls(caplog):
 
     assert len(caplog.records) == 2
     assert caplog.records[0].request_id != caplog.records[1].request_id
+
+
+@pytest.mark.parametrize("key", ["github_pat", "abapgit_pat", "PAT"])
+def test_format_args_masks_pat_variants(key):
+    assert ToolCallLoggingMiddleware()._format_args({key: "sensitive-value"}) == {key: "***"}
+
+
+@pytest.mark.parametrize("key", ["match_pattern", "file_path", "path", "output_path", "compatibility"])
+def test_format_args_keeps_arguments_that_merely_contain_pat(key):
+    """'pat' is too short for substring matching — these are not credentials and help diagnose calls."""
+    assert ToolCallLoggingMiddleware()._format_args({key: "CASE iv_type."}) == {key: "CASE iv_type."}
+
+
+def test_format_args_masks_typed_field_values():
+    """#880: what an agent types into SAP fields (e.g. a password on SU01) must not be logged."""
+    args = ToolCallLoggingMiddleware()._format_args({"label": "Password", "value": "Hunter2Secret", "text": "typed"})
+    assert args == {"label": "Password", "value": "***", "text": "***"}
+
+
+def test_format_args_masks_values_inside_fields_but_keeps_field_names():
+    args = ToolCallLoggingMiddleware()._format_args({"fields": {"User": "KLEIN", "Password": "Hunter3Secret"}})
+    assert "Hunter3Secret" not in args["fields"]
+    assert "KLEIN" not in args["fields"]
+    assert "Password" in args["fields"]
+    assert "User" in args["fields"]
+
+
+@pytest.mark.anyio
+async def test_no_secret_reaches_any_log_record(caplog):
+    """End to end through both middlewares as server.py wires them: neither the tool-call
+    sequence log nor fastmcp's payload log may contain a PAT or a typed value."""
+    import logging
+
+    from fastmcp import Client, FastMCP
+    from fastmcp.server.middleware.logging import LoggingMiddleware
+
+    from sapguimcp.middleware.logging import masked_payload_serializer
+
+    server = FastMCP("t")
+    server.add_middleware(ToolCallLoggingMiddleware())
+    server.add_middleware(
+        LoggingMiddleware(include_payloads=True, max_payload_length=1000, payload_serializer=masked_payload_serializer)
+    )
+
+    @server.tool
+    def sap_set_field(label: str, value: str) -> str:
+        return f"{label}={len(value)}"
+
+    @server.tool
+    def sap_abapgit_pull(repo: str, pat: str) -> str:
+        return f"{repo}:{len(pat)}"
+
+    caplog.set_level(logging.INFO)
+
+    async with Client(server) as client:
+        await client.call_tool("sap_set_field", {"label": "Password", "value": "Hunter2Secret"})
+        await client.call_tool("sap_abapgit_pull", {"repo": "r", "pat": "ghp_SECRETSECRET"})
+
+    assert "sap_abapgit_pull" in caplog.text  # the calls were logged at all
+    assert "Hunter2Secret" not in caplog.text
+    assert "ghp_SECRETSECRET" not in caplog.text
+
+
+@pytest.mark.anyio
+async def test_validation_error_does_not_log_the_arguments(caplog):
+    """Pydantic validation errors echo the raw input: a call missing a required argument
+    next to a PAT must not put the PAT into the 'Tool failed' record."""
+    import logging
+
+    from fastmcp import Client, FastMCP
+
+    server = FastMCP("t")
+    server.add_middleware(ToolCallLoggingMiddleware())
+
+    @server.tool
+    def sap_abapgit_pull(repo: str, pat: str) -> str:
+        return f"{repo}:{len(pat)}"
+
+    caplog.set_level(logging.INFO, logger="sapguimcp.middleware.logging")
+    async with Client(server) as client:
+        result = await client.call_tool("sap_abapgit_pull", {"pat": "ghp_LEAKME"}, raise_on_error=False)
+
+    assert result.is_error
+    failed = [r for r in caplog.records if r.getMessage() == "Tool failed"]
+    assert failed, "the failed call must still be logged"
+    record = failed[0]
+    assert "ghp_LEAKME" not in str(record.__dict__)
+    assert "repo" in record.error  # still says what was wrong
+
+
+@pytest.mark.anyio
+async def test_pydantic_error_inside_a_tool_keeps_its_traceback(caplog):
+    """A model that fails to validate inside the tool body is a server bug, not bad arguments:
+    it must be logged in full, with traceback."""
+    import contextlib
+    import logging
+
+    import pydantic
+    from fastmcp import Client, FastMCP
+
+    class Row(pydantic.BaseModel):
+        rows: int
+
+    server = FastMCP("t")
+    server.add_middleware(ToolCallLoggingMiddleware())
+
+    @server.tool
+    def sap_se16_query(table: str) -> str:
+        return str(Row(rows=f"garbage from {table}"))  # type: ignore[arg-type]
+
+    caplog.set_level(logging.INFO, logger="sapguimcp.middleware.logging")
+    async with Client(server) as client:
+        # fastmcp surfaces a pydantic error from a tool body as a protocol error.
+        with contextlib.suppress(Exception):
+            await client.call_tool("sap_se16_query", {"table": "TSTC"}, raise_on_error=False)
+
+    record = next(r for r in caplog.records if r.getMessage() == "Tool failed")
+    assert record.exc_info is not None
+    assert not record.error.startswith("invalid arguments")

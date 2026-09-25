@@ -177,9 +177,10 @@ def _make_backend_with_finder(session, finder_patch_target, finder_return):
 
 class TestDesktopBackendFillField:
     @pytest.mark.anyio
-    async def test_fill_field_sets_text(self):
+    async def test_fill_field_sets_text(self, caplog):
         from sapguimcp.backend.desktop import DesktopBackend
 
+        caplog.set_level("INFO", logger="sapguimcp.backend.desktop")
         field_mock = MagicMock()
         field_mock.com = field_mock  # unwrap returns self
         field_mock.Type = "GuiTextField"  # not a combobox
@@ -199,8 +200,9 @@ class TestDesktopBackendFillField:
                 "sapguimcp.backend.desktop.find_field_by_label",
                 return_value=field_mock,
             ):
-                await backend.fill_field("Material", "123")
-                assert field_mock.Text == "123"
+                await backend.fill_field("Material", "s3cr3t-value")
+                assert field_mock.Text == "s3cr3t-value"
+        assert "s3cr3t-value" not in caplog.text
 
     @pytest.mark.anyio
     async def test_fill_field_raises_when_not_found(self):

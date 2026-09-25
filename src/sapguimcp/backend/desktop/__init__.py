@@ -1389,7 +1389,7 @@ class DesktopBackend:
             _set_field_value(_unwrap_com(field), value)
 
         await self.com.run(_fill)
-        logger.info("fill_field", extra={"label": label, "value": value})
+        logger.info("fill_field", extra={"label": label})
 
     async def fill_main_input(self, value: str, labels: list[str]) -> bool:
         """Fill the main form input — try each label, fill first match."""
@@ -1406,7 +1406,7 @@ class DesktopBackend:
             return False
 
         result = await self.com.run(_fill)
-        logger.info("fill_main_input", extra={"value": value, "found": result})
+        logger.info("fill_main_input", extra={"found": result})
         return result
 
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:

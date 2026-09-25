@@ -17,6 +17,7 @@ from fastmcp.server.middleware.logging import LoggingMiddleware
 from sapguimcp.backend.manager import close_backend
 from sapguimcp.logging_config import configure_logging
 from sapguimcp.middleware import ToolCallLoggingMiddleware
+from sapguimcp.middleware.logging import masked_payload_serializer
 from sapguimcp.models.config import get_sap_config, get_settings
 from sapguimcp.prompts import register_prompts
 from sapguimcp.resources import register_feedback_resources, register_intent_resources
@@ -296,7 +297,9 @@ mcp.add_middleware(ToolCallLoggingMiddleware())
 mcp.add_provider(Choice())
 
 # Add FastMCP built-in logging with payload visibility
-mcp.add_middleware(LoggingMiddleware(include_payloads=True, max_payload_length=1000))
+mcp.add_middleware(
+    LoggingMiddleware(include_payloads=True, max_payload_length=1000, payload_serializer=masked_payload_serializer)
+)
 
 # Register tools — conditionally based on backend type
 _backend = _settings.backend_type
