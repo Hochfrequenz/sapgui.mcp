@@ -715,15 +715,19 @@ class DesktopBackend:
                 dead.append(sid)
                 continue
 
-            def _probe(s: Any = ses) -> str:
+            # Set by the probe itself once the COM worker actually runs it, i.e. after
+            # any queue and throttle wait behind other calls.
+            probe_started = threading.Event()
+
+            def _probe(s: Any = ses, started: threading.Event = probe_started) -> str:
+                started.set()
                 # FindById on wnd[0] forces a real COM round-trip — Info
                 # would happily return cached values for a dead window.
                 return str(s.com.FindById("wnd[0]").Type)
 
-            probe_started = threading.Event()
             try:
                 await asyncio.wait_for(
-                    self.com.run(_probe, max_retries=0, started_event=probe_started),
+                    self.com.run(_probe, max_retries=0),
                     timeout=self._RECONCILE_PROBE_TIMEOUT_S,
                 )
                 self.registry.mark_alive(sid)

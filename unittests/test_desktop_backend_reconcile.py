@@ -79,19 +79,12 @@ def _make_stale_interface_session(label: str = "ses") -> MagicMock:
     return _make_mock_session(label, alive=False, error=_com_error(_RPC_S_UNKNOWN_IF, f"{label} stale"))
 
 
-async def _passthrough_run(
-    fn: Any,
-    *,
-    max_retries: int | None = None,
-    started_event: Any = None,
-) -> Any:  # pylint: disable=unused-argument
+async def _passthrough_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
     """Stub for ``backend.com.run`` that just calls the lambda directly.
 
     Lets the mock session's configured side-effects (raise vs return)
     drive the test outcome — no source introspection needed.
     """
-    if started_event is not None:
-        started_event.set()
     return fn()
 
 
@@ -143,10 +136,8 @@ class TestReconcile:
         backend.registry.register(_make_mock_session("s1", alive=True))
         captured: list[int | None] = []
 
-        async def capturing_run(fn: Any, *, max_retries: int | None = None, started_event: Any = None) -> Any:
+        async def capturing_run(fn: Any, *, max_retries: int | None = None) -> Any:
             captured.append(max_retries)
-            if started_event is not None:
-                started_event.set()
             return fn()
 
         backend.com.run = capturing_run
@@ -274,71 +265,43 @@ class TestReconcile:
         assert backend.registry.list_sessions() == []
 
     @pytest.mark.anyio
-    async def test_probe_timeout_before_probe_start_is_kept(self) -> None:
-        """Queue wait on a busy worker is not proof the probed session is dead.
-
-        Regression test for issue #881: reconcile's timeout covers both queue
-        wait and probe execution. If some other COM call holds the single
-        worker past the timeout, this session's probe never got a turn and
-        must stay registered.
-        """
+    async def test_probe_that_never_started_keeps_the_session(self) -> None:
+        """#881: reconcile's timeout covers queue wait too. A probe stuck behind another
+        long COM call never ran, which is no proof that this session is dead."""
         backend = _make_backend()
         backend.registry.register(_make_mock_session("s1", alive=True))
         backend._RECONCILE_PROBE_TIMEOUT_S = 0.05  # type: ignore[misc]
+        wedge = asyncio.Event()  # never set: the worker is busy with something else
 
-        wedge = asyncio.Event()  # never set
-
-        async def queued_behind_busy_worker(
-            fn: Any,
-            *,
-            max_retries: int | None = None,
-            started_event: Any = None,
-        ) -> Any:  # pylint: disable=unused-argument
+        async def queued_behind_busy_worker(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
             await wedge.wait()
-            if started_event is not None:
-                started_event.set()
             return fn()
 
         backend.com.run = queued_behind_busy_worker
 
         report = await backend.reconcile()
 
-        assert report["alive"] == ["s1"]
-        assert report["removed"] == []
+        assert report == {"alive": ["s1"], "removed": []}
         assert backend.registry.list_sessions() == ["s1"]
 
     @pytest.mark.anyio
-    async def test_started_probe_timeout_treated_as_dead(self) -> None:
-        """A probe that actually started and then hung is still treated as dead.
-
-        The probe is wrapped in ``asyncio.wait_for`` with a short timeout.
-        Once the worker has handed the probe a turn, timing out means the
-        target session itself stayed unresponsive past the budget.
-        """
+    async def test_probe_that_started_and_hung_prunes_the_session(self) -> None:
+        """A wedged session must NOT deadlock recovery (issue #637): once the probe runs
+        and still gets no answer within the timeout, the session is treated as dead."""
         backend = _make_backend()
         backend.registry.register(_make_mock_session("s1", alive=True))
-
         backend._RECONCILE_PROBE_TIMEOUT_S = 0.05  # type: ignore[misc]
+        wedge = asyncio.Event()  # never set: the probe gets no answer
 
-        wedge = asyncio.Event()  # never set
+        async def started_then_hung(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+            fn()  # the probe starts (and signals it) ...
+            await wedge.wait()  # ... but its COM call never returns
 
-        async def hung_run(
-            fn: Any,
-            *,
-            max_retries: int | None = None,
-            started_event: Any = None,
-        ) -> Any:  # pylint: disable=unused-argument
-            if started_event is not None:
-                started_event.set()
-            await wedge.wait()
-            return fn()
-
-        backend.com.run = hung_run
+        backend.com.run = started_then_hung
 
         report = await backend.reconcile()
 
-        assert report["alive"] == []
-        assert report["removed"] == ["s1"]
+        assert report == {"alive": [], "removed": ["s1"]}
         assert backend.registry.list_sessions() == []
 
 
