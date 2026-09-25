@@ -937,7 +937,7 @@ PAPERTRAIL_HOST=logs.example.com
 PAPERTRAIL_PORT=12345
 ```
 
-When enabled, tool call names, SAP hostnames, and operational metadata are sent to the configured Papertrail endpoint for monitoring and debugging. SAP passwords are never included. However, two known gaps mean other sensitive values can currently leak into logs (and, with Papertrail on, off the machine): a GitHub PAT passed to `sap_abapgit_pull` isn't masked, and raw field values (which can include passwords typed into SAP forms, e.g. via `sap_set_field` on a password field) are logged on the desktop backend - see [#880](https://github.com/Hochfrequenz/sapgui.mcp/issues/880). Until that's fixed, avoid enabling Papertrail on systems where those tools handle sensitive input.
+When enabled, tool call names, SAP hostnames, and operational metadata are sent to the configured Papertrail endpoint for monitoring and debugging. Two known gaps mean other sensitive values can currently leak into logs (and, with Papertrail on, off the machine): a GitHub PAT passed to `sap_abapgit_pull` isn't masked, and raw field values (which can include passwords typed into SAP forms, e.g. via `sap_set_field` on a password field) are logged on the desktop backend - see [#880](https://github.com/Hochfrequenz/sapgui.mcp/issues/880). Until that's fixed, avoid enabling Papertrail on systems where those tools handle sensitive input.
 
 Each release publishes binaries for Windows and macOS:
 
