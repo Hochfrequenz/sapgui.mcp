@@ -103,7 +103,7 @@ def _run_in_sandbox(code: types.CodeType, session: Any) -> SapRunScriptResult:
             collected.append(str(value))
 
     restricted_globals: dict[str, Any] = {
-        "__builtins__": SAFE_BUILTINS,
+        "__builtins__": dict(SAFE_BUILTINS),
         "session": session,
         "output": _output,
     }
