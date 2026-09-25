@@ -11,6 +11,7 @@ session-drift recovery logic on Linux/CI without needing a real SAP GUI.
 from __future__ import annotations
 
 import asyncio
+import weakref
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, PropertyMock
 
@@ -18,7 +19,7 @@ import pytest
 
 import sapguimcp.backend.desktop as desktop_module
 from sapguimcp.backend.desktop import DesktopBackend
-from sapguimcp.backend.desktop._com_thread import SapSessionHaltedError
+from sapguimcp.backend.desktop._com_thread import SapSessionHaltedError, com_call_target
 from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
 
@@ -550,3 +551,37 @@ class TestHaltedAtBreakpoint:
         assert status.status == "unknown"
         assert "breakpoint" in status.message.lower()
         assert "ABAP Debugger(1)" in status.message
+
+
+class TestHaltWatchdogTargeting:
+    """The backend tells the COM thread which connection each call targets and which
+    connections to watch, so only calls stuck behind *our* halted session are cancelled."""
+
+    @pytest.mark.anyio
+    async def test_require_session_targets_its_connection(self) -> None:
+        backend = _make_backend()
+        backend._session_connections = weakref.WeakKeyDictionary()
+        session = _make_mock_session("s1")
+        backend.registry.register(session)
+        backend._session_connections[session] = "/app/con[3]"
+
+        async def check() -> str | None:
+            backend.require_session()
+            return com_call_target.get()
+
+        assert await asyncio.create_task(check()) == "/app/con[3]"
+
+    @pytest.mark.anyio
+    async def test_connection_is_unwatched_once_its_last_session_is_pruned(self) -> None:
+        backend = _make_backend()
+        backend._session_connections = weakref.WeakKeyDictionary()
+        alive, dead = _make_mock_session("s1", alive=True), _make_mock_session("s2", alive=False)
+        backend.registry.register(alive)
+        backend.registry.register(dead)
+        backend._session_connections[alive] = "/app/con[1]"
+        backend._session_connections[dead] = "/app/con[2]"
+        backend.com.run = _passthrough_run
+
+        await backend.reconcile()
+
+        backend.com.unwatch_connection.assert_called_once_with("/app/con[2]")

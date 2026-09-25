@@ -9,11 +9,13 @@ ComThread.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import inspect
 import logging
 import os
 import tempfile
 import time
+import weakref
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
 
@@ -26,8 +28,10 @@ except ImportError:
 
 from sapguimcp.backend.desktop import _abap_editor
 from sapguimcp.backend.desktop._com_thread import (
+    NO_SESSION_TARGET,
     ComThread,
     SapSessionHaltedError,
+    com_call_target,
     describe_com_error,
     is_transient_busy_error,
 )
@@ -75,6 +79,8 @@ from sapguimcp.models.sap_results import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from sapsucker.components.session import GuiSession
 
 logger = logging.getLogger(__name__)
@@ -229,6 +235,10 @@ class DesktopBackend:
     def __init__(self, com_thread: ComThread | None = None) -> None:
         self.com = com_thread or ComThread()
         self.registry = DesktopSessionRegistry()
+        # SAP GUI connection id of each registered session, recorded at login (on the
+        # COM thread) so the halt watchdog can be told which connection a call targets
+        # without another COM call.
+        self._session_connections: weakref.WeakKeyDictionary[GuiSession, str] = weakref.WeakKeyDictionary()
         # Mutation lock — serialises high-level operations that read or modify
         # the session set: list_sessions (reconciles), open_new_session (resolves
         # the new COM child by sibling index, must not race), close_session,
@@ -275,7 +285,47 @@ class DesktopBackend:
         Defaults to ``'s1'`` if no ContextVar is set (backward compat).
         """
         session_id = _current_session_id.get()
-        return self.registry.get_session(session_id)  # None → "s1"
+        session = self.registry.get_session(session_id)  # None → "s1"
+        # The COM calls this task makes next are for this session's connection.
+        com_call_target.set(self._connection_of(session))
+        return session
+
+    def _connection_of(self, session: GuiSession) -> str | None:
+        """SAP GUI connection id recorded for *session* at login, or None if unknown."""
+        connections: weakref.WeakKeyDictionary[GuiSession, str] | None = getattr(self, "_session_connections", None)
+        if connections is None:
+            return None
+        try:
+            return connections.get(session)
+        except TypeError:  # not weak-referenceable (test doubles)
+            return None
+
+    @contextlib.contextmanager
+    def _com_target(self, session: GuiSession) -> Iterator[None]:
+        """Mark the COM calls inside the block as targeting *session*'s connection."""
+        token = com_call_target.set(self._connection_of(session))
+        try:
+            yield
+        finally:
+            com_call_target.reset(token)
+
+    def _unwatch_orphaned_connections(self) -> None:
+        """Stop watching connections none of whose sessions is registered any more."""
+        connections = getattr(self, "_session_connections", None)
+        unwatch_connection = getattr(self.com, "unwatch_connection", None)
+        if connections is None or unwatch_connection is None:
+            return
+        live_sessions = set()
+        for sid in self.registry.list_sessions():
+            try:
+                live_sessions.add(id(self.registry.get_session(sid)))
+            except ValueError:
+                continue
+        for session, connection_id in list(connections.items()):
+            if id(session) not in live_sessions:
+                del connections[session]
+                if connection_id not in connections.values():
+                    unwatch_connection(connection_id)
 
     # ---- SapNavigation ----
 
@@ -327,6 +377,8 @@ class DesktopBackend:
                 # Hochfrequenz/sapsucker#24 / #27 for the history. The except
                 # block below catches that and surfaces it as
                 # LoginResult.failure.
+                # Logging in opens a new connection — never a call to cancel as "halted".
+                com_call_target.set(NO_SESSION_TARGET)
                 session = await self.com.run(
                     lambda: _sapsucker_login(
                         connection_name=connection_name,
@@ -375,6 +427,7 @@ class DesktopBackend:
             return
         try:
             connection_id = await self.com.run(lambda: str(session.com.Parent.Id))
+            self._session_connections[session] = connection_id
             watch_connection(connection_id)
         except Exception:  # pylint: disable=broad-exception-caught
             logger.warning("watch_connection_failed", exc_info=True)
@@ -469,10 +522,11 @@ class DesktopBackend:
             # asyncio.wait_for so a wedged COM thread can't hang the very
             # diagnostic call agents reach for — same rationale as
             # _reconcile_locked's probe.
-            user = await asyncio.wait_for(
-                self.com.run(_probe, max_retries=0),
-                timeout=self._STATUS_PROBE_TIMEOUT_S,
-            )
+            with self._com_target(session):
+                user = await asyncio.wait_for(
+                    self.com.run(_probe, max_retries=0),
+                    timeout=self._STATUS_PROBE_TIMEOUT_S,
+                )
             return SessionStatus(success=True, status="active", message=f"Logged in as {user}")
         except (TimeoutError, asyncio.TimeoutError):
             halted = await self._halted_connections()
@@ -576,6 +630,9 @@ class DesktopBackend:
             if result_session is None:
                 return None, count, None
             session_id = self.registry.register(result_session)
+            connection_id = self._connection_of(session)
+            if connection_id is not None:  # a new session lives in its creator's connection
+                self._session_connections[result_session] = connection_id
             logger.info("open_session", extra={"tcode": tcode, "session_id": session_id, "count": count})
             return session_id, count, title
         except Exception:
@@ -612,7 +669,8 @@ class DesktopBackend:
                         "user": str(info.User),
                     }
 
-                info = await self.com.run(_info)
+                with self._com_target(ses):
+                    info = await self.com.run(_info)
                 result.append(
                     SessionInfo(
                         session_id=sid,
@@ -675,7 +733,8 @@ class DesktopBackend:
                 conn.CloseSession(com_id)
                 return True
 
-            result = await self.com.run(_close)
+            with self._com_target(target):
+                result = await self.com.run(_close)
         except Exception as exc:  # pylint: disable=broad-exception-caught
             if is_transient_busy_error(exc):
                 logger.info(
@@ -685,6 +744,7 @@ class DesktopBackend:
                 return False
             result = False
         self.registry.unregister(session_id)
+        self._unwatch_orphaned_connections()
         logger.info("close_session", extra={"session_id": session_id, "success": result})
         return result
 
@@ -754,16 +814,21 @@ class DesktopBackend:
                 return str(s.com.FindById("wnd[0]").Type)
 
             try:
-                await asyncio.wait_for(
-                    self.com.run(_probe, max_retries=0),
-                    timeout=self._RECONCILE_PROBE_TIMEOUT_S,
-                )
+                with self._com_target(ses):
+                    await asyncio.wait_for(
+                        self.com.run(_probe, max_retries=0),
+                        timeout=self._RECONCILE_PROBE_TIMEOUT_S,
+                    )
                 self.registry.mark_alive(sid)
                 alive.append(sid)
             except (TimeoutError, asyncio.TimeoutError) as exc:
                 # A session halted at an ABAP breakpoint doesn't reject calls, it
                 # blocks them until a human continues the debugger — so a timeout
                 # while one of our connections shows a debugger is "busy", not dead.
+                # Deliberately not limited to the halted connection: probes of other
+                # sessions time out too, queued behind the call the watchdog is about
+                # to cancel. A session that is really wedged still goes after the
+                # busy cap.
                 if await self._halted_connections() and self._keep_busy_session(sid, exc):
                     alive.append(sid)
                     continue
@@ -799,6 +864,7 @@ class DesktopBackend:
                 dead.append(sid)
 
         removed = self.registry.prune(dead)
+        self._unwatch_orphaned_connections()
         if removed:
             logger.info(
                 "reconcile_complete",
