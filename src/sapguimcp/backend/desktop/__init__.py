@@ -747,6 +747,11 @@ class DesktopBackend:
 
             with self._com_target(target):
                 result = await self.com.run(_close)
+        except SapSessionHaltedError as exc:
+            # The close was cancelled while the session sits in the ABAP debugger —
+            # nothing was closed, so keep the live session for a retry.
+            logger.info("close_session_halted", extra={"session_id": session_id, "error": str(exc)[:200]})
+            return False
         except Exception as exc:  # pylint: disable=broad-exception-caught
             if is_transient_busy_error(exc):
                 logger.info(

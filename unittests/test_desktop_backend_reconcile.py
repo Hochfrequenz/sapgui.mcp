@@ -601,3 +601,18 @@ class TestHaltedProbeError:
         report = await backend.reconcile()
 
         assert report == {"alive": ["s1"], "removed": []}
+
+    @pytest.mark.anyio
+    async def test_close_cancelled_as_halted_keeps_session(self) -> None:
+        """A CloseSession the watchdog cancelled didn't close anything: keep the live session."""
+        backend = _make_backend()
+        backend.registry.register(_make_mock_session("s1", alive=True))
+        backend.registry.register(_make_mock_session("s2", alive=True))
+
+        async def halted_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+            raise SapSessionHaltedError(["ABAP Debugger(1)"])
+
+        backend.com.run = halted_run
+
+        assert await backend.close_session("s2") is False
+        assert backend.registry.list_sessions() == ["s1", "s2"]
