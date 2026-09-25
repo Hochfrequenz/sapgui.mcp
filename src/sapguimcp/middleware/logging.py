@@ -123,7 +123,7 @@ def masked_payload_serializer(message: Any) -> str:
         return default_serializer(message)
     except Exception:  # pylint: disable=broad-exception-caught
         # Never raise: fastmcp would fall back to serializing the unmasked message.
-        return '{"payload": "<unserializable, redacted>"}
+        return '{"payload": "<unserializable, redacted>"}'
 
 
 def set_sap_identity(session_id: str | None, identity: SapIdentity) -> None:
