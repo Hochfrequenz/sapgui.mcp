@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -118,7 +119,9 @@ def write_json_output_file(output_file: str, payload: Any, base_dir: Path | None
     if output_path.exists() and output_path.is_symlink():
         raise ValueError("output_file must not traverse symlinks")
 
-    with output_path.open("w", encoding="utf-8") as f:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+    file_descriptor = os.open(output_path, flags, 0o666)
+    with os.fdopen(file_descriptor, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
     return output_path
