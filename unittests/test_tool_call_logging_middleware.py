@@ -226,3 +226,14 @@ def test_on_call_tool_request_id_distinct_across_calls(caplog):
 
     assert len(caplog.records) == 2
     assert caplog.records[0].request_id != caplog.records[1].request_id
+
+
+@pytest.mark.parametrize("key", ["github_pat", "abapgit_pat", "PAT"])
+def test_format_args_masks_pat_variants(key):
+    assert ToolCallLoggingMiddleware()._format_args({key: "sensitive-value"}) == {key: "***"}
+
+
+@pytest.mark.parametrize("key", ["match_pattern", "file_path", "path", "output_path", "compatibility"])
+def test_format_args_keeps_arguments_that_merely_contain_pat(key):
+    """'pat' is too short for substring matching — these are not credentials and help diagnose calls."""
+    assert ToolCallLoggingMiddleware()._format_args({key: "CASE iv_type."}) == {key: "CASE iv_type."}

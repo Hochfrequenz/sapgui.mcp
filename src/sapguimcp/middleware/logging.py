@@ -58,6 +58,21 @@ def new_request_id() -> str:
 # Module-level reference for cross-boundary communication (tools -> middleware).
 _sessions_ref: dict[str, SessionStats] = {}
 
+#: Tool argument names containing any of these are masked in logs (covers
+#: ``access_token``, ``auth_token``, ``secret_key``, ...).
+_SENSITIVE_ARG_SUBSTRINGS = ("password", "secret", "token", "credential", "api_key")
+
+
+def _is_sensitive_arg(name: str) -> bool:
+    """True if a tool argument called *name* may carry a credential.
+
+    "pat" (personal access token) is matched as a whole ``_``-separated word
+    only — as a substring it would also mask ``match_pattern``, ``file_path``
+    and other arguments that are needed to diagnose a call.
+    """
+    lowered = name.lower()
+    return any(s in lowered for s in _SENSITIVE_ARG_SUBSTRINGS) or "pat" in lowered.split("_")
+
 
 def set_sap_identity(session_id: str | None, identity: SapIdentity) -> None:
     """Set SAP identity for a session. Called by sap_login after successful login."""
@@ -95,23 +110,9 @@ class ToolCallLoggingMiddleware(Middleware):
         """Format tool arguments for logging, masking sensitive values."""
         if not arguments:
             return {}
-        sensitive_keys = {
-            "password",
-            "secret",
-            "token",
-            "credential",
-            "api_key",
-            "secret_key",
-            "pat",
-            "access_token",
-            "auth_token",
-        }
         result: dict[str, str] = {}
         for k, v in arguments.items():
-            if any(s in k.lower() for s in sensitive_keys):
-                result[k] = "***"
-            else:
-                result[k] = str(v)
+            result[k] = "***" if _is_sensitive_arg(k) else str(v)
         return result
 
     async def on_call_tool(self, context: MiddlewareContext, call_next: Any) -> Any:  # pylint: disable=too-many-locals
