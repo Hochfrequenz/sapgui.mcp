@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import logging
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
@@ -27,6 +26,7 @@ from sapguimcp.lang import (
 )
 from sapguimcp.models import TableData
 from sapguimcp.models.sm30_models import SM30FileSummary, SM30Row, SM30ViewResult
+from sapguimcp.utils import resolve_output_file_path
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -248,7 +248,8 @@ def register_sm30_tools(mcp: FastMCP) -> None:
 
         Args:
             view_name: The maintenance view or table name (e.g., 'V_T005', 'V_T002')
-            output_file: If provided, write full results to this JSON file and return summary.
+            output_file: If provided, write full results to this JSON file within the
+                current working directory and return summary.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -257,6 +258,23 @@ def register_sm30_tools(mcp: FastMCP) -> None:
             SM30FileSummary with file path and preview (when output_file provided)
         """
         now = datetime.now(UTC)
+
+        if output_file:
+            try:
+                output_path = resolve_output_file_path(output_file)
+            except ValueError as e:
+                return SM30ViewResult.failure(
+                    error=str(e),
+                    view_name=view_name,
+                    description="",
+                    view_type="unsupported",
+                    columns=[],
+                    rows=[],
+                    row_count=0,
+                    retrieved_at=now,
+                )
+        else:
+            output_path = None
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_sm30_lookup")
@@ -286,10 +304,8 @@ def register_sm30_tools(mcp: FastMCP) -> None:
                 row_count=0,
                 retrieved_at=now,
             )
-
         # Write to file if requested
-        if output_file and result.success:
-            output_path = Path(output_file)
+        if output_path and result.success:
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
             with output_path.open("w", encoding="utf-8") as f:

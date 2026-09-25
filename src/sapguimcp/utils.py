@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime
+from pathlib import Path
 from typing import Literal
 
 logger = logging.getLogger(__name__)
@@ -59,3 +60,24 @@ def format_sap_date(iso_date: str, language: SapLanguage) -> str:
     if language == "DE":
         return dt.strftime("%d.%m.%Y")
     return dt.strftime("%m/%d/%Y")
+
+
+def resolve_output_file_path(output_file: str, base_dir: Path | None = None) -> Path:
+    """Resolve ``output_file`` within a safe base directory.
+
+    Relative paths are resolved against ``base_dir`` (or the current working
+    directory by default). Absolute paths are allowed only when they already
+    resolve inside that same base directory.
+    """
+    safe_base_dir = (base_dir or Path.cwd()).expanduser().resolve()
+    candidate = Path(output_file).expanduser()
+    resolved_path = candidate.resolve() if candidate.is_absolute() else (safe_base_dir / candidate).resolve()
+
+    try:
+        resolved_path.relative_to(safe_base_dir)
+    except ValueError as e:
+        raise ValueError(
+            f"output_file must stay within the working directory: {safe_base_dir}"
+        ) from e
+
+    return resolved_path
