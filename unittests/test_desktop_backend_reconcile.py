@@ -79,12 +79,19 @@ def _make_stale_interface_session(label: str = "ses") -> MagicMock:
     return _make_mock_session(label, alive=False, error=_com_error(_RPC_S_UNKNOWN_IF, f"{label} stale"))
 
 
-async def _passthrough_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+async def _passthrough_run(
+    fn: Any,
+    *,
+    max_retries: int | None = None,
+    started_event: Any = None,
+) -> Any:  # pylint: disable=unused-argument
     """Stub for ``backend.com.run`` that just calls the lambda directly.
 
     Lets the mock session's configured side-effects (raise vs return)
     drive the test outcome — no source introspection needed.
     """
+    if started_event is not None:
+        started_event.set()
     return fn()
 
 
@@ -136,8 +143,10 @@ class TestReconcile:
         backend.registry.register(_make_mock_session("s1", alive=True))
         captured: list[int | None] = []
 
-        async def capturing_run(fn: Any, *, max_retries: int | None = None) -> Any:
+        async def capturing_run(fn: Any, *, max_retries: int | None = None, started_event: Any = None) -> Any:
             captured.append(max_retries)
+            if started_event is not None:
+                started_event.set()
             return fn()
 
         backend.com.run = capturing_run
@@ -265,23 +274,62 @@ class TestReconcile:
         assert backend.registry.list_sessions() == []
 
     @pytest.mark.anyio
-    async def test_probe_timeout_treated_as_dead(self) -> None:
-        """A wedged COM thread must NOT deadlock recovery (issue #637).
+    async def test_probe_timeout_before_probe_start_is_kept(self) -> None:
+        """Queue wait on a busy worker is not proof the probed session is dead.
 
-        The probe is wrapped in ``asyncio.wait_for`` with a short timeout.
-        On timeout we treat the session as dead so reset_to_primary can
-        proceed even when the COM worker is stuck on a prior call.
+        Regression test for issue #881: reconcile's timeout covers both queue
+        wait and probe execution. If some other COM call holds the single
+        worker past the timeout, this session's probe never got a turn and
+        must stay registered.
         """
         backend = _make_backend()
         backend.registry.register(_make_mock_session("s1", alive=True))
-
-        # Force the timeout deterministically by lowering it AND making
-        # com.run hang forever. Without ``wait_for`` the test would deadlock.
         backend._RECONCILE_PROBE_TIMEOUT_S = 0.05  # type: ignore[misc]
 
         wedge = asyncio.Event()  # never set
 
-        async def hung_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+        async def queued_behind_busy_worker(
+            fn: Any,
+            *,
+            max_retries: int | None = None,
+            started_event: Any = None,
+        ) -> Any:  # pylint: disable=unused-argument
+            await wedge.wait()
+            if started_event is not None:
+                started_event.set()
+            return fn()
+
+        backend.com.run = queued_behind_busy_worker
+
+        report = await backend.reconcile()
+
+        assert report["alive"] == ["s1"]
+        assert report["removed"] == []
+        assert backend.registry.list_sessions() == ["s1"]
+
+    @pytest.mark.anyio
+    async def test_started_probe_timeout_treated_as_dead(self) -> None:
+        """A probe that actually started and then hung is still treated as dead.
+
+        The probe is wrapped in ``asyncio.wait_for`` with a short timeout.
+        Once the worker has handed the probe a turn, timing out means the
+        target session itself stayed unresponsive past the budget.
+        """
+        backend = _make_backend()
+        backend.registry.register(_make_mock_session("s1", alive=True))
+
+        backend._RECONCILE_PROBE_TIMEOUT_S = 0.05  # type: ignore[misc]
+
+        wedge = asyncio.Event()  # never set
+
+        async def hung_run(
+            fn: Any,
+            *,
+            max_retries: int | None = None,
+            started_event: Any = None,
+        ) -> Any:  # pylint: disable=unused-argument
+            if started_event is not None:
+                started_event.set()
             await wedge.wait()
             return fn()
 
