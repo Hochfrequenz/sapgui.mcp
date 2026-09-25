@@ -24,20 +24,53 @@ from unittests.desktop.conftest import TEST_REPORT, go_home, skip_no_sap
 pytestmark = [skip_no_sap, pytest.mark.integration]
 
 
-def _continue_debugger_like_a_human() -> None:
-    """Press F8 (continue) in the ABAP debugger via raw COM, as the human at SAP GUI would."""
-    import pythoncom  # noqa: PLC0415  # pylint: disable=import-outside-toplevel  # Windows-only
-    import win32com.client  # noqa: PLC0415  # pylint: disable=import-outside-toplevel  # Windows-only
+class _HumanAtTheDebugger(threading.Thread):
+    """Presses F8 (continue) in the ABAP debugger via raw COM, as the human at SAP GUI would.
 
-    pythoncom.CoInitialize()
-    app = win32com.client.GetObject("SAPGUI").GetScriptingEngine
-    for connection_index in range(app.Children.Count):
-        connection = app.Children(connection_index)
-        for session_index in range(connection.Children.Count):
-            session = connection.Children(session_index)
-            if not session.Busy and session.Info.Program == "RSTPDAMAIN":
-                session.FindById("wnd[0]").SendVKey(8)  # may block until the program ends
+    That SendVKey can stay pending inside SAP GUI long after the program has finished;
+    a call left dangling for the rest of the test run degrades SAP GUI for later modules.
+    So the thread enables COM call cancellation, and ``finish`` cancels whatever is
+    still pending and joins it.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(daemon=True, name="human-at-the-debugger")
+        self.native_id_ready = threading.Event()
+        self.error: Exception | None = None
+
+    def run(self) -> None:
+        import ctypes  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
+
+        import pythoncom  # noqa: PLC0415  # pylint: disable=import-outside-toplevel  # Windows-only
+        import win32com.client  # noqa: PLC0415  # pylint: disable=import-outside-toplevel  # Windows-only
+
+        pythoncom.CoInitialize()
+        ctypes.windll.ole32.CoEnableCallCancellation(None)
+        self.native_id_ready.set()
+        try:
+            app = win32com.client.GetObject("SAPGUI").GetScriptingEngine
+            for connection_index in range(app.Children.Count):
+                connection = app.Children(connection_index)
+                for session_index in range(connection.Children.Count):
+                    session = connection.Children(session_index)
+                    if not session.Busy and session.Info.Program == "RSTPDAMAIN":
+                        session.FindById("wnd[0]").SendVKey(8)
+                        return
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            # cancelled by finish(), or the debugger was gone already
+            self.error = exc
+        finally:
+            pythoncom.CoUninitialize()
+
+    def finish(self) -> None:
+        import ctypes  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
+
+        self.native_id_ready.wait(5)
+        for _ in range(10):
+            if not self.is_alive():
                 return
+            ctypes.windll.ole32.CoCancelCall(self.native_id, 0)
+            self.join(1)
 
 
 async def _toggle_breakpoint(backend, line: int) -> str | None:  # type: ignore[no-untyped-def]
@@ -79,14 +112,19 @@ async def test_hit_breakpoint_does_not_freeze_the_backend(backend):  # type: ign
             await asyncio.wait_for(backend.com.run(lambda: backend.require_session().com.Info.Program), timeout=30)
 
         # Once the human continues the debugger, the same session works again — no re-login.
-        threading.Thread(target=_continue_debugger_like_a_human, daemon=True).start()
-        deadline = time.monotonic() + 60
-        while True:
-            await asyncio.sleep(2)
-            screen = await asyncio.wait_for(backend.get_screen_info(), timeout=30)
-            if screen.success or time.monotonic() > deadline:
-                break
+        human = _HumanAtTheDebugger()
+        human.start()
+        try:
+            deadline = time.monotonic() + 60
+            while True:
+                await asyncio.sleep(2)
+                screen = await asyncio.wait_for(backend.get_screen_info(), timeout=30)
+                if screen.success or time.monotonic() > deadline:
+                    break
+        finally:
+            human.finish()
         assert screen.success, f"session did not recover: {screen.error}"
+        assert not human.is_alive(), "the debugger call must not be left pending in SAP GUI"
     finally:
         assert await _toggle_breakpoint(backend, line) == "deleted"
         await go_home(backend)
