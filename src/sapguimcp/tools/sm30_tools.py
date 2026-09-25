@@ -308,16 +308,10 @@ def register_sm30_tools(mcp: FastMCP) -> None:
             try:
                 output_path = write_json_output_file(output_file, result.model_dump(mode="json"))
             except ValueError as e:
-                return SM30ViewResult.failure(
-                    error=str(e),
-                    view_name=view_name,
-                    description="",
-                    view_type="unsupported",
-                    columns=[],
-                    rows=[],
-                    row_count=0,
-                    retrieved_at=result.retrieved_at,
-                )
+                failure_payload = result.model_dump(mode="python")
+                failure_payload["success"] = False
+                failure_payload["error"] = str(e)
+                return SM30ViewResult(**failure_payload)
 
             return SM30FileSummary(
                 success=True,

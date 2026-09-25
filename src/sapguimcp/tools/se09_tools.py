@@ -700,11 +700,9 @@ def register_se09_tools(mcp: FastMCP) -> None:
             try:
                 write_json_output_file(output_file, result.model_dump(mode="json"))
             except ValueError as e:
-                return TransportListResult.failure(
-                    error=str(e),
-                    requests=[],
-                    request_count=0,
-                    retrieved_at=result.retrieved_at,
-                )
+                failure_payload = result.model_dump(mode="python")
+                failure_payload["success"] = False
+                failure_payload["error"] = str(e)
+                return TransportListResult(**failure_payload)
 
         return result

@@ -1017,16 +1017,10 @@ def register_se16_tools(mcp: FastMCP) -> None:
             try:
                 output_path = write_json_output_file(output_file, result.model_dump(mode="json"))
             except ValueError as e:
-                return SE16Result.failure(
-                    error=str(e),
-                    table=table,
-                    total_hits=0,
-                    returned_rows=0,
-                    truncated=False,
-                    columns=[],
-                    rows=[],
-                    retrieved_at=result.retrieved_at,
-                )
+                failure_payload = result.model_dump(mode="python")
+                failure_payload["success"] = False
+                failure_payload["error"] = str(e)
+                return SE16Result(**failure_payload)
 
             return SE16FileSummary(
                 success=True,
