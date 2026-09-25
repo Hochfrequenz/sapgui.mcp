@@ -74,16 +74,18 @@ def resolve_output_file_path(output_file: str, base_dir: Path | None = None) -> 
     """
     safe_base_dir = (base_dir or Path.cwd()).expanduser().resolve()
     candidate = Path(output_file).expanduser()
-    resolved_path = candidate.resolve() if candidate.is_absolute() else (safe_base_dir / candidate).resolve()
 
-    try:
-        resolved_path.relative_to(safe_base_dir)
-    except ValueError as e:
-        raise ValueError(
-            f"output_file must stay within the working directory: {safe_base_dir}"
-        ) from e
+    if candidate.is_absolute():
+        try:
+            relative_path = candidate.relative_to(safe_base_dir)
+        except ValueError as e:
+            raise ValueError(
+                f"output_file must stay within the working directory: {safe_base_dir}"
+            ) from e
+    else:
+        relative_path = candidate
 
-    return resolved_path
+    return safe_base_dir / _normalize_relative_output_path(relative_path)
 
 
 def _normalize_relative_output_path(path: Path) -> Path:
@@ -104,27 +106,32 @@ def _normalize_relative_output_path(path: Path) -> Path:
     return Path(*parts)
 
 
+def _reject_symlink_path_components(path: Path, safe_base_dir: Path) -> None:
+    current_path = safe_base_dir
+    for part in path.relative_to(safe_base_dir).parts:
+        current_path /= part
+        if current_path.exists() and current_path.is_symlink():
+            raise ValueError("output_file must not traverse symlinks")
+
+
 def write_json_output_file(output_file: str, payload: Any, base_dir: Path | None = None) -> Path:
     """Write JSON output to a sandboxed ``output_file`` path."""
     safe_base_dir = (base_dir or Path.cwd()).expanduser().resolve()
     output_path = resolve_output_file_path(output_file, base_dir)
+    relative_output_path = output_path.relative_to(safe_base_dir)
     nofollow_flag = getattr(os, "O_NOFOLLOW", None)
     directory_flag = getattr(os, "O_DIRECTORY", None)
+
     if nofollow_flag is None or directory_flag is None:
-        raise ValueError("Secure output_file writes are not supported on this platform")
+        _reject_symlink_path_components(output_path.parent, safe_base_dir)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        _reject_symlink_path_components(output_path.parent, safe_base_dir)
+        if output_path.exists() and output_path.is_symlink():
+            raise ValueError("output_file must not traverse symlinks")
+        with output_path.open("w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+        return output_path
 
-    candidate = Path(output_file).expanduser()
-    if candidate.is_absolute():
-        try:
-            lexical_relative_path = candidate.relative_to(safe_base_dir)
-        except ValueError as e:
-            raise ValueError(
-                f"output_file must stay within the working directory: {safe_base_dir}"
-            ) from e
-    else:
-        lexical_relative_path = candidate
-
-    relative_output_path = _normalize_relative_output_path(lexical_relative_path)
     current_directory_fd = os.open(safe_base_dir, os.O_RDONLY | directory_flag)
     base_directory_fd = current_directory_fd
 

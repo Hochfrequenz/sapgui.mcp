@@ -11,7 +11,7 @@ import pytest
 from fastmcp import FastMCP
 
 from sapguimcp.models import SE16FileSummary, SE16Result, SE16Row
-from sapguimcp.models.se09_models import TransportListResult
+from sapguimcp.models.se09_models import TransportListResult, TransportRequest
 from sapguimcp.models.sm30_models import SM30Row, SM30ViewResult
 from sapguimcp.tools.se09_tools import register_se09_tools
 from sapguimcp.tools.se16_tools import register_se16_tools
@@ -49,8 +49,8 @@ def _sm30_result() -> SM30ViewResult:
 
 def _se09_result() -> TransportListResult:
     return TransportListResult(
-        requests=[],
-        request_count=0,
+        requests=[TransportRequest(request_number="DEVK900100")],
+        request_count=1,
         retrieved_at=datetime.now(UTC),
     )
 
@@ -169,3 +169,47 @@ def test_se09_lookup_rejects_absolute_output_path_outside_working_directory(
     assert result.success is False
     assert "working directory" in result.error
     mock_get_backend.assert_not_called()
+
+
+def test_se16_query_preserves_result_when_output_write_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    mcp = FastMCP("test")
+    register_se16_tools(mcp)
+    tool_fn = _tool_fn(mcp, "sap_se16_query")
+
+    with (
+        patch(
+            "sapguimcp.tools.se16_tools.get_backend",
+            new_callable=AsyncMock,
+            return_value=MagicMock(),
+        ),
+        patch(
+            "sapguimcp.tools.se16_tools._execute_se16_query",
+            new_callable=AsyncMock,
+            return_value=_se16_result(),
+        ),
+        patch(
+            "sapguimcp.tools.se16_tools.write_json_output_file",
+            side_effect=ValueError("write blocked"),
+        ),
+    ):
+        result = asyncio.run(
+            tool_fn(
+                ctx=MagicMock(),
+                table="T000",
+                filters=None,
+                max_hits=100,
+                output_file="se16.json",
+                session=None,
+                agent_id=None,
+            )
+        )
+
+    assert result.success is False
+    assert result.error == "write blocked"
+    assert result.table == "T000"
+    assert result.returned_rows == 1
+    assert result.rows[0].data == {"MANDT": "100"}
