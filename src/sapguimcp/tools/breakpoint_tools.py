@@ -69,9 +69,9 @@ def _resolve_match_pattern(source: str, pattern: str) -> int | None:
 def _classify_toggle_status(status_message: str) -> Literal["set", "deleted"] | None:
     """Classify a SAP status bar message as 'set' or 'deleted', or None if unrecognized."""
     msg = status_message.lower()
-    if "gesetzt" in msg:
+    if "gesetzt" in msg or re.search(r"\bset\b", msg):
         return "set"
-    if "gelöscht" in msg or "geloescht" in msg:
+    if "gelöscht" in msg or "geloescht" in msg or re.search(r"\bdeleted\b", msg):
         return "deleted"
     return None
 

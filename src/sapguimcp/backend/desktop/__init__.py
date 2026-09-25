@@ -14,6 +14,7 @@ import inspect
 import logging
 import os
 import tempfile
+import threading
 import time
 import weakref
 from contextvars import ContextVar
@@ -799,8 +800,10 @@ class DesktopBackend:
 
     #: Per-probe timeout, in seconds. Reconciliation must not block forever
     #: on a wedged COM thread — that would deadlock the very recovery path
-    #: agents reach for when COM is misbehaving.  ``asyncio.wait_for`` raises
-    #: ``TimeoutError`` past this point and the session is treated as dead.
+    #: agents reach for when COM is misbehaving. ``asyncio.wait_for`` bounds
+    #: the total queue-wait + execution time; reconcile distinguishes probes
+    #: that never got a turn on the worker from probes that actually started
+    #: and then hung.
     _RECONCILE_PROBE_TIMEOUT_S: float = 2.0
 
     #: How long a session may stay classified "busy" (see
@@ -825,7 +828,12 @@ class DesktopBackend:
                 dead.append(sid)
                 continue
 
-            def _probe(s: Any = ses) -> str:
+            # Set by the probe itself once the COM worker actually runs it, i.e. after
+            # any queue and throttle wait behind other calls.
+            probe_started = threading.Event()
+
+            def _probe(s: Any = ses, started: threading.Event = probe_started) -> str:
+                started.set()
                 # FindById on wnd[0] forces a real COM round-trip — Info
                 # would happily return cached values for a dead window.
                 return str(s.com.FindById("wnd[0]").Type)
@@ -839,18 +847,17 @@ class DesktopBackend:
                 self.registry.mark_alive(sid)
                 alive.append(sid)
             except (TimeoutError, asyncio.TimeoutError) as exc:
-                # A session halted at an ABAP breakpoint doesn't reject calls, it
-                # blocks them until a human continues the debugger — so a timeout
-                # while one of our connections shows a debugger is "busy", not dead.
-                # Deliberately not limited to the halted connection: probes of other
-                # sessions time out too, queued behind the call the watchdog is about
-                # to cancel. A session that is really wedged still goes after the
-                # busy cap.
-                if await self._halted_connections() and self._keep_busy_session(sid, exc):
-                    alive.append(sid)
+                # Not proof of death, so "busy" (kept up to the busy cap):
+                # - the probe never ran: it waited behind another long COM call (#881);
+                # - one of our connections is halted at an ABAP breakpoint: calls there
+                #   block until a human continues the debugger. Deliberately not limited
+                #   to the halted connection, since probes of other sessions time out
+                #   queued behind the call the watchdog is about to cancel.
+                if not probe_started.is_set() or await self._halted_connections():
+                    (alive if self._keep_busy_session(sid, exc) else dead).append(sid)
                     continue
-                # Wedged COM thread → can't prove the session is alive,
-                # treat it as dead so recovery can proceed.
+                # The probe ran and got no answer within the budget: the session
+                # itself is unresponsive, so treat it as dead and let recovery proceed.
                 logger.warning(
                     "reconcile_probe_timeout",
                     extra={
@@ -1495,7 +1502,7 @@ class DesktopBackend:
             _set_field_value(_unwrap_com(field), value)
 
         await self.com.run(_fill)
-        logger.info("fill_field", extra={"label": label, "value": value})
+        logger.info("fill_field", extra={"label": label})
 
     async def fill_main_input(self, value: str, labels: list[str]) -> bool:
         """Fill the main form input — try each label, fill first match."""
@@ -1512,7 +1519,7 @@ class DesktopBackend:
             return False
 
         result = await self.com.run(_fill)
-        logger.info("fill_main_input", extra={"value": value, "found": result})
+        logger.info("fill_main_input", extra={"found": result})
         return result
 
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
