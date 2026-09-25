@@ -121,7 +121,13 @@ def write_json_output_file(output_file: str, payload: Any, base_dir: Path | None
 
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
     file_descriptor = os.open(output_path, flags, 0o666)
-    with os.fdopen(file_descriptor, "w", encoding="utf-8") as f:
+    try:
+        file_handle = os.fdopen(file_descriptor, "w", encoding="utf-8")
+    except Exception:
+        os.close(file_descriptor)
+        raise
+
+    with file_handle as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
     return output_path
