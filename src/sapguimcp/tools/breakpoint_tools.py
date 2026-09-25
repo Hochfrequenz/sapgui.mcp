@@ -505,8 +505,8 @@ def _build_breakpoint_confirm_message(
         "either way the breakpoint ends up ARMED.\n\n"
         "Setting a breakpoint is dangerous: once it fires, SAP GUI opens a modal ABAP "
         "debugger that only a human can drive — there is no tool to step, continue, "
-        "or read variables. While the debugger is open, COM calls may fail with a transient 'server busy' "
-        "error until you dismiss it in SAP GUI.\n\n"
+        "or read variables. While the debugger is open, every tool call on that SAP session "
+        "fails with an error naming the debugger until you continue or exit it in SAP GUI.\n\n"
         "Proceed only if you intend to sit at the SAP GUI yourself and step through "
         "the debugger when it fires."
     )
@@ -518,10 +518,11 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
     @mcp.tool(
         description=(
             "HIGHLY DANGEROUS — DO NOT CALL unless a human user has explicitly asked for a breakpoint "
-            "to be set. Live-verified (issue #791): once the breakpoint fires, SAP GUI opens a modal ABAP debugger "
-            "that blocks the SAP GUI message loop. While it is open, COM calls may fail with a transient 'server busy' "
-            "error and can affect multiple sessions in the same SAP GUI process. Dismiss the debugger in SAP "
-            "GUI before retrying.\n\n"
+            "to be set. Live-verified (issue #791): once the breakpoint fires, the SAP session stops and SAP GUI "
+            "opens the ABAP debugger. The call that triggered it and every later call on that session fail after a "
+            "few seconds with an error naming the debugger, as can slow calls on other sessions of the same SAP "
+            "connection; sessions of other connections are not affected. The session works again "
+            "once a human continues or exits the debugger in SAP GUI.\n\n"
             "Set an external ABAP breakpoint on a specific line of a program, class method, "
             "or function module. Desktop backend only — WebGUI does not support external breakpoints.\n\n"
             "Provide either line_number (1-indexed SAP display line) or match_pattern "
@@ -532,11 +533,11 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             "and explain the consequences: there is NO tool to step, continue, or read variables in "
             "the resulting debugger. If the breakpoint later fires during a GUI run, SAP GUI opens a "
             "modal interactive ABAP debugger that only a human can drive — the agent cannot see or "
-            "control it, and it may fire once per row/iteration if the code path repeats. Firing it "
-            "can also destroy every other open session for this agent, as described above. Only "
-            "proceed once the human has confirmed they intend to sit at the SAP GUI and step through "
-            "the debugger themselves and accept the risk of losing all sessions; do not use this to "
-            "silently 'verify a code path is reached' from an unattended flow."
+            "control it, and it may fire once per row/iteration if the code path repeats. The halted "
+            "session is unusable for the agent until then, as described above. Only proceed once the "
+            "human has confirmed they intend to sit at the SAP GUI and step through the debugger "
+            "themselves; do not use this to silently 'verify a code path is reached' from an "
+            "unattended flow."
         ),
         annotations=ToolAnnotations(read_only_hint=False, destructive_hint=True, idempotent_hint=False),
     )
@@ -915,9 +916,9 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             "class method, or function module. Desktop backend only.\n\n"
             "Opens 'Hilfsmittel > Breakpoints > Anzeigen...' dialog in the source editor, "
             "reads the grid, and returns matching breakpoints.\n\n"
-            "Note: if a breakpoint is currently stopped in a modal debugger on this session, this "
-            "tool will report the session as busy rather than opening the dialog — dismiss the "
-            "debugger in the SAP GUI first."
+            "Note: if this session is currently stopped at a breakpoint, this tool fails with an "
+            "error naming the ABAP debugger instead of opening the dialog — continue or exit the "
+            "debugger in SAP GUI first."
         ),
         annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True),
     )

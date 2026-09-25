@@ -18,6 +18,16 @@ disconnection. Key signals:
 - **RPC_E_DISCONNECTED** (-2147417848): Connection dead — fatal.
 - **Call latency spikes**: If a call takes 5x longer than the moving
   average, COM is under pressure.
+
+Halted sessions: a COM call that makes SAP run ABAP (``SendVKey``, ``Press``,
+...) does not return until that ABAP finishes. When it stops at a breakpoint,
+the call blocks until a human is done in the ABAP debugger — and since every
+COM call goes through this one worker, the whole server would freeze. A
+watchdog thread therefore looks for an open ABAP debugger in the watched SAP
+connections whenever a call runs longer than ``halt_check_after_s``, and if it
+finds one, cancels the blocked call with ``CoCancelCall``. The caller gets a
+:class:`SapSessionHaltedError`; SAP keeps the program halted, and the session
+works again once the debugger is continued.
 """
 
 # pylint: disable=broad-exception-caught
@@ -27,10 +37,14 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import contextlib
+import ctypes
+import functools
 import logging
 import queue
 import threading
 import time
+from contextvars import ContextVar
 from typing import Any, Callable, TypeVar
 
 logger = logging.getLogger(__name__)
@@ -44,6 +58,39 @@ _RPC_E_CALL_REJECTED = -2147418111  # 0x80010001
 _RPC_S_UNKNOWN_IF = -2147023179  # 0x800706B5 — "The interface is unknown"
 
 _RETRYABLE_COM_ERRORS = {_RPC_E_SERVERCALL_RETRYLATER, _RPC_E_CALL_REJECTED, _RPC_S_UNKNOWN_IF}
+
+#: Program of an ABAP debugger session. The debugger runs in its own session of the
+#: halted session's connection (window "ABAP Debugger(1)  (exklusiv) ...").
+_DEBUGGER_PROGRAMS = frozenset({"RSTPDAMAIN"})
+
+#: A debugger scan only reads a few properties; if one blocks longer than this, a session
+#: turned busy between its ``Busy`` check and the next read — the read is cancelled.
+_SCAN_READ_TIMEOUT_S = 1.0
+
+
+#: SAP GUI connection (e.g. ``/app/con[1]``) the COM calls of the current task target.
+#: ``ComThread.run`` captures it per call, so the halt watchdog only cancels a call when
+#: *its* connection has a debugger open. ``None`` = unknown (may be cancelled whenever a
+#: watched connection is halted); ``NO_SESSION_TARGET`` = never cancel (e.g. login).
+#: Granularity is the connection, not the session: the debugger doesn't say which of the
+#: connection's busy sessions it halted, so while it is open, a call running longer than
+#: ``halt_check_after_s`` on another session of the same connection is cancelled too.
+com_call_target: ContextVar[str | None] = ContextVar("com_call_target", default=None)
+NO_SESSION_TARGET = ""
+
+
+class SapSessionHaltedError(RuntimeError):
+    """A COM call was cancelled because its SAP session stopped at an ABAP breakpoint."""
+
+    def __init__(self, debugger_titles: list[str]) -> None:
+        windows = ", ".join(f"'{title}'" for title in debugger_titles)
+        super().__init__(
+            f"The SAP session stopped at an ABAP breakpoint: the ABAP debugger is open in SAP GUI "
+            f"(window {windows}). The MCP cannot drive the debugger — a human must continue (F8) or exit "
+            "it in SAP GUI. Until then calls to this session fail after a few seconds with this error. "
+            "Remove the breakpoint with sap_breakpoint_delete when it is no longer needed."
+        )
+        self.debugger_titles = debugger_titles
 
 
 def _get_com_error_code(exc: Exception) -> int | None:
@@ -119,6 +166,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         min_interval_ms: int = 100,
         max_interval_ms: int = 2000,
         max_retries: int = 3,
+        halt_check_after_s: float = 3.0,
     ) -> None:
         self._init_com = init_com
         self._min_interval_s = min_interval_ms / 1000.0
@@ -141,11 +189,28 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         # ``None`` means "use ``self._max_retries``"; ``0`` means "fail fast on
         # retryable errors" — used by liveness probes where ``RPC_S_UNKNOWN_IF``
         # signals "this session is dead", not "try again".
-        self._queue: queue.Queue[tuple[Callable[[], Any], concurrent.futures.Future[Any], int | None] | None] = (
-            queue.Queue()
-        )
+        # The last element is the SAP connection the call targets (see ``com_call_target``).
+        self._queue: queue.Queue[
+            tuple[Callable[[], Any], concurrent.futures.Future[Any], int | None, str | None] | None
+        ] = queue.Queue()
+        # Halt watchdog state (see module docstring). ``_state_lock`` guards the
+        # in-flight call bookkeeping shared between the worker and the watchdog.
+        self._halt_check_after_s = halt_check_after_s
+        self._state_lock = threading.Lock()
+        self._call_seq = 0
+        self._in_flight_seq: int | None = None
+        self._in_flight_target: str | None = None
+        self._next_halt_check_at: float | None = None
+        self._halted_calls: dict[int, list[str]] = {}
+        self._worker_tid: int | None = None
+        self._watchdog_tid: int | None = None
+        self._watched_connections: set[str] = set()
+        self._scan_requests: queue.Queue[concurrent.futures.Future[dict[str, str]]] = queue.Queue()
+        self._stopping = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True, name="sapgui-com-worker")
         self._thread.start()
+        self._watchdog = threading.Thread(target=self._watch, daemon=True, name="sapgui-com-halt-watchdog")
+        self._watchdog.start()
         logger.info(
             "com_thread_started",
             extra={"min_interval_ms": min_interval_ms, "max_interval_ms": max_interval_ms},
@@ -157,17 +222,25 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             import pythoncom  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel
 
             pythoncom.CoInitialize()  # pylint: disable=no-member
+            _enable_call_cancellation()
+        self._worker_tid = threading.get_native_id()
         last_call = 0.0
         try:
             while True:
                 item = self._queue.get()
                 if item is None:
                     break
-                fn, cf_future, retries_override = item
+                fn, cf_future, retries_override, target = item
+                if not cf_future.set_running_or_notify_cancel():
+                    # The caller already gave up (e.g. a liveness probe's wait_for timed
+                    # out). Running it anyway could only block the worker for nothing —
+                    # on a halted session, for seconds until the watchdog cancels it.
+                    continue
                 # Resolve the per-call retry budget here so _execute_with_retry
                 # stays under the local-variable cap (pylint too-many-locals).
                 max_retries = self._max_retries if retries_override is None else retries_override
-                self._execute_with_retry(fn, cf_future, last_call, max_retries)
+                tracked = functools.partial(self._invoke_tracked, fn, target)
+                self._execute_with_retry(tracked, cf_future, last_call, max_retries)
                 last_call = time.monotonic()
         except Exception:
             # Forensic snapshot — without this, we can't tell *why* the worker
@@ -243,14 +316,12 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
 
                 self._calls_succeeded += 1
                 self._last_success_at = time.monotonic()
-                # Guard against a caller that already gave up: asyncio.wait_for
-                # (used by the liveness probes in get_session_status /
-                # _reconcile_locked) cancels the wrapping future on timeout, and
-                # since this worker never calls set_running_or_notify_cancel the
-                # concurrent.futures.Future is cancellable while we run fn(). A
-                # set_result on a cancelled future raises InvalidStateError,
-                # which would crash the worker loop — precisely the wedged-COM
-                # scenario those probes exist to survive (issue #789).
+                # Defensive: ``_run`` marks the future running before calling fn(),
+                # so a caller giving up mid-call (asyncio.wait_for in the liveness
+                # probes) can no longer cancel it. If a future were settled anyway,
+                # set_result would raise InvalidStateError and crash the worker loop
+                # — precisely the wedged-COM scenario those probes exist to survive
+                # (issue #789).
                 if not cf_future.done():
                     cf_future.set_result(result)
                 return
@@ -340,7 +411,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 "cannot be revived. The BackendManager must rebuild it."
             )
         cf_future: concurrent.futures.Future[T] = concurrent.futures.Future()
-        self._queue.put((fn, cf_future, max_retries))
+        self._queue.put((fn, cf_future, max_retries, com_call_target.get()))
         return await asyncio.wrap_future(cf_future)
 
     @property
@@ -372,5 +443,264 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 "avg_latency_ms": int(self._avg_latency_s * 1000),
             },
         )
+        self._stopping.set()
         self._queue.put(None)
         self._thread.join(timeout=5)
+        self._watchdog.join(timeout=2)
+
+    # ---- Halted sessions (ABAP breakpoint) ----
+
+    def watch_connection(self, connection_id: str) -> None:
+        """Watch a SAP GUI connection (e.g. ``/app/con[1]``) for an ABAP debugger.
+
+        Only watched connections are considered, so a debugger the user opened in
+        a connection of their own never cancels the server's calls.
+        """
+        with self._state_lock:
+            self._watched_connections.add(connection_id)
+        logger.info("com_watch_connection", extra={"connection_id": connection_id})
+
+    def unwatch_connection(self, connection_id: str) -> None:
+        """Stop watching a connection, e.g. once none of its sessions is registered any more.
+
+        SAP GUI can hand a closed connection's id to a connection the user opens later.
+        """
+        with self._state_lock:
+            self._watched_connections.discard(connection_id)
+        logger.info("com_unwatch_connection", extra={"connection_id": connection_id})
+
+    async def halted_connections(self) -> dict[str, str]:
+        """Watched connections with an open ABAP debugger, mapped to its window title.
+
+        Runs on the watchdog thread, which never touches a halted session beyond its
+        ``Busy`` flag — so this answers even while the worker is blocked.
+        """
+        with self._state_lock:
+            if not self._watched_connections:
+                return {}
+        request: concurrent.futures.Future[dict[str, str]] = concurrent.futures.Future()
+        self._scan_requests.put(request)
+        try:
+            return await asyncio.wait_for(asyncio.wrap_future(request), timeout=5.0)
+        except Exception:
+            logger.warning("com_halt_scan_failed", exc_info=True)
+            return {}
+
+    def _invoke_tracked(self, fn: Callable[[], Any], target: str | None) -> Any:
+        """Run *fn* on the worker, visible to the watchdog while it is in flight."""
+        with self._state_lock:
+            self._call_seq += 1
+            seq = self._call_seq
+            self._in_flight_seq = seq
+            self._in_flight_target = target
+            self._next_halt_check_at = time.monotonic() + self._halt_check_after_s
+        try:
+            result = fn()
+        except Exception as exc:
+            debugger_titles = self._halted_titles(seq)
+            if debugger_titles is not None:
+                raise SapSessionHaltedError(debugger_titles) from exc
+            raise
+        finally:
+            with self._state_lock:
+                debugger_titles = self._halted_calls.pop(seq, None)
+                self._in_flight_seq = None
+                self._in_flight_target = None
+                self._next_halt_check_at = None
+        if debugger_titles is not None:
+            # fn caught the cancelled call's error itself and carried on — whatever it
+            # returned was computed from a call that never completed.
+            raise SapSessionHaltedError(debugger_titles)
+        return result
+
+    def _halted_titles(self, seq: int) -> list[str] | None:
+        with self._state_lock:
+            return self._halted_calls.get(seq)
+
+    def _watch(self) -> None:
+        """Watchdog loop: answer scan requests, cancel calls stuck behind a debugger."""
+        if self._init_com:
+            import pythoncom  # pylint: disable=import-outside-toplevel
+
+            pythoncom.CoInitialize()  # pylint: disable=no-member
+            _enable_call_cancellation()  # so a scan read that blocks can be cancelled too
+        self._watchdog_tid = threading.get_native_id()
+        tick_s = max(0.05, min(0.5, self._halt_check_after_s / 2))
+        try:
+            # Ends with the worker too: a crashed ComThread is replaced, not revived.
+            while not self._stopping.is_set() and self._thread.is_alive():
+                request: concurrent.futures.Future[dict[str, str]] | None
+                try:
+                    request = self._scan_requests.get(timeout=tick_s)
+                except queue.Empty:
+                    request = None
+                # One failing tick must not end the watchdog — the freeze would be back.
+                try:
+                    if request is not None:
+                        self._answer_scan_request(request)
+                    self._cancel_if_halted()
+                except Exception:
+                    logger.exception("com_halt_watchdog_tick_failed")
+        finally:
+            if self._init_com:
+                import pythoncom  # pylint: disable=import-outside-toplevel
+
+                pythoncom.CoUninitialize()  # pylint: disable=no-member
+
+    def _answer_scan_request(self, request: concurrent.futures.Future[dict[str, str]]) -> None:
+        result = self._halted_watched_connections()
+        with contextlib.suppress(concurrent.futures.InvalidStateError):  # the caller timed out meanwhile
+            request.set_result(result)
+
+    def _cancel_if_halted(self) -> None:
+        """Cancel the in-flight call while its connection has an ABAP debugger open.
+
+        Re-checks every ``halt_check_after_s`` for as long as the call is in flight: a
+        cancel can miss (the worker was between two COM calls), or the callable can
+        swallow the cancel error and block on the halted session again.
+        """
+        now = time.monotonic()
+        with self._state_lock:
+            seq, target, check_at = self._in_flight_seq, self._in_flight_target, self._next_halt_check_at
+            watching = bool(self._watched_connections)
+        if seq is None or check_at is None or now < check_at or not watching or target == NO_SESSION_TARGET:
+            return
+        halted = self._halted_watched_connections()
+        if target is not None:
+            halted = {connection_id: title for connection_id, title in halted.items() if connection_id == target}
+        with self._state_lock:
+            if self._in_flight_seq != seq:
+                return  # finished meanwhile
+            self._next_halt_check_at = time.monotonic() + self._halt_check_after_s
+            if not halted:
+                return
+            # Under the lock, so the worker can't finish this call and start the next
+            # one before the cancel request reaches the call it is meant for.
+            cancelled = self._cancel_worker_call()
+            if cancelled:
+                self._halted_calls[seq] = sorted(halted.values())
+        if cancelled:
+            logger.warning(
+                "com_call_cancelled_halted_at_breakpoint",
+                extra={"halted_connections": halted, "target": target},
+            )
+
+    def _halted_watched_connections(self) -> dict[str, str]:
+        with self._state_lock:
+            watched = set(self._watched_connections)
+        if not watched:
+            return {}
+        # Reading SAP GUI objects from this thread while the worker drives them is the
+        # concurrent scripting access the single worker exists to avoid — it made SAP
+        # sessions die in long test runs. A top-level window check costs no COM call,
+        # so only look inside SAP GUI while an ABAP debugger window is actually open.
+        if not self._debugger_window_open():
+            return {}
+        # The scan skips busy sessions, but one can turn busy right after its Busy
+        # check (the worker starts a roundtrip on it); the next read would then block
+        # for that whole roundtrip — or, if it hits the breakpoint, until a human is
+        # done in the debugger, stalling the watchdog itself. Cancel such a read.
+        guard = threading.Timer(_SCAN_READ_TIMEOUT_S, _cancel_call_on, args=(self._watchdog_tid,))
+        guard.daemon = True
+        guard.start()
+        try:
+            found = self._list_debugger_sessions(watched)
+        except Exception:
+            logger.debug("com_debugger_scan_failed", exc_info=True)
+            return {}
+        finally:
+            guard.cancel()
+        return {connection_id: title for connection_id, title in found.items() if connection_id in watched}
+
+    def _debugger_window_open(self) -> bool:
+        """True if any top-level window is titled like an ABAP debugger (no COM involved)."""
+        return _debugger_window_open()
+
+    def _list_debugger_sessions(self, connection_ids: set[str]) -> dict[str, str]:
+        """Find an ABAP debugger session in the given SAP GUI connections (watchdog thread).
+
+        A halted session blocks every COM call except ``Busy``, so busy sessions are
+        skipped — the debugger session itself is idle while it waits for the human.
+        The window title is only read once the program says it is a debugger.
+        """
+        import win32com.client  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel
+
+        found: dict[str, str] = {}
+        app = win32com.client.GetObject("SAPGUI").GetScriptingEngine
+        for connection_index in range(app.Children.Count):
+            connection = app.Children(connection_index)
+            connection_id = str(connection.Id)
+            if connection_id not in connection_ids:
+                continue
+            for session_index in range(connection.Children.Count):
+                session = connection.Children(session_index)
+                if session.Busy or str(session.Info.Program) not in _DEBUGGER_PROGRAMS:
+                    continue
+                found[connection_id] = str(session.Children(0).Text)
+                break
+        return found
+
+    def _cancel_worker_call(self) -> bool:
+        """Cancel the worker's pending outbound COM call; True if COM accepted the request.
+
+        The blocked call then raises ``RPC_E_CALL_CANCELED``. When no call is pending
+        (the worker is between two calls), COM reports that instead of cancelling.
+        """
+        return _cancel_call_on(self._worker_tid)
+
+
+def _cancel_call_on(thread_id: int | None) -> bool:
+    """``CoCancelCall`` for *thread_id*'s pending outbound COM call; True if COM accepted it."""
+    if thread_id is None:
+        return False
+    try:
+        return bool(_ole32().CoCancelCall(thread_id, 0) == 0)
+    except Exception:
+        logger.warning("com_cancel_call_failed", exc_info=True)
+        return False
+
+
+def _enable_call_cancellation() -> None:
+    """Let other threads cancel this thread's pending COM calls (see ``_cancel_worker_call``)."""
+    try:
+        hresult = _ole32().CoEnableCallCancellation(None)
+        if hresult != 0:
+            logger.warning("com_enable_call_cancellation_failed", extra={"hresult": hresult})
+    except Exception:
+        logger.warning("com_enable_call_cancellation_failed", exc_info=True)
+
+
+_DEBUGGER_WINDOW_TITLE_PREFIXES = ("ABAP Debugger", "ABAP-Debugger")
+
+
+def _debugger_window_open() -> bool:
+    """Look for an ABAP debugger among the top-level windows via ``EnumWindows``."""
+    try:
+        user32 = ctypes.windll.user32  # type: ignore[attr-defined,unused-ignore]
+    except AttributeError:  # not Windows
+        return False
+    found = False
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)  # type: ignore[attr-defined,unused-ignore,misc,untyped-decorator]
+    def check(hwnd: Any, _lparam: Any) -> bool:
+        nonlocal found
+        length = user32.GetWindowTextLengthW(hwnd)
+        if length:
+            buffer = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buffer, length + 1)
+            if buffer.value.startswith(_DEBUGGER_WINDOW_TITLE_PREFIXES):
+                found = True
+                return False  # stop enumerating
+        return True
+
+    try:
+        user32.EnumWindows(check, None)
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.debug("debugger_window_check_failed", exc_info=True)
+        return True  # can't tell: fall back to the COM scan
+    return found
+
+
+def _ole32() -> Any:
+    """``ctypes.windll.ole32`` — Windows only; raises AttributeError elsewhere."""
+    return ctypes.windll.ole32  # type: ignore[attr-defined,unused-ignore]
