@@ -32,6 +32,7 @@ from fastmcp.utilities.types import Image
 from mcp.types import ToolAnnotations
 
 from sapguimcp.backend.manager import get_backend
+from sapguimcp.mcp_session import get_mcp_session_id
 from sapguimcp.models import (
     CapabilitiesResult,
     ClickButtonResult,
@@ -308,7 +309,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             ``session`` / ``session_id`` parameter can use that ID to
             address this specific login when multiple sessions are active.
         """
-        session_id = getattr(ctx, "session_id", None) if ctx else None
+        session_id = get_mcp_session_id(ctx)
         return await sap_login_impl(url=url, client=client, system_key=system_key, session_id=session_id)
 
     @mcp.tool(

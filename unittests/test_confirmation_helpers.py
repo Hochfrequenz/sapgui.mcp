@@ -134,3 +134,12 @@ async def test_modern_answer_for_a_different_question_is_not_honored():
 async def test_modern_client_without_elicitation_fails_open():
     result = await confirm_destructive_action(_FakeModernContext(elicitation=False), "Proceed?")
     assert result == (True, "", True)
+
+
+@pytest.mark.anyio
+async def test_modern_answer_without_request_state_is_not_honored():
+    ctx = _FakeModernContext(
+        input_responses={"confirm_destructive_action": ElicitResult(action="accept", content={"value": True})},
+        request_state=None,
+    )
+    assert isinstance(await confirm_destructive_action(ctx, "Proceed?"), InputRequiredResult)

@@ -23,7 +23,8 @@ import logging
 from fastmcp import Context
 from fastmcp.server.elicitation import AcceptedElicitation, CancelledElicitation, DeclinedElicitation
 from mcp.types import ElicitRequest, ElicitRequestFormParams, ElicitResult, InputRequiredResult
-from mcp.types.version import MODERN_PROTOCOL_VERSIONS
+
+from sapguimcp.mcp_session import is_modern_connection
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +34,6 @@ _CONFIRM_SCHEMA = {
     "properties": {"value": {"type": "boolean", "title": "Proceed?"}},
     "required": ["value"],
 }
-
-
-def _is_modern_connection(ctx: Context) -> bool:
-    """True on a 2026-07-28 connection, where ctx.elicit() is unavailable."""
-    request_context = getattr(ctx, "request_context", None)
-    return request_context is not None and request_context.protocol_version in MODERN_PROTOCOL_VERSIONS
 
 
 async def confirm_destructive_action(  # pylint: disable=too-many-return-statements
@@ -68,7 +63,7 @@ async def confirm_destructive_action(  # pylint: disable=too-many-return-stateme
     if ctx is None:
         return True, "", True
 
-    if _is_modern_connection(ctx):
+    if is_modern_connection(ctx):
         return _confirm_via_input_required(ctx, message)
 
     try:
