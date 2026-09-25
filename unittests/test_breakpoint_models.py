@@ -190,6 +190,16 @@ class TestParseToggleStatus:
 
         assert _classify_toggle_status("Externer Breakpoint in Programm ZTEST gelöscht") == "deleted"
 
+    def test_english_set_means_set(self) -> None:
+        from sapguimcp.tools.breakpoint_tools import _classify_toggle_status
+
+        assert _classify_toggle_status("External breakpoint in program ZTEST set") == "set"
+
+    def test_english_deleted_means_deleted(self) -> None:
+        from sapguimcp.tools.breakpoint_tools import _classify_toggle_status
+
+        assert _classify_toggle_status("External breakpoint in program ZTEST deleted") == "deleted"
+
     def test_unknown_returns_none(self) -> None:
         from sapguimcp.tools.breakpoint_tools import _classify_toggle_status
 
