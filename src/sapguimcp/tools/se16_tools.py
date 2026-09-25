@@ -1021,6 +1021,7 @@ def register_se16_tools(mcp: FastMCP) -> None:
                 truncated=result.truncated,
                 columns=result.columns,
                 sample_rows=result.rows[:5],  # First 5 rows as preview
+                filter_warnings=result.filter_warnings,
             )
 
         return result

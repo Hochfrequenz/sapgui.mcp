@@ -57,3 +57,7 @@ class SE16FileSummary(ToolResult):
     truncated: bool = Field(description="True if total_hits >= max_hits")
     columns: list[str] = Field(description="Column names in order")
     sample_rows: list[SE16Row] = Field(default_factory=list, description="Preview of first 5 rows")
+    filter_warnings: list[str] = Field(
+        default_factory=list,
+        description="Requested filters that could not be applied, including the reason for each failure",
+    )

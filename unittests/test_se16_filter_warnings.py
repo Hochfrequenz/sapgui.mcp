@@ -1,13 +1,15 @@
 """Unit tests for SE16 filter warning propagation."""
 
+import json
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from fastmcp import Client, FastMCP
 
 from sapguimcp.models import ScreenInfo, StatusBarInfo, TableData, TableRow, TransactionResult
 from sapguimcp.models.se16_models import SE16Result, SE16Row
-from sapguimcp.tools.se16_tools import _execute_se16_query_desktop
+from sapguimcp.tools.se16_tools import _execute_se16_query_desktop, register_se16_tools
 
 
 def _make_desktop_backend() -> AsyncMock:
@@ -94,3 +96,33 @@ async def test_execute_se16_query_desktop_returns_filter_warnings() -> None:
     assert result.rows[0].data["TCODE"] == "SE16"
     assert backend.press_key.await_args_list[0].args == ("Enter",)
     assert backend.press_key.await_args_list[-1].args == ("F8",)
+
+
+@pytest.mark.anyio
+async def test_file_output_summary_carries_filter_warnings(tmp_path) -> None:
+    """With output_file, sap_se16_query returns an SE16FileSummary — it must still say which filters were skipped."""
+    result = SE16Result(
+        success=True,
+        table="TSTC",
+        total_hits=1,
+        returned_rows=1,
+        truncated=False,
+        columns=["TCODE"],
+        rows=[SE16Row(data={"TCODE": "SE16"})],
+        filter_warnings=["TCODE: field not found on selection screen"],
+        retrieved_at=datetime.now(UTC),
+    )
+    server = FastMCP("t")
+    register_se16_tools(server)
+    output_file = tmp_path / "tstc.json"
+    with (
+        patch("sapguimcp.tools.se16_tools.get_backend", new=AsyncMock(return_value=AsyncMock())),
+        patch("sapguimcp.tools.se16_tools._execute_se16_query", new=AsyncMock(return_value=result)),
+    ):
+        async with Client(server) as client:
+            raw = await client.call_tool(
+                "sap_se16_query", {"table": "TSTC", "filters": {"TCODE": "SE16"}, "output_file": str(output_file)}
+            )
+    summary = json.loads(raw.content[0].text)
+    assert summary["output_file"]
+    assert summary["filter_warnings"] == ["TCODE: field not found on selection screen"]
