@@ -213,10 +213,11 @@ class TestDescribeComError:
 
 
 class TestWorkerSurvivesCancelledFuture:
-    """#789: a caller timing out (asyncio.wait_for) cancels the wrapping future
-    while the worker is still running fn(). Settling a cancelled future must not
-    crash the COM worker — that would defeat the liveness probes that rely on
-    the timeout to survive a slow/wedged COM call."""
+    """#789: a caller timing out (asyncio.wait_for) while the worker is still running
+    fn() must not crash the COM worker — that would defeat the liveness probes that
+    rely on the timeout to survive a slow/wedged COM call. (The worker marks the
+    future running before fn(), so it can no longer be cancelled mid-call; the
+    done() guards stay as a second line of defence.)"""
 
     @pytest.mark.anyio
     async def test_timeout_cancellation_does_not_kill_worker(self, com_thread):

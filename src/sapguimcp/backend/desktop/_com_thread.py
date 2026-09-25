@@ -62,13 +62,19 @@ _RETRYABLE_COM_ERRORS = {_RPC_E_SERVERCALL_RETRYLATER, _RPC_E_CALL_REJECTED, _RP
 #: Program of an ABAP debugger session. The debugger runs in its own session of the
 #: halted session's connection (window "ABAP Debugger(1)  (exklusiv) ...").
 _DEBUGGER_PROGRAMS = frozenset({"RSTPDAMAIN"})
-_DEBUGGER_TITLE_PREFIXES = ("ABAP Debugger", "ABAP-Debugger")
+
+#: A debugger scan only reads a few properties; if one blocks longer than this, a session
+#: turned busy between its ``Busy`` check and the next read — the read is cancelled.
+_SCAN_READ_TIMEOUT_S = 1.0
 
 
 #: SAP GUI connection (e.g. ``/app/con[1]``) the COM calls of the current task target.
 #: ``ComThread.run`` captures it per call, so the halt watchdog only cancels a call when
 #: *its* connection has a debugger open. ``None`` = unknown (may be cancelled whenever a
 #: watched connection is halted); ``NO_SESSION_TARGET`` = never cancel (e.g. login).
+#: Granularity is the connection, not the session: the debugger doesn't say which of the
+#: connection's busy sessions it halted, so while it is open, a call running longer than
+#: ``halt_check_after_s`` on another session of the same connection is cancelled too.
 com_call_target: ContextVar[str | None] = ContextVar("com_call_target", default=None)
 NO_SESSION_TARGET = ""
 
@@ -197,6 +203,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         self._next_halt_check_at: float | None = None
         self._halted_calls: dict[int, list[str]] = {}
         self._worker_tid: int | None = None
+        self._watchdog_tid: int | None = None
         self._watched_connections: set[str] = set()
         self._scan_requests: queue.Queue[concurrent.futures.Future[dict[str, str]]] = queue.Queue()
         self._stopping = threading.Event()
@@ -309,14 +316,12 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
 
                 self._calls_succeeded += 1
                 self._last_success_at = time.monotonic()
-                # Guard against a caller that already gave up: asyncio.wait_for
-                # (used by the liveness probes in get_session_status /
-                # _reconcile_locked) cancels the wrapping future on timeout, and
-                # since this worker never calls set_running_or_notify_cancel the
-                # concurrent.futures.Future is cancellable while we run fn(). A
-                # set_result on a cancelled future raises InvalidStateError,
-                # which would crash the worker loop — precisely the wedged-COM
-                # scenario those probes exist to survive (issue #789).
+                # Defensive: ``_run`` marks the future running before calling fn(),
+                # so a caller giving up mid-call (asyncio.wait_for in the liveness
+                # probes) can no longer cancel it. If a future were settled anyway,
+                # set_result would raise InvalidStateError and crash the worker loop
+                # — precisely the wedged-COM scenario those probes exist to survive
+                # (issue #789).
                 if not cf_future.done():
                     cf_future.set_result(result)
                 return
@@ -518,6 +523,8 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             import pythoncom  # pylint: disable=import-outside-toplevel
 
             pythoncom.CoInitialize()  # pylint: disable=no-member
+            _enable_call_cancellation()  # so a scan read that blocks can be cancelled too
+        self._watchdog_tid = threading.get_native_id()
         tick_s = max(0.05, min(0.5, self._halt_check_after_s / 2))
         try:
             # Ends with the worker too: a crashed ComThread is replaced, not revived.
@@ -583,11 +590,20 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             watched = set(self._watched_connections)
         if not watched:
             return {}
+        # The scan skips busy sessions, but one can turn busy right after its Busy
+        # check (the worker starts a roundtrip on it); the next read would then block
+        # for that whole roundtrip — or, if it hits the breakpoint, until a human is
+        # done in the debugger, stalling the watchdog itself. Cancel such a read.
+        guard = threading.Timer(_SCAN_READ_TIMEOUT_S, _cancel_call_on, args=(self._watchdog_tid,))
+        guard.daemon = True
+        guard.start()
         try:
             found = self._list_debugger_sessions(watched)
         except Exception:
             logger.debug("com_debugger_scan_failed", exc_info=True)
             return {}
+        finally:
+            guard.cancel()
         return {connection_id: title for connection_id, title in found.items() if connection_id in watched}
 
     def _list_debugger_sessions(self, connection_ids: set[str]) -> dict[str, str]:
@@ -620,13 +636,18 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         The blocked call then raises ``RPC_E_CALL_CANCELED``. When no call is pending
         (the worker is between two calls), COM reports that instead of cancelling.
         """
-        if self._worker_tid is None:
-            return False
-        try:
-            return bool(_ole32().CoCancelCall(self._worker_tid, 0) == 0)
-        except Exception:
-            logger.warning("com_cancel_call_failed", exc_info=True)
-            return False
+        return _cancel_call_on(self._worker_tid)
+
+
+def _cancel_call_on(thread_id: int | None) -> bool:
+    """``CoCancelCall`` for *thread_id*'s pending outbound COM call; True if COM accepted it."""
+    if thread_id is None:
+        return False
+    try:
+        return bool(_ole32().CoCancelCall(thread_id, 0) == 0)
+    except Exception:
+        logger.warning("com_cancel_call_failed", exc_info=True)
+        return False
 
 
 def _enable_call_cancellation() -> None:

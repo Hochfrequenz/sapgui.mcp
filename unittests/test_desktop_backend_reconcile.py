@@ -585,3 +585,19 @@ class TestHaltWatchdogTargeting:
         await backend.reconcile()
 
         backend.com.unwatch_connection.assert_called_once_with("/app/con[2]")
+
+
+class TestHaltedProbeError:
+    @pytest.mark.anyio
+    async def test_probe_cancelled_as_halted_keeps_session(self) -> None:
+        backend = _make_backend()
+        backend.registry.register(_make_mock_session("s1", alive=True))
+
+        async def halted_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+            raise SapSessionHaltedError(["ABAP Debugger(1)"])
+
+        backend.com.run = halted_run
+
+        report = await backend.reconcile()
+
+        assert report == {"alive": ["s1"], "removed": []}

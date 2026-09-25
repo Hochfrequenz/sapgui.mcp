@@ -378,6 +378,8 @@ class DesktopBackend:
                 # block below catches that and surfaces it as
                 # LoginResult.failure.
                 # Logging in opens a new connection — never a call to cancel as "halted".
+                # (A breakpoint hit by login-time ABAP would still block here: the new
+                # connection isn't watched until login returns.)
                 com_call_target.set(NO_SESSION_TARGET)
                 session = await self.com.run(
                     lambda: _sapsucker_login(
@@ -422,15 +424,26 @@ class DesktopBackend:
 
         Sessions opened later with ``open_new_session`` live in the same connection.
         """
-        watch_connection = getattr(self.com, "watch_connection", None)
-        if watch_connection is None:
+        if getattr(self.com, "watch_connection", None) is None:
             return
         try:
             connection_id = await self.com.run(lambda: str(session.com.Parent.Id))
-            self._session_connections[session] = connection_id
-            watch_connection(connection_id)
         except Exception:  # pylint: disable=broad-exception-caught
             logger.warning("watch_connection_failed", exc_info=True)
+            return
+        self._record_connection(session, connection_id)
+
+    def _record_connection(self, session: GuiSession, connection_id: str) -> None:
+        """Remember *session*'s connection and have the COM thread watch it for a debugger."""
+        connections = getattr(self, "_session_connections", None)
+        watch_connection = getattr(self.com, "watch_connection", None)
+        if connections is None or watch_connection is None:
+            return
+        try:
+            connections[session] = connection_id
+        except TypeError:  # not weak-referenceable (test doubles)
+            return
+        watch_connection(connection_id)
 
     async def list_connections(self) -> list[Any]:
         """List available SAP Logon connections from the landscape file."""
@@ -611,28 +624,27 @@ class DesktopBackend:
             await self.com.run(session.create_session)
             await asyncio.sleep(1)
 
-            def _navigate() -> tuple[Any, int, str | None]:
+            def _navigate() -> tuple[Any, int, str | None, str]:
                 from sapsucker._factory import wrap_com_object  # pylint: disable=import-outside-toplevel
 
                 conn_com = session.com.Parent
+                connection_id = str(conn_com.Id)
                 count = conn_com.Children.Count
                 if count < 2:
-                    return None, count, None
+                    return None, count, None, connection_id
                 new_ses_com = conn_com.Children(count - 1)
                 new_gui_session = wrap_com_object(new_ses_com)
                 # Enter transaction in new session
                 new_ses_com.FindById("wnd[0]/tbar[0]/okcd").Text = f"/n{tcode}"
                 new_ses_com.FindById("wnd[0]").SendVKey(0)
                 title = str(new_ses_com.FindById("wnd[0]").Text)
-                return new_gui_session, count, title
+                return new_gui_session, count, title, connection_id
 
-            result_session, count, title = await self.com.run(_navigate)
+            result_session, count, title, connection_id = await self.com.run(_navigate)
             if result_session is None:
                 return None, count, None
             session_id = self.registry.register(result_session)
-            connection_id = self._connection_of(session)
-            if connection_id is not None:  # a new session lives in its creator's connection
-                self._session_connections[result_session] = connection_id
+            self._record_connection(result_session, connection_id)
             logger.info("open_session", extra={"tcode": tcode, "session_id": session_id, "count": count})
             return session_id, count, title
         except Exception:
@@ -844,6 +856,9 @@ class DesktopBackend:
                     },
                 )
                 dead.append(sid)
+            except SapSessionHaltedError as exc:
+                # The watchdog cancelled the probe: stopped at a breakpoint, alive.
+                (alive if self._keep_busy_session(sid, exc) else dead).append(sid)
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 if is_transient_busy_error(exc):
                     # The process is there, it just rejected the call while
