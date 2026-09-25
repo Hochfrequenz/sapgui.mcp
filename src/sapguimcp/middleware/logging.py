@@ -95,7 +95,17 @@ class ToolCallLoggingMiddleware(Middleware):
         """Format tool arguments for logging, masking sensitive values."""
         if not arguments:
             return {}
-        sensitive_keys = {"password", "secret", "token", "credential", "api_key", "secret_key"}
+        sensitive_keys = {
+            "password",
+            "secret",
+            "token",
+            "credential",
+            "api_key",
+            "secret_key",
+            "pat",
+            "access_token",
+            "auth_token",
+        }
         result: dict[str, str] = {}
         for k, v in arguments.items():
             if any(s in k.lower() for s in sensitive_keys):

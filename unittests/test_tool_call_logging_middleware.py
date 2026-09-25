@@ -77,6 +77,12 @@ def test_middleware_shares_sessions_ref():
     assert mw._sessions is _sessions_ref
 
 
+@pytest.mark.parametrize("key", ["pat", "access_token", "auth_token"])
+def test_format_args_masks_credential_arguments(key):
+    """Credential-shaped tool arguments must never be included in logs."""
+    assert ToolCallLoggingMiddleware()._format_args({key: "sensitive-value"}) == {key: "***"}
+
+
 def test_extract_sap_user_js_exists():
     """The JS file should be loadable and contain expected selectors."""
     from importlib import resources
