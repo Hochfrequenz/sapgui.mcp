@@ -6,6 +6,7 @@ session registry collapsed to empty. Requires SAP GUI with the desktop backend.
 """
 
 import asyncio
+import os
 import threading
 import time
 
@@ -21,7 +22,18 @@ from sapguimcp.tools.breakpoint_tools import (
 )
 from unittests.desktop.conftest import TEST_REPORT, go_home, skip_no_sap
 
-pytestmark = [skip_no_sap, pytest.mark.integration]
+# Opt-in: really halting ABAP in the debugger leaves SAP GUI degraded for the rest of the
+# SAP Logon process (the continued debugger session stays busy), and later modules of a
+# full run then lose their sessions to RPC errors. Run it on its own:
+#   SAPGUIMCP_RUN_DEBUGGER_TESTS=1 pytest unittests/desktop/test_breakpoint_halt_integration.py
+pytestmark = [
+    skip_no_sap,
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        os.environ.get("SAPGUIMCP_RUN_DEBUGGER_TESTS") != "1",
+        reason="halts ABAP in the debugger; set SAPGUIMCP_RUN_DEBUGGER_TESTS=1 and run on its own",
+    ),
+]
 
 
 class _HumanAtTheDebugger(threading.Thread):
