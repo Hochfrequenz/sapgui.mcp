@@ -455,3 +455,49 @@ class TestRegisterNewWindowSession:
         assert count == 3
         assert title == "Last Page - Should Be Registered"
         assert registry.has_session("s1")
+
+
+class TestWebGuiCloseSession:
+    """Unit tests for WebGuiBackend.close_session."""
+
+    @pytest.mark.anyio
+    async def test_closes_only_targeted_session_with_mode_local_command(self) -> None:
+        """Closing one WebGUI session must not trigger SAP's exit-all command."""
+        from unittest.mock import MagicMock
+
+        from sapguimcp.backend.webgui.backend import WebGuiBackend
+        from sapguimcp.backend.webgui.models.session_registry import SessionRegistry
+
+        registry = SessionRegistry()
+
+        page1 = MagicMock()
+        page1.is_closed.return_value = False
+        page1.on = MagicMock()
+
+        ok_field = AsyncMock()
+
+        page2 = MagicMock()
+        page2.is_closed.return_value = False
+        page2.on = MagicMock()
+        page2.query_selector = AsyncMock(return_value=ok_field)
+        page2.keyboard.press = AsyncMock()
+        page2.wait_for_timeout = AsyncMock()
+        page2.close = AsyncMock()
+
+        registry.register(page1)
+        session_id = registry.register(page2)
+
+        backend = WebGuiBackend.__new__(WebGuiBackend)
+        backend._page = page1  # pylint: disable=protected-access
+        backend._keepalive_task = None  # pylint: disable=protected-access
+
+        _PATCH_REGISTRY = "sapguimcp.backend.webgui.backend.WebGuiBackend._get_registry"
+        with patch(_PATCH_REGISTRY, new=AsyncMock(return_value=registry)):
+            closed = await backend.close_session(session_id)
+
+        assert closed is True
+        ok_field.fill.assert_awaited_once_with("/i")
+        page2.keyboard.press.assert_awaited_once_with("Enter")
+        page2.close.assert_awaited_once()
+        assert registry.has_session("s1")
+        assert not registry.has_session(session_id)
