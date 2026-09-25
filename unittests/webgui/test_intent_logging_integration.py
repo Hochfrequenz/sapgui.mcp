@@ -92,7 +92,7 @@ async def test_intent_logging_with_bp_transaction(
 
     # Verify the intent resource template is available
     templates = await sap_mcp_client.list_resource_templates()
-    template_uris = [str(t.uriTemplate) for t in templates.resourceTemplates]
+    template_uris = [str(t.uri_template) for t in templates.resource_templates]
     print(f"\nAvailable resource templates: {template_uris}")
 
     # Check that an intent resource template exists

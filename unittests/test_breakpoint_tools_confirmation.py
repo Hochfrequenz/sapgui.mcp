@@ -7,7 +7,6 @@ SAP GUI COM objects.
 """
 
 import json
-from inspect import signature
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -38,10 +37,12 @@ def _parse_result(raw) -> dict:
     return json.loads(raw.content[0].text)
 
 
-def _client_kwargs(**kwargs):
-    if "mode" in signature(Client).parameters:
-        kwargs["mode"] = "legacy"
-    return kwargs
+@pytest.fixture(params=["legacy", "2026-07-28"])
+def client_mode(request) -> str:
+    """Run each test over a handshake-era connection (the server confirms via
+    ctx.elicit()) and a 2026-07-28 connection (the server confirms by returning
+    an InputRequiredResult, SEP-2322)."""
+    return request.param
 
 
 def _patches(backend):
@@ -61,7 +62,7 @@ def _patches(backend):
 
 
 @pytest.mark.anyio
-async def test_breakpoint_set_aborts_on_decline():
+async def test_breakpoint_set_aborts_on_decline(client_mode):
     backend = _make_desktop_backend()
 
     async def decline_handler(message, response_type, params, context):
@@ -71,7 +72,7 @@ async def test_breakpoint_set_aborts_on_decline():
 
     p_backend, p_nav, p_line, p_shell, p_toggle = _patches(backend)
     with p_backend, p_nav, p_line, p_shell, p_toggle as mock_toggle:
-        async with Client(mcp, elicitation_handler=decline_handler, **_client_kwargs()) as client:
+        async with Client(mcp, elicitation_handler=decline_handler, mode=client_mode) as client:
             raw = await client.call_tool("sap_breakpoint_set", _ARGS)
     data = _parse_result(raw)
     assert data["success"] is False
@@ -80,7 +81,7 @@ async def test_breakpoint_set_aborts_on_decline():
 
 
 @pytest.mark.anyio
-async def test_breakpoint_set_aborts_on_confirm_false():
+async def test_breakpoint_set_aborts_on_confirm_false(client_mode):
     backend = _make_desktop_backend()
 
     async def decline_via_false(message, response_type, params, context):
@@ -88,7 +89,7 @@ async def test_breakpoint_set_aborts_on_confirm_false():
 
     p_backend, p_nav, p_line, p_shell, p_toggle = _patches(backend)
     with p_backend, p_nav, p_line, p_shell, p_toggle as mock_toggle:
-        async with Client(mcp, elicitation_handler=decline_via_false, **_client_kwargs()) as client:
+        async with Client(mcp, elicitation_handler=decline_via_false, mode=client_mode) as client:
             raw = await client.call_tool("sap_breakpoint_set", _ARGS)
     data = _parse_result(raw)
     assert data["success"] is False
@@ -97,7 +98,7 @@ async def test_breakpoint_set_aborts_on_confirm_false():
 
 
 @pytest.mark.anyio
-async def test_breakpoint_set_proceeds_on_accept():
+async def test_breakpoint_set_proceeds_on_accept(client_mode):
     backend = _make_desktop_backend()
 
     async def accept_handler(message, response_type, params, context):
@@ -105,7 +106,7 @@ async def test_breakpoint_set_proceeds_on_accept():
 
     p_backend, p_nav, p_line, p_shell, p_toggle = _patches(backend)
     with p_backend, p_nav, p_line, p_shell, p_toggle as mock_toggle:
-        async with Client(mcp, elicitation_handler=accept_handler, **_client_kwargs()) as client:
+        async with Client(mcp, elicitation_handler=accept_handler, mode=client_mode) as client:
             raw = await client.call_tool("sap_breakpoint_set", _ARGS)
     data = _parse_result(raw)
     assert data["success"] is True
@@ -115,14 +116,14 @@ async def test_breakpoint_set_proceeds_on_accept():
 
 
 @pytest.mark.anyio
-async def test_breakpoint_set_proceeds_when_client_lacks_elicitation():
+async def test_breakpoint_set_proceeds_when_client_lacks_elicitation(client_mode):
     """Fail-open: a client with no elicitation_handler must not block the tool,
     but the result must record that confirmation was skipped."""
     backend = _make_desktop_backend()
 
     p_backend, p_nav, p_line, p_shell, p_toggle = _patches(backend)
     with p_backend, p_nav, p_line, p_shell, p_toggle as mock_toggle:
-        async with Client(mcp) as client:  # no elicitation_handler configured
+        async with Client(mcp, mode=client_mode) as client:  # no elicitation_handler configured
             raw = await client.call_tool("sap_breakpoint_set", _ARGS)
     data = _parse_result(raw)
     assert data["success"] is True

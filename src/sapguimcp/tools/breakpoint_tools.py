@@ -11,7 +11,7 @@ import time
 from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from fastmcp import Context, FastMCP
-from mcp.types import ToolAnnotations
+from mcp.types import InputRequiredResult, ToolAnnotations
 from pydantic import Field as PydanticField
 
 from sapguimcp.backend.manager import get_backend
@@ -549,7 +549,7 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
         session: str | None = None,
         agent_id: str | None = None,
         ctx: Context | None = None,
-    ) -> BreakpointSetResult:
+    ) -> BreakpointSetResult | InputRequiredResult:
         """Set an external ABAP breakpoint.
 
         Args:
@@ -637,7 +637,11 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
             assert resolved_line is not None
 
             confirm_message = _build_breakpoint_confirm_message(object_type, object_name, method_name, resolved_line)
-            proceed, reason, confirmation_skipped = await confirm_destructive_action(ctx, confirm_message)
+            confirmation = await confirm_destructive_action(ctx, confirm_message)
+            if isinstance(confirmation, InputRequiredResult):
+                # 2026-07-28 connection: the client asks the human, then re-calls this tool.
+                return confirmation
+            proceed, reason, confirmation_skipped = confirmation
             if not proceed:
                 return BreakpointSetResult.failure(
                     error=f"sap_breakpoint_set aborted: {reason}",

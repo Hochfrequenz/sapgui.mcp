@@ -2243,7 +2243,7 @@ type-check = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastmcp", extras = ["apps"], specifier = ">=3.4.6,<5.0.0" },
+    { name = "fastmcp", extras = ["apps"], specifier = ">=4.0.3,<5.0.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "playwright", specifier = ">=1.40.0" },
     { name = "pydantic", specifier = ">=2.0.0" },

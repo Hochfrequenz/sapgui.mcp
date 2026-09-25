@@ -20,13 +20,6 @@ from sapguimcp.models import (
 from .conftest import call_tool_typed
 from .integration_helpers import _wait_for_transaction_screen
 
-
-def _call_tool_result_is_error(result) -> bool:
-    if hasattr(result, "is_error"):
-        return result.is_error
-    return result.isError
-
-
 # ============================================================================
 # sap_click_button
 # ============================================================================
@@ -125,7 +118,7 @@ async def test_sap_screenshot_returns_content(sap_mcp_client: ClientSession) -> 
     assert result.content, "Screenshot should return content"
     assert len(result.content) > 0
     # The content should be an image (not a JSON error)
-    assert not _call_tool_result_is_error(result), f"Screenshot returned error: {result.content}"
+    assert not result.is_error, f"Screenshot returned error: {result.content}"
 
 
 @pytest.mark.anyio
@@ -137,4 +130,4 @@ async def test_sap_screenshot_after_transaction(sap_mcp_client: ClientSession) -
 
     result = await sap_mcp_client.call_tool("sap_screenshot", {})
     assert result.content
-    assert not _call_tool_result_is_error(result)
+    assert not result.is_error
