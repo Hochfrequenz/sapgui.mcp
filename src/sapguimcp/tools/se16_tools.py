@@ -8,10 +8,8 @@ returning structured row data with automatic pagination for large result sets.
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from fastmcp import Context, FastMCP
@@ -23,6 +21,7 @@ from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.lang import SE16_NO_ENTRIES_DE, SE16_NO_ENTRIES_EN
 from sapguimcp.models import SE16FileSummary, SE16Result, SE16Row, TableData
 from sapguimcp.tools.se11_tools import _lookup_object_on_initial_screen
+from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -977,7 +976,8 @@ def register_se16_tools(mcp: FastMCP) -> None:
             table: Table name to query (e.g., "MARA", "T000", "TSTC")
             filters: Optional filter dict {field_name: value} - uses technical field names
             max_hits: Maximum rows to return (default 100)
-            output_file: If provided, write full results to this JSON file and return summary
+            output_file: If provided, write full results to this JSON file within the
+                current working directory and return summary
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -985,6 +985,24 @@ def register_se16_tools(mcp: FastMCP) -> None:
             SE16Result with all rows (inline), or
             SE16FileSummary with file path and preview (when output_file provided)
         """
+        if output_file:
+            try:
+                output_path = resolve_output_file_path(output_file)
+            except ValueError as e:
+                now = datetime.now(UTC)
+                return SE16Result.failure(
+                    error=str(e),
+                    table=table,
+                    total_hits=0,
+                    returned_rows=0,
+                    truncated=False,
+                    columns=[],
+                    rows=[],
+                    retrieved_at=now,
+                )
+        else:
+            output_path = None
+
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_se16_query")
         except ValueError as e:
@@ -1005,12 +1023,14 @@ def register_se16_tools(mcp: FastMCP) -> None:
         result = await _execute_se16_query(backend, table, filters, max_hits, ctx)
 
         # Write to file if requested
-        if output_file and result.success:
-            output_path = Path(output_file)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with output_path.open("w", encoding="utf-8") as f:
-                json.dump(result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
+        if output_path and result.success:
+            try:
+                output_path = write_json_output_file(output_file, result.model_dump(mode="json"))
+            except ValueError as e:
+                failure_payload = result.model_dump(mode="python")
+                failure_payload["success"] = False
+                failure_payload["error"] = str(e)
+                return SE16Result(**failure_payload)
 
             return SE16FileSummary(
                 success=True,

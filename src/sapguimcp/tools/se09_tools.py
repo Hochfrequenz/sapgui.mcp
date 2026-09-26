@@ -9,12 +9,10 @@ and parses the flat text list from the ARIA snapshot.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import re
 import time
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from fastmcp import FastMCP
@@ -29,6 +27,7 @@ from sapguimcp.lang import (
 )
 from sapguimcp.models.se09_models import TransportListResult, TransportObject, TransportRequest, TransportTask
 from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
+from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -647,7 +646,8 @@ def register_se09_tools(mcp: FastMCP) -> None:
             status: Filter by status - "modifiable", "released", or "all" (default: "modifiable")
             include_objects: If True, expand the tree to include tasks under each request.
                 This is slower (~2s per transport) but provides task details.
-            output_file: If provided, write results to this JSON file (on success only).
+            output_file: If provided, write results to this JSON file within the current
+                working directory (on success only).
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -655,6 +655,19 @@ def register_se09_tools(mcp: FastMCP) -> None:
             TransportListResult with requests (and tasks if include_objects=True)
         """
         now = datetime.now(UTC)
+
+        if output_file:
+            try:
+                output_path = resolve_output_file_path(output_file)
+            except ValueError as e:
+                return TransportListResult.failure(
+                    error=str(e),
+                    requests=[],
+                    request_count=0,
+                    retrieved_at=now,
+                )
+        else:
+            output_path = None
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_se09_lookup")
@@ -682,12 +695,14 @@ def register_se09_tools(mcp: FastMCP) -> None:
                 request_count=0,
                 retrieved_at=now,
             )
-
         # Write to file if requested
-        if output_file and result.success:
-            output_path = Path(output_file)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            with output_path.open("w", encoding="utf-8") as f:
-                json.dump(result.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
+        if output_path and result.success:
+            try:
+                write_json_output_file(output_file, result.model_dump(mode="json"))
+            except ValueError as e:
+                failure_payload = result.model_dump(mode="python")
+                failure_payload["success"] = False
+                failure_payload["error"] = str(e)
+                return TransportListResult(**failure_payload)
 
         return result
