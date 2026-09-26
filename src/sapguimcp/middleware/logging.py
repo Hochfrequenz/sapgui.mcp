@@ -29,7 +29,10 @@ import uuid
 from datetime import timedelta
 from typing import Any
 
+import pydantic
+from fastmcp.exceptions import ValidationError as FastMCPValidationError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
+from fastmcp.server.middleware.logging import default_serializer
 
 from sapguimcp.mcp_session import get_mcp_session_id
 from sapguimcp.models.middleware import SapIdentity, SessionStats, ToolCall
@@ -57,6 +60,71 @@ def new_request_id() -> str:
 
 # Module-level reference for cross-boundary communication (tools -> middleware).
 _sessions_ref: dict[str, SessionStats] = {}
+
+#: Tool argument names containing any of these are masked in logs (covers
+#: ``access_token``, ``auth_token``, ``secret_key``, ...).
+_SENSITIVE_ARG_SUBSTRINGS = ("password", "secret", "token", "credential", "api_key")
+
+
+def _is_sensitive_arg(name: str) -> bool:
+    """True if a tool argument called *name* may carry a credential.
+
+    "pat" (personal access token) is matched as a whole ``_``-separated word
+    only — as a substring it would also mask ``match_pattern``, ``file_path``
+    and other arguments that are needed to diagnose a call.
+    """
+    lowered = name.lower()
+    return any(s in lowered for s in _SENSITIVE_ARG_SUBSTRINGS) or "pat" in lowered.split("_")
+
+
+#: Arguments that carry what gets typed into SAP fields or the browser — e.g. a password
+#: set with ``sap_set_field`` on SU01. Masked unconditionally: the field's label alone
+#: doesn't reliably tell whether the value is a secret.
+_TYPED_INPUT_ARGS = frozenset({"value", "text"})
+
+
+def mask_tool_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
+    """Tool arguments with credentials and typed input replaced by ``***`` (#880).
+
+    ``fields`` (``sap_fill_form``) keeps its field names so the log still shows what was filled.
+    """
+    masked: dict[str, Any] = {}
+    for name, value in arguments.items():
+        lowered = name.lower()
+        if _is_sensitive_arg(name) or lowered in _TYPED_INPUT_ARGS:
+            masked[name] = "***"
+        elif lowered == "fields" and isinstance(value, dict):
+            masked[name] = dict.fromkeys(value, "***")
+        else:
+            masked[name] = value
+    return masked
+
+
+def _find_validation_error(exc: BaseException) -> pydantic.ValidationError | None:
+    """The argument-validation error behind *exc*, if fastmcp rejected the call's arguments.
+
+    fastmcp raises its own ``ValidationError`` from pydantic's. A pydantic error raised
+    inside a tool body is a server bug instead and is not matched, so it keeps its
+    full message and traceback in the log.
+    """
+    if isinstance(exc, FastMCPValidationError) and isinstance(exc.__cause__, pydantic.ValidationError):
+        return exc.__cause__
+    return None
+
+
+def masked_payload_serializer(message: Any) -> str:
+    """``payload_serializer`` for fastmcp's ``LoggingMiddleware``: tool arguments masked.
+
+    Without it, that middleware logs the raw request — a PAT or a typed password included.
+    """
+    try:
+        arguments = getattr(message, "arguments", None)
+        if isinstance(arguments, dict) and hasattr(message, "model_copy"):
+            message = message.model_copy(update={"arguments": mask_tool_arguments(arguments)})
+        return default_serializer(message)
+    except Exception:  # pylint: disable=broad-exception-caught
+        # Never raise: fastmcp would fall back to serializing the unmasked message.
+        return '{"payload": "<unserializable, redacted>"}'
 
 
 def set_sap_identity(session_id: str | None, identity: SapIdentity) -> None:
@@ -95,14 +163,7 @@ class ToolCallLoggingMiddleware(Middleware):
         """Format tool arguments for logging, masking sensitive values."""
         if not arguments:
             return {}
-        sensitive_keys = {"password", "secret", "token", "credential", "api_key", "secret_key"}
-        result: dict[str, str] = {}
-        for k, v in arguments.items():
-            if any(s in k.lower() for s in sensitive_keys):
-                result[k] = "***"
-            else:
-                result[k] = str(v)
-        return result
+        return {k: str(v) for k, v in mask_tool_arguments(arguments).items()}
 
     async def on_call_tool(self, context: MiddlewareContext, call_next: Any) -> Any:  # pylint: disable=too-many-locals
         """Log tool call with per-session timing."""
@@ -134,11 +195,20 @@ class ToolCallLoggingMiddleware(Middleware):
                 "tool": tool_name,
                 "session": session_id,
                 "duration_ms": int(duration.total_seconds() * 1000),
-                "error": str(e),
                 "seq": session.format_sequence(last_n=20),
             }
+            validation_error = _find_validation_error(e)
+            if validation_error is None:
+                extra["error"] = str(e)
+            else:
+                # pydantic echoes the raw input — PATs and typed values included — in its
+                # message and traceback; log only where and why validation failed.
+                extra["error"] = "invalid arguments: " + "; ".join(
+                    f"{'.'.join(str(part) for part in error['loc'])}: {error['type']}"
+                    for error in validation_error.errors()
+                )
             extra.update(self._identity_extra(session))
-            _logger.warning("Tool failed", extra=extra, exc_info=True)
+            _logger.warning("Tool failed", extra=extra, exc_info=validation_error is None)
             raise
 
         # Update session stats and log success
