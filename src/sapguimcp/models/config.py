@@ -145,6 +145,17 @@ class SapGuiSettings(BaseSettings):
         json_schema_extra={"env": "SAP_URL"},
     )
 
+    output_dir: str = Field(
+        default="",
+        description=(
+            "Directory that tool-supplied output_file paths are sandboxed to. "
+            "Empty (default) uses the server process's current working directory, "
+            "which is usually unrelated to the user's project when an MCP client "
+            "launches this server -- set this to the directory agents should write into."
+        ),
+        json_schema_extra={"env": "OUTPUT_DIR"},
+    )
+
     # --- Desktop-only fields ---
     # TODO(split): move to desktop project's own Settings class
 

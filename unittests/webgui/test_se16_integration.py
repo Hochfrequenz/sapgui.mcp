@@ -291,13 +291,17 @@ async def test_se16_query_existing_table_with_no_data(sap_mcp_client: ClientSess
 
 
 @pytest.mark.anyio
-async def test_se16_query_output_file(sap_mcp_client: ClientSession, tmp_path: Path) -> None:
+async def test_se16_query_output_file(
+    sap_mcp_client: ClientSession, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Test sap_se16_query with output_file parameter."""
+    monkeypatch.chdir(tmp_path)
+
     # Login
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
 
-    output_file = tmp_path / "se16_result.json"
+    output_file = Path("se16_result.json")
 
     # Query T000 with output_file
     summary = await call_tool_typed(
@@ -329,18 +333,22 @@ async def test_se16_query_output_file(sap_mcp_client: ClientSession, tmp_path: P
 
 
 @pytest.mark.anyio
-async def test_se16_query_large_pagination(sap_mcp_client: ClientSession, tmp_path: Path) -> None:
+async def test_se16_query_large_pagination(
+    sap_mcp_client: ClientSession, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """
     Test sap_se16_query with larger result set (~200 rows = ~15 pages).
 
     This tests pagination stability and deduplication over more pages.
     Uses output_file to avoid large JSON in response.
     """
+    monkeypatch.chdir(tmp_path)
+
     # Login
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
 
-    output_file = tmp_path / "se16_tstc_200.json"
+    output_file = Path("se16_tstc_200.json")
 
     # Query TSTC with 200 rows (~15 pages)
     summary = await call_tool_typed(

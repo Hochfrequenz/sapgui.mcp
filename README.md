@@ -898,6 +898,7 @@ An unset or empty variable makes the config invalid, so the first tool call that
 | `BACKEND_TYPE`       | No                          | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`                     |
 | `SAP_URL`            | No                          | Override WebGUI URL (default: derived from `host` in systems.json)     | `""`                         |
 | `SAP_CONFIG_FILE`    | No                          | Path to systems.json (see table above for default per OS)              | (see above)                  |
+| `OUTPUT_DIR`         | No                          | Directory that `output_file` tool arguments (e.g. `sap_se16_query`) are sandboxed to. Set this when the server's cwd isn't your project directory. | `""` (current working directory) |
 | `BROWSER_MODE`       | No                          | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.     | `connect`                    |
 | `BROWSER_TYPE`       | No                          | `chromium`, `firefox`, or `webkit`. WebGUI only.                       | `chromium`                   |
 | `BROWSER_HEADLESS`   | No                          | Run browser in headless mode. WebGUI only.                             | `false`                      |
