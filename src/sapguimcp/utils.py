@@ -153,7 +153,8 @@ def write_json_output_file(output_file: str, payload: Any, base_dir: Path | None
         _reject_symlink_path_components(output_path.parent, safe_base_dir)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         _reject_symlink_path_components(output_path.parent, safe_base_dir)
-        if output_path.exists() and output_path.is_symlink():
+        if output_path.is_symlink():  # is_symlink() doesn't follow the link, so it also
+            # catches a dangling one, unlike exists() -- see _reject_symlink_path_components.
             raise ValueError("output_file must not traverse symlinks")
         with output_path.open("w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)

@@ -51,7 +51,7 @@ def _sm30_result() -> SM30ViewResult:
 
 def _se09_result() -> TransportListResult:
     return TransportListResult(
-        requests=[TransportRequest(request_number="DEVK900100")],
+        requests=[TransportRequest(request_number="<request>")],
         request_count=1,
         retrieved_at=datetime.now(UTC),
     )
@@ -127,6 +127,26 @@ def test_write_json_output_file_rejects_dangling_symlinked_parent(
 
     with pytest.raises(ValueError, match="symlinks"):
         write_json_output_file("dangling/result.json", {"ok": True})
+
+
+def test_write_json_output_file_rejects_dangling_symlink_as_the_output_file_itself(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Same bug as the parent-component case, but for the leaf ``output_file`` path
+    itself: a dangling symlink there must not be silently followed by ``open('w')``."""
+    monkeypatch.chdir(tmp_path)
+    link_path = tmp_path / "dangling.json"
+
+    try:
+        link_path.symlink_to(tmp_path / "does-not-exist")
+    except (NotImplementedError, OSError) as exc:
+        pytest.skip(f"symlinks unavailable: {exc}")
+
+    assert not link_path.exists()
+    assert link_path.is_symlink()
+
+    with pytest.raises(ValueError, match="symlinks"):
+        write_json_output_file("dangling.json", {"ok": True})
 
 
 @pytest.mark.skipif(
