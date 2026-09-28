@@ -117,6 +117,7 @@ docs/sap_gui_scripting_api_800/
 # Git worktrees
 .worktrees/
 
-# Local MCP client config — contains SAP credentials for the developer's
-# own MCP server setup, never shared/committed.
+# Local MCP client config (per-developer setup). Credentials belong in
+# systems.json or environment variables (see sap-mcp-config), but a local
+# .mcp.json may still contain them, so it is never committed.
 .mcp.json

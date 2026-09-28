@@ -66,8 +66,9 @@ fixture). The prose, comments and commit messages _around_ that value are not co
 `sysA` / `sysB`. This section is bound by the same rule: where an example is needed, write
 `<alias>`.
 
-`.mcp.json` is **not** an exception. It is git-ignored and may hold credentials; it must never
-be committed at all.
+`.mcp.json` is **not** an exception. Credentials belong in `systems.json` or environment
+variables (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config)), but a local
+`.mcp.json` may still hold them. It is git-ignored and must never be committed at all.
 
 Before pushing, grep the diff for the shapes that matter — an internal domain suffix, a
 `<SID>K9…` transport number, a `/XXX/` namespace prefix — rather than for the alias names, so the
