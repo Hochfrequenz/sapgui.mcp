@@ -11,13 +11,15 @@ session-drift recovery logic on Linux/CI without needing a real SAP GUI.
 from __future__ import annotations
 
 import asyncio
+import weakref
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, PropertyMock
 
 import pytest
 
 import sapguimcp.backend.desktop as desktop_module
 from sapguimcp.backend.desktop import DesktopBackend
+from sapguimcp.backend.desktop._com_thread import SapSessionHaltedError, com_call_target
 from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
 
@@ -468,3 +470,161 @@ class TestResetToPrimary:
         assert "s2" not in report["closed"]
         assert report["remaining"] == ["s1"]
         assert backend.registry.list_sessions() == ["s1"]
+
+
+# ---------------------------------------------------------------------------
+# Sessions halted at an ABAP breakpoint
+# ---------------------------------------------------------------------------
+
+
+class TestHaltedAtBreakpoint:
+    """COM calls into a session halted at a breakpoint don't fail — they block until a human
+    continues the ABAP debugger. A probe timing out there must not prune the session."""
+
+    @staticmethod
+    def _wedged_backend(halted: dict[str, str]) -> DesktopBackend:
+        backend = _make_backend()
+        backend.registry.register(_make_mock_session("s1", alive=True))
+        backend._RECONCILE_PROBE_TIMEOUT_S = 0.05  # type: ignore[misc]
+        wedge = asyncio.Event()  # never set
+
+        async def hung_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+            fn()  # the probe runs (and signals that) but its COM call never answers
+            await wedge.wait()
+            return None
+
+        backend.com.run = hung_run
+        backend.com.halted_connections = AsyncMock(return_value=halted)
+        return backend
+
+    @pytest.mark.anyio
+    async def test_probe_timeout_on_halted_connection_keeps_session(self) -> None:
+        backend = self._wedged_backend({"/app/con[1]": "ABAP Debugger(1)"})
+
+        report = await backend.reconcile()
+
+        assert report == {"alive": ["s1"], "removed": []}
+        assert backend.registry.list_sessions() == ["s1"]
+
+    @pytest.mark.anyio
+    async def test_halted_session_is_pruned_after_busy_cap(self) -> None:
+        backend = self._wedged_backend({"/app/con[1]": "ABAP Debugger(1)"})
+        backend._RECONCILE_BUSY_DEAD_TIMEOUT_S = -1.0  # type: ignore[misc]
+
+        report = await backend.reconcile()
+
+        assert report["removed"] == ["s1"]
+
+    @pytest.mark.anyio
+    async def test_probe_timeout_without_debugger_still_prunes(self) -> None:
+        backend = self._wedged_backend({})
+
+        report = await backend.reconcile()
+
+        assert report["removed"] == ["s1"]
+
+    @pytest.mark.anyio
+    async def test_session_status_names_the_debugger(self) -> None:
+        backend = self._wedged_backend({"/app/con[1]": "ABAP Debugger(1)  (exklusiv)"})
+        backend._STATUS_PROBE_TIMEOUT_S = 0.05  # type: ignore[misc]
+
+        status = await backend.get_session_status("s1")
+
+        assert status.status == "unknown"
+        assert "breakpoint" in status.message.lower()
+        assert "ABAP Debugger(1)" in status.message
+
+    @pytest.mark.anyio
+    async def test_halted_session_is_listed_not_hidden(self) -> None:
+        """#791: sap_session_list returned [] while the debugger was open."""
+        backend = _make_backend()
+        session = _make_mock_session("s1", alive=True)
+        type(session.com).Info = PropertyMock(side_effect=SapSessionHaltedError(["ABAP Debugger(1)"]))
+        backend.registry.register(session)
+        backend.com.run = _passthrough_run
+
+        sessions = await backend.list_sessions()
+
+        assert [s.session_id for s in sessions] == ["s1"]
+        assert "ABAP Debugger(1)" in (sessions[0].halted_at_breakpoint or "")
+
+    @pytest.mark.anyio
+    async def test_session_status_when_probe_is_cancelled_as_halted(self) -> None:
+        backend = _make_backend()
+        backend.registry.register(_make_mock_session("s1", alive=True))
+
+        async def halted_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+            raise SapSessionHaltedError(["ABAP Debugger(1)"])
+
+        backend.com.run = halted_run
+
+        status = await backend.get_session_status("s1")
+
+        assert status.status == "unknown"
+        assert "breakpoint" in status.message.lower()
+        assert "ABAP Debugger(1)" in status.message
+
+
+class TestHaltWatchdogTargeting:
+    """The backend tells the COM thread which connection each call targets and which
+    connections to watch, so only calls stuck behind *our* halted session are cancelled."""
+
+    @pytest.mark.anyio
+    async def test_require_session_targets_its_connection(self) -> None:
+        backend = _make_backend()
+        backend._session_connections = weakref.WeakKeyDictionary()
+        session = _make_mock_session("s1")
+        backend.registry.register(session)
+        backend._session_connections[session] = "/app/con[3]"
+
+        async def check() -> str | None:
+            backend.require_session()
+            return com_call_target.get()
+
+        assert await asyncio.create_task(check()) == "/app/con[3]"
+
+    @pytest.mark.anyio
+    async def test_connection_is_unwatched_once_its_last_session_is_pruned(self) -> None:
+        backend = _make_backend()
+        backend._session_connections = weakref.WeakKeyDictionary()
+        alive, dead = _make_mock_session("s1", alive=True), _make_mock_session("s2", alive=False)
+        backend.registry.register(alive)
+        backend.registry.register(dead)
+        backend._session_connections[alive] = "/app/con[1]"
+        backend._session_connections[dead] = "/app/con[2]"
+        backend.com.run = _passthrough_run
+
+        await backend.reconcile()
+
+        backend.com.unwatch_connection.assert_called_once_with("/app/con[2]")
+
+
+class TestHaltedProbeError:
+    @pytest.mark.anyio
+    async def test_probe_cancelled_as_halted_keeps_session(self) -> None:
+        backend = _make_backend()
+        backend.registry.register(_make_mock_session("s1", alive=True))
+
+        async def halted_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+            raise SapSessionHaltedError(["ABAP Debugger(1)"])
+
+        backend.com.run = halted_run
+
+        report = await backend.reconcile()
+
+        assert report == {"alive": ["s1"], "removed": []}
+
+    @pytest.mark.anyio
+    async def test_close_cancelled_as_halted_keeps_session(self) -> None:
+        """A CloseSession the watchdog cancelled didn't close anything: keep the live session."""
+        backend = _make_backend()
+        backend.registry.register(_make_mock_session("s1", alive=True))
+        backend.registry.register(_make_mock_session("s2", alive=True))
+
+        async def halted_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+            raise SapSessionHaltedError(["ABAP Debugger(1)"])
+
+        backend.com.run = halted_run
+
+        assert await backend.close_session("s2") is False
+        assert backend.registry.list_sessions() == ["s1", "s2"]

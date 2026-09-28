@@ -1489,7 +1489,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         try:
             ok_field = await page.query_selector("#ToolbarOkCode")
             if ok_field:
-                await ok_field.fill("/nex")
+                await ok_field.fill("/i")
                 await page.keyboard.press("Enter")
                 await page.wait_for_timeout(500)
         except Exception:  # pylint: disable=broad-exception-caught
