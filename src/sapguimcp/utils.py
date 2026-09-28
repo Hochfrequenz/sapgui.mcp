@@ -173,10 +173,12 @@ def write_json_output_file(output_file: str, payload: Any, base_dir: Path | None
                     dir_fd=current_directory_fd,
                 )
             except OSError as e:
-                # O_NOFOLLOW makes opening a symlink fail with ELOOP; any other
-                # OSError (permission denied, not a directory, ...) is a real I/O
-                # failure and must not be reported as a symlink traversal.
-                if e.errno == errno.ELOOP:
+                # O_NOFOLLOW | O_DIRECTORY makes opening a symlink component fail --
+                # empirically ENOTDIR on Linux (O_DIRECTORY requires an actual
+                # directory inode, which a symlink itself isn't), ELOOP elsewhere/on
+                # other kernels. Any other OSError (permission denied, ...) is a real
+                # I/O failure and must not be reported as a symlink traversal.
+                if e.errno in (errno.ELOOP, errno.ENOTDIR):
                     raise ValueError("output_file must not traverse symlinks") from e
                 raise
             if current_directory_fd != base_directory_fd:
