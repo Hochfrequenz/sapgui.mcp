@@ -105,6 +105,13 @@ class SessionInfo(BaseModel):
     system_name: str | None = Field(default=None, description="SAP system ID (e.g., 'S4U', 'HFQ')")
     client: str | None = Field(default=None, description="SAP client number (e.g., '100')")
     user: str | None = Field(default=None, description="Logged-in SAP user")
+    halted_at_breakpoint: str | None = Field(
+        default=None,
+        description=(
+            "Set while the session is stopped at an ABAP breakpoint (the ABAP debugger is open in SAP GUI): "
+            "what happened and what a human has to do. The other fields are empty until then."
+        ),
+    )
 
 
 class SessionListResult(ToolResult):
