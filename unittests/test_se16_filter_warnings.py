@@ -99,8 +99,9 @@ async def test_execute_se16_query_desktop_returns_filter_warnings() -> None:
 
 
 @pytest.mark.anyio
-async def test_file_output_summary_carries_filter_warnings(tmp_path) -> None:
+async def test_file_output_summary_carries_filter_warnings(tmp_path, monkeypatch) -> None:
     """With output_file, sap_se16_query returns an SE16FileSummary — it must still say which filters were skipped."""
+    monkeypatch.chdir(tmp_path)  # output_file writes are sandboxed to the cwd (or OUTPUT_DIR)
     result = SE16Result(
         success=True,
         table="TSTC",
@@ -114,14 +115,13 @@ async def test_file_output_summary_carries_filter_warnings(tmp_path) -> None:
     )
     server = FastMCP("t")
     register_se16_tools(server)
-    output_file = tmp_path / "tstc.json"
     with (
         patch("sapguimcp.tools.se16_tools.get_backend", new=AsyncMock(return_value=AsyncMock())),
         patch("sapguimcp.tools.se16_tools._execute_se16_query", new=AsyncMock(return_value=result)),
     ):
         async with Client(server) as client:
             raw = await client.call_tool(
-                "sap_se16_query", {"table": "TSTC", "filters": {"TCODE": "SE16"}, "output_file": str(output_file)}
+                "sap_se16_query", {"table": "TSTC", "filters": {"TCODE": "SE16"}, "output_file": "tstc.json"}
             )
     summary = json.loads(raw.content[0].text)
     assert summary["output_file"]

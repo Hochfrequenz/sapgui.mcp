@@ -9,6 +9,7 @@ and parses the flat text list from the ARIA snapshot.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 import time
@@ -646,8 +647,9 @@ def register_se09_tools(mcp: FastMCP) -> None:
             status: Filter by status - "modifiable", "released", or "all" (default: "modifiable")
             include_objects: If True, expand the tree to include tasks under each request.
                 This is slower (~2s per transport) but provides task details.
-            output_file: If provided, write results to this JSON file within the current
-                working directory (on success only).
+            output_file: If provided, write results to this JSON file within the
+                configured output directory (OUTPUT_DIR, default: current working
+                directory) (on success only).
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -696,10 +698,10 @@ def register_se09_tools(mcp: FastMCP) -> None:
                 retrieved_at=now,
             )
         # Write to file if requested
-        if output_path and result.success:
+        if output_file and output_path and result.success:
             try:
                 write_json_output_file(output_file, result.model_dump(mode="json"))
-            except ValueError as e:
+            except (ValueError, OSError) as e:
                 failure_payload = result.model_dump(mode="python")
                 failure_payload["success"] = False
                 failure_payload["error"] = str(e)

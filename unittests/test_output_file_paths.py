@@ -1,8 +1,10 @@
 """Tests for sandboxed output_file handling in MCP tools."""
 
 import asyncio
+import errno
 import json
 import os
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -69,7 +71,7 @@ def test_write_json_output_file_rejects_symlinked_parent(tmp_path: Path, monkeyp
     real_dir.mkdir()
 
     try:
-        os.symlink(real_dir, link_path, target_is_directory=True)
+        link_path.symlink_to(real_dir, target_is_directory=True)
     except (NotImplementedError, OSError) as exc:
         pytest.skip(f"symlinks unavailable: {exc}")
 
@@ -77,9 +79,124 @@ def test_write_json_output_file_rejects_symlinked_parent(tmp_path: Path, monkeyp
         write_json_output_file("linked/result.json", {"ok": True})
 
 
-def test_se16_query_writes_output_within_working_directory(
+def test_resolve_output_file_path_uses_configured_output_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """When OUTPUT_DIR is set, it sandboxes writes instead of the process cwd.
+
+    Without this, an MCP client's server process cwd is usually unrelated to
+    the user's project, so absolute output_file paths into that project would
+    be rejected (issue #887).
+    """
+    configured_dir = tmp_path / "configured"
+    configured_dir.mkdir()
+    monkeypatch.chdir(tmp_path)  # cwd is deliberately a different directory
+    monkeypatch.setenv("OUTPUT_DIR", str(configured_dir))
+
+    resolved = resolve_output_file_path("result.json")
+
+    assert resolved == configured_dir / "result.json"
+
+
+def test_resolve_output_file_path_defaults_to_cwd_when_output_dir_unset(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("OUTPUT_DIR", raising=False)
+
+    resolved = resolve_output_file_path("result.json")
+
+    assert resolved == tmp_path / "result.json"
+
+
+def test_write_json_output_file_rejects_dangling_symlinked_parent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A dangling symlink's target doesn't exist, so ``Path.exists()`` (which follows
+    the link) reports False -- ``is_symlink()`` must be checked on its own, or this
+    component slips past the check and ``mkdir(parents=True)`` follows it outside
+    the sandbox."""
+    monkeypatch.chdir(tmp_path)
+    link_path = tmp_path / "dangling"
+
+    try:
+        link_path.symlink_to(tmp_path / "does-not-exist", target_is_directory=True)
+    except (NotImplementedError, OSError) as exc:
+        pytest.skip(f"symlinks unavailable: {exc}")
+
+    assert not link_path.exists()  # dangling: exists() follows the link and finds nothing
+    assert link_path.is_symlink()
+
+    with pytest.raises(ValueError, match="symlinks"):
+        write_json_output_file("dangling/result.json", {"ok": True})
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32" or not getattr(os, "supports_dir_fd", set()),
+    reason="the O_NOFOLLOW/O_DIRECTORY path only runs where dir_fd is supported",
+)
+def test_write_json_output_file_preserves_non_symlink_oserror(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A permission error opening a parent directory must surface as-is, not get
+    reported as "must not traverse symlinks" -- that message is reserved for the
+    specific ELOOP case (a real symlink under O_NOFOLLOW)."""
+    monkeypatch.chdir(tmp_path)
+    blocked_dir = tmp_path / "blocked"
+    blocked_dir.mkdir(mode=0o000)
+
+    try:
+        with pytest.raises(OSError, match="Permission denied") as exc_info:
+            write_json_output_file("blocked/result.json", {"ok": True})
+        assert exc_info.value.errno != errno.ELOOP
+        assert not isinstance(exc_info.value, ValueError)
+    finally:
+        blocked_dir.chmod(0o755)
+
+
+def test_se16_query_preserves_result_when_output_write_fails_with_oserror(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``write_json_output_file`` can raise plain ``OSError`` (disk full, permission
+    denied, ...), not just ``ValueError`` -- the tool must still return the
+    successful lookup's data with success=False rather than crash (issue #895)."""
+    monkeypatch.chdir(tmp_path)
+
+    mcp = FastMCP("test")
+    register_se16_tools(mcp)
+    tool_fn = _tool_fn(mcp, "sap_se16_query")
+
+    with (
+        patch(
+            "sapguimcp.tools.se16_tools.get_backend",
+            new_callable=AsyncMock,
+            return_value=MagicMock(),
+        ),
+        patch(
+            "sapguimcp.tools.se16_tools._execute_se16_query",
+            new_callable=AsyncMock,
+            return_value=_se16_result(),
+        ),
+        patch(
+            "sapguimcp.tools.se16_tools.write_json_output_file",
+            side_effect=OSError("disk full"),
+        ),
+    ):
+        result = asyncio.run(
+            tool_fn(
+                ctx=MagicMock(),
+                table="T000",
+                filters=None,
+                max_hits=100,
+                output_file="se16.json",
+                session=None,
+                agent_id=None,
+            )
+        )
+
+    assert result.success is False
+    assert result.error == "disk full"
+    assert result.table == "T000"
+    assert result.rows[0].data == {"MANDT": "100"}
+
+
+def test_se16_query_writes_output_within_working_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     output_file = "nested/se16_result.json"
 
@@ -171,9 +288,7 @@ def test_se09_lookup_rejects_absolute_output_path_outside_working_directory(
     mock_get_backend.assert_not_called()
 
 
-def test_se16_query_preserves_result_when_output_write_fails(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_se16_query_preserves_result_when_output_write_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
 
     mcp = FastMCP("test")

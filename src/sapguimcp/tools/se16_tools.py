@@ -977,7 +977,8 @@ def register_se16_tools(mcp: FastMCP) -> None:
             filters: Optional filter dict {field_name: value} - uses technical field names
             max_hits: Maximum rows to return (default 100)
             output_file: If provided, write full results to this JSON file within the
-                current working directory and return summary
+                configured output directory (OUTPUT_DIR, default: current working
+                directory) and return summary
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -1023,10 +1024,10 @@ def register_se16_tools(mcp: FastMCP) -> None:
         result = await _execute_se16_query(backend, table, filters, max_hits, ctx)
 
         # Write to file if requested
-        if output_path and result.success:
+        if output_file and output_path and result.success:
             try:
                 output_path = write_json_output_file(output_file, result.model_dump(mode="json"))
-            except ValueError as e:
+            except (ValueError, OSError) as e:
                 failure_payload = result.model_dump(mode="python")
                 failure_payload["success"] = False
                 failure_payload["error"] = str(e)
