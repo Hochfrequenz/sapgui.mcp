@@ -501,3 +501,78 @@ class TestNoComAccessWithoutDebugger:
             assert not scans
         finally:
             thread.shutdown()
+
+
+class TestScriptingEngineCaching:
+    """``_get_scripting_engine`` attaches once and reuses the engine, instead of
+    re-attaching via ``GetObject`` on every scan — which, with SAP GUI's "Notify when
+    a script attaches" security setting on, raises a confirmation dialog on every
+    single scan and starves the watchdog of a usable result (issue #894 follow-up)."""
+
+    @staticmethod
+    def _install_fake_win32com(monkeypatch, get_object):
+        import sys
+        import types
+
+        fake_client = types.ModuleType("win32com.client")
+        fake_client.GetObject = get_object  # type: ignore[attr-defined]
+        fake_win32com = types.ModuleType("win32com")
+        fake_win32com.client = fake_client  # type: ignore[attr-defined]
+        monkeypatch.setitem(sys.modules, "win32com", fake_win32com)
+        monkeypatch.setitem(sys.modules, "win32com.client", fake_client)
+
+    @pytest.mark.anyio
+    async def test_engine_is_attached_once_across_several_scans(self, monkeypatch):
+        class EmptyApp:
+            class Children:
+                Count = 0
+
+        attach_calls: list[str] = []
+
+        def fake_get_object(moniker):
+            attach_calls.append(moniker)
+
+            class Result:
+                GetScriptingEngine = EmptyApp()
+
+            return Result()
+
+        self._install_fake_win32com(monkeypatch, fake_get_object)
+        thread = ComThread(init_com=False, min_interval_ms=0)
+        try:
+            for _ in range(3):
+                assert thread._list_debugger_sessions({"/app/con[1]"}) == {}
+            assert attach_calls == ["SAPGUI"]
+        finally:
+            thread.shutdown()
+
+    @pytest.mark.anyio
+    async def test_stale_engine_is_dropped_and_reattached_after_a_failure(self, monkeypatch):
+        class RaisingApp:
+            def __getattr__(self, _name):
+                raise RuntimeError("stale COM proxy")
+
+        class EmptyApp:
+            class Children:
+                Count = 0
+
+        engines: list[object] = [RaisingApp(), EmptyApp()]
+        attach_calls: list[str] = []
+
+        def fake_get_object(moniker):
+            attach_calls.append(moniker)
+
+            class Result:
+                GetScriptingEngine = engines.pop(0)
+
+            return Result()
+
+        self._install_fake_win32com(monkeypatch, fake_get_object)
+        thread = ComThread(init_com=False, min_interval_ms=0)
+        try:
+            with pytest.raises(RuntimeError, match="stale COM proxy"):
+                thread._list_debugger_sessions({"/app/con[1]"})
+            assert thread._list_debugger_sessions({"/app/con[1]"}) == {}
+            assert attach_calls == ["SAPGUI", "SAPGUI"]
+        finally:
+            thread.shutdown()

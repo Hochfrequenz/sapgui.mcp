@@ -205,6 +205,8 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         self._worker_tid: int | None = None
         self._watchdog_tid: int | None = None
         self._watched_connections: set[str] = set()
+        # Cached scripting engine (watchdog thread only, see ``_get_scripting_engine``).
+        self._scripting_engine: Any = None
         self._scan_requests: queue.Queue[concurrent.futures.Future[dict[str, str]]] = queue.Queue()
         self._stopping = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True, name="sapgui-com-worker")
@@ -623,22 +625,43 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         skipped — the debugger session itself is idle while it waits for the human.
         The window title is only read once the program says it is a debugger.
         """
-        import win32com.client  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel
-
-        found: dict[str, str] = {}
-        app = win32com.client.GetObject("SAPGUI").GetScriptingEngine
-        for connection_index in range(app.Children.Count):
-            connection = app.Children(connection_index)
-            connection_id = str(connection.Id)
-            if connection_id not in connection_ids:
-                continue
-            for session_index in range(connection.Children.Count):
-                session = connection.Children(session_index)
-                if session.Busy or str(session.Info.Program) not in _DEBUGGER_PROGRAMS:
+        try:
+            app = self._get_scripting_engine()
+            found: dict[str, str] = {}
+            for connection_index in range(app.Children.Count):
+                connection = app.Children(connection_index)
+                connection_id = str(connection.Id)
+                if connection_id not in connection_ids:
                     continue
-                found[connection_id] = str(session.Children(0).Text)
-                break
-        return found
+                for session_index in range(connection.Children.Count):
+                    session = connection.Children(session_index)
+                    if session.Busy or str(session.Info.Program) not in _DEBUGGER_PROGRAMS:
+                        continue
+                    found[connection_id] = str(session.Children(0).Text)
+                    break
+            return found
+        except Exception:
+            # The cached engine may be stale (SAP GUI restarted, connection torn down).
+            # Drop it so the next scan re-attaches instead of failing forever.
+            self._scripting_engine = None
+            raise
+
+    def _get_scripting_engine(self) -> Any:
+        """Return the SAP GUI scripting engine, attaching once and reusing it afterwards.
+
+        ``GetObject("SAPGUI").GetScriptingEngine`` re-attaches a script to SAP GUI on
+        every call. With "Notify when a script attaches to SAP GUI" enabled (the SAP GUI
+        default), that raises a confirmation dialog every single scan — one per
+        ``halt_check_after_s`` for as long as a debugger window is open — and the dialog
+        blocks the read past ``_SCAN_READ_TIMEOUT_S``, so the scan finds nothing and the
+        watchdog never cancels the stuck call (the #791 symptom recurring). Caching the
+        engine for this thread's lifetime means SAP GUI shows the dialog at most once.
+        """
+        if self._scripting_engine is None:
+            import win32com.client  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel
+
+            self._scripting_engine = win32com.client.GetObject("SAPGUI").GetScriptingEngine
+        return self._scripting_engine
 
     def _cancel_worker_call(self) -> bool:
         """Cancel the worker's pending outbound COM call; True if COM accepted the request.
