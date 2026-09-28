@@ -2,6 +2,21 @@
 
 Guidance for AI coding agents working in this repository.
 
+## Project Documentation
+
+This file only holds agent-specific rules. For everything else, read the existing documentation:
+
+- [`README.md`](README.md) — what the server does, installation, `systems.json` setup, and the
+  configuration reference
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — development setup, running unit and integration tests,
+  HTML snapshot testing, and code style
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — layers, request flow, file organization, and how to add
+  a new transaction tool
+- [`docs/SAP_TEST_PREREQUISITES.md`](docs/SAP_TEST_PREREQUISITES.md) — everything a fresh SAP
+  system needs before the integration tests can run (permissions, configuration, test objects)
+- [`scripts/README.md`](scripts/README.md) — development and maintenance scripts that are not
+  part of the runtime server
+
 ## Public Repository — No Internal Data
 
 This repository and its issue tracker are **public**. Nothing that identifies our internal
