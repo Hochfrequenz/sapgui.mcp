@@ -161,6 +161,39 @@ class TestRunInSandbox:
         assert r.success is True
         assert r.output == ["value"]
 
+    def test_combobox_key_assignment_fails_instead_of_creating_attribute(self):
+        class GuiComboBox:
+            value = "old"
+
+        session = self._session()
+        combo = GuiComboBox()
+        session.find_by_id.return_value = combo
+
+        r = _run_in_sandbox(
+            _c("c = session.find_by_id('wnd[0]/usr/cmbFIELD')\nc.key = '0002'\noutput(c.key)"),
+            session,
+        )
+
+        assert r.success is False
+        assert r.error is not None
+        assert "does not expose a key property" in r.error
+        assert not hasattr(combo, "key")
+
+    def test_combobox_value_assignment_still_works(self):
+        class GuiComboBox:
+            value = "old"
+
+        session = self._session()
+        session.find_by_id.return_value = GuiComboBox()
+
+        r = _run_in_sandbox(
+            _c("c = session.find_by_id('wnd[0]/usr/cmbFIELD')\nc.value = 'Display'\noutput(c.value)"),
+            session,
+        )
+
+        assert r.success is True
+        assert r.output == ["Display"]
+
 
 class TestSapRunScriptTool:
     def _make_tool_fn(self, mcp: FastMCP):

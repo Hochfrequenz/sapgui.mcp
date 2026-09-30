@@ -88,6 +88,39 @@ SAFE_BUILTINS: dict[str, Any] = {
 }
 
 
+class _ScriptElementProxy:
+    """Expose SAP elements while rejecting properties unsupported by the wrapper."""
+
+    def __init__(self, element: Any) -> None:
+        object.__setattr__(self, "_element", element)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._element, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "key" and type(self._element).__name__ == "GuiComboBox":
+            raise AttributeError(
+                "GuiComboBox does not expose a key property; set its value using the display value"
+            )
+        setattr(self._element, name, value)
+
+
+class _ScriptSessionProxy:
+    """Proxy session element lookup so scripts cannot add unsupported attributes."""
+
+    def __init__(self, session: Any) -> None:
+        self._session = session
+
+    def find_by_id(self, element_id: str, *args: Any, **kwargs: Any) -> Any:
+        element = self._session.find_by_id(element_id, *args, **kwargs)
+        if type(element).__name__ == "GuiComboBox":
+            return _ScriptElementProxy(element)
+        return element
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._session, name)
+
+
 def _run_in_sandbox(code: types.CodeType, session: Any) -> SapRunScriptResult:
     """Execute *code* in a restricted namespace on the calling thread.
 
@@ -104,7 +137,7 @@ def _run_in_sandbox(code: types.CodeType, session: Any) -> SapRunScriptResult:
 
     restricted_globals: dict[str, Any] = {
         "__builtins__": dict(SAFE_BUILTINS),
-        "session": session,
+        "session": _ScriptSessionProxy(session),
         "output": _output,
     }
 
