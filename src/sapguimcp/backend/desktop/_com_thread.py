@@ -76,7 +76,13 @@ _SCAN_READ_TIMEOUT_S = 1.0
 #: connection's busy sessions it halted, so while it is open, a call running longer than
 #: ``halt_check_after_s`` on another session of the same connection is cancelled too.
 com_call_target: ContextVar[str | None] = ContextVar("com_call_target", default=None)
+#: Per-async-task SAP session ID for clearer "engine busy" diagnostics.
+com_call_session: ContextVar[str | None] = ContextVar("com_call_session", default=None)
 NO_SESSION_TARGET = ""
+
+
+class ComEngineBusyError(RuntimeError):
+    """Raised when a second COM call targets a connection whose engine is still busy."""
 
 
 class SapSessionHaltedError(RuntimeError):
@@ -191,7 +197,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         # signals "this session is dead", not "try again".
         # The last element is the SAP connection the call targets (see ``com_call_target``).
         self._queue: queue.Queue[
-            tuple[Callable[[], Any], concurrent.futures.Future[Any], int | None, str | None] | None
+            tuple[Callable[[], Any], concurrent.futures.Future[Any], int | None, str | None, str | None] | None
         ] = queue.Queue()
         # Halt watchdog state (see module docstring). ``_state_lock`` guards the
         # in-flight call bookkeeping shared between the worker and the watchdog.
@@ -200,6 +206,8 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         self._call_seq = 0
         self._in_flight_seq: int | None = None
         self._in_flight_target: str | None = None
+        self._in_flight_session: str | None = None
+        self._in_flight_since: float | None = None
         self._next_halt_check_at: float | None = None
         self._halted_calls: dict[int, list[str]] = {}
         self._worker_tid: int | None = None
@@ -232,7 +240,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 item = self._queue.get()
                 if item is None:
                     break
-                fn, cf_future, retries_override, target = item
+                fn, cf_future, retries_override, target, session_id = item
                 if not cf_future.set_running_or_notify_cancel():
                     # The caller already gave up (e.g. a liveness probe's wait_for timed
                     # out). Running it anyway could only block the worker for nothing —
@@ -241,7 +249,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 # Resolve the per-call retry budget here so _execute_with_retry
                 # stays under the local-variable cap (pylint too-many-locals).
                 max_retries = self._max_retries if retries_override is None else retries_override
-                tracked = functools.partial(self._invoke_tracked, fn, target)
+                tracked = functools.partial(self._invoke_tracked, fn, target, session_id)
                 self._execute_with_retry(tracked, cf_future, last_call, max_retries)
                 last_call = time.monotonic()
         except Exception:
@@ -412,8 +420,27 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 "COM worker thread is dead — the worker exited and this ComThread instance "
                 "cannot be revived. The BackendManager must rebuild it."
             )
+        target = com_call_target.get()
+        session_id = com_call_session.get()
+        if target not in (None, NO_SESSION_TARGET):
+            with self._state_lock:
+                in_flight_target = self._in_flight_target
+                in_flight_session = self._in_flight_session
+                in_flight_since = self._in_flight_since
+                queued_on_target = any(
+                    item is not None and item[3] == target and item[3] not in (None, NO_SESSION_TARGET)
+                    for item in self._queue.queue
+                )
+            if in_flight_target == target or queued_on_target:
+                busy_for_s = time.monotonic() - in_flight_since if in_flight_since is not None else 0.0
+                active_session = in_flight_session or session_id or "unknown"
+                raise ComEngineBusyError(
+                    f"engine busy: session {active_session} is already running SAP work on connection {target} "
+                    f"for {busy_for_s:.0f}s. One SAP GUI connection has one COM engine; run SAP work sequentially, "
+                    "not in parallel on the same connection."
+                )
         cf_future: concurrent.futures.Future[T] = concurrent.futures.Future()
-        self._queue.put((fn, cf_future, max_retries, com_call_target.get()))
+        self._queue.put((fn, cf_future, max_retries, target, session_id))
         return await asyncio.wrap_future(cf_future)
 
     @property
@@ -488,13 +515,15 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             logger.warning("com_halt_scan_failed", exc_info=True)
             return {}
 
-    def _invoke_tracked(self, fn: Callable[[], Any], target: str | None) -> Any:
+    def _invoke_tracked(self, fn: Callable[[], Any], target: str | None, session_id: str | None) -> Any:
         """Run *fn* on the worker, visible to the watchdog while it is in flight."""
         with self._state_lock:
             self._call_seq += 1
             seq = self._call_seq
             self._in_flight_seq = seq
             self._in_flight_target = target
+            self._in_flight_session = session_id
+            self._in_flight_since = time.monotonic()
             self._next_halt_check_at = time.monotonic() + self._halt_check_after_s
         try:
             result = fn()
@@ -508,6 +537,8 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 debugger_titles = self._halted_calls.pop(seq, None)
                 self._in_flight_seq = None
                 self._in_flight_target = None
+                self._in_flight_session = None
+                self._in_flight_since = None
                 self._next_halt_check_at = None
         if debugger_titles is not None:
             # fn caught the cancelled call's error itself and carried on — whatever it

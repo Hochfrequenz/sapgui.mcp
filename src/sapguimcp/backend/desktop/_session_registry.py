@@ -258,3 +258,10 @@ class DesktopSessionRegistry:
     def has_session(self, session_id: str) -> bool:
         """Check whether a session exists in the registry."""
         return session_id in self._sessions
+
+    def get_session_id(self, session: GuiSession) -> str | None:
+        """Best-effort reverse lookup: the registry ID for a bound GuiSession."""
+        for session_id, candidate in self._sessions.items():
+            if candidate is session:
+                return session_id
+        return None

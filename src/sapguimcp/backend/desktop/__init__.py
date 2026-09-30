@@ -32,6 +32,7 @@ from sapguimcp.backend.desktop._com_thread import (
     NO_SESSION_TARGET,
     ComThread,
     SapSessionHaltedError,
+    com_call_session,
     com_call_target,
     describe_com_error,
     is_transient_busy_error,
@@ -289,6 +290,7 @@ class DesktopBackend:
         session = self.registry.get_session(session_id)  # None → "s1"
         # The COM calls this task makes next are for this session's connection.
         com_call_target.set(self._connection_of(session))
+        com_call_session.set(session_id if session_id is not None else "s1")
         return session
 
     def _connection_of(self, session: GuiSession) -> str | None:
@@ -304,11 +306,13 @@ class DesktopBackend:
     @contextlib.contextmanager
     def _com_target(self, session: GuiSession) -> Iterator[None]:
         """Mark the COM calls inside the block as targeting *session*'s connection."""
-        token = com_call_target.set(self._connection_of(session))
+        token_target = com_call_target.set(self._connection_of(session))
+        token_session = com_call_session.set(self.registry.get_session_id(session))
         try:
             yield
         finally:
-            com_call_target.reset(token)
+            com_call_target.reset(token_target)
+            com_call_session.reset(token_session)
 
     def _unwatch_orphaned_connections(self) -> None:
         """Stop watching connections none of whose sessions is registered any more."""
@@ -382,6 +386,7 @@ class DesktopBackend:
                 # (A breakpoint hit by login-time ABAP would still block here: the new
                 # connection isn't watched until login returns.)
                 com_call_target.set(NO_SESSION_TARGET)
+                com_call_session.set(None)
                 session = await self.com.run(
                     lambda: _sapsucker_login(
                         connection_name=connection_name,
