@@ -606,7 +606,7 @@ Open `%APPDATA%\Claude\claude_desktop_config.json` and add:
                 "-e",
                 "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-v",
-                "~/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
+                "C:/Users/YourName/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
                 "ghcr.io/hochfrequenz/sapgui.mcp:latest"
@@ -620,7 +620,8 @@ Replace:
 
 - `your-sap-server` with your SAP server hostname
 - `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) (optional - see note above)
-- SAP credentials (user, password, mandant, language) are read from `~/.config/sap-mcp/systems.json` which is volume-mounted into the container
+- `C:/Users/YourName` with your home folder. Docker treats a mount source that is not an absolute path as the name of a Docker volume, so `~` does not work here.
+- SAP credentials (user, password, client, language) are read from `systems.json`, which is volume-mounted into the container
 
 #### Option B: Claude Code
 
@@ -654,7 +655,7 @@ If Claude Code still starts an old or broken registration instead of the global 
                 "-e",
                 "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-v",
-                "~/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
+                "C:/Users/YourName/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
                 "ghcr.io/hochfrequenz/sapgui.mcp:latest"
@@ -1181,7 +1182,6 @@ This server is part of a small ecosystem of SAP + AI tooling:
 - **[`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT)** - SAP-side ABAP report that `sap_abapgit_pull` calls to pull abapGit repos through the ABAP API. Install it on any SAP system where you want the abapGit pull tools to work.
 - **[`sap-mcp-config`](https://github.com/Hochfrequenz/sap-mcp-config)** - shared config schema for `systems.json`, consumed by both `sapgui.mcp` (Python) and `aibap.mcp` (Go).
 
-**Hochfrequenz colleagues:** internal setup docs - including combined `.mcp.json` / `opencode.json` examples that register both MCPs together in one project - live at <https://brain.hochfrequenz.de/books/ki-tools-bei-hochfrequenz/chapter/sap-mcps>.
 
 ## Contributing
 
