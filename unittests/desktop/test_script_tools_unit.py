@@ -9,7 +9,13 @@ import pytest
 from fastmcp import FastMCP
 
 from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
-from sapguimcp.tools.script_tools import SAFE_BUILTINS, _run_in_sandbox, register_script_tools
+from sapguimcp.tools.script_tools import (
+    SAFE_BUILTINS,
+    _run_in_sandbox,
+    _wait,
+    _wait_until,
+    register_script_tools,
+)
 
 _FILENAME = "<sap_script>"
 
@@ -160,6 +166,160 @@ class TestRunInSandbox:
         r = _run_in_sandbox(_c("output(getattr(session, 'SomeProperty'))"), session)
         assert r.success is True
         assert r.output == ["value"]
+
+    def test_wait_in_sandbox(self):
+        with patch("time.sleep") as mock_sleep:
+            r = _run_in_sandbox(_c("wait(250)\noutput('done')"), self._session())
+            assert r.success is True
+            assert r.output == ["done"]
+            mock_sleep.assert_called_once_with(0.25)
+
+    def test_wait_negative_in_sandbox_fails(self):
+        r = _run_in_sandbox(_c("wait(-10)"), self._session())
+        assert r.success is False
+        assert "ValueError" in r.error
+        assert "non-negative" in r.error
+
+    def test_wait_until_in_sandbox_found(self):
+        session = self._session()
+        mock_elem = MagicMock()
+        mock_elem.text = "Tree loaded"
+        session.find_by_id.return_value = mock_elem
+
+        script = "elem = wait_until('wnd[0]/usr/tree', timeout_ms=1000)\noutput(elem.text if elem else None)\n"
+        r = _run_in_sandbox(_c(script), session)
+        assert r.success is True
+        assert r.output == ["Tree loaded"]
+
+    def test_wait_until_in_sandbox_not_found(self):
+        session = self._session()
+        session.find_by_id.side_effect = Exception("Element not found")
+
+        clock = [0.0, 0.05, 0.15, 0.25]
+        with patch("time.monotonic", side_effect=clock), patch("time.sleep"):
+            script = "elem = wait_until('wnd[0]/usr/tree', 200, 50)\noutput(elem is None)\n"
+            r = _run_in_sandbox(_c(script), session)
+            assert r.success is True
+            assert r.output == [True]
+
+    def test_wait_and_wait_until_inside_function(self):
+        session = self._session()
+        mock_elem = MagicMock()
+        mock_elem.text = "inner"
+        session.find_by_id.return_value = mock_elem
+
+        script = "def helper():\n    wait(50)\n    return wait_until('wnd[0]/btn', 100).text\noutput(helper())\n"
+        with patch("time.sleep"):
+            r = _run_in_sandbox(_c(script), session)
+            assert r.success is True
+            assert r.output == ["inner"]
+
+    def test_sandbox_helpers_mutation_does_not_leak(self):
+        mutate = "wait = lambda x: 999\nwait_until = lambda *a, **kw: 999\noutput('mutated')"
+        r1 = _run_in_sandbox(_c(mutate), self._session())
+        assert r1.success is True
+
+        with patch("time.sleep") as mock_sleep:
+            r2 = _run_in_sandbox(_c("wait(50)\noutput('ok')"), self._session())
+            assert r2.success is True
+            assert r2.output == ["ok"]
+            mock_sleep.assert_called_once_with(0.05)
+
+
+class TestWaitHelpers:
+    def test_wait_calls_sleep(self):
+        with patch("time.sleep") as mock_sleep:
+            _wait(150)
+            mock_sleep.assert_called_once_with(0.15)
+
+    def test_wait_negative_ms_raises(self):
+        with pytest.raises(ValueError, match="wait duration must be non-negative"):
+            _wait(-10)
+
+    def test_wait_zero_ms(self):
+        with patch("time.sleep") as mock_sleep:
+            _wait(0)
+            mock_sleep.assert_called_once_with(0.0)
+
+    def test_wait_until_immediate_success(self):
+        session = MagicMock()
+        mock_elem = MagicMock()
+        session.find_by_id.return_value = mock_elem
+
+        with patch("time.sleep") as mock_sleep:
+            elem = _wait_until(session, "wnd[0]/usr/btn", timeout_ms=1000)
+            assert elem is mock_elem
+            mock_sleep.assert_not_called()
+            session.find_by_id.assert_called_once_with("wnd[0]/usr/btn")
+
+    def test_wait_until_subsequent_success_after_exceptions(self):
+        session = MagicMock()
+        mock_elem = MagicMock()
+        session.find_by_id.side_effect = [
+            RuntimeError("not found"),
+            mock_elem,
+        ]
+
+        with patch("time.sleep") as mock_sleep:
+            elem = _wait_until(session, "wnd[0]/usr/tree", timeout_ms=1000, poll_ms=100)
+            assert elem is mock_elem
+            assert session.find_by_id.call_count == 2
+            mock_sleep.assert_called_once()
+
+    def test_wait_until_subsequent_success_after_none(self):
+        session = MagicMock()
+        mock_elem = MagicMock()
+        session.find_by_id.side_effect = [
+            None,
+            mock_elem,
+        ]
+
+        with patch("time.sleep") as mock_sleep:
+            elem = _wait_until(session, "wnd[0]/usr/tree", timeout_ms=1000, poll_ms=100)
+            assert elem is mock_elem
+            assert session.find_by_id.call_count == 2
+            mock_sleep.assert_called_once()
+
+    def test_wait_until_timeout_returns_none(self):
+        session = MagicMock()
+        session.find_by_id.side_effect = RuntimeError("not found")
+
+        clock = [0.0, 0.05, 0.15, 0.25]
+        with patch("time.monotonic", side_effect=clock), patch("time.sleep"):
+            elem = _wait_until(session, "wnd[0]/usr/tree", timeout_ms=200, poll_ms=50)
+            assert elem is None
+
+    def test_wait_until_timeout_zero_found(self):
+        session = MagicMock()
+        mock_elem = MagicMock()
+        session.find_by_id.return_value = mock_elem
+
+        with patch("time.sleep") as mock_sleep:
+            elem = _wait_until(session, "wnd[0]", timeout_ms=0)
+            assert elem is mock_elem
+            mock_sleep.assert_not_called()
+
+    def test_wait_until_timeout_zero_not_found(self):
+        session = MagicMock()
+        session.find_by_id.return_value = None
+
+        with patch("time.sleep") as mock_sleep:
+            elem = _wait_until(session, "wnd[0]", timeout_ms=0)
+            assert elem is None
+            mock_sleep.assert_not_called()
+
+    def test_wait_until_negative_timeout_raises(self):
+        session = MagicMock()
+        with pytest.raises(ValueError, match="timeout_ms must be non-negative"):
+            _wait_until(session, "wnd[0]", timeout_ms=-1)
+
+    def test_wait_until_invalid_poll_raises(self):
+        session = MagicMock()
+        with pytest.raises(ValueError, match="poll_ms must be greater than 0"):
+            _wait_until(session, "wnd[0]", timeout_ms=1000, poll_ms=0)
+
+        with pytest.raises(ValueError, match="poll_ms must be greater than 0"):
+            _wait_until(session, "wnd[0]", timeout_ms=1000, poll_ms=-50)
 
 
 class TestSapRunScriptTool:

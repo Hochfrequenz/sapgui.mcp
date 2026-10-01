@@ -99,8 +99,14 @@ exec(compile(script, "<sap_script>", "exec"), {
     "__builtins__": SAFE_BUILTINS,
     "session": desktop_session,   # sapsucker GuiSession — full SAP GUI typed API
     "output": output_fn,          # output(x) → appends x to result list
+    "wait": wait_fn,              # wait(ms) → pauses execution for ms milliseconds
+    "wait_until": wait_until_fn,  # wait_until(element_id, timeout_ms, poll_ms=200) → poll find_by_id or None
 })
 ```
+
+Injected sandbox helpers:
+- `wait(ms)`: pause execution for `ms` milliseconds via `time.sleep()`.
+- `wait_until(element_id, timeout_ms, poll_ms=200)`: poll for an element by ID until `session.find_by_id` succeeds, returning the element; returns `None` after `timeout_ms` elapses.
 
 **Not provided (accidental-use defence):** `open`, `eval`, `exec`, `print`, `input`, `compile`,
 `globals`, `locals`, `breakpoint`, `setattr`, `delattr`, `hasattr`, `vars`, `dir`,

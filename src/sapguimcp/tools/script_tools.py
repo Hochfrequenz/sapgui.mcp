@@ -11,8 +11,10 @@ tool. If the threat model hardens, swap ``exec()`` for RestrictedPython.
 """
 
 import asyncio
+import contextlib
 import json
 import logging
+import time
 import traceback as _traceback
 import types
 from datetime import timedelta
@@ -88,6 +90,52 @@ SAFE_BUILTINS: dict[str, Any] = {
 }
 
 
+def _wait(ms: float | int) -> None:
+    """Pause script execution for *ms* milliseconds."""
+    if ms < 0:
+        raise ValueError("wait duration must be non-negative")
+    time.sleep(ms / 1000.0)
+
+
+def _wait_until(
+    session: Any,
+    element_id: str,
+    timeout_ms: float | int,
+    poll_ms: float | int = 200,
+) -> Any:
+    """Poll for an element by ID until found or until timeout elapses.
+
+    Args:
+        session: Live GuiSession object.
+        element_id: ID path of the target SAP GUI element.
+        timeout_ms: Maximum time to wait in milliseconds.
+        poll_ms: Polling interval in milliseconds (default: 200).
+
+    Returns:
+        The resolved element if found, or None if the timeout elapses.
+    """
+    if timeout_ms < 0:
+        raise ValueError("timeout_ms must be non-negative")
+    if poll_ms <= 0:
+        raise ValueError("poll_ms must be greater than 0")
+
+    deadline = time.monotonic() + (timeout_ms / 1000.0)
+    poll_s = poll_ms / 1000.0
+
+    while True:
+        with contextlib.suppress(Exception):
+            elem = session.find_by_id(element_id)
+            if elem is not None:
+                return elem
+
+        now = time.monotonic()
+        if now >= deadline:
+            return None
+
+        remaining = deadline - now
+        time.sleep(min(poll_s, remaining))
+
+
 def _run_in_sandbox(code: types.CodeType, session: Any) -> SapRunScriptResult:
     """Execute *code* in a restricted namespace on the calling thread.
 
@@ -102,10 +150,19 @@ def _run_in_sandbox(code: types.CodeType, session: Any) -> SapRunScriptResult:
         except (TypeError, ValueError):
             collected.append(str(value))
 
+    def _bound_wait_until(
+        element_id: str,
+        timeout_ms: float | int,
+        poll_ms: float | int = 200,
+    ) -> Any:
+        return _wait_until(session, element_id, timeout_ms, poll_ms)
+
     restricted_globals: dict[str, Any] = {
         "__builtins__": dict(SAFE_BUILTINS),
         "session": session,
         "output": _output,
+        "wait": _wait,
+        "wait_until": _bound_wait_until,
     }
 
     try:
@@ -135,10 +192,15 @@ def register_script_tools(mcp: FastMCP) -> None:
             "The script receives:\n"
             "- ``session``: sapsucker ``GuiSession`` — use ``session.find_by_id(id)`` to reach "
             "elements, then read/write their properties and call methods directly.\n"
-            "- ``output(value)``: call this to collect results. All values are returned in order.\n\n"
+            "- ``output(value)``: call this to collect results. All values are returned in order.\n"
+            "- ``wait(ms)``: pause execution for ``ms`` milliseconds.\n"
+            "- ``wait_until(element_id, timeout_ms, poll_ms=200)``: poll for an element by ID "
+            "until ``session.find_by_id`` succeeds, returning the element; returns ``None`` if "
+            "``timeout_ms`` elapses.\n\n"
             "**Always call ``output()`` at least once** with a summary — a script that never "
             "calls ``output()`` returns an empty list with no indication of what happened.\n\n"
-            "``import`` and ``print`` are not available. Use ``output()`` instead of ``print()``.\n\n"
+            "``import`` and ``print`` are not available. Use ``output()`` instead of ``print()``, "
+            "and ``wait()`` instead of ``time.sleep()``.\n\n"
             "Full Python control flow works: ``for``, ``if``/``else``, ``while``, ``try``/``except``, "
             "list comprehensions, function definitions.\n\n"
             "**When to use this tool vs ``sap_com_evaluate``:** prefer ``sap_com_evaluate`` for "
