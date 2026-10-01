@@ -22,12 +22,20 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
+from sapguimcp.backend.desktop.models.script_results import SandboxContract, SapRunScriptResult
 from sapguimcp.backend.manager import get_backend
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["register_script_tools"]
+__all__ = [
+    "INJECTED_NAMES",
+    "SAFE_BUILTINS",
+    "SANDBOX_CONTRACT",
+    "SANDBOX_CONTRACT_VERSION",
+    "SandboxContract",
+    "get_sandbox_contract",
+    "register_script_tools",
+]
 
 
 def _blocked_import(*args: Any, **kwargs: Any) -> None:
@@ -87,6 +95,30 @@ SAFE_BUILTINS: dict[str, Any] = {
     # resolve without going through __builtins__.
 }
 
+SANDBOX_CONTRACT_VERSION: int = 1
+"""Current version of the sap_run_script sandbox contract."""
+
+INJECTED_NAMES: tuple[str, ...] = ("output", "session")
+"""Names injected into the global namespace for sandboxed scripts."""
+
+
+def get_sandbox_contract() -> SandboxContract:
+    """Return the sandbox execution contract for sap_run_script."""
+    allowed = sorted(k for k in SAFE_BUILTINS if not k.startswith("_"))
+    return SandboxContract(
+        version=SANDBOX_CONTRACT_VERSION,
+        allowed_builtins=allowed,
+        safe_builtins=allowed,
+        injected_names=sorted(INJECTED_NAMES),
+    )
+
+
+SANDBOX_CONTRACT: SandboxContract = get_sandbox_contract()
+"""Global cached sandbox contract instance."""
+
+_ALLOWED_BUILTINS_SUMMARY = ", ".join(sorted(k for k in SAFE_BUILTINS if not k.startswith("_")))
+_INJECTED_NAMES_SUMMARY = ", ".join(f"``{name}``" for name in sorted(INJECTED_NAMES))
+
 
 def _run_in_sandbox(code: types.CodeType, session: Any) -> SapRunScriptResult:
     """Execute *code* in a restricted namespace on the calling thread.
@@ -123,6 +155,9 @@ def _run_in_sandbox(code: types.CodeType, session: Any) -> SapRunScriptResult:
 
 def register_script_tools(mcp: FastMCP) -> None:
     """Register sap_run_script with the MCP server (desktop backend only)."""
+    from sapguimcp.resources.sandbox_resource import register_sandbox_resources
+
+    register_sandbox_resources(mcp)
 
     @mcp.tool(
         annotations=ToolAnnotations(
@@ -138,7 +173,12 @@ def register_script_tools(mcp: FastMCP) -> None:
             "- ``output(value)``: call this to collect results. All values are returned in order.\n\n"
             "**Always call ``output()`` at least once** with a summary — a script that never "
             "calls ``output()`` returns an empty list with no indication of what happened.\n\n"
-            "``import`` and ``print`` are not available. Use ``output()`` instead of ``print()``.\n\n"
+            f"**Sandbox contract (v{SANDBOX_CONTRACT_VERSION}):**\n"
+            f"- Allowed builtins: {_ALLOWED_BUILTINS_SUMMARY}\n"
+            f"- Injected names: {_INJECTED_NAMES_SUMMARY} (use ``output()`` instead of ``print()``)\n"
+            "- All other builtins (e.g. ``print``, ``ord``, ``divmod``, ``open``, ``eval``) "
+            "and ``import`` are blocked.\n"
+            "- Full contract discoverable via resource ``sandbox://sap_run_script``.\n\n"
             "Full Python control flow works: ``for``, ``if``/``else``, ``while``, ``try``/``except``, "
             "list comprehensions, function definitions.\n\n"
             "**When to use this tool vs ``sap_com_evaluate``:** prefer ``sap_com_evaluate`` for "

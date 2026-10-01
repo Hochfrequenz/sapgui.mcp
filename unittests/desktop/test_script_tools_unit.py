@@ -3,13 +3,23 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastmcp import FastMCP
 
-from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
-from sapguimcp.tools.script_tools import SAFE_BUILTINS, _run_in_sandbox, register_script_tools
+from sapguimcp.backend.desktop.models.script_results import SandboxContract, SapRunScriptResult
+from sapguimcp.resources.sandbox_resource import register_sandbox_resources
+from sapguimcp.tools.script_tools import (
+    INJECTED_NAMES,
+    SAFE_BUILTINS,
+    SANDBOX_CONTRACT,
+    SANDBOX_CONTRACT_VERSION,
+    _run_in_sandbox,
+    get_sandbox_contract,
+    register_script_tools,
+)
 
 _FILENAME = "<sap_script>"
 
@@ -254,3 +264,148 @@ class TestSapRunScriptTool:
         assert result.success is False
         assert "timed out" in result.error
         assert "1s" in result.error
+
+
+class TestSandboxContract:
+    def test_version(self):
+        assert SANDBOX_CONTRACT_VERSION == 1
+        assert SANDBOX_CONTRACT.version == 1
+        assert get_sandbox_contract().version == 1
+
+    def test_allowed_builtins_content(self):
+        contract = get_sandbox_contract()
+        assert isinstance(contract.allowed_builtins, list)
+        expected_subset = {
+            "abs",
+            "all",
+            "any",
+            "bool",
+            "dict",
+            "enumerate",
+            "filter",
+            "float",
+            "getattr",
+            "int",
+            "isinstance",
+            "len",
+            "list",
+            "map",
+            "max",
+            "min",
+            "range",
+            "reversed",
+            "round",
+            "set",
+            "sorted",
+            "str",
+            "sum",
+            "tuple",
+            "zip",
+            "AttributeError",
+            "Exception",
+            "IndexError",
+            "KeyError",
+            "NotImplementedError",
+            "RuntimeError",
+            "StopIteration",
+            "TypeError",
+            "ValueError",
+        }
+        assert expected_subset.issubset(set(contract.allowed_builtins))
+
+        # Should NOT contain internal / private names (starting with _)
+        for name in contract.allowed_builtins:
+            assert not name.startswith("_"), f"Internal builtin leaked: {name}"
+        assert "__import__" not in contract.allowed_builtins
+
+        # Should NOT contain builtins excluded by sandbox design
+        missing_builtins = ["print", "ord", "divmod", "open", "eval", "exec", "globals", "locals"]
+        for missing in missing_builtins:
+            assert missing not in contract.allowed_builtins
+
+        # Must match SAFE_BUILTINS keys minus private/stub entries
+        expected_allowed = sorted(k for k in SAFE_BUILTINS if not k.startswith("_"))
+        assert contract.allowed_builtins == expected_allowed
+
+    def test_safe_builtins_alias(self):
+        contract = get_sandbox_contract()
+        assert contract.safe_builtins == contract.allowed_builtins
+
+    def test_injected_names(self):
+        contract = get_sandbox_contract()
+        assert isinstance(contract.injected_names, list)
+        assert set(contract.injected_names) == {"output", "session"}
+        assert set(INJECTED_NAMES) == {"output", "session"}
+
+    def test_contract_dict_and_model_access(self):
+        contract = get_sandbox_contract()
+        assert isinstance(contract, SandboxContract)
+        # Attribute access
+        assert contract.version == 1
+        assert isinstance(contract.allowed_builtins, list)
+        # Key subscript access
+        assert contract["version"] == 1
+        assert contract["allowed_builtins"] == contract.allowed_builtins
+        assert contract["safe_builtins"] == contract.safe_builtins
+        assert contract["injected_names"] == contract.injected_names
+
+        # Dict operations
+        assert "version" in contract
+        assert "allowed_builtins" in contract
+        assert "nonexistent" not in contract
+        assert contract.get("version") == 1
+        assert contract.get("nonexistent", "default") == "default"
+        with pytest.raises(KeyError):
+            _ = contract["nonexistent"]
+
+        # Serialization to dict
+        as_dict = contract.model_dump()
+        assert as_dict["version"] == 1
+        assert "allowed_builtins" in as_dict
+        assert "safe_builtins" in as_dict
+        assert "injected_names" in as_dict
+
+    def test_sap_run_script_description_includes_sandbox_contract(self):
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+        tools = {t.name: t for t in asyncio.run(mcp.list_tools())}
+        desc = tools["sap_run_script"].description or ""
+
+        assert "Sandbox contract (v1):" in desc
+        assert "Allowed builtins:" in desc
+        assert "Injected names:" in desc
+        assert "session" in desc
+        assert "output" in desc
+        assert "print" in desc
+        assert "ord" in desc or "divmod" in desc
+        assert "sandbox://sap_run_script" in desc
+
+    def test_sandbox_resource_registration_and_read(self):
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+
+        resources = {str(r.uri): r for r in asyncio.run(mcp.list_resources())}
+        assert "sandbox://sap_run_script" in resources
+        resource = resources["sandbox://sap_run_script"]
+        assert resource.mime_type == "application/json"
+
+        # Read resource content
+        content = asyncio.run(mcp.read_resource("sandbox://sap_run_script"))
+        assert len(content.contents) == 1
+        payload = json.loads(content.contents[0].content)
+
+        assert payload["version"] == 1
+        assert isinstance(payload["allowed_builtins"], list)
+        assert "len" in payload["allowed_builtins"]
+        assert "print" not in payload["allowed_builtins"]
+        assert set(payload["injected_names"]) == {"output", "session"}
+
+    def test_sandbox_resource_idempotent_registration(self):
+        mcp = FastMCP("test")
+        register_sandbox_resources(mcp)
+        # Calling again must not raise or produce duplicate resources
+        register_sandbox_resources(mcp)
+        register_script_tools(mcp)
+
+        resources = [r for r in asyncio.run(mcp.list_resources()) if str(r.uri) == "sandbox://sap_run_script"]
+        assert len(resources) == 1
