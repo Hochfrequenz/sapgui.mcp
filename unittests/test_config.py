@@ -30,6 +30,7 @@ class TestSapGuiSettings:
         assert settings.browser_type == BrowserType.CHROMIUM
         assert settings.browser_headless is False
         assert settings.cdp_url == "http://localhost:9222"
+        assert settings.script_roots == ""
 
     def test_env_variable_loading(self) -> None:
         """Test that environment variables are loaded correctly."""
@@ -39,6 +40,7 @@ class TestSapGuiSettings:
             "BROWSER_TYPE": "firefox",
             "BROWSER_HEADLESS": "true",
             "CDP_URL": "http://localhost:9333",
+            "SAPGUIMCP_SCRIPT_ROOTS": "/opt/scripts:/home/scripts",
         }
 
         with patch.dict(os.environ, env_vars, clear=True):
@@ -49,6 +51,13 @@ class TestSapGuiSettings:
         assert settings.browser_type == BrowserType.FIREFOX
         assert settings.browser_headless is True
         assert settings.cdp_url == "http://localhost:9333"
+        assert settings.script_roots == "/opt/scripts:/home/scripts"
+
+    def test_script_roots_alias(self) -> None:
+        """Test that SCRIPT_ROOTS alias works for script_roots."""
+        with patch.dict(os.environ, {"SCRIPT_ROOTS": "/my/scripts"}, clear=True):
+            settings = SapGuiSettings(_env_file=None)
+        assert settings.script_roots == "/my/scripts"
 
     def test_papertrail_defaults_empty(self) -> None:
         """Papertrail is OFF by default (no hardcoded host/port)."""

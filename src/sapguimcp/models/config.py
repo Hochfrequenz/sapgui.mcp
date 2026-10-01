@@ -12,7 +12,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sap_mcp_config import Config as SapMcpConfig
 from sap_mcp_config import load_default as load_sap_config
@@ -158,6 +158,17 @@ class SapGuiSettings(BaseSettings):
 
     # --- Desktop-only fields ---
     # TODO(split): move to desktop project's own Settings class
+
+    script_roots: str = Field(
+        default="",
+        description=(
+            "Allowed root directories for sap_run_script's script_path parameter, "
+            "separated by os.pathsep (';' on Windows, ':' on Unix). "
+            "Empty (default) disables script_path execution."
+        ),
+        json_schema_extra={"env": "SAPGUIMCP_SCRIPT_ROOTS"},
+        validation_alias=AliasChoices("SAPGUIMCP_SCRIPT_ROOTS", "SCRIPT_ROOTS"),
+    )
 
     com_min_interval_ms: int = Field(
         default=100,

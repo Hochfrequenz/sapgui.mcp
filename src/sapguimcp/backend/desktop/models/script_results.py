@@ -18,3 +18,11 @@ class SapRunScriptResult(ToolResult):
         default=None,
         description="Full formatted traceback if the script raised; None on success.",
     )
+    script_path: str | None = Field(
+        default=None,
+        description="Path to the script file that ran; None for inline scripts.",
+    )
+    script_sha256: str | None = Field(
+        default=None,
+        description="SHA-256 hex digest of the script file that ran; None for inline scripts.",
+    )
