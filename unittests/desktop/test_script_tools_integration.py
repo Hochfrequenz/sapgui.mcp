@@ -7,6 +7,7 @@ network/session-lookup side-effects occur.
 """
 
 import sys
+import time
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -137,3 +138,36 @@ async def test_script_empty_output_succeeds(backend):
 
     assert result.success, f"Failed: {result.error}"
     assert result.output == []
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_script_wait_helpers(backend):
+    """wait/wait_until work on the live session and are bounded by the tool timeout."""
+    mcp = FastMCP("test")
+    register_script_tools(mcp)
+    tool_fn = _make_tool_fn(mcp)
+
+    script = (
+        "elem = wait_until('wnd[0]', 1000)\n"
+        "output(elem.id if elem is not None else None)\n"
+        "output(wait_until('wnd[0]/usr/doesNotExist99', 300, 50))\n"
+        "wait(100)\n"
+        "output('waited')\n"
+    )
+    with patch("sapguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
+        result = await tool_fn(script=script, session=None, agent_id=None)
+        assert result.success, f"Failed: {result.error}"
+        assert result.output[0] is not None
+        assert "wnd[0]" in result.output[0]
+        assert result.output[1] is None
+        assert result.output[2] == "waited"
+
+        started = time.monotonic()
+        result = await tool_fn(script="wait(10**9)", session=None, agent_id=None, timeout=2)
+        elapsed = time.monotonic() - started
+
+    assert not result.success
+    assert result.error is not None
+    assert "TimeoutError" in result.error
+    assert elapsed < 5, f"wait should fail fast, took {elapsed:.1f}s"

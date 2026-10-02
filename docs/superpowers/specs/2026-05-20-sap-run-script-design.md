@@ -106,7 +106,7 @@ exec(compile(script, "<sap_script>", "exec"), {
 
 Injected sandbox helpers:
 - `wait(ms)`: pause execution for `ms` milliseconds via `time.sleep()`.
-- `wait_until(element_id, timeout_ms, poll_ms=200)`: poll for an element by ID until `session.find_by_id` succeeds, returning the element; returns `None` after `timeout_ms` elapses.
+- `wait_until(element_id, timeout_ms, poll_ms=200)`: poll for an element by ID until `session.find_by_id` succeeds, returning the element; returns `None` after `timeout_ms` elapses (raises `TimeoutError` if the tool `timeout` is hit first). `wait` raises `TimeoutError` instead of sleeping past the tool `timeout`. Waits count against `timeout` and block the connection's COM thread; keep them short.
 
 **Not provided (accidental-use defence):** `open`, `eval`, `exec`, `print`, `input`, `compile`,
 `globals`, `locals`, `breakpoint`, `setattr`, `delattr`, `hasattr`, `vars`, `dir`,
