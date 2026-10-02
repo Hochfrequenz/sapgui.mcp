@@ -499,6 +499,8 @@ def register_script_tools(mcp: FastMCP) -> None:
             "The script receives:\n"
             "- ``session``: sapsucker ``GuiSession`` — use ``session.find_by_id(id)`` to reach "
             "elements, then read/write their properties and call methods directly.\n"
+            "  ``GuiComboBox``: select an entry by key with ``combo.key = '<key>'``; ``.value`` is the "
+            "display text.\n"
             "- ``output(value)``: call this to collect results. All values are returned in order.\n"
             "- ``wait(ms)``: pause execution for ``ms`` milliseconds.\n"
             "- ``wait_until(element_id, timeout_ms, poll_ms=200)``: poll for an element by ID "

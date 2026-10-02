@@ -5,8 +5,12 @@ Verifies that BDT fields (invisible to standard dump_tree) are now
 discoverable and interactable via the improved COM tools.
 """
 
-import pytest
+from unittest.mock import AsyncMock, patch
 
+import pytest
+from fastmcp import FastMCP
+
+from sapguimcp.tools.script_tools import register_script_tools
 from unittests.desktop.conftest import bp_teardown, skip_no_sap
 
 pytestmark = [skip_no_sap]
@@ -234,3 +238,63 @@ async def test_se16_regression(backend):
     await backend.enter_transaction("SE16")
     fields = await backend.discover_fields()
     assert len(fields) > 0, "discover_fields returned 0 fields on SE16"
+
+
+@pytest.mark.anyio
+async def test_script_combobox_key_assignment_takes_effect(backend):
+    """`combo.key = ...` in sap_run_script changes the live COM Key (regression for #903).
+
+    Uses the BP create-person screen: the first GuiComboBox with a selectable alternative.
+    The value is read back in a second tool call, because reading the COM Key in the same
+    call right after setting it can hit RPC_E_SERVERCALL_RETRYLATER. Cleanup (/n, no save)
+    is done by the module's autouse fixture.
+    """
+    mcp = FastMCP("test")
+    register_script_tools(mcp)
+    tool_fn = mcp._local_provider._components["tool:sap_run_script@"].fn
+
+    await backend.enter_transaction("BP")
+    await backend.press_key("F5")  # Create person
+    await backend.wait(1000)
+    await backend.press_key("Enter")  # same F5+Enter sequence as the other BP create-person tests
+    await backend.wait(1000)
+
+    set_script = (
+        "stack = [session.find_by_id('wnd[0]/usr')]\n"
+        "combo = None\n"
+        "target = None\n"
+        "while stack and combo is None:\n"
+        "    node = stack.pop()\n"
+        "    for child in node.children:\n"
+        "        if child.type == 'GuiComboBox':\n"
+        "            cands = [e.key for e in child.entries if e.key.strip() and e.key != child.key]\n"
+        "            if cands:\n"
+        "                combo = child\n"
+        "                target = cands[0]\n"
+        "                break\n"
+        "        if child.container_type:\n"
+        "            stack.append(child)\n"
+        "output(combo is not None)\n"
+        "if combo is not None:\n"
+        "    output(combo.id)\n"
+        "    output(combo.key)\n"
+        "    output(target)\n"
+        "    combo.key = target\n"
+    )
+    with patch("sapguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
+        result = await tool_fn(script=set_script, session=None, agent_id=None)
+        assert result.success, f"Failed: {result.error}"
+        if result.output[0] is not True:
+            pytest.skip("no GuiComboBox with a selectable alternative on the BP create-person screen")
+        cid, old_key, target = result.output[1], result.output[2], result.output[3]
+
+        await backend.wait(500)
+
+        read_script = f"output(session.find_by_id({cid!r}).com.Key)\n"
+        result2 = await tool_fn(script=read_script, session=None, agent_id=None)
+
+    assert result2.success, f"Read-back failed: {result2.error}"
+    read_back = result2.output[0]
+    assert read_back == target, (
+        f"combo.key assignment was a silent no-op: old key={old_key!r}, target={target!r}, read-back={read_back!r}"
+    )
