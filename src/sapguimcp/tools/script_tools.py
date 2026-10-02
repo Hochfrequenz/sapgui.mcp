@@ -127,13 +127,24 @@ def get_configured_script_roots() -> list[Path]:
 
     Roots come from the ``SCRIPT_ROOTS`` setting, separated by ``os.pathsep``.
     Returns an empty list if none are configured (feature disabled).
+
+    Roots are admin-trusted configuration and must be absolute paths; relative
+    roots (or a bare drive such as ``C:``) would depend on the server's working
+    directory and are skipped with a warning. A UNC/network root is allowed if
+    the administrator configures one - only UNC/device paths in the caller's
+    ``script_path`` are rejected.
     """
     raw = get_settings().script_roots
     roots: list[Path] = []
     for raw_part in raw.split(os.pathsep):
         part = raw_part.strip().strip("\"'")
-        if part:
-            roots.append(Path(part))
+        if not part:
+            continue
+        root = Path(part)
+        if not root.is_absolute():
+            logger.warning("Ignoring SCRIPT_ROOTS entry %r: script roots must be absolute paths", part)
+            continue
+        roots.append(root)
     return roots
 
 
@@ -174,7 +185,7 @@ def _resolve_and_validate_script_path(script_path: str, configured_roots: list[P
         raise ValueError("Invalid script_path: embedded null byte")
 
     if script_path.startswith(("\\\\", "//")):
-        raise ValueError(f"UNC paths are not allowed: {script_path}")
+        raise ValueError(f"UNC and device paths are not allowed: {script_path}")
 
     if sys.platform == "win32" and ":" in os.path.splitdrive(script_path)[1]:
         raise ValueError(f"Alternate data streams are not allowed: {script_path}")
@@ -184,7 +195,7 @@ def _resolve_and_validate_script_path(script_path: str, configured_roots: list[P
         raise ValueError(f"script_path must have a .py extension: {script_path}")
 
     if _is_reserved_name(script_path):
-        raise ValueError(f"Device paths and reserved names are not allowed: {script_path}")
+        raise ValueError(f"Invalid or reserved Windows file name: {script_path}")
 
     located = resolve_candidates_within_roots(candidate, configured_roots)
     if not located:
@@ -456,6 +467,9 @@ def register_script_tools(mcp: FastMCP) -> None:
                 target_file = _resolve_and_validate_script_path(script_path, roots)
             except ValueError as exc:
                 return _fail(str(exc))
+            except (OSError, RuntimeError) as exc:
+                # e.g. symlink loops or unreadable path components during resolution
+                return _fail(f"Cannot resolve script_path {script_path!r}: {exc}")
 
             try:
                 with target_file.open("rb") as fh:

@@ -164,6 +164,9 @@ class SapGuiSettings(BaseSettings):
         description=(
             "Allowed root directories for sap_run_script's script_path parameter, "
             "separated by os.pathsep (';' on Windows, ':' on Unix). "
+            "Roots must be absolute paths (relative entries are skipped with a warning); "
+            "a UNC/network root is allowed if the admin configures one, whereas UNC/device "
+            "paths in the caller's script_path are rejected. "
             "Relative script_path values are resolved against these roots in order "
             "(first match wins). Empty (default) disables script_path execution."
         ),

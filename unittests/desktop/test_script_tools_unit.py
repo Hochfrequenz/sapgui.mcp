@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import asyncio
 import hashlib
+import logging
 import os
 import re
 import subprocess
@@ -223,6 +224,56 @@ class TestScriptPathValidation:
         _set_script_roots(monkeypatch, "")
         assert get_configured_script_roots() == []
 
+    def test_get_configured_script_roots_empty_entries(self, monkeypatch: pytest.MonkeyPatch):
+        _set_script_roots(monkeypatch, os.pathsep * 2)
+        assert get_configured_script_roots() == []
+
+    def test_get_configured_script_roots_quotes_and_whitespace(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        a = tmp_path / "a"
+        b = tmp_path / "b"
+        _set_script_roots(monkeypatch, f' "{a}" {os.pathsep} {b} ')
+        assert get_configured_script_roots() == [a, b]
+
+    def test_get_configured_script_roots_skips_relative(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ):
+        good = tmp_path / "good"
+        _set_script_roots(monkeypatch, f"relative_dir{os.pathsep}{good}")
+        with caplog.at_level(logging.WARNING, logger="sapguimcp.tools.script_tools"):
+            roots = get_configured_script_roots()
+        assert roots == [good]
+        assert "must be absolute" in caplog.text
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="drive-relative paths are Windows-only")
+    def test_get_configured_script_roots_skips_bare_drive(self, monkeypatch: pytest.MonkeyPatch):
+        _set_script_roots(monkeypatch, "C:")
+        assert get_configured_script_roots() == []
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="drive-relative paths are Windows-only")
+    def test_drive_relative_script_path_not_outside_root(self, tmp_path: Path):
+        root = tmp_path / "root"
+        root.mkdir()
+        with pytest.raises(ValueError):
+            _resolve_and_validate_script_path("C:evil.py", [root])
+
+    @pytest.mark.parametrize("prefix", ["\\\\?\\", "\\\\.\\"])
+    def test_device_prefix_script_path_rejected(self, tmp_path: Path, prefix: str):
+        with pytest.raises(ValueError, match="UNC and device paths are not allowed"):
+            _resolve_and_validate_script_path(prefix + "C:\\x\\script.py", [tmp_path])
+
+    def test_symlink_to_non_py_target_rejected(self, tmp_path: Path):
+        root = tmp_path / "allowed"
+        root.mkdir()
+        real = root / "x.txt"
+        real.write_text("output(1)")
+        link = root / "link.py"
+        try:
+            link.symlink_to(real)
+        except (OSError, NotImplementedError) as exc:
+            pytest.skip(f"cannot create symlinks here: {exc}")
+        with pytest.raises(ValueError, match=re.escape("target must have a .py extension")):
+            _resolve_and_validate_script_path(str(link), [root])
+
     def test_is_path_within_root(self, tmp_path: Path):
         child = tmp_path / "sub" / "file.py"
         assert is_path_within_root(child, tmp_path) is True
@@ -235,8 +286,7 @@ class TestScriptPathValidation:
         resolved = _resolve_and_validate_script_path(str(script_file), [tmp_path])
         assert resolved == script_file.resolve()
 
-    def test_resolve_and_validate_script_path_relative(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-        monkeypatch.chdir(tmp_path)
+    def test_resolve_and_validate_script_path_relative(self, tmp_path: Path):
         script_file = tmp_path / "test.py"
         script_file.write_text("output(1)")
         resolved = _resolve_and_validate_script_path("test.py", [tmp_path])
@@ -283,7 +333,7 @@ class TestScriptPathValidation:
             _resolve_and_validate_script_path(str(txt_file), [tmp_path])
 
     def test_resolve_and_validate_script_path_unc(self, tmp_path: Path):
-        with pytest.raises(ValueError, match="UNC paths are not allowed"):
+        with pytest.raises(ValueError, match="UNC and device paths are not allowed"):
             _resolve_and_validate_script_path(r"\\server\share\script.py", [tmp_path])
 
     def test_relative_path_resolves_against_root_not_cwd(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -380,7 +430,7 @@ class TestScriptPathValidation:
 
     @pytest.mark.parametrize("name", ["CON.py", "nul.py", "sub/COM1.py"])
     def test_reserved_device_name_rejected(self, tmp_path: Path, name: str):
-        with pytest.raises(ValueError, match="reserved names"):
+        with pytest.raises(ValueError, match="Invalid or reserved Windows file name"):
             _resolve_and_validate_script_path(name, [tmp_path])
 
     @pytest.mark.skipif(sys.platform != "win32", reason="alternate data streams are Windows-only")
@@ -638,6 +688,26 @@ class TestSapRunScriptTool:
         assert result.script_sha256 == hashlib.sha256(script_file.read_bytes()).hexdigest()
         mock_get_backend.assert_not_called()
 
+    @pytest.mark.parametrize("exc", [RuntimeError("Symlink loop"), OSError("boom")])
+    def test_script_path_resolution_error_returns_failure(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, exc: Exception
+    ):
+        _set_script_roots(monkeypatch, str(tmp_path))
+
+        def raiser(*_args: object, **_kwargs: object):
+            raise exc
+
+        monkeypatch.setattr("sapguimcp.tools.script_tools._resolve_and_validate_script_path", raiser)
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+        tool_fn = self._make_tool_fn(mcp)
+        mock_get_backend = AsyncMock()
+        with patch("sapguimcp.tools.script_tools.get_backend", mock_get_backend):
+            result = asyncio.run(tool_fn(script_path=str(tmp_path / "x.py")))
+        assert result.success is False
+        assert "Cannot resolve script_path" in result.error
+        mock_get_backend.assert_not_called()
+
     def test_script_path_unknown_params_rejected(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         _set_script_roots(monkeypatch, str(tmp_path))
         script_file = tmp_path / "test.py"
@@ -674,7 +744,7 @@ class TestSapRunScriptTool:
 
         mock_session = MagicMock()
         mock_backend = MagicMock()
-        mock_backend.__class__ = DesktopBackend  # type: ignore[assignment]
+        mock_backend.__class__ = DesktopBackend  # lets isinstance() pass
         mock_backend.backend_type = "desktop"
         mock_backend.require_session.return_value = mock_session
 
