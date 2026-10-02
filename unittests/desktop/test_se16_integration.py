@@ -240,7 +240,8 @@ async def test_se16_real_column_not_offered_by_se16n_fails(backend):
     """
     check = await _execute_se16_query(backend, "DD03L", {"TABNAME": "TBOOKSHOP", "FIELDNAME": "TEXT1"}, 1)
     await go_home(backend)
-    if not check.success or check.returned_rows == 0:
+    assert check.success, f"DD03L existence check failed: {check.error}"
+    if check.returned_rows == 0:
         pytest.skip("Demo table TBOOKSHOP / field TEXT1 not present on this system")
     result = await _execute_se16_query(backend, "TBOOKSHOP", {"TEXT1": "X"}, 10)
     assert result.success is False, "Field not offered by SE16N must make the query fail"
