@@ -9,6 +9,8 @@ returning structured row data with automatic pagination for large result sets.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -108,6 +110,7 @@ def _empty_failure(
     retrieved_at: datetime,
     total_hits: int = 0,
     columns: list[str] | None = None,
+    filter_warnings: list[str] | None = None,
 ) -> SE16Result:
     """Create a failure SE16Result with empty rows."""
     return SE16Result.failure(
@@ -118,6 +121,7 @@ def _empty_failure(
         truncated=False,
         columns=columns or [],
         rows=[],
+        filter_warnings=filter_warnings or [],
         retrieved_at=retrieved_at,
     )
 
@@ -542,6 +546,15 @@ _SE16N_TC_IDS = [
 # Column indices in the SE16N selection criteria table control
 _SE16N_COL_FIELDNAME = 6  # GS_SELFIELDS-FIELDNAME (technical name)
 _SE16N_COL_LOW = 2  # GS_SELFIELDS-LOW (Von-Wert / From-Value)
+
+
+@dataclass
+class _FilterFillResult:
+    """Outcome of filling the SE16N selection criteria grid on the desktop backend."""
+
+    unapplied_fields: list[str] = dataclass_field(default_factory=list)  # requested names (as given) not in the grid
+    other_errors: list[str] = dataclass_field(default_factory=list)  # non-field problems, e.g. grid not found
+    offered_fields: list[str] = dataclass_field(default_factory=list)  # technical names seen in grid, deduped, ordered
 
 
 def _find_and_set_filter_cell(raw_tc: Any, field_upper: str, value: str, visible: int) -> bool:

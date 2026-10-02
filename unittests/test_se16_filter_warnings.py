@@ -9,7 +9,12 @@ from fastmcp import Client, FastMCP
 
 from sapguimcp.models import ScreenInfo, StatusBarInfo, TableData, TableRow, TransactionResult
 from sapguimcp.models.se16_models import SE16Result, SE16Row
-from sapguimcp.tools.se16_tools import _execute_se16_query_desktop, register_se16_tools
+from sapguimcp.tools.se16_tools import (
+    _empty_failure,
+    _execute_se16_query_desktop,
+    _FilterFillResult,
+    register_se16_tools,
+)
 
 
 def _make_desktop_backend() -> AsyncMock:
@@ -126,3 +131,31 @@ async def test_file_output_summary_carries_filter_warnings(tmp_path, monkeypatch
     summary = json.loads(raw.content[0].text)
     assert summary["output_file"]
     assert summary["filter_warnings"] == ["TCODE: field not found on selection screen"]
+
+
+class TestFilterFillResult:
+    def test_defaults_are_empty_and_independent(self) -> None:
+        first = _FilterFillResult()
+        second = _FilterFillResult()
+        first.unapplied_fields.append("X")
+
+        assert first.unapplied_fields == ["X"]
+        assert second.unapplied_fields == []
+        assert second.other_errors == []
+        assert second.offered_fields == []
+
+
+class TestEmptyFailureFilterWarnings:
+    def test_passes_filter_warnings_through(self) -> None:
+        now = datetime.now(UTC)
+
+        result = _empty_failure("boom", "T000", now, filter_warnings=["w1", "w2"])
+
+        assert result.success is False
+        assert result.error == "boom"
+        assert result.filter_warnings == ["w1", "w2"]
+
+    def test_defaults_to_no_warnings(self) -> None:
+        result = _empty_failure("boom", "T000", datetime.now(UTC))
+
+        assert result.filter_warnings == []
