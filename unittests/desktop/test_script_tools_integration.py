@@ -171,3 +171,50 @@ async def test_script_wait_helpers(backend):
     assert result.error is not None
     assert "TimeoutError" in result.error
     assert elapsed < 5, f"wait should fail fast, took {elapsed:.1f}s"
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_script_combobox_key_assignment_takes_effect(backend):
+    """`combo.key = ...` in sap_run_script changes the live COM Key (regression for #903).
+
+    Uses the BP create-person screen (Anrede dropdown) and leaves via /n without saving.
+    """
+    mcp = FastMCP("test")
+    register_script_tools(mcp)
+    tool_fn = _make_tool_fn(mcp)
+
+    await backend.enter_transaction("BP")
+    await backend.press_key("F5")
+    await backend.wait(1000)
+    await backend.press_key("Enter")
+    await backend.wait(1000)
+
+    script = (
+        "stack = [session.find_by_id('wnd[0]/usr')]\n"
+        "combo = None\n"
+        "while stack and combo is None:\n"
+        "    node = stack.pop()\n"
+        "    for child in node.children:\n"
+        "        if child.type == 'GuiComboBox' and len(child.entries) > 1:\n"
+        "            combo = child\n"
+        "            break\n"
+        "        if child.container_type:\n"
+        "            stack.append(child)\n"
+        "output(combo is not None)\n"
+        "if combo is not None:\n"
+        "    old = combo.key\n"
+        "    target = [e.key for e in combo.entries if e.key != old and e.key.strip()][0]\n"
+        "    combo.key = target\n"
+        "    output(target)\n"
+        "    output(session.find_by_id(combo.id).com.Key)\n"
+    )
+    try:
+        with patch("sapguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
+            result = await tool_fn(script=script, session=None, agent_id=None)
+    finally:
+        await backend.enter_transaction("/n")
+
+    assert result.success, f"Failed: {result.error}"
+    assert result.output[0] is True, "no GuiComboBox with entries found on the screen"
+    assert result.output[2] == result.output[1], "combo.key assignment was a silent no-op"
