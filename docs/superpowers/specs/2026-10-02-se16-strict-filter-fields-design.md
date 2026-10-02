@@ -51,8 +51,10 @@ class _FilterFillResult:
 
 - `offered_fields` is filled only when some field was not found, because only then is the whole
   grid walked. The success path costs nothing extra.
-- The walk is done once and the result is cached for the remaining missing fields. Rows seen
-  more than once because scroll windows overlap are de-duplicated, keeping the order.
+- Only the list of offered names is cached. A later field in `filters` is still searched with
+  the normal visible-then-scroll pass, because it may exist and need its value set. Rows seen
+  more than once because scroll windows overlap are de-duplicated, keeping the order. Blank
+  field-name cells (padding rows) are skipped.
 - `_find_and_set_filter_cell` and `_set_filter_with_scrolling` also report the field names they
   saw, so the collected names come from the scan that already exists rather than a second pass.
 - The non-desktop guard ("Filter filling requires DesktopBackend") becomes an `other_errors`
@@ -130,6 +132,10 @@ run one at a time.
   (no "Offered fields" sentence).
 - `_empty_failure` passes `filter_warnings` through.
 - No fill errors: the behaviour is unchanged.
+- The `row_count <= visible` branch: offered names come from the visible rows only.
+- Rewrite `test_execute_se16_query_desktop_returns_filter_warnings`
+  (`unittests/test_se16_filter_warnings.py`) for the new contract. It currently asserts
+  `success is True` and that F8 is pressed.
 
 ## Out of scope
 
