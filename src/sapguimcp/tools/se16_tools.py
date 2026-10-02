@@ -714,6 +714,50 @@ def _set_filter_with_scrolling(
     return found
 
 
+# Status bar fragments meaning "query ran, nothing found" (lower case, DE + EN)
+_SE16N_NO_ENTRIES_KEYWORDS = ("keine werte", "no values", "keine einträge", "no entries")
+# Upper bound for the readiness polls below; on timeout the regular error handling of the next step applies
+_SE16N_ELEMENT_TIMEOUT_MS = 10000
+
+
+def _statusbar_is_error(session: Any) -> bool:
+    """True if the status bar of the main window currently shows an error message."""
+    sbar = session.find_by_id("wnd[0]/sbar", raise_error=False)
+    return sbar is not None and str(sbar.message_type) == "E"
+
+
+def _se16n_initial_screen_ready(session: Any) -> bool:
+    """True once the SE16N table-name field exists."""
+    return any(session.find_by_id(f"wnd[0]/usr/{p}GD-TAB", raise_error=False) is not None for p in ("ctxt", "txt"))
+
+
+def _se16n_selection_grid_loaded(session: Any) -> bool:
+    """True once the selection criteria grid lists the fields of the entered table (or an error is shown).
+
+    The grid already exists, with blank rows, before a table is validated, so presence alone is not enough:
+    the first row's field name must be filled.
+    """
+    if _statusbar_is_error(session):
+        return True
+    for tc_id in _SE16N_TC_IDS:
+        tc = session.find_by_id(tc_id, raise_error=False)
+        if tc is not None:
+            raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
+            return bool(str(raw.GetCell(0, _SE16N_COL_FIELDNAME).Text).strip())
+    return False
+
+
+def _se16n_result_displayed(session: Any) -> bool:
+    """True once F8 produced a result grid, an error, or a "no entries" message."""
+    if session.find_by_id("wnd[0]/shellcont/shell", raise_error=False) is not None:
+        return True
+    sbar = session.find_by_id("wnd[0]/sbar", raise_error=False)
+    if sbar is None:
+        return False
+    text = str(sbar.text).lower()
+    return str(sbar.message_type) == "E" or any(msg in text for msg in _SE16N_NO_ENTRIES_KEYWORDS)
+
+
 async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements,too-many-branches,too-many-statements,unused-argument
     backend: WebGuiBackend | DesktopBackend,
     table: str,
@@ -723,6 +767,8 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     ctx: Context | None = None,  # TODO: progress reporting via ctx not yet implemented on desktop
 ) -> SE16Result:
     """Desktop-specific SE16N query using read_table instead of ARIA parsing."""
+    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
     # Always empty today (filter failures return early); kept for the status-bar error pass-through below.
     filter_warnings: list[str] = []
 
@@ -732,7 +778,8 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
         return _empty_failure(f"Failed to navigate to SE16N: {tx.error}", table, now)
 
     await backend.wait_for_ready()
-    await backend.wait(2000)
+    if isinstance(backend, DesktopBackend):  # always true on this desktop-only path; narrows the type
+        await backend.wait_for_condition(_se16n_initial_screen_ready, _SE16N_ELEMENT_TIMEOUT_MS)
 
     # Fill table name using focus_and_type (field name is GD-TAB in SE16N)
     screen = await backend.get_screen_info()
@@ -772,7 +819,9 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     # then fill filter values via the table control's cell manipulation.
     if filters:
         await backend.press_key("Enter")
-        await backend.wait(2000)
+        await backend.wait_for_ready()
+        if isinstance(backend, DesktopBackend):
+            await backend.wait_for_condition(_se16n_selection_grid_loaded, _SE16N_ELEMENT_TIMEOUT_MS)
         fill = await _fill_se16n_filters_desktop(backend, filters)
         if fill.unapplied_fields or fill.other_errors:
             logger.warning(
@@ -791,7 +840,9 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
 
     # Execute (F8)
     await backend.press_key("F8")
-    await backend.wait(2000)
+    await backend.wait_for_ready()
+    if isinstance(backend, DesktopBackend):
+        await backend.wait_for_condition(_se16n_result_displayed, _SE16N_ELEMENT_TIMEOUT_MS)
 
     # Check for errors in status bar
     sbar = await backend.get_status_bar()
@@ -799,9 +850,7 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
         return _empty_failure(f"SE16N error: {sbar.message}", table, now, filter_warnings=filter_warnings)
 
     # Check for "no entries found"
-    if sbar.message and any(
-        msg in sbar.message.lower() for msg in ["keine werte", "no values", "keine einträge", "no entries"]
-    ):
+    if sbar.message and any(msg in sbar.message.lower() for msg in _SE16N_NO_ENTRIES_KEYWORDS):
         return SE16Result(
             table=table,
             total_hits=0,

@@ -19,6 +19,9 @@ from sapguimcp.tools.se16_tools import (
     _filter_fill_failure,
     _FilterFillResult,
     _format_offered_fields,
+    _se16n_initial_screen_ready,
+    _se16n_result_displayed,
+    _se16n_selection_grid_loaded,
     register_se16_tools,
 )
 
@@ -447,3 +450,38 @@ async def test_tool_description_documents_strict_filter_fields() -> None:
     assert "not offered by SE16N" in description
     assert "fails before running the query" in description
     assert "selection fields" in description
+
+
+class _FakeElement:
+    def __init__(self, **attrs: object) -> None:
+        self.__dict__.update(attrs)
+
+
+def _fake_session(elements: dict[str, object]) -> MagicMock:
+    session = MagicMock()
+    session.find_by_id = lambda element_id, **_kwargs: elements.get(element_id)
+    return session
+
+
+def test_se16n_initial_screen_ready_needs_table_name_field() -> None:
+    assert not _se16n_initial_screen_ready(_fake_session({}))
+    assert _se16n_initial_screen_ready(_fake_session({"wnd[0]/usr/ctxtGD-TAB": object()}))
+
+
+def test_se16n_selection_grid_loaded_requires_filled_first_row() -> None:
+    tc_id = "wnd[0]/usr/subTAB_SUB:SAPLSE16N:0121/tblSAPLSE16NSELFIELDS_TC"
+    blank = _FakeElement(GetCell=lambda _r, _c: _FakeElement(Text=""))
+    filled = _FakeElement(GetCell=lambda _r, _c: _FakeElement(Text="TCODE"))
+    assert not _se16n_selection_grid_loaded(_fake_session({tc_id: blank}))
+    assert not _se16n_selection_grid_loaded(_fake_session({}))
+    assert _se16n_selection_grid_loaded(_fake_session({tc_id: filled}))
+    # an error in the status bar ends the wait even without a grid
+    assert _se16n_selection_grid_loaded(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="E", text="x")}))
+
+
+def test_se16n_result_displayed() -> None:
+    no_entries = _FakeElement(message_type="S", text="Keine Werte gefunden")
+    assert not _se16n_result_displayed(_fake_session({}))
+    assert _se16n_result_displayed(_fake_session({"wnd[0]/shellcont/shell": object()}))
+    assert _se16n_result_displayed(_fake_session({"wnd[0]/sbar": no_entries}))
+    assert not _se16n_result_displayed(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="S", text="")}))

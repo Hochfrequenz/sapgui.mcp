@@ -80,7 +80,7 @@ from sapguimcp.models.sap_results import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
     from sapsucker.components.session import GuiSession
 
@@ -577,6 +577,34 @@ class DesktopBackend:
             if not busy:
                 return
             await asyncio.sleep(0.2)
+
+    async def wait_for_condition(
+        self, condition: Callable[[Any], bool], timeout_ms: int = 10000, poll_ms: int = 100
+    ) -> bool:
+        """Poll ``condition(session)`` on the COM thread until it returns truthy or the timeout elapses.
+
+        Use this instead of a fixed ``wait`` when the next step needs a specific element or screen state
+        (the session being idle, see ``wait_for_ready``, does not guarantee the element exists yet).
+        Exceptions raised by ``condition`` count as "not yet". Returns True when the condition held,
+        False on timeout (callers decide whether to continue; their normal error handling still applies).
+        """
+        session = self.require_session()
+
+        def _check() -> bool:
+            try:
+                return bool(condition(session))
+            except Exception:  # pylint: disable=broad-exception-caught
+                return False
+
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout_ms / 1000
+        while True:
+            if await self.com.run(_check):
+                return True
+            if loop.time() >= deadline:
+                logger.debug("wait_for_condition timed out", extra={"timeout_ms": timeout_ms})
+                return False
+            await asyncio.sleep(poll_ms / 1000)
 
     async def wait_for_sap_ready(self, timeout_ms: int = 5000) -> None:
         """Desktop backend: COM calls are synchronous, so this is a no-op."""

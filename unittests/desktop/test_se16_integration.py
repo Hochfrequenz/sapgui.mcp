@@ -251,3 +251,18 @@ async def test_se16_real_column_not_offered_by_se16n_fails(backend):
     assert result.returned_rows == 0
     assert result.rows == []
     await go_home(backend)
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_se16_large_result_returns_all_requested_rows(backend):
+    """#928: a slow, large query (DD03L, 500 rows) must not be read before the result grid is ready."""
+    result = await _execute_se16_query(backend, "DD03L", None, 500)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert result.returned_rows == 500
+    assert len(result.rows) == 500
+    assert result.total_hits >= 500
+    assert "TABNAME" in result.columns
+    for row in result.rows:
+        assert set(row.data.keys()) == set(result.columns)
+    await go_home(backend)
