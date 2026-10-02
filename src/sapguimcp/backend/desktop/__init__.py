@@ -29,9 +29,11 @@ except ImportError:
 
 from sapguimcp.backend.desktop import _abap_editor
 from sapguimcp.backend.desktop._com_thread import (
+    _RPC_E_DISCONNECTED,
     NO_SESSION_TARGET,
     ComThread,
     SapSessionHaltedError,
+    _get_com_error_code,
     com_call_target,
     describe_com_error,
     is_transient_busy_error,
@@ -80,7 +82,7 @@ from sapguimcp.models.sap_results import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
     from sapsucker.components.session import GuiSession
 
@@ -577,6 +579,44 @@ class DesktopBackend:
             if not busy:
                 return
             await asyncio.sleep(0.2)
+
+    async def wait_for_condition(
+        self, condition: Callable[[Any], bool], timeout_ms: int = 10000, poll_ms: int = 100
+    ) -> bool:
+        """Poll ``condition(session)`` on the COM thread until it returns truthy or the timeout elapses.
+
+        Use this instead of a fixed ``wait`` when the next step needs a specific element or screen state
+        (the session being idle, see ``wait_for_ready``, does not guarantee the element exists yet).
+        Exceptions raised by ``condition`` count as "not yet", except a lost COM connection
+        (RPC_E_DISCONNECTED), which is re-raised immediately. Returns True when the condition held,
+        False on timeout (callers decide whether to continue; their normal error handling still applies).
+        """
+        session = self.require_session()
+
+        last_error: Exception | None = None
+
+        def _check() -> bool:
+            nonlocal last_error
+            try:
+                return bool(condition(session))
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                if _get_com_error_code(exc) == _RPC_E_DISCONNECTED:
+                    raise
+                last_error = exc
+                return False
+
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout_ms / 1000
+        while True:
+            if await self.com.run(_check):
+                return True
+            if loop.time() >= deadline:
+                logger.debug(
+                    "wait_for_condition timed out",
+                    extra={"timeout_ms": timeout_ms, "last_error": repr(last_error)},
+                )
+                return False
+            await asyncio.sleep(poll_ms / 1000)
 
     async def wait_for_sap_ready(self, timeout_ms: int = 5000) -> None:
         """Desktop backend: COM calls are synchronous, so this is a no-op."""

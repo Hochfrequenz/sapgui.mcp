@@ -60,6 +60,8 @@ from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen
 from sapguimcp.tools.table_helpers import read_table_control_all_rows
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
 
@@ -506,6 +508,29 @@ def _parse_se11_table_rows(rows: list[dict[str, str]]) -> list[SE11Field]:
     return fields
 
 
+def _se11_display_screen_reached(before_status: str) -> Callable[[Any], bool]:
+    """Build a predicate: True once SE11 left its initial screen after F7, or shows a new status text (or a popup).
+
+    A missing object keeps the initial screen and reports "<name> does not exist" (message type S), so a new
+    status bar text ends the wait; the caller's title/status checks then classify the outcome. Text identical to
+    ``before_status`` (read right before F7) predates the keypress and is ignored.
+    """
+
+    def _predicate(session: Any) -> bool:
+        if session.find_by_id("wnd[1]", raise_error=False) is not None:
+            return True
+        title = str(session.find_by_id("wnd[0]").text).lower()
+        if "einstieg" not in title and "initial" not in title:
+            return True
+        sbar = session.find_by_id("wnd[0]/sbar", raise_error=False)
+        if sbar is None:
+            return False
+        text = str(sbar.text).strip()
+        return bool(text) and text != before_status
+
+    return _predicate
+
+
 async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-return-statements,too-many-statements
     backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType
 ) -> SE11Entry | SE11Error:
@@ -569,8 +594,10 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
         return SE11Error(name=name, object_type=object_type, error=fill_error, retrieved_at=now)
 
     # Press F7 (Display)
+    before_f7 = (await backend.get_status_bar()).message.strip()
     await backend.press_key("F7")
-    await backend.wait(2000)
+    await backend.wait_for_ready()
+    await backend.wait_for_condition(_se11_display_screen_reached(before_f7))
 
     # Check status bar for errors
     sbar = await backend.get_status_bar()
