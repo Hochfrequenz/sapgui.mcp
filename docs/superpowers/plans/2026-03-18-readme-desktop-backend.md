@@ -152,7 +152,7 @@ Add to `.mcp.json` in your project root:
 ```
 
 Replace:
-- `Your SAP Logon Entry` with the connection name from SAP Logon pad (e.g. `"HF S/4"`)
+- `Your SAP Logon Entry` with the connection name from SAP Logon pad (e.g. `"DEV S/4HANA"`)
 - `your_username` / `your_password` with your SAP credentials
 
 No Chrome, no CDP proxy required.
@@ -253,7 +253,7 @@ Replace the Configuration Reference table with:
 | Variable              | Required                          | Description                                                  | Default                      |
 | --------------------- | --------------------------------- | ------------------------------------------------------------ | ---------------------------- |
 | `BACKEND_TYPE`        | No                                | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`           |
-| `SAP_CONNECTION_NAME` | When `BACKEND_TYPE=desktop`       | SAP Logon pad connection entry name (e.g. `"HF S/4"`)       | —                            |
+| `SAP_CONNECTION_NAME` | When `BACKEND_TYPE=desktop`       | SAP Logon pad connection entry name (e.g. `"DEV S/4HANA"`)       | —                            |
 | `SAP_URL`             | When `BACKEND_TYPE=webgui` <sup>1</sup> | SAP Web GUI URL                                        | `""`                         |
 | `SAP_USER`            | **Yes** <sup>1</sup>             | SAP username for auto-login                                  | `""`                         |
 | `SAP_PASSWORD`        | **Yes** <sup>1</sup>             | SAP password for auto-login                                  | `""`                         |

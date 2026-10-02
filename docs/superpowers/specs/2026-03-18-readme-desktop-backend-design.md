@@ -36,7 +36,7 @@ Restructure the `.exe` `<details>` block. Replace the current single flow with t
 
 **Config examples** (Claude Desktop + Claude Code):
 - `BACKEND_TYPE` set to `desktop`
-- `SAP_CONNECTION_NAME` — the display name from SAP Logon pad (e.g. `"HF S/4"`)
+- `SAP_CONNECTION_NAME` — the display name from SAP Logon pad (e.g. `"DEV S/4HANA"`)
 - `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, `SAP_LANGUAGE` — same as today
 - No `SAP_URL`, no `BROWSER_MODE`, no `CDP_URL` needed
 - Optional `GITHUB_PAT`
@@ -54,7 +54,7 @@ Add two rows and update conditionally-required annotations:
 | Variable | Required | Description | Default |
 |---|---|---|---|
 | `BACKEND_TYPE` | No | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui` |
-| `SAP_CONNECTION_NAME` | When `BACKEND_TYPE=desktop` | SAP Logon pad connection entry name (e.g. `"HF S/4"`) | — |
+| `SAP_CONNECTION_NAME` | When `BACKEND_TYPE=desktop` | SAP Logon pad connection entry name (e.g. `"DEV S/4HANA"`) | — |
 
 Update `SAP_URL` required column: change from "Yes" to "When `BACKEND_TYPE=webgui`" (it is ignored by the desktop backend).
 

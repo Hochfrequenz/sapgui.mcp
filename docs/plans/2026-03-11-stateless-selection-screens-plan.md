@@ -301,8 +301,8 @@ class TestParseSelectionScreenState:
         snapshot = _load_snapshot("se09_exploration/se09_initial_de.yaml")
         state = parse_selection_screen_state(snapshot)
 
-        # System info contains menuitemradio "System S4U (100)" — should be excluded
-        assert not any("S4U" in label for label in state.radios)
+        # System info contains menuitemradio "System XYZ (100)" — should be excluded
+        assert not any("XYZ" in label for label in state.radios)
 
     def test_empty_snapshot(self) -> None:
         """Empty snapshot returns empty state."""
@@ -345,7 +345,7 @@ ARIA format examples (from real SAP screens)::
     - radio "Datenbanktabelle" [checked]
     - radio "View"
     - textbox "Benutzer": KLEINK
-    - menuitemradio "System S4U (100)" [checked]:   ← ignored (system info)
+    - menuitemradio "System XYZ (100)" [checked]:   ← ignored (system info)
 """
 
 import re

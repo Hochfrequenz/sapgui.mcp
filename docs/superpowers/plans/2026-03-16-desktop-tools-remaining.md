@@ -14,7 +14,7 @@
 
 ## Key Design Decisions & Lessons Learned
 
-These were discovered during implementation and live testing against HF S/4 (S4U, client 100).
+These were discovered during implementation and live testing against an S/4HANA system.
 Future implementers MUST read these before writing code.
 
 ### COM Threading

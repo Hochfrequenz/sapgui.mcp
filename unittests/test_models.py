@@ -246,12 +246,12 @@ class TestModelSerialization:
             transaction="SE38",
             title="ABAP Editor",
             url="desktop://sap",
-            system_name="S4U",
+            system_name="XYZ",
             client="100",
             user="KLEINK",
         )
         data = result.model_dump()
-        assert data["system_name"] == "S4U"
+        assert data["system_name"] == "XYZ"
         assert data["client"] == "100"
         assert data["user"] == "KLEINK"
 
@@ -484,11 +484,11 @@ class TestSessionModels:
             tcode="SE38",
             title="ABAP Editor",
             is_primary=True,
-            system_name="S4U",
+            system_name="XYZ",
             client="100",
             user="KLEINK",
         )
-        assert info.system_name == "S4U"
+        assert info.system_name == "XYZ"
         assert info.client == "100"
         assert info.user == "KLEINK"
 

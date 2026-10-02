@@ -13,7 +13,7 @@ A reusable login/logoff helper for the pysapgui library, plus a pytest fixture f
 ## New Environment Variable
 
 ```
-SAP_CONNECTION_NAME=HF S/4
+SAP_CONNECTION_NAME=DEV S/4HANA
 ```
 
 Added to `SapGuiSettings` in `models/config.py` and `.env.example`. Also added to `clean_environment` in `unittests/conftest.py`. This is the SAP Logon entry name passed to `app.open_connection(name)`.
@@ -101,7 +101,7 @@ if popup is not None:
         session.find_by_id("wnd[1]").send_v_key(0)  # Enter
 ```
 
-Popup field IDs (captured from live HF S/4, S4U client 100):
+Popup field IDs (captured from a live S/4HANA system):
 | Element | ID |
 |---------|----|
 | Option 1 (end all others — destructive) | `radMULTI_LOGON_OPT1` |

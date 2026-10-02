@@ -48,11 +48,11 @@
     - link "Details anzeigen"
   - menu:
     - rowgroup:
-      - menuitemradio "System S4U (100)" [checked]:
+      - menuitemradio "System XYZ (100)" [checked]:
         - cell ""
         - cell
         - cell "System"
-        - cell "S4U (100)"
+        - cell "XYZ (100)"
         - cell
       - menuitemradio "Mandant 100":
         - cell

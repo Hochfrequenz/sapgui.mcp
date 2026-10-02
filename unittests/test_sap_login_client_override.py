@@ -13,7 +13,7 @@ _PATCH_GET_SETTINGS = "sapguimcp.tools.sap_login_impl.get_settings"
 _PATCH_GET_SAP_CONFIG = "sapguimcp.tools.sap_login_impl.get_sap_config"
 
 
-def _make_sap_config(default_system: str = "HFQ", client: str = "100", connection_name: str = "HF S/4") -> Config:
+def _make_sap_config(default_system: str = "sysA", client: str = "100", connection_name: str = "DEV S/4HANA") -> Config:
     return Config(
         default_system=default_system,
         systems={
@@ -95,7 +95,7 @@ class TestSapLoginSystemKeyOverride:
         """When no system_key given, default system's SAP Logon entry is passed to backend."""
         from sapguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
-        sap_cfg = _make_sap_config(default_system="HFQ", connection_name="HF S/4")
+        sap_cfg = _make_sap_config(default_system="sysA", connection_name="DEV S/4HANA")
         settings = _make_settings()
         backend = _make_backend()
 
@@ -108,7 +108,7 @@ class TestSapLoginSystemKeyOverride:
 
         backend.login.assert_called_once()
         _, kwargs = backend.login.call_args
-        assert kwargs["connection_name"] == "HF S/4"
+        assert kwargs["connection_name"] == "DEV S/4HANA"
 
     @pytest.mark.anyio
     async def test_system_key_param_overrides_default(self) -> None:
@@ -116,19 +116,19 @@ class TestSapLoginSystemKeyOverride:
         from sapguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
         sap_cfg = Config(
-            default_system="HFQ",
+            default_system="sysA",
             systems={
-                "HFQ": SAPSystem(
-                    connection_name="HF S/4",
+                "sysA": SAPSystem(
+                    connection_name="DEV S/4HANA",
                     host="https://sap.example.com",
                     client="100",
                     user="testuser",
                     password=SecretStr("testpass"),
                     language="DE",
                 ),
-                "S4U": SAPSystem(
+                "sysB": SAPSystem(
                     connection_name="S4 Utility",
-                    host="https://s4u.example.com",
+                    host="https://sysb.example.com",
                     client="200",
                     user="s4user",
                     password=SecretStr("s4pass"),
@@ -144,7 +144,7 @@ class TestSapLoginSystemKeyOverride:
             patch(_PATCH_GET_SAP_CONFIG, return_value=sap_cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
-            await sap_login(system_key="S4U")
+            await sap_login(system_key="sysB")
 
         backend.login.assert_called_once()
         _, kwargs = backend.login.call_args
