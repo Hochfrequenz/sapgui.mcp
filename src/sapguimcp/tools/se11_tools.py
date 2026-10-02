@@ -651,7 +651,7 @@ async def _lookup_batch_se11_desktop(
             else:
                 errors.append(result)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("SE11 desktop lookup failed", extra={"name": name})
+            logger.exception("SE11 desktop lookup failed", extra={"object_name": name})
             errors.append(
                 SE11Error(name=name, object_type=object_type, error=f"Error: {e}", retrieved_at=datetime.now(UTC))
             )
