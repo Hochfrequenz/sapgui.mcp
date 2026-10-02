@@ -809,7 +809,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Read the current message from SAP's status bar\n\n"
             "Also returns message_id / message_number / message_parameters (desktop only), "
-            "which identify the message independent of logon language.\n\n"
+            "which identify the message independently of the logon language.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
             '- session="s2": Targets specific session (for parallel agents)'

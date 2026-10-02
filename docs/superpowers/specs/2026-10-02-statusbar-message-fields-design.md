@@ -43,14 +43,15 @@ backend is unchanged and leaves the new fields empty.
       parameters trimmed, and a member raising leaves only the new fields empty;
     - the model defaults.
 - **Live desktop** (required, run one at a time):
+
     - a nonexistent transaction (`/nZZNOSUCHTX`) gives message class `S#`, number `343`, and
       parameters `["ZZNOSUCHTX"]`;
     - SE38 display of a nonexistent program gives `DS`, `017`, and the program name as the
       parameter;
     - after `/n`, the bar is empty and the new fields are `None` / `[]`.
 
-    The assertions use class and number only, never the text, so the tests pass in any logon
-    language.
+    The assertions use class, number and parameters only, never the text or the type, so the
+    tests pass in any logon language and with either message type.
 
 ## Out of scope
 

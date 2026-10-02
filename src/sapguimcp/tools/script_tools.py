@@ -502,7 +502,7 @@ def register_script_tools(mcp: FastMCP) -> None:
             "  ``GuiComboBox``: select an entry by key with ``combo.key = '<key>'``; ``.value`` is the "
             "display text.\n"
             "- Status bar: ``session.find_by_id('wnd[0]/sbar').message_id`` / ``.message_number`` / "
-            "``.message_parameter(i)`` identify a message independent of logon language.\n"
+            "``.message_parameter(i)`` identify a message independently of the logon language.\n"
             "- ``output(value)``: call this to collect results. All values are returned in order.\n"
             "- ``wait(ms)``: pause execution for ``ms`` milliseconds.\n"
             "- ``wait_until(element_id, timeout_ms, poll_ms=200)``: poll for an element by ID "

@@ -1077,7 +1077,10 @@ class DesktopBackend:
 
         text, msg_type, message_id, message_number, params = await self.com.run(_read)
         bar_type: StatusBarType = cast(StatusBarType, msg_type) if msg_type in ("S", "E", "W", "I", "A") else "none"
-        logger.debug("status_bar", extra={"type": bar_type, "message": text})
+        logger.debug(
+            "status_bar",
+            extra={"type": bar_type, "message": text, "message_id": message_id, "message_number": message_number},
+        )
         return StatusBarInfo(
             success=True,
             type=bar_type,

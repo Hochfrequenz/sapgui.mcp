@@ -234,16 +234,17 @@ class StatusBarInfo(ToolResult):
     message_id: str | None = Field(
         default=None,
         description=(
-            "T100 message class (e.g. 'DS'), padding stripped; None when the bar is empty. Together with "
-            "message_number it identifies a message independently of the logon language, so check these "
-            "instead of the text. Desktop backend only; the WebGUI backend leaves it None."
+            "T100 message class (e.g. 'DS'), padding stripped; None when the bar is empty or the SAP GUI "
+            "does not expose it. Together with message_number it identifies a message independently of "
+            "the logon language, so check these instead of the text. Desktop backend only; the WebGUI "
+            "backend leaves it None."
         ),
     )
     message_number: str | None = Field(
         default=None,
         description=(
-            "T100 message number, zero-padded (e.g. '017'); None when the bar is empty. Language-independent. "
-            "Desktop backend only; the WebGUI backend leaves it None."
+            "T100 message number, zero-padded (e.g. '017'); None when the bar is empty or the SAP GUI "
+            "does not expose it. Language-independent. Desktop backend only; the WebGUI backend leaves it None."
         ),
     )
     message_parameters: list[str] = Field(
