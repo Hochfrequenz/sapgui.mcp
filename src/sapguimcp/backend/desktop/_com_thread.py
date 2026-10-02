@@ -208,6 +208,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         self._in_flight_target: str | None = None
         self._in_flight_session: str | None = None
         self._in_flight_since: float | None = None
+        self._queued_targets: dict[str, str | None] = {}
         self._next_halt_check_at: float | None = None
         self._halted_calls: dict[int, list[str]] = {}
         self._worker_tid: int | None = None
@@ -398,8 +399,21 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             # Decay slowly: reduce by 10%
             self._current_interval_s = max(self._current_interval_s * 0.9, self._min_interval_s)
 
-    async def run(self, fn: Callable[[], T], *, max_retries: int | None = None) -> T:
+    async def run(
+        self,
+        fn: Callable[[], T],
+        *,
+        max_retries: int | None = None,
+        busy_timeout_s: float = 5.0,
+    ) -> T:
         """Submit a callable to the COM thread and await its result.
+
+        Same-connection work is serialized through the single COM worker. If a
+        call would queue behind an in-flight call on the same SAP GUI connection,
+        it waits briefly and raises a typed ``ComEngineBusyError`` only if the
+        wait exceeds ``busy_timeout_s``. This keeps genuine inter-session
+        parallelism on one shared connection safe and predictable without
+        silently hanging the caller or misclassifying a live session as dead.
 
         Args:
             fn: Callable to execute on the dedicated COM thread.
@@ -407,11 +421,10 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 the default ``self._max_retries``. Pass ``0`` for liveness
                 probes where retryable errors like ``RPC_S_UNKNOWN_IF`` mean
                 "this session is dead", not "transient — try again".
+            busy_timeout_s: Maximum time to wait while a same-connection COM
+                engine is occupied before raising ``ComEngineBusyError``.
         """
         if not self._thread.is_alive():
-            # Pair this with ``com_thread_crashed`` from ``_run`` to bracket
-            # the failure. ``s_since_last_success`` and ``last_error_repr``
-            # are usually the most useful fields for diagnosis (issue #628).
             logger.error(
                 "com_thread_dead_call_attempted",
                 extra=self._forensic_snapshot(),
@@ -423,25 +436,33 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         target = com_call_target.get()
         session_id = com_call_session.get()
         if target not in (None, NO_SESSION_TARGET):
-            with self._state_lock:
-                in_flight_target = self._in_flight_target
-                in_flight_session = self._in_flight_session
-                in_flight_since = self._in_flight_since
-                queued_on_target = any(
-                    item is not None and item[3] == target and item[3] not in (None, NO_SESSION_TARGET)
-                    for item in self._queue.queue
-                )
-            if in_flight_target == target or queued_on_target:
-                busy_for_s = time.monotonic() - in_flight_since if in_flight_since is not None else 0.0
-                active_session = in_flight_session or session_id or "unknown"
-                raise ComEngineBusyError(
-                    f"engine busy: session {active_session} is already running SAP work on connection {target} "
-                    f"for {busy_for_s:.0f}s. One SAP GUI connection has one COM engine; run SAP work sequentially, "
-                    "not in parallel on the same connection."
-                )
+            deadline = time.monotonic() + busy_timeout_s
+            while True:
+                with self._state_lock:
+                    in_flight_target = self._in_flight_target
+                    in_flight_session = self._in_flight_session
+                    in_flight_since = self._in_flight_since
+                    queued_session = self._queued_targets.get(target)
+                    if in_flight_target != target and queued_session is None:
+                        self._queued_targets[target] = session_id
+                        break
+                    if time.monotonic() >= deadline:
+                        busy_for_s = time.monotonic() - in_flight_since if in_flight_since is not None else 0.0
+                        active_session = in_flight_session or queued_session or session_id or "unknown"
+                        raise ComEngineBusyError(
+                            f"engine busy: session {active_session} is already running SAP work on connection {target} "
+                            f"for {busy_for_s:.0f}s. One SAP GUI connection has one COM engine; run SAP work sequentially, "
+                            "not in parallel on the same connection."
+                        )
+                await asyncio.sleep(0.05)
         cf_future: concurrent.futures.Future[T] = concurrent.futures.Future()
         self._queue.put((fn, cf_future, max_retries, target, session_id))
-        return await asyncio.wrap_future(cf_future)
+        try:
+            return await asyncio.wrap_future(cf_future)
+        finally:
+            with self._state_lock:
+                if target not in (None, NO_SESSION_TARGET):
+                    self._queued_targets.pop(target, None)
 
     @property
     def is_alive(self) -> bool:

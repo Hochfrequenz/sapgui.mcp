@@ -5,7 +5,7 @@ import asyncio
 
 import pytest
 
-from sapguimcp.backend.desktop._com_thread import ComThread
+from sapguimcp.backend.desktop._com_thread import ComThread, com_call_session, com_call_target
 
 
 @pytest.fixture
@@ -17,6 +17,76 @@ def com_thread():
 
 
 class TestComThread:
+    @pytest.mark.anyio
+    async def test_run_same_target_busy_raises_with_hint(self, com_thread):
+        """Same-target calls block only briefly and then fail with an actionable busy error."""
+        import threading
+
+        started = threading.Event()
+        release = threading.Event()
+
+        def slow():
+            started.set()
+            release.wait(1.0)
+            return "slow-done"
+
+        # Hold the worker on the target connection.
+        token_target = com_call_target.set("/app/con[1]")
+        token_session = com_call_session.set("s2")
+        try:
+            first_task = asyncio.create_task(com_thread.run(slow, busy_timeout_s=0.2))
+            await asyncio.to_thread(started.wait, 1.0)
+
+            second_target = com_call_target.set("/app/con[1]")
+            second_session = com_call_session.set("s3")
+            try:
+                with pytest.raises(RuntimeError, match="engine busy: session s2|engine busy: session s3"):
+                    await com_thread.run(lambda: "should-not-run", busy_timeout_s=0.05)
+            finally:
+                com_call_target.reset(second_target)
+                com_call_session.reset(second_session)
+
+            release.set()
+            assert await first_task == "slow-done"
+        finally:
+            com_call_target.reset(token_target)
+            com_call_session.reset(token_session)
+
+    @pytest.mark.anyio
+    async def test_run_other_target_is_allowed(self, com_thread):
+        """Different COM targets stay independent; only same-target contention triggers the busy guard."""
+        import threading
+
+        started = threading.Event()
+        release = threading.Event()
+
+        def slow():
+            started.set()
+            release.wait(1.0)
+            return "slow-done"
+
+        # Hold one connection busy.
+        token_a = com_call_target.set("/app/con[1]")
+        token_as = com_call_session.set("s1")
+        try:
+            first_task = asyncio.create_task(com_thread.run(slow, busy_timeout_s=0.2))
+            await asyncio.to_thread(started.wait, 1.0)
+
+            second_target = com_call_target.set("/app/con[2]")
+            second_session = com_call_session.set("s2")
+            try:
+                result = await com_thread.run(lambda: "other-target", busy_timeout_s=0.05)
+                assert result == "other-target"
+            finally:
+                com_call_target.reset(second_target)
+                com_call_session.reset(second_session)
+
+            release.set()
+            assert await first_task == "slow-done"
+        finally:
+            com_call_target.reset(token_a)
+            com_call_session.reset(token_as)
+
     @pytest.mark.anyio
     async def test_run_returns_result(self, com_thread):
         result = await com_thread.run(lambda: 42)
