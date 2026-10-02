@@ -892,7 +892,7 @@ For private git repositories, set `GITHUB_PAT` or `ABAPGIT_PAT` (the latter over
 | --- | --- |
 | `sap_com_snapshot` | Dump the SAP GUI control tree (object hierarchy) |
 | `sap_com_evaluate` | Execute raw COM operations on SAP GUI objects |
-| `sap_run_script` | 🚀 Run a sandboxed Python script against the SAP GUI COM API - loops, branches, and bulk reads in one call instead of many. Great token saver! |
+| `sap_run_script` | 🚀 Run a sandboxed Python script against the SAP GUI COM API - loops, branches, and bulk reads in one call instead of many. Great token saver! Also runs vetted script files via `script_path` (+ `params`, `expected_sha256`) from directories configured in `SCRIPT_ROOTS`. |
 | `sap_tree_context_menu` | Open and interact with tree context menus |
 | `sap_breakpoint_set` | Set an ABAP breakpoint — ask the human first; there's no tool to drive the resulting debugger, only a human at the SAP GUI can dismiss it |
 | `sap_breakpoint_delete` | Delete an ABAP breakpoint |
@@ -949,6 +949,7 @@ An unset or empty variable makes the config invalid, so the first tool call that
 | `SAP_URL`            | No                          | Override WebGUI URL (default: derived from `host` in systems.json)     | `""`                         |
 | `SAP_CONFIG_FILE`    | No                          | Path to systems.json (see table above for default per OS)              | (see above)                  |
 | `OUTPUT_DIR`         | No                          | Directory that `output_file` tool arguments (e.g. `sap_se16_query`) are sandboxed to. Set this when the server's cwd isn't your project directory. | `""` (current working directory) |
+| `SCRIPT_ROOTS`       | No                          | Allowed root directories for `sap_run_script`'s `script_path` parameter, separated by `os.pathsep` (`;` on Windows, `:` on macOS/Linux). Roots must be absolute paths (relative entries are skipped with a warning); a UNC/network root is allowed if you configure one, whereas UNC/device paths in the caller's `script_path` are rejected. Relative `script_path` values are resolved against these roots in order (first match wins). Desktop backend only. | `""` (`script_path` disabled) |
 | `BROWSER_MODE`       | No                          | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.     | `connect`                    |
 | `BROWSER_TYPE`       | No                          | `chromium`, `firefox`, or `webkit`. WebGUI only.                       | `chromium`                   |
 | `BROWSER_HEADLESS`   | No                          | Run browser in headless mode. WebGUI only.                             | `false`                      |
