@@ -300,9 +300,9 @@ class TestExpandedTreeTaskAssignment:
             "XYZK900005",
             "TESTUSER WB",
             "XYZK900006",
-            "HAFFML Entwickl./Korrektur",
+            "OTHERUSER1 Entwickl./Korrektur",
             "XYZK900007",
-            "BECKT Reparatur",
+            "OTHERUSER2 Reparatur",
             "XYZK900008",
             "TESTUSER Entwickl./Korrektur",
         ]
@@ -311,9 +311,9 @@ class TestExpandedTreeTaskAssignment:
 
         assert len(requests[0].tasks) == 3
         assert requests[0].tasks[0].task_number == "XYZK900006"
-        assert requests[0].tasks[0].owner == "HAFFML"
+        assert requests[0].tasks[0].owner == "OTHERUSER1"
         assert requests[0].tasks[1].task_number == "XYZK900007"
-        assert requests[0].tasks[1].owner == "BECKT"
+        assert requests[0].tasks[1].owner == "OTHERUSER2"
         assert requests[0].tasks[2].task_number == "XYZK900008"
         assert requests[0].tasks[2].owner == "TESTUSER"
 

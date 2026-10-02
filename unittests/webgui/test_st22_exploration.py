@@ -49,11 +49,12 @@ async def _login_and_navigate_to_st22(client: ClientSession) -> str:
     """Login and navigate to ST22; return the logged-in SAP user."""
     login = await call_tool_typed(client, "sap_login", {}, LoginResult)
     assert login.success
+    assert login.user
 
     tx = await call_tool_typed(client, "sap_transaction", {"tcode": "ST22"}, TransactionResult)
     assert tx.success
     await client.call_tool("browser_wait", {"timeout": 2000})
-    return login.user or ""
+    return login.user
 
 
 # =============================================================================

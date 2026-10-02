@@ -246,9 +246,9 @@ def test_format_args_masks_typed_field_values():
 
 
 def test_format_args_masks_values_inside_fields_but_keeps_field_names():
-    args = ToolCallLoggingMiddleware()._format_args({"fields": {"User": "KLEIN", "Password": "Hunter3Secret"}})
+    args = ToolCallLoggingMiddleware()._format_args({"fields": {"User": "TESTUSER", "Password": "Hunter3Secret"}})
     assert "Hunter3Secret" not in args["fields"]
-    assert "KLEIN" not in args["fields"]
+    assert "TESTUSER" not in args["fields"]
     assert "Password" in args["fields"]
     assert "User" in args["fields"]
 
