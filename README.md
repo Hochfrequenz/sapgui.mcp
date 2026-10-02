@@ -29,7 +29,7 @@ Choose one of these three approaches:
 
 **Where to register the MCP server:**
 
-- **Claude Code** - add to `.mcp.json` in your project root (per-project config)
+- **Claude Code** - register once for all projects with `claude mcp add --scope user` (recommended), or per project in `.mcp.json` in the project root. Each section below shows both.
 - **Claude Desktop** - add to `claude_desktop_config.json` (global config, path varies by OS - shown in each section below)
 - **[opencode](https://opencode.ai)** - add to `opencode.json` in your project root. Each section below includes a ready-to-use `opencode.json` snippet alongside the Claude Code snippet.
 
@@ -183,7 +183,20 @@ Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%A
 
 ##### Claude Code
 
-Add to `.mcp.json` in your project root:
+**Recommended: register once for all projects (user scope).** Run this in PowerShell:
+
+```powershell
+claude mcp add --scope user sap-desktop -e BACKEND_TYPE=desktop '--' C:/path/to/sapgui_mcp_windows_<version>.exe
+```
+
+Together with `systems.json`, this is all Claude Code needs - no `.mcp.json` in any project folder. Two details matter:
+
+- **Keep the server name (`sap-desktop`) before `-e`.** The `-e` option accepts several values, so a name placed after it is read as a second environment variable and the command fails with `error: missing required argument 'commandOrUrl'`.
+- **Keep the quotes around `'--'`.** If Claude Code was installed through npm, `claude` is a PowerShell script, and PowerShell silently drops an unquoted `--` before passing the arguments on. `-e` then swallows the `.exe` path and the command fails with the same error. This works in PowerShell, bash and zsh (in bash or zsh, `'--'` and `--` are equivalent). In cmd.exe, single quotes are not quoting characters, so write a plain `--` instead.
+
+If Claude Code still starts an old or broken registration instead of the global one, see [Claude Code ignores the global registration](#claude-code-ignores-the-global-registration).
+
+**Alternative: per project.** Add to `.mcp.json` in your project root:
 
 ```json
 {
@@ -284,6 +297,8 @@ Expected output:
 
 If you see `✗ Failed` or `✗ failed`, the most common cause is a wrong path to the `.exe` in your config file. Double-check the path and that the file exists there. Run `opencode mcp debug sap-desktop` for more detail.
 
+For Claude Code, with a user-scope registration there is no config file to edit: `claude mcp get sap-desktop` shows the registered path, and to change it (for example after downloading a new version), run `claude mcp remove sap-desktop -s user` and add the server again.
+
 > [!TIP]
 > **Getting started:** Restart Claude Desktop, Claude Code, or opencode, then try: _"Log me into SAP"_ or _"Run transaction SE16"_. SAP GUI will open automatically if it is not already running.
 
@@ -353,7 +368,17 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
 
 ##### Claude Code
 
-Add to `.mcp.json` in your project root:
+**Recommended: register once for all projects (user scope).** Run this in PowerShell, bash or zsh:
+
+```powershell
+claude mcp add --scope user sap-webgui '--' C:/path/to/sapgui_mcp_windows_<version>.exe
+```
+
+Together with `systems.json`, no `.mcp.json` is needed in any project folder. On macOS, use the path to `sapgui_mcp_macos_arm64_<version>` instead; the command works unchanged in bash and zsh. Keep the quotes around `'--'` in PowerShell (in cmd.exe, write a plain `--`), and if you add environment variables with `-e`, put them between the server name (`sap-webgui`) and `'--'` - see the [Desktop backend section](#claude-code) for why both matter.
+
+If Claude Code still starts an old or broken registration instead of the global one, see [Claude Code ignores the global registration](#claude-code-ignores-the-global-registration).
+
+**Alternative: per project.** Add to `.mcp.json` in your project root:
 
 ```json
 {
@@ -415,6 +440,8 @@ Expected output:
 ```
 
 If you see `✗ Failed`, the most common cause is a wrong path to the `.exe`. Run `opencode mcp debug sap-webgui` for more detail.
+
+For Claude Code, with a user-scope registration, `claude mcp get sap-webgui` shows the registered path; to change it, run `claude mcp remove sap-webgui -s user` and add the server again.
 
 > [!TIP]
 > **Getting started:** Restart Claude Desktop, Claude Code, or opencode, then try: _"Log me into SAP"_ or _"Take a screenshot of the current SAP screen"_.
@@ -557,7 +584,7 @@ docker ps --filter "name=cdp-proxy" --format "table {{.Names}}\t{{.Status}}"
 **Required:** `systems.json` with your SAP credentials (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) and [Configuration Reference](#configuration-reference) for the default path per OS). All other env variables are optional. See [Configuration Reference](#configuration-reference) for the full list.
 
 > [!NOTE]
-> `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove the `-e GITHUB_PAT=...` line if you don't need these features.
+> `GITHUB_PAT` is only needed for `log_feedback` (creates GitHub issues) or abapGit operations. Remove `-e GITHUB_PAT=...` if you don't need these features.
 
 Choose **one** of the following options based on which Claude client you use.
 
@@ -583,7 +610,7 @@ Open `%APPDATA%\Claude\claude_desktop_config.json` and add:
                 "-e",
                 "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-v",
-                "~/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
+                "C:/Users/YourName/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
                 "ghcr.io/hochfrequenz/sapgui.mcp:latest"
@@ -597,11 +624,22 @@ Replace:
 
 - `your-sap-server` with your SAP server hostname
 - `your_github_pat` with a [GitHub Personal Access Token](https://github.com/settings/tokens) (optional - see note above)
-- SAP credentials (user, password, mandant, language) are read from `~/.config/sap-mcp/systems.json` which is volume-mounted into the container
+- `C:/Users/YourName` with your home folder (on macOS, use `/Users/YourName/...` instead of `C:/Users/YourName/...`). Docker treats a mount source that is not an absolute path as the name of a Docker volume, so `~` does not work here.
+- SAP credentials (user, password, client, language) are read from `systems.json`, which is volume-mounted into the container
 
 #### Option B: Claude Code
 
-Add to `.mcp.json` in your project root:
+**Recommended: register once for all projects (user scope):**
+
+```powershell
+claude mcp add --scope user sap-webgui '--' docker run -i --rm --network sap-mcp-network -e BROWSER_MODE=connect -e CDP_URL=http://cdp-proxy:9222 -e SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui -v C:/Users/YourName/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro -e GITHUB_PAT=your_github_pat ghcr.io/hochfrequenz/sapgui.mcp:latest
+```
+
+Everything after `'--'` is the Docker command and is passed through unchanged, so the `-e` flags there are Docker's, not Claude Code's. Keep the quotes around `'--'` (in cmd.exe, write a plain `--`; see the [Desktop backend section](#claude-code) for why). Replace `C:/Users/YourName` with your home folder; write the path out in full instead of using `~`, because how `~` is expanded on the command line depends on the shell. Note that a `GITHUB_PAT` typed on the command line ends up in your shell history.
+
+If Claude Code still starts an old or broken registration instead of the global one, see [Claude Code ignores the global registration](#claude-code-ignores-the-global-registration).
+
+**Alternative: per project.** Add to `.mcp.json` in your project root:
 
 ```json
 {
@@ -621,7 +659,7 @@ Add to `.mcp.json` in your project root:
                 "-e",
                 "SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui",
                 "-v",
-                "~/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
+                "C:/Users/YourName/.config/sap-mcp/systems.json:/home/appuser/.config/sap-mcp/systems.json:ro",
                 "-e",
                 "GITHUB_PAT=your_github_pat",
                 "ghcr.io/hochfrequenz/sapgui.mcp:latest"
@@ -727,7 +765,17 @@ Add to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_c
 
 #### Claude Code
 
-Add to `.mcp.json` in your project root:
+**Recommended: register once for all projects (user scope):**
+
+```powershell
+claude mcp add --scope user sap-webgui -e BROWSER_MODE=connect -e CDP_URL=http://localhost:9222 -e GITHUB_PAT=your_github_pat '--' C:/path/to/your/venv/Scripts/run-sapgui-mcp-server.exe
+```
+
+Keep the server name before `-e` and the quotes around `'--'` (in cmd.exe, write a plain `--`; see the [Desktop backend section](#claude-code) for why). A `GITHUB_PAT` typed on the command line ends up in your shell history.
+
+If Claude Code still starts an old or broken registration instead of the global one, see [Claude Code ignores the global registration](#claude-code-ignores-the-global-registration).
+
+**Alternative: per project.** Add to `.mcp.json` in your project root:
 
 ```json
 {
@@ -880,7 +928,7 @@ The SAP-specific tools above handle most interactions; reach for the browser too
 
 ### SAP Credentials (via `systems.json`)
 
-SAP credentials (user, password, client, language, host) are configured in `systems.json` (or `systems.yaml`), **not** via server environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`.
+SAP credentials (user, password, client, language, host) are configured in `systems.json` (or `systems.yaml`), **not** via server environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`. Older versions read `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, `SAP_LANGUAGE`, `SAP_CONNECTION_NAME` and `SAP_CREDENTIALS` from the MCP config's `env` block; these are ignored now and can be removed from existing configs.
 
 Individual fields may still be sourced from the environment with an `${env:VAR}` placeholder - e.g. `"password": "${env:SAP_DEV_PASSWORD}"` - which keeps secrets out of the file while the structure stays in it. Placeholders work in `connection_name`, `host`, `client`, `user`, `password`, `language`, `oauth2_client_id` and the top-level `default_system`.
 
@@ -1017,6 +1065,17 @@ docker logs sap-mcp-cdp-proxy-1
 - **Desktop backend:** Make sure the `connection_name` field in `systems.json` matches the SAP Logon pad **description** exactly (the bold text, not the SID). Open SAP Logon and compare.
 - Try logging in manually first to verify credentials
 
+### Claude Code ignores the global registration
+
+When the same server name is registered in more than one scope, Claude Code uses the entry with the highest precedence: **local** (stored per project in `~/.claude.json`), then **project** (`.mcp.json`), then **user** (the global registration from `claude mcp add --scope user`). See [MCP installation scopes](https://code.claude.com/docs/en/mcp#mcp-installation-scopes) in the Claude Code documentation. A forgotten registration with the same name therefore shadows a correct global one. If it points at a binary that no longer exists, the server fails to connect (for example with `CONNECTION_CLOSED`).
+
+To find and remove the stale entry (shown for `sap-desktop`; use `sap-webgui` for the WebGUI backend):
+
+- Run `claude mcp get sap-desktop` from the project directory. The `Scope:` line shows which registration Claude Code actually uses.
+- Remove a local-scope entry with `claude mcp remove sap-desktop -s local`, or the entry in the project's `.mcp.json` with `claude mcp remove sap-desktop -s project`. Always pass `-s`: without it, `remove` deletes the server from whichever scope it finds it in, which may be your global registration. (The `-s project` variant edits the project's possibly shared `.mcp.json`, so commit that change only if the whole team should lose the entry.)
+
+When cleaning up configs from older versions, you can also drop the old `SAP_*` credential variables from any `env` block - see [SAP Credentials](#sap-credentials-via-systemsjson) for the list. Credentials are configured only via `systems.json` (optionally with `${env:VAR}` placeholders). `SAP_URL` and `SAP_CONFIG_FILE` are still supported.
+
 ### Transaction input field (OK-Code field) not visible
 
 On first use of SAP Web GUI, the transaction input field (called "OK-Code field" in SAP) may be hidden. The MCP server tries to enable it automatically, but if that fails, you can enable it manually:
@@ -1127,8 +1186,6 @@ This server is part of a small ecosystem of SAP + AI tooling:
 - **[`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY)** - GitHub template for AI-driven ABAP vibe-coding projects. Documents the two-agent pattern (dev via `aibap.mcp`, test / documentation / screenshots via `sapgui.mcp`) end-to-end.
 - **[`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT)** - SAP-side ABAP report that `sap_abapgit_pull` calls to pull abapGit repos through the ABAP API. Install it on any SAP system where you want the abapGit pull tools to work.
 - **[`sap-mcp-config`](https://github.com/Hochfrequenz/sap-mcp-config)** - shared config schema for `systems.json`, consumed by both `sapgui.mcp` (Python) and `aibap.mcp` (Go).
-
-**Hochfrequenz colleagues:** internal setup docs - including combined `.mcp.json` / `opencode.json` examples that register both MCPs together in one project - live at <https://brain.hochfrequenz.de/books/ki-tools-bei-hochfrequenz/chapter/sap-mcps>.
 
 ## Contributing
 
