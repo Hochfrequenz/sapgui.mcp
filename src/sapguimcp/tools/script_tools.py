@@ -24,7 +24,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, _get_com_error_code
+from sapguimcp.backend.desktop._com_thread import _FATAL_COM_ERROR_HINTS, _get_com_error_code
 from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
 from sapguimcp.backend.manager import get_backend
 
@@ -85,6 +85,7 @@ SAFE_BUILTINS: dict[str, Any] = {
     "AttributeError": AttributeError,
     "RuntimeError": RuntimeError,
     "StopIteration": StopIteration,
+    "TimeoutError": TimeoutError,
     "NotImplementedError": NotImplementedError,
     # True, False, None are Python 3 keywords; they are NOT in this dict and
     # resolve without going through __builtins__.
@@ -95,13 +96,20 @@ def _check_duration(name: str, value: Any, *, allow_zero: bool) -> float:
     """Validate a millisecond value: real finite number (not bool), non-negative (or positive)."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise TypeError(f"{name} must be a number, got {type(value).__name__}")
-    if not math.isfinite(value):
-        raise ValueError(f"{name} must be a finite number")
+    try:
+        finite = math.isfinite(value)
+    except OverflowError:
+        finite = False
+    if not finite:
+        raise ValueError(f"{name} must be a finite number (value is too large or not a number)")
     if allow_zero and value < 0:
         raise ValueError(f"{name} must be non-negative")
     if not allow_zero and value <= 0:
         raise ValueError(f"{name} must be greater than 0")
-    return float(value)
+    try:
+        return float(value)
+    except OverflowError as exc:
+        raise ValueError(f"{name} must be a finite number (value is too large)") from exc
 
 
 def _wait(ms: float | int, deadline: float) -> None:
@@ -138,7 +146,7 @@ def _wait_until(
     Raises:
         TimeoutError: if the sandbox *deadline* (the tool ``timeout``) is reached before
             the element is found and before *timeout_ms* elapsed.
-        Exception: a disconnected COM connection is re-raised immediately.
+        Exception: a fatal COM connection error (see ``_FATAL_COM_ERROR_HINTS``) is re-raised immediately.
     """
     timeout_s = _check_duration("timeout_ms", timeout_ms, allow_zero=True) / 1000.0
     poll_s = _check_duration("poll_ms", poll_ms, allow_zero=False) / 1000.0
@@ -150,11 +158,12 @@ def _wait_until(
 
     while True:
         try:
-            elem = session.find_by_id(element_id)
+            elem = session.find_by_id(element_id, raise_error=False)
             if elem is not None:
                 return elem
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            if _get_com_error_code(exc) == _RPC_E_DISCONNECTED:
+            code = _get_com_error_code(exc)
+            if code is not None and code in _FATAL_COM_ERROR_HINTS:
                 raise
             last_exc = exc
 
@@ -169,7 +178,7 @@ def _wait_until(
         time.sleep(min(poll_s, effective_deadline - now))
 
 
-def _run_in_sandbox(code: types.CodeType, session: Any, deadline: float) -> SapRunScriptResult:
+def _run_in_sandbox(code: types.CodeType, session: Any, *, deadline: float) -> SapRunScriptResult:
     """Execute *code* in a restricted namespace on the calling thread.
 
     Must be called from the COM thread (inside ``com.run(lambda)``).
@@ -306,11 +315,13 @@ def register_script_tools(mcp: FastMCP) -> None:
         com = backend.com
         timeout_td = timedelta(seconds=timeout)
 
+        # Same clock origin as asyncio.wait_for below: the deadline covers queue time too.
+        deadline = time.monotonic() + timeout
+
         try:
 
             def _run() -> SapRunScriptResult:
-                # Deadline starts when the COM thread picks the job up, not when it was queued.
-                return _run_in_sandbox(code, desktop_session, time.monotonic() + timeout)
+                return _run_in_sandbox(code, desktop_session, deadline=deadline)
 
             return await asyncio.wait_for(
                 com.run(_run),

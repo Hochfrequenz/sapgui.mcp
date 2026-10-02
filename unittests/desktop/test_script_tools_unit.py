@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp import FastMCP
 
-from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED
+from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, _RPC_S_UNKNOWN_IF
 from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
 from sapguimcp.tools.script_tools import (
     SAFE_BUILTINS,
@@ -87,35 +87,35 @@ class TestRunInSandbox:
         return MagicMock()
 
     def test_basic_output(self):
-        r = _run_in_sandbox(_c("output(42)"), self._session(), _FAR)
+        r = _run_in_sandbox(_c("output(42)"), self._session(), deadline=_FAR)
         assert r.success is True
         assert r.output == [42]
         assert r.error is None
 
     def test_multiple_outputs_collected_in_order(self):
         script = "output(1)\noutput(2)\noutput(3)"
-        r = _run_in_sandbox(_c(script), self._session(), _FAR)
+        r = _run_in_sandbox(_c(script), self._session(), deadline=_FAR)
         assert r.output == [1, 2, 3]
 
     def test_empty_script_succeeds_with_no_output(self):
-        r = _run_in_sandbox(_c(""), self._session(), _FAR)
+        r = _run_in_sandbox(_c(""), self._session(), deadline=_FAR)
         assert r.success is True
         assert r.output == []
 
     def test_import_raises_name_error_not_import_error(self):
-        r = _run_in_sandbox(_c("import os"), self._session(), _FAR)
+        r = _run_in_sandbox(_c("import os"), self._session(), deadline=_FAR)
         assert r.success is False
         assert r.error is not None
         assert r.error.startswith("NameError")
 
     def test_print_raises_name_error(self):
-        r = _run_in_sandbox(_c("print('hi')"), self._session(), _FAR)
+        r = _run_in_sandbox(_c("print('hi')"), self._session(), deadline=_FAR)
         assert r.success is False
         assert r.error is not None
         assert "NameError" in r.error
 
     def test_runtime_exception_returns_failure(self):
-        r = _run_in_sandbox(_c("raise ValueError('boom')"), self._session(), _FAR)
+        r = _run_in_sandbox(_c("raise ValueError('boom')"), self._session(), deadline=_FAR)
         assert r.success is False
         assert r.error == "ValueError: boom"
         assert r.error_traceback is not None
@@ -123,7 +123,7 @@ class TestRunInSandbox:
 
     def test_partial_output_preserved_on_exception(self):
         script = "output('first')\noutput('second')\nraise KeyError('col')"
-        r = _run_in_sandbox(_c(script), self._session(), _FAR)
+        r = _run_in_sandbox(_c(script), self._session(), deadline=_FAR)
         assert r.success is False
         assert r.output == ["first", "second"]
         assert "KeyError" in r.error
@@ -132,14 +132,14 @@ class TestRunInSandbox:
         # Pass a MagicMock (not JSON-serializable) — should become its str()
         script = "output(session)"  # session is a MagicMock
         session = self._session()
-        r = _run_in_sandbox(_c(script), session, _FAR)
+        r = _run_in_sandbox(_c(script), session, deadline=_FAR)
         assert r.success is True
         assert len(r.output) == 1
         assert isinstance(r.output[0], str)
 
     def test_loops_and_conditionals_work(self):
         script = "result = []\nfor i in range(5):\n    if i % 2 == 0:\n        result.append(i)\noutput(result)\n"
-        r = _run_in_sandbox(_c(script), self._session(), _FAR)
+        r = _run_in_sandbox(_c(script), self._session(), deadline=_FAR)
         assert r.success is True
         assert r.output == [[0, 2, 4]]
 
@@ -150,21 +150,21 @@ class TestRunInSandbox:
             "doubled = list(map(lambda x: x * 2, evens))\n"
             "output({'sum': sum(doubled), 'max': max(doubled)})\n"
         )
-        r = _run_in_sandbox(_c(script), self._session(), _FAR)
+        r = _run_in_sandbox(_c(script), self._session(), deadline=_FAR)
         assert r.success is True
         assert r.output == [{"sum": 12, "max": 8}]
 
     def test_builtins_mutation_does_not_leak_to_next_call(self):
         """A script mutating __builtins__ must not affect any later call."""
         mutate = "__builtins__['len'] = lambda x: 999\ndel __builtins__['sorted']\noutput('mutated')"
-        r1 = _run_in_sandbox(_c(mutate), self._session(), _FAR)
+        r1 = _run_in_sandbox(_c(mutate), self._session(), deadline=_FAR)
         assert r1.success is True
 
-        r2 = _run_in_sandbox(_c("output(len([1, 2, 3]))"), self._session(), _FAR)
+        r2 = _run_in_sandbox(_c("output(len([1, 2, 3]))"), self._session(), deadline=_FAR)
         assert r2.success is True
         assert r2.output == [3]
 
-        r3 = _run_in_sandbox(_c("output(sorted([3, 1, 2]))"), self._session(), _FAR)
+        r3 = _run_in_sandbox(_c("output(sorted([3, 1, 2]))"), self._session(), deadline=_FAR)
         assert r3.success is True
         assert r3.output == [[1, 2, 3]]
 
@@ -175,35 +175,43 @@ class TestRunInSandbox:
         session = self._session()
         session.find_by_id.return_value.text = "HELLO"
         script = "output(session.find_by_id('wnd[0]/usr/txtFLD').text)"
-        r = _run_in_sandbox(_c(script), session, _FAR)
+        r = _run_in_sandbox(_c(script), session, deadline=_FAR)
         assert r.success is True
         assert r.output == ["HELLO"]
 
     def test_getattr_available_for_dynamic_access(self):
         session = self._session()
         session.SomeProperty = "value"
-        r = _run_in_sandbox(_c("output(getattr(session, 'SomeProperty'))"), session, _FAR)
+        r = _run_in_sandbox(_c("output(getattr(session, 'SomeProperty'))"), session, deadline=_FAR)
         assert r.success is True
         assert r.output == ["value"]
 
     def test_wait_in_sandbox(self):
         clock = _FakeTime()
         with patch("sapguimcp.tools.script_tools.time", clock):
-            r = _run_in_sandbox(_c("wait(250)\noutput('done')"), self._session(), _FAR)
+            r = _run_in_sandbox(_c("wait(250)\noutput('done')"), self._session(), deadline=_FAR)
         assert r.success is True
         assert r.output == ["done"]
         assert clock.sleeps == [0.25]
 
     def test_wait_negative_in_sandbox_fails(self):
-        r = _run_in_sandbox(_c("wait(-10)"), self._session(), _FAR)
+        r = _run_in_sandbox(_c("wait(-10)"), self._session(), deadline=_FAR)
         assert r.success is False
         assert "ValueError" in r.error
         assert "non-negative" in r.error
 
+    def test_script_can_catch_timeout_error(self):
+        clock = _FakeTime()
+        script = "try:\n    wait(5000)\nexcept TimeoutError:\n    output('caught')"
+        with patch("sapguimcp.tools.script_tools.time", clock):
+            r = _run_in_sandbox(_c(script), self._session(), deadline=2.0)
+        assert r.success is True
+        assert r.output == ["caught"]
+
     def test_wait_beyond_deadline_fails_without_sleeping(self):
         clock = _FakeTime()
         with patch("sapguimcp.tools.script_tools.time", clock):
-            r = _run_in_sandbox(_c("output('a')\nwait(5000)\noutput('b')"), self._session(), 2.0)
+            r = _run_in_sandbox(_c("output('a')\nwait(5000)\noutput('b')"), self._session(), deadline=2.0)
         assert r.success is False
         assert "TimeoutError" in r.error
         assert r.output == ["a"]
@@ -214,7 +222,7 @@ class TestRunInSandbox:
         session.find_by_id.side_effect = RuntimeError("not found")
         clock = _FakeTime()
         with patch("sapguimcp.tools.script_tools.time", clock):
-            r = _run_in_sandbox(_c("wait_until('wnd[0]/x', 60000, 100)\noutput('no')"), session, 1.0)
+            r = _run_in_sandbox(_c("wait_until('wnd[0]/x', 60000, 100)\noutput('no')"), session, deadline=1.0)
         assert r.success is False
         assert "TimeoutError" in r.error
         assert r.output == []
@@ -227,7 +235,7 @@ class TestRunInSandbox:
         session.find_by_id.return_value = mock_elem
 
         script = "elem = wait_until('wnd[0]/usr/tree', timeout_ms=1000)\noutput(elem.text if elem else None)\n"
-        r = _run_in_sandbox(_c(script), session, _FAR)
+        r = _run_in_sandbox(_c(script), session, deadline=_FAR)
         assert r.success is True
         assert r.output == ["Tree loaded"]
 
@@ -237,7 +245,7 @@ class TestRunInSandbox:
 
         with patch("sapguimcp.tools.script_tools.time", _FakeTime()):
             script = "elem = wait_until('wnd[0]/usr/tree', 200, 50)\noutput(elem is None)\n"
-            r = _run_in_sandbox(_c(script), session, _FAR)
+            r = _run_in_sandbox(_c(script), session, deadline=_FAR)
         assert r.success is True
         assert r.output == [True]
 
@@ -249,18 +257,18 @@ class TestRunInSandbox:
 
         script = "def helper():\n    wait(50)\n    return wait_until('wnd[0]/btn', 100).text\noutput(helper())\n"
         with patch("sapguimcp.tools.script_tools.time", _FakeTime()):
-            r = _run_in_sandbox(_c(script), session, _FAR)
+            r = _run_in_sandbox(_c(script), session, deadline=_FAR)
         assert r.success is True
         assert r.output == ["inner"]
 
     def test_sandbox_helpers_mutation_does_not_leak(self):
         mutate = "wait = lambda x: 999\nwait_until = lambda *a, **kw: 999\noutput('mutated')"
-        r1 = _run_in_sandbox(_c(mutate), self._session(), _FAR)
+        r1 = _run_in_sandbox(_c(mutate), self._session(), deadline=_FAR)
         assert r1.success is True
 
         clock = _FakeTime()
         with patch("sapguimcp.tools.script_tools.time", clock):
-            r2 = _run_in_sandbox(_c("wait(50)\noutput('ok')"), self._session(), _FAR)
+            r2 = _run_in_sandbox(_c("wait(50)\noutput('ok')"), self._session(), deadline=_FAR)
         assert r2.success is True
         assert r2.output == ["ok"]
         assert clock.sleeps == [0.05]
@@ -315,7 +323,7 @@ class TestWaitHelpers:
             elem = _wait_until(session, "wnd[0]/usr/btn", timeout_ms=1000)
         assert elem is mock_elem
         assert not clock.sleeps
-        session.find_by_id.assert_called_once_with("wnd[0]/usr/btn")
+        session.find_by_id.assert_called_once_with("wnd[0]/usr/btn", raise_error=False)
 
     def test_wait_until_subsequent_success_after_exceptions(self):
         session = MagicMock()
@@ -378,6 +386,34 @@ class TestWaitHelpers:
             _wait_until(session, "wnd[0]", timeout_ms=1000)
         assert session.find_by_id.call_count == 1
         assert not clock.sleeps
+
+    def test_wait_until_reraises_other_fatal_com_error(self):
+        session = MagicMock()
+        exc = OSError("stale")
+        exc.hresult = _RPC_S_UNKNOWN_IF  # type: ignore[attr-defined]
+        session.find_by_id.side_effect = exc
+
+        clock = _FakeTime()
+        with patch("sapguimcp.tools.script_tools.time", clock), pytest.raises(OSError, match="stale"):
+            _wait_until(session, "wnd[0]", timeout_ms=1000)
+        assert session.find_by_id.call_count == 1
+
+    def test_wait_until_uses_raise_error_false_and_treats_none_as_not_found(self):
+        session = MagicMock()
+        session.find_by_id.return_value = None
+        clock = _FakeTime()
+        with patch("sapguimcp.tools.script_tools.time", clock):
+            assert _wait_until(session, "wnd[0]/x", timeout_ms=100, poll_ms=50) is None
+        session.find_by_id.assert_called_with("wnd[0]/x", raise_error=False)
+
+    @pytest.mark.parametrize("huge", [10**400, -(10**400)])
+    def test_huge_int_raises_value_error(self, huge):
+        with pytest.raises(ValueError, match="finite"):
+            _wait(huge, _FAR)
+        with pytest.raises(ValueError, match="finite"):
+            _wait_until(MagicMock(), "wnd[0]", timeout_ms=huge)
+        with pytest.raises(ValueError, match="finite"):
+            _wait_until(MagicMock(), "wnd[0]", timeout_ms=10, poll_ms=huge)
 
     def test_wait_until_logs_last_error_on_timeout(self, caplog):
         session = MagicMock()
@@ -523,3 +559,38 @@ class TestSapRunScriptTool:
         assert result.success is False
         assert "timed out" in result.error
         assert "1s" in result.error
+
+    def test_deadline_is_submit_time_plus_timeout(self):
+        """The sandbox deadline is computed before queueing, on the same clock as wait_for."""
+        from sapguimcp.backend.desktop import DesktopBackend
+
+        mock_backend = MagicMock()
+        mock_backend.__class__ = DesktopBackend
+        mock_backend.backend_type = "desktop"
+
+        async def fake_run(fn):
+            clock.now += 7.0  # time spent queued before the COM thread picks the job up
+            return fn()
+
+        mock_backend.com.run = fake_run
+        clock = _FakeTime()
+        clock.now = 100.0
+        captured: dict = {}
+
+        def fake_sandbox(_code, _session, **kwargs):
+            captured.update(kwargs)
+            return SapRunScriptResult(output=[])
+
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+        tool_fn = self._make_tool_fn(mcp)
+
+        with (
+            patch("sapguimcp.tools.script_tools.get_backend", new_callable=AsyncMock, return_value=mock_backend),
+            patch("sapguimcp.tools.script_tools._run_in_sandbox", fake_sandbox),
+            patch("sapguimcp.tools.script_tools.time", clock),
+        ):
+            result = asyncio.run(tool_fn(script="output(1)", session=None, agent_id=None, timeout=30))
+
+        assert result.success is True
+        assert captured == {"deadline": 130.0}
