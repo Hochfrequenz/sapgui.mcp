@@ -269,6 +269,45 @@ class TestSandboxContract:
     def test_version(self):
         assert SANDBOX_CONTRACT_VERSION == 1
         assert get_sandbox_contract().version == 1
+        # Pin the exact sorted list of allowed builtins.
+        # Changing the sandbox requires bumping SANDBOX_CONTRACT_VERSION and updating this list.
+        expected_builtins = [
+            "AttributeError",
+            "Exception",
+            "IndexError",
+            "KeyError",
+            "NotImplementedError",
+            "RuntimeError",
+            "StopIteration",
+            "TypeError",
+            "ValueError",
+            "abs",
+            "all",
+            "any",
+            "bool",
+            "dict",
+            "enumerate",
+            "filter",
+            "float",
+            "getattr",
+            "int",
+            "isinstance",
+            "len",
+            "list",
+            "map",
+            "max",
+            "min",
+            "range",
+            "reversed",
+            "round",
+            "set",
+            "sorted",
+            "str",
+            "sum",
+            "tuple",
+            "zip",
+        ]
+        assert get_sandbox_contract().allowed_builtins == expected_builtins
 
     def test_allowed_builtins_content(self):
         contract = get_sandbox_contract()
@@ -343,7 +382,7 @@ class TestSandboxContract:
             seen.update(globals_)
             return real_exec(code, globals_)
 
-        with patch("builtins.exec", spy):
+        with patch("sapguimcp.tools.script_tools.exec", spy, create=True):
             _run_in_sandbox(compile("output(1)", _FILENAME, "exec"), object())
         assert set(seen) - {"__builtins__"} == set(get_sandbox_contract().injected_names)
         assert set(seen["__builtins__"]) == set(SAFE_BUILTINS)
@@ -375,8 +414,4 @@ class TestSandboxContract:
         assert len(content.contents) == 1
         payload = json.loads(content.contents[0].content)
 
-        assert payload["version"] == 1
-        assert isinstance(payload["allowed_builtins"], list)
-        assert "len" in payload["allowed_builtins"]
-        assert "print" not in payload["allowed_builtins"]
-        assert set(payload["injected_names"]) == {"output", "session"}
+        assert payload == get_sandbox_contract().model_dump()

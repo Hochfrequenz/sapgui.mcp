@@ -346,7 +346,6 @@ if _backend == "desktop":
     register_script_tools(mcp)
     register_sandbox_resources(mcp)
 
-
 # Register prompts
 register_prompts(mcp)
 
