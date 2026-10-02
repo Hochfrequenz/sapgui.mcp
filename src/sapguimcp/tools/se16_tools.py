@@ -723,6 +723,7 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     ctx: Context | None = None,  # TODO: progress reporting via ctx not yet implemented on desktop
 ) -> SE16Result:
     """Desktop-specific SE16N query using read_table instead of ARIA parsing."""
+    # Always empty today (filter failures return early); kept for the status-bar error pass-through below.
     filter_warnings: list[str] = []
 
     # Navigate to SE16N
@@ -1022,9 +1023,9 @@ def register_se16_tools(mcp: FastMCP) -> None:
             "Query SAP table data via SE16N (Data Browser). "
             "If sap-adt is available, prefer its run_query tool for simple queries. "
             "USE THIS for complex queries with dynamic filtering or when ADT is unavailable.\n\n"
-            "**Filters (desktop backend):** if a filter field is unknown or not offered by SE16N as a "
-            "selection field, the call fails (success=false) without running the query and the error "
-            "lists the offered fields. Omit such filters instead.\n\n"
+            "**Filters:** On the desktop backend, if a filter cannot be applied (e.g. the field is unknown "
+            "or not offered by SE16N), the call fails before running the query; the error lists the "
+            "SE16N selection fields when they could be read.\n\n"
             "**Performance:** ~7 rows/second due to pagination.\n"
             "- 100 rows: ~14 seconds\n"
             "- 500 rows: ~1.5 minutes\n"

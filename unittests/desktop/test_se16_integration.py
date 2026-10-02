@@ -189,7 +189,10 @@ async def test_se16_wildcard_filter(backend):
 @skip_no_sap
 @pytest.mark.anyio
 async def test_se16_unknown_field_with_valid_filter_fails(backend):
-    """#907 case 1: a valid filter that matches nothing plus a made-up field must fail, not report 'no rows'."""
+    """#907 case 1: a valid filter that matches nothing plus a made-up field must fail, not report 'no rows'.
+
+    The valid-but-empty MANDT filter only matters for reproducing the old bug (zero rows masked the unknown field).
+    """
     result = await _execute_se16_query(backend, "T000", {"MANDT": "ZZZ", "ZZZFAKEFIELD": "X"}, 10)
     assert result.success is False, "Unknown filter field must make the query fail"
     assert result.error is not None
@@ -235,6 +238,10 @@ async def test_se16_real_column_not_offered_by_se16n_fails(backend):
 
     TBOOKSHOP is a standard SAP demo table (flight data model) whose LCHR column TEXT1 is not offered by SE16N.
     """
+    check = await _execute_se16_query(backend, "DD03L", {"TABNAME": "TBOOKSHOP", "FIELDNAME": "TEXT1"}, 1)
+    await go_home(backend)
+    if not check.success or check.returned_rows == 0:
+        pytest.skip("Demo table TBOOKSHOP / field TEXT1 not present on this system")
     result = await _execute_se16_query(backend, "TBOOKSHOP", {"TEXT1": "X"}, 10)
     assert result.success is False, "Field not offered by SE16N must make the query fail"
     assert result.error is not None

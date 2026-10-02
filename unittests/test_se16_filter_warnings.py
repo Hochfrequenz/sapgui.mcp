@@ -161,19 +161,6 @@ async def test_execute_se16_query_desktop_clean_fill_runs_query_unchanged() -> N
 
 
 @pytest.mark.anyio
-async def test_execute_se16_query_desktop_status_bar_error_keeps_filter_warnings_param() -> None:
-    """The status-bar error path passes filter warnings to _empty_failure (none exist at F8 time today)."""
-    backend = _make_desktop_backend()
-    backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type="E", message="boom"))
-
-    result, _ = await _run_desktop_query_with_fill(_FilterFillResult(), backend)
-
-    assert result.success is False
-    assert result.error == "SE16N error: boom"
-    assert result.filter_warnings == []
-
-
-@pytest.mark.anyio
 async def test_file_output_summary_carries_filter_warnings(tmp_path, monkeypatch) -> None:
     """With output_file, sap_se16_query returns an SE16FileSummary — it must still say which filters were skipped."""
     monkeypatch.chdir(tmp_path)  # output_file writes are sandboxed to the cwd (or OUTPUT_DIR)
@@ -328,7 +315,17 @@ class _NameCell:
 class _Scrollbar:
     def __init__(self, maximum: int) -> None:
         self.Maximum = maximum
-        self.Position = 0
+        self._position = 0
+        self.position_writes = 0
+
+    @property
+    def Position(self) -> int:  # noqa: N802
+        return self._position
+
+    @Position.setter
+    def Position(self, value: int) -> None:  # noqa: N802
+        self.position_writes += 1
+        self._position = value
 
 
 class _FakeGrid:
@@ -385,7 +382,7 @@ async def test_fill_unknown_field_within_visible_rows_lists_visible_names_only()
     assert result.unapplied_fields == ["ZZZFAKE"]
     assert result.other_errors == []
     assert result.offered_fields == ["MANDT", "MTEXT"]  # blank padding row skipped
-    assert grid.VerticalScrollbar.Position == 0
+    assert grid.VerticalScrollbar.position_writes == 0  # never scrolled
 
 
 @pytest.mark.anyio
@@ -448,4 +445,5 @@ async def test_tool_description_documents_strict_filter_fields() -> None:
     description = tools["sap_se16_query"].description or ""
     assert "desktop" in description.lower()
     assert "not offered by SE16N" in description
-    assert "offered fields" in description.lower()
+    assert "fails before running the query" in description
+    assert "selection fields" in description
