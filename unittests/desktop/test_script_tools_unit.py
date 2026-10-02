@@ -250,11 +250,20 @@ class TestScriptPathValidation:
         assert get_configured_script_roots() == []
 
     @pytest.mark.skipif(sys.platform != "win32", reason="drive-relative paths are Windows-only")
-    def test_drive_relative_script_path_not_outside_root(self, tmp_path: Path):
+    def test_drive_relative_script_path_not_outside_root(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         root = tmp_path / "root"
         root.mkdir()
-        with pytest.raises(ValueError):
-            _resolve_and_validate_script_path("C:evil.py", [root])
+        # "C:evil.py" is relative to the cwd of drive C: - put a matching file there so a
+        # resolution against the cwd would find it.
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "evil.py").write_text("output(1)")
+        monkeypatch.chdir(outside)
+        try:
+            resolved = _resolve_and_validate_script_path("C:evil.py", [root])
+        except ValueError:
+            return
+        assert is_path_within_root(resolved, root)
 
     @pytest.mark.parametrize("prefix", ["\\\\?\\", "\\\\.\\"])
     def test_device_prefix_script_path_rejected(self, tmp_path: Path, prefix: str):
