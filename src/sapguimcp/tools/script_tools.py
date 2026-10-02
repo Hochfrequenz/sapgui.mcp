@@ -15,6 +15,7 @@ import json
 import logging
 import traceback as _traceback
 import types
+from collections.abc import Callable
 from datetime import timedelta
 from typing import Annotated, Any
 
@@ -28,11 +29,8 @@ from sapguimcp.backend.manager import get_backend
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "INJECTED_NAMES",
     "SAFE_BUILTINS",
-    "SANDBOX_CONTRACT",
     "SANDBOX_CONTRACT_VERSION",
-    "SandboxContract",
     "get_sandbox_contract",
     "register_script_tools",
 ]
@@ -96,28 +94,37 @@ SAFE_BUILTINS: dict[str, Any] = {
 }
 
 SANDBOX_CONTRACT_VERSION: int = 1
-"""Current version of the sap_run_script sandbox contract."""
+"""Current version of the sap_run_script sandbox contract.
 
-INJECTED_NAMES: tuple[str, ...] = ("output", "session")
-"""Names injected into the global namespace for sandboxed scripts."""
+Bump this whenever a builtin (``SAFE_BUILTINS``) or an injected global name is added or removed.
+"""
+
+
+def _build_sandbox_globals(session: Any, output: Callable[[Any], None]) -> dict[str, Any]:
+    """Build the globals dict for sandboxed scripts. Single source of truth for injected names."""
+    return {
+        "__builtins__": dict(SAFE_BUILTINS),
+        "session": session,
+        "output": output,
+    }
 
 
 def get_sandbox_contract() -> SandboxContract:
-    """Return the sandbox execution contract for sap_run_script."""
-    allowed = sorted(k for k in SAFE_BUILTINS if not k.startswith("_"))
+    """Return the sandbox execution contract for sap_run_script.
+
+    Bump ``SANDBOX_CONTRACT_VERSION`` whenever a builtin or injected name is added or removed.
+    """
+    injected = sorted(k for k in _build_sandbox_globals(None, lambda _v: None) if k != "__builtins__")
     return SandboxContract(
         version=SANDBOX_CONTRACT_VERSION,
-        allowed_builtins=allowed,
-        safe_builtins=allowed,
-        injected_names=sorted(INJECTED_NAMES),
+        allowed_builtins=sorted(k for k in SAFE_BUILTINS if not k.startswith("_")),
+        injected_names=injected,
     )
 
 
-SANDBOX_CONTRACT: SandboxContract = get_sandbox_contract()
-"""Global cached sandbox contract instance."""
-
-_ALLOWED_BUILTINS_SUMMARY = ", ".join(sorted(k for k in SAFE_BUILTINS if not k.startswith("_")))
-_INJECTED_NAMES_SUMMARY = ", ".join(f"``{name}``" for name in sorted(INJECTED_NAMES))
+_CONTRACT = get_sandbox_contract()
+_ALLOWED_BUILTINS_SUMMARY = ", ".join(_CONTRACT.allowed_builtins)
+_INJECTED_NAMES_SUMMARY = ", ".join(f"``{name}``" for name in _CONTRACT.injected_names)
 
 
 def _run_in_sandbox(code: types.CodeType, session: Any) -> SapRunScriptResult:
@@ -134,11 +141,7 @@ def _run_in_sandbox(code: types.CodeType, session: Any) -> SapRunScriptResult:
         except (TypeError, ValueError):
             collected.append(str(value))
 
-    restricted_globals: dict[str, Any] = {
-        "__builtins__": dict(SAFE_BUILTINS),
-        "session": session,
-        "output": _output,
-    }
+    restricted_globals = _build_sandbox_globals(session, _output)
 
     try:
         exec(code, restricted_globals)  # noqa: S102  # pylint: disable=exec-used
@@ -155,9 +158,6 @@ def _run_in_sandbox(code: types.CodeType, session: Any) -> SapRunScriptResult:
 
 def register_script_tools(mcp: FastMCP) -> None:
     """Register sap_run_script with the MCP server (desktop backend only)."""
-    from sapguimcp.resources.sandbox_resource import register_sandbox_resources
-
-    register_sandbox_resources(mcp)
 
     @mcp.tool(
         annotations=ToolAnnotations(

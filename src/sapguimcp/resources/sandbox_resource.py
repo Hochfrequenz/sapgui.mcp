@@ -15,10 +15,6 @@ __all__ = ["register_sandbox_resources"]
 
 def register_sandbox_resources(mcp: FastMCP) -> None:
     """Register sandbox contract resource with the MCP server."""
-    # Ensure idempotent registration when called repeatedly
-    components = getattr(getattr(mcp, "_local_provider", None), "_components", {})
-    if "resource:sandbox://sap_run_script@" in components:
-        return
 
     @mcp.resource("sandbox://sap_run_script", mime_type="application/json")
     def get_sandbox_contract_resource() -> str:

@@ -898,6 +898,8 @@ For private git repositories, set `GITHUB_PAT` or `ABAPGIT_PAT` (the latter over
 | `sap_breakpoint_delete` | Delete an ABAP breakpoint |
 | `sap_breakpoint_list` | List active ABAP breakpoints |
 
+The sandbox contract (allowed builtins, injected names, version) of `sap_run_script` is also exposed as the MCP resource `sandbox://sap_run_script` (desktop backend only).
+
 ### Logging Tools
 
 | Tool | Description |

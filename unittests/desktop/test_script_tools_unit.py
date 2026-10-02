@@ -9,13 +9,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp import FastMCP
 
-from sapguimcp.backend.desktop.models.script_results import SandboxContract, SapRunScriptResult
+from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
 from sapguimcp.resources.sandbox_resource import register_sandbox_resources
 from sapguimcp.tools.script_tools import (
-    INJECTED_NAMES,
     SAFE_BUILTINS,
-    SANDBOX_CONTRACT,
     SANDBOX_CONTRACT_VERSION,
+    _build_sandbox_globals,
     _run_in_sandbox,
     get_sandbox_contract,
     register_script_tools,
@@ -269,7 +268,6 @@ class TestSapRunScriptTool:
 class TestSandboxContract:
     def test_version(self):
         assert SANDBOX_CONTRACT_VERSION == 1
-        assert SANDBOX_CONTRACT.version == 1
         assert get_sandbox_contract().version == 1
 
     def test_allowed_builtins_content(self):
@@ -327,43 +325,28 @@ class TestSandboxContract:
         expected_allowed = sorted(k for k in SAFE_BUILTINS if not k.startswith("_"))
         assert contract.allowed_builtins == expected_allowed
 
-    def test_safe_builtins_alias(self):
-        contract = get_sandbox_contract()
-        assert contract.safe_builtins == contract.allowed_builtins
-
     def test_injected_names(self):
         contract = get_sandbox_contract()
         assert isinstance(contract.injected_names, list)
         assert set(contract.injected_names) == {"output", "session"}
-        assert set(INJECTED_NAMES) == {"output", "session"}
 
-    def test_contract_dict_and_model_access(self):
+    def test_injected_names_match_actual_sandbox_globals(self):
         contract = get_sandbox_contract()
-        assert isinstance(contract, SandboxContract)
-        # Attribute access
-        assert contract.version == 1
-        assert isinstance(contract.allowed_builtins, list)
-        # Key subscript access
-        assert contract["version"] == 1
-        assert contract["allowed_builtins"] == contract.allowed_builtins
-        assert contract["safe_builtins"] == contract.safe_builtins
-        assert contract["injected_names"] == contract.injected_names
+        actual = _build_sandbox_globals(object(), lambda _v: None)
+        assert set(actual) - {"__builtins__"} == set(contract.injected_names)
 
-        # Dict operations
-        assert "version" in contract
-        assert "allowed_builtins" in contract
-        assert "nonexistent" not in contract
-        assert contract.get("version") == 1
-        assert contract.get("nonexistent", "default") == "default"
-        with pytest.raises(KeyError):
-            _ = contract["nonexistent"]
+    def test_exec_receives_globals_matching_contract(self):
+        seen: dict = {}
+        real_exec = exec
 
-        # Serialization to dict
-        as_dict = contract.model_dump()
-        assert as_dict["version"] == 1
-        assert "allowed_builtins" in as_dict
-        assert "safe_builtins" in as_dict
-        assert "injected_names" in as_dict
+        def spy(code, globals_):
+            seen.update(globals_)
+            return real_exec(code, globals_)
+
+        with patch("builtins.exec", spy):
+            _run_in_sandbox(compile("output(1)", _FILENAME, "exec"), object())
+        assert set(seen) - {"__builtins__"} == set(get_sandbox_contract().injected_names)
+        assert set(seen["__builtins__"]) == set(SAFE_BUILTINS)
 
     def test_sap_run_script_description_includes_sandbox_contract(self):
         mcp = FastMCP("test")
@@ -372,17 +355,15 @@ class TestSandboxContract:
         desc = tools["sap_run_script"].description or ""
 
         assert "Sandbox contract (v1):" in desc
-        assert "Allowed builtins:" in desc
-        assert "Injected names:" in desc
-        assert "session" in desc
-        assert "output" in desc
-        assert "print" in desc
-        assert "ord" in desc or "divmod" in desc
+        contract = get_sandbox_contract()
+        assert f"- Allowed builtins: {', '.join(contract.allowed_builtins)}\n" in desc
+        injected = ", ".join(f"``{n}``" for n in contract.injected_names)
+        assert f"- Injected names: {injected} " in desc
         assert "sandbox://sap_run_script" in desc
 
     def test_sandbox_resource_registration_and_read(self):
         mcp = FastMCP("test")
-        register_script_tools(mcp)
+        register_sandbox_resources(mcp)
 
         resources = {str(r.uri): r for r in asyncio.run(mcp.list_resources())}
         assert "sandbox://sap_run_script" in resources
@@ -399,13 +380,3 @@ class TestSandboxContract:
         assert "len" in payload["allowed_builtins"]
         assert "print" not in payload["allowed_builtins"]
         assert set(payload["injected_names"]) == {"output", "session"}
-
-    def test_sandbox_resource_idempotent_registration(self):
-        mcp = FastMCP("test")
-        register_sandbox_resources(mcp)
-        # Calling again must not raise or produce duplicate resources
-        register_sandbox_resources(mcp)
-        register_script_tools(mcp)
-
-        resources = [r for r in asyncio.run(mcp.list_resources()) if str(r.uri) == "sandbox://sap_run_script"]
-        assert len(resources) == 1
