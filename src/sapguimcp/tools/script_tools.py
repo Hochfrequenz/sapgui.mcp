@@ -10,12 +10,17 @@ This is an accepted trade-off for a semi-trusted LLM in an internal developer
 tool. If the threat model hardens, swap ``exec()`` for RestrictedPython.
 
 File script execution (``script_path``):
-- Only scripts under explicitly configured root directories
-  (``SAPGUIMCP_SCRIPT_ROOTS`` env var or ``script_roots`` in settings) may be
-  executed; by default the feature is disabled (no roots configured).
-- Paths are canonicalized via ``Path.resolve()`` and checked with
-  ``is_relative_to(root)`` (case-insensitive on Windows) to prevent directory
-  traversal (``..``) and symlink escapes.
+- Only scripts under explicitly configured root directories (``SCRIPT_ROOTS``
+  setting) may be executed; by default the feature is disabled (no roots
+  configured). Relative paths are resolved against the roots in order (never
+  the process cwd); the first root containing an existing file wins.
+- Paths are canonicalized via ``Path.resolve()`` and checked for containment
+  (see ``sapguimcp.utils.is_path_within_root``; case-insensitive on Windows)
+  to prevent directory traversal (``..``) and symlink/junction escapes.
+- Files larger than ``MAX_SCRIPT_BYTES`` (1 MiB) are refused.
+- ``params`` is only accepted together with ``script_path``.
+- A race between the containment check and the file read (TOCTOU, e.g. a link
+  swapped in between) is out of the threat model, like the rest of the sandbox.
 - Only ``.py`` files are accepted (checked for both source path and resolved
   target).
 - UNC paths (``\\\\`` or ``//``) and Windows device paths / reserved names are
@@ -32,6 +37,8 @@ import asyncio
 import hashlib
 import json
 import logging
+import math
+import ntpath
 import os
 import sys
 import traceback as _traceback
@@ -46,8 +53,13 @@ from pydantic import Field
 
 from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
 from sapguimcp.backend.manager import get_backend
+from sapguimcp.models.config import get_settings
+from sapguimcp.utils import resolve_candidates_within_roots
 
 logger = logging.getLogger(__name__)
+
+MAX_SCRIPT_BYTES = 1024 * 1024
+"""Maximum accepted size of a script file read via ``script_path`` (1 MiB)."""
 
 __all__ = ["get_configured_script_roots", "register_script_tools"]
 
@@ -110,45 +122,13 @@ SAFE_BUILTINS: dict[str, Any] = {
 }
 
 
-def _is_relative_to(path: Path, root: Path) -> bool:
-    """Check if path is relative to root, case-insensitively on Windows."""
-    try:
-        path.relative_to(root)
-        return True
-    except ValueError:
-        if sys.platform == "win32":
-            try:
-                Path(os.path.normcase(str(path))).relative_to(Path(os.path.normcase(str(root))))
-                return True
-            except ValueError:
-                return False
-        elif isinstance(path, PureWindowsPath) or isinstance(root, PureWindowsPath):
-            try:
-                PureWindowsPath(str(path).lower()).relative_to(PureWindowsPath(str(root).lower()))
-                return True
-            except ValueError:
-                return False
-        return False
-
-
 def get_configured_script_roots() -> list[Path]:
     """Return configured allowed root directories for script_path execution.
 
-    Roots are retrieved from the ``SAPGUIMCP_SCRIPT_ROOTS`` environment variable
-    or the ``script_roots`` setting. Multiple directories are separated by
-    ``os.pathsep``. Returns an empty list if no roots are configured (feature disabled).
+    Roots come from the ``SCRIPT_ROOTS`` setting, separated by ``os.pathsep``.
+    Returns an empty list if none are configured (feature disabled).
     """
-    raw = os.environ.get("SAPGUIMCP_SCRIPT_ROOTS")
-    if not raw:
-        try:
-            from sapguimcp.models.config import get_settings
-
-            raw = get_settings().script_roots
-        except Exception:  # pylint: disable=broad-exception-caught
-            raw = ""
-    if not raw or not raw.strip():
-        return []
-
+    raw = get_settings().script_roots
     roots: list[Path] = []
     for raw_part in raw.split(os.pathsep):
         part = raw_part.strip().strip("\"'")
@@ -157,8 +137,25 @@ def get_configured_script_roots() -> list[Path]:
     return roots
 
 
+def _is_reserved_name(path: str) -> bool:
+    """Whether *path* contains a Windows reserved device name (``CON``, ``NUL``, ...).
+
+    Checked on every platform: such paths are never legitimate script names.
+    ``Path.is_reserved()`` is deprecated since 3.13, so use ``ntpath.isreserved``
+    (3.13+, available on all platforms) and fall back to ``PureWindowsPath``.
+    """
+    isreserved = getattr(ntpath, "isreserved", None)
+    if isreserved is not None:
+        return bool(isreserved(path))
+    return PureWindowsPath(path).is_reserved()
+
+
 def _resolve_and_validate_script_path(script_path: str, configured_roots: list[Path]) -> Path:
     """Validate and resolve a script file path within configured roots.
+
+    Absolute paths must lie inside a root. Relative paths are resolved against
+    the roots in order (never the process cwd); the first root containing an
+    existing file wins.
 
     Raises:
         ValueError: If script_path is invalid, outside allowed roots, not a .py file,
@@ -167,7 +164,7 @@ def _resolve_and_validate_script_path(script_path: str, configured_roots: list[P
     if not configured_roots:
         raise ValueError(
             "script_path is disabled: no script roots configured. "
-            "Set SAPGUIMCP_SCRIPT_ROOTS to allow script execution from specific directories."
+            "Set SCRIPT_ROOTS to allow script execution from specific directories."
         )
 
     if not script_path or not script_path.strip():
@@ -179,45 +176,27 @@ def _resolve_and_validate_script_path(script_path: str, configured_roots: list[P
     if script_path.startswith(("\\\\", "//")):
         raise ValueError(f"UNC paths are not allowed: {script_path}")
 
+    if sys.platform == "win32" and ":" in os.path.splitdrive(script_path)[1]:
+        raise ValueError(f"Alternate data streams are not allowed: {script_path}")
+
     candidate = Path(script_path)
     if candidate.suffix.lower() != ".py":
         raise ValueError(f"script_path must have a .py extension: {script_path}")
 
-    if candidate.is_reserved() or (hasattr(os.path, "isreserved") and os.path.isreserved(str(candidate))):
+    if _is_reserved_name(script_path):
         raise ValueError(f"Device paths and reserved names are not allowed: {script_path}")
 
-    resolved_candidates: list[Path] = []
-    if candidate.is_absolute():
-        resolved = candidate.resolve()
-        for root in configured_roots:
-            resolved_root = root.resolve()
-            if _is_relative_to(resolved, resolved_root):
-                resolved_candidates.append(resolved)
-                break
-    else:
-        cwd_resolved = candidate.resolve()
-        for root in configured_roots:
-            resolved_root = root.resolve()
-            if _is_relative_to(cwd_resolved, resolved_root):
-                resolved_candidates.append(cwd_resolved)
-                break
-
-        for root in configured_roots:
-            resolved_root = root.resolve()
-            root_candidate = (resolved_root / candidate).resolve()
-            if _is_relative_to(root_candidate, resolved_root):
-                resolved_candidates.append(root_candidate)
-
-    if not resolved_candidates:
+    located = resolve_candidates_within_roots(candidate, configured_roots)
+    if not located:
         configured_str = ", ".join(str(r.resolve()) for r in configured_roots)
         raise ValueError(
             f"script_path {script_path!r} is not within any configured script root. Configured roots: {configured_str}"
         )
 
-    target = next((c for c in resolved_candidates if c.is_file()), resolved_candidates[0])
-    if target.is_dir():
-        raise ValueError(f"script_path is a directory, not a file: {script_path}")
-    if not target.is_file():
+    target = next((c for c in located if c.is_file()), None)
+    if target is None:
+        if any(c.is_dir() for c in located):
+            raise ValueError(f"script_path is a directory, not a file: {script_path}")
         raise ValueError(f"Script file not found: {script_path}")
 
     if target.suffix.lower() != ".py":
@@ -226,12 +205,36 @@ def _resolve_and_validate_script_path(script_path: str, configured_roots: list[P
     return target
 
 
+def _value_to_ast(value: Any) -> ast.expr:
+    """Build an AST expression for a JSON-like value (no repr/parse round trip)."""
+    if value is None or isinstance(value, (bool, int, str)):
+        return ast.Constant(value=value)
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError(f"Non-finite float is not allowed in params: {value!r}")
+        return ast.Constant(value=value)
+    if isinstance(value, list):
+        return ast.List(elts=[_value_to_ast(v) for v in value], ctx=ast.Load())
+    if isinstance(value, dict):
+        keys: list[ast.expr | None] = []
+        for k in value:
+            if not isinstance(k, str):
+                raise ValueError(f"params dict keys must be strings, got {type(k).__name__}")
+            keys.append(ast.Constant(value=k))
+        return ast.Dict(keys=keys, values=[_value_to_ast(v) for v in value.values()])
+    raise ValueError(f"Unsupported params value type: {type(value).__name__}")
+
+
 def _merge_params(tree: ast.Module, params: dict[str, Any]) -> None:
     """Merge parameter overrides into top-level PARAMS dict in the script AST.
 
+    Only JSON-like values (None, bool, int, finite float, str, list, dict with
+    str keys) are accepted.
+
     Raises:
-        ValueError: If params contains unknown keys, if top-level PARAMS is
-            missing, or if PARAMS is not a dict literal.
+        ValueError: If params contains unknown keys or non-JSON-like, non-finite
+            or too deeply nested values, if top-level PARAMS is missing, or if
+            PARAMS is not a dict literal.
     """
     if not params:
         return
@@ -271,8 +274,10 @@ def _merge_params(tree: ast.Module, params: dict[str, Any]) -> None:
 
     for param_key, param_val in params.items():
         idx = key_indices[param_key]
-        val_expr = ast.parse(repr(param_val), mode="eval").body
-        dict_node.values[idx] = val_expr
+        try:
+            dict_node.values[idx] = _value_to_ast(param_val)
+        except RecursionError as exc:
+            raise ValueError(f"params value for {param_key!r} is nested too deeply") from exc
 
     ast.fix_missing_locations(tree)
 
@@ -338,7 +343,10 @@ def register_script_tools(mcp: FastMCP) -> None:
             "avoids wasting model context and tokens reading and re-emitting script text, prevents model "
             "truncation or unauthorized rewriting, and allows verifying script integrity with "
             "``expected_sha256``. Parameters can be passed via ``params`` to override defaults in the "
-            "script's top-level ``PARAMS`` dict.\n\n"
+            "script's top-level ``PARAMS`` dict (``params`` is rejected with inline ``script``). "
+            "``script_path`` only works for files under the directories configured in the "
+            "``SCRIPT_ROOTS`` setting; relative paths are resolved against those roots in order "
+            "(first matching root wins). Script files are limited to 1 MiB.\n\n"
             "The script receives:\n"
             "- ``session``: sapsucker ``GuiSession`` — use ``session.find_by_id(id)`` to reach "
             "elements, then read/write their properties and call methods directly.\n"
@@ -389,7 +397,9 @@ def register_script_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Path to a .py script file on the MCP host (mutually exclusive with script). "
-                    "Must reside within a configured script root (SAPGUIMCP_SCRIPT_ROOTS)."
+                    "Must reside within a configured script root (SCRIPT_ROOTS). Relative paths are "
+                    "resolved against the configured roots in order (never the server's working "
+                    "directory); the first root containing the file wins."
                 )
             ),
         ] = None,
@@ -398,7 +408,8 @@ def register_script_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Parameter overrides merged into the script's top-level PARAMS dict. "
-                    "All keys must exist in the script's PARAMS definition."
+                    "All keys must exist in the script's PARAMS definition. Only valid with script_path "
+                    "(rejected for inline script). Values must be JSON-like and finite."
                 )
             ),
         ] = None,
@@ -421,115 +432,95 @@ def register_script_tools(mcp: FastMCP) -> None:
             ),
         ] = 30,
     ) -> SapRunScriptResult:
-        if script is None and script_path is None:
-            return SapRunScriptResult.failure("Exactly one of 'script' or 'script_path' must be provided.")
-
-        if script is not None and script_path is not None:
-            return SapRunScriptResult.failure("Cannot specify both 'script' and 'script_path'.")
-
         target_file: Path | None = None
         script_sha256: str | None = None
 
+        def _fail(message: str) -> SapRunScriptResult:
+            """Failure result carrying the script file identity known so far."""
+            return SapRunScriptResult.failure(
+                message,
+                script_path=str(target_file) if target_file else None,
+                script_sha256=script_sha256,
+            )
+
+        if script is None and script_path is None:
+            return _fail("Exactly one of 'script' or 'script_path' must be provided.")
+
+        if script is not None and script_path is not None:
+            return _fail("Cannot specify both 'script' and 'script_path'.")
+
+        source_code: str
         if script_path is not None:
             roots = get_configured_script_roots()
             try:
                 target_file = _resolve_and_validate_script_path(script_path, roots)
             except ValueError as exc:
-                return SapRunScriptResult.failure(str(exc))
+                return _fail(str(exc))
 
             try:
-                raw_bytes = target_file.read_bytes()
-            except (OSError, PermissionError) as exc:
-                return SapRunScriptResult.failure(
-                    f"Failed to read script file {script_path!r}: {exc}",
-                    script_path=str(target_file),
-                )
+                with target_file.open("rb") as fh:
+                    raw_bytes = fh.read(MAX_SCRIPT_BYTES + 1)
+            except OSError as exc:
+                return _fail(f"Failed to read script file {script_path!r}: {exc}")
+
+            if len(raw_bytes) > MAX_SCRIPT_BYTES:
+                return _fail(f"Script file {script_path!r} exceeds the maximum size of {MAX_SCRIPT_BYTES} bytes")
 
             script_sha256 = hashlib.sha256(raw_bytes).hexdigest()
 
             if expected_sha256 is not None and script_sha256.lower() != expected_sha256.strip().lower():
                 exp = expected_sha256.strip().lower()
-                return SapRunScriptResult.failure(
-                    f"SHA-256 mismatch for {script_path}: expected {exp}, got {script_sha256}",
-                    script_path=str(target_file),
-                    script_sha256=script_sha256,
-                )
+                return _fail(f"SHA-256 mismatch for {script_path}: expected {exp}, got {script_sha256}")
 
             try:
-                script_content = raw_bytes.decode("utf-8-sig")
+                source_code = raw_bytes.decode("utf-8-sig")
             except UnicodeDecodeError as exc:
-                return SapRunScriptResult.failure(
-                    f"Failed to decode script file {script_path!r} as UTF-8: {exc}",
-                    script_path=str(target_file),
-                    script_sha256=script_sha256,
-                )
+                return _fail(f"Failed to decode script file {script_path!r} as UTF-8: {exc}")
 
             source_name = str(target_file)
-            source_code = script_content
-        else:
+        elif script is not None:
             if expected_sha256 is not None:
-                return SapRunScriptResult.failure("'expected_sha256' is only valid with 'script_path'")
+                return _fail("'expected_sha256' is only valid with 'script_path'")
+            if params is not None:
+                return _fail("'params' is only valid with 'script_path'")
             source_name = "<sap_script>"
-            source_code = script  # type: ignore[assignment]
+            source_code = script
+        else:  # pragma: no cover - guarded by the checks above
+            return _fail("Exactly one of 'script' or 'script_path' must be provided.")
 
         try:
             tree = ast.parse(source_code, filename=source_name)
-        except (SyntaxError, ValueError) as exc:
-            return SapRunScriptResult.failure(
-                f"{type(exc).__name__}: {exc}",
-                script_path=str(target_file) if target_file else None,
-                script_sha256=script_sha256,
-            )
+        except (SyntaxError, ValueError, RecursionError) as exc:
+            return _fail(f"{type(exc).__name__}: {exc}")
 
         if params is not None:
             try:
                 _merge_params(tree, params)
             except ValueError as exc:
-                return SapRunScriptResult.failure(
-                    str(exc),
-                    script_path=str(target_file) if target_file else None,
-                    script_sha256=script_sha256,
-                )
+                return _fail(str(exc))
 
         try:
             code = compile(tree, source_name, "exec")
-        except (SyntaxError, ValueError) as exc:
-            return SapRunScriptResult.failure(
-                f"{type(exc).__name__}: {exc}",
-                script_path=str(target_file) if target_file else None,
-                script_sha256=script_sha256,
-            )
-
-        current_script_path = str(target_file) if target_file else None
+        except (SyntaxError, ValueError, RecursionError) as exc:
+            return _fail(f"{type(exc).__name__}: {exc}")
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_run_script")
         except ValueError as exc:
-            return SapRunScriptResult.failure(
-                str(exc),
-                script_path=current_script_path,
-                script_sha256=script_sha256,
-            )
+            return _fail(str(exc))
 
         if backend.backend_type != "desktop":
-            return SapRunScriptResult.failure(
-                "sap_run_script is only available on the desktop backend. Use browser_evaluate for WebGUI.",
-                script_path=current_script_path,
-                script_sha256=script_sha256,
-            )
+            return _fail("sap_run_script is only available on the desktop backend. Use browser_evaluate for WebGUI.")
 
         from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
         if not isinstance(backend, DesktopBackend):
-            return SapRunScriptResult.failure(
-                "Internal error: expected DesktopBackend",
-                script_path=current_script_path,
-                script_sha256=script_sha256,
-            )
+            return _fail("Internal error: expected DesktopBackend")
 
         desktop_session = backend.require_session()
         com = backend.com
         timeout_td = timedelta(seconds=timeout)
+        current_script_path = str(target_file) if target_file else None
 
         try:
             return await asyncio.wait_for(
@@ -544,16 +535,10 @@ def register_script_tools(mcp: FastMCP) -> None:
                 timeout=timeout_td.total_seconds(),
             )
         except asyncio.TimeoutError:
-            return SapRunScriptResult.failure(
+            return _fail(
                 f"Script timed out after {timeout_td.seconds}s. "
-                "The COM thread may still be running — restart the session if SAP is unresponsive.",
-                script_path=current_script_path,
-                script_sha256=script_sha256,
+                "The COM thread may still be running — restart the session if SAP is unresponsive."
             )
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.exception("sap_run_script: COM execution error")
-            return SapRunScriptResult.failure(
-                f"COM execution error: {exc}",
-                script_path=current_script_path,
-                script_sha256=script_sha256,
-            )
+            return _fail(f"COM execution error: {exc}")

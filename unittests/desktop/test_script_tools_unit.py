@@ -7,27 +7,41 @@ import asyncio
 import hashlib
 import os
 import re
+import subprocess
+import sys
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastmcp import FastMCP
 
+import sapguimcp.models.config as config_module
+
 if TYPE_CHECKING:
     from pathlib import Path
 
 from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
 from sapguimcp.tools.script_tools import (
+    MAX_SCRIPT_BYTES,
     SAFE_BUILTINS,
-    _is_relative_to,
     _merge_params,
     _resolve_and_validate_script_path,
     _run_in_sandbox,
     get_configured_script_roots,
     register_script_tools,
 )
+from sapguimcp.utils import is_path_within_root
 
 _FILENAME = "<sap_script>"
+
+
+def _set_script_roots(monkeypatch: pytest.MonkeyPatch, value: str | None) -> None:
+    """Point the SCRIPT_ROOTS setting at *value* with a fresh settings singleton (restored afterwards)."""
+    monkeypatch.setattr(config_module, "_settings", None)
+    if value is None:
+        monkeypatch.delenv("SCRIPT_ROOTS", raising=False)
+    else:
+        monkeypatch.setenv("SCRIPT_ROOTS", value)
 
 
 def _c(script: str):
@@ -201,19 +215,19 @@ class TestScriptPathValidation:
     def test_get_configured_script_roots_from_env(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
         r1 = tmp_path / "root1"
         r2 = tmp_path / "root2"
-        monkeypatch.setenv("SAPGUIMCP_SCRIPT_ROOTS", f"{r1}{os.pathsep}{r2}")
+        _set_script_roots(monkeypatch, f"{r1}{os.pathsep}{r2}")
         roots = get_configured_script_roots()
         assert roots == [r1, r2]
 
     def test_get_configured_script_roots_empty(self, monkeypatch: pytest.MonkeyPatch):
-        monkeypatch.setenv("SAPGUIMCP_SCRIPT_ROOTS", "")
+        _set_script_roots(monkeypatch, "")
         assert get_configured_script_roots() == []
 
-    def test_is_relative_to_posix_and_case(self, tmp_path: Path):
+    def test_is_path_within_root(self, tmp_path: Path):
         child = tmp_path / "sub" / "file.py"
-        assert _is_relative_to(child, tmp_path) is True
+        assert is_path_within_root(child, tmp_path) is True
         outside = tmp_path.parent / "other.py"
-        assert _is_relative_to(outside, tmp_path) is False
+        assert is_path_within_root(outside, tmp_path) is False
 
     def test_resolve_and_validate_script_path_success(self, tmp_path: Path):
         script_file = tmp_path / "test.py"
@@ -272,6 +286,111 @@ class TestScriptPathValidation:
         with pytest.raises(ValueError, match="UNC paths are not allowed"):
             _resolve_and_validate_script_path(r"\\server\share\script.py", [tmp_path])
 
+    def test_relative_path_resolves_against_root_not_cwd(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        root = tmp_path / "root"
+        root.mkdir()
+        other = tmp_path / "other"
+        other.mkdir()
+        (root / "same.py").write_text("output('root')")
+        (other / "same.py").write_text("output('cwd')")
+        monkeypatch.chdir(other)
+        resolved = _resolve_and_validate_script_path("same.py", [root])
+        assert resolved == (root / "same.py").resolve()
+
+    def test_relative_path_cwd_file_outside_roots_not_found(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        root = tmp_path / "root"
+        root.mkdir()
+        other = tmp_path / "other"
+        other.mkdir()
+        (other / "only_cwd.py").write_text("output(1)")
+        monkeypatch.chdir(other)
+        with pytest.raises(ValueError, match="Script file not found"):
+            _resolve_and_validate_script_path("only_cwd.py", [root])
+
+    def test_relative_path_first_matching_root_wins(self, tmp_path: Path):
+        r1 = tmp_path / "r1"
+        r2 = tmp_path / "r2"
+        r1.mkdir()
+        r2.mkdir()
+        (r2 / "a.py").write_text("output(2)")
+        assert _resolve_and_validate_script_path("a.py", [r1, r2]) == (r2 / "a.py").resolve()
+        (r1 / "a.py").write_text("output(1)")
+        assert _resolve_and_validate_script_path("a.py", [r1, r2]) == (r1 / "a.py").resolve()
+
+    def test_symlink_escape_rejected(self, tmp_path: Path):
+        root = tmp_path / "allowed"
+        root.mkdir()
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "evil.py").write_text("output(1)")
+        link = root / "link.py"
+        try:
+            link.symlink_to(outside / "evil.py")
+        except (OSError, NotImplementedError) as exc:
+            pytest.skip(f"cannot create symlinks here: {exc}")
+        with pytest.raises(ValueError, match="is not within any configured script root"):
+            _resolve_and_validate_script_path(str(link), [root])
+
+    def test_symlinked_dir_escape_rejected_relative(self, tmp_path: Path):
+        root = tmp_path / "allowed"
+        root.mkdir()
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "evil.py").write_text("output(1)")
+        try:
+            (root / "sub").symlink_to(outside, target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            pytest.skip(f"cannot create symlinks here: {exc}")
+        with pytest.raises(ValueError, match="is not within any configured script root"):
+            _resolve_and_validate_script_path("sub/evil.py", [root])
+
+    def test_symlink_inside_root_allowed(self, tmp_path: Path):
+        root = tmp_path / "allowed"
+        root.mkdir()
+        real = root / "real.py"
+        real.write_text("output(1)")
+        link = root / "link.py"
+        try:
+            link.symlink_to(real)
+        except (OSError, NotImplementedError) as exc:
+            pytest.skip(f"cannot create symlinks here: {exc}")
+        assert _resolve_and_validate_script_path(str(link), [root]) == real.resolve()
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="NTFS junctions are Windows-only")
+    def test_junction_escape_rejected(self, tmp_path: Path):
+        root = tmp_path / "allowed"
+        root.mkdir()
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "evil.py").write_text("output(1)")
+        junction = root / "jct"
+        proc = subprocess.run(  # noqa: S603
+            ["cmd", "/c", "mklink", "/J", str(junction), str(outside)],  # noqa: S607
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode != 0:
+            pytest.skip(f"cannot create junction: {proc.stderr or proc.stdout}")
+        try:
+            with pytest.raises(ValueError, match="is not within any configured script root"):
+                _resolve_and_validate_script_path(str(junction / "evil.py"), [root])
+        finally:
+            junction.rmdir()  # removes the junction only, not the target
+
+    @pytest.mark.parametrize("name", ["CON.py", "nul.py", "sub/COM1.py"])
+    def test_reserved_device_name_rejected(self, tmp_path: Path, name: str):
+        with pytest.raises(ValueError, match="reserved names"):
+            _resolve_and_validate_script_path(name, [tmp_path])
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="alternate data streams are Windows-only")
+    def test_alternate_data_stream_rejected(self, tmp_path: Path):
+        (tmp_path / "ok.txt").write_text("x")
+        with pytest.raises(ValueError, match="Alternate data streams"):
+            _resolve_and_validate_script_path("ok.txt:x.py", [tmp_path])
+        with pytest.raises(ValueError, match="Alternate data streams"):
+            _resolve_and_validate_script_path(str(tmp_path / "ok.txt:x.py"), [tmp_path])
+
 
 class TestMergeParams:
     def test_merge_params_success(self):
@@ -313,6 +432,32 @@ class TestMergeParams:
         tree = ast.parse(source)
         with pytest.raises(ValueError, match="Multiple top-level 'PARAMS' assignments"):
             _merge_params(tree, {"a": 3})
+
+    @pytest.mark.parametrize("bad", [float("inf"), float("-inf"), float("nan")])
+    def test_merge_params_non_finite_float_rejected(self, bad: float):
+        tree = ast.parse("PARAMS = {'a': 1}\n")
+        with pytest.raises(ValueError, match="Non-finite float"):
+            _merge_params(tree, {"a": bad})
+
+    def test_merge_params_nested_values(self):
+        tree = ast.parse("PARAMS = {'a': 1}\noutput(PARAMS)\n")
+        value = {"x": [1, -2.5, None, True, "s"], "y": {"z": "w"}}
+        _merge_params(tree, {"a": value})
+        sandbox_result = _run_in_sandbox(compile(tree, "<test>", "exec"), MagicMock())
+        assert sandbox_result.output == [{"a": value}]
+
+    def test_merge_params_deep_nesting_rejected(self):
+        tree = ast.parse("PARAMS = {'a': 1}\n")
+        deep: list = []
+        for _ in range(100_000):
+            deep = [deep]
+        with pytest.raises(ValueError, match="nested too deeply"):
+            _merge_params(tree, {"a": deep})
+
+    def test_merge_params_unsupported_type_rejected(self):
+        tree = ast.parse("PARAMS = {'a': 1}\n")
+        with pytest.raises(ValueError, match="Unsupported params value type"):
+            _merge_params(tree, {"a": {1, 2}})
 
 
 class TestSapRunScriptTool:
@@ -433,11 +578,7 @@ class TestSapRunScriptTool:
         assert "'expected_sha256' is only valid with 'script_path'" in result.error
 
     def test_script_path_disabled_by_default(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-        monkeypatch.delenv("SAPGUIMCP_SCRIPT_ROOTS", raising=False)
-        monkeypatch.delenv("SCRIPT_ROOTS", raising=False)
-        import sapguimcp.models.config
-
-        sapguimcp.models.config._settings = None
+        _set_script_roots(monkeypatch, None)
 
         script_file = tmp_path / "test.py"
         script_file.write_text("output(1)")
@@ -457,7 +598,7 @@ class TestSapRunScriptTool:
     def test_script_path_outside_roots_rejected(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         root = tmp_path / "allowed"
         root.mkdir()
-        monkeypatch.setenv("SAPGUIMCP_SCRIPT_ROOTS", str(root))
+        _set_script_roots(monkeypatch, str(root))
         outside_file = tmp_path / "outside.py"
         outside_file.write_text("output(1)")
 
@@ -474,7 +615,7 @@ class TestSapRunScriptTool:
         mock_get_backend.assert_not_called()
 
     def test_script_path_sha256_mismatch_rejected(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-        monkeypatch.setenv("SAPGUIMCP_SCRIPT_ROOTS", str(tmp_path))
+        _set_script_roots(monkeypatch, str(tmp_path))
         script_file = tmp_path / "test.py"
         script_file.write_text("output(1)")
 
@@ -498,7 +639,7 @@ class TestSapRunScriptTool:
         mock_get_backend.assert_not_called()
 
     def test_script_path_unknown_params_rejected(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-        monkeypatch.setenv("SAPGUIMCP_SCRIPT_ROOTS", str(tmp_path))
+        _set_script_roots(monkeypatch, str(tmp_path))
         script_file = tmp_path / "test.py"
         script_file.write_text("PARAMS = {'known': 1}\noutput(PARAMS)")
 
@@ -522,7 +663,7 @@ class TestSapRunScriptTool:
     def test_script_path_and_params_execution_matches_inline(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         from sapguimcp.backend.desktop import DesktopBackend
 
-        monkeypatch.setenv("SAPGUIMCP_SCRIPT_ROOTS", str(tmp_path))
+        _set_script_roots(monkeypatch, str(tmp_path))
         script_file = tmp_path / "my_script.py"
         script_content = (
             "PARAMS = {'batch_size': 5, 'prefix': 'DEFAULT'}\n"
@@ -572,3 +713,49 @@ class TestSapRunScriptTool:
         assert inline_result.output == result.output
         assert inline_result.script_path is None
         assert inline_result.script_sha256 is None
+
+    def test_params_with_inline_script_rejected(self):
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+        tool_fn = self._make_tool_fn(mcp)
+        result = asyncio.run(tool_fn(script="PARAMS = {'a': 1}", params={"a": 2}))
+        assert result.success is False
+        assert "'params' is only valid with 'script_path'" in result.error
+
+    def test_script_path_too_large_rejected(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        _set_script_roots(monkeypatch, str(tmp_path))
+        big = tmp_path / "big.py"
+        big.write_bytes(b"#" * (MAX_SCRIPT_BYTES + 1))
+
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+        tool_fn = self._make_tool_fn(mcp)
+
+        mock_get_backend = AsyncMock()
+        with patch("sapguimcp.tools.script_tools.get_backend", mock_get_backend):
+            result = asyncio.run(tool_fn(script_path=str(big)))
+
+        assert result.success is False
+        assert "exceeds the maximum size" in result.error
+        mock_get_backend.assert_not_called()
+
+    def test_script_path_relative_ignores_cwd(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        root = tmp_path / "root"
+        root.mkdir()
+        cwd_dir = tmp_path / "cwd"
+        cwd_dir.mkdir()
+        (cwd_dir / "only_here.py").write_text("output(1)")
+        monkeypatch.chdir(cwd_dir)
+        _set_script_roots(monkeypatch, str(root))
+
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+        tool_fn = self._make_tool_fn(mcp)
+
+        mock_get_backend = AsyncMock()
+        with patch("sapguimcp.tools.script_tools.get_backend", mock_get_backend):
+            result = asyncio.run(tool_fn(script_path="only_here.py"))
+
+        assert result.success is False
+        assert "Script file not found" in result.error
+        mock_get_backend.assert_not_called()
