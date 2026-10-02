@@ -23,7 +23,7 @@ def _make_backend(page: AsyncMock) -> "WebGuiBackend":  # type: ignore[name-defi
 async def test_capture_sap_identity_success():
     """When DOM returns a username, identity should be set."""
     page = AsyncMock()
-    page.evaluate.return_value = {"user": "KLEINK"}
+    page.evaluate.return_value = {"user": "TESTUSER"}
 
     backend = _make_backend(page)
     with patch(_PATCH_SET_IDENTITY) as mock_set:
@@ -31,7 +31,7 @@ async def test_capture_sap_identity_success():
 
     mock_set.assert_called_once()
     identity = mock_set.call_args[0][1]
-    assert identity.sap_user == "KLEINK"
+    assert identity.sap_user == "TESTUSER"
     assert identity.sap_host == "sap-prod.acme.com"
     assert identity.sap_mandant == "100"
 

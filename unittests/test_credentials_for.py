@@ -42,23 +42,23 @@ class TestCredentialsFor:
     def test_returns_system_credentials_when_mapped(self) -> None:
         cfg = _make_config(
             DEV={"user": "dev_user", "password": "dev_pass"},
-            HFQ={"user": "hfq_user", "password": "hfq_pass"},
+            sysA={"user": "sysa_user", "password": "sysa_pass"},
         )
         with patch("sapguimcp.models.config._sap_config", cfg):
             settings = _make_settings()
-            user, password = settings.credentials_for("HFQ")
-        assert user == "hfq_user"
-        assert password == "hfq_pass"
+            user, password = settings.credentials_for("sysA")
+        assert user == "sysa_user"
+        assert password == "sysa_pass"
 
     def test_raises_key_error_for_unmapped_system(self) -> None:
         cfg = _make_config(
             DEV={"user": "dev_user", "password": "dev_pass"},
-            HFQ={"user": "hfq_user", "password": "hfq_pass"},
+            sysA={"user": "sysa_user", "password": "sysa_pass"},
         )
         with patch("sapguimcp.models.config._sap_config", cfg):
             settings = _make_settings()
-            with pytest.raises(KeyError, match="S4U"):
-                settings.credentials_for("S4U")
+            with pytest.raises(KeyError, match="sysB"):
+                settings.credentials_for("sysB")
 
 
 class TestGetSapConfig:

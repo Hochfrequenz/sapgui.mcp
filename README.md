@@ -114,13 +114,13 @@ There are two distinct identifiers per system - don't mix them up:
 | Concept | Example | Where it's used |
 | --- | --- | --- |
 | **System key** (dictionary key) | `"dev"`, `"qa"` | `sap_login(system_key="qa")` - selects which system to log into |
-| **SAP Logon entry** (`connection_name` field) | `"HF S/4"`, `"DEV - ERP Development"` | Must match the **bold description** in the SAP Logon pad exactly |
+| **SAP Logon entry** (`connection_name` field) | `"DEV S/4HANA"`, `"DEV - ERP Development"` | Must match the **bold description** in the SAP Logon pad exactly |
 
 The SAP Logon entry is _not_ the 3-character System ID (SID):
 
 | What you see in SAP Logon | `connection_name` value     | NOT this (SID) |
 | ------------------------- | --------------------------- | -------------- |
-| **HF S/4**                | `"HF S/4"`                  | ~~`"HFQ"`~~    |
+| **DEV S/4HANA**          | `"DEV S/4HANA"`            | ~~`"XYZ"`~~    |
 | **DEV - ERP Development** | `"DEV - ERP Development"`   | ~~`"DEV"`~~    |
 
 If the `connection_name` doesn't match exactly, you'll get _"SAP Logon connection entry not found"_.
@@ -130,7 +130,7 @@ If the `connection_name` doesn't match exactly, you'll get _"SAP Logon connectio
     "default_system": "dev",
     "systems": {
         "dev": {
-            "connection_name": "HF S/4",
+            "connection_name": "DEV S/4HANA",
             "host": "https://your-sap-system:44300",
             "client": "100",
             "user": "your_username",
@@ -250,7 +250,7 @@ Multi-system support is built into `systems.json` - add multiple systems and the
     "default_system": "dev",
     "systems": {
         "dev": {
-            "connection_name": "HF S/4",
+            "connection_name": "DEV S/4HANA",
             "host": "https://dev-sap:44300",
             "client": "100",
             "user": "dev_user",

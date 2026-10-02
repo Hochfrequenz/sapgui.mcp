@@ -14,7 +14,28 @@ from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from pydantic import BaseModel
 
+from sapguimcp.models import LoginResult
 from unittests.conftest import has_sap_webgui_creds
+
+
+def resolve_login_user(login: LoginResult) -> str:
+    """Return the SAP user for a login result.
+
+    ``LoginResult.user`` is ``None`` when the browser session was already logged in, so fall back to
+    the user configured for the default system in systems.json. Skips the test if neither is available.
+    """
+    if login.user:
+        return login.user
+    try:
+        from sapguimcp.models.config import get_sap_config
+
+        configured = get_sap_config().get_default().user
+    except Exception:  # pylint: disable=broad-except
+        configured = None
+    if not configured:
+        pytest.skip("no SAP user available")
+    return str(configured)
+
 
 # =============================================================================
 # LANGUAGE HANDLING
@@ -263,7 +284,7 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     Fixture that provides an MCP client connected to a real SAP Web GUI server.
 
     This fixture:
-    1. Skips if not running on an authorized machine (HF-KKLEIN3)
+    1. Skips if SAP WebGUI credentials are not configured
     2. Skips if SAP_URL environment variable is not set
     3. Starts the sapguimcp server as a subprocess
     4. Connects an MCP client via stdio

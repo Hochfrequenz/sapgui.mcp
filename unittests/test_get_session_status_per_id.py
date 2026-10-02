@@ -402,14 +402,14 @@ class TestDesktopGetSessionStatusHealthCheck:
     async def test_live_handle_reported_active(self) -> None:
         backend = _make_desktop_backend()
         session = MagicMock()
-        session.info.user = "KLEINK"
+        session.info.user = "TESTUSER"
         session.com.FindById.return_value = MagicMock()  # round-trip succeeds
         self._register(backend, session)
 
         result = await backend.get_session_status(session_id="s1")
 
         assert result.status == "active"
-        assert "KLEINK" in result.message
+        assert "TESTUSER" in result.message
 
     @pytest.mark.anyio
     async def test_busy_handle_reported_not_dead(self) -> None:

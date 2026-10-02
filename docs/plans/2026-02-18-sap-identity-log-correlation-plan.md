@@ -26,18 +26,18 @@
 from sapguimcp.models.middleware import SapIdentity, SessionStats
 
 def test_sap_identity_model():
-    identity = SapIdentity(sap_user="KLEINK", sap_host="sap-prod.acme.com", sap_mandant="100")
+    identity = SapIdentity(sap_user="TESTUSER", sap_host="sap-prod.acme.com", sap_mandant="100")
     d = identity.model_dump(mode="json", exclude_none=True)
-    assert d == {"sap_user": "KLEINK", "sap_host": "sap-prod.acme.com", "sap_mandant": "100"}
+    assert d == {"sap_user": "TESTUSER", "sap_host": "sap-prod.acme.com", "sap_mandant": "100"}
 
 def test_session_stats_identity_default_none():
     stats = SessionStats()
     assert stats.sap_identity is None
 
 def test_session_stats_with_identity():
-    identity = SapIdentity(sap_user="KLEINK", sap_host="sap-prod.acme.com", sap_mandant="100")
+    identity = SapIdentity(sap_user="TESTUSER", sap_host="sap-prod.acme.com", sap_mandant="100")
     stats = SessionStats(sap_identity=identity)
-    assert stats.sap_identity.sap_user == "KLEINK"
+    assert stats.sap_identity.sap_user == "TESTUSER"
 ```
 
 **Step 2: Run test to verify it fails**
@@ -100,7 +100,7 @@ from sapguimcp.models.middleware import SapIdentity, SessionStats
 
 def test_set_sap_identity_creates_session_if_needed():
     """set_sap_identity should work even if session doesn't exist yet."""
-    identity = SapIdentity(sap_user="KLEINK", sap_host="myhost", sap_mandant="100")
+    identity = SapIdentity(sap_user="TESTUSER", sap_host="myhost", sap_mandant="100")
     set_sap_identity("test-session", identity)
     assert _sessions_ref["test-session"].sap_identity == identity
 
@@ -246,8 +246,8 @@ git commit -m "feat: add set_sap_identity() and inject identity into tool call l
 **Context:** After login, the SAP page has an element:
 
 ```html
-<... id="sysInfoAreaMenuItemSAPITS_MBAR_USER" lsdata='{"0":"abc","1":"Benutzer","13":"KLEINK"}'
-aria-label="User KLEINK" ...>
+<... id="sysInfoAreaMenuItemSAPITS_MBAR_USER" lsdata='{"0":"abc","1":"Benutzer","13":"TESTUSER"}'
+aria-label="User TESTUSER" ...>
 ```
 
 Two extraction strategies (in order of reliability):
@@ -260,7 +260,7 @@ Two extraction strategies (in order of reliability):
 ```javascript
 // extract_sap_user.js
 // Extracts the SAP username from the page DOM after login.
-// Returns { user: "KLEINK" } or { user: null } if not found.
+// Returns { user: "TESTUSER" } or { user: null } if not found.
 (() => {
     const el = document.getElementById('sysInfoAreaMenuItemSAPITS_MBAR_USER');
     if (!el) return { user: null };
@@ -402,14 +402,14 @@ from sapguimcp.models.middleware import SapIdentity
 async def test_capture_sap_identity_success():
     """When DOM returns a username, identity should be set."""
     page = AsyncMock()
-    page.evaluate.return_value = {"user": "KLEINK"}
+    page.evaluate.return_value = {"user": "TESTUSER"}
 
     with patch("sapguimcp.tools.sap_tools.set_sap_identity") as mock_set:
         await _capture_sap_identity(page, "https://sap-prod.acme.com/sap/bc/gui", "100", "session-1")
 
     mock_set.assert_called_once()
     identity = mock_set.call_args[0][1]
-    assert identity.sap_user == "KLEINK"
+    assert identity.sap_user == "TESTUSER"
     assert identity.sap_host == "sap-prod.acme.com"
     assert identity.sap_mandant == "100"
 
@@ -480,12 +480,12 @@ def test_console_format_with_identity_fields(self) -> None:
         name="test", level=logging.INFO, pathname="", lineno=0,
         msg="Tool completed", args=(), exc_info=None,
     )
-    record.sap_user = "KLEINK"
+    record.sap_user = "TESTUSER"
     record.sap_host = "sap-prod.acme.com"
     record.sap_mandant = "100"
     record.tool = "sap_transaction"
     output = formatter.format(record)
-    assert "sap_user=KLEINK" in output
+    assert "sap_user=TESTUSER" in output
     assert "sap_host=sap-prod.acme.com" in output
     assert "sap_mandant=100" in output
     assert "tool=sap_transaction" in output
@@ -497,12 +497,12 @@ def test_json_format_with_identity_fields(self) -> None:
         name="test", level=logging.INFO, pathname="", lineno=0,
         msg="Tool completed", args=(), exc_info=None,
     )
-    record.sap_user = "KLEINK"
+    record.sap_user = "TESTUSER"
     record.sap_host = "sap-prod.acme.com"
     record.sap_mandant = "100"
     output = formatter.format(record)
     data = json.loads(output)
-    assert data["sap_user"] == "KLEINK"
+    assert data["sap_user"] == "TESTUSER"
     assert data["sap_host"] == "sap-prod.acme.com"
     assert data["sap_mandant"] == "100"
 

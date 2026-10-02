@@ -4,6 +4,7 @@ Unit tests for SE09 (Transport Organizer) parser.
 Tests parsing of YAML accessibility snapshots from SE09 transport list display.
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -159,13 +160,14 @@ class TestCustomizingWildcardParsing:
         for req in result.requests:
             assert req.status in ("Modifiable", "Released"), f"Bad status: {req.status} for {req.request_number}"
 
-    def test_known_customizing_transport_present(self) -> None:
-        """Known customizing transport S4UK901835 should be present."""
+    def test_customizing_transport_numbers_well_formed(self) -> None:
+        """Every parsed customizing request number is a valid 10-character transport number."""
         snapshot = _load_snapshot("se09_customizing_wildcard")
         result = parse_se09_transport_list(snapshot)
 
-        numbers = {r.request_number for r in result.requests}
-        assert "S4UK901835" in numbers, f"S4UK901835 not in {numbers}"
+        assert result.requests
+        for req in result.requests:
+            assert re.fullmatch(r"[A-Z0-9]{3}K9\d{5}", req.request_number), req.request_number
 
 
 class TestWorkbenchOnlyParsing:
@@ -191,7 +193,7 @@ class TestWorkbenchOnlyParsing:
                 )
 
     def test_workbench_requests_are_modifiable(self) -> None:
-        """Workbench snapshot (KLEINK, modifiable) should have Modifiable status."""
+        """Workbench snapshot (TESTUSER, modifiable) should have Modifiable status."""
         snapshot = _load_snapshot("se09_transport_list")
         result = parse_se09_transport_list(snapshot)
 
@@ -263,67 +265,67 @@ class TestExpandedTreeTaskAssignment:
     def test_tasks_assigned_to_correct_request(self) -> None:
         """Tasks should be assigned to their parent request."""
         requests = [
-            TransportRequest(request_number="S4UK902153", owner="KLEINK", description="Test"),
-            TransportRequest(request_number="S4UK902096", owner="KLEINK", description="Solver"),
+            TransportRequest(request_number="XYZK900001", owner="TESTUSER", description="Test"),
+            TransportRequest(request_number="XYZK900003", owner="TESTUSER", description="Solver"),
         ]
-        request_numbers = {"S4UK902153", "S4UK902096"}
+        request_numbers = {"XYZK900001", "XYZK900003"}
         text_lines = [
-            "S4UK902153",
-            "KLEINK Test",
-            "S4UK902154",
-            "KLEINK Entwickl./Korrektur",
-            "S4UK902096",
-            "KLEINK Solver",
-            "S4UK902097",
-            "KLEINK Entwickl./Korrektur",
+            "XYZK900001",
+            "TESTUSER Test",
+            "XYZK900002",
+            "TESTUSER Entwickl./Korrektur",
+            "XYZK900003",
+            "TESTUSER Solver",
+            "XYZK900004",
+            "TESTUSER Entwickl./Korrektur",
         ]
 
         _assign_tasks_from_expanded_text(requests, request_numbers, text_lines)
 
         assert len(requests[0].tasks) == 1
-        assert requests[0].tasks[0].task_number == "S4UK902154"
-        assert requests[0].tasks[0].owner == "KLEINK"
+        assert requests[0].tasks[0].task_number == "XYZK900002"
+        assert requests[0].tasks[0].owner == "TESTUSER"
         assert requests[0].tasks[0].description == "Entwickl./Korrektur"
 
         assert len(requests[1].tasks) == 1
-        assert requests[1].tasks[0].task_number == "S4UK902097"
+        assert requests[1].tasks[0].task_number == "XYZK900004"
 
     def test_multiple_tasks_per_request(self) -> None:
         """A request can have multiple tasks."""
         requests = [
-            TransportRequest(request_number="S4UK901097", owner="KLEINK", description="WB"),
+            TransportRequest(request_number="XYZK900005", owner="TESTUSER", description="WB"),
         ]
-        request_numbers = {"S4UK901097"}
+        request_numbers = {"XYZK900005"}
         text_lines = [
-            "S4UK901097",
-            "KLEINK WB",
-            "S4UK901203",
-            "HAFFML Entwickl./Korrektur",
-            "S4UK901877",
-            "BECKT Reparatur",
-            "S4UK901098",
-            "KLEINK Entwickl./Korrektur",
+            "XYZK900005",
+            "TESTUSER WB",
+            "XYZK900006",
+            "OTHERUSER1 Entwickl./Korrektur",
+            "XYZK900007",
+            "OTHERUSER2 Reparatur",
+            "XYZK900008",
+            "TESTUSER Entwickl./Korrektur",
         ]
 
         _assign_tasks_from_expanded_text(requests, request_numbers, text_lines)
 
         assert len(requests[0].tasks) == 3
-        assert requests[0].tasks[0].task_number == "S4UK901203"
-        assert requests[0].tasks[0].owner == "HAFFML"
-        assert requests[0].tasks[1].task_number == "S4UK901877"
-        assert requests[0].tasks[1].owner == "BECKT"
-        assert requests[0].tasks[2].task_number == "S4UK901098"
-        assert requests[0].tasks[2].owner == "KLEINK"
+        assert requests[0].tasks[0].task_number == "XYZK900006"
+        assert requests[0].tasks[0].owner == "OTHERUSER1"
+        assert requests[0].tasks[1].task_number == "XYZK900007"
+        assert requests[0].tasks[1].owner == "OTHERUSER2"
+        assert requests[0].tasks[2].task_number == "XYZK900008"
+        assert requests[0].tasks[2].owner == "TESTUSER"
 
     def test_no_tasks_when_no_expansion(self) -> None:
         """Requests should have no tasks if only requests are in the text."""
         requests = [
-            TransportRequest(request_number="S4UK902153", owner="KLEINK", description="Test"),
+            TransportRequest(request_number="XYZK900001", owner="TESTUSER", description="Test"),
         ]
-        request_numbers = {"S4UK902153"}
+        request_numbers = {"XYZK900001"}
         text_lines = [
-            "S4UK902153",
-            "KLEINK Test",
+            "XYZK900001",
+            "TESTUSER Test",
         ]
 
         _assign_tasks_from_expanded_text(requests, request_numbers, text_lines)
@@ -333,25 +335,25 @@ class TestExpandedTreeTaskAssignment:
     def test_task_without_description(self) -> None:
         """Tasks with only a transport number (no following description) should work."""
         requests = [
-            TransportRequest(request_number="S4UK902153", owner="KLEINK", description="Test"),
+            TransportRequest(request_number="XYZK900001", owner="TESTUSER", description="Test"),
         ]
-        request_numbers = {"S4UK902153"}
+        request_numbers = {"XYZK900001"}
         text_lines = [
-            "S4UK902153",
-            "KLEINK Test",
-            "S4UK902154",
+            "XYZK900001",
+            "TESTUSER Test",
+            "XYZK900002",
         ]
 
         _assign_tasks_from_expanded_text(requests, request_numbers, text_lines)
 
         assert len(requests[0].tasks) == 1
-        assert requests[0].tasks[0].task_number == "S4UK902154"
+        assert requests[0].tasks[0].task_number == "XYZK900002"
         assert requests[0].tasks[0].owner == ""
 
     def test_empty_text_lines(self) -> None:
         """Empty text lines should not crash."""
         requests = [
-            TransportRequest(request_number="S4UK902153", owner="KLEINK", description="Test"),
+            TransportRequest(request_number="XYZK900001", owner="TESTUSER", description="Test"),
         ]
-        _assign_tasks_from_expanded_text(requests, {"S4UK902153"}, [])
+        _assign_tasks_from_expanded_text(requests, {"XYZK900001"}, [])
         assert len(requests[0].tasks) == 0

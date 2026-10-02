@@ -133,7 +133,7 @@ class TestClassifyResultScreen:
             status_type="S",
             status_message="",
             snapshot="- document 'SAP'\n  - grid 'Tree'",
-            screen_title="SAP Easy Access S4U (100)",
+            screen_title="SAP Easy Access XYZ (100)",
         )
         classification, _ = await classify_result_screen(backend)
         assert classification == ScreenClassification.ERROR

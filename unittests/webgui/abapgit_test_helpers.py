@@ -6,7 +6,8 @@ This module provides:
 - SE38 verification (read ABAP report source code)
 
 Environment variables:
-- SAP_TEST_TRANSPORT: Transport request to use for test repos (default: S4UK902008)
+- SAP_TEST_TRANSPORT: Transport request to use for test repos (no default; tests that need
+  it are skipped when unset)
 """
 
 import os
@@ -15,11 +16,15 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+
 ABAPGIT_REPOS_DIR = Path(__file__).parent / "abapgit_repos"
 
 # Test repository configurations
 # Transport request can be overridden via SAP_TEST_TRANSPORT environment variable
-DEFAULT_TRANSPORT = os.environ.get("SAP_TEST_TRANSPORT", "S4UK902008")
+DEFAULT_TRANSPORT = os.environ.get("SAP_TEST_TRANSPORT", "")
+
+skip_no_transport = pytest.mark.skipif(not DEFAULT_TRANSPORT, reason="SAP_TEST_TRANSPORT environment variable not set")
 
 TEST_REPOS = {
     "private": {

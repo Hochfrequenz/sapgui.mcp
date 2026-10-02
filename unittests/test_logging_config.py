@@ -170,12 +170,12 @@ class TestStructuredFormatter:
             args=(),
             exc_info=None,
         )
-        record.sap_user = "KLEINK"
+        record.sap_user = "TESTUSER"
         record.sap_host = "sap-prod.acme.com"
         record.sap_mandant = "100"
         record.tool = "sap_transaction"
         output = formatter.format(record)
-        assert "sap_user=KLEINK" in output
+        assert "sap_user=TESTUSER" in output
         assert "sap_host=sap-prod.acme.com" in output
         assert "sap_mandant=100" in output
         assert "tool=sap_transaction" in output
@@ -192,12 +192,12 @@ class TestStructuredFormatter:
             args=(),
             exc_info=None,
         )
-        record.sap_user = "KLEINK"
+        record.sap_user = "TESTUSER"
         record.sap_host = "sap-prod.acme.com"
         record.sap_mandant = "100"
         output = formatter.format(record)
         data = json.loads(output)
-        assert data["sap_user"] == "KLEINK"
+        assert data["sap_user"] == "TESTUSER"
         assert data["sap_host"] == "sap-prod.acme.com"
         assert data["sap_mandant"] == "100"
 

@@ -14,12 +14,12 @@ _SAMPLE_LANDSCAPE_XML = dedent("""\
     <?xml version="1.0"?>
     <Landscape>
       <Services>
-        <Service type="SAPGUI" uuid="a1b2c3d4-e5f6-7890-abcd-ef1234567890" name="HFQ" systemid="HFQ" server="172.22.100.151:3200"/>
-        <Service type="Reference" uuid="b2c3d4e5-f6a7-8901-bcde-f12345678901" name="HF ECC Lieferant" systemid="HFQ" client="100"
-                 user="dachnerm" language="DE" link="a1b2c3d4-e5f6-7890-abcd-ef1234567890"/>
-        <Service type="Reference" uuid="c3d4e5f6-a7b8-9012-cdef-123456789012" name="HF ECC Netz" systemid="HFQ" client="200"
-                 user="dachnerm" language="DE" link="a1b2c3d4-e5f6-7890-abcd-ef1234567890"/>
-        <Service type="SAPGUI" uuid="d4e5f6a7-b8c9-0123-defa-234567890123" name="S4U" systemid="S4U" server="srvhfuhana:3200"/>
+        <Service type="SAPGUI" uuid="a1b2c3d4-e5f6-7890-abcd-ef1234567890" name="sysA" systemid="sysA" server="192.0.2.10:3200"/>
+        <Service type="Reference" uuid="b2c3d4e5-f6a7-8901-bcde-f12345678901" name="Reference One" systemid="sysA" client="100"
+                 user="testuser" language="DE" link="a1b2c3d4-e5f6-7890-abcd-ef1234567890"/>
+        <Service type="Reference" uuid="c3d4e5f6-a7b8-9012-cdef-123456789012" name="Reference Two" systemid="sysA" client="200"
+                 user="testuser" language="DE" link="a1b2c3d4-e5f6-7890-abcd-ef1234567890"/>
+        <Service type="SAPGUI" uuid="d4e5f6a7-b8c9-0123-defa-234567890123" name="sysB" systemid="sysB" server="sap-host-b.example.com:3200"/>
       </Services>
     </Landscape>
 """)
@@ -38,22 +38,22 @@ class TestParseLandscapeXml:
         """SAPGUI type entries are returned with name and systemid."""
         entries = _parse_connections(_SAMPLE_LANDSCAPE_XML)
         names = [e["name"] for e in entries]
-        assert "HFQ" in names
-        assert "S4U" in names
+        assert "sysA" in names
+        assert "sysB" in names
 
     def test_returns_reference_entries(self) -> None:
         """Reference type entries are included with their client pre-filled."""
         entries = _parse_connections(_SAMPLE_LANDSCAPE_XML)
-        hf_lieferant = next(e for e in entries if e["name"] == "HF ECC Lieferant")
-        assert hf_lieferant["client"] == "100"
-        assert hf_lieferant["type"] == "Reference"
+        reference_entry = next(e for e in entries if e["name"] == "Reference One")
+        assert reference_entry["client"] == "100"
+        assert reference_entry["type"] == "Reference"
 
     def test_sapgui_entry_has_server(self) -> None:
         """SAPGUI entries include the server address."""
         entries = _parse_connections(_SAMPLE_LANDSCAPE_XML)
-        hfq = next(e for e in entries if e["name"] == "HFQ")
-        assert hfq["server"] == "172.22.100.151:3200"
-        assert hfq["type"] == "SAPGUI"
+        sys_a = next(e for e in entries if e["name"] == "sysA")
+        assert sys_a["server"] == "192.0.2.10:3200"
+        assert sys_a["type"] == "SAPGUI"
 
     def test_empty_landscape(self) -> None:
         """Empty Services section returns empty list."""
@@ -71,8 +71,14 @@ class TestSapListConnectionsTool:
 
         backend = AsyncMock()
         backend.list_connections.return_value = [
-            {"name": "HFQ", "type": "SAPGUI", "systemid": "HFQ", "server": "172.22.100.151:3200", "client": ""},
-            {"name": "S4U", "type": "SAPGUI", "systemid": "S4U", "server": "srvhfuhana:3200", "client": ""},
+            {"name": "sysA", "type": "SAPGUI", "systemid": "sysA", "server": "192.0.2.10:3200", "client": ""},
+            {
+                "name": "sysB",
+                "type": "SAPGUI",
+                "systemid": "sysB",
+                "server": "sap-host-b.example.com:3200",
+                "client": "",
+            },
         ]
 
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
@@ -80,7 +86,7 @@ class TestSapListConnectionsTool:
 
         assert result.success is True
         assert len(result.connections) == 2
-        assert result.connections[0]["name"] == "HFQ"
+        assert result.connections[0]["name"] == "sysA"
 
 
 def _make_sap_config():
@@ -88,21 +94,21 @@ def _make_sap_config():
     from sap_mcp_config import Config, SAPSystem
 
     return Config(
-        default_system="HF S/4 Mandant 100",
+        default_system="sysA",
         systems={
-            "HF S/4 Mandant 100": SAPSystem(
-                connection_name="HF S/4",
-                host="https://srvhfshana",
+            "sysA": SAPSystem(
+                connection_name="DEV S/4HANA",
+                host="https://sap-host-a.example.com",
                 client="100",
-                user="kleink",
+                user="testuser",
                 password=SecretStr("secret1"),
                 language="DE",
             ),
-            "HF R3 Mandant 100": SAPSystem(
-                connection_name="HFR3",
-                host="https://srvhfr3",
+            "sysB": SAPSystem(
+                connection_name="DEV R3",
+                host="https://sap-host-c.example.com",
                 client="100",
-                user="kleink",
+                user="testuser",
                 password=SecretStr("secret2"),
                 language="DE",
             ),
@@ -120,9 +126,9 @@ class TestConfiguredSystems:
             systems = _get_configured_systems()
 
         assert len(systems) == 2
-        s4 = next(s for s in systems if s["key"] == "HF S/4 Mandant 100")
-        assert s4["sap_logon_entry"] == "HF S/4"
-        assert s4["host"] == "https://srvhfshana"
+        s4 = next(s for s in systems if s["key"] == "sysA")
+        assert s4["sap_logon_entry"] == "DEV S/4HANA"
+        assert s4["host"] == "https://sap-host-a.example.com"
         assert s4["client"] == "100"
         assert s4["language"] == "DE"
         assert "password" not in s4
@@ -142,7 +148,7 @@ class TestConfiguredSystems:
 
         backend = AsyncMock()
         backend.list_connections.return_value = [
-            {"name": "HFQ", "type": "SAPGUI", "systemid": "HFQ"},
+            {"name": "sysA", "type": "SAPGUI", "systemid": "sysA"},
         ]
 
         with (
@@ -155,8 +161,8 @@ class TestConfiguredSystems:
         assert len(result.connections) == 1
         assert len(result.configured_systems) == 2
         keys = [s["key"] for s in result.configured_systems]
-        assert "HF S/4 Mandant 100" in keys
-        assert "HF R3 Mandant 100" in keys
+        assert "sysA" in keys
+        assert "sysB" in keys
 
     @pytest.mark.anyio
     async def test_tool_returns_systems_even_when_backend_fails(self) -> None:

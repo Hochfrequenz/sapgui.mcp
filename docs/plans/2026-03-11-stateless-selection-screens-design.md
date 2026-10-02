@@ -46,7 +46,7 @@ The Playwright ARIA snapshot format already encodes checkbox and radio state:
 - checkbox "Workbench-Aufträge": Workbench-Aufträge
 - radio "Datenbanktabelle" [checked]
 - radio "View"
-- textbox "Benutzer": KLEINK
+- textbox "Benutzer": TESTUSER
 ```
 
 `[checked]` = checked/selected, absence = unchecked/unselected, `textbox "Label": VALUE` = current text value.

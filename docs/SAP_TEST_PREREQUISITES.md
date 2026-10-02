@@ -48,6 +48,17 @@ Creating these objects generates **transport requests** owned by the test user (
 
 > **Note**: Test object names are centralized in `unittests/desktop/conftest.py` (`TEST_REPORT`, `TEST_CLASS`, `TEST_METHOD`). If you use different names, update them there.
 
+### Optional Environment Variables
+
+Some live tests need values that are specific to your SAP system. They have no defaults; tests that need an unset variable are skipped.
+
+| Variable                     | Used by                                         | Meaning                                                                         |
+| ---------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| `SAP_TEST_TRANSPORT`         | abapGit pull/e2e tests (WebGUI and desktop)     | A modifiable workbench transport request on which the test user has a task      |
+| `SAP_TEST_TRANSPORT_NO_TASK` | `test_abapgit_pull_transport_without_user_task` | A modifiable workbench transport request on which the test user has **no** task |
+
+The SE09 and ST22 live tests use the user returned by `sap_login`, so no user variable is needed.
+
 ## Desktop Backend Setup
 
 ### Server Side

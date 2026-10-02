@@ -12,7 +12,7 @@ ARIA format examples (from real SAP screens)::
     - radio "Datenbanktabelle" [checked]
     - radio "View"
     - textbox "Benutzer": USER01
-    - menuitemradio "System S4U (100)" [checked]:   ← ignored (system info)
+    - menuitemradio "System XYZ (100)" [checked]:   ← ignored (system info)
 """
 
 import re

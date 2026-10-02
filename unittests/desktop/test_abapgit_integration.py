@@ -15,7 +15,8 @@ from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
-DEFAULT_TRANSPORT = os.environ.get("SAP_TEST_TRANSPORT", "S4UK902008")
+DEFAULT_TRANSPORT = os.environ.get("SAP_TEST_TRANSPORT", "")
+skip_no_transport = pytest.mark.skipif(not DEFAULT_TRANSPORT, reason="SAP_TEST_TRANSPORT environment variable not set")
 
 
 # ---------------------------------------------------------------------------
@@ -24,6 +25,7 @@ DEFAULT_TRANSPORT = os.environ.get("SAP_TEST_TRANSPORT", "S4UK902008")
 
 
 @skip_no_sap
+@skip_no_transport
 @pytest.mark.anyio
 async def test_abapgit_pull_public_repo(backend) -> None:
     """Test pulling a public repository via COM automation."""
@@ -41,6 +43,7 @@ async def test_abapgit_pull_public_repo(backend) -> None:
 
 
 @skip_no_sap
+@skip_no_transport
 @pytest.mark.anyio
 async def test_abapgit_pull_returns_status_message(backend) -> None:
     """Verify that pull returns an actual status message, not 'status unknown'."""
@@ -61,6 +64,7 @@ async def test_abapgit_pull_returns_status_message(backend) -> None:
 
 
 @skip_no_sap
+@skip_no_transport
 @pytest.mark.anyio
 async def test_abapgit_pull_private_repo_with_pat(backend) -> None:
     """Test pulling a private repository with PAT authentication."""
@@ -82,6 +86,7 @@ async def test_abapgit_pull_private_repo_with_pat(backend) -> None:
 
 
 @skip_no_sap
+@skip_no_transport
 @pytest.mark.anyio
 async def test_abapgit_pull_repo_not_found(backend) -> None:
     """Test that pulling a non-existent repository returns a clear error."""

@@ -213,7 +213,7 @@ class TestStartupPatValidation:
         )
         # Mock GitHub API to succeed
         respx.get("https://api.github.com/user").mock(
-            return_value=Response(200, json={"login": "hf-kklein"})
+            return_value=Response(200, json={"login": "some-user"})
         )
         # Set a PAT in settings
         monkeypatch.setenv("ABAPGIT_PAT", "ghp_fake_valid_token")
@@ -225,7 +225,7 @@ class TestStartupPatValidation:
             async with app_lifespan(None):  # type: ignore[arg-type]
                 pass
         assert "[OK] GitHub PAT validated" in caplog.text
-        assert "hf-kklein" in caplog.text
+        assert "some-user" in caplog.text
 
     @respx.mock
     @pytest.mark.anyio

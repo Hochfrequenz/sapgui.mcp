@@ -412,7 +412,7 @@ import pytest
 
 def make_mock_session(
     *,
-    system_name: str = "S4U",
+    system_name: str = "XYZ",
     client: str = "100",
     user: str = "TESTUSER",
     language: str = "EN",

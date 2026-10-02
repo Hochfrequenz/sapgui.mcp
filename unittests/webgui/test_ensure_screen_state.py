@@ -32,7 +32,7 @@ _SE09_WORKBENCH_ONLY = """\
 - checkbox "Customizing-Aufträge":  Customizing-Aufträge
 - checkbox "Änderbar" [checked]:  Änderbar
 - checkbox "Freigegeben":  Freigegeben
-- textbox "Benutzer": KLEINK
+- textbox "Benutzer": TESTUSER
 """
 
 _SE09_BOTH_CHECKED = """\
@@ -40,7 +40,7 @@ _SE09_BOTH_CHECKED = """\
 - checkbox "Customizing-Aufträge" [checked]:  Customizing-Aufträge
 - checkbox "Änderbar" [checked]:  Änderbar
 - checkbox "Freigegeben":  Freigegeben
-- textbox "Benutzer": KLEINK
+- textbox "Benutzer": TESTUSER
 """
 
 _SE11_TABLE_SELECTED = """\
@@ -216,7 +216,7 @@ class TestEnsureScreenStateCombined:
             '- checkbox "Customizing-Aufträge":  Customizing-Aufträge\n'
             '- radio "Datenbanktabelle" [checked]\n'
             '- radio "View"\n'
-            '- textbox "Benutzer": KLEINK\n'
+            '- textbox "Benutzer": TESTUSER\n'
         )
         after = (
             '- checkbox "Workbench-Aufträge" [checked]:  Workbench-Aufträge\n'
@@ -421,7 +421,7 @@ class TestEnsureScreenStateTransitions:
             '- checkbox "Fertig" [checked]:  Fertig\n'
             '- checkbox "Abgebrochen":  Abgebrochen\n'
             '- textbox "Jobname": *\n'
-            '- textbox "Benutzername": KLEINK\n'
+            '- textbox "Benutzername": TESTUSER\n'
         )
         after = (
             '- checkbox "Geplant":  Geplant\n'
@@ -552,10 +552,10 @@ class TestBilingualTarget:
 
     def test_merges_de_en_fields(self) -> None:
         target = bilingual_target(
-            fields_de={"Benutzer": "KLEINK"},
-            fields_en={"User": "KLEINK"},
+            fields_de={"Benutzer": "TESTUSER"},
+            fields_en={"User": "TESTUSER"},
         )
-        assert target.fields == {"Benutzer": "KLEINK", "User": "KLEINK"}
+        assert target.fields == {"Benutzer": "TESTUSER", "User": "TESTUSER"}
 
     def test_none_inputs_produce_empty(self) -> None:
         target = bilingual_target()

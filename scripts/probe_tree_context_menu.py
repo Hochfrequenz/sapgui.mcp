@@ -242,7 +242,7 @@ def _p6_diagnose_after_select(session) -> dict:
 
 async def main() -> int:
     cfg = get_sap_config()
-    key = "HF R3 Mandant 100"
+    key = sys.argv[1] if len(sys.argv) > 1 else "<alias>"
     if key not in cfg.systems:
         print(f"[skip] {key!r} not configured")
         return 0

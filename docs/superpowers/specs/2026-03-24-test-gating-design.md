@@ -5,7 +5,7 @@
 
 ## Problem
 
-Integration tests are gated by `is_sap_integration_test_machine()` which checks `socket.gethostname()` against 3 hardcoded Hochfrequenz machine names (`HF-KKLEIN3`, `HF-MeiskeJ`, `HFDACHNERMR`). This means:
+Integration tests are gated by `is_sap_integration_test_machine()` which checks `socket.gethostname()` against a hardcoded list of three machine names. This means:
 
 - New developers with SAP access can't run integration tests without editing source code
 - The mechanism is undocumented and surprising

@@ -1,6 +1,6 @@
 """Exploratory live probe for issue #717.
 
-Phase 1: Navigate ``/n/NA2/DCS`` on HF R/3, dump the tree, probe every
+Phase 1: Navigate ``/n/NA2/DCS`` on the configured system, dump the tree, probe every
 ``id=`` the updated snapshot emits. Captures the snapshot under
 ``unittests/desktop/testdata/issue_717/`` for the fixture-based
 regression test.
@@ -244,7 +244,7 @@ async def _phase2_right_click(backend: DesktopBackend, com: ComThread, shell_id:
 
 async def main() -> int:
     cfg = get_sap_config()
-    key = "HF R3 Mandant 100"
+    key = sys.argv[1] if len(sys.argv) > 1 else "<alias>"
     if key not in cfg.systems:
         print(f"[skip] {key!r} not in systems.json")
         return 0
@@ -267,7 +267,7 @@ async def main() -> int:
         return 1
     print(f"[ok] logged in as {login.user}")
 
-    fixture = Path("unittests/desktop/testdata/issue_717/HF_R3_Mandant_100/n_NA2_DCS_snapshot.txt")
+    fixture = Path("unittests/desktop/testdata/issue_717/ecc/n_NA2_DCS_snapshot.txt")
     try:
         resolved = await _phase1_capture_and_probe(backend, com, fixture)
         if resolved == -1:

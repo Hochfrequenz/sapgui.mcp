@@ -20,7 +20,13 @@ from sapguimcp.tools.abapgit_tools import (
     _is_transport_required_error,
 )
 
-from .abapgit_test_helpers import TEST_REPOS, generate_test_marker, git_commit_and_push, modify_test_repo
+from .abapgit_test_helpers import (
+    TEST_REPOS,
+    generate_test_marker,
+    git_commit_and_push,
+    modify_test_repo,
+    skip_no_transport,
+)
 from .conftest import call_tool_raw, call_tool_typed
 
 # =============================================================================
@@ -195,8 +201,8 @@ def test_enrich_transport_error_german() -> None:
 def test_is_no_task_error() -> None:
     """Test detection of no-task-in-transport error messages."""
     # Positive cases
-    assert _is_no_task_error("User KLEINK has no modifiable task in S4UK902263")
-    assert _is_no_task_error("Benutzer KLEINK hat keine modifizierbare Aufgabe")
+    assert _is_no_task_error("User TESTUSER has no modifiable task in XYZK900011")
+    assert _is_no_task_error("Benutzer TESTUSER hat keine modifizierbare Aufgabe")
     assert _is_no_task_error("has no task in transport")
 
     # Negative cases
@@ -207,7 +213,7 @@ def test_is_no_task_error() -> None:
 
 def test_enrich_no_task_error_adds_guidance() -> None:
     """Test that no-task errors get actionable guidance appended."""
-    enriched = _enrich_transport_error("User KLEINK has no modifiable task in S4UK902263")
+    enriched = _enrich_transport_error("User TESTUSER has no modifiable task in XYZK900011")
     assert "has no modifiable task" in enriched
     assert "SE09" in enriched
     assert "task" in enriched.lower()
@@ -385,6 +391,7 @@ def test_parse_repo_list_output_initial_timestamp() -> None:
 # =============================================================================
 
 
+@skip_no_transport
 @pytest.mark.anyio
 async def test_abapgit_pull_public_repo(sap_mcp_client: ClientSession) -> None:
     """
@@ -416,6 +423,7 @@ async def test_abapgit_pull_public_repo(sap_mcp_client: ClientSession) -> None:
     assert result.action == "pull"
 
 
+@skip_no_transport
 @pytest.mark.anyio
 async def test_abapgit_pull_returns_status_message(sap_mcp_client: ClientSession) -> None:
     """
@@ -450,6 +458,7 @@ async def test_abapgit_pull_returns_status_message(sap_mcp_client: ClientSession
     )
 
 
+@skip_no_transport
 @pytest.mark.anyio
 async def test_abapgit_pull_private_repo_with_pat(sap_mcp_client: ClientSession) -> None:
     """
@@ -478,6 +487,7 @@ async def test_abapgit_pull_private_repo_with_pat(sap_mcp_client: ClientSession)
     assert result.action == "pull"
 
 
+@skip_no_transport
 @pytest.mark.anyio
 async def test_abapgit_pull_repo_not_found(sap_mcp_client: ClientSession) -> None:
     """
@@ -505,6 +515,7 @@ async def test_abapgit_pull_repo_not_found(sap_mcp_client: ClientSession) -> Non
     assert "not found" in result.error.lower() or "Repository" in result.error
 
 
+@skip_no_transport
 @pytest.mark.anyio
 async def test_abapgit_pull_with_explicit_pat(sap_mcp_client: ClientSession) -> None:
     """
@@ -536,6 +547,7 @@ async def test_abapgit_pull_with_explicit_pat(sap_mcp_client: ClientSession) -> 
     assert result.action == "pull"
 
 
+@skip_no_transport
 @pytest.mark.anyio
 async def test_abapgit_e2e_public_repo_pull_and_verify(sap_mcp_client: ClientSession) -> None:
     """
@@ -589,6 +601,7 @@ async def test_abapgit_e2e_public_repo_pull_and_verify(sap_mcp_client: ClientSes
     )
 
 
+@skip_no_transport
 @pytest.mark.anyio
 async def test_abapgit_e2e_private_repo_pull_and_verify(sap_mcp_client: ClientSession) -> None:
     """
@@ -739,26 +752,28 @@ async def test_abapgit_pull_transport_without_user_task(sap_mcp_client: ClientSe
     """
     Test pulling with a transport where the logged-in user has no task (Aufgabe).
 
-    Bug report: when user KLEINK had no task in a transport, the pull silently
+    Bug report: when the user had no task in a transport, the pull silently
     succeeded but nothing was actually written. The tool should detect this
     condition and return a clear error.
 
-    Uses S4UK902263 — a workbench transport (not released) where KLEINK
-    has no task. This transport is hardcoded because we need a specific
-    transport on our test system where the test user has no task —
-    there is no good way to make this fully configurable (frickelig).
+    Needs a workbench transport (not released) where the test user has no task, supplied
+    via the SAP_TEST_TRANSPORT_NO_TASK environment variable; skipped when unset.
     """
+    no_task_transport = os.environ.get("SAP_TEST_TRANSPORT_NO_TASK", "")
+    if not no_task_transport:
+        pytest.skip("SAP_TEST_TRANSPORT_NO_TASK environment variable not set")
+
     # Login first
     login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login_result.success, f"Login failed: {login_result.error}"
 
-    # Pull with a workbench transport where KLEINK has no task
+    # Pull with a workbench transport where the test user has no task
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_abapgit_pull",
         {
             "repo": "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
-            "trkorr": "S4UK902263",
+            "trkorr": no_task_transport,
         },
         AbapGitActionResult,
     )

@@ -10,7 +10,7 @@
 
 ## Änderungen gegenüber v1
 
-Basierend auf hf-kleins Review (#438) und kritischer Machbarkeitsanalyse:
+Basierend auf dem Review (#438) und kritischer Machbarkeitsanalyse:
 
 | Was | v1 | v2 | Warum |
 |---|---|---|---|
@@ -20,7 +20,7 @@ Basierend auf hf-kleins Review (#438) und kritischer Machbarkeitsanalyse:
 | `readOnlyHint` | `True` | **`False`** | Transaktionen können Daten ändern/löschen |
 | `read_all` | Phase 1 | **Phase 2** | Pagination ist komplex (~100 Zeilen in SE16); `max_rows` reicht |
 | Desktop-Backend | "Phase 2" ohne Guard | **Runtime-Guard** mit klarem Fehler | Kein stilles Degradieren |
-| Testfälle | Nur Kategorien | **Konkrete TX + Input + Expected** | hf-kleins Kernforderung |
+| Testfälle | Nur Kategorien | **Konkrete TX + Input + Expected** | Kernforderung des Reviewers |
 | `dom_roles` in Result | Ja (für Hint-Suggestions) | **Entfernt** | Funktioniert nicht auf Desktop; kein Hint-System mehr |
 
 ---
@@ -29,7 +29,7 @@ Basierend auf hf-kleins Review (#438) und kritischer Machbarkeitsanalyse:
 
 Der häufigste SAP-Workflow — Transaktion öffnen, Selektionsbild füllen, F8 drücken, Ergebnis lesen — braucht 4-6 einzelne Tool-Calls mit ~3.000-5.000 Tokens Orchestrierungs-Overhead. `sap_quick_report` bündelt das in 1 Call.
 
-**Designprinzip (hf-klein):** Lieber ein weniger mächtiges Tool das robust ist als eine universelle eierlegende Wollmilchsau.
+**Designprinzip (Reviewer):** Lieber ein weniger mächtiges Tool das robust ist als eine universelle eierlegende Wollmilchsau.
 
 ---
 

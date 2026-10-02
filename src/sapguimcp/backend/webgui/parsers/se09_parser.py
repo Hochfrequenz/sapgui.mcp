@@ -14,9 +14,9 @@ ARIA structure (from real snapshots):
     - text: Workbench Workbench-Auftrag
     - text: "-> DUM Dummy Queue"
     - text: Änderbar
-    - text: S4UK902153
+    - text: XYZK900001
     - text: USER01 description text
-    - text: S4UK902096
+    - text: XYZK900003
     - text: USER01 another description
 """
 
@@ -47,7 +47,7 @@ __all__ = [
 # =============================================================================
 
 # Transport number: 3-char system ID (alphanumeric) + K + 6 digits
-# Optionally followed by a space and 3-digit client number (e.g., "S4UK901835 100")
+# Optionally followed by a space and 3-digit client number (e.g., "XYZK900009 100")
 _TRANSPORT_NUMBER_RE = re.compile(r"^[A-Z0-9]{3}K\d{6}(?:\s+\d{3})?$")
 
 # Text line in ARIA snapshot: "- text: <content>" or "- text: "<content>""

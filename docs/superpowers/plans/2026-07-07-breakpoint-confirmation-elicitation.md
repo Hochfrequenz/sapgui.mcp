@@ -10,14 +10,14 @@
 
 ## Global Constraints
 
-- Repo: `C:\Users\JonatanMeiske\Documents\50_KI_Agenten\sapgui.mcp`, branch `fix/791-breakpoint-session-busy-collapse` (this lands as a follow-up on PR #797).
+- Repo: `C:\Users\user-a\Documents\50_KI_Agenten\sapgui.mcp`, branch `fix/791-breakpoint-session-busy-collapse` (this lands as a follow-up on PR #797).
 - Spec: `docs/superpowers/specs/2026-07-07-breakpoint-confirmation-elicitation-design.md` — follow it exactly; this plan implements it task-by-task.
 - Fail-open on unsupported/erroring elicitation (approved design decision — do not change to fail-closed), but the fail-open state must be visible in the result via `confirmation_skipped` (added after independent review found the original fail-open path was only logged, not surfaced).
 - The confirmation message must describe the action as a toggle (may delete an existing breakpoint instead of setting one), not an unconditional "set" (added after independent review found the original wording could mislead the human approving it).
 - No changes to `sap_breakpoint_delete` or `sap_breakpoint_list` in this plan.
 - No decorator-based wiring — plain, explicitly-called helper function only (approved design decision).
 - Follow existing codebase conventions: shared tool helpers live in `src/sapguimcp/tools/*_helpers.py` (see `field_helpers.py`); tool-level tests use `fastmcp.Client(mcp)` against the real `mcp` server object from `sapguimcp.server`, with `unittest.mock.patch` on `get_backend` and internal module functions (see `unittests/test_general_purpose_tools.py`).
-- Run all commands from the repo root: `C:\Users\JonatanMeiske\Documents\50_KI_Agenten\sapgui.mcp`.
+- Run all commands from the repo root: `C:\Users\user-a\Documents\50_KI_Agenten\sapgui.mcp`.
 
 ---
 

@@ -246,14 +246,14 @@ class TestModelSerialization:
             transaction="SE38",
             title="ABAP Editor",
             url="desktop://sap",
-            system_name="S4U",
+            system_name="XYZ",
             client="100",
-            user="KLEINK",
+            user="TESTUSER",
         )
         data = result.model_dump()
-        assert data["system_name"] == "S4U"
+        assert data["system_name"] == "XYZ"
         assert data["client"] == "100"
-        assert data["user"] == "KLEINK"
+        assert data["user"] == "TESTUSER"
 
     def test_field_info_json(self) -> None:
         """Test FieldInfo serializes correctly."""
@@ -484,13 +484,13 @@ class TestSessionModels:
             tcode="SE38",
             title="ABAP Editor",
             is_primary=True,
-            system_name="S4U",
+            system_name="XYZ",
             client="100",
-            user="KLEINK",
+            user="TESTUSER",
         )
-        assert info.system_name == "S4U"
+        assert info.system_name == "XYZ"
         assert info.client == "100"
-        assert info.user == "KLEINK"
+        assert info.user == "TESTUSER"
 
     def test_session_list_result(self) -> None:
         """Test SessionListResult with multiple sessions."""

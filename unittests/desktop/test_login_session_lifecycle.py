@@ -144,7 +144,7 @@ async def test_relogin_with_alive_session_keeps_both() -> None:
             password="pw",
             client="100",
             language="DE",
-            connection_name="HF S/4",
+            connection_name="DEV S/4HANA",
         )
 
     second = make_mock_session(client="210", user="MUSTERFRAUM")
@@ -155,7 +155,7 @@ async def test_relogin_with_alive_session_keeps_both() -> None:
             password="pw",
             client="210",
             language="DE",
-            connection_name="HF S/4",
+            connection_name="DEV S/4HANA",
         )
 
     assert first_result.success is True
