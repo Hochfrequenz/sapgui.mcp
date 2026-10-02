@@ -4,6 +4,9 @@
 contains a reserved key such as ``message`` or ``name``. That happens only when the record is
 actually emitted, so the bug hides at INFO level and surfaces in error paths or with DEBUG
 logging enabled.
+
+Only literal ``extra={...}`` and ``extra=dict(...)`` arguments are checked; an ``extra`` passed as
+a variable or built by another call is not.
 """
 
 import ast
@@ -16,7 +19,11 @@ import pytest
 from sapguimcp.tools import se11_tools
 
 _SRC = Path(__file__).resolve().parents[1] / "src" / "sapguimcp"
-_RESERVED = set(logging.LogRecord("n", logging.INFO, "p", 0, "m", (), None).__dict__) | {"message", "asctime"}
+_RESERVED = set(logging.LogRecord("n", logging.INFO, "p", 0, "m", (), None).__dict__) | {
+    "message",
+    "asctime",
+    "taskName",
+}
 
 
 def _reserved_extra_keys() -> list[str]:
@@ -27,11 +34,22 @@ def _reserved_extra_keys() -> list[str]:
             if not isinstance(node, ast.Call):
                 continue
             for kw in node.keywords:
-                if kw.arg != "extra" or not isinstance(kw.value, ast.Dict):
+                if kw.arg != "extra":
                     continue
-                for key in kw.value.keys:
-                    if isinstance(key, ast.Constant) and key.value in _RESERVED:
-                        hits.append(f"{path.relative_to(_SRC.parent)}:{node.lineno} extra key {key.value!r}")
+                keys: list[str] = []
+                if isinstance(kw.value, ast.Dict):
+                    keys = [k.value for k in kw.value.keys if isinstance(k, ast.Constant) and isinstance(k.value, str)]
+                elif (
+                    isinstance(kw.value, ast.Call)
+                    and isinstance(kw.value.func, ast.Name)
+                    and kw.value.func.id == "dict"
+                ):
+                    keys = [k.arg for k in kw.value.keywords if k.arg]
+                hits.extend(
+                    f"{path.relative_to(_SRC.parent)}:{node.lineno} extra key {key!r}"
+                    for key in keys
+                    if key in _RESERVED
+                )
     return hits
 
 
