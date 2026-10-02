@@ -37,7 +37,7 @@ async def sap_com_evaluate(
 ```python
 # Read a field value
 sap_com_evaluate("wnd[0]/usr/txtRSYST-BNAME", "get", "Text")
-# → {"result": "KLEINK"}
+# → {"result": "TESTUSER"}
 
 # Set a field value
 sap_com_evaluate("wnd[0]/usr/txtRSYST-BNAME", "set", "Text", ["NEWUSER"])

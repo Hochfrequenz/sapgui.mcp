@@ -263,7 +263,7 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     Fixture that provides an MCP client connected to a real SAP Web GUI server.
 
     This fixture:
-    1. Skips if not running on an authorized machine (HF-KKLEIN3)
+    1. Skips if not running on an authorized machine (hardcoded machine allow-list)
     2. Skips if SAP_URL environment variable is not set
     3. Starts the sapguimcp server as a subprocess
     4. Connects an MCP client via stdio

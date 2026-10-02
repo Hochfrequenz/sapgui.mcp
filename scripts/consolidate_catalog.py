@@ -48,7 +48,7 @@ def main():
     """Main consolidation function."""
     # Paths
     tool_results_dir = Path(
-        r"C:\Users\KleinKonstantin\.claude\projects\C--github-sapgui-mcp\d667c1d3-9bc0-4d17-a90f-c1a710d03224\tool-results"
+        r"C:\Users\user-a\.claude\projects\C--github-sapgui-mcp\d667c1d3-9bc0-4d17-a90f-c1a710d03224\tool-results"
     )
     data_dir = project_root / "src" / "sapguimcp" / "data"
     output_file = data_dir / "transactions.json"

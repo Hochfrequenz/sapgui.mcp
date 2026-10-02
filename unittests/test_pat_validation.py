@@ -81,7 +81,7 @@ class TestStartupPatValidation:
     ) -> None:
         """Startup logs [OK] when PAT is valid."""
         respx.get("http://localhost:9222/json/version").mock(return_value=Response(200, json={"Browser": "Chrome/120"}))
-        respx.get("https://api.github.com/user").mock(return_value=Response(200, json={"login": "hf-kklein"}))
+        respx.get("https://api.github.com/user").mock(return_value=Response(200, json={"login": "some-user"}))
         monkeypatch.setenv("ABAPGIT_PAT", "ghp_fake_valid_token")
         from sapguimcp.models import config as config_mod
 
@@ -91,7 +91,7 @@ class TestStartupPatValidation:
             async with app_lifespan(None):  # type: ignore[arg-type]
                 pass
         assert "[OK] ABAPGIT_PAT validated" in caplog.text
-        assert "hf-kklein" in caplog.text
+        assert "some-user" in caplog.text
 
     @respx.mock
     @pytest.mark.anyio

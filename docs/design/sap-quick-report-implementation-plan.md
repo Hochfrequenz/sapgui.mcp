@@ -10,7 +10,7 @@
 
 **Spec:** `docs/design/sap-quick-report-design.md` (v2)
 
-**Repo:** `sapgui.mcp/` (cloned at `C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp`)
+**Repo:** `sapgui.mcp/` (cloned at `C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp`)
 
 ---
 
@@ -155,7 +155,7 @@ class TestQuickReportResult:
 
 ### Step 1.2: Run tests — verify they fail
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_models.py -v`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_models.py -v`
 - Expected: `ModuleNotFoundError: No module named 'sapguimcp.models.quick_report_models'`
 
 ### Step 1.3: Implement models
@@ -236,7 +236,7 @@ And add `QuickReportResult`, `ScreenClassification` to the `__all__` list (if on
 
 ### Step 1.5: Run tests — verify they pass
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_models.py -v`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_models.py -v`
 - Expected: All tests PASS
 
 ### Step 1.6: Commit
@@ -393,7 +393,7 @@ class TestClassifyResultScreen:
 
 ### Step 2.2: Run tests — verify they fail
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_classifier.py -v`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_classifier.py -v`
 - Expected: `ImportError: cannot import name 'classify_result_screen'`
 
 ### Step 2.3: Implement classifier
@@ -464,7 +464,7 @@ async def classify_result_screen(
 
 ### Step 2.4: Run tests — verify they pass
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_classifier.py -v`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_classifier.py -v`
 - Expected: All tests PASS
 
 ### Step 2.5: Commit
@@ -854,7 +854,7 @@ class TestPostF8Keys:
 
 ### Step 3.2: Run tests — verify they fail
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_pipeline.py -v`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_pipeline.py -v`
 - Expected: `ImportError: cannot import name '_execute_quick_report'`
 
 ### Step 3.3: Implement pipeline
@@ -1002,7 +1002,7 @@ async def _execute_quick_report(
 
 ### Step 3.4: Run tests — verify they pass
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_pipeline.py -v`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_pipeline.py -v`
 - Expected: All tests PASS
 
 ### Step 3.5: Commit
@@ -1105,17 +1105,17 @@ register_quick_report_tools(mcp)
 
 ### Step 4.4: Verify server starts
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -c "from sapguimcp.tools import register_quick_report_tools; print('OK')"`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -c "from sapguimcp.tools import register_quick_report_tools; print('OK')"`
 - Expected: `OK`
 
 ### Step 4.5: Run all quick_report tests
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_models.py unittests/test_quick_report_classifier.py unittests/test_quick_report_pipeline.py -v`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/test_quick_report_models.py unittests/test_quick_report_classifier.py unittests/test_quick_report_pipeline.py -v`
 - Expected: All tests PASS
 
 ### Step 4.6: Run full test suite to check for regressions
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/ -v --ignore=unittests/webgui --ignore=unittests/desktop -x`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/ -v --ignore=unittests/webgui --ignore=unittests/desktop -x`
 - Expected: No regressions. If existing tests fail, investigate — do NOT modify existing tests.
 
 ### Step 4.7: Commit
@@ -1128,18 +1128,18 @@ register_quick_report_tools(mcp)
 
 ### Step 5.1: Verify all exports
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -c "from sapguimcp.models import QuickReportResult, ScreenClassification; print('Models OK')"`
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -c "from sapguimcp.tools import register_quick_report_tools; print('Tools OK')"`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -c "from sapguimcp.models import QuickReportResult, ScreenClassification; print('Models OK')"`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -c "from sapguimcp.tools import register_quick_report_tools; print('Tools OK')"`
 - Expected: Both print OK
 
 ### Step 5.2: Run full test suite
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/ -v --ignore=unittests/webgui --ignore=unittests/desktop -x`
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pytest unittests/ -v --ignore=unittests/webgui --ignore=unittests/desktop -x`
 - Expected: All tests PASS, no regressions
 
 ### Step 5.3: Verify linting (if configured)
 
-- [ ] Run: `cd C:/Users/JonatanMeiske/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pylint src/sapguimcp/models/quick_report_models.py src/sapguimcp/tools/quick_report_tools.py --disable=all --enable=E` (errors only)
+- [ ] Run: `cd C:/Users/user-a/Documents/50_KI_Agenten/Tool_bundeling/sapgui.mcp && python -m pylint src/sapguimcp/models/quick_report_models.py src/sapguimcp/tools/quick_report_tools.py --disable=all --enable=E` (errors only)
 - Expected: No errors
 
 ### Step 5.4: Final commit (if any cleanup needed)

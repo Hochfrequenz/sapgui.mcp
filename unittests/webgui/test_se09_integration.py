@@ -106,14 +106,14 @@ async def test_se09_lookup_include_objects(sap_mcp_client: ClientSession) -> Non
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_se09_lookup",
-        {"username": "KLEINK", "include_objects": True},
+        {"username": login.user, "include_objects": True},
         TransportListResult,
     )
 
     assert result.success, f"SE09 lookup failed: {result.error}"
     assert result.request_count > 0
 
-    # At least one request should have tasks (KLEINK has modifiable transports with tasks)
+    # At least one request should have tasks (the logged-in user has modifiable transports with tasks)
     requests_with_tasks = [r for r in result.requests if r.tasks]
     assert len(requests_with_tasks) > 0, "Expected at least one request with tasks"
 
@@ -132,7 +132,7 @@ async def test_se09_lookup_customizing_only(sap_mcp_client: ClientSession) -> No
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success
 
-    # Use username="*" to search across all users (KLEINK has no customizing transports)
+    # Use username="*" to search across all users (the logged-in user has no customizing transports)
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_se09_lookup",
@@ -180,7 +180,7 @@ async def test_se09_lookup_workbench_include_objects(sap_mcp_client: ClientSessi
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_se09_lookup",
-        {"username": "KLEINK", "request_type": "workbench", "include_objects": True},
+        {"username": login.user, "request_type": "workbench", "include_objects": True},
         TransportListResult,
     )
 
@@ -206,12 +206,12 @@ async def test_se09_lookup_all_types_all_status(sap_mcp_client: ClientSession) -
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_se09_lookup",
-        {"username": "KLEINK", "request_type": "all", "status": "all"},
+        {"username": login.user, "request_type": "all", "status": "all"},
         TransportListResult,
     )
 
     assert result.success, f"SE09 lookup failed: {result.error}"
-    # KLEINK should have at least the modifiable workbench transports
+    # The logged-in user should have at least the modifiable workbench transports
     assert result.request_count >= 5
 
     for req in result.requests:
@@ -490,17 +490,17 @@ async def test_se09_user_filter(sap_mcp_client: ClientSession) -> None:
     login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     assert login.success, f"Login failed: {login.error}"
 
-    # Specific user — KLEINK has modifiable workbench transports.
+    # Specific user — the logged-in user has modifiable workbench transports.
     # Note: SE09 user filter shows requests where the user has a task,
     # so the request owner may be someone else.
-    result_kleink = await call_tool_typed(
+    result_user = await call_tool_typed(
         sap_mcp_client,
         "sap_se09_lookup",
-        {"username": "KLEINK", "request_type": "workbench", "status": "modifiable"},
+        {"username": login.user, "request_type": "workbench", "status": "modifiable"},
         TransportListResult,
     )
-    assert result_kleink.success, f"KLEINK lookup failed: {result_kleink.error}"
-    assert result_kleink.request_count > 0, "KLEINK: expected modifiable workbench transports"
+    assert result_user.success, f"User lookup failed: {result_user.error}"
+    assert result_user.request_count > 0, "User: expected modifiable workbench transports"
 
     # Wildcard user — should return at least as many results as specific user
     result_all = await call_tool_typed(
@@ -511,8 +511,8 @@ async def test_se09_user_filter(sap_mcp_client: ClientSession) -> None:
     )
     assert result_all.success, f"wildcard lookup failed: {result_all.error}"
     assert result_all.request_count > 0, "wildcard: expected results"
-    assert result_all.request_count >= result_kleink.request_count, (
-        f"wildcard ({result_all.request_count}) should have >= KLEINK ({result_kleink.request_count}) results"
+    assert result_all.request_count >= result_user.request_count, (
+        f"wildcard ({result_all.request_count}) should have >= user ({result_user.request_count}) results"
     )
 
 

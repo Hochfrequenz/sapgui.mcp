@@ -44,9 +44,9 @@ class TestParseLandscapeXml:
     def test_returns_reference_entries(self) -> None:
         """Reference type entries are included with their client pre-filled."""
         entries = _parse_connections(_SAMPLE_LANDSCAPE_XML)
-        hf_lieferant = next(e for e in entries if e["name"] == "Reference One")
-        assert hf_lieferant["client"] == "100"
-        assert hf_lieferant["type"] == "Reference"
+        reference_entry = next(e for e in entries if e["name"] == "Reference One")
+        assert reference_entry["client"] == "100"
+        assert reference_entry["type"] == "Reference"
 
     def test_sapgui_entry_has_server(self) -> None:
         """SAPGUI entries include the server address."""

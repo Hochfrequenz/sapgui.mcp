@@ -277,7 +277,7 @@ def _validate_and_prepare_params(
 
     # Validate other parameters to prevent command injection via semicolons/special chars
     if trkorr:
-        # SAP transport requests: alphanumeric only (e.g., "S4UK902008")
+        # SAP transport requests: alphanumeric only (e.g., "XYZK900010")
         error = _validate_param(trkorr, "trkorr", r"^[A-Za-z0-9]+$", "Only alphanumeric allowed.")
         if error:
             return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
@@ -993,7 +993,7 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
 
         Example:
             sap_abapgit_pull(repo="Z_PUBLIC_REPO")
-            sap_abapgit_pull(repo="Z_PUBLIC_REPO", trkorr="S4UK902008")
+            sap_abapgit_pull(repo="Z_PUBLIC_REPO", trkorr="XYZK900010")
         """
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_abapgit_pull")

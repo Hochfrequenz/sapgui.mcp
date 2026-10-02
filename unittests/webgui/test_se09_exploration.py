@@ -148,11 +148,11 @@ async def test_se09_capture_expanded_tree(sap_mcp_client: ClientSession) -> None
 
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 1000})
 
-    # Fill username with KLEINK
+    # Fill username with the logged-in user
     fill = await call_tool_typed(
         sap_mcp_client,
         "sap_fill_form",
-        {"fields": {"Benutzer": "KLEINK", "User": "KLEINK"}},
+        {"fields": {"Benutzer": login.user, "User": login.user}},
         FillFormResult,
     )
 
@@ -164,7 +164,7 @@ async def test_se09_capture_expanded_tree(sap_mcp_client: ClientSession) -> None
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 3000})
 
     # First capture: collapsed (normal) view
-    await capture_yaml_snapshot(sap_mcp_client, "se09_kleink_collapsed", overwrite=True)
+    await capture_yaml_snapshot(sap_mcp_client, "se09_user_collapsed", overwrite=True)
 
     # Expand all tree nodes by clicking the expand buttons (folder+ icons)
     # In the ARIA snapshot, these are unnamed "button" elements before each transport number.
@@ -346,7 +346,7 @@ async def test_se09_capture_expanded_tree(sap_mcp_client: ClientSession) -> None
             print(f"  [{item['role']}] {item['text'][:80]}")
 
     # Also capture YAML snapshot (even though only visible portion)
-    yaml_content = await capture_yaml_snapshot(sap_mcp_client, "se09_kleink_expanded", overwrite=True)
+    yaml_content = await capture_yaml_snapshot(sap_mcp_client, "se09_user_expanded", overwrite=True)
     assert len(yaml_content) > 100
     print(f"Expanded snapshot size: {len(yaml_content)} chars")
 

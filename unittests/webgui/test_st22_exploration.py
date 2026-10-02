@@ -45,14 +45,15 @@ async def capture_yaml_snapshot(
     return yaml_content
 
 
-async def _login_and_navigate_to_st22(client: ClientSession) -> None:
-    """Login and navigate to ST22."""
+async def _login_and_navigate_to_st22(client: ClientSession) -> str:
+    """Login and navigate to ST22; return the logged-in SAP user."""
     login = await call_tool_typed(client, "sap_login", {}, LoginResult)
     assert login.success
 
     tx = await call_tool_typed(client, "sap_transaction", {"tcode": "ST22"}, TransactionResult)
     assert tx.success
     await client.call_tool("browser_wait", {"timeout": 2000})
+    return login.user or ""
 
 
 # =============================================================================
@@ -312,13 +313,13 @@ async def test_st22_11_clear_user_fill_star(sap_mcp_client: ClientSession) -> No
 @pytest.mark.anyio
 async def test_st22_12_reset_then_execute(sap_mcp_client: ClientSession) -> None:
     """Step 12a: Click Zurucksetzen (reset) button then F8."""
-    await _login_and_navigate_to_st22(sap_mcp_client)
+    sap_user = await _login_and_navigate_to_st22(sap_mcp_client)
 
     # Use browser_evaluate to find and click Zurucksetzen/Reset button
     js_code = """
     const inputs = document.querySelectorAll('input');
     for (const inp of inputs) {
-        if (inp.value === 'KLEINK') {
+        if (inp.value === '__SAP_USER__') {
             // Focus the input, select all, delete
             const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
             nativeInputValueSetter.call(inp, '');
@@ -334,7 +335,7 @@ async def test_st22_12_reset_then_execute(sap_mcp_client: ClientSession) -> None
     }
     return 'not found';
     """
-    await sap_mcp_client.call_tool("browser_evaluate", {"expression": js_code})
+    await sap_mcp_client.call_tool("browser_evaluate", {"expression": js_code.replace("__SAP_USER__", sap_user)})
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     # Enter to submit the form changes
@@ -352,22 +353,24 @@ async def test_st22_12_reset_then_execute(sap_mcp_client: ClientSession) -> None
 @pytest.mark.anyio
 async def test_st22_13_clear_user_triple_click_delete(sap_mcp_client: ClientSession) -> None:
     """Step 12: Clear user field by triple-clicking and deleting, then F8."""
-    await _login_and_navigate_to_st22(sap_mcp_client)
+    sap_user = await _login_and_navigate_to_st22(sap_mcp_client)
 
     # Find the user field input element and clear it using CSS selector + fill
-    # The Benutzer textbox should have value KLEINK
+    # The Benutzer textbox should have the logged-in user's value
     # Use browser_fill with the CSS selector for the input
     js_code = """
     const inputs = document.querySelectorAll('input');
     let result = [];
     for (const inp of inputs) {
-        if (inp.value === 'KLEINK') {
+        if (inp.value === '__SAP_USER__') {
             result.push({id: inp.id, name: inp.name, title: inp.title, type: inp.type, value: inp.value});
         }
     }
     JSON.stringify(result);
     """
-    result = await sap_mcp_client.call_tool("browser_evaluate", {"expression": js_code})
+    result = await sap_mcp_client.call_tool(
+        "browser_evaluate", {"expression": js_code.replace("__SAP_USER__", sap_user)}
+    )
     # The result should contain the ID of the user input field
     for content in result.content:
         if hasattr(content, "text"):
@@ -378,7 +381,7 @@ async def test_st22_13_clear_user_triple_click_delete(sap_mcp_client: ClientSess
     js_find = """
     const inputs = document.querySelectorAll('input');
     for (const inp of inputs) {
-        if (inp.value === 'KLEINK') {
+        if (inp.value === '__SAP_USER__') {
             return inp.id;
         }
     }
@@ -388,7 +391,7 @@ async def test_st22_13_clear_user_triple_click_delete(sap_mcp_client: ClientSess
     js_clear = """
     const inputs = document.querySelectorAll('input');
     for (const inp of inputs) {
-        if (inp.value === 'KLEINK') {
+        if (inp.value === '__SAP_USER__') {
             inp.focus();
             inp.select();
             document.execCommand('delete');
@@ -397,7 +400,9 @@ async def test_st22_13_clear_user_triple_click_delete(sap_mcp_client: ClientSess
     }
     return 'not found';
     """
-    result = await sap_mcp_client.call_tool("browser_evaluate", {"expression": js_clear})
+    result = await sap_mcp_client.call_tool(
+        "browser_evaluate", {"expression": js_clear.replace("__SAP_USER__", sap_user)}
+    )
     await sap_mcp_client.call_tool("browser_wait", {"timeout": 500})
 
     # Press F8 to execute

@@ -1,7 +1,7 @@
 """Unit tests for the source-code editor line handling (issue #859).
 
 The fakes reproduce the row semantics measured on a real ``GuiAbapEditor``
-(SAP GUI 8.0, HF R3 / ECC, "Quellcode-basierter Editor"):
+(SAP GUI 8.0, ECC, "Quellcode-basierter Editor"):
 
 * rows are 1-based — ``GetLineText(0)`` is an empty phantom row and the last
   real line sits at index ``GetLineCount()``;

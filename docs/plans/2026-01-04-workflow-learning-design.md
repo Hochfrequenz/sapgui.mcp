@@ -133,7 +133,7 @@ sapguimcp/
 ```markdown
 ---
 description: Business Partner anlegen (Person)
-author: kleink
+author: testuser
 applicable_when: Personen als Business Partner anlegen (natuerliche Personen)
 not_applicable_when: Organisationen/Firmen anlegen - dafuer F6 statt F5
 ---
@@ -192,7 +192,7 @@ class Workflow(BaseModel):
     )
     author: str = Field(
         description="SAP username of the person who created/refined this workflow, "
-        "e.g. 'kleink'"
+        "e.g. 'testuser'"
     )
     prompt: str = Field(
         description="The optimized prompt containing step-by-step instructions "

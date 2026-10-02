@@ -187,7 +187,7 @@ def _read_bp_grid_and_close_com(
                 btn_all = btn
                 break
         if btn_all is None:
-            # Fallback: try the hardcoded index that works on XYZ
+            # Fallback: try the hardcoded index that works on S/4HANA
             btn_all = raw_session.FindById("wnd[1]/tbar[0]/btn[5]", False)
         if btn_all is not None:
             btn_all.Press()

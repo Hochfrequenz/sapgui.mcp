@@ -1,6 +1,6 @@
 """Regression test for issue #717 using a live-captured snapshot fixture.
 
-The fixture file was captured from HF R/3 Mandant 100 on transaction
+The fixture file was captured from a live ECC system on transaction
 ``/n/NA2/DCS`` (the reporter's exact scenario) after fix #717 was applied.
 It contains the full post-fix snapshot text, with ``id=`` suffixes the LLM
 can copy verbatim into ``sap_com_evaluate``.
@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-FIXTURE = Path(__file__).parent / "testdata" / "issue_717" / "HF_R3_Mandant_100" / "n_NA2_DCS_snapshot.txt"
+FIXTURE = Path(__file__).parent / "testdata" / "issue_717" / "ecc" / "n_NA2_DCS_snapshot.txt"
 
 
 @pytest.fixture(scope="module")

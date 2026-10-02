@@ -36,10 +36,10 @@ class TestSelectionScreenStateModel:
         state = SelectionScreenState(
             checkboxes={"Workbench": True, "Customizing": False},
             radios={"Datenbanktabelle": True},
-            fields={"Benutzer": "KLEINK"},
+            fields={"Benutzer": "TESTUSER"},
         )
         assert state.checkboxes["Workbench"] is True
-        assert state.fields["Benutzer"] == "KLEINK"
+        assert state.fields["Benutzer"] == "TESTUSER"
 
 
 class TestScreenStateDiffModel:
@@ -137,7 +137,7 @@ class TestParseSelectionScreenState:
         state = parse_selection_screen_state(snapshot)
 
         # System info contains menuitemradio "System XYZ (100)" — should be excluded
-        assert not any("XYZ" in label for label in state.radios)
+        assert not any(label.startswith("System ") for label in state.radios)
 
     def test_empty_snapshot(self) -> None:
         """Empty snapshot returns empty state."""
@@ -173,9 +173,9 @@ class TestParseSelectionScreenState:
 
     def test_unquoted_value_unchanged(self) -> None:
         """Regular unquoted values should pass through unchanged."""
-        fake_snapshot = '- textbox "Benutzer": KLEINK\n'
+        fake_snapshot = '- textbox "Benutzer": TESTUSER\n'
         state = parse_selection_screen_state(fake_snapshot)
-        assert state.fields["Benutzer"] == "KLEINK"
+        assert state.fields["Benutzer"] == "TESTUSER"
 
     def test_ambiguous_radio_labels_excluded(self) -> None:
         """Ambiguous radio labels should be flagged and excluded from dict."""

@@ -50,7 +50,7 @@ def _clean_sessions():
 
 
 def test_set_sap_identity_creates_session_if_needed():
-    identity = SapIdentity(sap_user="KLEINK", sap_host="myhost", sap_mandant="100")
+    identity = SapIdentity(sap_user="TESTUSER", sap_host="myhost", sap_mandant="100")
     set_sap_identity("test-session", identity)
     assert "test-session" in _sessions_ref
     assert _sessions_ref["test-session"].sap_identity == identity
@@ -97,7 +97,7 @@ def test_extract_sap_user_js_exists():
 # on_call_tool: identity fields in log records
 # ---------------------------------------------------------------------------
 
-_IDENTITY = SapIdentity(sap_user="KLEINK", sap_host="myhost.example.com", sap_mandant="100")
+_IDENTITY = SapIdentity(sap_user="TESTUSER", sap_host="myhost.example.com", sap_mandant="100")
 
 
 def _make_context(tool_name: str = "sap_read_screen", session_id: str | None = "sess-1") -> _FakeMiddlewareContext:
@@ -120,7 +120,7 @@ def test_on_call_tool_success_includes_identity(caplog):
 
     assert len(caplog.records) == 1
     rec = caplog.records[0]
-    assert rec.sap_user == "KLEINK"
+    assert rec.sap_user == "TESTUSER"
     assert rec.sap_host == "myhost.example.com"
     assert rec.sap_mandant == "100"
 
@@ -139,7 +139,7 @@ def test_on_call_tool_failure_includes_identity(caplog):
 
     assert len(caplog.records) == 1
     rec = caplog.records[0]
-    assert rec.sap_user == "KLEINK"
+    assert rec.sap_user == "TESTUSER"
     assert rec.sap_host == "myhost.example.com"
     assert rec.sap_mandant == "100"
 

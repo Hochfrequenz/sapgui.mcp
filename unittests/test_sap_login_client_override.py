@@ -127,11 +127,11 @@ class TestSapLoginSystemKeyOverride:
                     language="DE",
                 ),
                 "sysB": SAPSystem(
-                    connection_name="S4 Utility",
+                    connection_name="Test System B",
                     host="https://sysb.example.com",
                     client="200",
-                    user="s4user",
-                    password=SecretStr("s4pass"),
+                    user="testuser",
+                    password=SecretStr("testpass"),
                     language="EN",
                 ),
             },
@@ -148,6 +148,6 @@ class TestSapLoginSystemKeyOverride:
 
         backend.login.assert_called_once()
         _, kwargs = backend.login.call_args
-        assert kwargs["connection_name"] == "S4 Utility"
-        assert kwargs["username"] == "s4user"
+        assert kwargs["connection_name"] == "Test System B"
+        assert kwargs["username"] == "testuser"
         assert kwargs["client"] == "200"

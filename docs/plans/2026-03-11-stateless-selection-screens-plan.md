@@ -158,10 +158,10 @@ class TestSelectionScreenStateModel:
         state = SelectionScreenState(
             checkboxes={"Workbench": True, "Customizing": False},
             radios={"Datenbanktabelle": True},
-            fields={"Benutzer": "KLEINK"},
+            fields={"Benutzer": "TESTUSER"},
         )
         assert state.checkboxes["Workbench"] is True
-        assert state.fields["Benutzer"] == "KLEINK"
+        assert state.fields["Benutzer"] == "TESTUSER"
 
 
 class TestScreenStateDiffModel:
@@ -302,7 +302,7 @@ class TestParseSelectionScreenState:
         state = parse_selection_screen_state(snapshot)
 
         # System info contains menuitemradio "System XYZ (100)" — should be excluded
-        assert not any("XYZ" in label for label in state.radios)
+        assert not any(label.startswith("System ") for label in state.radios)
 
     def test_empty_snapshot(self) -> None:
         """Empty snapshot returns empty state."""
@@ -344,7 +344,7 @@ ARIA format examples (from real SAP screens)::
     - checkbox "Änderbar" [checked] [disabled]:  Änderbar
     - radio "Datenbanktabelle" [checked]
     - radio "View"
-    - textbox "Benutzer": KLEINK
+    - textbox "Benutzer": TESTUSER
     - menuitemradio "System XYZ (100)" [checked]:   ← ignored (system info)
 """
 
@@ -562,7 +562,7 @@ _SE09_WORKBENCH_ONLY = """\
 - checkbox "Customizing-Aufträge":  Customizing-Aufträge
 - checkbox "Änderbar" [checked]:  Änderbar
 - checkbox "Freigegeben":  Freigegeben
-- textbox "Benutzer": KLEINK
+- textbox "Benutzer": TESTUSER
 """
 
 _SE09_BOTH_CHECKED = """\
@@ -570,7 +570,7 @@ _SE09_BOTH_CHECKED = """\
 - checkbox "Customizing-Aufträge" [checked]:  Customizing-Aufträge
 - checkbox "Änderbar" [checked]:  Änderbar
 - checkbox "Freigegeben":  Freigegeben
-- textbox "Benutzer": KLEINK
+- textbox "Benutzer": TESTUSER
 """
 
 _SE11_TABLE_SELECTED = """\
