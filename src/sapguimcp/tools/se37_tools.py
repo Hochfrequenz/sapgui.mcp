@@ -93,23 +93,26 @@ async def _read_tab_rows(
     label = await _click_tab_bilingual(backend, de_label, en_label)
     rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
     if label is not None and (not rows or rows == previous_rows):
-        await backend.wait_for_condition(tab_table_control_loaded(label), timeout_ms=3000)
+        await backend.wait_for_condition(tab_table_control_loaded(label), timeout_ms=3000, poll_ms=250)
         rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
     return rows
 
 
-def _se37_display_reached(fm_name: str, before_status: str) -> Callable[[Any], bool]:
-    """Build a predicate: True once F7 opened the FM display (title carries the name), a popup, or a new status text.
+def _se37_display_reached(fm_name: str, before_title: str, before_status: str) -> Callable[[Any], bool]:
+    """Build a predicate: True once F7 opened the FM display (new title carrying the name), a popup, or a new status.
 
     A missing function module keeps the initial screen and reports a status bar message; status text identical to
-    ``before_status`` (read right before F7) predates the keypress and is ignored.
+    ``before_status`` and a title identical to ``before_title`` (both read right before F7) predate the keypress and
+    are ignored.
     """
     needle = fm_name.upper()
+    before_title = before_title.strip()
 
     def _predicate(session: Any) -> bool:
         if session.find_by_id("wnd[1]", raise_error=False) is not None:
             return True
-        if needle in str(session.find_by_id("wnd[0]").text).upper():
+        title = str(session.find_by_id("wnd[0]").text).strip()
+        if title != before_title and needle in title.upper():
             return True
         sbar = session.find_by_id("wnd[0]/sbar", raise_error=False)
         if sbar is None:
@@ -180,10 +183,11 @@ async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
         return SE37Error(function_module=fm_name, error="Could not fill function module field", retrieved_at=now)
 
     # Press F7 (Display)
+    before_title = (await backend.get_screen_info()).title or ""
     before_f7 = (await backend.get_status_bar()).message.strip()
     await backend.press_key("F7")
     await backend.wait_for_ready()
-    await backend.wait_for_condition(_se37_display_reached(fm_name, before_f7))
+    await backend.wait_for_condition(_se37_display_reached(fm_name, before_title, before_f7))
 
     # Check status bar for errors
     sbar = await backend.get_status_bar()
