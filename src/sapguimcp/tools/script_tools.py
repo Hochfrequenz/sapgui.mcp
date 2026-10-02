@@ -106,10 +106,7 @@ def _check_duration(name: str, value: Any, *, allow_zero: bool) -> float:
         raise ValueError(f"{name} must be non-negative")
     if not allow_zero and value <= 0:
         raise ValueError(f"{name} must be greater than 0")
-    try:
-        return float(value)
-    except OverflowError as exc:
-        raise ValueError(f"{name} must be a finite number (value is too large)") from exc
+    return float(value)
 
 
 def _wait(ms: float | int, deadline: float) -> None:
@@ -242,7 +239,9 @@ def register_script_tools(mcp: FastMCP) -> None:
             "- ``wait(ms)``: pause execution for ``ms`` milliseconds.\n"
             "- ``wait_until(element_id, timeout_ms, poll_ms=200)``: poll for an element by ID "
             "until ``session.find_by_id`` succeeds, returning the element; returns ``None`` if "
-            "``timeout_ms`` elapses.\n\n"
+            "``timeout_ms`` elapses. Both ``wait`` and ``wait_until`` raise ``TimeoutError`` "
+            "(catchable in the script) instead of running past the tool ``timeout``; waits block "
+            "the connection's COM thread, so keep them short.\n\n"
             "**Always call ``output()`` at least once** with a summary — a script that never "
             "calls ``output()`` returns an empty list with no indication of what happened.\n\n"
             "``import`` and ``print`` are not available. Use ``output()`` instead of ``print()``, "
