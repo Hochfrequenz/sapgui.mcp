@@ -546,6 +546,8 @@ _SE16N_TC_IDS = [
 # Column indices in the SE16N selection criteria table control
 _SE16N_COL_FIELDNAME = 6  # GS_SELFIELDS-FIELDNAME (technical name)
 _SE16N_COL_LOW = 2  # GS_SELFIELDS-LOW (Von-Wert / From-Value)
+# Maximum number of offered SE16N selection fields named in a filter failure message
+_SE16N_MAX_OFFERED_FIELDS = 50
 
 
 @dataclass
@@ -555,6 +557,39 @@ class _FilterFillResult:
     unapplied_fields: list[str] = dataclass_field(default_factory=list)  # requested names (as given) not in the grid
     other_errors: list[str] = dataclass_field(default_factory=list)  # non-field problems, e.g. grid not found
     offered_fields: list[str] = dataclass_field(default_factory=list)  # technical names seen in grid, deduped, ordered
+
+
+def _dedupe_keep_order(names: list[str]) -> list[str]:
+    """Remove duplicates from ``names`` while keeping first-seen order."""
+    return list(dict.fromkeys(names))
+
+
+def _format_offered_fields(offered: list[str]) -> str:
+    """Join offered field names, capped at 50 with a '… (+N more)' suffix. Empty list -> empty string."""
+    shown = ", ".join(offered[:_SE16N_MAX_OFFERED_FIELDS])
+    extra = len(offered) - _SE16N_MAX_OFFERED_FIELDS
+    if extra > 0:
+        shown += f", … (+{extra} more)"
+    return shown
+
+
+def _filter_fill_failure(fill: _FilterFillResult, table: str, now: datetime) -> SE16Result:
+    """Build the failure result for filters that could not be applied (the query is not run)."""
+    warnings = [f"Field '{name}' not found in SE16N selection criteria" for name in fill.unapplied_fields]
+    warnings.extend(fill.other_errors)
+    if not fill.unapplied_fields:
+        error = "Could not apply filters: " + "; ".join(fill.other_errors)
+        return _empty_failure(error, table, now, filter_warnings=warnings)
+
+    names = ", ".join(f"'{name}'" for name in fill.unapplied_fields)
+    error = f"Filter field(s) {names} not available as SE16N selection criteria for table {table}."
+    offered = _format_offered_fields(fill.offered_fields)
+    if offered:
+        error += f" Offered fields: {offered}."
+    error += (
+        " A field can exist in the table without being an SE16N selection field; use sap-adt `run_query` if available."
+    )
+    return _empty_failure(error, table, now, filter_warnings=warnings)
 
 
 def _find_and_set_filter_cell(raw_tc: Any, field_upper: str, value: str, visible: int) -> bool:

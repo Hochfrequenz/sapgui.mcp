@@ -12,7 +12,9 @@ from sapguimcp.models.se16_models import SE16Result, SE16Row
 from sapguimcp.tools.se16_tools import (
     _empty_failure,
     _execute_se16_query_desktop,
+    _filter_fill_failure,
     _FilterFillResult,
+    _format_offered_fields,
     register_se16_tools,
 )
 
@@ -159,3 +161,78 @@ class TestEmptyFailureFilterWarnings:
         result = _empty_failure("boom", "T000", datetime.now(UTC))
 
         assert result.filter_warnings == []
+
+
+class TestFormatOfferedFields:
+    def test_empty_returns_empty_string(self) -> None:
+        assert _format_offered_fields([]) == ""
+
+    def test_joins_names(self) -> None:
+        assert _format_offered_fields(["A", "B", "C"]) == "A, B, C"
+
+    def test_exactly_fifty_has_no_suffix(self) -> None:
+        names = [f"F{i:02d}" for i in range(50)]
+
+        text = _format_offered_fields(names)
+
+        assert text == ", ".join(names)
+        assert "more" not in text
+
+    def test_more_than_fifty_is_capped_with_suffix(self) -> None:
+        names = [f"F{i:02d}" for i in range(53)]
+
+        text = _format_offered_fields(names)
+
+        assert text == ", ".join(names[:50]) + ", … (+3 more)"
+        assert "F50" not in text
+
+
+class TestFilterFillFailure:
+    def test_unapplied_fields_message_and_warnings(self) -> None:
+        fill = _FilterFillResult(unapplied_fields=["ZZZ1", "ZZZ2"], offered_fields=["MANDT", "MTEXT"])
+
+        result = _filter_fill_failure(fill, "T000", datetime.now(UTC))
+
+        assert result.success is False
+        assert result.error == (
+            "Filter field(s) 'ZZZ1', 'ZZZ2' not available as SE16N selection criteria for table T000. "
+            "Offered fields: MANDT, MTEXT. "
+            "A field can exist in the table without being an SE16N selection field; "
+            "use sap-adt `run_query` if available."
+        )
+        assert result.filter_warnings == [
+            "Field 'ZZZ1' not found in SE16N selection criteria",
+            "Field 'ZZZ2' not found in SE16N selection criteria",
+        ]
+        assert result.total_hits == 0
+        assert result.rows == []
+
+    def test_empty_offered_list_omits_offered_sentence(self) -> None:
+        fill = _FilterFillResult(unapplied_fields=["ZZZ1"])
+
+        result = _filter_fill_failure(fill, "T000", datetime.now(UTC))
+
+        assert result.error is not None
+        assert "Offered fields" not in result.error
+        assert result.error.startswith(
+            "Filter field(s) 'ZZZ1' not available as SE16N selection criteria for table T000."
+        )
+
+    def test_only_other_errors(self) -> None:
+        fill = _FilterFillResult(other_errors=["SE16N selection criteria table control not found", "second"])
+
+        result = _filter_fill_failure(fill, "T000", datetime.now(UTC))
+
+        assert result.success is False
+        assert result.error == "Could not apply filters: SE16N selection criteria table control not found; second"
+        assert result.filter_warnings == ["SE16N selection criteria table control not found", "second"]
+
+    def test_both_kinds_use_unapplied_error_and_append_other_errors_to_warnings(self) -> None:
+        fill = _FilterFillResult(unapplied_fields=["ZZZ1"], other_errors=["other"], offered_fields=["MANDT"])
+
+        result = _filter_fill_failure(fill, "T000", datetime.now(UTC))
+
+        assert result.error is not None
+        assert result.error.startswith("Filter field(s) 'ZZZ1' not available")
+        assert "other" not in result.error
+        assert result.filter_warnings == ["Field 'ZZZ1' not found in SE16N selection criteria", "other"]
