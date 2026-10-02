@@ -250,8 +250,9 @@ class StatusBarInfo(ToolResult):
     message_parameters: list[str] = Field(
         default_factory=list,
         description=(
-            "Message variables &1-&4 (language-independent), trailing empty values removed; [] when the bar "
-            "is empty. Desktop backend only; the WebGUI backend leaves it empty."
+            "Message variables &1-&4 (index 0 is &1), trailing empty values removed; [] when the bar is "
+            "empty. These are runtime values and may themselves be translated text, so they are not a "
+            "language-independent identity. Desktop backend only; the WebGUI backend leaves it empty."
         ),
     )
 
