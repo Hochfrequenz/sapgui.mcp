@@ -14,7 +14,28 @@ from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from pydantic import BaseModel
 
+from sapguimcp.models import LoginResult
 from unittests.conftest import has_sap_webgui_creds
+
+
+def resolve_login_user(login: LoginResult) -> str:
+    """Return the SAP user for a login result.
+
+    ``LoginResult.user`` is ``None`` when the browser session was already logged in, so fall back to
+    the user configured for the default system in systems.json. Skips the test if neither is available.
+    """
+    if login.user:
+        return login.user
+    try:
+        from sapguimcp.models.config import get_sap_config
+
+        configured = get_sap_config().get_default().user
+    except Exception:  # pylint: disable=broad-except
+        configured = None
+    if not configured:
+        pytest.skip("no SAP user available")
+    return str(configured)
+
 
 # =============================================================================
 # LANGUAGE HANDLING

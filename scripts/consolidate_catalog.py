@@ -3,8 +3,15 @@
 
 This script reads all SE16 query result files and creates the
 transactions.json catalog file.
+
+Usage:
+    python scripts/consolidate_catalog.py <tool-results-dir>
+
+``<tool-results-dir>`` is the directory containing the saved
+``mcp-sap-webgui-sap_se16_query-*.txt`` result files.
 """
 
+import argparse
 import json
 import sys
 from datetime import UTC, datetime
@@ -44,12 +51,22 @@ def load_se16_result(file_path: Path) -> list[dict]:
     return transactions
 
 
-def main():
+def main() -> int:
     """Main consolidation function."""
+    parser = argparse.ArgumentParser(description="Consolidate SE16 TSTC result files into transactions.json")
+    parser.add_argument("tool_results_dir", type=Path, help="Directory containing the SE16 query result files")
+    args = parser.parse_args()
+    tool_results_dir: Path = args.tool_results_dir
+    if not tool_results_dir.is_dir():
+        print(f"Error: not a directory: {tool_results_dir}", file=sys.stderr)
+        return 1
+
+    input_files = sorted(tool_results_dir.glob("mcp-sap-webgui-sap_se16_query-*.txt"))
+    if not input_files:
+        print(f"Error: no mcp-sap-webgui-sap_se16_query-*.txt files found in {tool_results_dir}", file=sys.stderr)
+        return 1
+
     # Paths
-    tool_results_dir = Path(
-        r"C:\Users\user-a\.claude\projects\C--github-sapgui-mcp\d667c1d3-9bc0-4d17-a90f-c1a710d03224\tool-results"
-    )
     data_dir = project_root / "src" / "sapguimcp" / "data"
     output_file = data_dir / "transactions.json"
 
@@ -60,7 +77,7 @@ def main():
     all_transactions: dict[str, dict] = {}
 
     # Load from SE16 result files
-    for file_path in tool_results_dir.glob("mcp-sap-webgui-sap_se16_query-*.txt"):
+    for file_path in input_files:
         print(f"Loading {file_path.name}...")
         try:
             rows = load_se16_result(file_path)
@@ -112,7 +129,8 @@ def main():
     print("\nTransactions by area:")
     for area, count in sorted(area_counts.items(), key=lambda x: -x[1])[:15]:
         print(f"  {area}: {count}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

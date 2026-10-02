@@ -20,7 +20,7 @@ from mcp import ClientSession
 from sapguimcp.backend.webgui.models.browser_results import SnapshotResult
 from sapguimcp.models import LoginResult, StatusBarInfo, TransactionResult
 
-from .conftest import call_tool_typed
+from .conftest import call_tool_typed, resolve_login_user
 
 YAML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "st22_exploration"
 
@@ -49,12 +49,11 @@ async def _login_and_navigate_to_st22(client: ClientSession) -> str:
     """Login and navigate to ST22; return the logged-in SAP user."""
     login = await call_tool_typed(client, "sap_login", {}, LoginResult)
     assert login.success
-    assert login.user
 
     tx = await call_tool_typed(client, "sap_transaction", {"tcode": "ST22"}, TransactionResult)
     assert tx.success
     await client.call_tool("browser_wait", {"timeout": 2000})
-    return login.user
+    return resolve_login_user(login)
 
 
 # =============================================================================

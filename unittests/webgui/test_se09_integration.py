@@ -10,7 +10,7 @@ from mcp import ClientSession
 from sapguimcp.models import LoginResult, ShortcutsResult
 from sapguimcp.models.se09_models import TransportListResult
 
-from .conftest import call_tool_typed
+from .conftest import call_tool_typed, resolve_login_user
 from .integration_helpers import capture_html_snapshot
 
 
@@ -106,7 +106,7 @@ async def test_se09_lookup_include_objects(sap_mcp_client: ClientSession) -> Non
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_se09_lookup",
-        {"username": login.user, "include_objects": True},
+        {"username": resolve_login_user(login), "include_objects": True},
         TransportListResult,
     )
 
@@ -180,7 +180,7 @@ async def test_se09_lookup_workbench_include_objects(sap_mcp_client: ClientSessi
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_se09_lookup",
-        {"username": login.user, "request_type": "workbench", "include_objects": True},
+        {"username": resolve_login_user(login), "request_type": "workbench", "include_objects": True},
         TransportListResult,
     )
 
@@ -206,7 +206,7 @@ async def test_se09_lookup_all_types_all_status(sap_mcp_client: ClientSession) -
     result = await call_tool_typed(
         sap_mcp_client,
         "sap_se09_lookup",
-        {"username": login.user, "request_type": "all", "status": "all"},
+        {"username": resolve_login_user(login), "request_type": "all", "status": "all"},
         TransportListResult,
     )
 
@@ -496,7 +496,7 @@ async def test_se09_user_filter(sap_mcp_client: ClientSession) -> None:
     result_user = await call_tool_typed(
         sap_mcp_client,
         "sap_se09_lookup",
-        {"username": login.user, "request_type": "workbench", "status": "modifiable"},
+        {"username": resolve_login_user(login), "request_type": "workbench", "status": "modifiable"},
         TransportListResult,
     )
     assert result_user.success, f"User lookup failed: {result_user.error}"

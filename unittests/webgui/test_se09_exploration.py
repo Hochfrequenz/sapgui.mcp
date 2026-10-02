@@ -22,7 +22,7 @@ from sapguimcp.backend.webgui.models.browser_results import EvaluateResult, Snap
 from sapguimcp.models import FillFormResult, LoginResult, TransactionResult
 from sapguimcp.models.se09_models import TransportListResult
 
-from .conftest import call_tool_typed
+from .conftest import call_tool_typed, resolve_login_user
 
 YAML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se09_exploration"
 
@@ -152,7 +152,7 @@ async def test_se09_capture_expanded_tree(sap_mcp_client: ClientSession) -> None
     fill = await call_tool_typed(
         sap_mcp_client,
         "sap_fill_form",
-        {"fields": {"Benutzer": login.user, "User": login.user}},
+        {"fields": {"Benutzer": resolve_login_user(login), "User": resolve_login_user(login)}},
         FillFormResult,
     )
 

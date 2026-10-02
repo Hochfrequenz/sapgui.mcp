@@ -35,10 +35,10 @@ await sap_se16_query(table="TSTC", filters={"TCODE": "MM*"}, max_hits=500, outpu
 ### Step 2: Consolidate Results
 
 ```bash
-python scripts/consolidate_catalog.py
+python scripts/consolidate_catalog.py <tool-results-dir>
 ```
 
-This reads all `*_results.json` files and creates `transactions.json`.
+This reads all `mcp-sap-webgui-sap_se16_query-*.txt` result files in the given directory and creates `transactions.json`. It exits non-zero if the directory is missing or contains no result files.
 
 ### Step 3: Add Inline Results (if needed)
 
