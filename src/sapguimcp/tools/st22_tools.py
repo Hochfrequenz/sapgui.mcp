@@ -312,6 +312,12 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
     now = datetime.now(UTC)
     date_str = target_date or date.today().isoformat()
     logger.info("ST22 desktop backend path", extra={"date": date_str})
+    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(backend, DesktopBackend):
+        return ST22DumpListResult.failure(
+            error="Requires DesktopBackend", dumps=[], dump_count=0, date_searched=date_str, retrieved_at=now
+        )
 
     # Navigate to ST22
     error = await _navigate_to_st22(backend)

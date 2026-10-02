@@ -27,6 +27,7 @@ from sapguimcp.lang import (
     SE09_DISPLAY_BUTTON_EN,
 )
 from sapguimcp.models.se09_models import TransportListResult, TransportObject, TransportRequest, TransportTask
+from sapguimcp.tools.desktop_wait_predicates import screen_changed
 from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
@@ -304,7 +305,7 @@ async def _expand_request_node_desktop(backend: "WebGuiBackend | DesktopBackend"
 
     result = await com.run(_focus_expand)
     if result:
-        await backend.wait(1000)
+        await backend.wait_for_ready()
     return result
 
 
@@ -341,7 +342,7 @@ async def _collapse_request_node_desktop(backend: "WebGuiBackend | DesktopBacken
             logger.warning("SE09 collapse failed for %s: %s", request_number, exc)
 
     await com.run(_focus_collapse)
-    await backend.wait(500)
+    await backend.wait_for_ready()
 
 
 def _parse_tasks_from_expanded_labels(
@@ -402,6 +403,12 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
     """Desktop-specific SE09 lookup using get_screen_text / label parsing."""
     now = datetime.now(UTC)
     logger.info("SE09 desktop backend path")
+    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(backend, DesktopBackend):
+        return TransportListResult.failure(
+            error="Requires DesktopBackend", requests=[], request_count=0, retrieved_at=now
+        )
 
     tx_result = await backend.enter_transaction("SE09")
     if not tx_result.success:
@@ -417,6 +424,8 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
     await _set_se09_selection_screen(backend, username, request_type, status)
 
     # Click Display button
+    before_title = (await backend.get_screen_info()).title or ""
+    before_status = (await backend.get_status_bar()).message.strip()
     for label in [SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN]:
         try:
             await backend.click_button(label)
@@ -425,7 +434,8 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
         except Exception:  # pylint: disable=broad-exception-caught
             continue
 
-    await backend.wait(2000)
+    # The next step reads the list's labels: wait for the list screen (or an error/empty-result status text).
+    await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=5000)
 
     # Parse initial screen labels to get requests
     screen_text = await backend.get_screen_text()

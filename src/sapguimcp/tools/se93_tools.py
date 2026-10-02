@@ -26,6 +26,7 @@ from sapguimcp.models import (
     SE93Result,
 )
 from sapguimcp.models.se93_models import SE93TransactionType
+from sapguimcp.tools.desktop_wait_predicates import screen_changed
 from sapguimcp.tools.field_helpers import fill_and_display
 
 if TYPE_CHECKING:
@@ -82,7 +83,11 @@ async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
     backend: WebGuiBackend | DesktopBackend, tcode: str
 ) -> SE93Entry | SE93Error:
     """Desktop-specific SE93 lookup using field reading instead of ARIA parsing."""
+    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
     now = datetime.now(UTC)
+    if not isinstance(backend, DesktopBackend):
+        return SE93Error(tcode=tcode, error="Requires DesktopBackend", retrieved_at=now)
 
     # Fill transaction code field
     filled = False
@@ -99,8 +104,12 @@ async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
         return SE93Error(tcode=tcode, error="Could not fill transaction code field", retrieved_at=now)
 
     # Press F7 (Display)
+    before_title = (await backend.get_screen_info()).title or ""
+    before_status = (await backend.get_status_bar()).message.strip()
     await backend.press_key("F7")
-    await backend.wait(1500)
+    await backend.wait_for_ready()
+    # The next steps read the status bar and the display screen's fields: wait for the screen or status to change.
+    await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=5000)
 
     # Check status bar for errors (e.g., "Transaction code does not exist")
     sbar = await backend.get_status_bar()

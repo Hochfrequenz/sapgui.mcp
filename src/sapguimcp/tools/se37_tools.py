@@ -26,10 +26,13 @@ from sapguimcp.models import (
     SE37Result,
 )
 from sapguimcp.models.se37_models import SE37Exception, SE37Parameter, SE37ParameterCategory, SE37TypingMethod
+from sapguimcp.tools.desktop_wait_predicates import tab_table_control_loaded
 from sapguimcp.tools.field_helpers import fill_and_display
 from sapguimcp.tools.table_helpers import read_table_control
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
 
@@ -55,16 +58,69 @@ _FM_FIELD_LABELS = [
 ]
 
 
-async def _click_tab_bilingual(backend: WebGuiBackend | DesktopBackend, de_label: str, en_label: str) -> None:
-    """Click a tab trying DE then EN label."""
+async def _click_tab_bilingual(backend: WebGuiBackend | DesktopBackend, de_label: str, en_label: str) -> str | None:
+    """Click a tab trying DE then EN label. Returns the label that matched, or None when neither did."""
+    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
     for label in [de_label, en_label]:
         try:
             await backend.click_tab(label)
-            await backend.wait(500)
-            return
+            if isinstance(backend, DesktopBackend):
+                await backend.wait_for_ready()
+            else:
+                await backend.wait(500)
+            return label
         except Exception:  # pylint: disable=broad-exception-caught
             continue
     logger.warning("Tab not found: %s / %s", de_label, en_label)
+    return None
+
+
+async def _read_tab_rows(
+    backend: DesktopBackend, de_label: str, en_label: str, previous_rows: list[dict[str, str]]
+) -> list[dict[str, str]]:
+    """Select a tab and read its table control.
+
+    SAP instantiates a tab page's subscreen lazily, so right after the click the table control may not exist yet
+    (reads as empty) or the previous tab's rows may still be returned. Only in those cases, i.e. empty rows or
+    rows identical to ``previous_rows``, wait until the clicked tab's own table control is in the tree and read
+    again. A genuinely empty tab therefore costs one extra tree dump, a populated one nothing.
+    """
+    from sapguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
+
+    session = backend.require_session()
+    com = backend.com
+    label = await _click_tab_bilingual(backend, de_label, en_label)
+    rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+    if label is not None and (not rows or rows == previous_rows):
+        await backend.wait_for_condition(tab_table_control_loaded(label), timeout_ms=3000, poll_ms=250)
+        rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+    return rows
+
+
+def _se37_display_reached(fm_name: str, before_title: str, before_status: str) -> Callable[[Any], bool]:
+    """Build a predicate: True once F7 opened the FM display (new title carrying the name), a popup, or a new status.
+
+    A missing function module keeps the initial screen and reports a status bar message; status text identical to
+    ``before_status`` and a title identical to ``before_title`` (both read right before F7) predate the keypress and
+    are ignored.
+    """
+    needle = fm_name.upper()
+    before_title = before_title.strip()
+
+    def _predicate(session: Any) -> bool:
+        if session.find_by_id("wnd[1]", raise_error=False) is not None:
+            return True
+        title = str(session.find_by_id("wnd[0]").text).strip()
+        if title != before_title and needle in title.upper():
+            return True
+        sbar = session.find_by_id("wnd[0]/sbar", raise_error=False)
+        if sbar is None:
+            return False
+        text = str(sbar.text).strip()
+        return bool(text) and text != before_status
+
+    return _predicate
 
 
 def _read_se37_table_control(session: Any, _flatten_fn: Any) -> list[dict[str, str]]:
@@ -108,6 +164,8 @@ async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
     from sapguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
 
     now = datetime.now(UTC)
+    if not isinstance(backend, DesktopBackend):
+        return SE37Error(function_module=fm_name, error="Requires DesktopBackend", retrieved_at=now)
     await backend.wait_for_ready()
 
     # Fill FM name field
@@ -125,8 +183,11 @@ async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
         return SE37Error(function_module=fm_name, error="Could not fill function module field", retrieved_at=now)
 
     # Press F7 (Display)
+    before_title = (await backend.get_screen_info()).title or ""
+    before_f7 = (await backend.get_status_bar()).message.strip()
     await backend.press_key("F7")
-    await backend.wait(2000)
+    await backend.wait_for_ready()
+    await backend.wait_for_condition(_se37_display_reached(fm_name, before_title, before_f7))
 
     # Check status bar for errors
     sbar = await backend.get_status_bar()
@@ -140,9 +201,6 @@ async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
             function_module=fm_name, error=sbar.message or f"Function module '{fm_name}' not found", retrieved_at=now
         )
 
-    if not isinstance(backend, DesktopBackend):
-        return SE37Error(function_module=fm_name, error="Requires DesktopBackend", retrieved_at=now)
-
     session = backend.require_session()
     com = backend.com
 
@@ -151,24 +209,13 @@ async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
     # exist in the widget tree until the tab is explicitly activated by a click.
     import_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
     if not import_rows:
-        await _click_tab_bilingual(backend, "Import", "Import")
-        import_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+        import_rows = await _read_tab_rows(backend, "Import", "Import", import_rows)
 
-    # Read Export tab
-    await _click_tab_bilingual(backend, "Export", "Export")
-    export_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
-
-    # Read Changing tab
-    await _click_tab_bilingual(backend, "Changing", "Changing")
-    changing_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
-
-    # Read Tables tab
-    await _click_tab_bilingual(backend, "Tabellen", "Tables")
-    tables_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
-
-    # Read Exceptions tab
-    await _click_tab_bilingual(backend, "Ausnahmen", "Exceptions")
-    exc_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+    # Read Export, Changing, Tables and Exceptions tabs
+    export_rows = await _read_tab_rows(backend, "Export", "Export", import_rows)
+    changing_rows = await _read_tab_rows(backend, "Changing", "Changing", export_rows)
+    tables_rows = await _read_tab_rows(backend, "Tabellen", "Tables", changing_rows)
+    exc_rows = await _read_tab_rows(backend, "Ausnahmen", "Exceptions", tables_rows)
 
     # Parse exceptions
     exceptions: list[SE37Exception] = []

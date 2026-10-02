@@ -189,6 +189,17 @@ async def _wait_for_results(backend: "WebGuiBackend | DesktopBackend") -> str:
     return await backend.get_snapshot()
 
 
+def _spro_img_tree_loaded(session: Any) -> bool:
+    """Predicate: True once the IMG tree control exists and has nodes, or a popup is open."""
+    if session.find_by_id("wnd[1]", raise_error=False) is not None:
+        return True
+    tree = session.find_by_id(_SPRO_TREE_ID, raise_error=False)
+    if tree is None:
+        return False
+    raw: Any = getattr(tree, "com", getattr(tree, "_com", tree))
+    return int(raw.GetAllNodeKeys().Count) > 0
+
+
 async def _search_img_desktop(  # pylint: disable=too-many-locals
     backend: "WebGuiBackend | DesktopBackend", query: str
 ) -> SPROSearchResult:
@@ -214,9 +225,6 @@ async def _search_img_desktop(  # pylint: disable=too-many-locals
     await backend.wait_for_ready()
 
     # Press F5 for SAP Reference IMG
-    await backend.press_key("F5")
-    await backend.wait(3000)
-
     if not isinstance(backend, DesktopBackend):
         return SPROSearchResult.failure(
             error="SPRO desktop search requires DesktopBackend",
@@ -225,6 +233,11 @@ async def _search_img_desktop(  # pylint: disable=too-many-locals
             activity_count=0,
             retrieved_at=now,
         )
+
+    await backend.press_key("F5")
+    await backend.wait_for_ready()
+    # The next step reads the IMG tree's node keys: wait until the tree is populated (or a popup blocks it).
+    await backend.wait_for_condition(_spro_img_tree_loaded)
 
     session = backend.require_session()
     com = backend.com
