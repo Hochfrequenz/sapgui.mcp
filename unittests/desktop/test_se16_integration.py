@@ -179,3 +179,67 @@ async def test_se16_wildcard_filter(backend):
     for row in result.rows:
         assert row.data["TCODE"].startswith("SE1"), f"Expected SE1*, got {row.data['TCODE']}"
     await go_home(backend)
+
+
+# ---------------------------------------------------------------------------
+# SE16 strict filter fields (#907): unappliable filters must fail before F8
+# ---------------------------------------------------------------------------
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_se16_unknown_field_with_valid_filter_fails(backend):
+    """#907 case 1: a valid filter that matches nothing plus a made-up field must fail, not report 'no rows'."""
+    result = await _execute_se16_query(backend, "T000", {"MANDT": "ZZZ", "ZZZFAKEFIELD": "X"}, 10)
+    assert result.success is False, "Unknown filter field must make the query fail"
+    assert result.error is not None
+    assert "ZZZFAKEFIELD" in result.error
+    assert "Offered fields:" in result.error
+    assert "MANDT" in result.error, f"Offered list should contain MANDT: {result.error}"
+    assert result.returned_rows == 0
+    assert result.rows == []
+    assert any("ZZZFAKEFIELD" in w for w in result.filter_warnings)
+    await go_home(backend)
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_se16_only_unknown_field_fails_instead_of_unfiltered_rows(backend):
+    """#907 case 2: only a made-up field on a populated table used to return unfiltered rows with success=True."""
+    result = await _execute_se16_query(backend, "T000", {"ZZZFAKEFIELD": "X"}, 10)
+    assert result.success is False, "Unknown filter field must make the query fail"
+    assert result.error is not None
+    assert "ZZZFAKEFIELD" in result.error
+    assert result.returned_rows == 0
+    assert result.rows == []
+    await go_home(backend)
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_se16_valid_filter_still_returns_filtered_rows(backend):
+    """#907 regression: a valid filter still returns filtered rows, with success=True and no warnings."""
+    result = await _execute_se16_query(backend, TEST_TABLE, {"TCODE": "SE16"}, 10)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert result.returned_rows >= 1
+    assert result.filter_warnings == []
+    for row in result.rows:
+        assert row.data["TCODE"] == "SE16"
+    await go_home(backend)
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_se16_real_column_not_offered_by_se16n_fails(backend):
+    """#907 case 3: a real column that SE16N does not offer as selection field must fail, not run unfiltered.
+
+    TBOOKSHOP is a standard SAP demo table (flight data model) whose LCHR column TEXT1 is not offered by SE16N.
+    """
+    result = await _execute_se16_query(backend, "TBOOKSHOP", {"TEXT1": "X"}, 10)
+    assert result.success is False, "Field not offered by SE16N must make the query fail"
+    assert result.error is not None
+    assert "TEXT1" in result.error
+    assert "Offered fields:" in result.error
+    assert result.returned_rows == 0
+    assert result.rows == []
+    await go_home(backend)
