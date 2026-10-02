@@ -808,6 +808,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Read the current message from SAP's status bar\n\n"
+            "Also returns message_id / message_number (desktop only), which identify the message "
+            "independently of the logon language, plus message_parameters (its &1-&4 runtime values, "
+            "which may themselves be translated).\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
             '- session="s2": Targets specific session (for parallel agents)'
@@ -832,6 +835,12 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             StatusBarInfo with:
             - type: "S" (success), "E" (error), "W" (warning), "I" (info), or "none"
             - message: The status bar text
+            - message_id / message_number: T100 message class and zero-padded number. Together
+              they identify a message independently of the logon language - check these instead
+              of the text.
+            - message_parameters: the message variables &1-&4 (index 0 is &1, trailing empties
+              removed). Runtime values that may themselves be translated.
+              All three are desktop backend only; None / [] on WebGUI or when the bar is empty.
         """
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_read_status_bar")

@@ -1057,17 +1057,38 @@ class DesktopBackend:
         """Read the SAP status bar."""
         session = self.require_session()
 
-        def _read() -> tuple[str, str]:
+        def _read() -> tuple[str, str, str | None, str | None, list[str]]:
             wnd_id = _active_window_id(session)
             sbar = session.find_by_id(f"{wnd_id}/sbar", raise_error=False)
             if sbar is None:
-                return "", ""
-            return str(cast(Any, sbar).text), str(cast(Any, sbar).message_type)
+                return "", "", None, None, []
+            sb = cast(Any, sbar)
+            text, msg_type = str(sb.text), str(sb.message_type)
+            try:
+                message_id: str | None = str(sb.message_id) or None
+                message_number: str | None = str(sb.message_number) or None
+                params = [str(sb.message_parameter(i)) for i in range(4)]
+                while params and not params[-1]:
+                    params.pop()
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug("status_bar message fields unavailable", exc_info=True)
+                message_id, message_number, params = None, None, []
+            return text, msg_type, message_id, message_number, params
 
-        text, msg_type = await self.com.run(_read)
+        text, msg_type, message_id, message_number, params = await self.com.run(_read)
         bar_type: StatusBarType = cast(StatusBarType, msg_type) if msg_type in ("S", "E", "W", "I", "A") else "none"
-        logger.debug("status_bar", extra={"type": bar_type, "message": text})
-        return StatusBarInfo(success=True, type=bar_type, message=text)
+        logger.debug(
+            "status_bar",
+            extra={"type": bar_type, "status_text": text, "message_id": message_id, "message_number": message_number},
+        )
+        return StatusBarInfo(
+            success=True,
+            type=bar_type,
+            message=text,
+            message_id=message_id,
+            message_number=message_number,
+            message_parameters=params,
+        )
 
     async def get_screen_info(self) -> ScreenInfo:
         """Get technical screen information."""
