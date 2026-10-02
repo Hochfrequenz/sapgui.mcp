@@ -41,6 +41,7 @@ import math
 import ntpath
 import os
 import sys
+import time
 import traceback as _traceback
 import types
 from collections.abc import Callable
@@ -52,6 +53,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from sapguimcp.backend.desktop._com_thread import _FATAL_COM_ERROR_HINTS, _get_com_error_code
 from sapguimcp.backend.desktop.models.script_results import SandboxContract, SapRunScriptResult
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.config import get_settings
@@ -124,24 +126,37 @@ SAFE_BUILTINS: dict[str, Any] = {
     "AttributeError": AttributeError,
     "RuntimeError": RuntimeError,
     "StopIteration": StopIteration,
+    "TimeoutError": TimeoutError,
     "NotImplementedError": NotImplementedError,
     # True, False, None are Python 3 keywords; they are NOT in this dict and
     # resolve without going through __builtins__.
 }
 
-SANDBOX_CONTRACT_VERSION: int = 1
+SANDBOX_CONTRACT_VERSION: int = 2
 """Current version of the sap_run_script sandbox contract.
 
 Bump this whenever a builtin (``SAFE_BUILTINS``) or an injected global name is added or removed.
 """
 
 
-def _build_sandbox_globals(session: Any, output: Callable[[Any], None]) -> dict[str, Any]:
-    """Build the globals dict for sandboxed scripts. Single source of truth for injected names."""
+def _build_sandbox_globals(session: Any, output: Callable[[Any], None], deadline: float) -> dict[str, Any]:
+    """Build the globals dict for sandboxed scripts. Single source of truth for injected names.
+
+    *deadline* is a ``time.monotonic()`` value bounding ``wait`` / ``wait_until``.
+    """
+
+    def wait(ms: float | int) -> None:
+        _wait(ms, deadline)
+
+    def wait_until(element_id: str, timeout_ms: float | int, poll_ms: float | int = 200) -> Any:
+        return _wait_until(session, element_id, timeout_ms, poll_ms, deadline)
+
     return {
         "__builtins__": dict(SAFE_BUILTINS),
         "session": session,
         "output": output,
+        "wait": wait,
+        "wait_until": wait_until,
     }
 
 
@@ -150,7 +165,7 @@ def get_sandbox_contract() -> SandboxContract:
 
     Bump ``SANDBOX_CONTRACT_VERSION`` whenever a builtin or injected name is added or removed.
     """
-    injected = sorted(k for k in _build_sandbox_globals(None, lambda _v: None) if k != "__builtins__")
+    injected = sorted(k for k in _build_sandbox_globals(None, lambda _v: None, math.inf) if k != "__builtins__")
     return SandboxContract(
         version=SANDBOX_CONTRACT_VERSION,
         allowed_builtins=sorted(k for k in SAFE_BUILTINS if not k.startswith("_")),
@@ -334,15 +349,101 @@ def _merge_params(tree: ast.Module, params: dict[str, Any]) -> None:
     ast.fix_missing_locations(tree)
 
 
+def _check_duration(name: str, value: Any, *, allow_zero: bool) -> float:
+    """Validate a millisecond value: real finite number (not bool), non-negative (or positive)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError(f"{name} must be a number, got {type(value).__name__}")
+    try:
+        finite = math.isfinite(value)
+    except OverflowError:
+        finite = False
+    if not finite:
+        raise ValueError(f"{name} must be a finite number (value is too large or not a number)")
+    if allow_zero and value < 0:
+        raise ValueError(f"{name} must be non-negative")
+    if not allow_zero and value <= 0:
+        raise ValueError(f"{name} must be greater than 0")
+    return float(value)
+
+
+def _wait(ms: float | int, deadline: float) -> None:
+    """Pause script execution for *ms* milliseconds.
+
+    Raises ``TimeoutError`` without sleeping if the pause would run past the
+    sandbox *deadline* (a ``time.monotonic()`` value derived from the tool timeout).
+    """
+    seconds = _check_duration("wait duration", ms, allow_zero=True) / 1000.0
+    if time.monotonic() + seconds > deadline:
+        raise TimeoutError("wait(...) would exceed the tool timeout")
+    time.sleep(seconds)
+
+
+def _wait_until(
+    session: Any,
+    element_id: str,
+    timeout_ms: float | int,
+    poll_ms: float | int = 200,
+    deadline: float = math.inf,
+) -> Any:
+    """Poll for an element by ID until found or until timeout elapses.
+
+    Args:
+        session: Live GuiSession object.
+        element_id: ID path of the target SAP GUI element.
+        timeout_ms: Maximum time to wait in milliseconds.
+        poll_ms: Polling interval in milliseconds (default: 200).
+        deadline: Sandbox deadline (``time.monotonic()`` value) from the tool timeout.
+
+    Returns:
+        The resolved element if found, or None if *timeout_ms* elapses first.
+
+    Raises:
+        TimeoutError: if the sandbox *deadline* (the tool ``timeout``) is reached before
+            the element is found and before *timeout_ms* elapsed.
+        Exception: a fatal COM connection error (see ``_FATAL_COM_ERROR_HINTS``) is re-raised immediately.
+    """
+    timeout_s = _check_duration("timeout_ms", timeout_ms, allow_zero=True) / 1000.0
+    poll_s = _check_duration("poll_ms", poll_ms, allow_zero=False) / 1000.0
+
+    own_deadline = time.monotonic() + timeout_s
+    sandbox_binding = deadline < own_deadline
+    effective_deadline = min(own_deadline, deadline)
+    last_exc: Exception | None = None
+
+    while True:
+        try:
+            elem = session.find_by_id(element_id, raise_error=False)
+            if elem is not None:
+                return elem
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            code = _get_com_error_code(exc)
+            if code is not None and code in _FATAL_COM_ERROR_HINTS:
+                raise
+            last_exc = exc
+
+        now = time.monotonic()
+        if now >= effective_deadline:
+            if last_exc is not None:
+                logger.debug("wait_until(%r) timed out; last lookup error: %r", element_id, last_exc)
+            if sandbox_binding:
+                raise TimeoutError(f"wait_until({element_id!r}) hit the tool timeout before the element appeared")
+            return None
+
+        time.sleep(min(poll_s, effective_deadline - now))
+
+
 def _run_in_sandbox(
     code: types.CodeType,
     session: Any,
     script_path: str | None = None,
     script_sha256: str | None = None,
+    *,
+    deadline: float,
 ) -> SapRunScriptResult:
     """Execute *code* in a restricted namespace on the calling thread.
 
     Must be called from the COM thread (inside ``com.run(lambda)``).
+    *deadline* is a ``time.monotonic()`` value; ``wait``/``wait_until`` never run past it.
     """
     collected: list[Any] = []
 
@@ -353,7 +454,7 @@ def _run_in_sandbox(
         except (TypeError, ValueError):
             collected.append(str(value))
 
-    restricted_globals = _build_sandbox_globals(session, _output)
+    restricted_globals = _build_sandbox_globals(session, _output, deadline)
 
     try:
         exec(code, restricted_globals)  # noqa: S102  # pylint: disable=exec-used
@@ -398,12 +499,19 @@ def register_script_tools(mcp: FastMCP) -> None:
             "The script receives:\n"
             "- ``session``: sapsucker ``GuiSession`` — use ``session.find_by_id(id)`` to reach "
             "elements, then read/write their properties and call methods directly.\n"
-            "- ``output(value)``: call this to collect results. All values are returned in order.\n\n"
+            "- ``output(value)``: call this to collect results. All values are returned in order.\n"
+            "- ``wait(ms)``: pause execution for ``ms`` milliseconds.\n"
+            "- ``wait_until(element_id, timeout_ms, poll_ms=200)``: poll for an element by ID "
+            "until ``session.find_by_id`` succeeds, returning the element; returns ``None`` if "
+            "``timeout_ms`` elapses. Both ``wait`` and ``wait_until`` raise ``TimeoutError`` "
+            "(catchable in the script) instead of running past the tool ``timeout``; waits block "
+            "the connection's COM thread, so keep them short.\n\n"
             "**Always call ``output()`` at least once** with a summary — a script that never "
             "calls ``output()`` returns an empty list with no indication of what happened.\n\n"
             f"**Sandbox contract (v{SANDBOX_CONTRACT_VERSION}):**\n"
             f"- Allowed builtins: {_ALLOWED_BUILTINS_SUMMARY}\n"
-            f"- Injected names: {_INJECTED_NAMES_SUMMARY} (use ``output()`` instead of ``print()``)\n"
+            f"- Injected names: {_INJECTED_NAMES_SUMMARY} (use ``output()`` instead of ``print()`` "
+            "and ``wait()`` instead of ``time.sleep()``)\n"
             "- All other builtins (e.g. ``print``, ``ord``, ``divmod``, ``open``, ``eval``) "
             "and ``import`` are blocked.\n"
             "- Full contract discoverable via resource ``sandbox://sap_run_script``.\n\n"
@@ -578,16 +686,22 @@ def register_script_tools(mcp: FastMCP) -> None:
         timeout_td = timedelta(seconds=timeout)
         current_script_path = str(target_file) if target_file else None
 
+        # Same clock origin as asyncio.wait_for below: the deadline covers queue time too.
+        deadline = time.monotonic() + timeout
+
         try:
+
+            def _run() -> SapRunScriptResult:
+                return _run_in_sandbox(
+                    code,
+                    desktop_session,
+                    script_path=current_script_path,
+                    script_sha256=script_sha256,
+                    deadline=deadline,
+                )
+
             return await asyncio.wait_for(
-                com.run(
-                    lambda: _run_in_sandbox(
-                        code,
-                        desktop_session,
-                        script_path=current_script_path,
-                        script_sha256=script_sha256,
-                    )
-                ),
+                com.run(_run),
                 timeout=timeout_td.total_seconds(),
             )
         except asyncio.TimeoutError:
