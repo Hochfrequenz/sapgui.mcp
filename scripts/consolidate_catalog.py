@@ -90,6 +90,9 @@ def main() -> int:
             print(f"  -> Error: {e}")
 
     print(f"\nTotal unique transactions: {len(all_transactions)}")
+    if not all_transactions:
+        print("Error: no transactions could be loaded; not overwriting the catalog", file=sys.stderr)
+        return 1
 
     # Create catalog
     transactions = []
