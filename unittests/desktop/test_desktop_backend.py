@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -907,6 +908,15 @@ class TestDesktopGetStatusBarMessageFields:
         info = await _backend_with_sbar(None).get_status_bar()
         assert info.type == "none"
         assert info.message_parameters == []
+
+    @pytest.mark.anyio
+    async def test_debug_logging_does_not_crash(self, caplog):
+        # A log ``extra`` key named "message" collides with LogRecord and raises KeyError
+        # as soon as DEBUG is enabled.
+        sbar = _FakeSbar(text="x", message_type="E", message_id="DS", message_number="017")
+        with caplog.at_level(logging.DEBUG, logger="sapguimcp.backend.desktop"):
+            info = await _backend_with_sbar(sbar).get_status_bar()
+        assert info.message_id == "DS"
 
 
 def test_status_bar_info_model_defaults():

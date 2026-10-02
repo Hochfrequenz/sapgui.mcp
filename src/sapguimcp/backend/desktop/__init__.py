@@ -1079,7 +1079,7 @@ class DesktopBackend:
         bar_type: StatusBarType = cast(StatusBarType, msg_type) if msg_type in ("S", "E", "W", "I", "A") else "none"
         logger.debug(
             "status_bar",
-            extra={"type": bar_type, "message": text, "message_id": message_id, "message_number": message_number},
+            extra={"type": bar_type, "status_text": text, "message_id": message_id, "message_number": message_number},
         )
         return StatusBarInfo(
             success=True,
