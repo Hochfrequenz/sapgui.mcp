@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import asyncio
 import hashlib
+import json
 import logging
 import os
 import re
@@ -22,13 +23,17 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
+from sapguimcp.resources.sandbox_resource import register_sandbox_resources
 from sapguimcp.tools.script_tools import (
     MAX_SCRIPT_BYTES,
     SAFE_BUILTINS,
+    SANDBOX_CONTRACT_VERSION,
+    _build_sandbox_globals,
     _merge_params,
     _resolve_and_validate_script_path,
     _run_in_sandbox,
     get_configured_script_roots,
+    get_sandbox_contract,
     register_script_tools,
 )
 from sapguimcp.utils import is_path_within_root
@@ -838,3 +843,155 @@ class TestSapRunScriptTool:
         assert result.success is False
         assert "Script file not found" in result.error
         mock_get_backend.assert_not_called()
+
+
+class TestSandboxContract:
+    def test_version(self):
+        assert SANDBOX_CONTRACT_VERSION == 1
+        assert get_sandbox_contract().version == 1
+        # Pin the exact sorted list of allowed builtins.
+        # Changing the sandbox requires bumping SANDBOX_CONTRACT_VERSION and updating this list.
+        expected_builtins = [
+            "AttributeError",
+            "Exception",
+            "IndexError",
+            "KeyError",
+            "NotImplementedError",
+            "RuntimeError",
+            "StopIteration",
+            "TypeError",
+            "ValueError",
+            "abs",
+            "all",
+            "any",
+            "bool",
+            "dict",
+            "enumerate",
+            "filter",
+            "float",
+            "getattr",
+            "int",
+            "isinstance",
+            "len",
+            "list",
+            "map",
+            "max",
+            "min",
+            "range",
+            "reversed",
+            "round",
+            "set",
+            "sorted",
+            "str",
+            "sum",
+            "tuple",
+            "zip",
+        ]
+        assert get_sandbox_contract().allowed_builtins == expected_builtins
+
+    def test_allowed_builtins_content(self):
+        contract = get_sandbox_contract()
+        assert isinstance(contract.allowed_builtins, list)
+        expected_subset = {
+            "abs",
+            "all",
+            "any",
+            "bool",
+            "dict",
+            "enumerate",
+            "filter",
+            "float",
+            "getattr",
+            "int",
+            "isinstance",
+            "len",
+            "list",
+            "map",
+            "max",
+            "min",
+            "range",
+            "reversed",
+            "round",
+            "set",
+            "sorted",
+            "str",
+            "sum",
+            "tuple",
+            "zip",
+            "AttributeError",
+            "Exception",
+            "IndexError",
+            "KeyError",
+            "NotImplementedError",
+            "RuntimeError",
+            "StopIteration",
+            "TypeError",
+            "ValueError",
+        }
+        assert expected_subset.issubset(set(contract.allowed_builtins))
+
+        # Should NOT contain internal / private names (starting with _)
+        for name in contract.allowed_builtins:
+            assert not name.startswith("_"), f"Internal builtin leaked: {name}"
+        assert "__import__" not in contract.allowed_builtins
+
+        # Should NOT contain builtins excluded by sandbox design
+        missing_builtins = ["print", "ord", "divmod", "open", "eval", "exec", "globals", "locals"]
+        for missing in missing_builtins:
+            assert missing not in contract.allowed_builtins
+
+        # Must match SAFE_BUILTINS keys minus private/stub entries
+        expected_allowed = sorted(k for k in SAFE_BUILTINS if not k.startswith("_"))
+        assert contract.allowed_builtins == expected_allowed
+
+    def test_injected_names(self):
+        contract = get_sandbox_contract()
+        assert isinstance(contract.injected_names, list)
+        assert set(contract.injected_names) == {"output", "session"}
+
+    def test_injected_names_match_actual_sandbox_globals(self):
+        contract = get_sandbox_contract()
+        actual = _build_sandbox_globals(object(), lambda _v: None)
+        assert set(actual) - {"__builtins__"} == set(contract.injected_names)
+
+    def test_exec_receives_globals_matching_contract(self):
+        seen: dict = {}
+        real_exec = exec
+
+        def spy(code, globals_):
+            seen.update(globals_)
+            return real_exec(code, globals_)
+
+        with patch("sapguimcp.tools.script_tools.exec", spy, create=True):
+            _run_in_sandbox(compile("output(1)", _FILENAME, "exec"), object())
+        assert set(seen) - {"__builtins__"} == set(get_sandbox_contract().injected_names)
+        assert set(seen["__builtins__"]) == set(SAFE_BUILTINS)
+
+    def test_sap_run_script_description_includes_sandbox_contract(self):
+        mcp = FastMCP("test")
+        register_script_tools(mcp)
+        tools = {t.name: t for t in asyncio.run(mcp.list_tools())}
+        desc = tools["sap_run_script"].description or ""
+
+        assert "Sandbox contract (v1):" in desc
+        contract = get_sandbox_contract()
+        assert f"- Allowed builtins: {', '.join(contract.allowed_builtins)}\n" in desc
+        injected = ", ".join(f"``{n}``" for n in contract.injected_names)
+        assert f"- Injected names: {injected} " in desc
+        assert "sandbox://sap_run_script" in desc
+
+    def test_sandbox_resource_registration_and_read(self):
+        mcp = FastMCP("test")
+        register_sandbox_resources(mcp)
+
+        resources = {str(r.uri): r for r in asyncio.run(mcp.list_resources())}
+        assert "sandbox://sap_run_script" in resources
+        resource = resources["sandbox://sap_run_script"]
+        assert resource.mime_type == "application/json"
+
+        # Read resource content
+        content = asyncio.run(mcp.read_resource("sandbox://sap_run_script"))
+        assert len(content.contents) == 1
+        payload = json.loads(content.contents[0].content)
+
+        assert payload == get_sandbox_contract().model_dump()

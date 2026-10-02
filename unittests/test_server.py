@@ -511,6 +511,14 @@ class TestMcpServer:
             assert tool.description, f"{tool_name} has empty description"
             assert len(tool.description) > 20, f"{tool_name} description too short"
 
+    def test_sandbox_resource_registered_for_desktop_backend(self) -> None:
+        """Test that sandbox://sap_run_script resource is registered when desktop backend is used."""
+        resource_uris = {str(r.uri) for r in asyncio.run(mcp.list_resources())}
+        if _backend_type == "desktop":
+            assert "sandbox://sap_run_script" in resource_uris
+        else:
+            assert "sandbox://sap_run_script" not in resource_uris
+
     # =========================================================================
     # MCP Prompts tests
     # =========================================================================

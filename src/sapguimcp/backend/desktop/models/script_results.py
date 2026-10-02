@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from sapguimcp.models.base import ToolResult
 
@@ -25,4 +25,16 @@ class SapRunScriptResult(ToolResult):
     script_sha256: str | None = Field(
         default=None,
         description="SHA-256 hex digest of the script file that ran; None for inline scripts.",
+    )
+
+
+class SandboxContract(BaseModel):
+    """Sandbox execution contract for sap_run_script."""
+
+    version: int = Field(description="Version of the sandbox contract (see SANDBOX_CONTRACT_VERSION).")
+    allowed_builtins: list[str] = Field(
+        description="Names of built-in functions and types available in the sandbox.",
+    )
+    injected_names: list[str] = Field(
+        description="Global names injected into the script execution environment.",
     )

@@ -43,6 +43,7 @@ import os
 import sys
 import traceback as _traceback
 import types
+from collections.abc import Callable
 from datetime import timedelta
 from pathlib import Path, PureWindowsPath
 from typing import Annotated, Any
@@ -51,7 +52,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
+from sapguimcp.backend.desktop.models.script_results import SandboxContract, SapRunScriptResult
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.config import get_settings
 from sapguimcp.utils import resolve_candidates_within_roots
@@ -61,7 +62,14 @@ logger = logging.getLogger(__name__)
 MAX_SCRIPT_BYTES = 1024 * 1024
 """Maximum accepted size of a script file read via ``script_path`` (1 MiB)."""
 
-__all__ = ["get_configured_script_roots", "register_script_tools"]
+__all__ = [
+    "MAX_SCRIPT_BYTES",
+    "SAFE_BUILTINS",
+    "SANDBOX_CONTRACT_VERSION",
+    "get_configured_script_roots",
+    "get_sandbox_contract",
+    "register_script_tools",
+]
 
 
 def _blocked_import(*args: Any, **kwargs: Any) -> None:
@@ -120,6 +128,39 @@ SAFE_BUILTINS: dict[str, Any] = {
     # True, False, None are Python 3 keywords; they are NOT in this dict and
     # resolve without going through __builtins__.
 }
+
+SANDBOX_CONTRACT_VERSION: int = 1
+"""Current version of the sap_run_script sandbox contract.
+
+Bump this whenever a builtin (``SAFE_BUILTINS``) or an injected global name is added or removed.
+"""
+
+
+def _build_sandbox_globals(session: Any, output: Callable[[Any], None]) -> dict[str, Any]:
+    """Build the globals dict for sandboxed scripts. Single source of truth for injected names."""
+    return {
+        "__builtins__": dict(SAFE_BUILTINS),
+        "session": session,
+        "output": output,
+    }
+
+
+def get_sandbox_contract() -> SandboxContract:
+    """Return the sandbox execution contract for sap_run_script.
+
+    Bump ``SANDBOX_CONTRACT_VERSION`` whenever a builtin or injected name is added or removed.
+    """
+    injected = sorted(k for k in _build_sandbox_globals(None, lambda _v: None) if k != "__builtins__")
+    return SandboxContract(
+        version=SANDBOX_CONTRACT_VERSION,
+        allowed_builtins=sorted(k for k in SAFE_BUILTINS if not k.startswith("_")),
+        injected_names=injected,
+    )
+
+
+_CONTRACT = get_sandbox_contract()
+_ALLOWED_BUILTINS_SUMMARY = ", ".join(_CONTRACT.allowed_builtins)
+_INJECTED_NAMES_SUMMARY = ", ".join(f"``{name}``" for name in _CONTRACT.injected_names)
 
 
 def get_configured_script_roots() -> list[Path]:
@@ -312,11 +353,7 @@ def _run_in_sandbox(
         except (TypeError, ValueError):
             collected.append(str(value))
 
-    restricted_globals: dict[str, Any] = {
-        "__builtins__": dict(SAFE_BUILTINS),
-        "session": session,
-        "output": _output,
-    }
+    restricted_globals = _build_sandbox_globals(session, _output)
 
     try:
         exec(code, restricted_globals)  # noqa: S102  # pylint: disable=exec-used
@@ -364,7 +401,12 @@ def register_script_tools(mcp: FastMCP) -> None:
             "- ``output(value)``: call this to collect results. All values are returned in order.\n\n"
             "**Always call ``output()`` at least once** with a summary — a script that never "
             "calls ``output()`` returns an empty list with no indication of what happened.\n\n"
-            "``import`` and ``print`` are not available. Use ``output()`` instead of ``print()``.\n\n"
+            f"**Sandbox contract (v{SANDBOX_CONTRACT_VERSION}):**\n"
+            f"- Allowed builtins: {_ALLOWED_BUILTINS_SUMMARY}\n"
+            f"- Injected names: {_INJECTED_NAMES_SUMMARY} (use ``output()`` instead of ``print()``)\n"
+            "- All other builtins (e.g. ``print``, ``ord``, ``divmod``, ``open``, ``eval``) "
+            "and ``import`` are blocked.\n"
+            "- Full contract discoverable via resource ``sandbox://sap_run_script``.\n\n"
             "Full Python control flow works: ``for``, ``if``/``else``, ``while``, ``try``/``except``, "
             "list comprehensions, function definitions.\n\n"
             "**When to use this tool vs ``sap_com_evaluate``:** prefer ``sap_com_evaluate`` for "
