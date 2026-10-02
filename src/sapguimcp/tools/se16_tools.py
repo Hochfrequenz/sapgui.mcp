@@ -9,6 +9,8 @@ returning structured row data with automatic pagination for large result sets.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -108,6 +110,7 @@ def _empty_failure(
     retrieved_at: datetime,
     total_hits: int = 0,
     columns: list[str] | None = None,
+    filter_warnings: list[str] | None = None,
 ) -> SE16Result:
     """Create a failure SE16Result with empty rows."""
     return SE16Result.failure(
@@ -118,6 +121,7 @@ def _empty_failure(
         truncated=False,
         columns=columns or [],
         rows=[],
+        filter_warnings=filter_warnings or [],
         retrieved_at=retrieved_at,
     )
 
@@ -542,17 +546,69 @@ _SE16N_TC_IDS = [
 # Column indices in the SE16N selection criteria table control
 _SE16N_COL_FIELDNAME = 6  # GS_SELFIELDS-FIELDNAME (technical name)
 _SE16N_COL_LOW = 2  # GS_SELFIELDS-LOW (Von-Wert / From-Value)
+# Maximum number of offered SE16N selection fields named in a filter failure message
+_SE16N_MAX_OFFERED_FIELDS = 50
 
 
-def _find_and_set_filter_cell(raw_tc: Any, field_upper: str, value: str, visible: int) -> bool:
+@dataclass
+class _FilterFillResult:
+    """Outcome of filling the SE16N selection criteria grid on the desktop backend."""
+
+    unapplied_fields: list[str] = dataclass_field(default_factory=list)  # requested names (as given) not in the grid
+    other_errors: list[str] = dataclass_field(default_factory=list)  # non-field problems, e.g. grid not found
+    offered_fields: list[str] = dataclass_field(default_factory=list)  # technical names seen in grid, deduped, ordered
+
+
+def _dedupe_keep_order(names: list[str]) -> list[str]:
+    """Remove duplicates from ``names`` while keeping first-seen order."""
+    return list(dict.fromkeys(names))
+
+
+def _format_offered_fields(offered: list[str]) -> str:
+    """Join offered field names, capped at 50 with a '… (+N more)' suffix. Empty list -> empty string."""
+    shown = ", ".join(offered[:_SE16N_MAX_OFFERED_FIELDS])
+    extra = len(offered) - _SE16N_MAX_OFFERED_FIELDS
+    if extra > 0:
+        shown += f", … (+{extra} more)"
+    return shown
+
+
+def _filter_fill_failure(fill: _FilterFillResult, table: str, now: datetime) -> SE16Result:
+    """Build the failure result for filters that could not be applied (the query is not run)."""
+    warnings = [f"Field '{name}' not found in SE16N selection criteria" for name in fill.unapplied_fields]
+    warnings.extend(fill.other_errors)
+    if not fill.unapplied_fields:
+        error = "Could not apply filters: " + "; ".join(fill.other_errors)
+        return _empty_failure(error, table, now, filter_warnings=warnings)
+
+    names = ", ".join(f"'{name}'" for name in fill.unapplied_fields)
+    error = f"Filter field(s) {names} not available as SE16N selection criteria for table {table}."
+    offered = _format_offered_fields(fill.offered_fields)
+    if offered:
+        error += f" Offered fields: {offered}."
+    error += (
+        " A field can exist in the table without being an SE16N selection field; use sap-adt `run_query` if available."
+    )
+    return _empty_failure(error, table, now, filter_warnings=warnings)
+
+
+def _find_and_set_filter_cell(
+    raw_tc: Any, field_upper: str, value: str, visible: int, seen: list[str] | None = None
+) -> bool:
     """Scan visible rows of an SE16N table control for a field and set its filter value.
+
+    If ``seen`` is given, the (non-blank) field names read from the visible rows are appended to it,
+    so a caller can report which fields SE16N offers when the field is not found.
 
     Returns True if the field was found and set, False otherwise.
     """
     for r in range(visible):
         try:
             fname_cell = raw_tc.GetCell(r, _SE16N_COL_FIELDNAME)
-            if fname_cell.Text.upper() == field_upper:
+            text: str = fname_cell.Text
+            if seen is not None and text.strip():
+                seen.append(text.strip())
+            if text.upper() == field_upper:
                 raw_tc.GetCell(r, _SE16N_COL_LOW).Text = value
                 return True
         except Exception:  # pylint: disable=broad-exception-caught
@@ -563,7 +619,7 @@ def _find_and_set_filter_cell(raw_tc: Any, field_upper: str, value: str, visible
 async def _fill_se16n_filters_desktop(
     backend: WebGuiBackend | DesktopBackend,
     filters: dict[str, str],
-) -> list[str]:
+) -> _FilterFillResult:
     """Fill SE16N filter values via the selection criteria table control (COM).
 
     SE16N uses a GuiTableControl for its selection criteria grid.  Each row
@@ -573,17 +629,22 @@ async def _fill_se16n_filters_desktop(
     The table control only exposes currently visible rows via ``GetCell``.
     If a field is beyond the visible range, the vertical scrollbar is
     repositioned to bring it into view.
+
+    Fields that cannot be found are reported in ``unapplied_fields``; for them the names of all
+    fields the grid offers are collected into ``offered_fields`` (successful fills cost nothing extra).
     """
     from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
     if not isinstance(backend, DesktopBackend):
-        return [f"Filter filling requires DesktopBackend (got {type(backend).__name__})"]
+        return _FilterFillResult(
+            other_errors=[f"Filter filling requires DesktopBackend (got {type(backend).__name__})"]
+        )
 
     session = backend.require_session()
     com = backend.com
 
-    def _apply_filters() -> list[str]:
-        errors: list[str] = []
+    def _apply_filters() -> _FilterFillResult:
+        result = _FilterFillResult()
         tc = None
         for tc_id in _SE16N_TC_IDS:
             try:
@@ -592,7 +653,8 @@ async def _fill_se16n_filters_desktop(
             except Exception:  # pylint: disable=broad-exception-caught
                 continue
         if tc is None:
-            return ["SE16N selection criteria table control not found"]
+            result.other_errors.append("SE16N selection criteria table control not found")
+            return result
         # Unwrap Python wrapper to get the raw COM dispatch object
         raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
 
@@ -600,30 +662,36 @@ async def _fill_se16n_filters_desktop(
         visible: int = raw.VisibleRowCount
         logger.debug("SE16N selection grid", extra={"row_count": row_count, "visible": visible})
 
+        offered: list[str] = []
         for field_name, value in filters.items():
             field_upper = field_name.upper()
+            seen: list[str] = []
 
             # Try visible rows first
-            if _find_and_set_filter_cell(raw, field_upper, value, visible):
+            if _find_and_set_filter_cell(raw, field_upper, value, visible, seen):
                 logger.info("SE16N desktop filter set", extra={"field_name": field_upper, "value": value})
                 continue
 
-            # Field not in visible range — scroll through the table
-            if row_count <= visible:
-                errors.append(f"Field '{field_name}' not found in SE16N selection criteria")
+            # Field not in visible range - scroll through the table (unless everything is visible already)
+            if row_count > visible and _set_filter_with_scrolling(raw, field_upper, value, visible, seen):
                 continue
 
-            found = _set_filter_with_scrolling(raw, field_upper, value, visible)
-            if not found:
-                errors.append(f"Field '{field_name}' not found in SE16N selection criteria")
+            result.unapplied_fields.append(field_name)
+            offered.extend(seen)
 
-        return errors
+        result.offered_fields = _dedupe_keep_order(offered)
+        return result
 
     return await com.run(_apply_filters)
 
 
-def _set_filter_with_scrolling(raw_tc: Any, field_upper: str, value: str, visible: int) -> bool:
-    """Scroll through an SE16N table control to find and set a filter value."""
+def _set_filter_with_scrolling(
+    raw_tc: Any, field_upper: str, value: str, visible: int, seen: list[str] | None = None
+) -> bool:
+    """Scroll through an SE16N table control to find and set a filter value.
+
+    Field names read while scrolling are appended to ``seen`` (may contain duplicates from overlapping windows).
+    """
     scroll_max = raw_tc.VerticalScrollbar.Maximum
     found = False
     for scroll_pos in range(1, scroll_max + 1):
@@ -631,7 +699,7 @@ def _set_filter_with_scrolling(raw_tc: Any, field_upper: str, value: str, visibl
             raw_tc.VerticalScrollbar.Position = scroll_pos
         except Exception:  # pylint: disable=broad-exception-caught
             break
-        if _find_and_set_filter_cell(raw_tc, field_upper, value, visible):
+        if _find_and_set_filter_cell(raw_tc, field_upper, value, visible, seen):
             logger.info(
                 "SE16N desktop filter set (scrolled)",
                 extra={"field_name": field_upper, "value": value, "scroll": scroll_pos},
@@ -655,6 +723,7 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     ctx: Context | None = None,  # TODO: progress reporting via ctx not yet implemented on desktop
 ) -> SE16Result:
     """Desktop-specific SE16N query using read_table instead of ARIA parsing."""
+    # Always empty today (filter failures return early); kept for the status-bar error pass-through below.
     filter_warnings: list[str] = []
 
     # Navigate to SE16N
@@ -704,10 +773,13 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     if filters:
         await backend.press_key("Enter")
         await backend.wait(2000)
-        filter_errors = await _fill_se16n_filters_desktop(backend, filters)
-        if filter_errors:
-            filter_warnings = filter_errors
-            logger.warning("Some desktop filters could not be applied", extra={"errors": filter_errors})
+        fill = await _fill_se16n_filters_desktop(backend, filters)
+        if fill.unapplied_fields or fill.other_errors:
+            logger.warning(
+                "Desktop filters could not be applied, not running the query",
+                extra={"unapplied": fill.unapplied_fields, "errors": fill.other_errors},
+            )
+            return _filter_fill_failure(fill, table, now)
 
     # Set max hits (best effort)
     for max_label in ["GD-MAX_LINES", "Max. Number of Hits", "Maximale Trefferzahl"]:
@@ -724,7 +796,7 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     # Check for errors in status bar
     sbar = await backend.get_status_bar()
     if sbar.type == "E":
-        return _empty_failure(f"SE16N error: {sbar.message}", table, now)
+        return _empty_failure(f"SE16N error: {sbar.message}", table, now, filter_warnings=filter_warnings)
 
     # Check for "no entries found"
     if sbar.message and any(
@@ -951,6 +1023,9 @@ def register_se16_tools(mcp: FastMCP) -> None:
             "Query SAP table data via SE16N (Data Browser). "
             "If sap-adt is available, prefer its run_query tool for simple queries. "
             "USE THIS for complex queries with dynamic filtering or when ADT is unavailable.\n\n"
+            "**Filters:** On the desktop backend, if a filter cannot be applied (e.g. the field is unknown "
+            "or not offered by SE16N), the call fails before running the query; the error lists the "
+            "SE16N selection fields when they could be read.\n\n"
             "**Performance:** ~7 rows/second due to pagination.\n"
             "- 100 rows: ~14 seconds\n"
             "- 500 rows: ~1.5 minutes\n"
@@ -974,7 +1049,8 @@ def register_se16_tools(mcp: FastMCP) -> None:
         Args:
             ctx: FastMCP context (injected)
             table: Table name to query (e.g., "MARA", "T000", "TSTC")
-            filters: Optional filter dict {field_name: value} - uses technical field names
+            filters: Optional filter dict {field_name: value} - uses technical field names. On the desktop
+                backend, a field that is unknown or not offered by SE16N makes the call fail.
             max_hits: Maximum rows to return (default 100)
             output_file: If provided, write full results to this JSON file within the
                 configured output directory (OUTPUT_DIR, default: current working
