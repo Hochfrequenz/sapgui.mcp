@@ -26,6 +26,8 @@ from sapguimcp.tools.se11_tools import _lookup_object_on_initial_screen
 from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
 
@@ -718,10 +720,10 @@ def _set_filter_with_scrolling(
 _SE16N_NO_ENTRIES_KEYWORDS = ("keine werte", "no values", "keine einträge", "no entries")
 
 
-def _statusbar_is_error(session: Any) -> bool:
-    """True if the status bar of the main window currently shows an error message."""
+def _statusbar_is_new_error(session: Any, before_status: str) -> bool:
+    """True if the main window's status bar shows an error whose text differs from the pre-keypress snapshot."""
     sbar = session.find_by_id("wnd[0]/sbar", raise_error=False)
-    return sbar is not None and str(sbar.message_type) == "E"
+    return sbar is not None and str(sbar.message_type) == "E" and str(sbar.text).strip() != before_status
 
 
 def _se16n_initial_screen_ready(session: Any) -> bool:
@@ -729,34 +731,47 @@ def _se16n_initial_screen_ready(session: Any) -> bool:
     return any(session.find_by_id(f"wnd[0]/usr/{p}GD-TAB", raise_error=False) is not None for p in ("ctxt", "txt"))
 
 
-def _se16n_selection_grid_loaded(session: Any) -> bool:
-    """True once the selection criteria grid lists the fields of the entered table (or an error is shown).
+def _se16n_selection_grid_loaded(before_status: str) -> Callable[[Any], bool]:
+    """Build a predicate: True once the selection grid lists the fields of the entered table (or a new error shows).
 
     The grid already exists, with blank rows, before a table is validated, so presence alone is not enough:
-    the first row's field name must be filled.
+    the first row's field name must be filled. An error only counts if its text differs from ``before_status``
+    (the status bar text read right before Enter), so a stale error cannot end the wait early.
     """
-    if _statusbar_is_error(session):
-        return True
-    for tc_id in _SE16N_TC_IDS:
-        tc = session.find_by_id(tc_id, raise_error=False)
-        if tc is not None:
-            raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
-            return bool(str(raw.GetCell(0, _SE16N_COL_FIELDNAME).Text).strip())
-    return False
+
+    def _predicate(session: Any) -> bool:
+        if _statusbar_is_new_error(session, before_status):
+            return True
+        for tc_id in _SE16N_TC_IDS:
+            tc = session.find_by_id(tc_id, raise_error=False)
+            if tc is not None:
+                raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
+                return bool(str(raw.GetCell(0, _SE16N_COL_FIELDNAME).Text).strip())
+        return False
+
+    return _predicate
 
 
-def _se16n_result_displayed(session: Any) -> bool:
-    """True once F8 produced a result grid, a popup, or any status bar message.
+def _se16n_result_displayed(before_status: str) -> Callable[[Any], bool]:
+    """Build a predicate: True once F8 produced a result grid, a popup, or a status bar text that is new.
 
-    Language-independent: error and "no entries" messages both carry status bar text; the caller's checks
-    classify the outcome.
+    ``before_status`` is the status bar text read right before F8; text identical to it predates the keypress
+    and is ignored. Language-independent: error and "no entries" messages both carry status bar text; the
+    caller's checks classify the outcome.
     """
-    if session.find_by_id("wnd[0]/shellcont/shell", raise_error=False) is not None:
-        return True
-    if session.find_by_id("wnd[1]", raise_error=False) is not None:
-        return True
-    sbar = session.find_by_id("wnd[0]/sbar", raise_error=False)
-    return sbar is not None and bool(str(sbar.text).strip())
+
+    def _predicate(session: Any) -> bool:
+        if session.find_by_id("wnd[0]/shellcont/shell", raise_error=False) is not None:
+            return True
+        if session.find_by_id("wnd[1]", raise_error=False) is not None:
+            return True
+        sbar = session.find_by_id("wnd[0]/sbar", raise_error=False)
+        if sbar is None:
+            return False
+        text = str(sbar.text).strip()
+        return bool(text) and text != before_status
+
+    return _predicate
 
 
 async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-return-statements,too-many-branches,too-many-statements,unused-argument
@@ -819,10 +834,11 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     # Filters: press Enter to validate table and load selection criteria grid,
     # then fill filter values via the table control's cell manipulation.
     if filters:
+        before_enter = (await backend.get_status_bar()).message.strip()
         await backend.press_key("Enter")
         await backend.wait_for_ready()
         if isinstance(backend, DesktopBackend):
-            await backend.wait_for_condition(_se16n_selection_grid_loaded)
+            await backend.wait_for_condition(_se16n_selection_grid_loaded(before_enter))
         fill = await _fill_se16n_filters_desktop(backend, filters)
         if fill.unapplied_fields or fill.other_errors:
             logger.warning(
@@ -839,11 +855,12 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
         except Exception:  # pylint: disable=broad-exception-caught
             pass
 
-    # Execute (F8)
+    # Execute (F8); snapshot the status bar first so a message from before the keypress is not mistaken for the result
+    before_f8 = (await backend.get_status_bar()).message.strip()
     await backend.press_key("F8")
     await backend.wait_for_ready()
     if isinstance(backend, DesktopBackend):
-        await backend.wait_for_condition(_se16n_result_displayed)
+        await backend.wait_for_condition(_se16n_result_displayed(before_f8))
 
     # Check for errors in status bar
     sbar = await backend.get_status_bar()

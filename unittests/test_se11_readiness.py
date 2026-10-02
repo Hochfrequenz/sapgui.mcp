@@ -18,20 +18,38 @@ def _wnd(title: str) -> SimpleNamespace:
 
 def test_initial_screen_with_empty_status_bar_is_not_ready() -> None:
     session = _session({"wnd[0]": _wnd("ABAP Dictionary: Initial Screen"), "wnd[0]/sbar": SimpleNamespace(text="")})
-    assert not _se11_display_screen_reached(session)
+    assert not _se11_display_screen_reached("")(session)
 
 
 def test_initial_screen_with_status_bar_text_is_ready() -> None:
     session = _session(
         {"wnd[0]": _wnd("ABAP Dictionary: Initial Screen"), "wnd[0]/sbar": SimpleNamespace(text="XYZ does not exist")}
     )
-    assert _se11_display_screen_reached(session)
+    assert _se11_display_screen_reached("")(session)
 
 
 def test_display_screen_is_ready() -> None:
-    assert _se11_display_screen_reached(_session({"wnd[0]": _wnd("Dictionary: Display Table")}))
+    assert _se11_display_screen_reached("")(_session({"wnd[0]": _wnd("Dictionary: Display Table")}))
 
 
 def test_popup_is_ready() -> None:
     session = _session({"wnd[0]": _wnd("ABAP Dictionary: Initial Screen"), "wnd[1]": object()})
-    assert _se11_display_screen_reached(session)
+    assert _se11_display_screen_reached("")(session)
+
+
+def test_status_text_from_before_f7_is_ignored() -> None:
+    session = _session(
+        {"wnd[0]": _wnd("ABAP Dictionary: Initial Screen"), "wnd[0]/sbar": SimpleNamespace(text=" Old message ")}
+    )
+    assert not _se11_display_screen_reached("Old message")(session)
+    assert _se11_display_screen_reached("Different")(session)
+
+
+def test_screen_transition_and_popup_accepted_despite_same_status() -> None:
+    sbar = SimpleNamespace(text="Old message")
+    assert _se11_display_screen_reached("Old message")(
+        _session({"wnd[0]": _wnd("Dictionary: Display Table"), "wnd[0]/sbar": sbar})
+    )
+    assert _se11_display_screen_reached("Old message")(
+        _session({"wnd[0]": _wnd("ABAP Dictionary: Initial Screen"), "wnd[1]": object(), "wnd[0]/sbar": sbar})
+    )

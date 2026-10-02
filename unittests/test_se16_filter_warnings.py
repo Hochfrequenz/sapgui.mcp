@@ -121,7 +121,7 @@ async def test_execute_se16_query_desktop_unapplied_field_fails_before_f8() -> N
     assert result.rows == []
     assert _pressed_keys(backend) == ["Enter"]  # F8 never pressed
     backend.read_table.assert_not_awaited()
-    backend.get_status_bar.assert_not_awaited()
+    backend.get_status_bar.assert_awaited_once()  # only the pre-Enter snapshot; no post-F8 read
 
 
 @pytest.mark.anyio
@@ -472,30 +472,56 @@ def test_se16n_selection_grid_loaded_requires_filled_first_row() -> None:
     tc_id = "wnd[0]/usr/subTAB_SUB:SAPLSE16N:0121/tblSAPLSE16NSELFIELDS_TC"
     blank = _FakeElement(GetCell=lambda _r, _c: _FakeElement(Text=""))
     filled = _FakeElement(GetCell=lambda _r, _c: _FakeElement(Text="TCODE"))
-    assert not _se16n_selection_grid_loaded(_fake_session({tc_id: blank}))
-    assert not _se16n_selection_grid_loaded(_fake_session({}))
-    assert _se16n_selection_grid_loaded(_fake_session({tc_id: filled}))
-    # an error in the status bar ends the wait even without a grid
-    assert _se16n_selection_grid_loaded(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="E", text="x")}))
+    pred = _se16n_selection_grid_loaded("")
+    assert not pred(_fake_session({tc_id: blank}))
+    assert not pred(_fake_session({}))
+    assert pred(_fake_session({tc_id: filled}))
+    # a new error in the status bar ends the wait even without a grid
+    assert pred(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="E", text="x")}))
+
+
+def test_se16n_selection_grid_loaded_ignores_stale_error() -> None:
+    err = _FakeElement(message_type="E", text="old error")
+    assert not _se16n_selection_grid_loaded("old error")(_fake_session({"wnd[0]/sbar": err}))
+    assert _se16n_selection_grid_loaded("other")(_fake_session({"wnd[0]/sbar": err}))
 
 
 def test_se16n_result_displayed() -> None:
     no_entries = _FakeElement(message_type="S", text="Keine Werte gefunden")
-    assert not _se16n_result_displayed(_fake_session({}))
-    assert _se16n_result_displayed(_fake_session({"wnd[0]/shellcont/shell": object()}))
-    assert _se16n_result_displayed(_fake_session({"wnd[0]/sbar": no_entries}))
-    assert not _se16n_result_displayed(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="S", text="")}))
+    pred = _se16n_result_displayed("")
+    assert not pred(_fake_session({}))
+    assert pred(_fake_session({"wnd[0]/shellcont/shell": object()}))
+    assert pred(_fake_session({"wnd[0]/sbar": no_entries}))
+    assert not pred(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="S", text="")}))
 
 
 def test_se16n_result_displayed_on_popup() -> None:
-    assert _se16n_result_displayed(_fake_session({"wnd[1]": object()}))
+    assert _se16n_result_displayed("stale")(_fake_session({"wnd[1]": object()}))
 
 
-def test_se16n_result_displayed_on_any_status_bar_text() -> None:
-    # language independent: arbitrary text counts, whitespace does not
-    assert _se16n_result_displayed(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="S", text="Zeilen: 5")}))
-    assert _se16n_result_displayed(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="W", text="whatever")}))
-    assert not _se16n_result_displayed(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="S", text="   ")}))
+def test_se16n_result_displayed_on_any_new_status_bar_text() -> None:
+    # language independent: arbitrary new text counts, whitespace does not
+    pred = _se16n_result_displayed("")
+    assert pred(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="S", text="Zeilen: 5")}))
+    assert pred(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="W", text="whatever")}))
+    assert not pred(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="S", text="   ")}))
+
+
+def test_se16n_result_displayed_ignores_status_text_from_before_keypress() -> None:
+    sbar = _FakeElement(message_type="S", text="  Zeilen: 5 ")
+    assert not _se16n_result_displayed("Zeilen: 5")(_fake_session({"wnd[0]/sbar": sbar}))
+    assert _se16n_result_displayed("Zeilen: 4")(_fake_session({"wnd[0]/sbar": sbar}))
+
+
+def test_se16n_result_displayed_grid_accepted_despite_same_status() -> None:
+    sbar = _FakeElement(message_type="S", text="Zeilen: 5")
+    session = _fake_session({"wnd[0]/sbar": sbar, "wnd[0]/shellcont/shell": object()})
+    assert _se16n_result_displayed("Zeilen: 5")(session)
+
+
+def _is_pred(fn: Any, factory_name: str) -> bool:
+    """True if ``fn`` is the predicate returned by the named factory (its qualname is nested in the factory)."""
+    return fn.__qualname__.startswith(f"{factory_name}.")
 
 
 @pytest.mark.anyio
@@ -522,9 +548,14 @@ async def test_execute_se16_query_desktop_waits_for_expected_conditions() -> Non
             backend, table="TSTC", filters={"TCODE": "SE16"}, max_hits=10, now=datetime.now(UTC)
         )
         awaited = [c.args[0] for c in backend.wait_for_condition.await_args_list]
-        assert awaited == [_se16n_initial_screen_ready, _se16n_selection_grid_loaded, _se16n_result_displayed]
+        assert awaited[0] is _se16n_initial_screen_ready
+        assert len(awaited) == 3
+        assert _is_pred(awaited[1], "_se16n_selection_grid_loaded")
+        assert _is_pred(awaited[2], "_se16n_result_displayed")
 
         backend.wait_for_condition.reset_mock()
         await _execute_se16_query_desktop(backend, table="TSTC", filters=None, max_hits=10, now=datetime.now(UTC))
         awaited = [c.args[0] for c in backend.wait_for_condition.await_args_list]
-        assert awaited == [_se16n_initial_screen_ready, _se16n_result_displayed]
+        assert awaited[0] is _se16n_initial_screen_ready
+        assert len(awaited) == 2
+        assert _is_pred(awaited[1], "_se16n_result_displayed")
