@@ -437,3 +437,15 @@ async def test_fill_non_desktop_backend_is_other_error() -> None:
     assert result.unapplied_fields == []
     assert len(result.other_errors) == 1
     assert result.other_errors[0].startswith("Filter filling requires DesktopBackend")
+
+
+@pytest.mark.anyio
+async def test_tool_description_documents_strict_filter_fields() -> None:
+    server = FastMCP("t")
+    register_se16_tools(server)
+    async with Client(server) as client:
+        tools = {t.name: t for t in await client.list_tools()}
+    description = tools["sap_se16_query"].description or ""
+    assert "desktop" in description.lower()
+    assert "not offered by SE16N" in description
+    assert "offered fields" in description.lower()

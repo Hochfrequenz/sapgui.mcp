@@ -1022,6 +1022,9 @@ def register_se16_tools(mcp: FastMCP) -> None:
             "Query SAP table data via SE16N (Data Browser). "
             "If sap-adt is available, prefer its run_query tool for simple queries. "
             "USE THIS for complex queries with dynamic filtering or when ADT is unavailable.\n\n"
+            "**Filters (desktop backend):** if a filter field is unknown or not offered by SE16N as a "
+            "selection field, the call fails (success=false) without running the query and the error "
+            "lists the offered fields. Omit such filters instead.\n\n"
             "**Performance:** ~7 rows/second due to pagination.\n"
             "- 100 rows: ~14 seconds\n"
             "- 500 rows: ~1.5 minutes\n"
@@ -1045,7 +1048,8 @@ def register_se16_tools(mcp: FastMCP) -> None:
         Args:
             ctx: FastMCP context (injected)
             table: Table name to query (e.g., "MARA", "T000", "TSTC")
-            filters: Optional filter dict {field_name: value} - uses technical field names
+            filters: Optional filter dict {field_name: value} - uses technical field names. On the desktop
+                backend, a field that is unknown or not offered by SE16N makes the call fail.
             max_hits: Maximum rows to return (default 100)
             output_file: If provided, write full results to this JSON file within the
                 configured output directory (OUTPUT_DIR, default: current working
