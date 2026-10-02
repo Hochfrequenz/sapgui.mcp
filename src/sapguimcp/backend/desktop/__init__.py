@@ -29,9 +29,11 @@ except ImportError:
 
 from sapguimcp.backend.desktop import _abap_editor
 from sapguimcp.backend.desktop._com_thread import (
+    _RPC_E_DISCONNECTED,
     NO_SESSION_TARGET,
     ComThread,
     SapSessionHaltedError,
+    _get_com_error_code,
     com_call_target,
     describe_com_error,
     is_transient_busy_error,
@@ -585,15 +587,22 @@ class DesktopBackend:
 
         Use this instead of a fixed ``wait`` when the next step needs a specific element or screen state
         (the session being idle, see ``wait_for_ready``, does not guarantee the element exists yet).
-        Exceptions raised by ``condition`` count as "not yet". Returns True when the condition held,
+        Exceptions raised by ``condition`` count as "not yet", except a lost COM connection
+        (RPC_E_DISCONNECTED), which is re-raised immediately. Returns True when the condition held,
         False on timeout (callers decide whether to continue; their normal error handling still applies).
         """
         session = self.require_session()
 
+        last_error: Exception | None = None
+
         def _check() -> bool:
+            nonlocal last_error
             try:
                 return bool(condition(session))
-            except Exception:  # pylint: disable=broad-exception-caught
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                if _get_com_error_code(exc) == _RPC_E_DISCONNECTED:
+                    raise
+                last_error = exc
                 return False
 
         loop = asyncio.get_running_loop()
@@ -602,7 +611,10 @@ class DesktopBackend:
             if await self.com.run(_check):
                 return True
             if loop.time() >= deadline:
-                logger.debug("wait_for_condition timed out", extra={"timeout_ms": timeout_ms})
+                logger.debug(
+                    "wait_for_condition timed out",
+                    extra={"timeout_ms": timeout_ms, "last_error": repr(last_error)},
+                )
                 return False
             await asyncio.sleep(poll_ms / 1000)
 

@@ -506,16 +506,14 @@ def _parse_se11_table_rows(rows: list[dict[str, str]]) -> list[SE11Field]:
     return fields
 
 
-# Upper bound for the SE11 readiness poll; on timeout the status bar / title checks below report the problem
-_SE11_SCREEN_TIMEOUT_MS = 10000
-
-
 def _se11_display_screen_reached(session: Any) -> bool:
-    """True once SE11 left its initial screen after F7, or answered with a status bar message.
+    """True once SE11 left its initial screen after F7, or answered with a status bar message (or a popup).
 
     A missing object keeps the initial screen and reports "<name> does not exist" (message type S), so any
     status bar text ends the wait; the caller's title/status checks then classify the outcome.
     """
+    if session.find_by_id("wnd[1]", raise_error=False) is not None:
+        return True
     title = str(session.find_by_id("wnd[0]").text).lower()
     if "einstieg" not in title and "initial" not in title:
         return True
@@ -588,7 +586,7 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
     # Press F7 (Display)
     await backend.press_key("F7")
     await backend.wait_for_ready()
-    await backend.wait_for_condition(_se11_display_screen_reached, _SE11_SCREEN_TIMEOUT_MS)
+    await backend.wait_for_condition(_se11_display_screen_reached)
 
     # Check status bar for errors
     sbar = await backend.get_status_bar()

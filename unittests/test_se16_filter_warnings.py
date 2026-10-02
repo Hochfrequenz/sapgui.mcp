@@ -485,3 +485,46 @@ def test_se16n_result_displayed() -> None:
     assert _se16n_result_displayed(_fake_session({"wnd[0]/shellcont/shell": object()}))
     assert _se16n_result_displayed(_fake_session({"wnd[0]/sbar": no_entries}))
     assert not _se16n_result_displayed(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="S", text="")}))
+
+
+def test_se16n_result_displayed_on_popup() -> None:
+    assert _se16n_result_displayed(_fake_session({"wnd[1]": object()}))
+
+
+def test_se16n_result_displayed_on_any_status_bar_text() -> None:
+    # language independent: arbitrary text counts, whitespace does not
+    assert _se16n_result_displayed(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="S", text="Zeilen: 5")}))
+    assert _se16n_result_displayed(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="W", text="whatever")}))
+    assert not _se16n_result_displayed(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="S", text="   ")}))
+
+
+@pytest.mark.anyio
+async def test_execute_se16_query_desktop_waits_for_expected_conditions() -> None:
+    template = _make_desktop_backend()
+    backend = MagicMock(spec=DesktopBackend)
+    for name in (
+        "enter_transaction",
+        "wait_for_ready",
+        "get_screen_info",
+        "focus_and_type",
+        "press_key",
+        "get_status_bar",
+        "read_table",
+        "get_page_title",
+    ):
+        setattr(backend, name, getattr(template, name))
+    backend.focus_and_type = AsyncMock(return_value=True)
+    backend.wait_for_condition = AsyncMock(return_value=True)
+
+    fill = _FilterFillResult(unapplied_fields=[], other_errors=[])
+    with patch("sapguimcp.tools.se16_tools._fill_se16n_filters_desktop", new=AsyncMock(return_value=fill)):
+        await _execute_se16_query_desktop(
+            backend, table="TSTC", filters={"TCODE": "SE16"}, max_hits=10, now=datetime.now(UTC)
+        )
+        awaited = [c.args[0] for c in backend.wait_for_condition.await_args_list]
+        assert awaited == [_se16n_initial_screen_ready, _se16n_selection_grid_loaded, _se16n_result_displayed]
+
+        backend.wait_for_condition.reset_mock()
+        await _execute_se16_query_desktop(backend, table="TSTC", filters=None, max_hits=10, now=datetime.now(UTC))
+        awaited = [c.args[0] for c in backend.wait_for_condition.await_args_list]
+        assert awaited == [_se16n_initial_screen_ready, _se16n_result_displayed]

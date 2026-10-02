@@ -956,3 +956,42 @@ class TestWaitForCondition:
             raise RuntimeError("element not there")
 
         assert await backend.wait_for_condition(cond, timeout_ms=30, poll_ms=5) is False
+
+    @pytest.mark.anyio
+    async def test_zero_timeout_still_polls_once(self):
+        backend = _make_backend(make_mock_session())
+        calls = []
+
+        def cond(_session):
+            calls.append(1)
+            return True
+
+        assert await backend.wait_for_condition(cond, timeout_ms=0, poll_ms=1) is True
+        assert len(calls) == 1
+
+    @pytest.mark.anyio
+    async def test_rpc_disconnect_is_reraised_immediately(self):
+        from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED
+
+        backend = _make_backend(make_mock_session())
+        calls = []
+
+        def cond(_session):
+            calls.append(1)
+            raise OSError(_RPC_E_DISCONNECTED, "The object invoked has disconnected from its clients")
+
+        with pytest.raises(OSError, match="disconnected"):
+            await backend.wait_for_condition(cond, timeout_ms=5000, poll_ms=1)
+        assert len(calls) == 1
+
+    @pytest.mark.anyio
+    async def test_timeout_logs_last_error(self, caplog):
+        backend = _make_backend(make_mock_session())
+
+        def cond(_session):
+            raise RuntimeError("element not there")
+
+        with caplog.at_level(logging.DEBUG):
+            assert await backend.wait_for_condition(cond, timeout_ms=0, poll_ms=1) is False
+        record = next(r for r in caplog.records if r.getMessage() == "wait_for_condition timed out")
+        assert "element not there" in record.last_error  # type: ignore[attr-defined]
