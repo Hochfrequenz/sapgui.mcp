@@ -4,6 +4,7 @@ import errno
 import json
 import logging
 import os
+from collections.abc import Iterable
 from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
@@ -79,6 +80,50 @@ def _default_output_base_dir() -> Path:
 
     configured = get_settings().output_dir
     return Path(configured) if configured else Path.cwd()
+
+
+def is_path_within_root(path: Path, root: Path) -> bool:
+    """Return True if ``path`` lies inside ``root`` after resolving both.
+
+    Both sides are fully resolved (``..`` collapsed, symlinks and Windows
+    junctions followed) and compared via ``os.path.normcase`` so the check is
+    case-insensitive on Windows and case-sensitive elsewhere.
+
+    Policy note: this is the *read* side (e.g. ``sap_run_script``'s
+    ``script_path``). A symlink or junction that lives inside the root and
+    also points inside the root is therefore accepted, because the resolved
+    target is what gets contained. A link pointing outside the root is
+    rejected. The *write* side (``output_file``, see
+    :func:`resolve_output_file_path`) is stricter and rejects symlinks
+    outright, since a write through a link could be redirected after the
+    check. Reads accept in-root links because the worst case is reading a
+    file that is itself inside the trusted root. A race between this check
+    and the later read (TOCTOU) is out of scope.
+    """
+    resolved_path = Path(os.path.normcase(str(path.resolve())))
+    resolved_root = Path(os.path.normcase(str(root.resolve())))
+    return resolved_path.is_relative_to(resolved_root)
+
+
+def resolve_candidates_within_roots(candidate: Path, roots: Iterable[Path]) -> list[Path]:
+    """Resolve ``candidate`` against ``roots`` and keep the locations inside a root.
+
+    Absolute candidates are resolved as-is and kept if they lie inside any
+    root. Relative candidates are resolved against each root in order (never
+    against the process cwd) and every location that stays inside that root
+    is returned, in root order, so callers can pick the first existing file
+    ("first matching root wins").
+    """
+    root_list = list(roots)
+    if candidate.is_absolute():
+        resolved = candidate.resolve()
+        return [resolved] if any(is_path_within_root(resolved, root) for root in root_list) else []
+    results: list[Path] = []
+    for root in root_list:
+        located = (root.resolve() / candidate).resolve()
+        if is_path_within_root(located, root):
+            results.append(located)
+    return results
 
 
 def resolve_output_file_path(output_file: str, base_dir: Path | None = None) -> Path:

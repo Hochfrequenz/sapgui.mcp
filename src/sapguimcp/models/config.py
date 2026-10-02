@@ -159,6 +159,20 @@ class SapGuiSettings(BaseSettings):
     # --- Desktop-only fields ---
     # TODO(split): move to desktop project's own Settings class
 
+    script_roots: str = Field(
+        default="",
+        description=(
+            "Allowed root directories for sap_run_script's script_path parameter, "
+            "separated by os.pathsep (';' on Windows, ':' on Unix). "
+            "Roots must be absolute paths (relative entries are skipped with a warning); "
+            "a UNC/network root is allowed if the admin configures one, whereas UNC/device "
+            "paths in the caller's script_path are rejected. "
+            "Relative script_path values are resolved against these roots in order "
+            "(first match wins). Empty (default) disables script_path execution."
+        ),
+        json_schema_extra={"env": "SCRIPT_ROOTS"},
+    )
+
     com_min_interval_ms: int = Field(
         default=100,
         ge=0,

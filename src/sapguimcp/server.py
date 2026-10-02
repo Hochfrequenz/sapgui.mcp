@@ -20,7 +20,11 @@ from sapguimcp.middleware import ToolCallLoggingMiddleware
 from sapguimcp.middleware.logging import masked_payload_serializer
 from sapguimcp.models.config import get_sap_config, get_settings
 from sapguimcp.prompts import register_prompts
-from sapguimcp.resources import register_feedback_resources, register_intent_resources
+from sapguimcp.resources import (
+    register_feedback_resources,
+    register_intent_resources,
+    register_sandbox_resources,
+)
 from sapguimcp.tools import (
     register_abapgit_tools,
     register_breakpoint_tools,
@@ -340,6 +344,7 @@ if _backend == "desktop":
     register_com_tools(mcp)
     register_tree_tools(mcp)
     register_script_tools(mcp)
+    register_sandbox_resources(mcp)
 
 # Register prompts
 register_prompts(mcp)
