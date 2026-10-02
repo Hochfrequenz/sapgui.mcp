@@ -14,9 +14,11 @@ ST22 flow:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
+import time
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -40,6 +42,7 @@ from sapguimcp.models.st22_models import (
     ST22DumpDetailResult,
     ST22DumpListResult,
 )
+from sapguimcp.tools.desktop_wait_predicates import screen_changed
 from sapguimcp.utils import SapLanguage, as_sap_language, format_sap_date
 
 if TYPE_CHECKING:
@@ -222,6 +225,23 @@ async def _capture_full_detail(backend: "WebGuiBackend | DesktopBackend") -> str
     return "\n".join(snapshots)
 
 
+async def _read_text_until_changed(
+    backend: "WebGuiBackend | DesktopBackend", previous: str, timeout_s: float = 0.5, poll_s: float = 0.1
+) -> str:
+    """Read the screen text, polling until it differs from ``previous`` or ``timeout_s`` elapses.
+
+    After a scroll the text may not have refreshed yet; at the bottom of the text it legitimately never
+    changes, which ends the poll at the timeout and tells the caller that the end was reached.
+    """
+    deadline = time.monotonic() + timeout_s
+    while True:
+        screen_text = await backend.get_screen_text()
+        text = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
+        if text != previous or time.monotonic() >= deadline:
+            return text
+        await asyncio.sleep(poll_s)
+
+
 async def _capture_desktop_detail(backend: "WebGuiBackend | DesktopBackend") -> str:
     """Capture full ST22 dump detail text by scrolling through the detail screen.
 
@@ -236,9 +256,8 @@ async def _capture_desktop_detail(backend: "WebGuiBackend | DesktopBackend") -> 
 
     for _ in range(20):  # max 20 pages
         await backend.press_key("PageDown")
-        await backend.wait(500)
-        screen_text = await backend.get_screen_text()
-        new_text = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
+        await backend.wait_for_ready()
+        new_text = await _read_text_until_changed(backend, pages[-1])
         if new_text == pages[-1]:
             break  # reached bottom
         pages.append(new_text)
@@ -312,6 +331,12 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
     now = datetime.now(UTC)
     date_str = target_date or date.today().isoformat()
     logger.info("ST22 desktop backend path", extra={"date": date_str})
+    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(backend, DesktopBackend):
+        return ST22DumpListResult.failure(
+            error="Requires DesktopBackend", dumps=[], dump_count=0, date_searched=date_str, retrieved_at=now
+        )
 
     # Navigate to ST22
     error = await _navigate_to_st22(backend)
@@ -411,12 +436,14 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
 
     # Use the original table row position for clicking, not the sorted index
     ui_row_idx = sorted_to_ui[dump_index]
+    title_before_select = (await backend.get_screen_info()).title or ""
+    status_before_select = (await backend.get_status_bar()).message.strip()
     error = await _select_dump_by_index(backend, ui_row_idx, len(dumps))
     if error:
         return ST22DumpDetailResult.failure(error=error, detail=None, retrieved_at=now)
 
     # Read detail screen text by scrolling through pages
-    await backend.wait(1000)
+    await backend.wait_for_condition(screen_changed(title_before_select, status_before_select), timeout_ms=5000)
     detail_text = await _capture_desktop_detail(backend)
 
     # Parse the detail text into structured fields
