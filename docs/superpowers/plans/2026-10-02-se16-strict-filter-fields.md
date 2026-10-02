@@ -6,7 +6,7 @@
 
 **Architecture:** `_fill_se16n_filters_desktop` returns a `_FilterFillResult` dataclass (`unapplied_fields`, `other_errors`, `offered_fields`) instead of `list[str]`. `_find_and_set_filter_cell` / `_set_filter_with_scrolling` report the field names they saw so the offered list comes from the existing scan. `_execute_se16_query_desktop` inspects the result right after the fill and returns an `_empty_failure(...)` before max-hits/F8. `_empty_failure` gains an optional `filter_warnings` parameter and the status-bar error path passes warnings through. WebGUI backend, success path and `output_file` path are unchanged.
 
-**Tech Stack:** Python 3.12+, pytest (anyio), `unittest.mock`, pydantic models (`SE16Result`), SAP GUI scripting via `DesktopBackend` (COM), ruff, mypy `--strict`.
+**Tech Stack:** Python 3.11+, pytest (anyio), `unittest.mock`, pydantic models (`SE16Result`), SAP GUI scripting via `DesktopBackend` (COM), ruff, mypy `--strict`.
 
 Spec: `docs/superpowers/specs/2026-10-02-se16-strict-filter-fields-design.md`
 
