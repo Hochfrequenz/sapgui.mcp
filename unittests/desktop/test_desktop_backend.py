@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -824,3 +825,104 @@ class TestDesktopBackendClickTableCell:
         assert "list index out of range" not in (result.error or "")
         assert "column" in (result.error or "").lower()
         assert "range" in (result.error or "").lower()
+
+
+# ---- get_status_bar message fields (#917) ----
+
+
+class _FakeSbar:
+    """Fake GuiStatusbar with T100 message fields."""
+
+    def __init__(self, *, text="", message_type="", message_id="", message_number="", params=(), broken=False):
+        self.text = text
+        self.message_type = message_type
+        self._id = message_id
+        self._number = message_number
+        self._params = list(params)
+        self._broken = broken
+
+    @property
+    def message_id(self):
+        if self._broken:
+            raise RuntimeError("not supported")
+        return self._id
+
+    @property
+    def message_number(self):
+        if self._broken:
+            raise RuntimeError("not supported")
+        return self._number
+
+    def message_parameter(self, index):
+        if self._broken:
+            raise RuntimeError("not supported")
+        return self._params[index] if index < len(self._params) else ""
+
+
+def _backend_with_sbar(sbar):
+    session = make_mock_session()
+
+    def find_by_id(element_id, raise_error=True):
+        return sbar if element_id == "wnd[0]/sbar" else None
+
+    session.find_by_id = find_by_id
+    return _make_backend(session)
+
+
+class TestDesktopGetStatusBarMessageFields:
+    @pytest.mark.anyio
+    async def test_values_are_returned(self):
+        sbar = _FakeSbar(text="x", message_type="E", message_id="DS", message_number="017", params=["PROG", "", "C"])
+        info = await _backend_with_sbar(sbar).get_status_bar()
+        assert (info.type, info.message) == ("E", "x")
+        assert info.message_id == "DS"
+        assert info.message_number == "017"
+        assert info.message_parameters == ["PROG", "", "C"]
+
+    @pytest.mark.anyio
+    async def test_empty_bar(self):
+        info = await _backend_with_sbar(_FakeSbar()).get_status_bar()
+        assert info.type == "none"
+        assert info.message_id is None
+        assert info.message_number is None
+        assert info.message_parameters == []
+
+    @pytest.mark.anyio
+    async def test_trailing_empty_parameters_are_trimmed(self):
+        sbar = _FakeSbar(message_type="S", message_id="S#", message_number="343", params=["A", "", ""])
+        info = await _backend_with_sbar(sbar).get_status_bar()
+        assert info.message_parameters == ["A"]
+
+    @pytest.mark.anyio
+    async def test_raising_member_only_empties_new_fields(self):
+        sbar = _FakeSbar(text="hello", message_type="W", broken=True)
+        info = await _backend_with_sbar(sbar).get_status_bar()
+        assert info.success
+        assert (info.type, info.message) == ("W", "hello")
+        assert info.message_id is None
+        assert info.message_number is None
+        assert info.message_parameters == []
+
+    @pytest.mark.anyio
+    async def test_missing_sbar(self):
+        info = await _backend_with_sbar(None).get_status_bar()
+        assert info.type == "none"
+        assert info.message_parameters == []
+
+    @pytest.mark.anyio
+    async def test_debug_logging_does_not_crash(self, caplog):
+        # A log ``extra`` key named "message" collides with LogRecord and raises KeyError
+        # as soon as DEBUG is enabled.
+        sbar = _FakeSbar(text="x", message_type="E", message_id="DS", message_number="017")
+        with caplog.at_level(logging.DEBUG, logger="sapguimcp.backend.desktop"):
+            info = await _backend_with_sbar(sbar).get_status_bar()
+        assert info.message_id == "DS"
+
+
+def test_status_bar_info_model_defaults():
+    from sapguimcp.models.sap_results import StatusBarInfo
+
+    info = StatusBarInfo(success=True, type="none")
+    assert info.message_id is None
+    assert info.message_number is None
+    assert info.message_parameters == []

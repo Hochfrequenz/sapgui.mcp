@@ -231,6 +231,30 @@ class StatusBarInfo(ToolResult):
         description="Message type: 'S' (success), 'E' (error), 'W' (warning), 'I' (info), or 'none'"
     )
     message: str = Field(default="", description="Status bar text")
+    message_id: str | None = Field(
+        default=None,
+        description=(
+            "T100 message class (e.g. 'DS'), padding stripped; None when the bar is empty or the SAP GUI "
+            "does not expose it. Together with message_number it identifies a message independently of "
+            "the logon language, so check these instead of the text. Desktop backend only; the WebGUI "
+            "backend leaves it None."
+        ),
+    )
+    message_number: str | None = Field(
+        default=None,
+        description=(
+            "T100 message number, zero-padded (e.g. '017'); None when the bar is empty or the SAP GUI "
+            "does not expose it. Language-independent. Desktop backend only; the WebGUI backend leaves it None."
+        ),
+    )
+    message_parameters: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Message variables &1-&4 (index 0 is &1), trailing empty values removed; [] when the bar is "
+            "empty. These are runtime values and may themselves be translated text, so they are not a "
+            "language-independent identity. Desktop backend only; the WebGUI backend leaves it empty."
+        ),
+    )
 
 
 class ScreenInfo(ToolResult):
