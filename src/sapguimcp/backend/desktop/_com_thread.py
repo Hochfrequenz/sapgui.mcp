@@ -230,6 +230,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         self._call_seq = 0
         self._in_flight_seq: int | None = None
         self._in_flight_target: str | None = None
+        self._in_flight_since: float | None = None
         self._next_halt_check_at: float | None = None
         self._halted_calls: dict[int, list[str]] = {}
         self._worker_tid: int | None = None
@@ -498,6 +499,25 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         """Number of pending calls in the queue (for diagnostics)."""
         return self._queue.qsize()
 
+    async def engine_state(self) -> dict[str, Any]:
+        """Snapshot of the COM engine for diagnostics (issue #905).
+
+        Answers "why is my call hanging" without touching the busy engine:
+        whether a call is in flight, on which SAP GUI connection, since when,
+        and how many calls are queued behind it. Safe to call while the worker
+        is blocked — it only reads bookkeeping fields.
+        """
+        with self._state_lock:
+            in_flight = self._in_flight_seq is not None
+            return {
+                "busy": in_flight,
+                "connection": self._in_flight_target,
+                "busy_since_s": (
+                    round(time.monotonic() - self._in_flight_since, 1) if in_flight and self._in_flight_since else None
+                ),
+                "queue_depth": self._queue.qsize(),
+            }
+
     def shutdown(self) -> None:
         """Signal the worker thread to exit and wait for cleanup."""
         logger.info(
@@ -562,6 +582,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             seq = self._call_seq
             self._in_flight_seq = seq
             self._in_flight_target = target
+            self._in_flight_since = time.monotonic()
             self._next_halt_check_at = time.monotonic() + self._halt_check_after_s
         try:
             result = fn(*args)
@@ -575,6 +596,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 debugger_titles = self._halted_calls.pop(seq, None)
                 self._in_flight_seq = None
                 self._in_flight_target = None
+                self._in_flight_since = None
                 self._next_halt_check_at = None
         if debugger_titles is not None:
             # fn caught the cancelled call's error itself and carried on — whatever it

@@ -699,6 +699,55 @@ class DesktopBackend:
             logger.exception("open_session")
             return None, 1, None
 
+    #: A COM call running this long is reported by ``com_engine_state`` as
+    #: blocking — long enough that callers queued behind it are likely
+    #: wondering why they hang (issue #905), short enough to stay out of the
+    #: way of ordinary calls.
+    _ENGINE_BUSY_HINT_AFTER_S = 2.0
+
+    async def list_sessions_fast(self) -> list[SessionInfo]:
+        """Registry-only session listing that never touches the COM engine.
+
+        For the busy-engine diagnostic path (issue #905): the normal
+        ``list_sessions`` queues reconcile probes and property reads behind
+        whatever call is blocking the engine — by the time they run, the busy
+        state the caller wanted to report has long cleared. This reads the
+        registry's own bookkeeping (ids, bindings, primary flag) without a
+        single COM call, so it answers even while a script blocks the engine;
+        the tcode/title fields stay empty.
+        """
+        primary = self.registry.primary_session
+        return [
+            SessionInfo(
+                session_id=sid,
+                is_primary=(sid == primary),
+                agent_id=self.registry.get_bound_agent(sid),
+            )
+            for sid in self.registry.list_sessions()
+        ]
+
+    async def com_engine_state(self) -> dict[str, Any] | None:
+        """State of the connection's single COM engine, or None when idle-fast.
+
+        Returns the ``ComThread.engine_state`` snapshot while a call has been
+        running for ``_ENGINE_BUSY_HINT_AFTER_S`` — that call blocks every
+        other tool call on the connection, and queued callers otherwise only
+        see their own timeout without knowing why (issue #905). ``None``
+        means: not busy, or busy for less than the threshold, or the COM
+        thread doesn't expose engine state (test doubles).
+        """
+        engine_state = getattr(self.com, "engine_state", None)
+        if engine_state is None:
+            return None
+        try:
+            state = await engine_state()
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("engine_state_failed", exc_info=True)
+            return None
+        if state and state.get("busy") and (state.get("busy_since_s") or 0) >= self._ENGINE_BUSY_HINT_AFTER_S:
+            return dict(state)
+        return None
+
     async def list_sessions(self) -> list[SessionInfo]:
         """List all sessions from the registry with their COM properties.
 

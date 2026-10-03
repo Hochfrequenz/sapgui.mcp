@@ -1,7 +1,7 @@
 """SAP tool result models."""
 
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -119,6 +119,14 @@ class SessionListResult(ToolResult):
 
     sessions: list[SessionInfo] = Field(
         default_factory=list, description="All active SAP sessions with their current state"
+    )
+    com_engine: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Desktop only: state of the connection's single COM scripting engine (issue #905). "
+            "Present when the engine has been running a call for a while — that call blocks every "
+            "other tool call on the same connection until it finishes."
+        ),
     )
 
     @property
