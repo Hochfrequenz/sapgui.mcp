@@ -35,13 +35,22 @@ async def sap_session_list_impl() -> SessionListResult:
     """
     try:
         backend = await get_backend()
-        sessions = await backend.list_sessions()
+        # Read the engine state FIRST: while a long call blocks the COM
+        # engine, the full listing (reconcile probes + property reads) would
+        # queue behind it and only run after the busy state has cleared
+        # (Copilot review of #934). When the engine is busy, list from the
+        # registry without COM so the answer comes back immediately.
         com_engine = None
         engine_state = getattr(backend, "com_engine_state", None)
         if callable(engine_state):
             state = await engine_state()
             if isinstance(state, dict):
                 com_engine = state
+        if com_engine is not None:
+            fast_list = getattr(backend, "list_sessions_fast", None)
+            sessions = await fast_list() if callable(fast_list) else await backend.list_sessions()
+        else:
+            sessions = await backend.list_sessions()
         return SessionListResult(sessions=sessions, com_engine=com_engine)
 
     except Exception as e:  # pylint: disable=broad-exception-caught

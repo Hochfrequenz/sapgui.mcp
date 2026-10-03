@@ -705,6 +705,27 @@ class DesktopBackend:
     #: way of ordinary calls.
     _ENGINE_BUSY_HINT_AFTER_S = 2.0
 
+    async def list_sessions_fast(self) -> list[SessionInfo]:
+        """Registry-only session listing that never touches the COM engine.
+
+        For the busy-engine diagnostic path (issue #905): the normal
+        ``list_sessions`` queues reconcile probes and property reads behind
+        whatever call is blocking the engine — by the time they run, the busy
+        state the caller wanted to report has long cleared. This reads the
+        registry's own bookkeeping (ids, bindings, primary flag) without a
+        single COM call, so it answers even while a script blocks the engine;
+        the tcode/title fields stay empty.
+        """
+        primary = self.registry.primary_session
+        return [
+            SessionInfo(
+                session_id=sid,
+                is_primary=(sid == primary),
+                agent_id=self.registry.get_bound_agent(sid),
+            )
+            for sid in self.registry.list_sessions()
+        ]
+
     async def com_engine_state(self) -> dict[str, Any] | None:
         """State of the connection's single COM engine, or None when idle-fast.
 
