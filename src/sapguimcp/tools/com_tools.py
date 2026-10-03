@@ -101,6 +101,26 @@ def _serialize_com_result(value: Any) -> str:
         return json.dumps(str(value))
 
 
+def _run_operations(
+    session: Any, operations: list[ComOperationInput], stop_on_error: bool
+) -> tuple[list[ComOperation], int | None]:
+    """Run operations sequentially on the COM thread (synchronous).
+
+    With ``stop_on_error=True`` stops at the first failed operation. Returns the
+    results of the operations that ran and the 0-based index (into the *requested*
+    list) of the first failed operation when execution was aborted, else ``None``.
+    """
+    results: list[ComOperation] = []
+    aborted_at_index: int | None = None
+    for index, op in enumerate(operations):
+        result = _execute_single_op(session, op)
+        results.append(result)
+        if stop_on_error and not result.success:
+            aborted_at_index = index
+            break
+    return results, aborted_at_index
+
+
 def _execute_single_op(  # pylint: disable=too-many-return-statements,too-many-locals
     session: Any, op: ComOperationInput
 ) -> ComOperation:
@@ -166,7 +186,18 @@ def _execute_single_op(  # pylint: disable=too-many-return-statements,too-many-l
         if op.action == "set":
             set_value = op.args[0] if op.args else ""
             setattr(obj, final, set_value)
-            read_back = getattr(obj, final)
+            try:
+                read_back = getattr(obj, final)
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                # The write itself succeeded (setattr returned); only the read-back
+                # failed — e.g. a write-only or masked property. Report success so a
+                # fail-fast batch is not aborted by a healthy write (issue #851).
+                return ComOperation(
+                    element_id=op.element_id,
+                    action=op.action,
+                    property_or_method=op.property_or_method,
+                    result=json.dumps({"written": True, "readback_error": str(exc)}),
+                )
             return ComOperation(
                 element_id=op.element_id,
                 action=op.action,
@@ -296,7 +327,11 @@ def register_com_tools(mcp: FastMCP) -> None:
             "**VKey codes** for SendVKey: 0=Enter, 2=F2, 3=F3/Back, 5=F5, 7=F7/Display, "
             "8=F8/Execute, 11=F11/Save, 12=F12/Cancel.\n\n"
             "**Batch:** Operations run sequentially. If op N fails, ops 1..N-1 already took effect. "
-            "Check each operation's `success` field.\n\n"
+            "Check each operation's `success` field. "
+            "With `stop_on_error=true` the batch stops at the first failed op — the `operations` "
+            "list then contains only the ops that ran, and `aborted_at_index` (0-based position in "
+            "the requested list) tells you where it stopped. Useful before write/VKey steps that "
+            "must not fire on an unexpected screen. `failed_count` aggregates per-op failures.\n\n"
             "**Concurrency note:** all sessions of one SAP GUI connection share a single-threaded "
             "COM scripting engine. Parallel COM/script loops on that same connection are serialized "
             "(no speedup). For bulk work on one connection, prefer one script with a larger loop.\n\n"
@@ -319,6 +354,19 @@ def register_com_tools(mcp: FastMCP) -> None:
     )
     async def sap_com_evaluate(
         operations: list[ComOperationInput],
+        stop_on_error: Annotated[
+            bool,
+            Field(
+                description=(
+                    "Stop at the first failed operation instead of continuing. "
+                    "Default False (all operations run, today's behaviour). "
+                    "When True and an operation fails, the response's `operations` list contains "
+                    "only the ops that ran and `aborted_at_index` marks the 0-based position of "
+                    "the failed op in the requested list — use it before write/VKey steps that "
+                    "must not run on an unexpected screen."
+                )
+            ),
+        ] = False,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> ComEvaluateResult:
@@ -333,12 +381,18 @@ def register_com_tools(mcp: FastMCP) -> None:
             operations: List of operations to execute sequentially.
                 Each operation has: element_id, action (get/set/call),
                 property_or_method, and optional args.
+            stop_on_error: When True, stop at the first failed operation. The
+                response's ``operations`` list then holds only the ops that ran,
+                ``aborted_at_index`` is the 0-based index of the failed op in the
+                requested list, and ``failed_count`` is 1. Default False: every
+                operation runs regardless of earlier failures.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
             ComEvaluateResult with per-operation results. Top-level success=True
-            even if individual operations failed — check each operation's success.
+            even if individual operations failed — check each operation's success,
+            ``failed_count``, and (with stop_on_error=True) ``aborted_at_index``.
         """
         if not operations:
             return ComEvaluateResult.failure("No operations provided")
@@ -359,18 +413,21 @@ def register_com_tools(mcp: FastMCP) -> None:
         desktop_session = backend.require_session()
         com = backend.com
 
-        def _run_all() -> list[ComOperation]:
-            results: list[ComOperation] = []
-            for op in operations:
-                results.append(_execute_single_op(desktop_session, op))
-            return results
+        def _run_all() -> tuple[list[ComOperation], int | None]:
+            return _run_operations(desktop_session, operations, stop_on_error)
 
         try:
-            op_results = await com.run(_run_all)
+            op_results, aborted_at_index = await com.run(_run_all)
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.exception("sap_com_evaluate failed")
             return ComEvaluateResult.failure(f"COM execution error: {exc}")
 
         # Per-operation errors are visible in each ComOperation.
-        # Top-level success=True as long as the batch executed (even if some ops failed).
-        return ComEvaluateResult(operations=op_results)
+        # Top-level success=True as long as the batch executed (even if some ops
+        # failed or the batch aborted) — failure detail lives on the ops,
+        # failed_count and aborted_at_index.
+        return ComEvaluateResult(
+            operations=op_results,
+            failed_count=sum(1 for op in op_results if not op.success),
+            aborted_at_index=aborted_at_index,
+        )

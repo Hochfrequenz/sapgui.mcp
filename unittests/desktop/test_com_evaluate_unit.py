@@ -1,5 +1,6 @@
 """Unit tests for COM evaluate tool helpers."""
 
+import json
 from unittest.mock import MagicMock, PropertyMock
 
 import pytest
@@ -228,3 +229,95 @@ class TestSimpleCall:
         result = _execute_single_op(session, op)
         assert result.success
         elem.com.SendVKey.assert_called_once_with(0)
+
+
+from sapguimcp.tools.com_tools import _run_operations
+
+
+def _op(element_id: str = "wnd[0]/usr/txt1", action: str = "get") -> ComOperationInput:
+    return ComOperationInput(element_id=element_id, action=action, property_or_method="Text")
+
+
+class TestRunOperationsStopOnError:
+    """Issue #851: fail-fast batch execution and its aggregate signals."""
+
+    @staticmethod
+    def _session_with_failures(failing_ids: set[str], calls: list[str]):
+        """Mock session that records read order and fails reads of the given ids."""
+
+        def find_by_id(element_id: str, raise_error: bool = True) -> MagicMock:  # noqa: ARG001
+            calls.append(element_id)
+            if element_id in failing_ids:
+                raise Exception(f"Element not found: {element_id}")
+            elem = MagicMock()
+            elem.com.Text = "ok"
+            return elem
+
+        session = MagicMock()
+        session.find_by_id = find_by_id
+        return session
+
+    def test_default_runs_all_ops_despite_failure(self):
+        calls: list[str] = []
+        session = self._session_with_failures({"wnd[0]/usr/txt2"}, calls)
+        ops = [_op("wnd[0]/usr/txt1"), _op("wnd[0]/usr/txt2"), _op("wnd[0]/usr/txt3")]
+        results, aborted = _run_operations(session, ops, stop_on_error=False)
+        assert len(calls) == 3, "default must keep running after a failed op"
+        assert [r.success for r in results] == [True, False, True]
+        assert aborted is None
+
+    def test_stop_on_error_stops_at_first_failure(self):
+        calls: list[str] = []
+        session = self._session_with_failures({"wnd[0]/usr/txt2"}, calls)
+        ops = [_op("wnd[0]/usr/txt1"), _op("wnd[0]/usr/txt2"), _op("wnd[0]/usr/txt3")]
+        results, aborted = _run_operations(session, ops, stop_on_error=True)
+        assert [r.success for r in results] == [True, False]
+        assert aborted == 1
+
+    def test_stop_on_error_no_failures_runs_all(self):
+        calls: list[str] = []
+        session = self._session_with_failures(set(), calls)
+        ops = [_op("wnd[0]/usr/txt1"), _op("wnd[0]/usr/txt2")]
+        results, aborted = _run_operations(session, ops, stop_on_error=True)
+        assert all(r.success for r in results)
+        assert aborted is None
+
+    def test_first_op_failure_returns_only_failed_op(self):
+        calls: list[str] = []
+        session = self._session_with_failures({"wnd[0]/usr/txt1"}, calls)
+        ops = [_op("wnd[0]/usr/txt1"), _op("wnd[0]/usr/txt2")]
+        results, aborted = _run_operations(session, ops, stop_on_error=True)
+        assert len(results) == 1
+        assert aborted == 0
+
+    def test_set_readback_failure_is_not_op_failure(self):
+        """setattr succeeded, read-back raised -> success=True (issue #851 companion fix)."""
+        raw = MagicMock()
+        type(raw).Text = PropertyMock(side_effect=[None, Exception("write-only")])  # setattr, readback
+        elem = MagicMock()
+        elem.com = raw
+        session = _make_mock_session({"wnd[0]/usr/txt1": elem})
+        op = ComOperationInput(element_id="wnd[0]/usr/txt1", action="set", property_or_method="Text", args=["x"])
+        result = _execute_single_op(session, op)
+        assert result.success
+        payload = json.loads(result.result or "{}")
+        assert payload == {"written": True, "readback_error": "write-only"}
+
+    def test_set_write_failure_is_op_failure(self):
+        """setattr itself raising -> success=False."""
+        raw = MagicMock()
+        type(raw).Text = PropertyMock(side_effect=Exception("read-only"))
+        elem = MagicMock()
+        elem.com = raw
+        session = _make_mock_session({"wnd[0]/usr/txt1": elem})
+        op = ComOperationInput(element_id="wnd[0]/usr/txt1", action="set", property_or_method="Text", args=["x"])
+        result = _execute_single_op(session, op)
+        assert not result.success
+
+    def test_multiple_failures_counted(self):
+        calls: list[str] = []
+        session = self._session_with_failures({"wnd[0]/usr/txt1", "wnd[0]/usr/txt3"}, calls)
+        ops = [_op("wnd[0]/usr/txt1"), _op("wnd[0]/usr/txt2"), _op("wnd[0]/usr/txt3")]
+        results, aborted = _run_operations(session, ops, stop_on_error=False)
+        assert sum(1 for r in results if not r.success) == 2
+        assert aborted is None
