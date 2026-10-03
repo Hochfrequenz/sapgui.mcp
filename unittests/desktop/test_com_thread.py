@@ -648,21 +648,22 @@ class TestThrottleSignals:
     """Issue #928 step B: only COM-busy errors raise the interval, not slow calls."""
 
     def test_latency_spike_does_not_inflate(self):
-        """A 10x-slower-than-average call is SAP work, not overload."""
+        """A call 12x slower than the seeded 10 ms average must not inflate the interval.
+
+        One single slow call, with the EMA seeded directly — ten short calls first
+        would decay the average to ~1 ms and the test would pass on the old
+        latency-spike logic too (Copilot review of #933).
+        """
         thread = ComThread(init_com=False, min_interval_ms=0)
         try:
             thread._avg_latency_s = 0.01
             thread._current_interval_s = 0.1
-            calls = ["short"] * 10 + ["slow"]
 
-            def fn():
-                item = calls.pop(0)
-                if item == "slow":
-                    time.sleep(0.12)  # > 5x the 10ms average
-                return item
+            def slow_call():
+                time.sleep(0.12)  # 12x the 10ms average
+                return "done"
 
-            for _ in range(11):
-                thread._execute_with_retry(fn, concurrent.futures.Future(), last_call=0.0, max_retries=0)
+            thread._execute_with_retry(slow_call, concurrent.futures.Future(), last_call=0.0, max_retries=0)
             assert thread._current_interval_s <= 0.1, (
                 f"slow call must not inflate the interval, got {thread._current_interval_s * 1000:.0f}ms"
             )
