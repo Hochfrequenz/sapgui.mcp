@@ -576,3 +576,67 @@ class TestScriptingEngineCaching:
             assert attach_calls == ["SAPGUI", "SAPGUI"]
         finally:
             thread.shutdown()
+
+
+class TestComBatchResume:
+    """Issue #879: a ComThread retry must resume a batch, not restart it."""
+
+    @pytest.mark.anyio
+    async def test_batch_interrupted_carrier_resumes(self, com_thread):
+        """Ops completed before the retryable error run exactly once."""
+        from sapguimcp.backend.desktop._com_thread import ComBatchInterruptedError
+
+        executed: list[int] = []
+
+        def batch(resume=None):
+            done = list(resume.completed) if resume is not None else []
+            start = len(done)
+            for i in range(start, 5):
+                executed.append(i)
+                if i == 2 and resume is None:
+                    # First pass only: simulate a retryable COM error on op 2,
+                    # carrying the two results already produced.
+                    raise ComBatchInterruptedError(done, i, -2147417851)
+                done.append(f"op{i}")
+            return done
+
+        result = await com_thread.run(batch)
+        assert result == ["op0", "op1", "op2", "op3", "op4"]
+        # op0/op1 executed once across both passes; op2..4 once on the resume pass.
+        assert executed.count(0) == 1
+        assert executed.count(1) == 1
+        assert executed.count(2) == 2  # interrupted op re-attempted by design
+        assert executed.count(3) == 1
+        assert executed.count(4) == 1
+
+    @pytest.mark.anyio
+    async def test_batch_interrupted_beyond_budget_fails(self, com_thread):
+        """A batch that keeps failing on the same op surfaces the carrier error."""
+        from sapguimcp.backend.desktop._com_thread import ComBatchInterruptedError
+
+        def batch(resume=None):  # noqa: ARG001 — resume is unused; every attempt fails
+            raise ComBatchInterruptedError([], 0, -2147417851)
+
+        with pytest.raises(ComBatchInterruptedError):
+            await com_thread.run(batch)
+
+    @pytest.mark.anyio
+    async def test_plain_callable_retry_unchanged(self, com_thread):
+        """Callables that raise plain retryable errors still restart (old behaviour)."""
+
+        class FakeComError(Exception):
+            def __init__(self, hr):
+                super().__init__(hr)
+                self.hresult = hr
+
+        calls = 0
+
+        def fn():
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise FakeComError(-2147417851)
+            return "ok"
+
+        assert await com_thread.run(fn) == "ok"
+        assert calls == 2

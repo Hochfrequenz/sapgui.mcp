@@ -16,12 +16,30 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 
+from sapguimcp.backend.desktop._com_thread import RETRYABLE_COM_ERRORS, ComBatchInterruptedError
 from sapguimcp.backend.desktop.models.com_results import ComEvaluateResult, ComOperation, ComSnapshotResult
 from sapguimcp.backend.manager import get_backend
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["register_com_tools", "FindByNameRef"]
+
+
+def _is_retryable_com_code(code: int) -> bool:
+    """True for the transient "COM is busy" error codes the ComThread retries."""
+    return code in RETRYABLE_COM_ERRORS
+
+
+def _get_com_error_code(exc: Exception) -> int | None:
+    """Extract the COM error code from an exception, if present.
+
+    Same extraction as the ComThread: ``pywintypes.com_error`` carries the
+    HRESULT as ``args[0]``.
+    """
+    code = getattr(exc, "hresult", None)
+    if code is None and exc.args:
+        code = exc.args[0] if isinstance(exc.args[0], int) else None
+    return code
 
 
 class FindByNameRef(BaseModel):
@@ -102,18 +120,37 @@ def _serialize_com_result(value: Any) -> str:
 
 
 def _run_operations(
-    session: Any, operations: list[ComOperationInput], stop_on_error: bool
+    session: Any,
+    operations: list[ComOperationInput],
+    stop_on_error: bool,
+    resume: ComBatchInterruptedError | None = None,
 ) -> tuple[list[ComOperation], int | None]:
     """Run operations sequentially on the COM thread (synchronous).
 
     With ``stop_on_error=True`` stops at the first failed operation. Returns the
     results of the operations that ran and the 0-based index (into the *requested*
     list) of the first failed operation when execution was aborted, else ``None``.
+
+    ``resume`` carries the results of steps already completed by a previous,
+    COM-interrupted invocation of this batch (issue #879): this call skips those
+    steps and returns their results as-is, so a ComThread retry never re-runs
+    an already-executed operation (a re-run could repeat a Save).
     """
-    results: list[ComOperation] = []
+    results: list[ComOperation] = list(resume.completed) if resume is not None else []
+    start_index = len(results)
     aborted_at_index: int | None = None
-    for index, op in enumerate(operations):
-        result = _execute_single_op(session, op)
+    for index in range(start_index, len(operations)):
+        op = operations[index]
+        try:
+            result = _execute_single_op(session, op)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            code = _get_com_error_code(exc)
+            if code is not None and _is_retryable_com_code(code):
+                # A transport-level error (COM busy) can strike inside any COM
+                # call. Re-raise with the progress so far; the ComThread retry
+                # hands this carrier back and the batch resumes from `index`.
+                raise ComBatchInterruptedError(results, index, code) from exc
+            raise
         results.append(result)
         if stop_on_error and not result.success:
             aborted_at_index = index
@@ -413,8 +450,8 @@ def register_com_tools(mcp: FastMCP) -> None:
         desktop_session = backend.require_session()
         com = backend.com
 
-        def _run_all() -> tuple[list[ComOperation], int | None]:
-            return _run_operations(desktop_session, operations, stop_on_error)
+        def _run_all(resume: ComBatchInterruptedError | None = None) -> tuple[list[ComOperation], int | None]:
+            return _run_operations(desktop_session, operations, stop_on_error, resume=resume)
 
         try:
             op_results, aborted_at_index = await com.run(_run_all)

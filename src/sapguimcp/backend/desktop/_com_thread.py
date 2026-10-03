@@ -59,6 +59,11 @@ _RPC_S_UNKNOWN_IF = -2147023179  # 0x800706B5 — "The interface is unknown"
 
 _RETRYABLE_COM_ERRORS = {_RPC_E_SERVERCALL_RETRYLATER, _RPC_E_CALL_REJECTED, _RPC_S_UNKNOWN_IF}
 
+#: Public alias — tools that execute COM calls directly (outside the ComThread
+#: retry loop) check against the same set when deciding whether an error is a
+#: transient "COM is busy" signal the thread would have retried.
+RETRYABLE_COM_ERRORS = frozenset(_RETRYABLE_COM_ERRORS)
+
 #: Program of an ABAP debugger session. The debugger runs in its own session of the
 #: halted session's connection (window "ABAP Debugger(1)  (exklusiv) ...").
 _DEBUGGER_PROGRAMS = frozenset({"RSTPDAMAIN"})
@@ -91,6 +96,29 @@ class SapSessionHaltedError(RuntimeError):
             "Remove the breakpoint with sap_breakpoint_delete when it is no longer needed."
         )
         self.debugger_titles = debugger_titles
+
+
+class ComBatchInterruptedError(Exception):
+    """A multi-step COM callable was interrupted by a retryable error mid-batch.
+
+    Raised *by* a batch callable (e.g. ``sap_com_evaluate``'s batch loop) so the
+    ComThread's retry passes this carrier back into the next invocation
+    (``fn(carrier)``) and the batch resumes after the steps already completed
+    instead of re-running them — a re-run can repeat destructive side effects
+    such as a Save (issue #879).
+
+    Attributes:
+        completed: The callable's progress payload — whatever the next
+            invocation needs to resume (e.g. results of completed steps).
+        completed_count: Number of completed steps, for logging.
+        error_code: The COM HRESULT that interrupted the batch.
+    """
+
+    def __init__(self, completed: Any, completed_count: int, error_code: int) -> None:
+        super().__init__(f"batch interrupted after {completed_count} completed steps by COM error {error_code}")
+        self.completed = completed
+        self.completed_count = completed_count
+        self.error_code = error_code
 
 
 def _get_com_error_code(exc: Exception) -> int | None:
@@ -283,7 +311,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
 
     def _execute_with_retry(
         self,
-        fn: Callable[[], Any],
+        fn: Callable[..., Any],
         cf_future: concurrent.futures.Future[Any],
         last_call: float,
         max_retries: int,
@@ -293,7 +321,15 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         ``max_retries`` is the per-call retry budget — the caller resolves it
         from ``self._max_retries`` or a per-call override (``0`` is used by
         reconciliation probes that must fail fast on ``RPC_S_UNKNOWN_IF``).
+
+        A multi-step callable (a batch) that hit a retryable error mid-way can
+        raise :class:`ComBatchInterruptedError` carrying the work already done. The
+        retry then calls ``fn(carrier)`` so the callable resumes where it left
+        off instead of re-running completed steps — re-running them can repeat
+        destructive side effects (issue #879). Callables that raise nothing
+        special keep the plain ``fn()`` retry of before.
         """
+        carrier: ComBatchInterruptedError | None = None
         for attempt in range(max_retries + 1):
             # Throttle: wait at least current_interval since last call
             elapsed = time.monotonic() - last_call
@@ -302,7 +338,8 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
 
             start = time.monotonic()
             try:
-                result = fn()
+                result = fn(carrier) if carrier is not None else fn()
+                carrier = None
                 duration = time.monotonic() - start
 
                 # Detect latency spike BEFORE updating the average
@@ -333,6 +370,31 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 error_code = _get_com_error_code(exc)
                 self._last_error_at = time.monotonic()
                 self._last_error_repr = repr(exc)[:200]
+
+                # A batch that made partial progress asks to be resumed, not
+                # restarted: keep its carrier for the next attempt (issue #879).
+                if isinstance(exc, ComBatchInterruptedError):
+                    if exc.error_code in _RETRYABLE_COM_ERRORS and attempt < max_retries:
+                        backoff = self._current_interval_s * (2**attempt)
+                        self._increase_interval("com_busy", backoff)
+                        logger.warning(
+                            "com_call_retry",
+                            extra={
+                                "attempt": attempt + 1,
+                                "error_code": exc.error_code,
+                                "backoff_ms": int(backoff * 1000),
+                                "interval_ms": int(self._current_interval_s * 1000),
+                                "resume_after": exc.completed_count,
+                            },
+                        )
+                        time.sleep(backoff)
+                        last_call = time.monotonic()
+                        carrier = exc
+                        continue
+                    self._calls_failed += 1
+                    if not cf_future.done():
+                        cf_future.set_exception(exc)
+                    return
 
                 if error_code in _RETRYABLE_COM_ERRORS and attempt < max_retries:
                     # COM is busy — back off and retry
@@ -488,8 +550,13 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             logger.warning("com_halt_scan_failed", exc_info=True)
             return {}
 
-    def _invoke_tracked(self, fn: Callable[[], Any], target: str | None) -> Any:
-        """Run *fn* on the worker, visible to the watchdog while it is in flight."""
+    def _invoke_tracked(self, fn: Callable[..., Any], target: str | None, *args: Any) -> Any:
+        """Run *fn* on the worker, visible to the watchdog while it is in flight.
+
+        Extra *args* are forwarded to *fn* — the retry path passes a
+        :class:`ComBatchInterruptedError` carrier so a partially-completed batch can
+        resume (issue #879).
+        """
         with self._state_lock:
             self._call_seq += 1
             seq = self._call_seq
@@ -497,7 +564,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             self._in_flight_target = target
             self._next_halt_check_at = time.monotonic() + self._halt_check_after_s
         try:
-            result = fn()
+            result = fn(*args)
         except Exception as exc:
             debugger_titles = self._halted_titles(seq)
             if debugger_titles is not None:

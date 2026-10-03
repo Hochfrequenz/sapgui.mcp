@@ -383,6 +383,12 @@ class DesktopBackend:
                 # Logging in opens a new connection — never a call to cancel as "halted".
                 # (A breakpoint hit by login-time ABAP would still block here: the new
                 # connection isn't watched until login returns.)
+                # max_retries=0 (issue #879): the login callable opens a NEW parallel
+                # COM connection per call. A ComThread retry after a partial failure
+                # would open a *second* parallel connection silently — the retry is
+                # the whole callable, not the failing COM call. A failed login
+                # surfaces instead; the next login's reconcile prunes any ghost
+                # connection the attempt left behind.
                 com_call_target.set(NO_SESSION_TARGET)
                 session = await self.com.run(
                     lambda: _sapsucker_login(
@@ -391,7 +397,8 @@ class DesktopBackend:
                         user=username,
                         password=password,
                         language=language,
-                    )
+                    ),
+                    max_retries=0,
                 )
 
                 # Reconcile: prune any sessions whose underlying COM proxy

@@ -29,7 +29,7 @@ class TestDesktopBackendLogin:
 
         session = make_mock_session()
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=session):
