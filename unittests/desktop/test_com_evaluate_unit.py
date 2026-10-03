@@ -463,6 +463,31 @@ class TestRunOperationsResume:
         assert exc_info.value.error_code == -2147417851
         assert exc_info.value.completed == done
 
+    def test_retryable_error_through_real_op_path_raises_carrier(self):
+        """No monkeypatch: a COM-busy error from find_by_id itself becomes a carrier."""
+        from sapguimcp.tools.com_tools import _get_com_error_code
+
+        class FakeComError(Exception):
+            def __init__(self, hr):
+                super().__init__(hr)
+                self.args = (hr,)
+
+        session = MagicMock()
+
+        def find_by_id(element_id: str, raise_error: bool = True):  # noqa: ARG001
+            raise FakeComError(-2147417851)
+
+        session.find_by_id = find_by_id
+        ops = [
+            ComOperationInput(element_id="wnd[0]/usr/txt1", action="get", property_or_method="Text"),
+            ComOperationInput(element_id="wnd[0]/usr/txt2", action="get", property_or_method="Text"),
+        ]
+        with pytest.raises(ComBatchInterruptedError) as exc_info:
+            _run_operations(session, ops, stop_on_error=False)
+        assert exc_info.value.error_code == -2147417851
+        assert exc_info.value.completed_count == 0
+        assert _get_com_error_code(exc_info.value.__cause__) == -2147417851
+
     def test_non_retryable_error_propagates(self, monkeypatch):
         from sapguimcp.tools import com_tools
 

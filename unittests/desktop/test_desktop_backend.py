@@ -28,8 +28,10 @@ class TestDesktopBackendLogin:
         from sapguimcp.backend.desktop import DesktopBackend
 
         session = make_mock_session()
+        run_kwargs: list[dict] = []
 
         async def mock_run(fn, **kwargs):
+            run_kwargs.append(kwargs)
             return fn()
 
         with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=session):
@@ -38,6 +40,10 @@ class TestDesktopBackendLogin:
             result = await backend.login("ignored", "user", "pass", "100", "EN", connection_name="TEST_CONN")
             assert result.success is True
             assert result.user == "TESTUSER"
+            # Issue #879: login opens a NEW parallel connection per call — a
+            # ComThread retry would silently open a second one. Must fail fast.
+            # (Later com.run calls in the flow are the reconcile/user probes.)
+            assert run_kwargs[0] == {"max_retries": 0}
 
 
 class TestDesktopBackendEnterTransaction:

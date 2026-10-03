@@ -184,6 +184,12 @@ def _execute_single_op(  # pylint: disable=too-many-return-statements,too-many-l
             elem = session.find_by_id(op.element_id)
             raw = getattr(elem, "com", getattr(elem, "_com", elem))
     except Exception as exc:  # pylint: disable=broad-exception-caught
+        # A transient "COM is busy" error is not an op failure: re-raise so the
+        # batch converts it into a resume carrier and the ComThread retry
+        # re-attempts the op instead of reporting it as failed (issue #879).
+        code = _get_com_error_code(exc)
+        if code is not None and _is_retryable_com_code(code):
+            raise
         return ComOperation(
             success=False,
             error=f"Element not found: {op.element_id} ({exc})",
@@ -253,6 +259,11 @@ def _execute_single_op(  # pylint: disable=too-many-return-statements,too-many-l
         )
 
     except Exception as exc:  # pylint: disable=broad-exception-caught
+        # Same as element resolution: a transient "COM is busy" error is not
+        # an op failure — re-raise for the resume carrier (issue #879).
+        code = _get_com_error_code(exc)
+        if code is not None and _is_retryable_com_code(code):
+            raise
         return ComOperation(
             success=False,
             error=f"{op.action} {op.property_or_method} on {op.element_id}: {exc}",
