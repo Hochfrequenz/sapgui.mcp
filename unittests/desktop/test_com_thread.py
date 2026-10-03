@@ -721,7 +721,8 @@ class TestEngineState:
             state = await com_thread.engine_state()
             assert state["busy"] is True
             assert state["connection"] == "/app/con[1]"
-            assert state["busy_since_s"] is not None and state["busy_since_s"] >= 0
+            assert state["busy_since_s"] is not None
+            assert state["busy_since_s"] >= 0
         finally:
             release.set()
             await task

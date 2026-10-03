@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from sapguimcp.backend.desktop import DesktopBackend
+from sapguimcp.models.sap_results import SessionInfo
+from sapguimcp.tools.session_tools import sap_session_list_impl
 
 
 def _backend_with_engine(state: dict | None) -> DesktopBackend:
@@ -49,22 +51,17 @@ class TestComEngineState:
 class TestSessionListCarriesEngineHint:
     @pytest.mark.anyio
     async def test_hint_populated_when_engine_busy(self, monkeypatch):
-        from sapguimcp.models.sap_results import SessionInfo
-        from sapguimcp.tools.session_tools import sap_session_list_impl
-
         backend = _backend_with_engine({"busy": True, "busy_since_s": 30.0, "connection": "/app/con[1]"})
         monkeypatch.setattr("sapguimcp.tools.session_tools.get_backend", AsyncMock(return_value=backend))
         monkeypatch.setattr(type(backend), "list_sessions", AsyncMock(return_value=[SessionInfo(session_id="s1")]))
         result = await sap_session_list_impl()
         assert result.success
-        assert result.com_engine is not None and result.com_engine["busy"] is True
+        assert result.com_engine is not None
+        assert result.com_engine["busy"] is True
         assert result.sessions[0].session_id == "s1"
 
     @pytest.mark.anyio
     async def test_hint_absent_when_idle(self, monkeypatch):
-        from sapguimcp.models.sap_results import SessionInfo
-        from sapguimcp.tools.session_tools import sap_session_list_impl
-
         backend = _backend_with_engine({"busy": False, "busy_since_s": None})
         monkeypatch.setattr("sapguimcp.tools.session_tools.get_backend", AsyncMock(return_value=backend))
         monkeypatch.setattr(type(backend), "list_sessions", AsyncMock(return_value=[SessionInfo(session_id="s1")]))
