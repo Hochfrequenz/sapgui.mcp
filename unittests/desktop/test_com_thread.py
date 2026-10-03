@@ -2,6 +2,8 @@
 """Tests for _ComThread — dedicated COM worker thread."""
 
 import asyncio
+import concurrent.futures
+import time
 
 import pytest
 
@@ -640,3 +642,47 @@ class TestComBatchResume:
 
         assert await com_thread.run(fn) == "ok"
         assert calls == 2
+
+
+class TestThrottleSignals:
+    """Issue #928 step B: only COM-busy errors raise the interval, not slow calls."""
+
+    def test_latency_spike_does_not_inflate(self):
+        """A 10x-slower-than-average call is SAP work, not overload."""
+        thread = ComThread(init_com=False, min_interval_ms=0)
+        try:
+            thread._avg_latency_s = 0.01
+            thread._current_interval_s = 0.1
+            calls = ["short"] * 10 + ["slow"]
+
+            def fn():
+                item = calls.pop(0)
+                if item == "slow":
+                    time.sleep(0.12)  # > 5x the 10ms average
+                return item
+
+            for _ in range(11):
+                thread._execute_with_retry(fn, concurrent.futures.Future(), last_call=0.0, max_retries=0)
+            assert thread._current_interval_s <= 0.1, (
+                f"slow call must not inflate the interval, got {thread._current_interval_s * 1000:.0f}ms"
+            )
+        finally:
+            thread.shutdown()
+
+    def test_busy_error_still_inflates(self):
+        thread = ComThread(init_com=False, min_interval_ms=0)
+        try:
+            thread._current_interval_s = 0.1
+
+            class FakeComError(Exception):
+                def __init__(self, hr):
+                    super().__init__(hr)
+                    self.hresult = hr
+
+            def failing():
+                raise FakeComError(-2147417851)  # RETRYLATER
+
+            thread._execute_with_retry(failing, concurrent.futures.Future(), last_call=0.0, max_retries=1)
+            assert thread._current_interval_s > 0.1, "a busy error must back the interval off"
+        finally:
+            thread.shutdown()

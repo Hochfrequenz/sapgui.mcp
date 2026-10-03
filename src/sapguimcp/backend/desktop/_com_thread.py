@@ -16,8 +16,10 @@ disconnection. Key signals:
 - **RPC_S_UNKNOWN_IF** (0x800706B5): Stale COM proxy — the interface
   reference was invalidated (e.g. by a rapid screen transition). Retryable.
 - **RPC_E_DISCONNECTED** (-2147417848): Connection dead — fatal.
-- **Call latency spikes**: If a call takes 5x longer than the moving
-  average, COM is under pressure.
+
+Call latency is deliberately NOT a throttle signal (issue #928): a slow
+call is SAP doing work, not COM overload, so a latency spike no longer
+inflates the interval — only the "busy" errors above do.
 
 Halted sessions: a COM call that makes SAP run ABAP (``SendVKey``, ``Press``,
 ...) does not return until that ABAP finishes. When it stops at a breakpoint,
@@ -184,7 +186,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
 
     All operations are serialized through a single thread with CoInitialize.
     Adaptive throttling adjusts the interval between calls based on COM
-    pressure signals (retryable errors and latency spikes).
+    pressure signals (retryable "COM is busy" errors).
     """
 
     def __init__(
@@ -342,16 +344,14 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 carrier = None
                 duration = time.monotonic() - start
 
-                # Detect latency spike BEFORE updating the average
-                is_spike = duration > 5 * self._avg_latency_s and self._avg_latency_s > 0.005
-
-                # Update latency tracking (exponential moving average, alpha=0.2)
+                # Update latency tracking (exponential moving average, alpha=0.2).
+                # A slow call is SAP work, not COM overload: it must NOT inflate
+                # the throttle interval (issue #928 — the measured interval peak
+                # followed one 10 s poll loop in our own code, and the inflated
+                # interval then taxed every healthy call after it). Only real
+                # "COM is busy" errors (below) back the interval off.
                 self._avg_latency_s = 0.8 * self._avg_latency_s + 0.2 * duration
-
-                if is_spike:
-                    self._increase_interval("latency_spike", duration)
-                else:
-                    self._decrease_interval()
+                self._decrease_interval()
 
                 self._calls_succeeded += 1
                 self._last_success_at = time.monotonic()
