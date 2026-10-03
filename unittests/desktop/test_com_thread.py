@@ -3,6 +3,7 @@
 
 import asyncio
 import concurrent.futures
+import threading
 import time
 
 import pytest
@@ -687,3 +688,44 @@ class TestThrottleSignals:
             assert thread._current_interval_s > 0.1, "a busy error must back the interval off"
         finally:
             thread.shutdown()
+
+
+class TestEngineState:
+    """Issue #905: diagnostics snapshot answers 'why is my call hanging'."""
+
+    @pytest.mark.anyio
+    async def test_idle_state(self, com_thread):
+        state = await com_thread.engine_state()
+        assert state["busy"] is False
+        assert state["connection"] is None
+        assert state["busy_since_s"] is None
+        assert state["queue_depth"] == 0
+
+    @pytest.mark.anyio
+    async def test_busy_state_reports_connection_and_duration(self, com_thread):
+        from sapguimcp.backend.desktop._com_thread import com_call_target
+
+        seen: dict = {}
+        release = threading.Event()
+
+        def blocking_call():
+            seen["started"] = True
+            release.wait(timeout=5)
+            return "done"
+
+        token = com_call_target.set("/app/con[1]")
+        task = asyncio.create_task(com_thread.run(blocking_call))
+        while not seen:
+            await asyncio.sleep(0.01)
+        try:
+            state = await com_thread.engine_state()
+            assert state["busy"] is True
+            assert state["connection"] == "/app/con[1]"
+            assert state["busy_since_s"] is not None and state["busy_since_s"] >= 0
+        finally:
+            release.set()
+            await task
+            com_call_target.reset(token)
+        # After completion the engine is free again.
+        state = await com_thread.engine_state()
+        assert state["busy"] is False

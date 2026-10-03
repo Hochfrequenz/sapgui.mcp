@@ -1632,7 +1632,11 @@ The first sap_login() registers "s1". Additional sessions come from:
   a session alongside the existing ones, not replacing them — see #671)
 - sap_transaction(tcode, new_window=True) (a /o sub-session of an existing
   connection, sharing its login)
-"""
+
+Desktop: when another call has been running on the connection's single COM
+engine for a while, the result carries a `com_engine` block saying which
+connection is busy and since when. That running call is why other tool calls
+on the same connection hang — wait for it instead of retrying."""
     )
     async def sap_session_list() -> SessionListResult:
         """List all active sessions."""

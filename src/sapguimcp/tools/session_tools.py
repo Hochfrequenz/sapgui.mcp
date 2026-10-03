@@ -26,13 +26,23 @@ logger = logging.getLogger(__name__)
 async def sap_session_list_impl() -> SessionListResult:
     """List all active SAP sessions.
 
+    Desktop: when the connection's single COM engine has a call running for a
+    while, the result carries a ``com_engine`` block — that call is why other
+    tool calls on the same connection hang (issue #905).
+
     Returns:
         SessionListResult with all sessions and their state
     """
     try:
         backend = await get_backend()
         sessions = await backend.list_sessions()
-        return SessionListResult(sessions=sessions)
+        com_engine = None
+        engine_state = getattr(backend, "com_engine_state", None)
+        if callable(engine_state):
+            state = await engine_state()
+            if isinstance(state, dict):
+                com_engine = state
+        return SessionListResult(sessions=sessions, com_engine=com_engine)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("Listing sessions")
