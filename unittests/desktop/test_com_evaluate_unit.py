@@ -1,9 +1,10 @@
 """Unit tests for COM evaluate tool helpers."""
 
 import json
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
+from fastmcp import Client, FastMCP
 
 from sapguimcp.tools.com_tools import _safe_attr, _serialize_com_result
 
@@ -321,3 +322,84 @@ class TestRunOperationsStopOnError:
         results, aborted = _run_operations(session, ops, stop_on_error=False)
         assert sum(1 for r in results if not r.success) == 2
         assert aborted is None
+
+
+class TestComEvaluateWiring:
+    """The registered tool must wire the aggregates into ComEvaluateResult (#851)."""
+
+    @staticmethod
+    def _server():
+        from sapguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.tools.com_tools import register_com_tools
+
+        session = MagicMock()
+        elem = MagicMock()
+        type(elem).com = PropertyMock(return_value=elem)
+        elem.Text = "ok"
+
+        def find_by_id(element_id: str, raise_error: bool = True):  # noqa: ARG001
+            if "missing" in element_id:
+                raise Exception(f"Element not found: {element_id}")
+            return elem
+
+        session.find_by_id = find_by_id
+
+        class _FakeDesktopBackend(DesktopBackend):
+            """Minimal stand-in passing the isinstance guard without COM."""
+
+            def __init__(self) -> None:
+                self._fake_session = session
+
+            @property
+            def backend_type(self) -> str:
+                return "desktop"
+
+            def require_session(self):
+                return self._fake_session
+
+        backend = _FakeDesktopBackend()
+        backend.com = MagicMock()
+        backend.com.run = AsyncMock(side_effect=lambda fn: fn())
+
+        server = FastMCP("t")
+        register_com_tools(server)
+        return server, backend
+
+    @staticmethod
+    def _ops() -> list[ComOperationInput]:
+        return [
+            ComOperationInput(element_id="wnd[0]/usr/txt1", action="get", property_or_method="Text"),
+            ComOperationInput(element_id="wnd[0]/usr/missing", action="get", property_or_method="Text"),
+            ComOperationInput(element_id="wnd[0]/usr/txt1", action="get", property_or_method="Text"),
+        ]
+
+    @pytest.mark.anyio
+    async def test_default_aggregates_failed_count(self):
+        server, backend = self._server()
+
+        with patch("sapguimcp.tools.com_tools.get_backend", new=AsyncMock(return_value=backend)):
+            async with Client(server) as client:
+                raw = await client.call_tool(
+                    "sap_com_evaluate", {"operations": [op.model_dump() for op in self._ops()]}
+                )
+        result = json.loads(raw.content[0].text)
+        assert result["success"] is True
+        assert result["failed_count"] == 1
+        assert result["aborted_at_index"] is None
+        assert len(result["operations"]) == 3
+
+    @pytest.mark.anyio
+    async def test_stop_on_error_wires_aborted_at_index(self):
+        server, backend = self._server()
+
+        with patch("sapguimcp.tools.com_tools.get_backend", new=AsyncMock(return_value=backend)):
+            async with Client(server) as client:
+                raw = await client.call_tool(
+                    "sap_com_evaluate",
+                    {"operations": [op.model_dump() for op in self._ops()], "stop_on_error": True},
+                )
+        result = json.loads(raw.content[0].text)
+        assert result["success"] is True
+        assert result["failed_count"] == 1
+        assert result["aborted_at_index"] == 1
+        assert len(result["operations"]) == 2
