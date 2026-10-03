@@ -1,8 +1,10 @@
 """Unit tests for COM evaluate tool helpers."""
 
-from unittest.mock import MagicMock, PropertyMock
+import json
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
+from fastmcp import Client, FastMCP
 
 from sapguimcp.tools.com_tools import _safe_attr, _serialize_com_result
 
@@ -228,3 +230,176 @@ class TestSimpleCall:
         result = _execute_single_op(session, op)
         assert result.success
         elem.com.SendVKey.assert_called_once_with(0)
+
+
+from sapguimcp.tools.com_tools import _run_operations
+
+
+def _op(element_id: str = "wnd[0]/usr/txt1", action: str = "get") -> ComOperationInput:
+    return ComOperationInput(element_id=element_id, action=action, property_or_method="Text")
+
+
+class TestRunOperationsStopOnError:
+    """Issue #851: fail-fast batch execution and its aggregate signals."""
+
+    @staticmethod
+    def _session_with_failures(failing_ids: set[str], calls: list[str]):
+        """Mock session that records read order and fails reads of the given ids."""
+
+        def find_by_id(element_id: str, raise_error: bool = True) -> MagicMock:  # noqa: ARG001
+            calls.append(element_id)
+            if element_id in failing_ids:
+                raise Exception(f"Element not found: {element_id}")
+            elem = MagicMock()
+            elem.com.Text = "ok"
+            return elem
+
+        session = MagicMock()
+        session.find_by_id = find_by_id
+        return session
+
+    def test_default_runs_all_ops_despite_failure(self):
+        calls: list[str] = []
+        session = self._session_with_failures({"wnd[0]/usr/txt2"}, calls)
+        ops = [_op("wnd[0]/usr/txt1"), _op("wnd[0]/usr/txt2"), _op("wnd[0]/usr/txt3")]
+        results, aborted = _run_operations(session, ops, stop_on_error=False)
+        assert len(calls) == 3, "default must keep running after a failed op"
+        assert [r.success for r in results] == [True, False, True]
+        assert aborted is None
+
+    def test_stop_on_error_stops_at_first_failure(self):
+        calls: list[str] = []
+        session = self._session_with_failures({"wnd[0]/usr/txt2"}, calls)
+        ops = [_op("wnd[0]/usr/txt1"), _op("wnd[0]/usr/txt2"), _op("wnd[0]/usr/txt3")]
+        results, aborted = _run_operations(session, ops, stop_on_error=True)
+        assert [r.success for r in results] == [True, False]
+        assert aborted == 1
+
+    def test_stop_on_error_no_failures_runs_all(self):
+        calls: list[str] = []
+        session = self._session_with_failures(set(), calls)
+        ops = [_op("wnd[0]/usr/txt1"), _op("wnd[0]/usr/txt2")]
+        results, aborted = _run_operations(session, ops, stop_on_error=True)
+        assert all(r.success for r in results)
+        assert aborted is None
+
+    def test_first_op_failure_returns_only_failed_op(self):
+        calls: list[str] = []
+        session = self._session_with_failures({"wnd[0]/usr/txt1"}, calls)
+        ops = [_op("wnd[0]/usr/txt1"), _op("wnd[0]/usr/txt2")]
+        results, aborted = _run_operations(session, ops, stop_on_error=True)
+        assert len(results) == 1
+        assert aborted == 0
+
+    def test_set_readback_failure_is_not_op_failure(self):
+        """setattr succeeded, read-back raised -> success=True (issue #851 companion fix)."""
+        raw = MagicMock()
+        type(raw).Text = PropertyMock(side_effect=[None, Exception("write-only")])  # setattr, readback
+        elem = MagicMock()
+        elem.com = raw
+        session = _make_mock_session({"wnd[0]/usr/txt1": elem})
+        op = ComOperationInput(element_id="wnd[0]/usr/txt1", action="set", property_or_method="Text", args=["x"])
+        result = _execute_single_op(session, op)
+        assert result.success
+        payload = json.loads(result.result or "{}")
+        assert payload == {"written": True, "readback_error": "write-only"}
+
+    def test_set_write_failure_is_op_failure(self):
+        """setattr itself raising -> success=False."""
+        raw = MagicMock()
+        type(raw).Text = PropertyMock(side_effect=Exception("read-only"))
+        elem = MagicMock()
+        elem.com = raw
+        session = _make_mock_session({"wnd[0]/usr/txt1": elem})
+        op = ComOperationInput(element_id="wnd[0]/usr/txt1", action="set", property_or_method="Text", args=["x"])
+        result = _execute_single_op(session, op)
+        assert not result.success
+
+    def test_multiple_failures_counted(self):
+        calls: list[str] = []
+        session = self._session_with_failures({"wnd[0]/usr/txt1", "wnd[0]/usr/txt3"}, calls)
+        ops = [_op("wnd[0]/usr/txt1"), _op("wnd[0]/usr/txt2"), _op("wnd[0]/usr/txt3")]
+        results, aborted = _run_operations(session, ops, stop_on_error=False)
+        assert sum(1 for r in results if not r.success) == 2
+        assert aborted is None
+
+
+class TestComEvaluateWiring:
+    """The registered tool must wire the aggregates into ComEvaluateResult (#851)."""
+
+    @staticmethod
+    def _server():
+        from sapguimcp.backend.desktop import DesktopBackend
+        from sapguimcp.tools.com_tools import register_com_tools
+
+        session = MagicMock()
+        elem = MagicMock()
+        type(elem).com = PropertyMock(return_value=elem)
+        elem.Text = "ok"
+
+        def find_by_id(element_id: str, raise_error: bool = True):  # noqa: ARG001
+            if "missing" in element_id:
+                raise Exception(f"Element not found: {element_id}")
+            return elem
+
+        session.find_by_id = find_by_id
+
+        class _FakeDesktopBackend(DesktopBackend):
+            """Minimal stand-in passing the isinstance guard without COM."""
+
+            def __init__(self) -> None:
+                self._fake_session = session
+
+            @property
+            def backend_type(self) -> str:
+                return "desktop"
+
+            def require_session(self):
+                return self._fake_session
+
+        backend = _FakeDesktopBackend()
+        backend.com = MagicMock()
+        backend.com.run = AsyncMock(side_effect=lambda fn: fn())
+
+        server = FastMCP("t")
+        register_com_tools(server)
+        return server, backend
+
+    @staticmethod
+    def _ops() -> list[ComOperationInput]:
+        return [
+            ComOperationInput(element_id="wnd[0]/usr/txt1", action="get", property_or_method="Text"),
+            ComOperationInput(element_id="wnd[0]/usr/missing", action="get", property_or_method="Text"),
+            ComOperationInput(element_id="wnd[0]/usr/txt1", action="get", property_or_method="Text"),
+        ]
+
+    @pytest.mark.anyio
+    async def test_default_aggregates_failed_count(self):
+        server, backend = self._server()
+
+        with patch("sapguimcp.tools.com_tools.get_backend", new=AsyncMock(return_value=backend)):
+            async with Client(server) as client:
+                raw = await client.call_tool(
+                    "sap_com_evaluate", {"operations": [op.model_dump() for op in self._ops()]}
+                )
+        result = json.loads(raw.content[0].text)
+        assert result["success"] is True
+        assert result["failed_count"] == 1
+        assert result["aborted_at_index"] is None
+        assert len(result["operations"]) == 3
+
+    @pytest.mark.anyio
+    async def test_stop_on_error_wires_aborted_at_index(self):
+        server, backend = self._server()
+
+        with patch("sapguimcp.tools.com_tools.get_backend", new=AsyncMock(return_value=backend)):
+            async with Client(server) as client:
+                raw = await client.call_tool(
+                    "sap_com_evaluate",
+                    {"operations": [op.model_dump() for op in self._ops()], "stop_on_error": True},
+                )
+        result = json.loads(raw.content[0].text)
+        assert result["success"] is True
+        assert result["failed_count"] == 1
+        assert result["aborted_at_index"] == 1
+        assert len(result["operations"]) == 2

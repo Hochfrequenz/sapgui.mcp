@@ -18,6 +18,20 @@ class ComEvaluateResult(ToolResult):
     """Result from sap_com_evaluate tool. Supports batch operations."""
 
     operations: list[ComOperation] = Field(default_factory=list, description="Results of each operation")
+    failed_count: int = Field(
+        default=0,
+        description="Number of returned operations with success=False.",
+    )
+    aborted_at_index: int | None = Field(
+        default=None,
+        description=(
+            "With stop_on_error=True: 0-based index into the REQUESTED operations list at which "
+            "execution stopped (the first failed operation). None when the batch was not aborted — "
+            "either stop_on_error=False or no operation failed. The operations list then contains "
+            "only the ops that ran, so this index is what tells 'aborted after N' apart from "
+            "'only N submitted'."
+        ),
+    )
 
 
 class ComSnapshotResult(ToolResult):
