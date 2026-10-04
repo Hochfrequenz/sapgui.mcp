@@ -104,9 +104,17 @@
             entry.fillable = true;
             entry.elementId = target.id || null;
             entry.elementType = input ? 'input' : 'textbox';
-            entry.selector = target.id
-                ? `#${target.id}`
-                : `[lsdata*="GS_SELFIELDS-LOW[${columnIndex},${rowIndex}]"]`;
+            // Without an id, address the control by its SID. The cell wrapper carries the same SID, so
+            // qualify by what the target is: the textbox itself, an input carrying the SID, or the
+            // input nested in the textbox.
+            const sid = `[lsdata*="GS_SELFIELDS-LOW[${columnIndex},${rowIndex}]"]`;
+            let selector = `[role="textbox"]${sid}`;
+            if (element.tagName === 'INPUT') {
+                selector = `input${sid}`;
+            } else if (input) {
+                selector = `[role="textbox"]${sid} input`;
+            }
+            entry.selector = target.id ? `[id="${target.id}"]` : selector;
         }
     }
 

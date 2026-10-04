@@ -589,7 +589,9 @@ def _plan_se16n_filters(
         )
         return plan
     by_index = {row.row_index: row for row in rows}
-    result.offered_fields = list(field_order)
+    result.offered_fields = [
+        name for name, position in field_order.items() if (row := by_index.get(position)) is not None and row.fillable
+    ]
     for name, value in filters.items():
         position = field_order.get(name.upper())
         row = by_index.get(position) if position is not None else None
@@ -1133,9 +1135,11 @@ def register_se16_tools(mcp: FastMCP) -> None:
             "Query SAP table data via SE16N (Data Browser). "
             "If sap-adt is available, prefer its run_query tool for simple queries. "
             "USE THIS for complex queries with dynamic filtering or when ADT is unavailable.\n\n"
-            "**Filters:** On the desktop backend, if a filter cannot be applied (e.g. the field is unknown "
-            "or not offered by SE16N), the call fails before running the query; the error lists the "
-            "SE16N selection fields when they could be read.\n\n"
+            "**Filters:** If a filter cannot be applied (e.g. the field is unknown or not offered by "
+            "SE16N), the call fails before running the query; the error lists the SE16N selection "
+            "fields when they could be read. On the WebGUI backend a filter goes into the row whose "
+            "technical name matches, and only the first ~30 rows of the selection grid are rendered, "
+            "so a field further down a wide table cannot be filtered (the error says so).\n\n"
             "**Performance:** ~7 rows/second due to pagination.\n"
             "- 100 rows: ~14 seconds\n"
             "- 500 rows: ~1.5 minutes\n"
@@ -1159,8 +1163,9 @@ def register_se16_tools(mcp: FastMCP) -> None:
         Args:
             ctx: FastMCP context (injected)
             table: Table name to query (e.g., "MARA", "T000", "TSTC")
-            filters: Optional filter dict {field_name: value} - uses technical field names. On the desktop
-                backend, a field that is unknown or not offered by SE16N makes the call fail.
+            filters: Optional filter dict {field_name: value} - uses technical field names. A field that is
+                unknown or not offered by SE16N makes the call fail (both backends); on the WebGUI backend
+                fields beyond the first ~30 selection rows cannot be reached.
             max_hits: Maximum rows to return (default 100)
             output_file: If provided, write full results to this JSON file within the
                 configured output directory (OUTPUT_DIR, default: current working

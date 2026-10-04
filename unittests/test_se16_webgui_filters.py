@@ -161,6 +161,12 @@ class TestPlanWithoutTechnicalNames:
         assert plan.targets == []
         assert "cannot be verified" in plan.result.other_errors[0]
 
+    def test_unfillable_rows_are_not_offered_in_the_fallback(self) -> None:
+        rows = [_row(0, None, fillable=False), _row(1, None)]
+        plan = _plan_se16n_filters(rows, {"ZZ": "x"}, {"A": 0, "B": 1}, "T")
+        assert plan.result.unapplied_fields == ["ZZ"]
+        assert plan.result.offered_fields == ["B"]
+
     def test_unknown_field_is_unapplied_and_se11_names_are_offered(self) -> None:
         rows = [_row(0, None), _row(1, None)]
         plan = _plan_se16n_filters(rows, {"ZZ": "x"}, {"A": 0, "B": 1}, "T")
@@ -303,6 +309,7 @@ def _grid_html(
     *,
     padding: int = 0,
     textbox_with_input: bool = False,
+    with_ids: bool = True,
 ) -> str:
     """Rows are (label, technical name or None if not in the DOM, has an input); left and right are separate <tr>."""
     left = ""
@@ -312,8 +319,10 @@ def _grid_html(
         left += f'<tr role="row">{_cell("txt", "SCRTEXT_M", 0, row, text=label)}</tr>'
         low_ls = _lsdata("ctxt", "LOW", 2, row)
         if has_input:
-            inner_input = f'<input id="in{row}">' if textbox_with_input else ""
-            control = f'<span role="textbox" id="low{row}" lsdata=\'{low_ls}\'>{inner_input}</span>'
+            input_id = f' id="in{row}"' if with_ids else ""
+            inner_input = f"<input{input_id}>" if textbox_with_input else ""
+            textbox_id = f' id="low{row}"' if with_ids else ""
+            control = f"<span role=\"textbox\"{textbox_id} lsdata='{low_ls}'>{inner_input}</span>"
             low = _cell("ctxt", "LOW", 2, row, control=control)
         else:
             low = _cell("ctxt", "LOW", 2, row, control="")
@@ -337,6 +346,12 @@ async def _run_read_rows(html: str) -> dict[str, Any]:
             page = await browser.new_page()
             await page.set_content(html)
             result: dict[str, Any] = await page.evaluate(READ_ROWS_JS.read_text(encoding="utf-8"), {})
+            # How many elements each returned selector addresses (must be exactly one to be fillable).
+            result["selectorMatches"] = {
+                row["rowIndex"]: await page.locator(row["selector"]).count()
+                for row in result.get("rows", [])
+                if row["selector"]
+            }
             return result
         finally:
             await browser.close()
@@ -384,7 +399,14 @@ class TestReadSelectionRowsJs:
     async def test_the_input_inside_the_textbox_is_preferred(self) -> None:
         result = await _run_read_rows(_grid_html([("Tcode", "TCODE", True)], textbox_with_input=True))
         row = result["rows"][0]
-        assert (row["elementId"], row["elementType"], row["selector"]) == ("in0", "input", "#in0")
+        assert (row["elementId"], row["elementType"], row["selector"]) == ("in0", "input", '[id="in0"]')
+
+    @pytest.mark.parametrize("textbox_with_input", [False, True])
+    async def test_selectors_address_exactly_one_element_with_and_without_ids(self, textbox_with_input: bool) -> None:
+        rows = [("Tcode", "TCODE", True), ("Prog", "PGMNA", True)]
+        for with_ids in (True, False):
+            result = await _run_read_rows(_grid_html(rows, textbox_with_input=textbox_with_input, with_ids=with_ids))
+            assert result["selectorMatches"] == {0: 1, 1: 1}, (with_ids, result["rows"])
 
     async def test_namespaced_and_lowercase_names_are_normalised(self) -> None:
         result = await _run_read_rows(_grid_html([("Ns", "/abc/field", True)]))
