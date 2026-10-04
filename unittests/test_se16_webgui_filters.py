@@ -115,6 +115,15 @@ class TestPartlyRenderedGrid:
         plan = _plan_se16n_filters([_row(0, "A")], {"Z": "x"}, {"A": 0}, "T")
         assert plan.result.hint is None
 
+    def test_the_hint_is_part_of_the_failure_message_without_unapplied_fields_too(self) -> None:
+        # Names unreadable and the row count differs from SE11: only other_errors, but the hint still explains.
+        rows = [_row(0, None)]
+        plan = _plan_se16n_filters(rows, {"Z": "x"}, {"A": 0, "Z": 1}, "T")
+        assert plan.result.unapplied_fields == []
+        error = _filter_fill_failure(plan.result, "T", datetime.now(UTC)).error or ""
+        assert error.startswith("Could not apply filters: SE16N offers 1 selection rows")
+        assert "renders only the first rows of the grid" in error
+
     def test_the_hint_is_part_of_the_failure_message(self) -> None:
         rows = [_row(0, "A")]
         plan = _plan_se16n_filters(rows, {"Z": "x"}, {"A": 0, "Z": 1}, "T")
@@ -403,9 +412,10 @@ class TestFillElementByLocator:
     """SE16N grid cells are custom role=textbox controls: Playwright's fill() rejects them."""
 
     @staticmethod
-    def _backend(fill_error: Exception | None) -> tuple[WebGuiBackend, MagicMock]:
+    def _backend(fill_error: Exception | None, role: str | None = "textbox") -> tuple[WebGuiBackend, MagicMock]:
         element = MagicMock()
         element.count = AsyncMock(return_value=1)
+        element.get_attribute = AsyncMock(return_value=role)
         element.click = AsyncMock()
         element.fill = AsyncMock(side_effect=fill_error)
         element.press_sequentially = AsyncMock()
@@ -422,6 +432,13 @@ class TestFillElementByLocator:
         assert await backend.fill_element_by_locator("#x", "SE16") is True
         assert [call.args[0] for call in page.keyboard.press.await_args_list] == ["Control+A", "Backspace", "Tab"]
         page.locator.return_value.press_sequentially.assert_awaited_once_with("SE16", delay=30)
+
+    async def test_a_failing_fill_on_anything_but_a_custom_textbox_sends_no_keys(self) -> None:
+        # e.g. a detached or broken <input>: Ctrl+A/Backspace would hit whatever else has focus.
+        backend, page = self._backend(RuntimeError("Timeout"), role=None)
+        assert await backend.fill_element_by_locator("#x", "SE16") is False
+        page.keyboard.press.assert_not_awaited()
+        page.locator.return_value.press_sequentially.assert_not_awaited()
 
     async def test_an_input_is_still_cleared_with_fill(self) -> None:
         backend, page = self._backend(None)

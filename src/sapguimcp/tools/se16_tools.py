@@ -469,6 +469,8 @@ def _filter_fill_failure(fill: _FilterFillResult, table: str, now: datetime) -> 
     warnings.extend(fill.other_errors)
     if not fill.unapplied_fields:
         error = "Could not apply filters: " + "; ".join(fill.other_errors)
+        if fill.hint:
+            error += f" {fill.hint}"
         return _empty_failure(error, table, now, filter_warnings=warnings)
 
     names = ", ".join(f"'{name}'" for name in fill.unapplied_fields)

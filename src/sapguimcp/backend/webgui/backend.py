@@ -878,6 +878,8 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             try:
                 await element.fill("")
             except Exception:  # pylint: disable=broad-exception-caught
+                if await element.get_attribute("role") != "textbox":
+                    raise  # a genuine failure: do not send keys to whatever else has focus
                 await self._page.keyboard.press("Control+A")
                 await self._page.keyboard.press("Backspace")
             await element.press_sequentially(value, delay=delay_ms)
