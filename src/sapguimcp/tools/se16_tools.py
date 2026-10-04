@@ -273,119 +273,6 @@ async def _fill_filter_by_locator(
     return False
 
 
-async def _fill_filter_by_index(
-    backend: WebGuiBackend, find_js: str, field_name: str, value: str, row_index: int
-) -> str | None:
-    """
-    Fill a single filter field using index-based approach.
-
-    Uses JS to find the element, then fills it via protocol methods.
-
-    Returns:
-        Error message if failed, None if successful.
-    """
-    # Find the element using JS
-    result = await backend.evaluate_javascript(find_js, {"rowIndex": row_index, "fieldName": field_name})
-
-    if not result.get("success"):
-        error_msg = str(result.get("error", f"Could not find element for {field_name}"))
-        debug_info = result.get("debug", {})
-        logger.warning("Find element failed", extra={"error": error_msg, "debug": debug_info})
-        return error_msg
-
-    # Extract element info
-    element_id = result.get("elementId")
-    selector = result.get("selector")
-    strategy = result.get("strategy", "unknown")
-    element_type = result.get("elementType", "unknown")
-
-    logger.info(
-        "Found element",
-        extra={
-            "field": field_name,
-            "row_index": row_index,
-            "element_id": element_id,
-            "element_type": element_type,
-            "strategy": strategy,
-        },
-    )
-
-    # Fill using locator-based approach
-    if await _fill_filter_by_locator(backend, element_id, selector, value, field_name):
-        return None
-
-    return f"Found element for {field_name} but fill by locator failed"
-
-
-async def _fill_se16n_filters(  # pylint: disable=too-many-locals
-    backend: WebGuiBackend, filters: dict[str, str] | None, field_order: dict[str, int] | None
-) -> list[str]:
-    """
-    Fill filter values in SE16N selection criteria grid using row indices.
-
-    Uses SE11 field order mapping to find the correct row index for each field,
-    avoiding the need to search for field names in the DOM (which fails due to
-    SAP Web GUI's lazy column rendering).
-
-    Uses a two-step approach:
-    1. JavaScript finds the target element's ID/selector
-    2. Protocol's fill_element_by_locator clicks + types the value (triggers proper SAP events)
-
-    Args:
-        backend: WebGuiBackend instance
-        filters: Dict of {field_name: value} to filter on.
-                 Field names should be technical names (e.g., "TCODE", "PGMNA").
-        field_order: Dict mapping field names to row indices from SE11.
-                     If None, falls back to name-based search (may fail).
-
-    Returns:
-        List of error messages (empty if all filters applied successfully).
-    """
-    if not filters:
-        return []
-
-    errors: list[str] = []
-
-    find_js = backend.load_js("find_se16_filter_input.js") if field_order else None
-    fill_js = backend.load_js("fill_se16_filter.js") if not field_order else None
-
-    if not field_order:
-        logger.warning("No field order available, falling back to name-based filter search")
-
-    for field_name, value in filters.items():
-        field_upper = field_name.upper()
-
-        try:
-            if field_order and find_js:
-                # Check if field exists in table
-                if field_upper not in field_order:
-                    available = list(field_order.keys())[:10]
-                    errors.append(f"Field '{field_name}' not found in table (available: {available})")
-                    continue
-
-                # Fill using index-based approach
-                error = await _fill_filter_by_index(backend, find_js, field_upper, value, field_order[field_upper])
-                if error:
-                    errors.append(error)
-
-            elif fill_js:
-                # Fall back to name-based JavaScript approach
-                result = await backend.evaluate_javascript(fill_js, {"fieldName": field_upper, "value": value})
-
-                if not result.get("success"):
-                    error_msg = result.get("error", f"Unknown error for field {field_name}")
-                    errors.append(error_msg)
-                    logger.warning("Filter error (name-based)", extra={"error": error_msg})
-                else:
-                    logger.info("Applied filter via JS (name-based)", extra={"field": field_name, "value": value})
-
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            errors.append(f"Failed to apply filter {field_name}={value}: {e}")
-            logger.warning("Filter exception", extra={"field": field_name, "error": str(e)})
-
-    return errors
-
-
 def _check_table_not_found(snapshot: str, table: str) -> str | None:
     """
     Check if snapshot indicates table not found error.
@@ -559,6 +446,7 @@ class _FilterFillResult:
     unapplied_fields: list[str] = dataclass_field(default_factory=list)  # requested names (as given) not in the grid
     other_errors: list[str] = dataclass_field(default_factory=list)  # non-field problems, e.g. grid not found
     offered_fields: list[str] = dataclass_field(default_factory=list)  # technical names seen in grid, deduped, ordered
+    hint: str | None = None  # extra sentence for the failure message (Web GUI: the grid is only partly rendered)
 
 
 def _dedupe_keep_order(names: list[str]) -> list[str]:
@@ -581,6 +469,8 @@ def _filter_fill_failure(fill: _FilterFillResult, table: str, now: datetime) -> 
     warnings.extend(fill.other_errors)
     if not fill.unapplied_fields:
         error = "Could not apply filters: " + "; ".join(fill.other_errors)
+        if fill.hint:
+            error += f" {fill.hint}"
         return _empty_failure(error, table, now, filter_warnings=warnings)
 
     names = ", ".join(f"'{name}'" for name in fill.unapplied_fields)
@@ -591,6 +481,8 @@ def _filter_fill_failure(fill: _FilterFillResult, table: str, now: datetime) -> 
     error += (
         " A field can exist in the table without being an SE16N selection field; use sap-adt `run_query` if available."
     )
+    if fill.hint:
+        error += f" {fill.hint}"
     return _empty_failure(error, table, now, filter_warnings=warnings)
 
 
@@ -616,6 +508,161 @@ def _find_and_set_filter_cell(
         except Exception:  # pylint: disable=broad-exception-caught
             continue
     return False
+
+
+@dataclass
+class _GridRow:
+    """One row of the SE16N selection-criteria grid as read from the Web GUI DOM."""
+
+    row_index: int
+    label: str
+    field_name: str | None  # upper-case technical name; None when the column is not in the DOM
+    fillable: bool  # the From-Value cell is an input (SE16N offers the field for selection)
+    element_id: str | None
+    selector: str | None
+
+
+@dataclass
+class _FilterPlan:
+    """Which grid row each requested filter goes into, plus the filters that cannot be placed."""
+
+    targets: list[tuple[str, str, _GridRow]] = dataclass_field(default_factory=list)  # (requested, value, row)
+    result: _FilterFillResult = dataclass_field(default_factory=_FilterFillResult)
+
+
+def _plan_se16n_filters(
+    rows: list[_GridRow],
+    filters: dict[str, str],
+    field_order: dict[str, int] | None,
+    table: str,
+    possibly_truncated: bool = False,
+) -> _FilterPlan:
+    """Decide which selection row each filter belongs to, without trusting positions blindly.
+
+    SE16N does not offer every SE11 field as a selection field, so SE11 positions can be shifted
+    against the grid (#924). Therefore:
+
+    * when every row shows its technical name, filters are matched **by name**, and the offered
+      fields come from the grid;
+    * when the technical names are not in the DOM, the SE11 order is used only if the grid has
+      exactly as many rows as SE11 has fields; any other count means a field was left out,
+      positions cannot be trusted, and nothing is filled.
+
+    The Web GUI renders only the first rows of the grid (about 30) and the grid is not scrolled, so a
+    field further down the table is not among ``rows``. When the grid has no empty padding row left
+    (``possibly_truncated``) or SE11 lists more fields than the grid shows, the failure says so (``hint``).
+    """
+    plan = _FilterPlan()
+    result = plan.result
+    if not rows:
+        result.other_errors.append("SE16N selection criteria grid has no rows")
+        return plan
+
+    truncation_hint: str | None = None
+    if possibly_truncated or (field_order and len(field_order) > len(rows)):
+        truncation_hint = (
+            f"SAP Web GUI renders only the first rows of the grid ({len(rows)} here) and does not scroll it, "
+            f"so a field further down table {table} cannot be reached."
+        )
+
+    if all(row.field_name for row in rows):
+        by_name = {str(row.field_name): row for row in rows if row.fillable}
+        rendered = {str(row.field_name) for row in rows}
+        result.offered_fields = _dedupe_keep_order([str(row.field_name) for row in rows if row.fillable])
+        for name, value in filters.items():
+            row = by_name.get(name.upper())
+            if row is None:
+                result.unapplied_fields.append(name)
+            else:
+                plan.targets.append((name, value, row))
+        # Only a field that is absent from the rendered rows can be "further down"; a rendered row that
+        # merely has no input (the client field) is not.
+        if truncation_hint and any(name.upper() not in rendered for name in result.unapplied_fields):
+            result.hint = truncation_hint
+        return plan
+
+    # Technical names are not readable from the DOM: fall back to the SE11 order, but only if it provably fits.
+    result.hint = truncation_hint
+    if not field_order:
+        result.other_errors.append(
+            "SE16N does not show technical field names in the page and the SE11 field list is unavailable, "
+            "so the filter row cannot be verified"
+        )
+        return plan
+    if len(rows) != len(field_order):
+        result.other_errors.append(
+            f"SE16N offers {len(rows)} selection rows for table {table} but SE11 lists {len(field_order)} fields; "
+            "row positions may not match field names, so no filter was applied"
+        )
+        return plan
+    by_index = {row.row_index: row for row in rows}
+    result.offered_fields = [
+        name for name, position in field_order.items() if (row := by_index.get(position)) is not None and row.fillable
+    ]
+    for name, value in filters.items():
+        position = field_order.get(name.upper())
+        row = by_index.get(position) if position is not None else None
+        if row is None or not row.fillable:
+            result.unapplied_fields.append(name)
+        else:
+            plan.targets.append((name, value, row))
+    return plan
+
+
+def _parse_grid_rows(raw_rows: Any) -> list[_GridRow]:
+    """Convert the rows returned by ``read_se16n_selection_rows.js`` into ``_GridRow`` objects.
+
+    The grid is padded with empty rows (no label, no name, no input); those are not fields and are dropped.
+    """
+    rows: list[_GridRow] = []
+    for raw in raw_rows or []:
+        label = str(raw.get("label") or "")
+        field_name = str(raw["fieldName"]).upper() if raw.get("fieldName") else None
+        fillable = bool(raw.get("fillable"))
+        if not (label or field_name or fillable):
+            continue
+        rows.append(
+            _GridRow(
+                row_index=int(raw["rowIndex"]),
+                label=label,
+                field_name=field_name,
+                fillable=fillable,
+                element_id=raw.get("elementId"),
+                selector=raw.get("selector"),
+            )
+        )
+    return rows
+
+
+async def _fill_se16n_filters_webgui(
+    backend: WebGuiBackend, table: str, filters: dict[str, str], field_order: dict[str, int] | None
+) -> _FilterFillResult:
+    """Fill the SE16N selection criteria on the Web GUI backend, placing each filter by field name.
+
+    Reads the grid rows (index, technical name, input element) from the DOM, plans which row each
+    filter goes into (:func:`_plan_se16n_filters`), then fills those inputs through the protocol's
+    ``fill_element_by_locator`` (click + type, which triggers the proper SAP events).
+
+    Filters that cannot be placed, and fills that fail, are reported in the result; the caller must
+    not run the query when the result is not clean.
+    """
+    read_js = backend.load_js("read_se16n_selection_rows.js")
+    grid = await backend.evaluate_javascript(read_js, {})
+    if not grid.get("success"):
+        return _FilterFillResult(other_errors=[str(grid.get("error", "Could not read the SE16N selection grid"))])
+
+    plan = _plan_se16n_filters(
+        _parse_grid_rows(grid.get("rows")),
+        filters,
+        field_order,
+        table,
+        possibly_truncated=not grid.get("hasPaddingRows"),
+    )
+    result = plan.result
+    for name, value, row in plan.targets:
+        if not await _fill_filter_by_locator(backend, row.element_id, row.selector, value, name):
+            result.other_errors.append(f"Found the selection row for {name} but filling it failed")
+    return result
 
 
 async def _fill_se16n_filters_desktop(
@@ -945,7 +992,9 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     assert isinstance(backend, _WG)
 
     # If filters are provided, get field order from SE11 FIRST
-    # (before navigating to SE16N, since SE11 lookup changes the screen)
+    # (before navigating to SE16N, since SE11 lookup changes the screen).
+    # It is only used when SE16N's grid does not show technical field names, and then only if
+    # the row count matches (#924); otherwise filters are placed by the name read from the grid.
     field_order: dict[str, int] | None = None
     if filters:
         logger.info("Getting field order from SE11", extra={"table": table})
@@ -966,10 +1015,13 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
         fill_error = await _type_table_name_with_validation(backend, table)
         if not fill_error:
             await _wait_for_grid_rows(backend, timeout_seconds=5)
-            filter_errors = await _fill_se16n_filters(backend, filters, field_order)
-            if filter_errors:
-                filter_warnings = filter_errors
-                logger.warning("Some filters could not be applied", extra={"errors": filter_errors})
+            fill = await _fill_se16n_filters_webgui(backend, table, filters, field_order)
+            if fill.unapplied_fields or fill.other_errors:
+                logger.warning(
+                    "WebGUI filters could not be applied, not running the query",
+                    extra={"unapplied": fill.unapplied_fields, "errors": fill.other_errors},
+                )
+                return _filter_fill_failure(fill, table, now)
             # Re-fill table name after filter filling — filter input via
             # page.keyboard could have corrupted it (fixes #289, #290)
             refill_error = await _fill_se16n_table_name(backend, table)
@@ -1090,9 +1142,11 @@ def register_se16_tools(mcp: FastMCP) -> None:
             "Query SAP table data via SE16N (Data Browser). "
             "If sap-adt is available, prefer its run_query tool for simple queries. "
             "USE THIS for complex queries with dynamic filtering or when ADT is unavailable.\n\n"
-            "**Filters:** On the desktop backend, if a filter cannot be applied (e.g. the field is unknown "
-            "or not offered by SE16N), the call fails before running the query; the error lists the "
-            "SE16N selection fields when they could be read.\n\n"
+            "**Filters:** If a filter cannot be applied (e.g. the field is unknown or not offered by "
+            "SE16N), the call fails before running the query; the error lists the SE16N selection "
+            "fields when they could be read. On the WebGUI backend a filter goes into the row whose "
+            "technical name matches, and only the first ~30 rows of the selection grid are rendered, "
+            "so a field further down a wide table cannot be filtered (the error says so).\n\n"
             "**Performance:** ~7 rows/second due to pagination.\n"
             "- 100 rows: ~14 seconds\n"
             "- 500 rows: ~1.5 minutes\n"
@@ -1116,8 +1170,9 @@ def register_se16_tools(mcp: FastMCP) -> None:
         Args:
             ctx: FastMCP context (injected)
             table: Table name to query (e.g., "MARA", "T000", "TSTC")
-            filters: Optional filter dict {field_name: value} - uses technical field names. On the desktop
-                backend, a field that is unknown or not offered by SE16N makes the call fail.
+            filters: Optional filter dict {field_name: value} - uses technical field names. A field that is
+                unknown or not offered by SE16N makes the call fail (both backends); on the WebGUI backend
+                fields beyond the first ~30 selection rows cannot be reached.
             max_hits: Maximum rows to return (default 100)
             output_file: If provided, write full results to this JSON file within the
                 configured output directory (OUTPUT_DIR, default: current working
