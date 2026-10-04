@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from mcp import ClientSession
 
-from sapguimcp.backend.webgui.models.browser_results import FillResult, SnapshotResult
+from sapguimcp.backend.webgui.models.browser_results import EvaluateResult, FillResult, SnapshotResult
 from sapguimcp.models import (
     FillFormResult,
     KeyboardResult,
@@ -33,6 +33,9 @@ from .integration_helpers import (
 )
 
 SE16_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se16_exploration"
+READ_SELECTION_ROWS_JS = (
+    Path(__file__).parents[2] / "src" / "sapguimcp" / "backend" / "webgui" / "js" / "read_se16n_selection_rows.js"
+)
 
 
 async def capture_yaml_snapshot(
@@ -558,6 +561,101 @@ async def test_se16_query_bug_report_filters(sap_mcp_client: ClientSession) -> N
     assert result.success, f"Bug report filters failed: {result.error}"
     assert "existiert nicht" not in (result.error or ""), "Filter value entered in wrong field"
     assert "does not exist" not in (result.error or ""), "Filter value entered in wrong field"
+
+
+# --- #924: filters are placed by technical field name ---
+
+
+@pytest.mark.anyio
+async def test_se16_query_filter_field_not_offered_fails_before_running(sap_mcp_client: ClientSession) -> None:
+    """A filter field SE16N does not offer fails the query instead of running it with another filter (#924)."""
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "TSTC", "filters": {"NO_SUCH_FIELD": "x"}, "max_hits": 5},
+        SE16Result,
+    )
+
+    assert not result.success, "A filter on a field SE16N does not offer must not run the query"
+    assert result.rows == []
+    assert result.filter_warnings, "The unapplied filter must be reported"
+
+
+@pytest.mark.anyio
+async def test_se16_query_client_field_is_not_offered_for_selection(sap_mcp_client: ClientSession) -> None:
+    """SE16N shows MANDT but gives it no input: a filter on it fails instead of landing in another row (#924)."""
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "MARA", "filters": {"MANDT": "100"}, "max_hits": 5},
+        SE16Result,
+    )
+
+    assert not result.success
+    assert "'MANDT' not available as SE16N selection criteria" in (result.error or "")
+    assert "MATNR" in (result.error or ""), f"The offered fields should list MATNR: {result.error}"
+
+
+@pytest.mark.anyio
+async def test_se16_query_field_beyond_the_rendered_rows_explains_why(sap_mcp_client: ClientSession) -> None:
+    """SAP Web GUI renders only the first ~30 selection rows; a field further down says so (#924)."""
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    # MARA has far more than 30 fields; VOLUM is well below the rendered rows.
+    result = await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "MARA", "filters": {"VOLUM": "1"}, "max_hits": 5},
+        SE16Result,
+    )
+
+    assert not result.success
+    assert "renders only the first rows of the grid" in (result.error or "")
+
+
+@pytest.mark.anyio
+async def test_se16n_selection_grid_dom_capture(sap_mcp_client: ClientSession) -> None:
+    """
+    Capture what read_se16n_selection_rows.js sees on the real SE16N selection grid.
+
+    Evidence for #924: the Web GUI renders the grid as a split table whose cells carry lsdata SIDs
+    (``...GS_SELFIELDS-FIELDNAME[6,row]``); this asserts that every labelled row exposes its technical
+    name, and saves the rows to ``testdata/se16_exploration/se16n_selection_rows_<language>.json``.
+    """
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+
+    # A filter SE16N does not offer fails before F8, which leaves the selection grid on screen.
+    await call_tool_typed(
+        sap_mcp_client,
+        "sap_se16_query",
+        {"table": "TSTC", "filters": {"NO_SUCH_FIELD": "x"}, "max_hits": 5},
+        SE16Result,
+    )
+
+    script = READ_SELECTION_ROWS_JS.read_text(encoding="utf-8").strip().rstrip(";")
+    evaluated = await call_tool_typed(sap_mcp_client, "browser_evaluate", {"script": script}, EvaluateResult)
+    assert evaluated.success, f"browser_evaluate failed: {evaluated.error}"
+    grid = json.loads(evaluated.result or "{}")
+    assert grid.get("success"), f"Selection grid not readable: {grid}"
+
+    labelled = [row for row in grid["rows"] if row["label"]]
+    assert labelled, "Selection grid has no labelled rows"
+    assert all(row["fieldName"] for row in labelled), f"Rows without a technical name: {labelled}"
+    assert any(row["fillable"] for row in labelled), "No row offers a From-Value input"
+
+    language = os.environ.get("SAP_LANGUAGE", "de").lower()
+    SE16_SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+    (SE16_SNAPSHOTS_DIR / f"se16n_selection_rows_{language}.json").write_text(
+        json.dumps(grid, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 # --- Merged from test_sap_integration.py ---

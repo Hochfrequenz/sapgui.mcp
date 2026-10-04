@@ -1,0 +1,277 @@
+{
+  "success": true,
+  "rows": [
+    {
+      "rowIndex": 0,
+      "label": "Transaktionscode",
+      "fieldName": "TCODE",
+      "fillable": true,
+      "elementId": "M0:46:1:1[1,3]_c",
+      "selector": "#M0:46:1:1[1,3]_c",
+      "elementType": "textbox"
+    },
+    {
+      "rowIndex": 1,
+      "label": "Programm",
+      "fieldName": "PGMNA",
+      "fillable": true,
+      "elementId": "M0:46:1:1[2,3]_c",
+      "selector": "#M0:46:1:1[2,3]_c",
+      "elementType": "textbox"
+    },
+    {
+      "rowIndex": 2,
+      "label": "Bildschirm",
+      "fieldName": "DYPNO",
+      "fillable": true,
+      "elementId": "M0:46:1:1[3,3]_c",
+      "selector": "#M0:46:1:1[3,3]_c",
+      "elementType": "textbox"
+    },
+    {
+      "rowIndex": 3,
+      "label": "Menü",
+      "fieldName": "MENUE",
+      "fillable": true,
+      "elementId": "M0:46:1:1[4,3]_c",
+      "selector": "#M0:46:1:1[4,3]_c",
+      "elementType": "textbox"
+    },
+    {
+      "rowIndex": 4,
+      "label": "Transaktionsinfo",
+      "fieldName": "CINFO",
+      "fillable": true,
+      "elementId": "M0:46:1:1[5,3]_c",
+      "selector": "#M0:46:1:1[5,3]_c",
+      "elementType": "textbox"
+    },
+    {
+      "rowIndex": 5,
+      "label": "Varianteninformation",
+      "fieldName": "ARBGB",
+      "fillable": true,
+      "elementId": "M0:46:1:1[6,3]_c",
+      "selector": "#M0:46:1:1[6,3]_c",
+      "elementType": "textbox"
+    },
+    {
+      "rowIndex": 6,
+      "label": "Text",
+      "fieldName": "TTEXT",
+      "fillable": true,
+      "elementId": "M0:46:1:1[7,3]_c",
+      "selector": "#M0:46:1:1[7,3]_c",
+      "elementType": "textbox"
+    },
+    {
+      "rowIndex": 7,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 8,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 9,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 10,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 11,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 12,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 13,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 14,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 15,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 16,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 17,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 18,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 19,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 20,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 21,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 22,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 23,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 24,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 25,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 26,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 27,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 28,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    },
+    {
+      "rowIndex": 29,
+      "label": "",
+      "fieldName": null,
+      "fillable": false,
+      "elementId": null,
+      "selector": null,
+      "elementType": null
+    }
+  ],
+  "renderedRows": 30,
+  "hasPaddingRows": true
+}

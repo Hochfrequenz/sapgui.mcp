@@ -863,14 +863,23 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         return False
 
     async def fill_element_by_locator(self, locator: str, value: str, delay_ms: int = 30) -> bool:
-        """Fill an element by CSS/attribute selector: click, clear, type slowly, Tab to blur."""
+        """Fill an element by CSS/attribute selector: click, clear, type slowly, Tab to blur.
+
+        Cells of SAP table grids (e.g. the SE16N selection criteria) are custom ``role="textbox"``
+        controls, not ``<input>`` elements, so Playwright's ``fill`` rejects them; they are cleared with
+        the keyboard instead.
+        """
         try:
             element = self._page.locator(locator)
             if await element.count() == 0:
                 return False
             await element.click()
             await self._page.wait_for_timeout(100)
-            await element.fill("")
+            try:
+                await element.fill("")
+            except Exception:  # pylint: disable=broad-exception-caught
+                await self._page.keyboard.press("Control+A")
+                await self._page.keyboard.press("Backspace")
             await element.press_sequentially(value, delay=delay_ms)
             await self._page.keyboard.press("Tab")
             await self._page.wait_for_timeout(300)
