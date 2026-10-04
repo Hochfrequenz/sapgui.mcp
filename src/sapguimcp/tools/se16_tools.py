@@ -558,14 +558,16 @@ def _plan_se16n_filters(
         result.other_errors.append("SE16N selection criteria grid has no rows")
         return plan
 
+    truncation_hint: str | None = None
     if possibly_truncated or (field_order and len(field_order) > len(rows)):
-        result.hint = (
+        truncation_hint = (
             f"SAP Web GUI renders only the first rows of the grid ({len(rows)} here) and does not scroll it, "
             f"so a field further down table {table} cannot be reached."
         )
 
     if all(row.field_name for row in rows):
         by_name = {str(row.field_name): row for row in rows if row.fillable}
+        rendered = {str(row.field_name) for row in rows}
         result.offered_fields = _dedupe_keep_order([str(row.field_name) for row in rows if row.fillable])
         for name, value in filters.items():
             row = by_name.get(name.upper())
@@ -573,9 +575,14 @@ def _plan_se16n_filters(
                 result.unapplied_fields.append(name)
             else:
                 plan.targets.append((name, value, row))
+        # Only a field that is absent from the rendered rows can be "further down"; a rendered row that
+        # merely has no input (the client field) is not.
+        if truncation_hint and any(name.upper() not in rendered for name in result.unapplied_fields):
+            result.hint = truncation_hint
         return plan
 
     # Technical names are not readable from the DOM: fall back to the SE11 order, but only if it provably fits.
+    result.hint = truncation_hint
     if not field_order:
         result.other_errors.append(
             "SE16N does not show technical field names in the page and the SE11 field list is unavailable, "

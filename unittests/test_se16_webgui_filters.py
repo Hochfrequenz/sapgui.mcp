@@ -10,7 +10,7 @@ label column and the other columns sit in different ``<tr>`` elements, every cel
 ``role="textbox"`` span, the technical name is the ``FIELDNAME`` cell (column 6), and the grid is padded
 with empty rows. The live evidence is in ``unittests/webgui/testdata/se16_exploration``. The tests need a
 Chromium that Playwright can launch (set ``PLAYWRIGHT_CHROMIUM_EXECUTABLE`` to use a specific build)
-and are skipped otherwise; CI does not install browsers, so CI skips them.
+and are skipped otherwise; CI installs Chromium and fails instead of skipping.
 """
 
 from __future__ import annotations
@@ -109,6 +109,18 @@ class TestPartlyRenderedGrid:
 
     def test_hint_when_the_grid_has_no_free_row_left_even_without_se11(self) -> None:
         plan = _plan_se16n_filters([_row(0, "A")], {"Z": "x"}, None, "T", possibly_truncated=True)
+        assert plan.result.hint is not None
+
+    def test_no_hint_for_a_rendered_row_that_merely_has_no_input(self) -> None:
+        # MANDT is on screen (so it is not "further down"), it just offers no input.
+        rows = [_row(0, "MANDT", fillable=False), _row(1, "MATNR")]
+        plan = _plan_se16n_filters(rows, {"MANDT": "100"}, None, "T", possibly_truncated=True)
+        assert plan.result.unapplied_fields == ["MANDT"]
+        assert plan.result.hint is None
+
+    def test_hint_when_one_of_several_unapplied_fields_is_absent(self) -> None:
+        rows = [_row(0, "MANDT", fillable=False), _row(1, "MATNR")]
+        plan = _plan_se16n_filters(rows, {"MANDT": "100", "ZZ": "x"}, None, "T", possibly_truncated=True)
         assert plan.result.hint is not None
 
     def test_no_hint_when_the_counts_match(self) -> None:
@@ -341,7 +353,10 @@ async def _run_read_rows(html: str) -> dict[str, Any]:
             executable = os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE")
             browser = await playwright.chromium.launch(executable_path=executable)
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            pytest.skip(f"Chromium cannot be launched here: {str(exc).splitlines()[0]}")
+            reason = f"Chromium cannot be launched here: {str(exc).splitlines()[0]}"
+            if os.environ.get("CI"):
+                pytest.fail(reason)  # CI installs Chromium; a silent skip would leave the JS untested
+            pytest.skip(reason)
         try:
             page = await browser.new_page()
             await page.set_content(html)

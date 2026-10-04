@@ -446,10 +446,13 @@ async def test_tool_description_documents_strict_filter_fields() -> None:
     async with Client(server) as client:
         tools = {t.name: t for t in await client.list_tools()}
     description = tools["sap_se16_query"].description or ""
-    assert "desktop" in description.lower()
     assert "not offered by SE16N" in description
     assert "fails before running the query" in description
     assert "selection fields" in description
+    # The strict behaviour is no longer desktop-only (#924): the description must not claim it is.
+    assert "On the desktop backend, if a filter cannot be applied" not in description
+    assert "WebGUI backend" in description
+    assert "first ~30 rows" in description
 
 
 class _FakeElement:

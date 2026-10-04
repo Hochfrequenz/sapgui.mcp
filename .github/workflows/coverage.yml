@@ -21,6 +21,9 @@ jobs:
         with:
           python-version: "3.14"
 
+      - name: Install Chromium for the browser unit tests
+        run: uv run --locked --group coverage playwright install --with-deps chromium
+
       - name: Run coverage
         run: |
           uv run --locked --group coverage coverage run -m pytest

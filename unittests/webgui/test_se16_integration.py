@@ -600,6 +600,8 @@ async def test_se16_query_client_field_is_not_offered_for_selection(sap_mcp_clie
     assert not result.success
     assert "'MANDT' not available as SE16N selection criteria" in (result.error or "")
     assert "MATNR" in (result.error or ""), f"The offered fields should list MATNR: {result.error}"
+    # MANDT is on screen, so it is not "further down": no truncation explanation for it.
+    assert "renders only the first rows" not in (result.error or "")
 
 
 @pytest.mark.anyio
