@@ -99,7 +99,9 @@ the current beat — do not invent new beats.
 If `sap_fill_form` reports `not_found` fields, call `sap_discover_fields` to
 read the system's actual labels, adjust the keys, and retry. If the status
 bar reports a duplicate or validation error after `Ctrl+S`, show the message
-to the user and stop — do not create duplicates on purpose.
+to the user and stop — do not create duplicates on purpose. If the flow needs
+repeated manual correction that this file did not anticipate, report that
+upstream instead of silently patching this skill.
 
 ### Save and result evaluation
 
