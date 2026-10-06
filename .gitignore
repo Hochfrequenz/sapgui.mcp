@@ -113,6 +113,9 @@ Thumbs.db
 # Working directory for the readme-demo skill (transcript, frames, GIF
 # build artifacts); its contents are runtime output, not source.
 /readme-demo/
+# ffmpeg output of the documented GIF encode command (lands at the repo
+# root per scripts/README.md); the committed copy lives in docs/.
+/readme-demo.gif
 
 src/_your_package_version.py
 
