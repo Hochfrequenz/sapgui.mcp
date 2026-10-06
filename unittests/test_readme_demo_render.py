@@ -3,14 +3,19 @@
 from pathlib import Path
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from sapguimcp.demo.render_readme_demo import (
     CANVAS_HEIGHT,
     CANVAS_WIDTH,
     CHAT_WIDTH,
     TITLE_HEIGHT,
+    TOOL_FONT_SIZE,
+    Beat,
     RenderError,
+    _font,
+    _measure_bubble,
+    _tool_font,
     render_composites,
 )
 
@@ -33,6 +38,16 @@ def _sample_transcript(frames_dir: Path) -> str:
         "Logging into the dev system…\n"
         "tool=sap_login\n"
     )
+
+
+class TestMeasureBubble:
+    def test_bubble_is_wide_enough_for_tool_chip(self) -> None:
+        draw = ImageDraw.Draw(Image.new("RGB", (10, 10)))
+        body_font, tool_font = _font(20), _tool_font(TOOL_FONT_SIZE)
+        beat = Beat(number=6, role="assistant", message="Saving…", tool="sap_press_key Ctrl+S")
+        width, _, _, _ = _measure_bubble(draw, beat, body_font, tool_font, 400)
+        # chip starts 12px (padding) + 14px (triangle gutter) in and needs 12px right padding
+        assert width >= 12 + 14 + draw.textlength(beat.tool or "", font=tool_font) + 12 - 1
 
 
 class TestRenderComposites:

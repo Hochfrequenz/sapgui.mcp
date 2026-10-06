@@ -66,14 +66,14 @@ absolute path form on the first live frame before proceeding with the run.)
 
 | Beat | Say | Do | Frame (if any) |
 | --- | --- | --- | --- |
-| 1 | State the whole task in one sentence. | — (no tool call; transcript block is `role=user` with the user's prompt text) | — |
+| 1 | State the whole task in one sentence. | — (no tool call; transcript block is `role=user` with the user's prompt text) | (references beat 2's frame: `frames/02_easy_access.png`) |
 | 2 | "Logging into the dev system…" | `sap_login(system_key=…)` | `frames/02_easy_access.png` |
 | 3 | "Opening transaction BP…" | `sap_transaction(tcode="bp")` | `frames/03_bp_initial.png` |
 | 4 | "Creating a person…" | `sap_press_key(key="F5")` (if a type-selection popup appears — visible as `wnd[1]` in the `sap_press_key` response's `active_window` — confirm it with `sap_press_key(key="Enter")`) | `frames/04_bp_empty.png` |
 | 5 | "Filling in name and address…" | `sap_fill_form({...})` — see field table | `frames/05_bp_filled.png` |
 | 6 | "Saving…" | `sap_press_key(key="Ctrl+S")` | (beat 6 references beat 7's frame) |
 | 7 | "Capturing a screenshot for the documentation…" | `sap_screenshot` (shows you the picture) + `sap_run_script` `hard_copy` → `frames/07_bp_saved.png`, and copy that file as `readme-demo/BP_<Nachname>.png` | `frames/07_bp_saved.png` |
-| 8 | "Now verifying it exists in SE16…" | `sap_transaction(tcode="se16")`, table `BUT000`, filter `PARTNER = <GP number>`, execute | `frames/08_se16_result.png` |
+| 8 | "Now verifying it exists in SE16…" | `sap_se16_query(table="BUT000", filters={"PARTNER": "<GP number>"})` (leaves the result list on screen for the frame) | `frames/08_se16_result.png` |
 | 9 | "✓ Partner <GP number> exists in BUT000, screenshot saved as BP_<Nachname>.png." | — (report to the user) | (holds beat 8's frame) |
 
 Beat numbering in `transcript.md` follows the table. If a step needs extra
@@ -118,6 +118,9 @@ success message.
 ### Transcript sidecar format
 
 ```markdown
+[beat 1] role=user frame=frames/02_easy_access.png
+<the user's one-sentence task>
+
 [beat 2] role=assistant
 Logging into the dev system…
 tool=sap_login

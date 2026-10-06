@@ -247,6 +247,7 @@ def _measure_bubble(
     draw: ImageDraw.ImageDraw,
     beat: Beat,
     body_font: ImageFont.FreeTypeFont,
+    tool_font: ImageFont.FreeTypeFont,
     max_text_width: int,
 ) -> tuple[int, int, list[str], bool]:
     """Return (width, height, wrapped lines, has_checkmark) for a beat's bubble.
@@ -263,14 +264,14 @@ def _measure_bubble(
         lines = [""]
     line_h = int(body_font.size) + 6
     height = len(lines) * line_h + 2 * 10 + (18 if beat.tool else 0)
-    width = int(
-        min(
-            CHAT_WIDTH - 2 * PADDING,
-            max(draw.textlength(ln, font=body_font) for ln in lines)
-            + 2 * 12
-            + (20 if has_checkmark else 0),  # line 0 is indented for the checkmark
-        )
+    text_width = max(draw.textlength(ln, font=body_font) for ln in lines) + (
+        20 if has_checkmark else 0  # line 0 is indented for the checkmark
     )
+    if beat.tool:
+        # The tool chip is drawn after a 14px triangle gutter; a short message
+        # ("Saving…") must not leave it sticking out of the bubble.
+        text_width = max(text_width, 14 + draw.textlength(beat.tool, font=tool_font))
+    width = int(min(CHAT_WIDTH - 2 * PADDING, text_width + 2 * 12))
     return width, height, lines, has_checkmark
 
 
@@ -288,7 +289,9 @@ def _draw_chat(
     # ones until everything fits (scrolling: the newest message must stay
     # visible — it is the current step of the story).
     measured = [
-        (beat, *_measure_bubble(draw, beat, body_font, max_text_width)) for beat in history if beat.role != "title"
+        (beat, *_measure_bubble(draw, beat, body_font, tool_font, max_text_width))
+        for beat in history
+        if beat.role != "title"
     ]
     gap = 10
     while measured:

@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-06
 **Status:** Approved (brainstorming session)
-**Related:** #893 ("No demo GIF/screenshot added" — this design implements that leftover), #936/#937/#789/#798 are unrelated open bugs, not blockers for this work.
+**Related:** follow-up to PR #893 (its demo GIF was out of scope; this design delivers it), #936/#937/#789/#798 are unrelated open bugs, not blockers for this work.
 
 ## Goal
 
