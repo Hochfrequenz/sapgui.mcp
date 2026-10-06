@@ -101,7 +101,18 @@ Thumbs.db
 # Project specific
 *.log
 
-.claude/
+# .claude/ must be ignored in glob form, not directory form: git cannot
+# re-include a path whose parent directory is excluded, so the committed
+# readme-demo skill would be unreachable. Track a skill by adding a
+# matching `!.claude/skills/<name>/` pair.
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/readme-demo/
+
+# Working directory for the readme-demo skill (transcript, frames, GIF
+# build artifacts); its contents are runtime output, not source.
+/readme-demo/
 
 src/_your_package_version.py
 
