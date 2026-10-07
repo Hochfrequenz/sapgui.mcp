@@ -226,6 +226,80 @@ def _active_window_id(session: Any) -> str:
     return "wnd[0]"
 
 
+def _row_not_fully_loaded(data: dict[str, str], row_index: int) -> bool:
+    """True if a row read from an ALV grid shows that SAP GUI has not transferred it (completely) yet.
+
+    Two shapes occur: every cell blank, or some cells holding a placeholder instead of the value: the 1-based row
+    number zero-padded to ten digits with blanks around it (``"        0000000103   "`` for the row with index 102),
+    typically in the later columns of the first row after the loaded block.
+    """
+    values = [value.strip() for value in data.values()]
+    placeholder = f"{row_index + 1:010d}"
+    return not any(values) or any(value == placeholder for value in values)
+
+
+# Stop trying to scroll after this many scrolls in a row failed: every more attempt only adds a failing COM call.
+_GRID_MAX_CONSECUTIVE_SCROLL_FAILURES = 3
+
+
+def _read_grid_rows(grid: Any, headers: list[str], start: int, end: int) -> list[dict[str, Any]]:
+    """Read the rows ``start`` (inclusive) to ``end`` (exclusive), both 0-based, of an ALV grid.
+
+    A ``GuiGridView`` only holds the rows SAP GUI has transferred to the frontend: the first visible row and some
+    rows after it. Cells outside read as blank or as a row-number placeholder, without any error, so an unpaged read
+    of a large result silently returns blank or garbled rows (sapsucker#91). How many rows are loaded varies (about
+    100 after a fresh display, fewer after scrolling, clearly fewer for a wide result), so scrolling in fixed steps
+    leaves gaps. Instead, a row that is not fully loaded (see ``_row_not_fully_loaded``) is read again after
+    scrolling to it: the first visible row is loaded, and so are some rows after it. A row that still looks unloaded
+    then is taken as genuine data. If scrolling fails, the first read is kept (the former behaviour). The scroll
+    position is restored on a best-effort basis (not if it was unreadable or the restore itself fails).
+
+    The number of rows loaded after a scroll depends on the grid, so no row is assumed to be loaded just because it
+    follows a scroll target closely. The price is one scroll per row that is blank (for example with a restricted
+    field selection) or looks like the placeholder.
+    """
+
+    def _read_row(ri: int) -> dict[str, str]:
+        return {col_name: str(grid.get_cell_value(ri, col_name)) for col_name in headers}
+
+    try:
+        original_first: int | None = int(grid.first_visible_row)
+    except Exception:  # pylint: disable=broad-exception-caught
+        original_first = None
+        logger.debug("The grid's first visible row is not readable, the scroll position will not be restored")
+    rows: list[dict[str, Any]] = []
+    scrolled = False
+    scroll_failures = 0
+    try:
+        for ri in range(start, end):
+            data = _read_row(ri)
+            if (
+                headers
+                and ri >= 0
+                and scroll_failures < _GRID_MAX_CONSECUTIVE_SCROLL_FAILURES
+                and _row_not_fully_loaded(data, ri)
+            ):
+                try:
+                    grid.first_visible_row = ri
+                except Exception:  # pylint: disable=broad-exception-caught
+                    scroll_failures += 1
+                    logger.debug("Scrolling the grid to row %d failed, keeping the first read", ri, exc_info=True)
+                else:
+                    scroll_failures = 0
+                    scrolled = True
+                    data = _read_row(ri)
+                    if _row_not_fully_loaded(data, ri):
+                        logger.debug("Row %d still looks unloaded after scrolling to it, taking it as read", ri)
+            rows.append({"row": ri + 1, "data": data})
+    finally:
+        if scrolled and original_first is not None:
+            try:
+                grid.first_visible_row = original_first
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug("Could not restore the grid's first visible row", exc_info=True)
+    return rows
+
+
 class DesktopBackend:
     """SAP GUI Scripting (COM) backend.
 
@@ -1459,12 +1533,7 @@ class DesktopBackend:
                 )
 
                 actual_end = min(end_row or (start_row + max_rows - 1), row_count)
-                rows = []
-                for ri in range(start_row - 1, actual_end):
-                    data = {}
-                    for col_name in headers:
-                        data[col_name] = str(cast(Any, grid).get_cell_value(ri, col_name))
-                    rows.append({"row": ri + 1, "data": data})
+                rows = _read_grid_rows(grid, headers, start_row - 1, actual_end)
 
                 return {
                     "headers": headers,

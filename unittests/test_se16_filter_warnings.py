@@ -498,6 +498,14 @@ def test_se16n_result_displayed() -> None:
     assert not pred(_fake_session({"wnd[0]/sbar": _FakeElement(message_type="S", text="")}))
 
 
+def test_se16n_result_displayed_when_the_grid_sits_in_the_result_list_container() -> None:
+    # One release puts the ALV grid under usr/cntlRESULT_LIST instead of directly in the window. Without this id the
+    # wait ran into its 10 s timeout for every result without a new status bar text.
+    pred = _se16n_result_displayed("")
+    assert pred(_fake_session({"wnd[0]/usr/cntlRESULT_LIST/shellcont/shell": object()}))
+    assert not pred(_fake_session({"wnd[0]/usr/cntlRESULT_LIST": object()}))
+
+
 def test_se16n_result_displayed_on_popup() -> None:
     assert _se16n_result_displayed("stale")(_fake_session({"wnd[1]": object()}))
 

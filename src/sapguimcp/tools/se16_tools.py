@@ -799,6 +799,12 @@ def _se16n_selection_grid_loaded(before_status: str) -> Callable[[Any], bool]:
     return _predicate
 
 
+# Where the ALV result grid sits depends on the release: directly in the window on one, inside the ``usr`` area's
+# RESULT_LIST container on another. A predicate that only knew the first one waited the full timeout (10 s) for every
+# result without a new status bar text.
+_SE16N_RESULT_GRID_IDS = ("wnd[0]/shellcont/shell", "wnd[0]/usr/cntlRESULT_LIST/shellcont/shell")
+
+
 def _se16n_result_displayed(before_status: str) -> Callable[[Any], bool]:
     """Build a predicate: True once F8 produced a result grid, a popup, or a status bar text that is new.
 
@@ -808,7 +814,7 @@ def _se16n_result_displayed(before_status: str) -> Callable[[Any], bool]:
     """
 
     def _predicate(session: Any) -> bool:
-        if session.find_by_id("wnd[0]/shellcont/shell", raise_error=False) is not None:
+        if any(session.find_by_id(grid_id, raise_error=False) is not None for grid_id in _SE16N_RESULT_GRID_IDS):
             return True
         if session.find_by_id("wnd[1]", raise_error=False) is not None:
             return True
