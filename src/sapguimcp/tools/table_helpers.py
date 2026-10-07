@@ -18,6 +18,8 @@ import logging
 import re
 from typing import Any, cast
 
+from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, _get_com_error_code
+
 logger = logging.getLogger(__name__)
 
 
@@ -59,9 +61,10 @@ def _read_visible_page_from_tree(
 ) -> list[dict[str, str]] | None:
     """Read *count* visible rows with one ``dump_tree()`` call instead of two COM calls per cell (#928).
 
-    Cells are recognised by their ``[column,row]`` id suffix. Returns ``None`` when the dump contains no cells,
-    so the caller can fall back to ``_read_visible_page``. As there, a missing cell leaves its column out of the
-    row.
+    Cells are recognised by their ``[column,row]`` id suffix. Returns ``None`` when the dump contains no cells or
+    fewer than *count* rows (e.g. a page that was not repainted yet), or fails, so the caller can fall back to
+    ``_read_visible_page``. As there, a missing cell within a row leaves its column out of that row. A lost COM
+    connection is not swallowed.
     """
     try:
         tree = session.find_by_id(element_id).dump_tree()
@@ -70,10 +73,14 @@ def _read_visible_page_from_tree(
             match = _CELL_ID_SUFFIX.search(elem.id)
             if match:
                 cells[(int(match.group(2)), int(match.group(1)))] = elem.text
-    except Exception:  # pylint: disable=broad-exception-caught
-        logger.debug("Table control tree dump failed, falling back to per-cell reads", exc_info=True)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        if _get_com_error_code(exc) == _RPC_E_DISCONNECTED:
+            raise
+        logger.warning("Table control tree dump failed, falling back to per-cell reads", exc_info=True)
         return None
-    if not cells:
+    if len({row for row, _column in cells if row < count}) < count:
+        if cells:
+            logger.warning("Table control dump has fewer than %d rows, falling back to per-cell reads", count)
         return None
     return [{title: cells[(r, c)] for c, title in enumerate(col_titles) if (r, c) in cells} for r in range(count)]
 

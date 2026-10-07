@@ -257,7 +257,17 @@ class TestReadVisiblePageFromTree:
 class _FakeScrollingTable:
     """Fake table control: serves the cells of the current page through dump_tree(), refuses per-cell COM reads."""
 
-    def __init__(self, row_count: int, visible: int, columns: int = 2) -> None:
+    def __init__(
+        self,
+        row_count: int,
+        visible: int,
+        columns: int = 2,
+        *,
+        allow_cell_reads: bool = False,
+        failing_dump_call: int | None = None,
+    ) -> None:
+        self.allow_cell_reads = allow_cell_reads
+        self.failing_dump_call = failing_dump_call
         self.row_count = row_count
         self.visible = visible
         self.columns = columns
@@ -268,6 +278,8 @@ class _FakeScrollingTable:
     # --- the sapsucker-style element the reader finds by id
     def dump_tree(self) -> list[Any]:
         self.dump_calls += 1
+        if self.dump_calls == self.failing_dump_call:
+            raise OSError("dump failed")
         shown = min(self.visible, self.row_count - self.position)
         return [_cell(c, r, f"r{self.position + r}c{c}") for r in range(shown) for c in range(self.columns)]
 
@@ -279,7 +291,10 @@ class _FakeScrollingTable:
         raw.VisibleRowCount = self.visible
         raw.Columns.Count = self.columns
         raw.Columns.side_effect = lambda idx: SimpleNamespace(Title=f"C{idx}", Name=f"C{idx}")
-        raw.GetCell.side_effect = AssertionError("per-cell COM read although the tree has the cells")
+        if self.allow_cell_reads:
+            raw.GetCell = lambda r, c: SimpleNamespace(Text=f"r{self.position + r}c{c}")
+        else:
+            raw.GetCell.side_effect = AssertionError("per-cell COM read although the tree has the cells")
         table = self
 
         class _Scrollbar:
@@ -332,3 +347,33 @@ class TestTreePathInReaders:
         # The plain mock table control has no dump_tree(), so the reader falls back to GetCell
         rows = read_table_control_all_rows(session, flatten_fn)
         assert rows[0] == {"Name": "r0c0", "Type": "r0c1"}
+
+
+class TestTreePathRobustness:
+    def test_falls_back_when_the_dump_has_fewer_rows_than_expected(self) -> None:
+        session = MagicMock()
+        session.find_by_id.return_value.dump_tree.return_value = [_cell(0, 0, "a0")]  # page not repainted yet
+        assert _read_visible_page_from_tree(session, "tbl", ["A"], 3, _flatten) is None
+
+    def test_extra_dump_rows_beyond_count_are_dropped(self) -> None:
+        session = MagicMock()
+        session.find_by_id.return_value.dump_tree.return_value = [_cell(0, r, f"a{r}") for r in range(5)]
+        rows = _read_visible_page_from_tree(session, "tbl", ["A"], 2, _flatten)
+        assert rows == [{"A": "a0"}, {"A": "a1"}]
+
+    def test_a_lost_com_connection_is_not_swallowed(self) -> None:
+        class _DisconnectedError(Exception):
+            hresult = -2147417848  # RPC_E_DISCONNECTED
+
+        session = MagicMock()
+        session.find_by_id.return_value.dump_tree.side_effect = _DisconnectedError("disconnected")
+        with pytest.raises(_DisconnectedError):
+            _read_visible_page_from_tree(session, "tbl", ["A"], 1, _flatten)
+
+    def test_a_failing_dump_mid_scroll_falls_back_for_that_page_only(self) -> None:
+        table = _FakeScrollingTable(row_count=6, visible=3, allow_cell_reads=True, failing_dump_call=2)
+        session, flatten = _session_for(table)
+        rows = read_table_control_all_rows(session, flatten)
+        assert [r["C0"] for r in rows] == [f"r{i}c0" for i in range(6)]
+        assert [r["C1"] for r in rows] == [f"r{i}c1" for i in range(6)]
+        assert table.dump_calls == 2  # page one via the tree, page two failed and was read cell by cell
