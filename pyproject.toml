@@ -46,7 +46,7 @@ tests = [
     "pillow==12.1.1",  # README demo composite renderer (layout-math unit tests import it)
 ]
 linting = [
-    "ruff==0.16.9",
+    "ruff==0.16.10",
 ]
 type_check = [
     "mypy==2.3.1",
