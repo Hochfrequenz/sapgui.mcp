@@ -2,7 +2,9 @@
 
 The readme-demo skill (`.claude/skills/readme-demo/SKILL.md`) produces a
 transcript sidecar plus beat-numbered SAP screenshots during a real run; this
-module deterministically composites them into one PNG per storyboard beat.
+module deterministically composites them into one PNG per storyboard beat
+(identical inputs on the same host give identical bytes; the font is Segoe UI where
+installed and Pillow's bundled font elsewhere, so layout can differ between hosts).
 """
 
 from __future__ import annotations
@@ -128,6 +130,8 @@ def parse_transcript(text: str) -> list[Beat]:
                     status = mark
                 else:
                     marks.append(mark)
+            elif line.startswith(("mark=", "status=")):
+                raise ParseError(f"Beat {number}: malformed overlay line {line!r} (expected key=x,y,w,h [text])")
             elif line.startswith("tool="):
                 if role == "user":
                     raise ParseError(f"Beat {number}: user beats cannot carry a tool= chip")

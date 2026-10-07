@@ -159,3 +159,8 @@ class TestParseOverlays:
     def test_second_status_line_rejected(self) -> None:
         with pytest.raises(ParseError, match="more than one status"):
             parse_transcript("[beat 2] role=assistant\nHi\nstatus=1,2,3,4 a\nstatus=1,2,3,4 b\n")
+
+    @pytest.mark.parametrize("line", ["mark=1,2,3 caption", "status=oops", "mark=1,2,3,x y"])
+    def test_malformed_overlay_line_is_rejected(self, line: str) -> None:
+        with pytest.raises(ParseError, match="malformed overlay line"):
+            parse_transcript(f"[beat 2] role=assistant\nHi\n{line}\n")

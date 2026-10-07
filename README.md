@@ -17,7 +17,8 @@ The MCP works with both SAP R/3 and S/4.
 > clone it (or copy `.claude/skills/readme-demo/` into your project), then ask
 > your agent to _run the readme demo_ (or invoke `/readme-demo` in Claude
 > Code) - it logs into your system, creates a business partner, screenshots
-> it, and verifies it in SE16.
+> it, and verifies it in SE16. It needs the desktop backend (SAP GUI for Windows
+> with scripting enabled), because the screenshots are saved via `sap_run_script`.
 
 > [!NOTE]
 > **Pairs with [`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `aibap.mcp` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
