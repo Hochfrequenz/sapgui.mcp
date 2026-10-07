@@ -164,8 +164,9 @@ _CREDENTIALS_POPUP_CUT_ENGLISH = "could not find the form pa"
 _CREDENTIALS_POPUP_GUIDANCE = (
     "abapGit tried to ask for credentials, most likely because the git host answered HTTP 401, and its "
     "password popup cannot be shown when abapGit is called through the API. "
-    "Check that ABAPGIT_PAT / GITHUB_PAT is valid and not expired (GitHub rejects an invalid token "
-    "even for public repositories), or that the SAP system can reach the git host."
+    "Check that the token is valid and not expired (GitHub rejects an invalid token even for public "
+    "repositories): the `pat` argument if you passed one (it takes precedence), otherwise ABAPGIT_PAT / "
+    "GITHUB_PAT. Otherwise check that the SAP system can reach the git host."
 )
 
 
@@ -983,9 +984,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "WARNING: This overwrites local ABAP objects with remote versions. "
             "If SAP requires a transport request, the tool returns an error with guidance. "
             "Look up an open transport (e.g. via SE09/SE10), then retry with trkorr=... "
-            "If the tool reports 'status unknown', the pull may have succeeded. "
-            "Call sap_read_status_bar() to check, or retry with sap_press_key('F8') "
-            "then sap_read_status_bar()."
+            "If the tool reports 'status unknown', the pull may already have run: "
+            "check the last pull time in abapGit or the transport task before retrying."
         ),
     )
     async def sap_abapgit_pull(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -1000,7 +1000,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         Pull changes from a remote git repository using abapGit API.
 
         WARNING: Pull overwrites local ABAP objects with remote versions.
-        NOTE: First call may return "Pull status unknown" -- call again or press F8 to complete.
+        NOTE: "Pull status unknown" means the pull may or may not have run. Check the last pull time in
+        abapGit or the transport task first; only if it did not run, call again or press F8.
         IMPORTANT: All filenames must be lowercase (e.g., zcl_my_class.clas.abap, not uppercase).
 
         Args:

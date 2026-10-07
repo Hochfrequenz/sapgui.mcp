@@ -218,6 +218,7 @@ def test_credentials_popup_error_is_recognised_and_enriched(message: str) -> Non
     assert enriched.startswith(message.rstrip(". "))
     assert "ABAPGIT_PAT" in enriched
     assert "GITHUB_PAT" in enriched
+    assert "`pat`" in enriched  # an explicit argument takes precedence over the environment variables
     assert ". ." not in enriched
 
 
