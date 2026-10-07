@@ -39,6 +39,20 @@ def screen_changed(before_title: str, before_status: str) -> Callable[[Any], boo
     return _predicate
 
 
+def usr_child_count_changed(before_count: int) -> Callable[[Any], bool]:
+    """Build a predicate: True once the number of direct children of ``wnd[0]/usr`` differs from ``before_count``.
+
+    For tree-like list screens whose nodes are rendered as labels (e.g. SE09 request nodes): expanding a node adds
+    labels, collapsing it removes them. ``before_count`` is read right before the triggering action.
+    """
+
+    def _predicate(session: Any) -> bool:
+        # One dump_tree() call instead of one COM call per child.
+        return len(session.find_by_id("wnd[0]/usr").dump_tree()) != before_count
+
+    return _predicate
+
+
 def tab_table_control_loaded(tab_label: str) -> Callable[[Any], bool]:
     """Build a predicate: True once a table control exists below the tab page whose text matches ``tab_label``.
 

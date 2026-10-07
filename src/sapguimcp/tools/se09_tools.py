@@ -12,13 +12,13 @@ import asyncio
 import json
 import logging
 import re
-import time
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp.backend.desktop._element_finder import _TYPE_LABEL, _flatten
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se09_parser import parse_se09_transport_list
 from sapguimcp.backend.webgui.types import AriaSnapshot
@@ -27,7 +27,7 @@ from sapguimcp.lang import (
     SE09_DISPLAY_BUTTON_EN,
 )
 from sapguimcp.models.se09_models import TransportListResult, TransportObject, TransportRequest, TransportTask
-from sapguimcp.tools.desktop_wait_predicates import screen_changed
+from sapguimcp.tools.desktop_wait_predicates import screen_changed, usr_child_count_changed
 from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
@@ -263,6 +263,42 @@ def _parse_labels_to_requests(labels: list[str], default_owner: str) -> list[Tra
     return requests
 
 
+_SE09_EDIT_MENU_INDEX = 1  # menu bar entry "Bearbeiten" / "Edit"
+
+
+def _select_edit_menu_item_for_label(
+    session: Any, request_number: str, item_names: tuple[str, ...]
+) -> tuple[bool, int]:
+    """Focus the SE09 list label ``request_number`` and select an item of the Edit menu. Runs on the COM thread.
+
+    Reads the ``usr`` and menu bar trees with one ``dump_tree()`` call each and then addresses the label and menu
+    items by id: scanning the children one by one costs two COM calls per element, which made every request
+    slower the further down the list it was (#928).
+
+    Returns ``(performed, child_count_before)``; ``child_count_before`` is the number of direct ``usr`` children
+    before the action, for the readiness predicate.
+    """
+    usr_tree = session.find_by_id("wnd[0]/usr").dump_tree()
+    before_count = len(usr_tree)
+    label = next(
+        (e for e in _flatten(usr_tree) if e.type_as_number == _TYPE_LABEL and e.text.strip() == request_number), None
+    )
+    if label is None:
+        return False, before_count
+    session.find_by_id(label.id).set_focus()
+    # Find the Edit menu item by text (not by index): the item names differ per logon language.
+    menus = session.find_by_id("wnd[0]/mbar").dump_tree()
+    edit_menu = menus[_SE09_EDIT_MENU_INDEX]
+    item = next((e for e in _flatten(edit_menu.children) if e.text in item_names), None)
+    session.find_by_id(edit_menu.id).select()
+    if item is None:
+        logger.warning("SE09 menu item %s not found for %s", item_names, request_number)
+        return False, before_count
+    # COM calls are synchronous: no pauses needed between focus, menu and item.
+    session.find_by_id(item.id).select()
+    return True, before_count
+
+
 async def _expand_request_node_desktop(backend: "WebGuiBackend | DesktopBackend", request_number: str) -> bool:
     """Focus on a transport request label and expand it via Edit > Expand.
 
@@ -274,38 +310,24 @@ async def _expand_request_node_desktop(backend: "WebGuiBackend | DesktopBackend"
         return False
 
     session = backend.require_session()
-    com = backend.com
+    before_count = -1
 
     def _focus_expand() -> bool:
+        nonlocal before_count
         try:
-            raw: Any = getattr(session, "com", getattr(session, "_com", session))
-            usr = raw.FindById("wnd[0]/usr")
-            for i in range(usr.Children.Count):
-                child = usr.Children(i)
-                if child.Type == "GuiLabel" and child.Text.strip() == request_number:
-                    child.SetFocus()
-                    time.sleep(0.3)
-                    # Find Edit menu and Expand item by text (not hard-coded index)
-                    mbar = raw.FindById("wnd[0]/mbar")
-                    edit_menu = mbar.Children(1)
-                    edit_menu.Select()
-                    time.sleep(0.3)
-                    for j in range(edit_menu.Children.Count):
-                        item_text = edit_menu.Children(j).Text
-                        if item_text in ("Expandieren", "Expand"):
-                            edit_menu.Children(j).Select()
-                            time.sleep(0.5)
-                            return True
-                    logger.warning("Expand menu item not found for %s", request_number)
-                    return False
-            return False
+            performed, before_count = _select_edit_menu_item_for_label(
+                session, request_number, ("Expandieren", "Expand")
+            )
+            return performed
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.warning("SE09 expand failed for %s: %s", request_number, exc)
             return False
 
-    result = await com.run(_focus_expand)
+    result = await backend.com.run(_focus_expand)
     if result:
         await backend.wait_for_ready()
+        # The caller reads the task labels next: wait until the expanded node's labels are in the tree.
+        await backend.wait_for_condition(usr_child_count_changed(before_count), timeout_ms=3000, poll_ms=50)
     return result
 
 
@@ -317,32 +339,24 @@ async def _collapse_request_node_desktop(backend: "WebGuiBackend | DesktopBacken
         return
 
     session = backend.require_session()
-    com = backend.com
+    before_count = -1
 
-    def _focus_collapse() -> None:
+    def _focus_collapse() -> bool:
+        nonlocal before_count
         try:
-            raw: Any = getattr(session, "com", getattr(session, "_com", session))
-            usr = raw.FindById("wnd[0]/usr")
-            for i in range(usr.Children.Count):
-                child = usr.Children(i)
-                if child.Type == "GuiLabel" and child.Text.strip() == request_number:
-                    child.SetFocus()
-                    time.sleep(0.3)
-                    mbar = raw.FindById("wnd[0]/mbar")
-                    edit_menu = mbar.Children(1)
-                    edit_menu.Select()
-                    time.sleep(0.3)
-                    for j in range(edit_menu.Children.Count):
-                        item_text = edit_menu.Children(j).Text
-                        if item_text in ("Komprimieren", "Compress"):
-                            edit_menu.Children(j).Select()
-                            time.sleep(0.5)
-                            return
+            performed, before_count = _select_edit_menu_item_for_label(
+                session, request_number, ("Komprimieren", "Compress")
+            )
+            return performed
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.warning("SE09 collapse failed for %s: %s", request_number, exc)
+            return False
 
-    await com.run(_focus_collapse)
+    collapsed = await backend.com.run(_focus_collapse)
     await backend.wait_for_ready()
+    if collapsed:
+        # The next request's label is looked up by text: wait until the collapsed node's labels are gone.
+        await backend.wait_for_condition(usr_child_count_changed(before_count), timeout_ms=3000, poll_ms=50)
 
 
 def _parse_tasks_from_expanded_labels(
