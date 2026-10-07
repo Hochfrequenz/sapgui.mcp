@@ -4,7 +4,7 @@ import textwrap
 
 import pytest
 
-from sapguimcp.demo.render_readme_demo import Beat, ParseError, parse_transcript
+from sapguimcp.demo.render_readme_demo import Beat, Mark, ParseError, parse_transcript
 
 
 class TestParseTranscript:
@@ -133,3 +133,29 @@ class TestParseTranscript:
         )
         beats = parse_transcript(lf.replace("\n", "\r\n"))
         assert beats == parse_transcript(lf)
+
+
+class TestParseOverlays:
+    def test_parses_marks_and_status(self) -> None:
+        text = textwrap.dedent(
+            """\
+            [beat 5] role=assistant frame=frames/05.png
+            Filling in name…
+            tool=sap_fill_form
+            mark=242,404,409,25 Vorname = Max
+            mark=8,853,1029,40
+            status=8,853,1029,40 Saved
+            """
+        )
+        beat = parse_transcript(text)[0]
+        assert beat.marks == (Mark(242, 404, 409, 25, "Vorname = Max"), Mark(8, 853, 1029, 40, ""))
+        assert beat.status == Mark(8, 853, 1029, 40, "Saved")
+        assert beat.message == "Filling in name…"
+
+    def test_user_beat_cannot_carry_marks(self) -> None:
+        with pytest.raises(ParseError, match="only assistant beats"):
+            parse_transcript("[beat 1] role=user\nHello\nmark=1,2,3,4 x\n")
+
+    def test_second_status_line_rejected(self) -> None:
+        with pytest.raises(ParseError, match="more than one status"):
+            parse_transcript("[beat 2] role=assistant\nHi\nstatus=1,2,3,4 a\nstatus=1,2,3,4 b\n")

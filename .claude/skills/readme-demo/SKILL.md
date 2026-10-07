@@ -134,6 +134,25 @@ Rules: one block per beat; `role=` is `user`, `assistant`, or `title`; `tool=`
 names the beat's primary tool (fold retries and popup handling under it); only
 on assistant beats; `frame=` may repeat an earlier beat's file.
 
+**Overlays (optional, assistant beats only):** `mark=x,y,w,h caption` draws an
+orange ring (and caption pill) around an element of the frame, and
+`status=x,y,w,h text` draws the status-bar message (the screenshot does not
+render it). Coordinates are pixels *in the captured frame*, read live via COM
+in the same `sap_run_script` call that saves the frame:
+
+```python
+wnd = session.find_by_id("wnd[0]")
+wx, wy = wnd.screen_left, wnd.screen_top
+el = session.find_by_id("wnd[0]/tbar[0]/okcd")
+output([el.screen_left - wx, el.screen_top - wy, el.width, el.height])  # -> mark=x,y,w,h
+output(session.find_by_id("wnd[0]/sbar").text)                          # -> status text
+```
+
+Before the first frame, shrink the window so SAP text stays legible at GIF
+size: `wnd.restore()` then `wnd.resize_working_pane(100, 22, False)` (about
+1045×900 px). Marks for `sap_fill_form` fields can be found by walking
+`wnd[0]/usr` children and matching the id suffix (e.g. `txtBUT000-NAME_FIRST`).
+
 ### After the run
 
 Tell the user: partner number, screenshot path, SE16 confirmation, and where

@@ -23,6 +23,7 @@ VALID_ROLES = frozenset({"user", "assistant", "title"})
 
 _BEAT_HEADER = re.compile(r"^\[beat (?P<num>\d+)\](?P<keys>.*)$")
 _KEY_VALUE = re.compile(r"(?P<key>\w+)=(?P<value>\S+)")
+_RECT_LINE = re.compile(r"^(?P<key>mark|status)=(?P<x>\d+),(?P<y>\d+),(?P<w>\d+),(?P<h>\d+)(?:\s+(?P<text>.*))?$")
 
 
 class ParseError(ValueError):
@@ -30,14 +31,32 @@ class ParseError(ValueError):
 
 
 @dataclass(frozen=True)
+class Mark:
+    """A rectangle in the SAP frame's own pixel coordinates, with an optional caption.
+
+    Drawn on top of the (scaled) frame to show which screen element the agent is
+    operating. The coordinates come from the live COM run (element position
+    relative to the window), so nothing here is hand-placed.
+    """
+
+    x: int
+    y: int
+    w: int
+    h: int
+    text: str = ""
+
+
+@dataclass(frozen=True)
 class Beat:
-    """One chat beat: a message, optionally with a tool chip and a frame."""
+    """One chat beat: a message, optionally with a tool chip, a frame and frame overlays."""
 
     number: int
     role: str
     message: str
     tool: str | None = None
     frame: str | None = None
+    marks: tuple[Mark, ...] = ()
+    status: Mark | None = None
 
 
 def parse_transcript(text: str) -> list[Beat]:
@@ -47,7 +66,9 @@ def parse_transcript(text: str) -> list[Beat]:
     space-separated ``key=value`` pairs (``role``, ``frame``; unknown keys are
     rejected), then a non-empty message body with an optional trailing ``tool=``
     line (the tool chip may appear anywhere in the block after the header; user
-    beats may not have one).
+    beats may not have one). Assistant beats may also carry ``mark=x,y,w,h caption``
+    lines (highlight a screen element) and one ``status=x,y,w,h text`` line (the
+    status-bar message, whose text the SAP screenshot does not render).
     """
     beats: list[Beat] = []
     seen: set[int] = set()
@@ -86,9 +107,28 @@ def parse_transcript(text: str) -> list[Beat]:
             raise ParseError(f"Beat {number} has unknown role={role!r} (valid: {sorted(VALID_ROLES)})")
 
         tool: str | None = None
+        marks: list[Mark] = []
+        status: Mark | None = None
         message_lines: list[str] = []
         for line in lines[1:]:
-            if line.startswith("tool="):
+            rect = _RECT_LINE.match(line)
+            if rect is not None:
+                if role != "assistant":
+                    raise ParseError(f"Beat {number}: only assistant beats can carry {rect.group('key')}= lines")
+                mark = Mark(
+                    int(rect.group("x")),
+                    int(rect.group("y")),
+                    int(rect.group("w")),
+                    int(rect.group("h")),
+                    (rect.group("text") or "").strip(),
+                )
+                if rect.group("key") == "status":
+                    if status is not None:
+                        raise ParseError(f"Beat {number} has more than one status= line")
+                    status = mark
+                else:
+                    marks.append(mark)
+            elif line.startswith("tool="):
                 if role == "user":
                     raise ParseError(f"Beat {number}: user beats cannot carry a tool= chip")
                 tool = line[len("tool=") :].strip() or None
@@ -97,7 +137,9 @@ def parse_transcript(text: str) -> list[Beat]:
         message = "\n".join(message_lines).strip()
         if not message:
             raise ParseError(f"Beat {number} has an empty message")
-        beats.append(Beat(number=number, role=role, message=message, tool=tool, frame=frame))
+        beats.append(
+            Beat(number=number, role=role, message=message, tool=tool, frame=frame, marks=tuple(marks), status=status)
+        )
     return beats
 
 
@@ -120,6 +162,10 @@ SUCCESS_GREEN = (67, 160, 71)
 FONT_SIZE = 22
 TOOL_FONT_SIZE = 17
 TITLE_FONT_SIZE = 26
+MARK_FONT_SIZE = 15
+MARK_COLOR = (255, 122, 0)  # the "agent is here" accent: ring and caption pill
+STATUS_FG = (232, 236, 241)
+STATUS_TEXT_INDENT = 36  # frame px: the status bar's icon sits left of the message
 
 
 class RenderError(ValueError):
@@ -165,6 +211,7 @@ def render_composites(transcript_path: Path, frames_dir: Path, out_dir: Path) ->
     title_font = _font(TITLE_FONT_SIZE)
     body_font = _font(FONT_SIZE)
     tool_font = _tool_font(TOOL_FONT_SIZE)
+    mark_font = _font(MARK_FONT_SIZE)
 
     bubble_history: list[Beat] = []
     concat_lines: list[str] = []
@@ -186,7 +233,9 @@ def render_composites(transcript_path: Path, frames_dir: Path, out_dir: Path) ->
         draw = ImageDraw.Draw(canvas)
         _draw_title(draw, title_font)
         _draw_chat(draw, bubble_history, body_font, tool_font)
-        _draw_sap(draw, canvas, last_frame_path)
+        geometry = _draw_sap(draw, canvas, last_frame_path)
+        if geometry is not None:
+            _draw_overlays(draw, beat, geometry, mark_font)
         if beat.role == "title":
             # Title card: dim the panels (chat + SAP), show the title centered.
             _draw_title_card(canvas, title_font)
@@ -348,12 +397,15 @@ def _draw_chat(
         y += height + gap
 
 
-def _draw_sap(draw: ImageDraw.ImageDraw, canvas: Image.Image, frame_path: Path | None) -> None:
+def _draw_sap(
+    draw: ImageDraw.ImageDraw, canvas: Image.Image, frame_path: Path | None
+) -> tuple[int, int, float, int] | None:
+    """Draw the SAP panel; return (frame x, frame y, scale, scaled width) of the pasted frame, if any."""
     x0 = CHAT_WIDTH
     draw.rectangle([x0, TITLE_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT], fill=SAP_PANEL_BG)
     draw.line([(x0 - 1, TITLE_HEIGHT), (x0 - 1, CANVAS_HEIGHT)], fill=PANEL_BORDER)
     if frame_path is None:
-        return
+        return None
     with Image.open(frame_path) as img:
         frame = img.convert("RGB")
     avail_w = SAP_WIDTH - 2 * PADDING
@@ -364,6 +416,52 @@ def _draw_sap(draw: ImageDraw.ImageDraw, canvas: Image.Image, frame_path: Path |
     fx = x0 + (SAP_WIDTH - new_size[0]) // 2
     fy = TITLE_HEIGHT + (avail_h - new_size[1]) // 2 + PADDING
     canvas.paste(frame, (fx, fy))
+    return fx, fy, scale, new_size[0]
+
+
+def _draw_overlays(
+    draw: ImageDraw.ImageDraw,
+    beat: Beat,
+    geometry: tuple[int, int, float, int],
+    mark_font: ImageFont.FreeTypeFont,
+) -> None:
+    """Draw the beat's status-bar text and element highlights on top of the pasted SAP frame."""
+    fx, fy, scale, frame_w = geometry
+    if beat.status is not None and beat.status.text:
+        st = beat.status
+        font = _font(max(8, round(15 * scale)))
+        draw.text(
+            (fx + (st.x + STATUS_TEXT_INDENT) * scale, fy + (st.y + st.h / 2) * scale),
+            beat.status.text,
+            font=font,
+            fill=STATUS_FG,
+            anchor="lm",
+        )
+    placed: list[tuple[float, float, float, float]] = []  # caption pills drawn so far, to keep them apart
+    for mark in beat.marks:
+        left, top = fx + mark.x * scale - 3, fy + mark.y * scale - 3
+        right, bottom = fx + (mark.x + mark.w) * scale + 3, fy + (mark.y + mark.h) * scale + 3
+        draw.rounded_rectangle([left, top, right, bottom], radius=5, outline=MARK_COLOR, width=2)
+        if not mark.text:
+            continue
+        pad_x, pad_y = 7, 3
+        text_w = draw.textlength(mark.text, font=mark_font)
+        pill_w, pill_h = text_w + 2 * pad_x, int(mark_font.size) + 2 * pad_y
+        pill_left = right + 6
+        if pill_left + pill_w > fx + frame_w:  # no room to the right: put the caption on the left of the ring
+            pill_left = left - 6 - pill_w
+        pill_top = (top + bottom) / 2 - pill_h / 2
+        for p_left, p_top, p_right, p_bottom in placed:  # nudge down past any pill it would overlap
+            if (
+                pill_left < p_right
+                and pill_left + pill_w > p_left
+                and pill_top < p_bottom
+                and pill_top + pill_h > p_top
+            ):
+                pill_top = p_bottom + 2
+        placed.append((pill_left, pill_top, pill_left + pill_w, pill_top + pill_h))
+        draw.rounded_rectangle([pill_left, pill_top, pill_left + pill_w, pill_top + pill_h], radius=8, fill=MARK_COLOR)
+        draw.text((pill_left + pad_x, pill_top + pad_y - 1), mark.text, font=mark_font, fill=(255, 255, 255))
 
 
 def main() -> int:

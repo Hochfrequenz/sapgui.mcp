@@ -9,6 +9,7 @@ from sapguimcp.demo.render_readme_demo import (
     CANVAS_HEIGHT,
     CANVAS_WIDTH,
     CHAT_WIDTH,
+    MARK_COLOR,
     TITLE_HEIGHT,
     TOOL_FONT_SIZE,
     Beat,
@@ -48,6 +49,33 @@ class TestMeasureBubble:
         width, _, _, _ = _measure_bubble(draw, beat, body_font, tool_font, 400)
         # chip starts 12px (padding) + 14px (triangle gutter) in and needs 12px right padding
         assert width >= 12 + 14 + draw.textlength(beat.tool or "", font=tool_font) + 12 - 1
+
+
+class TestOverlays:
+    @staticmethod
+    def _render(workdir: Path, extra: str) -> Image.Image:
+        frames = workdir / "frames"
+        frames.mkdir(parents=True)
+        _write_frame(frames / "02_easy_access.png", (1045, 901))
+        (workdir / "transcript.md").write_text(
+            "[beat 1] role=assistant frame=frames/02_easy_access.png\nTyping…\ntool=sap_fill_form\n" + extra,
+            encoding="utf-8",
+        )
+        render_composites(workdir / "transcript.md", frames, workdir / "composite")
+        return Image.open(workdir / "composite" / "composite_01.png").convert("RGB")
+
+    def test_mark_draws_ring_and_caption_over_frame(self, tmp_path: Path) -> None:
+        plain = self._render(tmp_path / "plain", "")
+        marked = self._render(tmp_path / "marked", "mark=242,404,409,25 Max\n")
+        assert plain.tobytes() != marked.tobytes()
+        sap_panel = [(x, y) for x in range(CHAT_WIDTH, CANVAS_WIDTH) for y in range(TITLE_HEIGHT, CANVAS_HEIGHT)]
+        assert any(marked.getpixel(xy) == MARK_COLOR for xy in sap_panel)
+        assert not any(plain.getpixel(xy) == MARK_COLOR for xy in sap_panel)
+
+    def test_status_text_changes_the_frame(self, tmp_path: Path) -> None:
+        plain = self._render(tmp_path / "plain", "")
+        with_status = self._render(tmp_path / "status", "status=8,853,1029,40 Saved\n")
+        assert plain.tobytes() != with_status.tobytes()
 
 
 class TestRenderComposites:

@@ -97,6 +97,15 @@ Chosen over three options discussed:
 screenshots from a real run; only the timing is edited. The PR description
 must state this explicitly.
 
+**Overlays (what the renderer adds):** orange rings and short caption pills mark
+the screen element the agent operates, and the status-bar message is drawn as
+text. The SAP screenshot cannot render that message in this theme, although COM
+returns it. Both come from the same live run: element rectangles are read via
+COM (position relative to the window = pixel position in the captured frame)
+and the message text from the status bar. Nothing is hand-placed or invented.
+The SAP window itself is resized for the run (`resize_working_pane`, 100×22
+characters, about 1045×900 px) so SAP text stays readable at GIF size.
+
 ## The skill
 
 **Name:** `readme-demo`.
