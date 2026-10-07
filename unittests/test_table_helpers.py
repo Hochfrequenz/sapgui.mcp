@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, PropertyMock
@@ -243,10 +244,13 @@ class TestReadVisiblePageFromTree:
         session.find_by_id.return_value.dump_tree.return_value = [_cell(0, 0, "")]
         assert _read_visible_page_from_tree(session, "tbl", ["A"], 1, _flatten) == [{"A": ""}]
 
-    def test_returns_none_without_cells_so_the_caller_can_fall_back(self) -> None:
+    def test_returns_none_without_cells_so_the_caller_can_fall_back(self, caplog: pytest.LogCaptureFixture) -> None:
         session = MagicMock()
         session.find_by_id.return_value.dump_tree.return_value = []
-        assert _read_visible_page_from_tree(session, "tbl", ["A"], 1, _flatten) is None
+        with caplog.at_level(logging.WARNING):
+            assert _read_visible_page_from_tree(session, "tbl", ["A"], 1, _flatten) is None
+        # The slow path must stay visible even when the dump had no recognised cells at all.
+        assert "0 of 1 expected rows" in caplog.text
 
     def test_returns_none_when_the_dump_fails(self) -> None:
         session = MagicMock()

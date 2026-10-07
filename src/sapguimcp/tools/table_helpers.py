@@ -79,8 +79,11 @@ def _read_visible_page_from_tree(
         logger.warning("Table control tree dump failed, falling back to per-cell reads", exc_info=True)
         return None
     if len({row for row, _column in cells if row < count}) < count:
-        if cells:
-            logger.warning("Table control dump has fewer than %d rows, falling back to per-cell reads", count)
+        logger.warning(
+            "Table control dump has %d of %d expected rows, falling back to per-cell reads",
+            len({row for row, _column in cells if row < count}),
+            count,
+        )
         return None
     return [{title: cells[(r, c)] for c, title in enumerate(col_titles) if (r, c) in cells} for r in range(count)]
 
