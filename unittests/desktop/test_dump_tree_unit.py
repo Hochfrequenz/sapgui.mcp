@@ -3,7 +3,13 @@
 from unittest.mock import MagicMock, PropertyMock
 
 import pytest
-from sapsucker.components.base import _dump_tree_recursive, _probe_bdt_fields
+from sapsucker.components.base import GuiComponentType, _dump_tree_recursive, _probe_bdt_fields
+
+# Real component type numbers, taken from sapsucker so that the mocks cannot drift from what it probes with.
+# (sapsucker < 1.5 probed radio buttons, checkboxes and labels with 42, 43 and 46 instead of 41, 42 and 30;
+# 1.5.0 derives the probe types from the enum, so these tests need >= 1.5.0.)
+_TEXT_FIELD = int(GuiComponentType.GuiTextField)
+_LABEL = int(GuiComponentType.GuiLabel)
 
 
 def _make_normal_container(children_data):
@@ -26,7 +32,7 @@ def _make_bdt_container():
     field1 = MagicMock()
     field1.Id = "/app/con[0]/ses[0]/wnd[0]/usr/sub/txtBUT000-NAME_LAST"
     field1.Type = "GuiTextField"
-    field1.TypeAsNumber = 31
+    field1.TypeAsNumber = _TEXT_FIELD
     field1.Name = "BUT000-NAME_LAST"
     field1.Text = ""
     field1.Changeable = True
@@ -34,17 +40,17 @@ def _make_bdt_container():
     label1 = MagicMock()
     label1.Id = "/app/con[0]/ses[0]/wnd[0]/usr/sub/lblBUT000-NAME_LAST"
     label1.Type = "GuiLabel"
-    label1.TypeAsNumber = 46
+    label1.TypeAsNumber = _LABEL
     label1.Name = "BUT000-NAME_LAST"
     label1.Text = "Nachname"
     label1.Changeable = False
 
     def find_all_by_name_ex(name, type_num):
         coll = MagicMock()
-        if type_num == 31:
+        if type_num == _TEXT_FIELD:
             coll.Count = 1
             coll.Item = lambda i: field1
-        elif type_num == 46:
+        elif type_num == _LABEL:
             coll.Count = 1
             coll.Item = lambda i: label1
         else:
@@ -61,7 +67,7 @@ class TestDumpTreeNormalContainer:
         child = MagicMock()
         child.Id = "wnd[0]/usr/txt1"
         child.Type = "GuiTextField"
-        child.TypeAsNumber = 31
+        child.TypeAsNumber = _TEXT_FIELD
         child.Name = "txt1"
         child.Text = "hello"
         child.Changeable = True
@@ -105,14 +111,14 @@ class TestDumpTreeBDTFallback:
         field = MagicMock()
         field.Id = "wnd[0]/usr/empty/txtF1"
         field.Type = "GuiTextField"
-        field.TypeAsNumber = 31
+        field.TypeAsNumber = _TEXT_FIELD
         field.Name = "F1"
         field.Text = ""
         field.Changeable = True
 
         def find_all(name, type_num):
             coll = MagicMock()
-            if type_num == 31:
+            if type_num == _TEXT_FIELD:
                 coll.Count = 1
                 coll.Item = lambda i: field
             else:
@@ -131,7 +137,7 @@ class TestProbeBdtFields:
         field = MagicMock()
         field.Id = "wnd[0]/usr/txt1"
         field.Type = "GuiTextField"
-        field.TypeAsNumber = 31
+        field.TypeAsNumber = _TEXT_FIELD
         field.Name = "txt1"
         field.Text = ""
         field.Changeable = True
