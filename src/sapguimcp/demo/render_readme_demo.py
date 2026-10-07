@@ -226,7 +226,13 @@ def _tool_font(size: int) -> ImageFont.FreeTypeFont:
 
 def _draw_title(draw: ImageDraw.ImageDraw, font: ImageFont.FreeTypeFont) -> None:
     draw.rectangle([0, 0, CANVAS_WIDTH, TITLE_HEIGHT], fill=TITLE_BG)
-    draw.text((PADDING, 12), "SAP GUI MCP — chat with Claude, watch SAP do the work", font=font, fill=TITLE_FG)
+    draw.text(
+        (PADDING, TITLE_HEIGHT // 2),
+        "SAP GUI MCP — chat with Claude, watch SAP do the work",
+        font=font,
+        fill=TITLE_FG,
+        anchor="lm",
+    )
 
 
 def _draw_title_card(canvas: Image.Image, font: ImageFont.FreeTypeFont) -> None:
@@ -257,7 +263,8 @@ def _measure_bubble(
     """
     has_checkmark = "✓" in beat.message
     text = beat.message.replace("✓", "").strip() if has_checkmark else beat.message
-    lines = _wrap(draw, text, body_font, max_text_width)
+    # Line 0 is indented 20px for the checkmark, so wrap everything narrower to keep it inside the bubble.
+    lines = _wrap(draw, text, body_font, max_text_width - (20 if has_checkmark else 0))
     if not lines:
         # A message can strip down to nothing (e.g. it was only "✓"); keep one
         # empty line so the bubble still renders with its green checkmark.
