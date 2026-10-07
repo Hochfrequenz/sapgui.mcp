@@ -223,7 +223,14 @@ def test_credentials_popup_error_is_recognised_and_enriched(message: str) -> Non
 
 @pytest.mark.parametrize(
     "message",
-    ["Repository not found", "Transport required. Provide P_TRKORR= KS", "Could not find the form PERFORM_X", ""],
+    [
+        "Repository not found",
+        "Transport required. Provide P_TRKORR= KS",
+        "Could not find the form PERFORM_X",
+        "Could not find the form PAYMENT_X",
+        "Could not find the form PA_SOMETHING",
+        "",
+    ],
 )
 def test_credentials_popup_error_does_not_match_other_errors(message: str) -> None:
     """Unrelated errors must not get the credentials hint."""

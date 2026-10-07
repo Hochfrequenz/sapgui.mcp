@@ -154,14 +154,15 @@ def _is_no_task_error(error_text: str) -> bool:
     return any(pattern in lower for pattern in _NO_TASK_PATTERNS)
 
 
-_CREDENTIALS_POPUP_PATTERNS = (
-    "password_popup",
-    # The status bar cuts the text; an English logon shows only this much of it.
-    "could not find the form pa",
-)
+_CREDENTIALS_POPUP_NAME = "password_popup"
+
+# The report passes the exception text as one MESSAGE ... WITH parameter, which is cut at 50 characters,
+# so an English logon can end right after "PA". Only match that when the text ends there, so that other
+# missing forms ("Could not find the form PAYMENT_X") do not get the credentials hint.
+_CREDENTIALS_POPUP_CUT_ENGLISH = "could not find the form pa"
 
 _CREDENTIALS_POPUP_GUIDANCE = (
-    "abapGit asked for credentials, most likely because the git host answered HTTP 401, and its "
+    "abapGit tried to ask for credentials, most likely because the git host answered HTTP 401, and its "
     "password popup cannot be shown when abapGit is called through the API. "
     "Check that ABAPGIT_PAT / GITHUB_PAT is valid and not expired (GitHub rejects an invalid token "
     "even for public repositories), or that the SAP system can reach the git host."
@@ -171,7 +172,7 @@ _CREDENTIALS_POPUP_GUIDANCE = (
 def _is_credentials_popup_error(error_text: str) -> bool:
     """Check if an error message is abapGit's missing password popup (a rejected or missing login)."""
     lower = error_text.lower()
-    return any(pattern in lower for pattern in _CREDENTIALS_POPUP_PATTERNS)
+    return _CREDENTIALS_POPUP_NAME in lower or lower.rstrip(". ").endswith(_CREDENTIALS_POPUP_CUT_ENGLISH)
 
 
 def _enrich_transport_error(error_text: str) -> str:
@@ -406,7 +407,8 @@ async def _analyze_pull_result(backend: "WebGuiBackend | DesktopBackend", repo: 
         )
 
     # Treat ambiguous result based on whether we got any status message.
-    # Empty status bar may mask auth errors (expired PAT -> cx_root in ABAP).
+    # Empty status bar is ambiguous: the pull may or may not have run (an expired PAT ends in cx_root in ABAP,
+    # but an empty bar has also been seen after a pull that went through).
     if not final_msg:
         return AbapGitActionResult.failure_result(
             action="pull",

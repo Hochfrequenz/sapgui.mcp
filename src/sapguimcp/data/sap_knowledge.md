@@ -164,6 +164,7 @@ git mv src/ZCL_MY_CLASS.clas.xml src/zcl_my_class.clas.xml
 
 The `sap_abapgit_pull` tool may return "Pull status unknown" on the first call because the SAP status bar is empty after navigating to the report.
 **Workaround:** Simply call `sap_abapgit_pull` a second time, or press F8 (Ausführen/Execute) after the first call to actually trigger the pull execution.
+The pull may also have run already (an empty status bar was seen after a pull that went through): check the last pull time in abapGit or the transport task before retrying.
 
 ### Performance Tip: Use a Separate SAP Window (Modus)
 
