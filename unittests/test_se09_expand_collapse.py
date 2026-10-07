@@ -42,7 +42,6 @@ class _FakeSession:
                 return self._trees[_id]
 
             node.dump_tree = _dump
-            node.children = property(lambda _self: pytest.fail("children must not be scanned one by one"))
             return node
         node = MagicMock()
         node.set_focus = lambda: self.actions.append(("set_focus", element_id))
@@ -98,6 +97,15 @@ def test_select_unknown_label_does_nothing() -> None:
     assert session.actions == []
 
 
+def test_select_ignores_labels_nested_in_containers() -> None:
+    """The old raw-COM scan only looked at direct usr children; a nested label must not match."""
+    nested = _el("wnd[0]/usr/cntl", "", 62, [_el("wnd[0]/usr/cntl/lbl[1,1]", "ABCK900001")])
+    session = _FakeSession([nested], _menu_bar(_edit_menu("Expandieren")))
+    performed, before = _select_edit_menu_item_for_label(session, "ABCK900001", ("Expandieren", "Expand"))
+    assert (performed, before) == (False, 1)
+    assert session.actions == []
+
+
 def test_select_ignores_non_label_elements_with_the_same_text() -> None:
     usr = [_el("wnd[0]/usr/txt[1,1]", "ABCK900001", type_as_number=31)]
     session = _FakeSession(usr, _menu_bar(_edit_menu("Expandieren")))
@@ -112,7 +120,8 @@ def test_select_missing_menu_item_reports_not_performed_and_warns(caplog: pytest
         performed, before = _select_edit_menu_item_for_label(session, "ABCK900001", ("Expandieren", "Expand"))
     assert (performed, before) == (False, 1)
     assert "menu item" in caplog.text
-    assert ("select", "wnd[0]/mbar/menu[1]/menu[0]") not in session.actions
+    # The Edit menu is not opened when the item is missing (no menu left open).
+    assert not any(action == "select" for action, _ in session.actions)
 
 
 # --- usr_child_count_changed ---------------------------------------------------------------------------------------
@@ -146,14 +155,25 @@ def _backend(job_result: bool) -> Any:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("operation", [_expand_request_node_desktop, _collapse_request_node_desktop])
-async def test_after_the_action_waits_for_ready_and_the_tree_change(operation: Any) -> None:
+@pytest.mark.parametrize(
+    ("operation", "item"),
+    [(_expand_request_node_desktop, "Expandieren"), (_collapse_request_node_desktop, "Komprimieren")],
+)
+async def test_after_the_action_waits_for_ready_and_the_tree_change(operation: Any, item: str) -> None:
+    """Run the real COM job against a fake session and check the wait is built from the pre-action child count."""
+    session = _FakeSession(_usr("ABCK900001", "ABCK900002", "ABCK900003"), _menu_bar(_edit_menu(item)))
     backend = _backend(job_result=True)
-    await operation(backend, "ABCK900001")
+    backend.require_session = MagicMock(return_value=session)
+    backend.com.run = AsyncMock(side_effect=lambda job: job())
+    await operation(backend, "ABCK900002")
     backend.wait_for_ready.assert_awaited_once()
     backend.wait_for_condition.assert_awaited_once()
+    assert backend.wait_for_condition.await_args.kwargs == {"timeout_ms": 2000, "poll_ms": 50}
     predicate = backend.wait_for_condition.await_args.args[0]
     assert predicate.__qualname__.startswith("usr_child_count_changed.")
+    # Built from the 3 children seen before the action: unchanged is not ready, a changed count is.
+    assert not predicate(_usr_session(3))
+    assert predicate(_usr_session(5))
 
 
 @pytest.mark.anyio

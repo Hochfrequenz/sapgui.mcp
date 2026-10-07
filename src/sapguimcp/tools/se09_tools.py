@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING, Any, Literal
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from sapguimcp.backend.desktop._element_finder import _TYPE_LABEL, _flatten
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se09_parser import parse_se09_transport_list
 from sapguimcp.backend.webgui.types import AriaSnapshot
@@ -278,11 +277,15 @@ def _select_edit_menu_item_for_label(
     Returns ``(performed, child_count_before)``; ``child_count_before`` is the number of direct ``usr`` children
     before the action, for the readiness predicate.
     """
+    from sapguimcp.backend.desktop._element_finder import (  # pylint: disable=import-outside-toplevel
+        _TYPE_LABEL,
+        _flatten,
+    )
+
     usr_tree = session.find_by_id("wnd[0]/usr").dump_tree()
     before_count = len(usr_tree)
-    label = next(
-        (e for e in _flatten(usr_tree) if e.type_as_number == _TYPE_LABEL and e.text.strip() == request_number), None
-    )
+    # Direct children of usr only, as the raw-COM scan did before.
+    label = next((e for e in usr_tree if e.type_as_number == _TYPE_LABEL and e.text.strip() == request_number), None)
     if label is None:
         return False, before_count
     session.find_by_id(label.id).set_focus()
@@ -290,13 +293,25 @@ def _select_edit_menu_item_for_label(
     menus = session.find_by_id("wnd[0]/mbar").dump_tree()
     edit_menu = menus[_SE09_EDIT_MENU_INDEX]
     item = next((e for e in _flatten(edit_menu.children) if e.text in item_names), None)
-    session.find_by_id(edit_menu.id).select()
     if item is None:
         logger.warning("SE09 menu item %s not found for %s", item_names, request_number)
         return False, before_count
+    session.find_by_id(edit_menu.id).select()
     # COM calls are synchronous: no pauses needed between focus, menu and item.
     session.find_by_id(item.id).select()
     return True, before_count
+
+
+_SE09_TREE_WAIT_MS = 2000
+
+
+async def _wait_for_usr_tree_change(backend: "DesktopBackend", before_count: int, request_number: str) -> None:
+    """Wait (bounded) until the number of usr children differs from ``before_count``; log if it never does."""
+    changed = await backend.wait_for_condition(
+        usr_child_count_changed(before_count), timeout_ms=_SE09_TREE_WAIT_MS, poll_ms=50
+    )
+    if not changed:
+        logger.debug("SE09 list did not change within %d ms after the action on %s", _SE09_TREE_WAIT_MS, request_number)
 
 
 async def _expand_request_node_desktop(backend: "WebGuiBackend | DesktopBackend", request_number: str) -> bool:
@@ -327,7 +342,7 @@ async def _expand_request_node_desktop(backend: "WebGuiBackend | DesktopBackend"
     if result:
         await backend.wait_for_ready()
         # The caller reads the task labels next: wait until the expanded node's labels are in the tree.
-        await backend.wait_for_condition(usr_child_count_changed(before_count), timeout_ms=3000, poll_ms=50)
+        await _wait_for_usr_tree_change(backend, before_count, request_number)
     return result
 
 
@@ -356,7 +371,7 @@ async def _collapse_request_node_desktop(backend: "WebGuiBackend | DesktopBacken
     await backend.wait_for_ready()
     if collapsed:
         # The next request's label is looked up by text: wait until the collapsed node's labels are gone.
-        await backend.wait_for_condition(usr_child_count_changed(before_count), timeout_ms=3000, poll_ms=50)
+        await _wait_for_usr_tree_change(backend, before_count, request_number)
 
 
 def _parse_tasks_from_expanded_labels(
