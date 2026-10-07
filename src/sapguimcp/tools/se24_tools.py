@@ -26,7 +26,11 @@ from sapguimcp.models import (
     SE24Result,
 )
 from sapguimcp.models.se24_models import SE24Attribute, SE24Method, SE24ObjectType, SE24Visibility
-from sapguimcp.tools.desktop_wait_predicates import screen_changed, tab_table_control_loaded
+from sapguimcp.tools.desktop_wait_predicates import (
+    popup_closed_and_screen_changed,
+    screen_changed,
+    tab_table_control_loaded,
+)
 from sapguimcp.tools.field_helpers import fill_and_display
 from sapguimcp.tools.table_helpers import read_table_control_all_rows
 
@@ -192,7 +196,10 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
         try:
             await backend.press_key("Enter")
             await backend.wait_for_ready()
-            await backend.wait_for_condition(screen_changed(before_title, before_f7), timeout_ms=_SE24_SCREEN_WAIT_MS)
+            # screen_changed would already be true because of the popup itself: wait until it is gone as well.
+            await backend.wait_for_condition(
+                popup_closed_and_screen_changed(before_title, before_f7), timeout_ms=_SE24_SCREEN_WAIT_MS
+            )
         except Exception:  # pylint: disable=broad-exception-caught
             pass
 

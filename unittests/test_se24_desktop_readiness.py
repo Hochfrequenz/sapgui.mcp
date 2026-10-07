@@ -29,8 +29,10 @@ def _desktop_backend() -> Any:
     return backend
 
 
-def _screen_session(title: str, status: str) -> Any:
+def _screen_session(title: str, status: str, popup: bool = False) -> Any:
     elements = {"wnd[0]": SimpleNamespace(text=title), "wnd[0]/sbar": SimpleNamespace(text=status)}
+    if popup:
+        elements["wnd[1]"] = SimpleNamespace(text="Language")
     return SimpleNamespace(find_by_id=lambda element_id, **_kwargs: elements.get(element_id))
 
 
@@ -161,6 +163,11 @@ async def test_lookup_class_with_a_popup_confirms_it_and_waits_again() -> None:
     assert events[f7 : f7 + 3] == ["press_key", "wait_for_ready", "wait_for_condition"]
     assert events[f7 + 3 : f7 + 6] == ["press_key", "wait_for_ready", "wait_for_condition"]
     assert [c.kwargs for c in backend.wait_for_condition.await_args_list[:2]] == [{"timeout_ms": 3000}] * 2
+    after_enter = backend.wait_for_condition.await_args_list[1].args[0]
+    assert after_enter.__qualname__.startswith("popup_closed_and_screen_changed.")
+    # the popup that is being dismissed must not satisfy the wait, even though the screen behind it changed
+    assert not after_enter(_screen_session("Display CL_X", "Old", popup=True))
+    assert after_enter(_screen_session("Display CL_X", "Old"))
 
 
 @pytest.mark.anyio
