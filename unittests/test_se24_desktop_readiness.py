@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -10,7 +11,7 @@ import pytest
 
 from sapguimcp.backend.desktop import DesktopBackend
 from sapguimcp.models.sap_results import ScreenInfo, StatusBarInfo
-from sapguimcp.tools.se24_tools import SE24Entry, _click_tab_bilingual, _lookup_class_desktop, _read_tab_rows
+from sapguimcp.tools.se24_tools import SE24Entry, SE24Error, _click_tab_bilingual, _lookup_class_desktop, _read_tab_rows
 
 _ROW_A = [{"Attribut": "A"}]
 _ROW_B = [{"Attribut": "B"}]
@@ -26,6 +27,11 @@ def _desktop_backend() -> Any:
     backend.com = MagicMock()
     backend.com.run = AsyncMock(side_effect=lambda job: job())
     return backend
+
+
+def _screen_session(title: str, status: str) -> Any:
+    elements = {"wnd[0]": SimpleNamespace(text=title), "wnd[0]/sbar": SimpleNamespace(text=status)}
+    return SimpleNamespace(find_by_id=lambda element_id, **_kwargs: elements.get(element_id))
 
 
 def _record_calls(backend: Any, *names: str) -> list[str]:
@@ -55,21 +61,19 @@ async def test_click_tab_desktop_only_waits_for_ready_and_returns_the_label() ->
 
 
 @pytest.mark.anyio
-async def test_click_tab_desktop_falls_back_to_the_english_label_and_reports_a_miss() -> None:
+async def test_click_tab_desktop_falls_back_to_the_english_label() -> None:
     backend = _desktop_backend()
     backend.click_tab = AsyncMock(side_effect=[ValueError("no DE tab"), None])
     assert await _click_tab_bilingual(backend, "Attribute", "Attributes") == "Attributes"
-    backend.click_tab = AsyncMock(side_effect=ValueError("no tab"))
-    assert await _click_tab_bilingual(backend, "Attribute", "Attributes") is None
 
 
 @pytest.mark.anyio
-async def test_click_tab_webgui_keeps_the_fixed_wait() -> None:
-    backend = MagicMock()  # not a DesktopBackend
-    backend.click_tab = AsyncMock()
-    backend.wait = AsyncMock()
-    assert await _click_tab_bilingual(backend, "Attribute", "Attributes") == "Attribute"
-    backend.wait.assert_awaited_once_with(500)
+async def test_click_tab_desktop_reports_a_missing_tab_with_a_warning(caplog: pytest.LogCaptureFixture) -> None:
+    backend = _desktop_backend()
+    backend.click_tab = AsyncMock(side_effect=ValueError("no tab"))
+    with caplog.at_level(logging.WARNING):
+        assert await _click_tab_bilingual(backend, "Attribute", "Attributes") is None
+    assert "Tab not found: Attribute / Attributes" in caplog.text
 
 
 # --- _read_tab_rows -----------------------------------------------------------------------------------------------
@@ -111,27 +115,52 @@ async def test_read_tab_rows_unknown_tab_does_not_wait_for_a_control() -> None:
 # --- _lookup_class_desktop wiring ---------------------------------------------------------------------------------
 
 
-@pytest.mark.anyio
-async def test_lookup_class_waits_for_state_changes_instead_of_fixed_times() -> None:
+def _lookup_backend(popup: Any) -> Any:
     backend = _desktop_backend()
     backend.fill_field = AsyncMock()
     backend.press_key = AsyncMock()
+    titles = iter(["Initial"])
     backend.get_screen_info = AsyncMock(
-        side_effect=[ScreenInfo(title="Initial", url="sap://s"), ScreenInfo(title="Display CL_X", url="sap://s")]
+        side_effect=lambda: ScreenInfo(title=next(titles, "Display CL_X"), url="sap://s")
     )
     backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type="S", message=" Old "))
+    backend.check_popup = AsyncMock(return_value=popup)
     backend.discover_fields = AsyncMock(return_value=[SimpleNamespace(name="SEOCLASS-DESCRIPT", value="A class")])
+    return backend
+
+
+@pytest.mark.anyio
+async def test_lookup_class_without_popup_waits_for_the_state_change_and_presses_no_enter() -> None:
+    backend = _lookup_backend(popup=None)
     events = _record_calls(backend, "press_key", "wait_for_ready", "wait_for_condition")
     with patch("sapguimcp.tools.se24_tools.read_table_control_all_rows", return_value=[]):
         result = await _lookup_class_desktop(backend, "CL_X")
     assert isinstance(result, SE24Entry)
     backend.wait.assert_not_awaited()
     f7 = events.index("press_key")
+    assert events[f7 : f7 + 3] == ["press_key", "wait_for_ready", "wait_for_condition"]
+    assert events.count("press_key") == 1  # only F7: Enter is for a language popup, none is open
+    predicate = backend.wait_for_condition.await_args_list[0].args[0]
+    assert predicate.__qualname__.startswith("screen_changed.")
+    # Bounded: a lookup whose screen never changes may not cost more than the former fixed waits (3 s).
+    assert backend.wait_for_condition.await_args_list[0].kwargs == {"timeout_ms": 3000}
+    # Built from the pre-F7 snapshot: unchanged title and stale status are not ready, a new title is.
+    assert not predicate(_screen_session("Initial", "Old"))
+    assert predicate(_screen_session("Display CL_X", "Old"))
+
+
+@pytest.mark.anyio
+async def test_lookup_class_with_a_popup_confirms_it_and_waits_again() -> None:
+    backend = _lookup_backend(popup=SimpleNamespace(title="Language"))
+    events = _record_calls(backend, "press_key", "wait_for_ready", "wait_for_condition")
+    with patch("sapguimcp.tools.se24_tools.read_table_control_all_rows", return_value=[]):
+        result = await _lookup_class_desktop(backend, "CL_X")
+    assert isinstance(result, SE24Entry)
+    f7 = events.index("press_key")
     # F7 and Enter are each followed by a ready wait and a state-change wait
     assert events[f7 : f7 + 3] == ["press_key", "wait_for_ready", "wait_for_condition"]
     assert events[f7 + 3 : f7 + 6] == ["press_key", "wait_for_ready", "wait_for_condition"]
-    predicate = backend.wait_for_condition.await_args_list[0].args[0]
-    assert predicate.__qualname__.startswith("screen_changed.")
+    assert [c.kwargs for c in backend.wait_for_condition.await_args_list[:2]] == [{"timeout_ms": 3000}] * 2
 
 
 @pytest.mark.anyio
@@ -142,3 +171,16 @@ async def test_lookup_class_requires_the_desktop_backend_before_touching_the_scr
     assert not isinstance(result, SE24Entry)
     assert result.error == "Requires DesktopBackend"
     backend.fill_field.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_lookup_class_not_found_reports_the_generic_text_not_sap_s_own_message() -> None:
+    """The former unconditional Enter cleared SAP's message, so callers always saw this text; keep it."""
+    backend = _lookup_backend(popup=None)
+    backend.get_screen_info = AsyncMock(return_value=ScreenInfo(title="Class Builder: Einstieg", url="sap://s"))
+    backend.get_status_bar = AsyncMock(
+        return_value=StatusBarInfo(type="S", message="Objekttyp CL_X ist nicht vorhanden")
+    )
+    result = await _lookup_class_desktop(backend, "CL_X")
+    assert isinstance(result, SE24Error)
+    assert result.error == "Class/interface 'CL_X' not found"

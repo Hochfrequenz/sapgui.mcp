@@ -109,20 +109,21 @@ def _parse_attributes(rows: list[dict[str, str]]) -> list[SE24Attribute]:
     return attributes
 
 
-async def _click_tab_bilingual(backend: WebGuiBackend | DesktopBackend, de_label: str, en_label: str) -> str | None:
-    """Click a tab trying DE then EN label. Returns the label that matched, or None when neither did."""
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+# Upper bound for waiting on a state change after F7 / Enter. A lookup whose title and status text stay unchanged (e.g.
+# the same 'does not exist' message as before) must not cost more than the 3 s the former fixed waits took.
+_SE24_SCREEN_WAIT_MS = 3000
 
+
+async def _click_tab_bilingual(backend: DesktopBackend, de_label: str, en_label: str) -> str | None:
+    """Click a tab trying DE then EN label. Returns the label that matched, or None when neither did."""
     for label in [de_label, en_label]:
         try:
             await backend.click_tab(label)
-            if isinstance(backend, DesktopBackend):
-                await backend.wait_for_ready()
-            else:
-                await backend.wait(500)
+            await backend.wait_for_ready()
             return label
         except Exception:  # pylint: disable=broad-exception-caught
             continue
+    logger.warning("Tab not found: %s / %s", de_label, en_label)
     return None
 
 
@@ -147,7 +148,8 @@ async def _read_tab_rows(
     label = await _click_tab_bilingual(backend, de_label, en_label)
     rows = await com.run(_read_tc)
     if label is not None and (not rows or rows == previous_rows):
-        await backend.wait_for_condition(tab_table_control_loaded(label), timeout_ms=3000, poll_ms=250)
+        if not await backend.wait_for_condition(tab_table_control_loaded(label), timeout_ms=3000, poll_ms=250):
+            logger.debug("SE24 tab %s: table control did not appear within 3 s", label)
         rows = await com.run(_read_tc)
     return rows
 
@@ -178,19 +180,21 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     if not filled:
         return SE24Error(class_name=class_name, error="Could not fill class name field", retrieved_at=now)
 
-    # Press F7 (Display), then Enter to dismiss any language popup. Wait for a state change after each
-    # (popup, new title or new status text) instead of a fixed time (#928).
+    # Press F7 (Display) and wait for a state change (popup, new title or new status text) instead of a fixed
+    # time (#928). Enter is only needed to dismiss a language popup, so it is pressed only if one is open: after
+    # a failed lookup the message disappears on Enter and nothing else changes, which would wait for nothing.
     before_title = (await backend.get_screen_info()).title or ""
     before_f7 = (await backend.get_status_bar()).message.strip()
     await backend.press_key("F7")
     await backend.wait_for_ready()
-    await backend.wait_for_condition(screen_changed(before_title, before_f7))
-    try:
-        await backend.press_key("Enter")
-        await backend.wait_for_ready()
-        await backend.wait_for_condition(screen_changed(before_title, before_f7))
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
+    await backend.wait_for_condition(screen_changed(before_title, before_f7), timeout_ms=_SE24_SCREEN_WAIT_MS)
+    if await backend.check_popup() is not None:
+        try:
+            await backend.press_key("Enter")
+            await backend.wait_for_ready()
+            await backend.wait_for_condition(screen_changed(before_title, before_f7), timeout_ms=_SE24_SCREEN_WAIT_MS)
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
 
     # Check status bar for errors
     sbar = await backend.get_status_bar()
@@ -200,7 +204,9 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     # Verify we left the initial screen (title should contain the class name)
     screen = await backend.get_screen_info()
     if class_name.upper() not in (screen.title or "").upper():
-        error_msg = sbar.message or f"Class/interface '{class_name}' not found"
+        # Always the generic text: the former unconditional Enter cleared SAP's own message ("<type> <name> does
+        # not exist", which also reads wrong in German) before it was read, so callers never saw it.
+        error_msg = f"Class/interface '{class_name}' not found"
         return SE24Error(class_name=class_name, error=error_msg, retrieved_at=now)
 
     session = backend.require_session()
