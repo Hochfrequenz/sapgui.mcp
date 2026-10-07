@@ -26,6 +26,7 @@ from sapguimcp.models import (
     SE24Result,
 )
 from sapguimcp.models.se24_models import SE24Attribute, SE24Method, SE24ObjectType, SE24Visibility
+from sapguimcp.tools.desktop_wait_predicates import screen_changed, tab_table_control_loaded
 from sapguimcp.tools.field_helpers import fill_and_display
 from sapguimcp.tools.table_helpers import read_table_control_all_rows
 
@@ -108,15 +109,47 @@ def _parse_attributes(rows: list[dict[str, str]]) -> list[SE24Attribute]:
     return attributes
 
 
-async def _click_tab_bilingual(backend: WebGuiBackend | DesktopBackend, de_label: str, en_label: str) -> None:
-    """Click a tab trying DE then EN label."""
+async def _click_tab_bilingual(backend: WebGuiBackend | DesktopBackend, de_label: str, en_label: str) -> str | None:
+    """Click a tab trying DE then EN label. Returns the label that matched, or None when neither did."""
+    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
     for label in [de_label, en_label]:
         try:
             await backend.click_tab(label)
-            await backend.wait(500)
-            return
+            if isinstance(backend, DesktopBackend):
+                await backend.wait_for_ready()
+            else:
+                await backend.wait(500)
+            return label
         except Exception:  # pylint: disable=broad-exception-caught
             continue
+    return None
+
+
+async def _read_tab_rows(
+    backend: DesktopBackend, de_label: str, en_label: str, previous_rows: list[dict[str, str]]
+) -> list[dict[str, str]]:
+    """Select a tab and read its table control (#928).
+
+    SAP instantiates a tab page's subscreen lazily, so right after the click the table control may not exist yet
+    (reads as empty) or the previous tab's rows may still be returned. Only in those cases, i.e. empty rows or
+    rows identical to ``previous_rows``, wait until the clicked tab's own table control is in the tree and read
+    again. A populated tab therefore costs no extra wait.
+    """
+    from sapguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
+
+    session = backend.require_session()
+    com = backend.com
+
+    def _read_tc() -> list[dict[str, str]]:
+        return read_table_control_all_rows(session, _flatten)
+
+    label = await _click_tab_bilingual(backend, de_label, en_label)
+    rows = await com.run(_read_tc)
+    if label is not None and (not rows or rows == previous_rows):
+        await backend.wait_for_condition(tab_table_control_loaded(label), timeout_ms=3000, poll_ms=250)
+        rows = await com.run(_read_tc)
+    return rows
 
 
 async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-statements
@@ -127,6 +160,8 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     from sapguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
 
     now = datetime.now(UTC)
+    if not isinstance(backend, DesktopBackend):
+        return SE24Error(class_name=class_name, error="Requires DesktopBackend", retrieved_at=now)
     await backend.wait_for_ready()
 
     # Fill class name field
@@ -143,12 +178,17 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     if not filled:
         return SE24Error(class_name=class_name, error="Could not fill class name field", retrieved_at=now)
 
-    # Press F7 (Display), then Enter to dismiss any language popup
+    # Press F7 (Display), then Enter to dismiss any language popup. Wait for a state change after each
+    # (popup, new title or new status text) instead of a fixed time (#928).
+    before_title = (await backend.get_screen_info()).title or ""
+    before_f7 = (await backend.get_status_bar()).message.strip()
     await backend.press_key("F7")
-    await backend.wait(2000)
+    await backend.wait_for_ready()
+    await backend.wait_for_condition(screen_changed(before_title, before_f7))
     try:
         await backend.press_key("Enter")
-        await backend.wait(1000)
+        await backend.wait_for_ready()
+        await backend.wait_for_condition(screen_changed(before_title, before_f7))
     except Exception:  # pylint: disable=broad-exception-caught
         pass
 
@@ -163,9 +203,6 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
         error_msg = sbar.message or f"Class/interface '{class_name}' not found"
         return SE24Error(class_name=class_name, error=error_msg, retrieved_at=now)
 
-    if not isinstance(backend, DesktopBackend):
-        return SE24Error(class_name=class_name, error="Requires DesktopBackend", retrieved_at=now)
-
     session = backend.require_session()
     com = backend.com
 
@@ -177,12 +214,9 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     # exist in the widget tree until the tab is explicitly activated by a click.
     methods_raw = await com.run(_read_tc)
     if not methods_raw:
-        await _click_tab_bilingual(backend, "Methoden", "Methods")
-        methods_raw = await com.run(_read_tc)
-    await _click_tab_bilingual(backend, "Attribute", "Attributes")
-    attrs_raw = await com.run(_read_tc)
-    await _click_tab_bilingual(backend, "Schnittstellen", "Interfaces")
-    intfs_raw = await com.run(_read_tc)
+        methods_raw = await _read_tab_rows(backend, "Methoden", "Methods", previous_rows=[])
+    attrs_raw = await _read_tab_rows(backend, "Attribute", "Attributes", previous_rows=methods_raw)
+    intfs_raw = await _read_tab_rows(backend, "Schnittstellen", "Interfaces", previous_rows=attrs_raw)
 
     # Read description from screen fields and detect object type from title
     fields = await backend.discover_fields()
