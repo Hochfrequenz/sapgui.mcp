@@ -150,15 +150,18 @@ def parse_transcript(text: str) -> list[Beat]:
 # Layout constants (spec Layout section; panels fill the canvas)
 SAP_WIDTH = CANVAS_WIDTH - CHAT_WIDTH
 TITLE_HEIGHT = 48
-BACKGROUND = (250, 251, 253)
-PANEL_BORDER = (210, 214, 220)
-INK = (28, 30, 33)
-MUTED = (120, 124, 130)
-USER_BUBBLE = (222, 235, 255)
-ASSISTANT_BUBBLE = (240, 241, 244)
+# Dark palette: the GIF is shown on both light and dark GitHub themes, and a dark card reads well on both.
+BACKGROUND = (30, 34, 41)
+PANEL_BORDER = (58, 63, 72)
+INK = (232, 235, 240)
+MUTED = (150, 156, 166)
+USER_BUBBLE = (38, 70, 120)
+ASSISTANT_BUBBLE = (46, 52, 62)
 TITLE_BG = (23, 26, 33)
 TITLE_FG = (245, 246, 248)
-SAP_PANEL_BG = (255, 255, 255)
+SAP_PANEL_BG = BACKGROUND
+OUTER_MARGIN = 12  # transparent border around the card (GIF: fully transparent or fully opaque)
+CARD_RADIUS = 14
 SUCCESS_GREEN = (67, 160, 71)
 
 # Spec: chat text must be ≥14px effective at GitHub's ~880px GIF render width.
@@ -200,7 +203,7 @@ def _wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, ma
     return lines
 
 
-def render_composites(transcript_path: Path, frames_dir: Path, out_dir: Path) -> int:
+def render_composites(transcript_path: Path, frames_dir: Path, out_dir: Path, *, card: bool = False) -> int:
     """Render one composite PNG per beat plus an ffmpeg concat file.
 
     *frames_dir* is the directory the transcript's ``frame=`` paths are
@@ -245,7 +248,7 @@ def render_composites(transcript_path: Path, frames_dir: Path, out_dir: Path) ->
             _draw_title_card(canvas, title_font)
 
         composite_name = f"composite_{beat.number:02d}.png"
-        canvas.save(out_dir / composite_name)
+        (_to_card(canvas) if card else canvas).save(out_dir / composite_name)
         last_composite_name = composite_name
         # ffmpeg concat demuxer: `duration` must be its own line AFTER `file`,
         # and ffmpeg drops the last duration unless the last file is repeated.
@@ -275,6 +278,23 @@ def _beat_seconds(beat: Beat) -> float:
 
 def _tool_font(size: int) -> ImageFont.FreeTypeFont:
     return _font(size)
+
+
+def _to_card(canvas: Image.Image) -> Image.Image:
+    """Wrap the canvas in a transparent margin with rounded corners (RGBA).
+
+    GIF transparency is binary, so the corner mask is hard-edged (supersampled,
+    then thresholded): anti-aliased edge pixels would otherwise get a light or
+    dark halo against whichever GitHub theme the GIF is shown on.
+    """
+    w, h = canvas.size
+    scale = 4
+    big = Image.new("L", (w * scale, h * scale), 0)
+    ImageDraw.Draw(big).rounded_rectangle([0, 0, w * scale - 1, h * scale - 1], radius=CARD_RADIUS * scale, fill=255)
+    mask = big.resize((w, h), Image.Resampling.LANCZOS).point(lambda v: 255 if v >= 128 else 0)
+    card = Image.new("RGBA", (w + 2 * OUTER_MARGIN, h + 2 * OUTER_MARGIN), (0, 0, 0, 0))
+    card.paste(canvas.convert("RGBA"), (OUTER_MARGIN, OUTER_MARGIN), mask)
+    return card
 
 
 def _draw_title(draw: ImageDraw.ImageDraw, font: ImageFont.FreeTypeFont) -> None:
@@ -477,7 +497,7 @@ def main() -> int:
     args = parser.parse_args()
     frames = args.workdir / "frames"
     out = args.workdir / "composite"
-    count = render_composites(args.workdir / "transcript.md", frames, out)
+    count = render_composites(args.workdir / "transcript.md", frames, out, card=True)
     print(f"Rendered {count} composites to {out}")
     print("Encode the GIF with (see scripts/README.md for the full command):")
     print(f"  ffmpeg -f concat -safe 0 -i {out / 'concat.txt'} -vf <filter> out.gif")

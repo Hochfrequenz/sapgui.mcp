@@ -58,8 +58,8 @@ and the GIF:
 
 ```bash
 uv run --locked --group tests python scripts/render_readme_demo.py --workdir readme-demo
-ffmpeg -f concat -safe 0 -i readme-demo/composite/concat.txt \
-  -vf "fps=10,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" \
+ffmpeg -f concat -safe 0 -i readme-demo/composite/concat.txt -fps_mode vfr \
+  -vf "split[s0][s1];[s0]palettegen=reserve_transparent=1[p];[s1][p]paletteuse=alpha_threshold=128" \
   readme-demo.gif
 ```
 

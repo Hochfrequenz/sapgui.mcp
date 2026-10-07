@@ -6,10 +6,12 @@ import pytest
 from PIL import Image, ImageDraw
 
 from sapguimcp.demo.render_readme_demo import (
+    BACKGROUND,
     CANVAS_HEIGHT,
     CANVAS_WIDTH,
     CHAT_WIDTH,
     MARK_COLOR,
+    OUTER_MARGIN,
     TITLE_HEIGHT,
     TOOL_FONT_SIZE,
     Beat,
@@ -116,7 +118,7 @@ class TestRenderComposites:
         with Image.open(out / "composite_02.png") as img:
             sap_pixel = img.getpixel((CANVAS_WIDTH - 10, CANVAS_HEIGHT // 2))
             # Letterboxed area must be the panel background, not stretched pixels
-            assert sap_pixel in ((255, 255, 255), (245, 246, 248))
+            assert sap_pixel == BACKGROUND
 
     def test_chat_shows_current_beat_message(self, tmp_path: Path) -> None:
         frames = tmp_path / "frames"
@@ -136,11 +138,11 @@ class TestRenderComposites:
 
         def chat_ink_rows(name: str) -> int:
             with Image.open(out / name) as img:
-                px = img.convert("L")
+                px = img.convert("RGB")
                 return sum(
                     1
                     for y in range(TITLE_HEIGHT + 1, CANVAS_HEIGHT)
-                    if any(px.getpixel((x, y)) < 200 for x in range(10, CHAT_WIDTH - 10, 8))
+                    if any(px.getpixel((x, y)) != BACKGROUND for x in range(10, CHAT_WIDTH - 10, 8))
                 )
 
         # The user bubble must appear in its own composite, not only the next one.
@@ -162,11 +164,11 @@ class TestRenderComposites:
 
         def chat_ink_rows(name: str) -> int:
             with Image.open(out / name) as img:
-                px = img.convert("L")
+                px = img.convert("RGB")
                 return sum(
                     1
                     for y in range(CANVAS_HEIGHT)
-                    if any(px.getpixel((x, y)) < 200 for x in range(10, CHAT_WIDTH - 10, 8))
+                    if any(px.getpixel((x, y)) != BACKGROUND for x in range(10, CHAT_WIDTH - 10, 8))
                 )
 
         # Beat 2 renders both messages; beat 1 renders one.
@@ -193,12 +195,12 @@ class TestRenderComposites:
         with Image.open(out / "composite_11.png") as img:
             # crude assertion: the bottom third of the chat panel must contain
             # ink (the newest bubble is drawn last at the bottom)
-            px = img.convert("L")
+            px = img.convert("RGB")
             bottom = [
                 (x, y)
                 for y in range(CANVAS_HEIGHT - 120, CANVAS_HEIGHT - 20)
                 for x in range(10, CHAT_WIDTH - 10, 4)
-                if px.getpixel((x, y)) < 200
+                if px.getpixel((x, y)) != BACKGROUND
             ]
             assert bottom, "Newest bubble missing from the bottom of the chat panel"
 
@@ -264,3 +266,22 @@ class TestRenderComposites:
         assert lines[0] == "file 'composite_00.png'"
         assert lines[1].startswith("duration ")
         assert lines[-1] == "file 'composite_02.png'"
+
+
+class TestCard:
+    def test_card_has_transparent_margin_and_rounded_corners(self, tmp_path: Path) -> None:
+        frames = tmp_path / "frames"
+        frames.mkdir()
+        _write_frame(frames / "02_easy_access.png")
+        (tmp_path / "transcript.md").write_text(
+            "[beat 1] role=assistant frame=frames/02_easy_access.png\nLogging in…\ntool=sap_login\n", encoding="utf-8"
+        )
+        render_composites(tmp_path / "transcript.md", frames, tmp_path / "out", card=True)
+        with Image.open(tmp_path / "out" / "composite_01.png") as img:
+            assert img.mode == "RGBA"
+            assert img.size == (CANVAS_WIDTH + 2 * OUTER_MARGIN, CANVAS_HEIGHT + 2 * OUTER_MARGIN)
+            assert img.getpixel((0, 0))[3] == 0  # margin
+            assert img.getpixel((OUTER_MARGIN + 1, OUTER_MARGIN + 1))[3] == 0  # rounded corner is cut off
+            assert img.getpixel((img.width // 2, OUTER_MARGIN + 20))[3] == 255  # card body
+            alphas = {img.getpixel((x, y))[3] for x in range(img.width) for y in range(img.height)}
+            assert alphas == {0, 255}  # GIF transparency is binary: no semi-transparent halo pixels
