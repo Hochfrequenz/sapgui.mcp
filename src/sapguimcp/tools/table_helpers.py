@@ -15,6 +15,7 @@ Reference: https://simpleexcelvba.com/how-to-automate-scrolling-in-sap-table/
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, cast
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,33 @@ def _get_raw_tc(session: Any, element_id: str) -> Any:
     return getattr(tc, "com", getattr(tc, "_com", tc))
 
 
+_CELL_ID_SUFFIX = re.compile(r"\[(\d+),(\d+)\]$")  # table control cell ids end in [column,row] (page-relative)
+
+
+def _read_visible_page_from_tree(
+    session: Any, element_id: str, col_titles: list[str], count: int, flatten_fn: Any
+) -> list[dict[str, str]] | None:
+    """Read *count* visible rows with one ``dump_tree()`` call instead of two COM calls per cell (#928).
+
+    Cells are recognised by their ``[column,row]`` id suffix. Returns ``None`` when the dump contains no cells,
+    so the caller can fall back to ``_read_visible_page``. As there, a missing cell leaves its column out of the
+    row.
+    """
+    try:
+        tree = session.find_by_id(element_id).dump_tree()
+        cells: dict[tuple[int, int], str] = {}
+        for elem in flatten_fn(tree):
+            match = _CELL_ID_SUFFIX.search(elem.id)
+            if match:
+                cells[(int(match.group(2)), int(match.group(1)))] = elem.text
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.debug("Table control tree dump failed, falling back to per-cell reads", exc_info=True)
+        return None
+    if not cells:
+        return None
+    return [{title: cells[(r, c)] for c, title in enumerate(col_titles) if (r, c) in cells} for r in range(count)]
+
+
 def _read_visible_page(raw: Any, col_titles: list[str], count: int) -> list[dict[str, str]]:
     """Read *count* visible rows from a (freshly-found) table control."""
     rows: list[dict[str, str]] = []
@@ -74,8 +102,11 @@ def read_table_control(session: Any, flatten_fn: Any) -> list[dict[str, str]]:
     if info is None:
         return []
     element_id, col_titles, total, visible = info
-    raw = _get_raw_tc(session, element_id)
     readable = min(total, visible)
+    page = _read_visible_page_from_tree(session, element_id, col_titles, readable, flatten_fn)
+    if page is not None:
+        return page
+    raw = _get_raw_tc(session, element_id)
     return _read_visible_page(raw, col_titles, readable)
 
 
@@ -93,6 +124,9 @@ def read_table_control_all_rows(session: Any, flatten_fn: Any) -> list[dict[str,
     element_id, col_titles, total, visible = info
 
     if total <= visible:
+        page = _read_visible_page_from_tree(session, element_id, col_titles, total, flatten_fn)
+        if page is not None:
+            return page
         raw = _get_raw_tc(session, element_id)
         return _read_visible_page(raw, col_titles, total)
 
@@ -102,7 +136,8 @@ def read_table_control_all_rows(session: Any, flatten_fn: Any) -> list[dict[str,
         # Re-find the table control to get fresh cell references
         raw = _get_raw_tc(session, element_id)
         readable = min(visible, total - len(rows))
-        rows.extend(_read_visible_page(raw, col_titles, readable))
+        page = _read_visible_page_from_tree(session, element_id, col_titles, readable, flatten_fn)
+        rows.extend(page if page is not None else _read_visible_page(raw, col_titles, readable))
         scroll_pos += visible
         if scroll_pos >= total:
             break
