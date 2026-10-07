@@ -42,12 +42,20 @@ Work through the beats below. For every beat:
    below. `tool=` names the beat's primary tool; `frame=` references the
    screenshot file (relative to `readme-demo/`), when the beat has one.
 
-**Once, right after `sap_login`** (before the first frame): create
-`readme-demo/frames/` and shrink the SAP window so its text stays legible at
-GIF size — `wnd.restore()` then `wnd.resize_working_pane(100, 22, False)` via
-`sap_run_script` (gives a frame of about 1045×900 px; check the first PNG's
-size). Do not resize again during the run: the overlay coordinates below are
-only valid for the window size the frame was captured at.
+**Prerequisites:** besides the SAP tools you need file write access (the
+`sap_run_script` sandbox cannot create folders or write files other than via
+`hard_copy`). Create `readme-demo/frames/` with your file tools before the
+first frame; stop and tell the user if you have none.
+
+**Once, right after `sap_login`:** note the `session_id` from its result
+(`sap_login` always opens a *new* session) and pass `session=<that id>` on
+**every** later call, including every `sap_run_script` — otherwise calls go to
+the primary session, which may be an older login. Then shrink the SAP window so
+its text stays legible at GIF size: `wnd.restore()` then
+`wnd.resize_working_pane(100, 22, False)` via `sap_run_script` (gives a frame
+of about 1045×900 px; check the first PNG's size). Do not resize again during
+the run: the overlay coordinates below are only valid for the window size the
+frame was captured at.
 
 Do not add artificial waits between steps. Pacing happens later at GIF
 assembly time, outside this skill.
@@ -93,7 +101,6 @@ the current beat — do not invent new beats.
 
 | Key | Value |
 | --- | --- |
-| `Anrede` | (leave default unless user specified) |
 | `Vorname` | `<first name>` |
 | `Nachname` | `<last name>` |
 | `Straße/Hausnummer` | `<street>` |
@@ -103,12 +110,16 @@ the current beat — do not invent new beats.
 
 > `Postleitzahl/Ort` labels the whole address row and resolves to the postal
 > code field; `Ort` addresses the city field in the same row, which has no
-> separate visible label. Both keys are required.
+> separate visible label. Both keys are required. Do not fill `Anrede`
+> (salutation) unless the user asked for it.
 
 If `sap_fill_form` reports `not_found` fields, call `sap_discover_fields` to
 read the system's actual labels, adjust the keys, and retry. If the status
-bar reports a duplicate or validation error after `Ctrl+S`, show the message
-to the user and stop — do not create duplicates on purpose. If the flow needs
+bar reports a duplicate or validation error after `Ctrl+S`, or if
+`active_window` in the `Ctrl+S` response is `wnd[1]` (e.g. the duplicate-check
+dialog), do not confirm anything: take a `sap_screenshot`, show it and the
+message to the user and stop — do not create duplicates on purpose. (Running
+the demo again with the default name creates another "Max Mustermann".) If the flow needs
 repeated manual correction that this file did not anticipate, report that
 upstream instead of silently patching this skill.
 
@@ -166,9 +177,11 @@ is a parse error in the renderer.
 Which beats get overlays: beat 3 marks the command field (`Transaction: BP`),
 beat 4 the `Person` toolbar button (`F5 = Person`), beat 5 each filled field
 (caption = the value, e.g. `Max`), beat 6 and beat 7 carry the same `status=`
-line (the status bar text after the save), beat 8 and beat 9 mark the result
-list if you can locate that control (its id differs between SE16 variants;
-otherwise skip it). Beats 1 and 2 have none.
+line (the status bar text after the save; read in beat 7's script, so write
+beat 6's block only after that script has run and copy its `status=` line),
+beat 8 and beat 9 mark the result list if you can locate that control (its id
+differs between SE16 variants; if `wnd[0]` does not show the result grid, take
+the frame anyway and leave out the marks). Beats 1 and 2 have none.
 
 Read the rectangles live via COM in the **same `sap_run_script` call that saves
 the frame**, after the beat's SAP action. This script prints ready-made lines:
@@ -191,7 +204,8 @@ Form fields are nested deep in subscreens: take their ids from
 `sap_discover_fields`, or find them with a recursive walk over `.children`
 that matches the end of the id (`txtBUT000-NAME_FIRST`, `txtBUT000-NAME_LAST`,
 `txtADDR2_DATA-STREET`, `txtADDR2_DATA-POST_CODE1`, `txtADDR2_DATA-CITY1`,
-`ctxtADDR2_DATA-COUNTRY`):
+`ctxtADDR2_DATA-COUNTRY`). Each walk traverses the whole screen tree, so
+collect all fields in one script and pass `timeout=120` to `sap_run_script`:
 
 ```python
 def find_by_suffix(node, suffix, depth=0):
@@ -214,6 +228,11 @@ If an element cannot be found or reports a zero size, skip that mark — marks
 are optional and must never block the run.
 
 ### After the run
+
+Before anyone publishes the frames, open each PNG and check it for a person's
+name (the Easy Access user menu can show one), a logon ID (`CRUSR`/`CHUSR`
+columns in the BUT000 grid), a client column or a hostname. If one is visible,
+crop the frame or re-capture with a narrower view, and tell the user.
 
 Tell the user: partner number, screenshot path, SE16 confirmation, and where
 the artifacts live (`readme-demo/`). If the user wants the README GIF, point

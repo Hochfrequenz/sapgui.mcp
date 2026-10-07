@@ -52,11 +52,10 @@ and verify:
 Fixed fake data throughout (name, street, `12345 Testhausen`), so no real
 personal data can leak. The partner number assigned by SAP is shown as-is.
 
-### Storyboard (10 beats, ≈40 s final GIF)
+### Storyboard (9 beats, ≈27 s final GIF)
 
 | # | Chat says | SAP shows |
 |---|-----------|-----------|
-| 0 | Title card ("SAP GUI MCP — chat with Claude, watch SAP do the work") | — |
 | 1 | **User:** the task (one sentence, see above) | SAP Easy Access (captured post-login; placed here at assembly time) |
 | 2 | "Logging into the dev system…" `▸ sap_login` | Easy Access after login |
 | 3 | "Opening transaction BP…" `▸ sap_transaction` | BP initial screen |
@@ -74,7 +73,7 @@ right (the two panels fill the canvas), title bar on top, 24px internal
 padding within each panel. Chat bubbles appear one by one; each assistant
 bubble carries one muted tool chip (`▸ sap_login`). Tool chips are the only
 technical element — they say "MCP tools" at a glance without JSON. SAP frames
-are real `sap_screenshot` captures, cropped to the SAP window, scaled
+are real captures of the SAP window (`hard_copy` via `sap_run_script`), scaled
 uniformly, never squashed. Hard cuts between beats, no transitions.
 
 Chat text must remain legible at GitHub's GIF render width (~880px), i.e.
@@ -162,7 +161,7 @@ disclosing internal tooling). Therefore:
 2. **Capture a frame after every SAP-visible step.** Each storyboard beat
    needs its own real screenshot, and tool responses carry no images — a
    frame not captured during the run cannot be added later. So after each
-   SAP-visible step the agent calls `sap_screenshot` and saves it into
+   SAP-visible step the agent saves a `hard_copy` capture (via `sap_run_script`; `sap_screenshot` cannot write files) into
    `readme-demo/frames/` with a beat-numbered name:
    - `02_easy_access.png` — post-login Easy Access (also serves beat 1, which
      is placed at assembly time)
