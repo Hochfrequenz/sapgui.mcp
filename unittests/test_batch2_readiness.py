@@ -11,7 +11,11 @@ import pytest
 from sapguimcp.backend.desktop import DesktopBackend
 from sapguimcp.models import SE93Entry
 from sapguimcp.models.sap_results import ScreenInfo, StatusBarInfo
-from sapguimcp.tools.desktop_wait_predicates import screen_changed, tab_table_control_loaded
+from sapguimcp.tools.desktop_wait_predicates import (
+    popup_closed_and_screen_changed,
+    screen_changed,
+    tab_table_control_loaded,
+)
 from sapguimcp.tools.se09_tools import _lookup_transports_desktop
 from sapguimcp.tools.se37_tools import (
     _click_tab_bilingual,
@@ -313,3 +317,26 @@ async def test_search_img_desktop_waits_for_tree_after_f5() -> None:
     assert events == ["wait_for_ready", "press_key", "wait_for_ready", "wait_for_condition", "press_key", "press_key"]
     assert [c.args for c in backend.press_key.await_args_list] == [("F5",), ("F3",), ("F3",)]
     backend.wait_for_condition.assert_awaited_once_with(_spro_img_tree_loaded)
+
+
+# --- popup_closed_and_screen_changed (SE24 after dismissing a popup) --------------------------------------------
+
+
+def test_popup_closed_and_screen_changed_is_not_ready_while_the_popup_is_open() -> None:
+    session = _session({"wnd[0]": _wnd("Display"), "wnd[0]/sbar": _sbar("New"), "wnd[1]": _wnd("Language")})
+    assert not popup_closed_and_screen_changed("Initial", "")(session)
+
+
+def test_popup_closed_and_screen_changed_title_change_without_popup_is_ready() -> None:
+    session = _session({"wnd[0]": _wnd("Display"), "wnd[0]/sbar": _sbar("")})
+    assert popup_closed_and_screen_changed("Initial", "")(session)
+
+
+def test_popup_closed_and_screen_changed_new_status_without_popup_is_ready() -> None:
+    session = _session({"wnd[0]": _wnd("Initial"), "wnd[0]/sbar": _sbar("Does not exist")})
+    assert popup_closed_and_screen_changed("Initial", "")(session)
+
+
+def test_popup_closed_and_screen_changed_unchanged_screen_is_not_ready() -> None:
+    session = _session({"wnd[0]": _wnd("Initial"), "wnd[0]/sbar": _sbar(" Old ")})
+    assert not popup_closed_and_screen_changed("Initial", "Old")(session)
