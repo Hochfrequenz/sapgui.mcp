@@ -154,8 +154,30 @@ def _is_no_task_error(error_text: str) -> bool:
     return any(pattern in lower for pattern in _NO_TASK_PATTERNS)
 
 
+_CREDENTIALS_POPUP_PATTERNS = (
+    "password_popup",
+    # The status bar cuts the text; an English logon shows only this much of it.
+    "could not find the form pa",
+)
+
+_CREDENTIALS_POPUP_GUIDANCE = (
+    "abapGit asked for credentials, most likely because the git host answered HTTP 401, and its "
+    "password popup cannot be shown when abapGit is called through the API. "
+    "Check that ABAPGIT_PAT / GITHUB_PAT is valid and not expired (GitHub rejects an invalid token "
+    "even for public repositories), or that the SAP system can reach the git host."
+)
+
+
+def _is_credentials_popup_error(error_text: str) -> bool:
+    """Check if an error message is abapGit's missing password popup (a rejected or missing login)."""
+    lower = error_text.lower()
+    return any(pattern in lower for pattern in _CREDENTIALS_POPUP_PATTERNS)
+
+
 def _enrich_transport_error(error_text: str) -> str:
-    """If the error is transport-related, append actionable guidance."""
+    """If the error is transport- or credentials-related, append actionable guidance."""
+    if _is_credentials_popup_error(error_text):
+        return f"{error_text.rstrip('. ')}. {_CREDENTIALS_POPUP_GUIDANCE}"
     if _is_transport_required_error(error_text):
         return f"{error_text.rstrip('. ')}. {_TRANSPORT_REQUIRED_GUIDANCE}"
     if _is_no_task_error(error_text):
@@ -390,8 +412,9 @@ async def _analyze_pull_result(backend: "WebGuiBackend | DesktopBackend", repo: 
             action="pull",
             repo_name=repo,
             error="Pull status unknown: SAP status bar was empty after pull. "
-            "This may indicate an authentication failure (expired PAT) "
-            "or a status bar extraction issue. Check SAP manually.",
+            "The pull may have run: an empty status bar has also been seen after a pull that went through. "
+            "Check the repository in abapGit (last pull time) or the transport task before retrying. "
+            "If the pull did not run, an invalid or expired PAT (ABAPGIT_PAT / GITHUB_PAT) is one possible cause.",
         )
     return AbapGitActionResult.success_result(
         action="pull", repo_name=repo, message=f"Pull completed. Status: {final_msg}"
