@@ -417,7 +417,8 @@ async def _analyze_pull_result(backend: "WebGuiBackend | DesktopBackend", repo: 
             error="Pull status unknown: SAP status bar was empty after pull. "
             "The pull may have run: an empty status bar has also been seen after a pull that went through. "
             "Check the repository in abapGit (last pull time) or the transport task before retrying. "
-            "If the pull did not run, an invalid or expired PAT (ABAPGIT_PAT / GITHUB_PAT) is one possible cause.",
+            "If the pull did not run, an invalid or expired token is one possible cause: "
+            "the `pat` argument if you passed one (it takes precedence), otherwise ABAPGIT_PAT / GITHUB_PAT.",
         )
     return AbapGitActionResult.success_result(
         action="pull", repo_name=repo, message=f"Pull completed. Status: {final_msg}"

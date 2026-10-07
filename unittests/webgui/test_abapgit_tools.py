@@ -264,6 +264,7 @@ async def test_pull_with_empty_status_bar_says_it_may_have_run() -> None:
     assert "may have run" in result.error
     assert "abapGit" in result.error
     assert "ABAPGIT_PAT" in result.error
+    assert "`pat`" in result.error
 
 
 def test_is_no_task_error() -> None:
