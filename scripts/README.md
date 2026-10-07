@@ -16,6 +16,7 @@ They are NOT shipped with the package and NOT used at runtime.
 | `consolidate_catalog.py`  | Build `transactions.json` from SE16 result files | After scraping TSTC with `sap_se16_query`       |
 | `add_inline_results.py`   | Add inline SE16 results to catalog               | When SE16 returned results inline (not to file) |
 | `recapture-snapshots.ps1` | Recapture HTML test snapshots in DE/EN           | When SAP UI changes or adding new tests         |
+| `render_readme_demo.py`   | Render README demo composites + concat file      | Rebuilding the README GIF (see below)           |
 
 ## Transaction Catalog Building
 
@@ -47,6 +48,25 @@ If some SE16 queries returned results inline instead of to files, edit `add_inli
 ```bash
 python scripts/add_inline_results.py
 ```
+
+## README Demo GIF
+
+The README GIF is produced from a real agent run by the `readme-demo` skill
+(`.claude/skills/readme-demo/SKILL.md`). The skill writes `readme-demo/transcript.md`
+and beat-numbered screenshots into `readme-demo/frames/`. To (re)build the composites
+and the GIF:
+
+```bash
+uv run --locked --group tests python scripts/render_readme_demo.py --workdir readme-demo
+ffmpeg -f concat -safe 0 -i readme-demo/composite/concat.txt -fps_mode vfr \
+  -vf "split[s0][s1];[s0]palettegen=reserve_transparent=1[p];[s1][p]paletteuse=alpha_threshold=128" \
+  readme-demo.gif
+```
+
+Copy `readme-demo.gif` to `docs/readme-demo.gif` and commit it. The GIF is a
+re-timed composite of a real run — real messages, real screenshots; only the
+pacing is edited (see the honesty note in
+`docs/superpowers/specs/2026-10-06-readme-demo-design.md`).
 
 ## Test Snapshot Management
 
