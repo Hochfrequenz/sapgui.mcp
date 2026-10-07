@@ -9,13 +9,16 @@ Run with: pytest unittests/test_abapgit_tools.py -v
 """
 
 import os
+from types import SimpleNamespace
 
 import pytest
 from mcp import ClientSession
 
 from sapguimcp.models import AbapGitActionResult, LoginResult
 from sapguimcp.tools.abapgit_tools import (
+    _analyze_pull_result,
     _enrich_transport_error,
+    _is_credentials_popup_error,
     _is_no_task_error,
     _is_transport_required_error,
 )
@@ -196,6 +199,72 @@ def test_enrich_transport_error_german() -> None:
     enriched = _enrich_transport_error("Transport erforderlich")
     assert "SE09" in enriched
     assert "trkorr=" in enriched
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        # German status bar text, cut at 50 characters by the report's MESSAGE ... WITH parameter
+        "Formaufruf fehlgeschlagen: Form PASSWORD_POPUP kon",
+        "Could not find the form PASSWORD_POPUP in program Z_REPORT",
+        # English text as cut in the field report
+        "Could not find the form PA",
+    ],
+)
+def test_credentials_popup_error_is_recognised_and_enriched(message: str) -> None:
+    """abapGit's password popup cannot work through the API: point at the token, not at the OK-code path."""
+    assert _is_credentials_popup_error(message)
+    enriched = _enrich_transport_error(message)
+    assert enriched.startswith(message.rstrip(". "))
+    assert "ABAPGIT_PAT" in enriched
+    assert "GITHUB_PAT" in enriched
+    assert "`pat`" in enriched  # an explicit argument takes precedence over the environment variables
+    assert ". ." not in enriched
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Repository not found",
+        "Transport required. Provide P_TRKORR= KS",
+        "Could not find the form PERFORM_X",
+        "Could not find the form PAYMENT_X",
+        "Could not find the form PA_SOMETHING",
+        "",
+    ],
+)
+def test_credentials_popup_error_does_not_match_other_errors(message: str) -> None:
+    """Unrelated errors must not get the credentials hint."""
+    assert not _is_credentials_popup_error(message)
+    assert "ABAPGIT_PAT" not in _enrich_transport_error(message)
+
+
+class _EmptyStatusBackend:
+    """Minimal backend whose status bar stays empty (an empty bar was also seen after a successful pull)."""
+
+    backend_type = "desktop"
+
+    async def get_status_bar(self) -> SimpleNamespace:
+        return SimpleNamespace(message="", type="none")
+
+    async def wait(self, _ms: int) -> None:
+        return None
+
+    async def get_snapshot(self) -> str:
+        return ""
+
+
+@pytest.mark.anyio
+async def test_pull_with_empty_status_bar_says_it_may_have_run() -> None:
+    """'Status unknown' must not read like a failure that definitely did not pull."""
+    result = await _analyze_pull_result(_EmptyStatusBackend(), "some_repo")  # type: ignore[arg-type]
+    assert result.success is False
+    assert result.error is not None
+    assert "status unknown" in result.error.lower()
+    assert "may have run" in result.error
+    assert "abapGit" in result.error
+    assert "ABAPGIT_PAT" in result.error
+    assert "`pat`" in result.error
 
 
 def test_is_no_task_error() -> None:

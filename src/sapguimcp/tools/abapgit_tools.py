@@ -154,8 +154,32 @@ def _is_no_task_error(error_text: str) -> bool:
     return any(pattern in lower for pattern in _NO_TASK_PATTERNS)
 
 
+_CREDENTIALS_POPUP_NAME = "password_popup"
+
+# The report passes the exception text as one MESSAGE ... WITH parameter, which is cut at 50 characters,
+# so an English logon can end right after "PA". Only match that when the text ends there, so that other
+# missing forms ("Could not find the form PAYMENT_X") do not get the credentials hint.
+_CREDENTIALS_POPUP_CUT_ENGLISH = "could not find the form pa"
+
+_CREDENTIALS_POPUP_GUIDANCE = (
+    "abapGit tried to ask for credentials, most likely because the git host answered HTTP 401, and its "
+    "password popup cannot be shown when abapGit is called through the API. "
+    "Check that the token is valid and not expired (GitHub rejects an invalid token even for public "
+    "repositories): the `pat` argument if you passed one (it takes precedence), otherwise ABAPGIT_PAT / "
+    "GITHUB_PAT. Otherwise check that the SAP system can reach the git host."
+)
+
+
+def _is_credentials_popup_error(error_text: str) -> bool:
+    """Check if an error message is abapGit's missing password popup (a rejected or missing login)."""
+    lower = error_text.lower()
+    return _CREDENTIALS_POPUP_NAME in lower or lower.rstrip(". ").endswith(_CREDENTIALS_POPUP_CUT_ENGLISH)
+
+
 def _enrich_transport_error(error_text: str) -> str:
-    """If the error is transport-related, append actionable guidance."""
+    """If the error is transport- or credentials-related, append actionable guidance."""
+    if _is_credentials_popup_error(error_text):
+        return f"{error_text.rstrip('. ')}. {_CREDENTIALS_POPUP_GUIDANCE}"
     if _is_transport_required_error(error_text):
         return f"{error_text.rstrip('. ')}. {_TRANSPORT_REQUIRED_GUIDANCE}"
     if _is_no_task_error(error_text):
@@ -384,14 +408,17 @@ async def _analyze_pull_result(backend: "WebGuiBackend | DesktopBackend", repo: 
         )
 
     # Treat ambiguous result based on whether we got any status message.
-    # Empty status bar may mask auth errors (expired PAT -> cx_root in ABAP).
+    # Empty status bar is ambiguous: the pull may or may not have run (an expired PAT ends in cx_root in ABAP,
+    # but an empty bar has also been seen after a pull that went through).
     if not final_msg:
         return AbapGitActionResult.failure_result(
             action="pull",
             repo_name=repo,
             error="Pull status unknown: SAP status bar was empty after pull. "
-            "This may indicate an authentication failure (expired PAT) "
-            "or a status bar extraction issue. Check SAP manually.",
+            "The pull may have run: an empty status bar has also been seen after a pull that went through. "
+            "Check the repository in abapGit (last pull time) or the transport task before retrying. "
+            "If the pull did not run, an invalid or expired token is one possible cause: "
+            "the `pat` argument if you passed one (it takes precedence), otherwise ABAPGIT_PAT / GITHUB_PAT.",
         )
     return AbapGitActionResult.success_result(
         action="pull", repo_name=repo, message=f"Pull completed. Status: {final_msg}"
@@ -958,9 +985,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "WARNING: This overwrites local ABAP objects with remote versions. "
             "If SAP requires a transport request, the tool returns an error with guidance. "
             "Look up an open transport (e.g. via SE09/SE10), then retry with trkorr=... "
-            "If the tool reports 'status unknown', the pull may have succeeded. "
-            "Call sap_read_status_bar() to check, or retry with sap_press_key('F8') "
-            "then sap_read_status_bar()."
+            "If the tool reports 'status unknown', the pull may already have run: "
+            "check the last pull time in abapGit or the transport task before retrying."
         ),
     )
     async def sap_abapgit_pull(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -975,7 +1001,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         Pull changes from a remote git repository using abapGit API.
 
         WARNING: Pull overwrites local ABAP objects with remote versions.
-        NOTE: First call may return "Pull status unknown" -- call again or press F8 to complete.
+        NOTE: "Pull status unknown" means the pull may or may not have run. Check the last pull time in
+        abapGit or the transport task first; only if it did not run, call again or press F8.
         IMPORTANT: All filenames must be lowercase (e.g., zcl_my_class.clas.abap, not uppercase).
 
         Args:
