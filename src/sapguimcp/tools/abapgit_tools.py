@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["parse_repo_list_output", "register_abapgit_tools", "validate_github_pat"]
+__all__ = ["parse_repo_list_output", "parse_repo_list_total", "register_abapgit_tools", "validate_github_pat"]
 
 
 async def validate_github_pat(pat: str) -> tuple[bool, str]:
@@ -506,37 +506,179 @@ def _clean_timestamp(value: str) -> str | None:
     return value
 
 
-def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
+_LIST_TOTAL_LINE = re.compile(r"^TOTAL~(\d+)(?:~|$)")
+
+
+def _parse_repo_lines(raw_output: str) -> tuple[list[AbapGitRepoInfo], int]:
     """Parse tilde-delimited WRITE output from Z_ABAPGIT_PULL_MCP_SHORTCUT LIST mode.
 
     Expected format per line: name~url~package~branch~deserialized_at~deserialized_by~offline
     Uses ~ as delimiter because SAP WebGUI strips | (pipe) characters from WRITE output.
-    Lines that don't match (headers, empty, UI noise) are silently skipped.
+    Lines that don't match (headers, empty, UI noise) are skipped. Returns the repositories and the number of skipped
+    lines that look like repository lines (at least four fields, not the TOTAL header), which are registered but cannot
+    be listed, such as an online repository without a usable URL.
     """
     repos: list[AbapGitRepoInfo] = []
+    skipped = 0
     for line in raw_output.strip().splitlines():
         line = line.strip()
         if not line:
             continue
         parts = line.split("~")
-        if len(parts) < 4:
+        if len(parts) < 4 or _LIST_TOTAL_LINE.match(line):
             continue
         name = parts[0].strip()
         url = parts[1].strip()
-        if not name or not url or ("://" not in url and not url.startswith("file:")):
+        package = parts[2].strip()
+        is_offline = parts[6].strip().upper() == "X" if len(parts) > 6 else False
+        if is_offline:
+            # An offline repository has no remote URL, and often no name either: list it under its package.
+            name = name or package
+            if not name:
+                skipped += 1
+                continue
+        elif not name or not url or ("://" not in url and not url.startswith("file:")):
+            skipped += 1
             continue
         repos.append(
             AbapGitRepoInfo(
                 name=name,
                 url=url,
-                package=parts[2].strip() if len(parts) > 2 else "",
-                branch=parts[3].strip() if len(parts) > 3 else "",
+                package=package,
+                branch=parts[3].strip(),
                 last_pull_at=(_clean_timestamp(parts[4].strip())) if len(parts) > 4 else None,
                 last_pull_by=(parts[5].strip() or None) if len(parts) > 5 else None,
-                is_offline=parts[6].strip().upper() == "X" if len(parts) > 6 else False,
+                is_offline=is_offline,
             )
         )
-    return repos
+    return repos, skipped
+
+
+def parse_repo_list_output(raw_output: str) -> list[AbapGitRepoInfo]:
+    """Parse tilde-delimited WRITE output from Z_ABAPGIT_PULL_MCP_SHORTCUT LIST mode (see `_parse_repo_lines`)."""
+    return _parse_repo_lines(raw_output)[0]
+
+
+def parse_repo_list_total(raw_output: str) -> int | None:
+    """Return the repository count from the ``TOTAL~<n>`` header line of the LIST output, if there is one.
+
+    The companion report writes the number of registered repositories as the first line, so that a reader can
+    tell a complete list from a short read. Older versions of the report do not write it.
+    """
+    for line in raw_output.splitlines():
+        match = _LIST_TOTAL_LINE.match(line.strip())
+        if match:
+            return int(match.group(1))
+    return None
+
+
+_LIST_LABEL_ID = re.compile(r"lbl\[(\d+),(\d+)\]$")
+_LIST_FIRST_DATA_ROW = 2  # screen rows 0 and 1 are the fixed list header (title, page number)
+_LIST_HORIZONTAL_OVERLAP = 25  # characters two horizontal slices of a line share; they are compared when stitching
+
+
+def _list_screen_rows(usr: Any) -> dict[int, str]:
+    """The data labels of the classic list currently on screen, by screen row (one ``dump_tree()`` call)."""
+    rows: dict[int, str] = {}
+    for elem in usr.dump_tree():
+        match = _LIST_LABEL_ID.search(elem.id)
+        if match and int(match.group(1)) == 0 and int(match.group(2)) >= _LIST_FIRST_DATA_ROW:
+            rows[int(match.group(2))] = str(elem.text)
+    return rows
+
+
+def _scrollbar_range(usr: Any, attribute: str) -> tuple[int, int]:
+    """``(maximum, page_size)`` of one of the user area's scrollbars, ``(0, 0)`` if it has none or cannot be read."""
+    try:
+        scrollbar = getattr(usr, attribute)
+        return max(int(scrollbar.maximum), 0), max(int(scrollbar.page_size), 0)
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.debug("abapGit list: no usable %s", attribute, exc_info=True)
+        return 0, 0
+
+
+def _scroll_positions(maximum: int, step: int) -> list[int]:
+    """Scroll positions ``step`` apart from ``step``... up to ``maximum``, always including ``maximum`` itself."""
+    positions = [*range(step, maximum + 1, step)]
+    if maximum > 0 and (not positions or positions[-1] != maximum):
+        positions.append(maximum)
+    return positions
+
+
+def _read_list_lines(session: Any, problems: list[str] | None = None) -> list[str]:
+    """Read every line of the classic list on screen, however long the list and however long its lines (COM thread).
+
+    SAP GUI shows a window-sized part of a classic list: the visible lines vertically and, for each line, only as many
+    characters as fit horizontally (a label holds the visible slice, so longer lines end mid-field). Both are scrolled
+    through here: page by page with the vertical scrollbar (a line's absolute index is the scroll position plus its
+    screen row) and, for lines that fill the window, with the horizontal scrollbar in slices that overlap and are
+    stitched together. Pages overlap a little as well; lines are keyed by index, so that costs nothing. Both
+    scrollbars are reset afterwards. A list without usable scrollbars is read as one page. Anything that may have left a
+    line cut or damaged is logged and described in ``problems`` (if given), so the caller can refuse to call the list
+    complete.
+    """
+    usr = session.find_by_id("wnd[0]/usr")
+    v_last, v_page = _scrollbar_range(usr, "vertical_scrollbar")
+    h_last, h_page = _scrollbar_range(usr, "horizontal_scrollbar")
+    v_step = max(v_page - _LIST_FIRST_DATA_ROW, 1)
+    width = h_page if h_page > _LIST_HORIZONTAL_OVERLAP else 0  # 0: no horizontal stitching possible
+    h_positions = _scroll_positions(h_last, width - _LIST_HORIZONTAL_OVERLAP) if width else []
+
+    def _problem(message: str, *args: Any) -> None:
+        logger.warning("abapGit list: " + message, *args)
+        if problems is not None:
+            problems.append(message % args)
+
+    if h_last > 0 and not width:
+        _problem("the horizontal scrollbar is unusable, lines wider than the window may be cut")
+
+    lines: dict[int, str] = {}
+    try:
+        for wanted in [0, *_scroll_positions(v_last, v_step)]:
+            if wanted:
+                usr.vertical_scrollbar.position = wanted
+            position = int(usr.vertical_scrollbar.position) if v_last else 0  # SAP clamps: use where it really is
+            if h_positions:
+                usr.horizontal_scrollbar.position = 0
+            page = _list_screen_rows(usr)
+            stitched = dict(page)
+            open_rows = {row for row, text in page.items() if width and len(text) >= width}
+            for h_position in h_positions:
+                if not open_rows:
+                    break
+                usr.horizontal_scrollbar.position = h_position
+                slice_rows = _list_screen_rows(usr)
+                for row in sorted(open_rows):
+                    if row not in slice_rows:
+                        _problem("no slice at position %d for line %d", h_position, position + row)
+                        open_rows.discard(row)
+                        continue
+                    piece = slice_rows[row]
+                    overlap = len(stitched[row]) - h_position
+                    if overlap < 0:  # a gap: the earlier slice did not reach this far, stop extending the row
+                        _problem("gap while stitching line %d", position + row)
+                        open_rows.discard(row)
+                        continue
+                    if piece[:overlap] != stitched[row][h_position:]:
+                        _problem("slices of line %d do not overlap consistently", position + row)
+                    stitched[row] += piece[overlap:]
+                    if len(piece) < width:
+                        open_rows.discard(row)
+            for row, text in stitched.items():
+                lines[position + row] = text
+    finally:
+        for attribute in ("horizontal_scrollbar", "vertical_scrollbar"):
+            try:
+                getattr(usr, attribute).position = 0
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug("Could not reset a scrollbar of the abapGit list", exc_info=True)
+    return [lines[index] for index in sorted(lines)]
+
+
+def _abapgit_list_displayed(session: Any) -> bool:
+    """True once the list screen holds the report's output: the TOTAL header or a data line."""
+    usr = session.find_by_id("wnd[0]/usr")
+    return any(text.startswith("TOTAL~") or "~" in text for text in _list_screen_rows(usr).values())
 
 
 async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> AbapGitListResult:
@@ -564,15 +706,20 @@ async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> Abap
 
         # Execute report with F8
         await backend.press_key("F8")
-        await backend.wait(3000)
 
         # Read the WRITE output from the screen
+        read_problems: list[str] = []
         if backend.backend_type == "desktop":
-            # On the desktop backend, WRITE output appears as labels (GuiLabel)
-            screen = await backend.get_screen_text()
-            all_text = (screen.labels or []) + (screen.main_content or [])
-            raw_output = "\n".join(all_text)
+            # On the desktop backend, WRITE output appears as labels (GuiLabel) in a classic list that is only as
+            # big as the window: read all of it, not just what is visible.
+            desktop = cast("DesktopBackend", backend)
+            await desktop.wait_for_ready()
+            if not await desktop.wait_for_condition(_abapgit_list_displayed, timeout_ms=5000):
+                logger.warning("The abapGit list did not show within 5 s, reading the screen as it is")
+            session = desktop.require_session()
+            raw_output = "\n".join(await desktop.com.run(lambda: _read_list_lines(session, read_problems)))
         else:
+            await backend.wait(3000)
             raw_output = await cast("WebGuiBackend", backend).evaluate_javascript("""
                 () => {
                     const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
@@ -580,8 +727,35 @@ async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> Abap
                 }
             """)
 
-        repos = parse_repo_list_output(raw_output or "")
-        logger.info("Found repositories", extra={"count": len(repos)})
+        repos, skipped = _parse_repo_lines(raw_output or "")
+        total = parse_repo_list_total(raw_output or "")
+        logger.info("Found repositories", extra={"count": len(repos), "skipped": skipped, "total": total})
+        if skipped:
+            logger.warning("%d registered repositories cannot be listed (online without a usable URL)", skipped)
+
+        incomplete: list[str] = []
+        if total is not None and len(repos) + skipped != total:
+            # A short list must not pass as the list: "not in the list" would read as "not registered".
+            incomplete.append(
+                f"The report lists {total} repositories but only {len(repos) + skipped} could be read from the screen"
+            )
+        if read_problems:
+            incomplete.append(
+                "the list could not be read reliably, some entries may be cut or damaged: "
+                + "; ".join(read_problems[:3])
+            )
+        if incomplete:
+            return AbapGitListResult(
+                success=False,
+                repos=repos,
+                error="; ".join(incomplete) + ". The repositories that were read are returned, the list is incomplete.",
+            )
+        if not repos:
+            sbar = await backend.get_status_bar()
+            if sbar.type in ("E", "A"):
+                return AbapGitListResult(success=False, error=f"abapGit list failed: {sbar.message}")
+        if total is None:
+            logger.info("The report writes no TOTAL header: the completeness of the list cannot be verified")
 
         return AbapGitListResult(success=True, repos=repos)
 
