@@ -2340,7 +2340,7 @@ requires-dist = [
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = ">=306" },
     { name = "rapidfuzz", specifier = ">=3.0.0" },
     { name = "sap-mcp-config", specifier = ">=1.1.0" },
-    { name = "sapsucker", specifier = ">=1.4.0" },
+    { name = "sapsucker", specifier = ">=1.5.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -2394,15 +2394,15 @@ type-check = [
 
 [[package]]
 name = "sapsucker"
-version = "1.4.0"
+version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/85/55/aeff0b45d3a63b572114508648091ba9b1fa33fa6a9e06b80d2be0ab6de9/sapsucker-1.4.0.tar.gz", hash = "sha256:2ab3fc0d4d92f8c1134372fe8e38eba97515562811502e64986cb18ae5320284", size = 160580, upload-time = "2026-10-02T17:54:47.854Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8d/29/246619c54b9ca286b5f7166f06ff21377bffb0b27388d5672b91807fb90e/sapsucker-1.5.0.tar.gz", hash = "sha256:ef77ba95d9248c0ec8139ebce0218ceaeeaac7b4a736286249cbbe0e95e148e3", size = 162853, upload-time = "2026-10-03T14:16:03.589Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fe/ad/8bd88f810dbea5fe05b361dad070a9c17d4baf80f2b216df5938fb980fc6/sapsucker-1.4.0-py3-none-any.whl", hash = "sha256:b15a9b1495481e97af54b2f14f0daa28c913150b69352cd821c9ac70f65ddd1c", size = 68386, upload-time = "2026-10-02T17:54:46.549Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/25/6be3a7937934ad7a4a1e73520ef5ac418c08b79fc0a76d94b9acfc4d5bf3/sapsucker-1.5.0-py3-none-any.whl", hash = "sha256:1a8d4fa31d0b9e36b53129cfa8459bd5b1c7eb19a293ed0fb186a6bde1c1669e", size = 69419, upload-time = "2026-10-03T14:16:02.095Z" },
 ]
 
 [[package]]
