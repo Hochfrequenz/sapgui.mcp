@@ -19,6 +19,14 @@ from mcp.types import ToolAnnotations
 
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.se24_edit_models import SE24EditResult
+from sapguimcp.tools.desktop_wait_predicates import (
+    editor_loaded,
+    editor_loaded_after,
+    popup_closed_and_screen_changed,
+    screen_changed,
+    tab_table_control_loaded,
+    window_title_changed,
+)
 from sapguimcp.tools.edit_helpers import describe_failed_replace
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard, toggle_to_change_mode
 
@@ -30,6 +38,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _SE24_LABELS = ("Objekttyp", "Object Type")
+
+# Upper bound for waiting on a state change on the desktop (#928): the former fixed waits took 1-2 s, so a step whose
+# state does not change as expected (e.g. a toggle that was a no-op) must not cost more than they did.
+_SE24_DISPLAY_WAIT_MS = 3000
+_SE24_TOGGLE_WAIT_MS = 1000
+_SE24_SOURCE_WAIT_MS = 5000
 
 
 async def _fill_class_field(backend: WebGuiBackend | DesktopBackend, class_name: str, attempt: int) -> bool:
@@ -137,6 +151,11 @@ async def _select_method_and_open_source(
 
 async def _open_class_in_change_mode_desktop(backend: WebGuiBackend | DesktopBackend, class_name: str) -> str | None:
     """Desktop-specific: navigate to SE24, display class, toggle to change mode."""
+    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(backend, DesktopBackend):
+        return "Requires DesktopBackend"
+
     await backend.enter_transaction("SE24")
     await backend.wait_for_ready()
 
@@ -147,15 +166,24 @@ async def _open_class_in_change_mode_desktop(backend: WebGuiBackend | DesktopBac
         return "Could not fill class name field on desktop"
 
     await asyncio.sleep(0.3)
+    before_title = (await backend.get_screen_info()).title or ""
+    before_status = (await backend.get_status_bar()).message.strip()
     await backend.press_key("F7")  # Display
-    await backend.wait(2000)
+    await backend.wait_for_ready()
+    await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=_SE24_DISPLAY_WAIT_MS)
 
-    # Dismiss language dialog ("Different original and logon languages")
-    try:
-        await backend.press_key("Enter")
-        await backend.wait(1000)
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
+    # Dismiss language dialog ("Different original and logon languages"), which only exists for some classes
+    # and users: pressing Enter without it would wait for nothing.
+    if await backend.check_popup() is not None:
+        try:
+            await backend.press_key("Enter")
+            await backend.wait_for_ready()
+            # screen_changed is already true because of the popup itself: wait until it is gone as well.
+            await backend.wait_for_condition(
+                popup_closed_and_screen_changed(before_title, before_status), timeout_ms=_SE24_DISPLAY_WAIT_MS
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
 
     # Verify we left the initial screen
     screen = await backend.get_screen_info()
@@ -166,8 +194,12 @@ async def _open_class_in_change_mode_desktop(backend: WebGuiBackend | DesktopBac
 
     # Toggle to change mode: Ctrl+F1 (the toolbar button has no text on desktop,
     # so toggle_to_change_mode's label-based click_button won't find it).
+    session = backend.require_session()
+    display_title = await backend.com.run(lambda: str(cast(Any, session.find_by_id("wnd[0]")).text).strip())
     await backend.press_key("Ctrl+F1")
-    await backend.wait(1000)
+    await backend.wait_for_ready()
+    if not await backend.wait_for_condition(window_title_changed(display_title), timeout_ms=_SE24_TOGGLE_WAIT_MS):
+        logger.debug("SE24 edit: the window title did not change after Ctrl+F1 within %d ms", _SE24_TOGGLE_WAIT_MS)
     return None
 
 
@@ -181,11 +213,13 @@ async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-re
     if not isinstance(backend, DesktopBackend):
         return "Requires DesktopBackend"
 
-    # Ensure we're on the Methods tab
+    # Ensure we're on the Methods tab. SAP instantiates a tab page lazily, so wait until the tab's own table
+    # control is in the tree (it is already there when the tab was the active one).
     for tab_label in ("Methoden", "Methods"):
         try:
             await backend.click_tab(tab_label)
-            await backend.wait(500)
+            await backend.wait_for_ready()
+            await backend.wait_for_condition(tab_table_control_loaded(tab_label), timeout_ms=_SE24_TOGGLE_WAIT_MS)
             break
         except Exception:  # pylint: disable=broad-exception-caught
             continue
@@ -233,16 +267,30 @@ async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-re
     if select_error:
         return select_error
 
-    await backend.wait(500)
+    # Selecting the row only moves the focus on the client: no round trip to wait for.
+    await backend.wait_for_ready()
+
+    # An editor that is already open (e.g. the class itself is shown in the source-based view) does not tell that
+    # the method's source has loaded: then the window title has to change as well.
+    def _read_title_if_editor_is_open() -> str | None:
+        if not editor_loaded(session):
+            return None
+        return str(cast(Any, session.find_by_id("wnd[0]")).text).strip()
+
+    title_with_editor = await com.run(_read_title_if_editor_is_open)
 
     # Click "Quelltext" / "Sourcecode" button to open method source editor
     for btn_name in ("Quelltext", "Sourcecode", "Source Code", "Source code", "Weiter zu Quelltext"):
         try:
             await backend.click_button(btn_name)
-            await backend.wait(2000)
-            return None
         except Exception:  # pylint: disable=broad-exception-caught
             continue
+        await backend.wait_for_ready()
+        if not await backend.wait_for_condition(
+            editor_loaded_after(title_with_editor), timeout_ms=_SE24_SOURCE_WAIT_MS
+        ):
+            logger.warning("SE24 edit: no editor appeared within %d ms after '%s'", _SE24_SOURCE_WAIT_MS, btn_name)
+        return None
 
     return "Could not find 'Quelltext'/'Sourcecode' button"
 

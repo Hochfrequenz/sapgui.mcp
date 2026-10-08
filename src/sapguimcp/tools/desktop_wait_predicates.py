@@ -99,3 +99,36 @@ def tab_table_control_loaded(tab_label: str) -> Callable[[Any], bool]:
         return any(e.type_as_number == _TYPE_TABLE_CONTROL and e.id.startswith(prefix) for e in flat)
 
     return _predicate
+
+
+def editor_loaded(session: Any) -> bool:
+    """Predicate: True once the active window holds an ABAP editor control (``GuiAbapEditor`` or ``GuiTextedit``)."""
+    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    return DesktopBackend._find_editor_shell_raw(session) is not None  # pylint: disable=protected-access
+
+
+def editor_loaded_after(title_with_editor: str | None) -> Callable[[Any], bool]:
+    """Build a predicate: True once an editor exists whose source can be read, for the step after opening a source.
+
+    ``title_with_editor`` is the title of ``wnd[0]`` read right before the click if an editor was already open then
+    (None if there was none). An editor that predates the click does not tell that the new source has loaded, so in
+    that case the window title has to change as well.
+    """
+
+    def _predicate(session: Any) -> bool:
+        if not editor_loaded(session):
+            return False
+        return title_with_editor is None or str(session.find_by_id("wnd[0]").text).strip() != title_with_editor
+
+    return _predicate
+
+
+def window_title_changed(before_title: str) -> Callable[[Any], bool]:
+    """Build a predicate: True once the title of ``wnd[0]`` differs from ``before_title`` (read before the action)."""
+    before_title = before_title.strip()
+
+    def _predicate(session: Any) -> bool:
+        return str(session.find_by_id("wnd[0]").text).strip() != before_title
+
+    return _predicate
