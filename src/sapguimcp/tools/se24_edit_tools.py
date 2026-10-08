@@ -43,7 +43,7 @@ _SE24_LABELS = ("Objekttyp", "Object Type")
 # state does not change as expected (e.g. a toggle that was a no-op) must not cost more than they did.
 _SE24_DISPLAY_WAIT_MS = 3000
 _SE24_TOGGLE_WAIT_MS = 1000
-_SE24_SOURCE_WAIT_MS = 5000
+_SE24_SOURCE_WAIT_MS = 10000
 
 
 async def _fill_class_field(backend: WebGuiBackend | DesktopBackend, class_name: str, attempt: int) -> bool:
@@ -173,10 +173,11 @@ async def _open_class_in_change_mode_desktop(backend: WebGuiBackend | DesktopBac
     await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=_SE24_DISPLAY_WAIT_MS)
 
     # Dismiss language dialog ("Different original and logon languages"), which only exists for some classes
-    # and users: pressing Enter without it would wait for nothing.
+    # and users: without it there is nothing to wait for. Only that dialog is confirmed (with Enter); any other
+    # popup is left alone and reported, since Enter could accept its default action.
     if await backend.check_popup() is not None:
         try:
-            await backend.press_key("Enter")
+            await backend.dismiss_language_dialog()
             await backend.wait_for_ready()
             # screen_changed is already true because of the popup itself: wait until it is gone as well.
             await backend.wait_for_condition(
@@ -184,6 +185,9 @@ async def _open_class_in_change_mode_desktop(backend: WebGuiBackend | DesktopBac
             )
         except Exception:  # pylint: disable=broad-exception-caught
             pass
+        popup = await backend.check_popup()
+        if popup is not None:
+            return f"Unexpected popup while displaying class '{class_name}': {popup.message or popup.popup_type}"
 
     # Verify we left the initial screen
     screen = await backend.get_screen_info()
@@ -289,7 +293,9 @@ async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-re
         if not await backend.wait_for_condition(
             editor_loaded_after(title_with_editor), timeout_ms=_SE24_SOURCE_WAIT_MS
         ):
+            # Going on would read (and replace) a missing editor, or the one that predates the click.
             logger.warning("SE24 edit: no editor appeared within %d ms after '%s'", _SE24_SOURCE_WAIT_MS, btn_name)
+            return f"The source editor of method '{method_name}' did not open within {_SE24_SOURCE_WAIT_MS // 1000} s"
         return None
 
     return "Could not find 'Quelltext'/'Sourcecode' button"

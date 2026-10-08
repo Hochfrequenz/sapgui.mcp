@@ -19,14 +19,25 @@ from sapguimcp.tools.se24_edit_tools import (
 
 def _backend(*, titles: list[str], popup: PopupInfo | None = None) -> Any:
     backend = MagicMock(spec=DesktopBackend)
-    for name in ("enter_transaction", "wait", "wait_for_ready", "press_key", "click_tab", "click_button"):
+    for name in (
+        "enter_transaction",
+        "wait",
+        "wait_for_ready",
+        "press_key",
+        "click_tab",
+        "click_button",
+        "dismiss_language_dialog",
+    ):
         setattr(backend, name, AsyncMock())
     backend.focus_and_type = AsyncMock(return_value=True)
     backend.wait_for_condition = AsyncMock(return_value=True)
     iterator = iter(titles)
     backend.get_screen_info = AsyncMock(side_effect=lambda: ScreenInfo(title=next(iterator, titles[-1]), url="sap://s"))
     backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type="S", message=""))
-    backend.check_popup = AsyncMock(return_value=popup)
+    # the popup is there when the lookup has finished, until the language dialog is dismissed
+    backend.check_popup = AsyncMock(
+        side_effect=lambda: popup if not backend.dismiss_language_dialog.await_count else None
+    )
     session = SimpleNamespace(find_by_id=lambda _element_id, **_: SimpleNamespace(text="Class Builder"))
     backend.require_session = MagicMock(return_value=session)
     backend.com = MagicMock()
@@ -49,14 +60,28 @@ async def test_open_class_waits_for_state_changes_not_fixed_times() -> None:
 async def test_open_class_presses_enter_only_when_a_popup_is_open() -> None:
     backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"])
     await _open_class_in_change_mode_desktop(backend, "CL_X")
-    assert "Enter" not in [call.args[0] for call in backend.press_key.await_args_list]
+    backend.dismiss_language_dialog.assert_not_awaited()
 
     popup = PopupInfo(title="Language", text="Different original and logon languages", buttons=[])
     backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"], popup=popup)
     await _open_class_in_change_mode_desktop(backend, "CL_X")
-    assert [call.args[0] for call in backend.press_key.await_args_list] == ["F7", "Enter", "Ctrl+F1"]
-    # F7, popup gone after Enter, Ctrl+F1
+    backend.dismiss_language_dialog.assert_awaited_once()
+    assert [call.args[0] for call in backend.press_key.await_args_list] == ["F7", "Ctrl+F1"]
+    # F7, popup gone after the dismissal, Ctrl+F1
     assert backend.wait_for_condition.await_count == 3
+
+
+@pytest.mark.anyio
+async def test_open_class_leaves_an_unrelated_popup_alone_and_reports_it() -> None:
+    popup = PopupInfo(message="Object is locked by another user", buttons=[])
+    backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"], popup=popup)
+    # dismiss_language_dialog only confirms the language dialog: for any other popup it does nothing
+    backend.dismiss_language_dialog = AsyncMock()
+    backend.check_popup = AsyncMock(return_value=popup)
+    error = await _open_class_in_change_mode_desktop(backend, "CL_X")
+    assert error == "Unexpected popup while displaying class 'CL_X': Object is locked by another user"
+    assert "Ctrl+F1" not in [call.args[0] for call in backend.press_key.await_args_list]
+    assert "Enter" not in [call.args[0] for call in backend.press_key.await_args_list]
 
 
 @pytest.mark.anyio
@@ -126,7 +151,15 @@ async def test_select_method_waits_for_the_editor_instead_of_a_fixed_time() -> N
     backend.click_button.assert_awaited_once_with("Quelltext")
     # the last wait is for the editor to exist, which is a bounded wait
     assert backend.wait_for_condition.await_count == 2  # the Methods tab, then the editor
-    assert backend.wait_for_condition.await_args_list[-1].kwargs["timeout_ms"] <= 5000
+    assert backend.wait_for_condition.await_args_list[-1].kwargs["timeout_ms"] <= 10000
+
+
+@pytest.mark.anyio
+async def test_select_method_fails_when_the_editor_does_not_appear() -> None:
+    backend = _method_backend(_method_table_session(["DO_SOMETHING"]))
+    backend.wait_for_condition = AsyncMock(side_effect=[True, False])
+    error = await _select_method_and_open_source_desktop(backend, "CL_X", "DO_SOMETHING")
+    assert error == "The source editor of method 'DO_SOMETHING' did not open within 10 s"
 
 
 @pytest.mark.anyio
