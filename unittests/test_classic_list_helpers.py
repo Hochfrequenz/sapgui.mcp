@@ -101,17 +101,32 @@ def test_the_header_is_recognised_ignoring_case() -> None:
     assert [row.data for row in table.rows] == [{"JOB NAME": "JOB_A", "Status": "x"}]
 
 
-def test_a_list_taller_than_the_window_is_read_page_by_page_and_the_scrollbar_is_reset() -> None:
-    scrollbar = _Scrollbar(maximum=15, page_size=10)
-    pages = {
-        0: [*_header_row(2), *_entry_row(4, "JOB_1", "fertig"), *_entry_row(5, "JOB_2", "fertig")],
-        # scrolled by 10: screen row 4 is line 14, screen row 5 is line 15
-        10: [*_entry_row(4, "JOB_3", "fertig"), *_entry_row(5, "JOB_4", "fertig")],
-        # scrolled to the end (15): line 15 is on screen row 0 now, which is the line read before: no duplicate
-        15: [*_entry_row(0, "JOB_4", "fertig"), *_entry_row(1, "JOB_5", "fertig")],
-    }
+def _tall_list_pages(
+    first_entry_row: int, last_entry_row: int, visible_rows: int, positions: list[int]
+) -> dict[int, Any]:
+    """The pages of a list whose entries sit on the absolute rows ``first..last``, as seen at each scroll position.
+
+    The window shows ``visible_rows`` rows, which can be fewer than the scrollbar's page size.
+    """
+    pages: dict[int, list[Any]] = {}
+    for position in positions:
+        elements: list[Any] = []
+        if position == 0:
+            elements += _header_row(2)
+        for absolute in range(first_entry_row, last_entry_row + 1):
+            row = absolute - position
+            if 0 <= row < visible_rows:
+                elements += _entry_row(row, f"JOB_{absolute}", "fertig")
+        pages[position] = elements
+    return pages
+
+
+def test_a_list_taller_than_the_window_is_read_page_by_page_without_gaps_and_the_scrollbar_is_reset() -> None:
+    # the scrollbar says 10 lines per page, the window shows 8 data rows: stepping by 10 would skip two lines
+    scrollbar = _Scrollbar(maximum=14, page_size=10)
+    pages = _tall_list_pages(4, 21, visible_rows=8, positions=[0, 6, 12, 14])
     table = read_classic_list_table(_session(_Usr(pages, scrollbar)), _TITLES, 200)
-    assert [row.data["Jobname"] for row in table.rows] == ["JOB_1", "JOB_2", "JOB_3", "JOB_4", "JOB_5"]
+    assert [row.data["Jobname"] for row in table.rows] == [f"JOB_{i}" for i in range(4, 22)]
     assert scrollbar.position == 0
 
 
@@ -126,6 +141,7 @@ def test_a_list_that_starts_scrolled_is_read_from_its_top() -> None:
     scrollbar.position = 7  # the user left the list scrolled
     pages = {
         0: [*_header_row(2), *_entry_row(4, "JOB_1", "fertig")],
+        6: [],
         7: [*_entry_row(4, "JOB_X", "fertig")],
         10: [*_entry_row(0, "JOB_2", "fertig")],
     }
@@ -163,15 +179,24 @@ def test_lines_are_read_cell_by_cell_joined_and_empty_ones_skipped() -> None:
 
 
 def test_lines_of_a_tall_list_are_read_page_by_page_up_to_the_limit() -> None:
-    scrollbar = _Scrollbar(maximum=10, page_size=10)
-    pages = {
-        0: [_label(0, 0, "line 0"), _label(0, 1, "line 1")],
-        10: [_label(0, 0, "line 10"), _label(0, 1, "line 11")],
-    }
-    assert read_classic_list_lines(_session(_Usr(pages, scrollbar)), 100) == ["line 0", "line 1", "line 10", "line 11"]
+    def _pages() -> dict[int, list[Any]]:
+        return {
+            position: [
+                _label(0, absolute - position, f"line {absolute}")
+                for absolute in range(20)
+                if 0 <= absolute - position < 8
+            ]
+            for position in (0, 6, 12, 14)
+        }
+
+    scrollbar = _Scrollbar(maximum=14, page_size=10)
+    assert read_classic_list_lines(_session(_Usr(_pages(), scrollbar)), 100) == [f"line {i}" for i in range(20)]
     assert scrollbar.position == 0
-    scrollbar = _Scrollbar(maximum=10, page_size=10)
-    assert read_classic_list_lines(_session(_Usr(pages, scrollbar)), 3) == ["line 0", "line 1", "line 10"]
+    assert read_classic_list_lines(_session(_Usr(_pages(), _Scrollbar(maximum=14, page_size=10))), 3) == [
+        "line 0",
+        "line 1",
+        "line 2",
+    ]
 
 
 def test_the_first_entry_below_the_header_is_ticked() -> None:

@@ -22,6 +22,20 @@ __all__ = ["read_classic_list_table"]
 _POSITIONED = re.compile(r"/(lbl|chk)\[(\d+),(\d+)\]$")
 
 
+# Pages overlap by this many lines: the page size also counts lines that are no data (the list header), so stepping by
+# the full page size could skip lines. Lines are keyed by their absolute row, so the overlap costs nothing.
+_PAGE_OVERLAP = 4
+
+
+def _scroll_positions(maximum: int, page_size: int) -> list[int]:
+    """The vertical scroll positions to read a list from: its top, then overlapping pages up to ``maximum``."""
+    positions = [0]
+    if maximum > 0 and page_size > 0:
+        step = max(page_size - _PAGE_OVERLAP, 1)
+        positions += [*range(step, maximum + 1, step), maximum]
+    return positions
+
+
 def _cells(usr: Any) -> tuple[dict[int, dict[int, str]], dict[int, str]]:
     """The labels of the screen by row and column, and the ids of the checkboxes by row (one ``dump_tree()``)."""
     labels: dict[int, dict[int, str]] = {}
@@ -82,9 +96,7 @@ def read_classic_list_table(session: Any, header_titles: tuple[str, ...], max_ro
     titles: dict[int, str] | None = None
     header_line = -1  # absolute row of the header line
     entries: dict[int, dict[str, str]] = {}
-    positions = [0]
-    if maximum > 0 and page_size > 0:
-        positions += [*range(page_size, maximum + 1, page_size), maximum]
+    positions = _scroll_positions(maximum, page_size)
     try:
         for wanted in dict.fromkeys(positions):
             if scrollbar is not None and maximum > 0:
@@ -149,9 +161,7 @@ def read_classic_list_lines(session: Any, max_lines: int) -> list[str]:
     scrollbar = getattr(usr, "vertical_scrollbar", None)
     maximum = max(int(scrollbar.maximum), 0) if scrollbar is not None else 0
     page_size = max(int(scrollbar.page_size), 1) if scrollbar is not None else 0
-    positions = [0]
-    if maximum > 0 and page_size > 0:
-        positions += [*range(page_size, maximum + 1, page_size), maximum]
+    positions = _scroll_positions(maximum, page_size)
     lines: dict[int, str] = {}
     try:
         for wanted in dict.fromkeys(positions):
