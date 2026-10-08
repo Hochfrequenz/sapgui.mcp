@@ -448,12 +448,14 @@ async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", lang
             logger.warning("Expected job log screen but got something else on desktop")
             return None
 
-        # SAP ERP 6.0 shows the log as a classic list of labels: read that, the screen text would hold the menus
-        desktop = cast("DesktopBackend", backend)
-        session = desktop.require_session()
-        list_lines = await desktop.com.run(lambda: read_classic_list_lines(session, _MAX_LOG_LINES))
-        if list_lines:
-            return SM37JobLog(job_name="", log_lines=list_lines)
+        # SAP ERP 6.0 shows the log as a classic list of labels: read that, the screen text would hold the menus. Only
+        # there: any other log screen (an ALV grid on S/4) keeps the text path below.
+        if any(title in (screen_text.title or "").lower() for title in _JOB_LOG_TITLES_ECC):
+            desktop = cast("DesktopBackend", backend)
+            session = desktop.require_session()
+            list_lines = await desktop.com.run(lambda: read_classic_list_lines(session, _MAX_LOG_LINES))
+            if list_lines:
+                return SM37JobLog(job_name="", log_lines=list_lines)
 
         # Extract log lines from main_content
         log_lines: list[str] = []

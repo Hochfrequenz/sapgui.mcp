@@ -199,3 +199,18 @@ async def test_no_job_log_is_fetched_when_no_job_could_be_selected() -> None:
     with patch("sapguimcp.tools.sm37_tools.select_first_classic_list_entry", return_value=False):
         assert await _fetch_job_log_desktop(backend, "DE") is None
     backend.click_button.assert_not_awaited()  # Job-Log must not run without a selected job
+
+
+@pytest.mark.anyio
+async def test_the_classic_list_reader_is_not_used_for_a_log_screen_without_the_ecc_title() -> None:
+    backend = _listing_backend(TableData(success=True, headers=[], rows=[]), MagicMock())
+    backend.click_table_cell = AsyncMock(return_value=SimpleNamespace(success=True))
+    backend.click_button = AsyncMock()
+    backend.press_key = AsyncMock()
+    backend.get_screen_text = AsyncMock(
+        return_value=SimpleNamespace(title="Job Log Entries", main_content=["08.10.2026 00:49:27 Job started"])
+    )
+    with patch("sapguimcp.tools.sm37_tools.read_classic_list_lines", side_effect=AssertionError("must not run")):
+        log = await _fetch_job_log_desktop(backend, "EN")
+    assert log is not None
+    assert log.log_lines == ["08.10.2026 00:49:27 Job started"]
