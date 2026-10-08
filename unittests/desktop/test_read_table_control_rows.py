@@ -427,3 +427,38 @@ def test_restoring_waits_until_the_control_shows_its_former_number_of_lines() ->
     with _maximized_main_window(session, _TABLE):
         pass
     assert len(reads) == 3  # polled until the former number of lines showed, and not any more
+
+
+def test_restoring_does_not_wait_for_the_full_timeout_if_the_control_shows_another_number_of_lines() -> None:
+    window = _Window()
+    session = _WindowSession(window)
+    original = session.find_by_id
+
+    def _find(element_id: str, **kwargs: Any) -> Any:
+        if element_id == _TABLE and window.calls[-1:] == ["restore"]:
+            return SimpleNamespace(VisibleRowCount=18)  # e.g. a snapped window: not the 20 lines of before
+        return original(element_id, **kwargs)
+
+    session.find_by_id = _find  # type: ignore[method-assign]
+    started = time.monotonic()
+    with _maximized_main_window(session, _TABLE):
+        pass
+    assert time.monotonic() - started < 1.5
+
+
+def test_a_failing_layout_wait_after_a_successful_restore_is_logged_as_such(caplog: pytest.LogCaptureFixture) -> None:
+    window = _Window()
+    session = _WindowSession(window)
+    original = session.find_by_id
+
+    def _find(element_id: str, **kwargs: Any) -> Any:
+        if element_id == _TABLE and window.calls[-1:] == ["restore"]:
+            raise RuntimeError("COM error")
+        return original(element_id, **kwargs)
+
+    session.find_by_id = _find  # type: ignore[method-assign]
+    with caplog.at_level("WARNING"), _maximized_main_window(session, _TABLE):
+        pass
+    assert window.calls == ["maximize", "restore"]
+    assert "layout after restoring" in caplog.text
+    assert "could not be restored" not in caplog.text
