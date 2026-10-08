@@ -13,6 +13,7 @@ import contextlib
 import inspect
 import logging
 import os
+import re
 import tempfile
 import threading
 import time
@@ -236,6 +237,119 @@ def _row_not_fully_loaded(data: dict[str, str], row_index: int) -> bool:
     values = [value.strip() for value in data.values()]
     placeholder = f"{row_index + 1:010d}"
     return not any(values) or any(value == placeholder for value in values)
+
+
+_TABLE_CELL_ID = re.compile(r"\[(\d+),(\d+)\]$")
+
+
+def _table_control_columns(raw: Any) -> list[tuple[str, str]]:
+    """``(header, technical name)`` of each column of a ``GuiTableControl``.
+
+    The header is the column title (the technical name for a column without one) and unique: a repeated title gets a
+    counter, so no column overwrites another.
+    """
+    columns: list[tuple[str, str]] = []
+    seen: dict[str, int] = {}
+    for ci in range(int(raw.Columns.Count)):
+        column = raw.Columns(ci)
+        name = str(column.Name or "").strip()
+        header = str(column.Title or name or f"col{ci}").strip() or f"col{ci}"
+        seen[header] = seen.get(header, 0) + 1
+        columns.append((header if seen[header] == 1 else f"{header} ({seen[header]})", name))
+    return columns
+
+
+def _table_control_headers(raw: Any) -> list[str]:
+    """Column headers of a ``GuiTableControl`` (see ``_table_control_columns``)."""
+    return [header for header, _ in _table_control_columns(raw)]
+
+
+def _cell_header(cell_id: str, col: int, columns: list[tuple[str, str]]) -> str:
+    """The header of the column a cell belongs to: by the field name in its id, else by its column index.
+
+    A cell id looks like ``txtDY_0253-CPDNAME[0,3]``: control type prefix, the column's name, ``[col,row]``. The
+    column index in it need not be the index in ``Columns`` when columns are reordered or hidden, the name is exact.
+    """
+    base = cell_id.rsplit("/", 1)[-1]
+    base = _TABLE_CELL_ID.sub("", base)
+    matches = [(header, name) for header, name in columns if name and base.endswith(name)]
+    if matches:
+        return max(matches, key=lambda column: len(column[1]))[0]
+    return columns[col][0] if col < len(columns) else f"col{col}"
+
+
+def _table_control_window(tc: Any, columns: list[tuple[str, str]]) -> dict[int, dict[str, str]]:
+    """The cells a table control shows right now, by row within the window then by column header (one ``dump_tree``)."""
+    window: dict[int, dict[str, str]] = {}
+    for elem in _flatten(tc.dump_tree()):
+        match = _TABLE_CELL_ID.search(elem.id)
+        if not match:
+            continue
+        col, row = int(match.group(1)), int(match.group(2))
+        window.setdefault(row, {})[_cell_header(elem.id, col, columns)] = str(getattr(elem, "text", ""))
+    return window
+
+
+_TABLE_CONTROL_SETTLE_TIMEOUT_S = 2.0
+_TABLE_CONTROL_SETTLE_POLL_S = 0.05
+
+
+def _row_filled(rows: list[dict[str, Any]], number: int) -> bool:
+    """True if ``rows`` has the row ``number`` with at least one non-blank cell."""
+    return any(row["row"] == number and any(value.strip() for value in row["data"].values()) for row in rows)
+
+
+def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: int) -> dict[str, Any]:
+    """The ``TableData`` fields for a ``GuiTableControl``: the rows of its window within the requested range.
+
+    A table control only holds the rows in its window (``VisibleRowCount`` of ``RowCount``). Scrolling it through
+    ``VerticalScrollbar.Position`` is a server round trip that is known to fail or crash SAP GUI when the control sits
+    in a tab subscreen (#387, #937), so it is not done here: the window is read with one ``dump_tree`` call, and a
+    row's absolute index is the window's first row plus its row in the window. Rows outside the window are not
+    returned; ``total_rows`` is ``RowCount``, so the gap is visible. ``start_row`` and ``end_row`` are those of the
+    rows returned (``end_row`` is ``None`` and ``start_row`` the requested one if none is in the window). The window
+    also shows empty lines after the last row, and a last line that is only partly visible reads as empty: empty
+    lines at the end are dropped. A scrollbar that cannot be read although the table is longer than its window
+    raises: the row numbers would be guesses.
+    """
+    raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
+    columns = _table_control_columns(raw)
+    row_count = int(raw.RowCount)
+    first = int(raw.VerticalScrollbar.Position) if row_count > int(raw.VisibleRowCount) else 0
+    wanted_end = min(end_row or (start_row + max_rows - 1), row_count)
+    # SAP GUI fills a table control's cells after the screen appears: a read straight away can show only the first
+    # rows. The window counts as complete when two reads in a row agree and it shows the lines it should (all but
+    # the last, which may be only partly visible and then reads as empty).
+    in_window = min(int(raw.VisibleRowCount), row_count - first)
+    deadline = time.monotonic() + _TABLE_CONTROL_SETTLE_TIMEOUT_S
+    previous: list[dict[str, Any]] | None = None
+    while True:
+        rows = []
+        for row_in_window, cells in sorted(_table_control_window(tc, columns).items()):
+            number = first + row_in_window + 1
+            if start_row <= number <= wanted_end:
+                rows.append({"row": number, "data": cells})
+        # The last line of the window is only partly visible and then reads as blank although the table has more rows.
+        while rows and not any(value.strip() for value in rows[-1]["data"].values()):
+            rows.pop()
+        filled = sum(1 for number in range(first + 1, first + in_window) if _row_filled(rows, number))
+        expected = sum(1 for number in range(first + 1, first + in_window) if start_row <= number <= wanted_end)
+        if rows == previous and filled >= expected:
+            break
+        if time.monotonic() >= deadline:
+            logger.warning("The table control did not show all its rows within %.0f s", _TABLE_CONTROL_SETTLE_TIMEOUT_S)
+            break
+        previous = rows
+        time.sleep(_TABLE_CONTROL_SETTLE_POLL_S)
+    if len(rows) < wanted_end - start_row + 1:
+        logger.info("Only %d of %d table control rows are in its window", len(rows), row_count)
+    return {
+        "headers": [header for header, _ in columns],
+        "rows": rows,
+        "total_rows": row_count,
+        "start_row": rows[0]["row"] if rows else start_row,
+        "end_row": rows[-1]["row"] if rows else None,
+    }
 
 
 # Stop trying to scroll after this many scrolls in a row failed: every more attempt only adds a failing COM call.
@@ -1513,9 +1627,11 @@ class DesktopBackend:
             wnd = session.find_by_id(wnd_id)
             tree = cast(Any, wnd).dump_tree()
             grid_id = None
+            grid_type = 0
             for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
                     grid_id = elem.id
+                    grid_type = elem.type_as_number
                     break
 
             if grid_id is None:
@@ -1545,6 +1661,9 @@ class DesktopBackend:
                     # TableData model rejects (end_row has ge=1). See issue #799.
                     "end_row": actual_end if actual_end >= start_row else None,
                 }
+
+            if grid_type == 80:
+                return _read_table_control(session.find_by_id(grid_id), start_row, end_row, max_rows)
 
             return {"headers": [], "rows": [], "total_rows": 0, "start_row": 1}
 
