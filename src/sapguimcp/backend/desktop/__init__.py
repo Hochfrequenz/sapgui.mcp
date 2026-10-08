@@ -18,6 +18,7 @@ import tempfile
 import threading
 import time
 import weakref
+from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
 
@@ -298,6 +299,59 @@ _TABLE_CONTROL_SETTLE_TIMEOUT_S = 0.5
 _TABLE_CONTROL_SETTLE_POLL_S = 0.05
 
 
+_WINDOW_RESIZE_TIMEOUT_S = 2.0
+_WINDOW_RESIZE_POLL_S = 0.05
+
+
+@contextmanager
+def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
+    """Maximize the main window while a table control inside it is read, and restore its size afterwards.
+
+    A table control shows as many rows as fit into its window, and scrolling it is not safe (see
+    ``_read_table_control``), so a larger window is the only way to read more of its rows. Nothing is done for a
+    control in a popup, or if the window is already maximized (its top left corner is then off screen). The main
+    window is restored in any case, also if reading fails; a failing resize only means fewer rows are read.
+    """
+    window: Any = None
+    if "/wnd[0]/" in element_id:
+        try:
+            candidate = session.find_by_id("wnd[0]")
+            candidate = getattr(candidate, "com", getattr(candidate, "_com", candidate))
+            if int(candidate.ScreenLeft) >= 0 and int(candidate.ScreenTop) >= 0:
+                control = session.find_by_id(element_id)
+                raw = getattr(control, "com", getattr(control, "_com", control))
+                visible_before = int(raw.VisibleRowCount)
+                candidate.maximize()
+                window = candidate
+                _wait_for_window_resize(session, window, element_id, visible_before)
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.warning("The main window could not be maximized, reading the table control as it is", exc_info=True)
+    try:
+        yield
+    finally:
+        if window is not None:
+            try:
+                window.restore()
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.warning("The main window could not be restored to its former size", exc_info=True)
+
+
+def _wait_for_window_resize(session: Any, window: Any, element_id: str, visible_before: int) -> None:
+    """Wait until the table control has taken the maximized window's size (it shows more lines than before).
+
+    A table control is laid out again after the window changed its size, which takes a round trip to the server. A
+    control that does not grow (it fills no more of the window) ends the wait at the timeout.
+    """
+    deadline = time.monotonic() + _WINDOW_RESIZE_TIMEOUT_S
+    while time.monotonic() < deadline:
+        if int(window.ScreenLeft) < 0 and not session.busy:
+            control = session.find_by_id(element_id)
+            raw = getattr(control, "com", getattr(control, "_com", control))
+            if int(raw.VisibleRowCount) != visible_before:
+                return
+        time.sleep(_WINDOW_RESIZE_POLL_S)
+
+
 def _row_filled(rows: list[dict[str, Any]], number: int) -> bool:
     """True if ``rows`` has the row ``number`` with at least one non-blank cell."""
     return any(row["row"] == number and any(value.strip() for value in row["data"].values()) for row in rows)
@@ -350,7 +404,8 @@ def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: 
             break
         previous = rows
         time.sleep(_TABLE_CONTROL_SETTLE_POLL_S)
-    if len(rows) < wanted_end - start_row + 1:
+    truncated = len(rows) < wanted_end - start_row + 1
+    if truncated:
         logger.info("Only %d of %d table control rows are in its window", len(rows), row_count)
     return {
         "headers": [header for header, _ in columns],
@@ -358,6 +413,7 @@ def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: 
         "total_rows": row_count,
         "start_row": rows[0]["row"] if rows else start_row,
         "end_row": rows[-1]["row"] if rows else None,
+        "truncated": truncated,
     }
 
 
@@ -1672,7 +1728,8 @@ class DesktopBackend:
                 }
 
             if grid_type == 80:
-                return _read_table_control(session.find_by_id(grid_id), start_row, end_row, max_rows)
+                with _maximized_main_window(session, grid_id):
+                    return _read_table_control(session.find_by_id(grid_id), start_row, end_row, max_rows)
 
             return {"headers": [], "rows": [], "total_rows": 0, "start_row": 1}
 

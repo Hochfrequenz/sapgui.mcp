@@ -8,7 +8,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sapguimcp.backend.desktop import DesktopBackend, _read_table_control, _table_control_headers
+from sapguimcp.backend.desktop import (
+    DesktopBackend,
+    _maximized_main_window,
+    _read_table_control,
+    _table_control_headers,
+)
 
 _HEADERS = ["Method", "Kind"]
 
@@ -121,6 +126,13 @@ def test_the_table_data_fields_describe_the_rows_returned_and_the_real_total() -
     assert data["total_rows"] == 32
     assert (data["start_row"], data["end_row"]) == (13, 32)
     assert len(data["rows"]) == 20
+
+
+def test_truncated_is_set_only_if_requested_rows_are_missing_from_the_window() -> None:
+    assert _read_table_control(_TableControl(32, 20), 1, None, 100)["truncated"] is True
+    assert _read_table_control(_TableControl(32, 20), 1, 10, 100)["truncated"] is False
+    assert _read_table_control(_TableControl(32, 20), 25, 30, 100)["truncated"] is True
+    assert _read_table_control(_TableControl(5, 20, scrollbar=False), 1, None, 100)["truncated"] is False
 
 
 def test_the_requested_range_limits_the_rows_and_max_rows_applies_without_an_end_row() -> None:
@@ -292,3 +304,68 @@ def test_the_final_row_of_a_table_that_fits_the_window_is_waited_for() -> None:
 
     tc.dump_tree = _last_row_late  # type: ignore[method-assign]
     assert _read(tc, 0, 5) == _expected(0, 5)
+
+
+class _Window:
+    def __init__(self, left: int = 24, fail: bool = False) -> None:
+        self.ScreenLeft = left
+        self.ScreenTop = left
+        self.fail = fail
+        self.calls: list[str] = []
+
+    def maximize(self) -> None:
+        if self.fail:
+            raise RuntimeError("COM error")
+        self.calls.append("maximize")
+        self.ScreenLeft = self.ScreenTop = -8
+
+    def restore(self) -> None:
+        self.calls.append("restore")
+        self.ScreenLeft = self.ScreenTop = 24
+
+
+class _WindowSession:
+    busy = False
+
+    def __init__(self, window: _Window) -> None:
+        self._window = window
+
+    def find_by_id(self, element_id: str, **_: Any) -> Any:
+        if element_id == "wnd[0]":
+            return self._window
+        return SimpleNamespace(VisibleRowCount=20 if self._window.ScreenLeft >= 0 else 40)
+
+
+def test_the_main_window_is_maximized_while_reading_and_restored_afterwards() -> None:
+    window = _Window()
+    with _maximized_main_window(_WindowSession(window), "/app/con[0]/ses[0]/wnd[0]/usr/tbl"):
+        assert window.calls == ["maximize"]
+    assert window.calls == ["maximize", "restore"]
+
+
+def test_the_main_window_is_restored_if_reading_fails() -> None:
+    window = _Window()
+    with (
+        pytest.raises(ValueError, match="boom"),
+        _maximized_main_window(_WindowSession(window), "/app/con[0]/ses[0]/wnd[0]/usr/tbl"),
+    ):
+        raise ValueError("boom")
+    assert window.calls == ["maximize", "restore"]
+
+
+def test_an_already_maximized_window_and_a_popup_are_left_alone() -> None:
+    maximized = _Window(left=-8)
+    with _maximized_main_window(_WindowSession(maximized), "/wnd[0]/usr/tbl"):
+        pass
+    popup = _Window()
+    with _maximized_main_window(_WindowSession(popup), "/app/con[0]/ses[0]/wnd[1]/usr/tbl"):
+        pass
+    assert maximized.calls == []
+    assert popup.calls == []
+
+
+def test_a_window_that_cannot_be_maximized_does_not_stop_reading_and_is_not_restored() -> None:
+    window = _Window(fail=True)
+    with _maximized_main_window(_WindowSession(window), "/app/con[0]/ses[0]/wnd[0]/usr/tbl"):
+        pass
+    assert window.calls == []
