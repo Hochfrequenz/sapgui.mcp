@@ -274,3 +274,21 @@ def test_a_blank_row_that_only_ends_the_requested_range_is_kept() -> None:
     rows = _read(tc, 0, 5)  # rows 1 to 5; row 5 is blank but not the end of the window
     assert [r["row"] for r in rows] == [1, 2, 3, 4, 5]
     assert rows[4]["data"] == {"Method": "", "Kind": ""}
+
+
+def test_the_final_row_of_a_table_that_fits_the_window_is_waited_for() -> None:
+    tc = _TableControl(5, 20, scrollbar=False)
+    original = tc.dump_tree
+    reads = [0]
+
+    def _last_row_late() -> list[Any]:
+        elements = original()
+        reads[0] += 1
+        if reads[0] <= 2:  # the first reads show all but the final row
+            for element in elements:
+                if element.id.endswith(",4]"):
+                    element.text = ""
+        return elements
+
+    tc.dump_tree = _last_row_late  # type: ignore[method-assign]
+    assert _read(tc, 0, 5) == _expected(0, 5)

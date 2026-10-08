@@ -324,7 +324,9 @@ def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: 
     # SAP GUI fills a table control's cells after the screen appears: a read straight away can show only the first
     # rows. The window counts as complete when two reads in a row agree and it shows the lines it should (all but
     # the last, which may be only partly visible and then reads as empty).
-    in_window = min(int(raw.VisibleRowCount), row_count - first)
+    visible = int(raw.VisibleRowCount)
+    # the last window line may be only partly visible, unless the table ends within the window
+    checked_until = first + min(visible, row_count - first) + (1 if row_count - first <= visible else 0)
     deadline = time.monotonic() + _TABLE_CONTROL_SETTLE_TIMEOUT_S
     previous: list[dict[str, Any]] | None = None
     while True:
@@ -339,8 +341,8 @@ def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: 
             number = first + row_in_window + 1
             if start_row <= number <= wanted_end:
                 rows.append({"row": number, "data": cells})
-        filled = sum(1 for number in range(first + 1, first + in_window) if _row_filled(rows, number))
-        expected = sum(1 for number in range(first + 1, first + in_window) if start_row <= number <= wanted_end)
+        filled = sum(1 for number in range(first + 1, checked_until) if _row_filled(rows, number))
+        expected = sum(1 for number in range(first + 1, checked_until) if start_row <= number <= wanted_end)
         if rows == previous and filled >= expected:
             break
         if time.monotonic() >= deadline:
