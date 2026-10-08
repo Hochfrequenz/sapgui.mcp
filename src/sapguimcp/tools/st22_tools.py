@@ -40,6 +40,7 @@ from sapguimcp.models.st22_models import (
     ST22DumpDetailResult,
     ST22DumpListResult,
 )
+from sapguimcp.tools.desktop_wait_predicates import screen_changed
 from sapguimcp.utils import SapLanguage, as_sap_language, format_sap_date
 
 if TYPE_CHECKING:
@@ -48,6 +49,9 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+# Upper bound for waiting on the detail screen after a dump was opened (#928); the former fixed wait took 1 s.
+_ST22_DETAIL_WAIT_MS = 1000
 
 __all__ = ["register_st22_tools"]
 
@@ -236,11 +240,18 @@ async def _capture_desktop_detail(backend: "WebGuiBackend | DesktopBackend") -> 
 
     for _ in range(20):  # max 20 pages
         await backend.press_key("PageDown")
-        await backend.wait(500)
+        # Idle is enough: scrolling answers at once, and the loop stops when the page does not change (#928).
+        await backend.wait_for_ready()
         screen_text = await backend.get_screen_text()
         new_text = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
         if new_text == pages[-1]:
-            break  # reached bottom
+            # Looks like the bottom. Read once more before stopping: idle does not prove that a scroll has been
+            # painted, and the end of the capture must not rest on a read that came too early.
+            await backend.wait_for_ready()
+            screen_text = await backend.get_screen_text()
+            new_text = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
+            if new_text == pages[-1]:
+                break  # reached bottom
         pages.append(new_text)
 
     return "\n".join(pages)
@@ -417,12 +428,15 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
 
     # Use the original table row position for clicking, not the sorted index
     ui_row_idx = sorted_to_ui[dump_index]
+    before_title = (await backend.get_screen_info()).title or ""
+    before_status = (await backend.get_status_bar()).message.strip()
     error = await _select_dump_by_index(backend, ui_row_idx, len(dumps))
     if error:
         return ST22DumpDetailResult.failure(error=error, detail=None, retrieved_at=now)
 
-    # Read detail screen text by scrolling through pages
-    await backend.wait(1000)
+    # Wait for the detail screen (new title, new status text or a popup) instead of a fixed time (#928), then read
+    # it by scrolling through the pages. Bounded by the former fixed wait: if nothing changes, read what is there.
+    await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=_ST22_DETAIL_WAIT_MS)
     detail_text = await _capture_desktop_detail(backend)
 
     # Parse the detail text into structured fields
