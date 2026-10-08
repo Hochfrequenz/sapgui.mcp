@@ -316,6 +316,8 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
     only means fewer rows are read.
     """
     window: Any = None
+    candidate: Any = None
+    size_before: tuple[int, int] | None = None
     if "/wnd[0]/" in element_id:
         try:
             candidate = session.find_by_id("wnd[0]")
@@ -329,6 +331,7 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
                 window = candidate
         except Exception:  # pylint: disable=broad-exception-caught
             logger.warning("The main window could not be maximized, reading the table control as it is", exc_info=True)
+            window = _window_if_resized(candidate, size_before)
     try:
         yield
     finally:
@@ -338,6 +341,16 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
                 _wait_until_idle(session)
             except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning("The main window could not be restored to its former size", exc_info=True)
+
+
+def _window_if_resized(window: Any, size_before: tuple[int, int] | None) -> Any:
+    """``window`` if it is known to have a different size than ``size_before`` (so it must be restored), else None."""
+    try:
+        if window is not None and size_before is not None and (int(window.Width), int(window.Height)) != size_before:
+            return window
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.debug("The main window's size is not readable", exc_info=True)
+    return None
 
 
 def _wait_until_idle(session: Any) -> None:

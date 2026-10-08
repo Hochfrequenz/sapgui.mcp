@@ -389,3 +389,22 @@ def test_a_failing_restore_is_swallowed() -> None:
     window.restore = MagicMock(side_effect=RuntimeError("COM error"))  # type: ignore[method-assign]
     with _maximized_main_window(_WindowSession(window), _TABLE):
         pass
+
+
+def test_a_window_is_restored_if_waiting_for_the_resize_fails_after_maximizing() -> None:
+    window = _Window()
+    session = _WindowSession(window)
+    original = session.find_by_id
+    calls = [0]
+
+    def _find(element_id: str, **kwargs: Any) -> Any:
+        if element_id == _TABLE:
+            calls[0] += 1
+            if calls[0] > 1:  # the first lookup is before maximizing, the one while waiting fails
+                raise RuntimeError("COM error")
+        return original(element_id, **kwargs)
+
+    session.find_by_id = _find  # type: ignore[method-assign]
+    with _maximized_main_window(session, _TABLE):
+        pass
+    assert window.calls == ["maximize", "restore"]
