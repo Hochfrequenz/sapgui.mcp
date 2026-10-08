@@ -38,8 +38,16 @@ async def test_an_empty_grid_without_a_no_logs_status_is_a_failure() -> None:
 
 
 @pytest.mark.anyio
-async def test_the_no_logs_status_is_still_an_empty_result() -> None:
-    backend = _backend("No application log found", TableData(success=True))
+@pytest.mark.parametrize(
+    "message",
+    [
+        "No application log found",
+        "Es konnte kein Protokoll auf der Datenbank gefunden werden",
+        "No log could be found in the database",
+    ],
+)
+async def test_a_no_logs_status_is_still_an_empty_result(message: str) -> None:
+    backend = _backend(message, TableData(success=True, headers=["Message"], rows=[]))
     result = await _lookup(backend)
     assert result.success
     assert result.logs == []

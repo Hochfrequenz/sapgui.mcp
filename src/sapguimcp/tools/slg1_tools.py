@@ -23,6 +23,7 @@ from sapguimcp.backend.webgui.parsers.slg1_parser import (
     parse_slg1_log_list,
 )
 from sapguimcp.backend.webgui.types import AriaSnapshot
+from sapguimcp.lang import SLG1_NO_LOGS_FOUND_DE, SLG1_NO_LOGS_FOUND_EN
 from sapguimcp.models import TableData
 from sapguimcp.models.config import get_sap_config
 from sapguimcp.models.slg1_models import (
@@ -120,7 +121,14 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
         )
 
     if sbar.message and any(
-        msg in sbar.message.lower() for msg in ["keine protokolle", "no logs", "no application log"]
+        msg.lower() in sbar.message.lower()
+        for msg in [
+            "keine protokolle",
+            "no logs",
+            "no application log",
+            SLG1_NO_LOGS_FOUND_DE,
+            SLG1_NO_LOGS_FOUND_EN,
+        ]
     ):
         return SLG1LogListResult(
             logs=[],
