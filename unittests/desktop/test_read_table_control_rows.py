@@ -414,14 +414,16 @@ def test_restoring_waits_until_the_control_shows_its_former_number_of_lines() ->
     window = _Window()
     session = _WindowSession(window)
     original = session.find_by_id
-    lines_after_restore = iter([40, 40, 20])  # the control is laid out again only after some polls
+    lines_after_restore = [40, 40, 20]  # the control is laid out again only after some polls
+    reads: list[int] = []
 
     def _find(element_id: str, **kwargs: Any) -> Any:
         if element_id == _TABLE and window.calls[-1:] == ["restore"]:
-            return SimpleNamespace(VisibleRowCount=next(lines_after_restore))
+            reads.append(1)
+            return SimpleNamespace(VisibleRowCount=lines_after_restore[min(len(reads), 3) - 1])
         return original(element_id, **kwargs)
 
     session.find_by_id = _find  # type: ignore[method-assign]
     with _maximized_main_window(session, _TABLE):
         pass
-    assert next(lines_after_restore, None) is None  # all three reads were needed
+    assert len(reads) == 3  # polled until the former number of lines showed, and not any more
