@@ -408,3 +408,74 @@ def test_a_window_is_restored_if_waiting_for_the_resize_fails_after_maximizing()
     with _maximized_main_window(session, _TABLE):
         pass
     assert window.calls == ["maximize", "restore"]
+
+
+def test_restoring_waits_until_the_control_shows_its_former_number_of_lines() -> None:
+    window = _Window()
+    session = _WindowSession(window)
+    original = session.find_by_id
+    lines_after_restore = [40, 40, 20]  # the control is laid out again only after some polls
+    reads: list[int] = []
+
+    def _find(element_id: str, **kwargs: Any) -> Any:
+        if element_id == _TABLE and window.calls[-1:] == ["restore"]:
+            reads.append(1)
+            return SimpleNamespace(VisibleRowCount=lines_after_restore[min(len(reads), 3) - 1])
+        return original(element_id, **kwargs)
+
+    session.find_by_id = _find  # type: ignore[method-assign]
+    with _maximized_main_window(session, _TABLE):
+        pass
+    assert len(reads) == 3  # polled until the former number of lines showed, and not any more
+
+
+def test_restoring_does_not_wait_for_the_full_timeout_if_the_control_is_laid_out_with_another_number_of_lines() -> None:
+    window = _Window()
+    session = _WindowSession(window)
+    original = session.find_by_id
+
+    def _find(element_id: str, **kwargs: Any) -> Any:
+        if element_id == _TABLE and window.calls[-1:] == ["restore"]:
+            return SimpleNamespace(VisibleRowCount=18)  # e.g. a snapped window: not the 20 lines of before
+        return original(element_id, **kwargs)
+
+    session.find_by_id = _find  # type: ignore[method-assign]
+    started = time.monotonic()
+    with _maximized_main_window(session, _TABLE):
+        pass
+    assert time.monotonic() - started < 1.5
+
+
+def test_a_failing_layout_wait_after_a_successful_restore_is_logged_as_such(caplog: pytest.LogCaptureFixture) -> None:
+    window = _Window()
+    session = _WindowSession(window)
+    original = session.find_by_id
+
+    def _find(element_id: str, **kwargs: Any) -> Any:
+        if element_id == _TABLE and window.calls[-1:] == ["restore"]:
+            raise RuntimeError("COM error")
+        return original(element_id, **kwargs)
+
+    session.find_by_id = _find  # type: ignore[method-assign]
+    with caplog.at_level("WARNING"), _maximized_main_window(session, _TABLE):
+        pass
+    assert window.calls == ["maximize", "restore"]
+    assert "layout after restoring" in caplog.text
+    assert "could not be restored" not in caplog.text
+
+
+def test_restoring_keeps_waiting_while_the_control_still_shows_the_maximized_number_of_lines() -> None:
+    window = _Window()
+    session = _WindowSession(window)
+    original = session.find_by_id
+
+    def _find(element_id: str, **kwargs: Any) -> Any:
+        if element_id == _TABLE and window.calls[-1:] == ["restore"]:
+            return SimpleNamespace(VisibleRowCount=40)  # the window is back, the layout is not
+        return original(element_id, **kwargs)
+
+    session.find_by_id = _find  # type: ignore[method-assign]
+    started = time.monotonic()
+    with _maximized_main_window(session, _TABLE):
+        pass
+    assert time.monotonic() - started >= 1.9  # the size alone does not end the wait

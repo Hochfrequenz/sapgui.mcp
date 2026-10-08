@@ -318,6 +318,7 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
     window: Any = None
     candidate: Any = None
     size_before: tuple[int, int] | None = None
+    visible_before = 0
     if "/wnd[0]/" in element_id:
         try:
             candidate = session.find_by_id("wnd[0]")
@@ -336,11 +337,18 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
         yield
     finally:
         if window is not None:
+            maximized_lines = _visible_lines(session, element_id)
             try:
                 window.restore()
-                _wait_until_idle(session)
             except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning("The main window could not be restored to its former size", exc_info=True)
+            else:
+                try:
+                    _wait_for_layout(session, window, element_id, (visible_before, maximized_lines), size_before)
+                except Exception:  # pylint: disable=broad-exception-caught
+                    logger.warning(
+                        "The table control's layout after restoring the window is not readable", exc_info=True
+                    )
 
 
 def _window_if_resized(window: Any, size_before: tuple[int, int] | None) -> Any:
@@ -353,10 +361,47 @@ def _window_if_resized(window: Any, size_before: tuple[int, int] | None) -> Any:
     return None
 
 
-def _wait_until_idle(session: Any) -> None:
-    """Wait a short time until the session is no longer busy (best effort)."""
-    deadline = time.monotonic() + _WINDOW_RESIZE_TIMEOUT_S
-    while session.busy and time.monotonic() < deadline:
+def _visible_lines(session: Any, element_id: str) -> int | None:
+    """The number of lines the table control shows now, or None if it cannot be read."""
+    try:
+        control = session.find_by_id(element_id)
+        raw = getattr(control, "com", getattr(control, "_com", control))
+        return int(raw.VisibleRowCount)
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.debug("The table control's number of lines is not readable", exc_info=True)
+        return None
+
+
+def _wait_for_layout(
+    session: Any,
+    window: Any,
+    element_id: str,
+    lines: tuple[int, int | None],
+    size_before: tuple[int, int] | None,
+) -> None:
+    """Wait (best effort) until the session is idle and the table control is laid out again after the restore.
+
+    ``lines`` is the number of lines the control showed before maximizing and while maximized. Restoring the window
+    lays the control out again after a round trip to the server; later COM calls would otherwise see the enlarged
+    control. The wait ends when the control shows the number of lines it showed before. The restored window may differ
+    from its size before (a snapped window, another monitor scaling) and then show another number: the wait then also
+    ends a short while after the window is back at its former size and the control no longer shows the maximized
+    number of lines. Without that, it ends at the timeout.
+    """
+    visible_before, maximized_lines = lines
+    start = time.monotonic()
+    deadline = start + _WINDOW_RESIZE_TIMEOUT_S
+    while time.monotonic() < deadline:
+        if not session.busy:
+            control = session.find_by_id(element_id)
+            raw = getattr(control, "com", getattr(control, "_com", control))
+            visible = int(raw.VisibleRowCount)
+            if visible == visible_before:
+                return
+            back = size_before is not None and (int(window.Width), int(window.Height)) == size_before
+            laid_out = maximized_lines is not None and visible != maximized_lines
+            if back and laid_out and time.monotonic() - start >= _WINDOW_RELAYOUT_TIMEOUT_S:
+                return
         time.sleep(_WINDOW_RESIZE_POLL_S)
 
 
