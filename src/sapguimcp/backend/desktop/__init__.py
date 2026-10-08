@@ -324,7 +324,7 @@ def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: 
     deadline = time.monotonic() + _TABLE_CONTROL_SETTLE_TIMEOUT_S
     previous: list[dict[str, Any]] | None = None
     while True:
-        rows = []
+        rows: list[dict[str, Any]] = []
         for row_in_window, cells in sorted(_table_control_window(tc, columns).items()):
             number = first + row_in_window + 1
             if start_row <= number <= wanted_end:
