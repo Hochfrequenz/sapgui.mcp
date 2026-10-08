@@ -14,6 +14,7 @@ ST22 flow:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -40,6 +41,7 @@ from sapguimcp.models.st22_models import (
     ST22DumpDetailResult,
     ST22DumpListResult,
 )
+from sapguimcp.tools.desktop_wait_predicates import screen_changed
 from sapguimcp.utils import SapLanguage, as_sap_language, format_sap_date
 
 if TYPE_CHECKING:
@@ -48,6 +50,12 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+# Upper bound for waiting on the detail screen after a dump was opened (#928); the former fixed wait took 1 s.
+_ST22_DETAIL_WAIT_MS = 1000
+# An unchanged page after PageDown is read this often, this far apart, before it is taken for the bottom (#928).
+_ST22_BOTTOM_CONFIRM_READS = 2
+_ST22_BOTTOM_CONFIRM_INTERVAL_S = 0.1
 
 __all__ = ["register_st22_tools"]
 
@@ -222,23 +230,33 @@ async def _capture_full_detail(backend: "WebGuiBackend | DesktopBackend") -> str
     return "\n".join(snapshots)
 
 
+async def _read_screen_page(backend: "WebGuiBackend | DesktopBackend") -> str:
+    """Read the text of the current screen."""
+    screen_text = await backend.get_screen_text()
+    return screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
+
+
 async def _capture_desktop_detail(backend: "WebGuiBackend | DesktopBackend") -> str:
     """Capture full ST22 dump detail text by scrolling through the detail screen.
 
     The detail screen is a long scrollable text. Read screen text, scroll down,
     and concatenate until no new content appears.
     """
-    pages: list[str] = []
-
-    screen_text = await backend.get_screen_text()
-    text = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
-    pages.append(text)
+    pages: list[str] = [await _read_screen_page(backend)]
 
     for _ in range(20):  # max 20 pages
         await backend.press_key("PageDown")
-        await backend.wait(500)
-        screen_text = await backend.get_screen_text()
-        new_text = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
+        # Idle is enough for a page that scrolls: the loop only has to be sure about the bottom (#928).
+        await backend.wait_for_ready()
+        new_text = await _read_screen_page(backend)
+        # An unchanged page is the bottom only if it stays unchanged: idle does not prove that a scroll has been
+        # painted, so give the screen the time the former fixed wait gave it (once, at the end) before stopping.
+        for _ in range(_ST22_BOTTOM_CONFIRM_READS):
+            if new_text != pages[-1]:
+                break
+            await asyncio.sleep(_ST22_BOTTOM_CONFIRM_INTERVAL_S)
+            await backend.wait_for_ready()
+            new_text = await _read_screen_page(backend)
         if new_text == pages[-1]:
             break  # reached bottom
         pages.append(new_text)
@@ -417,12 +435,15 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
 
     # Use the original table row position for clicking, not the sorted index
     ui_row_idx = sorted_to_ui[dump_index]
+    before_title = (await backend.get_screen_info()).title or ""
+    before_status = (await backend.get_status_bar()).message.strip()
     error = await _select_dump_by_index(backend, ui_row_idx, len(dumps))
     if error:
         return ST22DumpDetailResult.failure(error=error, detail=None, retrieved_at=now)
 
-    # Read detail screen text by scrolling through pages
-    await backend.wait(1000)
+    # Wait for the detail screen (new title, new status text or a popup) instead of a fixed time (#928), then read
+    # it by scrolling through the pages. Bounded by the former fixed wait: if nothing changes, read what is there.
+    await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=_ST22_DETAIL_WAIT_MS)
     detail_text = await _capture_desktop_detail(backend)
 
     # Parse the detail text into structured fields
