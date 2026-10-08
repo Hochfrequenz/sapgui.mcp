@@ -26,7 +26,11 @@ from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.models import TableData
 from sapguimcp.models.config import get_sap_config
 from sapguimcp.models.sm37_models import SM37Job, SM37JobListResult, SM37JobLog
-from sapguimcp.tools.classic_list_helpers import read_classic_list_table
+from sapguimcp.tools.classic_list_helpers import (
+    read_classic_list_lines,
+    read_classic_list_table,
+    select_first_classic_list_entry,
+)
 from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 from sapguimcp.utils import SapLanguage, as_sap_language, format_sap_date
 
@@ -40,6 +44,7 @@ logger = logging.getLogger(__name__)
 __all__ = ["register_sm37_tools"]
 
 _MAX_JOBS = 200
+_MAX_LOG_LINES = 500
 
 # Titles the header line of the classic job overview (SAP ERP 6.0) is recognised by, in German and English.
 _JOB_LIST_HEADER_TITLES = ("Jobname", "Job name")
@@ -165,9 +170,18 @@ _JOB_LOG_HEADING_DE = "Job Log Einträge"
 _JOB_LOG_HEADING_EN = "Job Log Entries"
 
 
+# Titles of the job log screen on SAP ERP 6.0 ("Job-Log zu Job <name> / <id>"), where the heading above differs.
+_JOB_LOG_TITLES_ECC = ("job-log zu job", "job log for job")
+
+
 def _is_job_log_screen(snapshot: str) -> bool:
     """Check if the snapshot shows a job log screen (not the job list)."""
-    return _JOB_LOG_HEADING_DE in snapshot or _JOB_LOG_HEADING_EN in snapshot
+    lowered = snapshot.lower()
+    return (
+        _JOB_LOG_HEADING_DE in snapshot
+        or _JOB_LOG_HEADING_EN in snapshot
+        or any(title in lowered for title in _JOB_LOG_TITLES_ECC)
+    )
 
 
 async def _fetch_job_log(backend: "WebGuiBackend | DesktopBackend", language: SapLanguage) -> SM37JobLog | None:
@@ -386,6 +400,13 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
     )
 
 
+async def _select_first_classic_job(backend: "WebGuiBackend | DesktopBackend") -> bool:
+    """Tick the first job of the classic job list (SAP ERP 6.0). False if the screen has no such list."""
+    desktop = cast("DesktopBackend", backend)
+    session = desktop.require_session()
+    return await desktop.com.run(lambda: select_first_classic_list_entry(session, _JOB_LIST_HEADER_TITLES))
+
+
 async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", language: SapLanguage) -> SM37JobLog | None:
     """Desktop-specific: select the first job row and fetch its job log.
 
@@ -394,8 +415,17 @@ async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", lang
     """
     navigated_to_log = False
     try:
-        # Re-select row 1 — desktop ALV may not retain selection after lookup
-        await backend.click_table_cell(1, 0, "click")
+        # Re-select row 1 — desktop ALV may not retain selection after lookup. SAP ERP 6.0 shows the jobs as a
+        # classic list instead of a grid: there the first entry's checkbox is ticked.
+        try:
+            selected = (await backend.click_table_cell(1, 0, "click")).success
+        except Exception:  # pylint: disable=broad-exception-caught
+            selected = False  # no grid on screen
+        if not selected:
+            selected = await _select_first_classic_job(backend)
+        if not selected:
+            logger.warning("Could not select the job to fetch its log from")
+            return None
         await backend.wait_for_ready()
 
         # Click the Job-Log button (DE: "Job-Log", EN: "Job Log")
@@ -417,6 +447,13 @@ async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", lang
         if not _is_job_log_screen(text_content):
             logger.warning("Expected job log screen but got something else on desktop")
             return None
+
+        # SAP ERP 6.0 shows the log as a classic list of labels: read that, the screen text would hold the menus
+        desktop = cast("DesktopBackend", backend)
+        session = desktop.require_session()
+        list_lines = await desktop.com.run(lambda: read_classic_list_lines(session, _MAX_LOG_LINES))
+        if list_lines:
+            return SM37JobLog(job_name="", log_lines=list_lines)
 
         # Extract log lines from main_content
         log_lines: list[str] = []

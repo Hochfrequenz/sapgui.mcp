@@ -5,7 +5,11 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import Any
 
-from sapguimcp.tools.classic_list_helpers import read_classic_list_table
+from sapguimcp.tools.classic_list_helpers import (
+    read_classic_list_lines,
+    read_classic_list_table,
+    select_first_classic_list_entry,
+)
 
 _TITLES = ("Jobname", "Job name")
 _USR = "/app/con[0]/ses[0]/wnd[0]/usr"
@@ -142,3 +146,60 @@ def test_columns_with_the_same_title_are_kept_apart() -> None:
     table = read_classic_list_table(_session(_Usr({0: elements})), _TITLES, 200)
     assert table.headers == ["Jobname", "Datum", "Datum (2)"]
     assert table.rows[0].data == {"Jobname": "JOB_A", "Datum": "01.10.2026", "Datum (2)": "02.10.2026"}
+
+
+def test_lines_are_read_cell_by_cell_joined_and_empty_ones_skipped() -> None:
+    elements = [
+        _label(0, 0, "Job-Log Uebersicht"),
+        _label(0, 2, "08.10.2026"),
+        _label(12, 2, "00:49:27"),
+        _label(22, 2, "Job wurde gestartet"),
+        _label(0, 3, "   "),  # only blanks: no line
+    ]
+    assert read_classic_list_lines(_session(_Usr({0: elements})), 100) == [
+        "Job-Log Uebersicht",
+        "08.10.2026 00:49:27 Job wurde gestartet",
+    ]
+
+
+def test_lines_of_a_tall_list_are_read_page_by_page_up_to_the_limit() -> None:
+    scrollbar = _Scrollbar(maximum=10, page_size=10)
+    pages = {
+        0: [_label(0, 0, "line 0"), _label(0, 1, "line 1")],
+        10: [_label(0, 0, "line 10"), _label(0, 1, "line 11")],
+    }
+    assert read_classic_list_lines(_session(_Usr(pages, scrollbar)), 100) == ["line 0", "line 1", "line 10", "line 11"]
+    assert scrollbar.position == 0
+    scrollbar = _Scrollbar(maximum=10, page_size=10)
+    assert read_classic_list_lines(_session(_Usr(pages, scrollbar)), 3) == ["line 0", "line 1", "line 10"]
+
+
+def test_the_first_entry_below_the_header_is_ticked() -> None:
+    ticked: list[str] = []
+
+    class _Box:
+        def __init__(self, element_id: str) -> None:
+            self._id = element_id
+
+        @property
+        def selected(self) -> bool:
+            return False
+
+        @selected.setter
+        def selected(self, _value: bool) -> None:
+            ticked.append(self._id)
+
+    elements = [
+        _checkbox(5),  # above the header: the status selection
+        _label(2, 5, "geplant"),
+        *_header_row(10),
+        *_entry_row(12, "JOB_A", "fertig"),
+        *_entry_row(13, "JOB_B", "fertig"),
+    ]
+    usr = _Usr({0: elements})
+    session = SimpleNamespace(
+        find_by_id=lambda element_id, **_: usr if element_id == "wnd[0]/usr" else _Box(element_id)
+    )
+    assert select_first_classic_list_entry(session, _TITLES)
+    assert ticked == [f"{_USR}/chk[1,12]"]
+    assert not select_first_classic_list_entry(_session(_Usr({0: [_label(0, 0, "no list")]})), _TITLES)

@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from sapguimcp.models import TableData
-from sapguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
+from sapguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop, _fetch_job_log_desktop, _is_job_log_screen
 
 
 def _backend(status_message: str) -> Any:
@@ -163,3 +163,39 @@ async def test_the_classic_reader_does_not_run_when_the_alv_grid_has_headers() -
     result = await _lookup(backend, "*", None, None, None, None)
     assert result.success
     assert result.jobs == []
+
+
+def test_the_job_log_screen_of_sap_erp_6_0_is_recognised_by_its_title() -> None:
+    assert _is_job_log_screen("Job-Log zu Job MYJOB / 12345678")
+    assert _is_job_log_screen("Job log for job MYJOB / 12345678")
+    assert _is_job_log_screen("Job Log Einträge")
+    assert not _is_job_log_screen("Job-Übersicht")
+
+
+@pytest.mark.anyio
+async def test_the_job_log_is_fetched_from_a_classic_list_when_there_is_no_grid() -> None:
+    backend = _listing_backend(TableData(success=True, headers=[], rows=[]), MagicMock())
+    backend.click_table_cell = AsyncMock(side_effect=ValueError("No ALV grid found on screen"))
+    backend.click_button = AsyncMock()
+    backend.press_key = AsyncMock()
+    backend.get_screen_text = AsyncMock(
+        return_value=SimpleNamespace(title="Job-Log zu Job MYJOB / 1", main_content=["Beenden", "Bearbeiten"])
+    )
+    with (
+        patch("sapguimcp.tools.sm37_tools.select_first_classic_list_entry", return_value=True),
+        patch("sapguimcp.tools.sm37_tools.read_classic_list_lines", return_value=["08.10.2026 00:49:27 Job gestartet"]),
+    ):
+        log = await _fetch_job_log_desktop(backend, "DE")
+    assert log is not None
+    assert log.log_lines == ["08.10.2026 00:49:27 Job gestartet"]  # not the menu entries of the screen text
+    backend.click_button.assert_awaited_once_with("Job-Log")
+
+
+@pytest.mark.anyio
+async def test_no_job_log_is_fetched_when_no_job_could_be_selected() -> None:
+    backend = _listing_backend(TableData(success=True, headers=[], rows=[]), MagicMock())
+    backend.click_table_cell = AsyncMock(side_effect=ValueError("No ALV grid found on screen"))
+    backend.click_button = AsyncMock()
+    with patch("sapguimcp.tools.sm37_tools.select_first_classic_list_entry", return_value=False):
+        assert await _fetch_job_log_desktop(backend, "DE") is None
+    backend.click_button.assert_not_awaited()  # Job-Log must not run without a selected job
