@@ -70,3 +70,11 @@ async def test_open_report_reports_a_popup_instead_of_waiting_for_the_editor() -
     error = await _navigate_and_open_editor_desktop(backend, "ZTEST")
     assert error == "Unexpected popup while opening 'ZTEST': Program is locked by another user"
     assert backend.wait_for_condition.await_count == 1  # only the screen wait, not the editor wait
+
+
+@pytest.mark.anyio
+async def test_a_popup_over_the_unchanged_initial_screen_is_reported_as_a_popup() -> None:
+    backend = _backend(title_after_f6="ABAP Editor: Einstieg")
+    backend.check_popup = AsyncMock(return_value=PopupInfo(message="Program is locked by another user", buttons=[]))
+    error = await _navigate_and_open_editor_desktop(backend, "ZTEST")
+    assert error == "Unexpected popup while opening 'ZTEST': Program is locked by another user"

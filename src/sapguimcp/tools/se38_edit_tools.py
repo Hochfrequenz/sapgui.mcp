@@ -27,8 +27,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Upper bound for waiting on the screen after F6 on the desktop (#928): the former fixed wait took 2 s, so a lookup
-# whose title and status text stay unchanged must not cost more than that.
+# Upper bound for waiting on the screen after F6 on the desktop (#928). The former fixed wait took 2 s; a screen whose
+# title and status text stay unchanged can now wait up to 3 s, the extra second being margin for a slow system.
 _SE38_SCREEN_WAIT_MS = 3000
 # Upper bound for the editor control to exist once the report's screen is up.
 _SE38_EDITOR_WAIT_MS = 5000
@@ -111,6 +111,12 @@ async def _navigate_and_open_editor_desktop(backend: WebGuiBackend | DesktopBack
     await backend.wait_for_ready()
     await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=_SE38_SCREEN_WAIT_MS)
 
+    # A popup (e.g. the object is locked) is reported first: screen_changed is also true for a popup over the
+    # unchanged initial screen, and it hides the editor, so there is nothing to wait for.
+    popup = await backend.check_popup()
+    if popup is not None:
+        return f"Unexpected popup while opening '{program_name}': {popup.message or popup.popup_type}"
+
     # Verify we left the initial screen
     screen = await backend.get_screen_info()
     title = (screen.title or "").lower()
@@ -118,10 +124,6 @@ async def _navigate_and_open_editor_desktop(backend: WebGuiBackend | DesktopBack
         # Check status bar for error
         sbar = await backend.get_status_bar()
         return sbar.message or f"Could not open '{program_name}' in change mode"
-    # A popup (e.g. the object is locked) hides the editor: report it instead of waiting for an editor that cannot show.
-    popup = await backend.check_popup()
-    if popup is not None:
-        return f"Unexpected popup while opening '{program_name}': {popup.message or popup.popup_type}"
     # The title changes before the editor control is there: reading it earlier returns nothing.
     if not await backend.wait_for_condition(editor_loaded, timeout_ms=_SE38_EDITOR_WAIT_MS):
         return f"The editor of '{program_name}' did not open within {_SE38_EDITOR_WAIT_MS // 1000} s"
