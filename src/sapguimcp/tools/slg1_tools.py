@@ -133,7 +133,9 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
     # Read table data
     table_data: TableData = await backend.read_table(start_row=1, max_rows=50)
 
-    if not table_data.headers:
+    # No rows without a "no logs" status message is not an empty result: the logs are listed in a tree next to a grid
+    # that stays empty until a log is selected, so there is nothing to read here.
+    if not table_data.headers or not table_data.rows:
         return SLG1LogListResult.failure(
             "Could not read SLG1 log list table",
             logs=[],

@@ -1777,9 +1777,10 @@ class DesktopBackend:
             fallback: Any = None
             for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
-                    # A shell (122) can also be a tree (SLG1 shows one next to its grid): take the first control that
-                    # can hold rows, and the first shell only if there is none.
-                    if elem.type_as_number == 80 or getattr(elem, "type", "GuiGridView") == "GuiGridView":
+                    # A shell (122) can also be a tree (SLG1 shows one next to its grid), and the dump calls both
+                    # "GuiShell": resolve the shell to tell them apart. Take the first control that can hold rows, and
+                    # the first shell only if there is none.
+                    if elem.type_as_number == 80 or isinstance(session.find_by_id(elem.id), GuiGridView):
                         grid_id = elem.id
                         grid_type = elem.type_as_number
                         break

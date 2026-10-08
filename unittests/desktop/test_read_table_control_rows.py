@@ -8,6 +8,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from sapsucker.components.grid import GuiGridView
 
 from sapguimcp.backend.desktop import (
     DesktopBackend,
@@ -482,18 +483,25 @@ def test_restoring_keeps_waiting_while_the_control_still_shows_the_maximized_num
 
 
 class _GridSession:
-    """Session whose window holds a tree shell before the grid shell (like the log list of SLG1)."""
+    """Session whose window holds a tree shell before the grid shell (like the log list of SLG1).
+
+    Both are dumped as ``GuiShell``; only resolving them tells the tree from the grid.
+    """
 
     def __init__(self) -> None:
-        self.looked_up: list[str] = []
+        self.tree = MagicMock()
+        self.grid = MagicMock(spec=GuiGridView)
+        self.grid.row_count = 2
+        self.grid.column_order = ["TEXT"]
+        self.grid.first_visible_row = 0
+        self.grid.get_cell_value.side_effect = lambda row, _column: f"message {row}"
 
     def find_by_id(self, element_id: str, **_: Any) -> Any:
-        self.looked_up.append(element_id)
         if element_id == "wnd[0]":
-            tree = SimpleNamespace(id="/wnd[0]/usr/shell0", type_as_number=122, type="GuiTree", children=[])
-            grid = SimpleNamespace(id="/wnd[0]/usr/shell1", type_as_number=122, type="GuiGridView", children=[])
+            tree = SimpleNamespace(id="/wnd[0]/usr/shell0", type_as_number=122, type="GuiShell", children=[])
+            grid = SimpleNamespace(id="/wnd[0]/usr/shell1", type_as_number=122, type="GuiShell", children=[])
             return SimpleNamespace(dump_tree=lambda: [tree, grid])
-        return SimpleNamespace(row_count=0, column_order=[], first_visible_row=0) if "shell" in element_id else None
+        return {"/wnd[0]/usr/shell0": self.tree, "/wnd[0]/usr/shell1": self.grid}.get(element_id)
 
 
 @pytest.mark.anyio
@@ -506,6 +514,8 @@ async def test_read_table_skips_a_tree_shell_in_front_of_the_grid() -> None:
     backend.com.run = _run  # type: ignore[method-assign]
     session = _GridSession()
     with patch.object(DesktopBackend, "require_session", return_value=session):
-        await backend.read_table()
-    assert "/wnd[0]/usr/shell1" in session.looked_up
-    assert "/wnd[0]/usr/shell0" not in session.looked_up
+        data = await backend.read_table()
+    assert data.headers == ["TEXT"]
+    assert [row.data for row in data.rows] == [{"TEXT": "message 0"}, {"TEXT": "message 1"}]
+    assert data.total_rows == 2
+    assert session.tree.method_calls == []  # the tree was not read
