@@ -320,7 +320,12 @@ class TableData(ToolResult):
 
     headers: list[str] = Field(default_factory=list, description="Column headers")
     rows: list[TableRow] = Field(default_factory=list, description="Row data")
-    total_rows: int = Field(default=0, ge=0, description="Total rows found")
+    total_rows: int = Field(
+        default=0,
+        ge=0,
+        description="Total rows found; for a table control (e.g. SE24 methods) only the visible window is read, so "
+        "compare with the rows returned (start_row to end_row)",
+    )
     start_row: int = Field(default=1, ge=1, description="First row returned (1-indexed)")
     end_row: int | None = Field(default=None, ge=1, description="Last row returned")
     alv: AlvMetadata | None = Field(
