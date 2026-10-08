@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sapguimcp.backend.desktop import _read_table_control, _table_control_headers
+from sapguimcp.backend.desktop import DesktopBackend, _read_table_control, _table_control_headers
 
 _HEADERS = ["Method", "Kind"]
 
@@ -209,3 +210,50 @@ def test_a_window_that_is_still_filling_is_read_again_until_it_is_complete(parti
 
     tc.dump_tree = _filling  # type: ignore[method-assign]
     assert _read(tc, 0, 32) == _expected(0, 20)
+
+
+class _Session:
+    """Fake session with one window that holds the table control (``find_by_id`` of a modal window finds nothing)."""
+
+    def __init__(self, table_control: _TableControl) -> None:
+        self._table_control = table_control
+
+    def find_by_id(self, element_id: str, **_: Any) -> Any:
+        if element_id == "wnd[0]":
+            element = SimpleNamespace(id="/wnd[0]/usr/tbl", type_as_number=80, children=[])
+            return SimpleNamespace(dump_tree=lambda: [element])
+        if element_id == "/wnd[0]/usr/tbl":
+            return self._table_control
+        return None
+
+
+@pytest.mark.anyio
+async def test_read_table_returns_the_window_of_a_table_control_as_table_data() -> None:
+    backend = DesktopBackend(com_thread=MagicMock())
+
+    async def _run(function: Any, **_: Any) -> Any:
+        return function()
+
+    backend.com.run = _run  # type: ignore[method-assign]
+    with patch.object(DesktopBackend, "require_session", return_value=_Session(_TableControl(32, 20, first=12))):
+        data = await backend.read_table(start_row=1, max_rows=500)
+    assert data.success
+    assert data.headers == _HEADERS
+    assert data.total_rows == 32
+    assert (data.start_row, data.end_row) == (13, 32)
+    assert [row.row for row in data.rows] == list(range(13, 33))
+    assert data.rows[0].data == {"Method": "Method12", "Kind": "Kind12"}
+
+
+@pytest.mark.anyio
+async def test_read_table_of_a_range_outside_the_window_is_valid_table_data() -> None:
+    backend = DesktopBackend(com_thread=MagicMock())
+
+    async def _run(function: Any, **_: Any) -> Any:
+        return function()
+
+    backend.com.run = _run  # type: ignore[method-assign]
+    with patch.object(DesktopBackend, "require_session", return_value=_Session(_TableControl(32, 20))):
+        data = await backend.read_table(start_row=25, end_row=30)
+    assert data.rows == []
+    assert (data.start_row, data.end_row, data.total_rows) == (25, None, 32)
