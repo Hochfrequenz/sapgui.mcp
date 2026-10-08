@@ -479,3 +479,33 @@ def test_restoring_keeps_waiting_while_the_control_still_shows_the_maximized_num
     with _maximized_main_window(session, _TABLE):
         pass
     assert time.monotonic() - started >= 1.9  # the size alone does not end the wait
+
+
+class _GridSession:
+    """Session whose window holds a tree shell before the grid shell (like the log list of SLG1)."""
+
+    def __init__(self) -> None:
+        self.looked_up: list[str] = []
+
+    def find_by_id(self, element_id: str, **_: Any) -> Any:
+        self.looked_up.append(element_id)
+        if element_id == "wnd[0]":
+            tree = SimpleNamespace(id="/wnd[0]/usr/shell0", type_as_number=122, type="GuiTree", children=[])
+            grid = SimpleNamespace(id="/wnd[0]/usr/shell1", type_as_number=122, type="GuiGridView", children=[])
+            return SimpleNamespace(dump_tree=lambda: [tree, grid])
+        return SimpleNamespace(row_count=0, column_order=[], first_visible_row=0) if "shell" in element_id else None
+
+
+@pytest.mark.anyio
+async def test_read_table_skips_a_tree_shell_in_front_of_the_grid() -> None:
+    backend = DesktopBackend(com_thread=MagicMock())
+
+    async def _run(function: Any, **_: Any) -> Any:
+        return function()
+
+    backend.com.run = _run  # type: ignore[method-assign]
+    session = _GridSession()
+    with patch.object(DesktopBackend, "require_session", return_value=session):
+        await backend.read_table()
+    assert "/wnd[0]/usr/shell1" in session.looked_up
+    assert "/wnd[0]/usr/shell0" not in session.looked_up

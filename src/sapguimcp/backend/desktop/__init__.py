@@ -1774,11 +1774,20 @@ class DesktopBackend:
             tree = cast(Any, wnd).dump_tree()
             grid_id = None
             grid_type = 0
+            fallback: Any = None
             for elem in _flatten(tree):
                 if elem.type_as_number in (122, 80):
-                    grid_id = elem.id
-                    grid_type = elem.type_as_number
-                    break
+                    # A shell (122) can also be a tree (SLG1 shows one next to its grid): take the first control that
+                    # can hold rows, and the first shell only if there is none.
+                    if elem.type_as_number == 80 or getattr(elem, "type", "GuiGridView") == "GuiGridView":
+                        grid_id = elem.id
+                        grid_type = elem.type_as_number
+                        break
+                    if fallback is None:
+                        fallback = elem
+            if grid_id is None and fallback is not None:
+                grid_id = fallback.id
+                grid_type = fallback.type_as_number
 
             if grid_id is None:
                 return {"headers": [], "rows": [], "total_rows": 0, "start_row": 1}
