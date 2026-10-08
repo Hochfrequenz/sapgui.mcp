@@ -408,3 +408,20 @@ def test_a_window_is_restored_if_waiting_for_the_resize_fails_after_maximizing()
     with _maximized_main_window(session, _TABLE):
         pass
     assert window.calls == ["maximize", "restore"]
+
+
+def test_restoring_waits_until_the_control_shows_its_former_number_of_lines() -> None:
+    window = _Window()
+    session = _WindowSession(window)
+    original = session.find_by_id
+    lines_after_restore = iter([40, 40, 20])  # the control is laid out again only after some polls
+
+    def _find(element_id: str, **kwargs: Any) -> Any:
+        if element_id == _TABLE and window.calls[-1:] == ["restore"]:
+            return SimpleNamespace(VisibleRowCount=next(lines_after_restore))
+        return original(element_id, **kwargs)
+
+    session.find_by_id = _find  # type: ignore[method-assign]
+    with _maximized_main_window(session, _TABLE):
+        pass
+    assert next(lines_after_restore, None) is None  # all three reads were needed

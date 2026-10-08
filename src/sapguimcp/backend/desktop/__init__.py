@@ -318,6 +318,7 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
     window: Any = None
     candidate: Any = None
     size_before: tuple[int, int] | None = None
+    visible_before = 0
     if "/wnd[0]/" in element_id:
         try:
             candidate = session.find_by_id("wnd[0]")
@@ -338,7 +339,7 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
         if window is not None:
             try:
                 window.restore()
-                _wait_until_idle(session)
+                _wait_for_layout(session, element_id, visible_before)
             except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning("The main window could not be restored to its former size", exc_info=True)
 
@@ -353,10 +354,19 @@ def _window_if_resized(window: Any, size_before: tuple[int, int] | None) -> Any:
     return None
 
 
-def _wait_until_idle(session: Any) -> None:
-    """Wait a short time until the session is no longer busy (best effort)."""
+def _wait_for_layout(session: Any, element_id: str, visible_lines: int) -> None:
+    """Wait (best effort) until the session is idle and the table control shows ``visible_lines`` lines again.
+
+    Restoring the window lays the control out again after a round trip to the server; later COM calls would
+    otherwise see the enlarged control.
+    """
     deadline = time.monotonic() + _WINDOW_RESIZE_TIMEOUT_S
-    while session.busy and time.monotonic() < deadline:
+    while time.monotonic() < deadline:
+        if not session.busy:
+            control = session.find_by_id(element_id)
+            raw = getattr(control, "com", getattr(control, "_com", control))
+            if int(raw.VisibleRowCount) == visible_lines:
+                return
         time.sleep(_WINDOW_RESIZE_POLL_S)
 
 
