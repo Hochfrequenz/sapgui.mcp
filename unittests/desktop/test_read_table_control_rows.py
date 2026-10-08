@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import time
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sapguimcp.backend.desktop import DesktopBackend, _read_table_control, _table_control_headers
+from sapguimcp.backend.desktop import (
+    DesktopBackend,
+    _maximized_main_window,
+    _read_table_control,
+    _table_control_headers,
+)
 
 _HEADERS = ["Method", "Kind"]
 
@@ -121,6 +127,13 @@ def test_the_table_data_fields_describe_the_rows_returned_and_the_real_total() -
     assert data["total_rows"] == 32
     assert (data["start_row"], data["end_row"]) == (13, 32)
     assert len(data["rows"]) == 20
+
+
+def test_truncated_is_set_only_if_requested_rows_are_missing_from_the_window() -> None:
+    assert _read_table_control(_TableControl(32, 20), 1, None, 100)["truncated"] is True
+    assert _read_table_control(_TableControl(32, 20), 1, 10, 100)["truncated"] is False
+    assert _read_table_control(_TableControl(32, 20), 25, 30, 100)["truncated"] is True
+    assert _read_table_control(_TableControl(5, 20, scrollbar=False), 1, None, 100)["truncated"] is False
 
 
 def test_the_requested_range_limits_the_rows_and_max_rows_applies_without_an_end_row() -> None:
@@ -292,3 +305,106 @@ def test_the_final_row_of_a_table_that_fits_the_window_is_waited_for() -> None:
 
     tc.dump_tree = _last_row_late  # type: ignore[method-assign]
     assert _read(tc, 0, 5) == _expected(0, 5)
+
+
+class _Window:
+    def __init__(self, maximized: bool = False, fail: bool = False) -> None:
+        self.Width, self.Height = (2576, 1408) if maximized else (1045, 901)
+        self.fail = fail
+        self.calls: list[str] = []
+
+    def maximize(self) -> None:
+        if self.fail:
+            raise RuntimeError("COM error")
+        self.calls.append("maximize")
+        self.Width, self.Height = 2576, 1408
+
+    def restore(self) -> None:
+        self.calls.append("restore")
+        self.Width, self.Height = 1045, 901
+
+
+class _WindowSession:
+    busy = False
+
+    def __init__(self, window: _Window, grows: bool = True) -> None:
+        self._window = window
+        self._grows = grows
+
+    def find_by_id(self, element_id: str, **_: Any) -> Any:
+        if element_id == "wnd[0]":
+            return self._window
+        return SimpleNamespace(VisibleRowCount=40 if self._grows and self._window.Width > 2000 else 20)
+
+
+_TABLE = "/app/con[0]/ses[0]/wnd[0]/usr/tbl"
+
+
+def test_the_main_window_is_maximized_while_reading_and_restored_afterwards() -> None:
+    window = _Window()
+    with _maximized_main_window(_WindowSession(window), _TABLE):
+        assert window.calls == ["maximize"]
+    assert window.calls == ["maximize", "restore"]
+
+
+def test_the_main_window_is_restored_if_reading_fails() -> None:
+    window = _Window()
+    with pytest.raises(ValueError, match="boom"), _maximized_main_window(_WindowSession(window), _TABLE):
+        raise ValueError("boom")
+    assert window.calls == ["maximize", "restore"]
+
+
+def test_an_already_maximized_window_is_left_alone() -> None:
+    window = _Window(maximized=True)
+    with _maximized_main_window(_WindowSession(window), _TABLE):
+        pass
+    assert window.calls == ["maximize"]  # a no-op for SAP GUI: no restore, or the user's window would shrink
+
+
+def test_a_popup_is_left_alone() -> None:
+    window = _Window()
+    with _maximized_main_window(_WindowSession(window), "/app/con[0]/ses[0]/wnd[1]/usr/tbl"):
+        pass
+    assert window.calls == []
+
+
+def test_a_window_that_cannot_be_maximized_does_not_stop_reading_and_is_not_restored() -> None:
+    window = _Window(fail=True)
+    with _maximized_main_window(_WindowSession(window), _TABLE):
+        pass
+    assert window.calls == []
+
+
+def test_a_control_that_does_not_grow_does_not_wait_for_the_full_timeout() -> None:
+    window = _Window()
+    started = time.monotonic()
+    with _maximized_main_window(_WindowSession(window, grows=False), _TABLE):
+        pass
+    assert time.monotonic() - started < 1.5
+    assert window.calls == ["maximize", "restore"]
+
+
+def test_a_failing_restore_is_swallowed() -> None:
+    window = _Window()
+    window.restore = MagicMock(side_effect=RuntimeError("COM error"))  # type: ignore[method-assign]
+    with _maximized_main_window(_WindowSession(window), _TABLE):
+        pass
+
+
+def test_a_window_is_restored_if_waiting_for_the_resize_fails_after_maximizing() -> None:
+    window = _Window()
+    session = _WindowSession(window)
+    original = session.find_by_id
+    calls = [0]
+
+    def _find(element_id: str, **kwargs: Any) -> Any:
+        if element_id == _TABLE:
+            calls[0] += 1
+            if calls[0] > 1:  # the first lookup is before maximizing, the one while waiting fails
+                raise RuntimeError("COM error")
+        return original(element_id, **kwargs)
+
+    session.find_by_id = _find  # type: ignore[method-assign]
+    with _maximized_main_window(session, _TABLE):
+        pass
+    assert window.calls == ["maximize", "restore"]

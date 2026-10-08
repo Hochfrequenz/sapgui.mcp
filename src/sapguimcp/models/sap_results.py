@@ -328,6 +328,11 @@ class TableData(ToolResult):
     )
     start_row: int = Field(default=1, ge=1, description="First row returned (1-indexed)")
     end_row: int | None = Field(default=None, ge=1, description="Last row returned")
+    truncated: bool = Field(
+        default=False,
+        description="True if rows of the requested range are missing because a table control (e.g. SE24 methods) "
+        "only holds the rows in its window; enlarge the SAP GUI window or narrow the range",
+    )
     alv: AlvMetadata | None = Field(
         default=None,
         description="ALV grid metadata (only present for ALV grids)",
