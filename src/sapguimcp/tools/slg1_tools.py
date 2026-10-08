@@ -42,6 +42,9 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["register_slg1_tools"]
 
+# Column headers that identify a row of the SLG1 log list as a log (the grid of a selected log holds messages instead)
+_SLG1_LOG_NUMBER_HEADERS = ("Protokollnr.", "Log Number", "Log number")
+
 
 def _safe_int(value: str | None) -> int:
     """Convert a value to int, returning 0 on failure."""
@@ -141,11 +144,12 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
     # Read table data
     table_data: TableData = await backend.read_table(start_row=1, max_rows=50)
 
-    # No rows without a "no logs" status message is not an empty result: the logs are listed in a tree next to a grid
-    # that stays empty until a log is selected, so there is nothing to read here.
-    if not table_data.headers or not table_data.rows:
+    # No rows without a "no logs" status message is not an empty result, and neither are rows that are no logs: the
+    # logs are listed in a tree next to a grid that stays empty until a log is selected (and then holds its messages),
+    # so there is no log list to read here.
+    if not table_data.rows or not any(h in _SLG1_LOG_NUMBER_HEADERS for h in table_data.headers):
         return SLG1LogListResult.failure(
-            "Could not read SLG1 log list table",
+            "Could not read SLG1 log list: the desktop shows the logs in a tree, which cannot be read as a table",
             logs=[],
             log_count=0,
             logs_truncated=False,

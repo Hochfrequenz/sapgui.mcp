@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from sapguimcp.models import TableData
+from sapguimcp.models import TableData, TableRow
 from sapguimcp.tools.slg1_tools import _slg1_lookup_desktop
 
 
@@ -35,6 +35,27 @@ async def test_an_empty_grid_without_a_no_logs_status_is_a_failure() -> None:
     result = await _lookup(_backend("", TableData(success=True, headers=["Message"], rows=[])))
     assert not result.success
     assert result.logs == []
+
+
+@pytest.mark.anyio
+async def test_rows_that_are_no_logs_are_a_failure() -> None:
+    """The grid next to the log tree holds the messages of a selected log, not logs."""
+    table = TableData(success=True, headers=["Message"], rows=[TableRow(row=1, data={"Message": "text"})])
+    result = await _lookup(_backend("", table))
+    assert not result.success
+    assert result.logs == []
+
+
+@pytest.mark.anyio
+async def test_rows_with_a_log_number_column_are_logs() -> None:
+    table = TableData(
+        success=True,
+        headers=["Protokollnr."],
+        rows=[TableRow(row=1, data={"Protokollnr.": "0000000042"})],
+    )
+    result = await _lookup(_backend("", table))
+    assert result.success
+    assert [log.log_number for log in result.logs] == ["0000000042"]
 
 
 @pytest.mark.anyio

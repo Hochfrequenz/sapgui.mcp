@@ -39,3 +39,15 @@ async def test_a_status_bar_without_matching_jobs_is_an_empty_result(message: st
     assert result.success
     assert result.jobs == []
     assert result.job_count == 0
+
+
+@pytest.mark.anyio
+async def test_a_status_bar_that_merely_starts_like_the_empty_message_is_not_an_empty_result() -> None:
+    config = MagicMock()
+    config.get_default.return_value = SimpleNamespace(language="DE")
+    # The status is no "empty" message, so the lookup goes on to read the list (which the fake backend refuses).
+    with (
+        patch("sapguimcp.tools.sm37_tools.get_sap_config", return_value=config),
+        pytest.raises(AssertionError, match="no list to read"),
+    ):
+        await _execute_sm37_lookup_desktop(_backend("Kein Job ausgewählt"), "*", None, None, None, None)

@@ -286,7 +286,7 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
 
     if sbar.message and any(
         msg in sbar.message.lower()
-        for msg in ["no jobs found", "no job match", "keine jobs", "kein job", "keine hintergrundjobs"]
+        for msg in ["no jobs found", "no job match", "keine jobs", "kein job entspricht", "keine hintergrundjobs"]
     ):
         return SM37JobListResult(
             jobs=[],
