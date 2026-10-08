@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from sapguimcp.backend.desktop import DesktopBackend
 from sapguimcp.models.base import PopupInfo
 from sapguimcp.models.sap_results import ScreenInfo, StatusBarInfo
-from sapguimcp.tools.desktop_wait_predicates import editor_loaded
+from sapguimcp.tools.desktop_wait_predicates import editor_loaded_or_popup_open
 from sapguimcp.tools.se38_edit_tools import _navigate_and_open_editor_desktop
 
 
@@ -36,8 +37,8 @@ async def test_open_report_waits_for_state_changes_not_a_fixed_time() -> None:
     # first the screen after F6, then the editor control; both bounded
     assert backend.wait_for_condition.await_count == 2
     first_predicate = backend.wait_for_condition.await_args_list[0].args[0]
-    assert first_predicate is not editor_loaded
-    assert backend.wait_for_condition.await_args_list[1].args[0] is editor_loaded
+    assert first_predicate is not editor_loaded_or_popup_open
+    assert backend.wait_for_condition.await_args_list[1].args[0] is editor_loaded_or_popup_open
     assert all(call.kwargs["timeout_ms"] <= 5000 for call in backend.wait_for_condition.await_args_list)
 
 
@@ -78,3 +79,23 @@ async def test_a_popup_over_the_unchanged_initial_screen_is_reported_as_a_popup(
     backend.check_popup = AsyncMock(return_value=PopupInfo(message="Program is locked by another user", buttons=[]))
     error = await _navigate_and_open_editor_desktop(backend, "ZTEST")
     assert error == "Unexpected popup while opening 'ZTEST': Program is locked by another user"
+
+
+@pytest.mark.anyio
+async def test_a_popup_that_opens_while_the_editor_is_built_is_reported_as_a_popup() -> None:
+    backend = _backend(title_after_f6="ABAP Editor: Programm ZTEST aendern", condition_results=[True, True])
+    popup = PopupInfo(message="Program is locked by another user", buttons=[])
+    backend.check_popup = AsyncMock(side_effect=[None, popup])  # none at the first check, one by the editor wait
+    error = await _navigate_and_open_editor_desktop(backend, "ZTEST")
+    assert error == "Unexpected popup while opening 'ZTEST': Program is locked by another user"
+
+
+@pytest.mark.anyio
+async def test_a_popup_ends_the_editor_wait_early() -> None:
+    popup_session = SimpleNamespace(find_by_id=lambda _element_id, **_: object())
+    assert editor_loaded_or_popup_open(popup_session)
+    no_popup_session = SimpleNamespace(find_by_id=lambda _element_id, **_: None)
+    with patch.object(DesktopBackend, "_find_editor_shell_raw", return_value=None):
+        assert not editor_loaded_or_popup_open(no_popup_session)
+    with patch.object(DesktopBackend, "_find_editor_shell_raw", return_value=(object(), "AbapEditor")):
+        assert editor_loaded_or_popup_open(no_popup_session)

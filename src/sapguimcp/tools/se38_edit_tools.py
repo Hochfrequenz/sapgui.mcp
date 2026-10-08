@@ -16,7 +16,7 @@ from mcp.types import ToolAnnotations
 
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.se38_edit_models import SE38EditResult
-from sapguimcp.tools.desktop_wait_predicates import editor_loaded, screen_changed
+from sapguimcp.tools.desktop_wait_predicates import editor_loaded_or_popup_open, screen_changed
 from sapguimcp.tools.edit_helpers import describe_failed_replace
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard
 
@@ -125,9 +125,16 @@ async def _navigate_and_open_editor_desktop(backend: WebGuiBackend | DesktopBack
         sbar = await backend.get_status_bar()
         return sbar.message or f"Could not open '{program_name}' in change mode"
     # The title changes before the editor control is there: reading it earlier returns nothing.
-    if not await backend.wait_for_condition(editor_loaded, timeout_ms=_SE38_EDITOR_WAIT_MS):
-        return f"The editor of '{program_name}' did not open within {_SE38_EDITOR_WAIT_MS // 1000} s"
-    return None
+    editor_or_popup = await backend.wait_for_condition(editor_loaded_or_popup_open, timeout_ms=_SE38_EDITOR_WAIT_MS)
+    # A popup can also open while the editor is still being built, after the first check above.
+    popup = await backend.check_popup()
+    if popup is not None:
+        return f"Unexpected popup while opening '{program_name}': {popup.message or popup.popup_type}"
+    return (
+        None
+        if editor_or_popup
+        else f"The editor of '{program_name}' did not open within {_SE38_EDITOR_WAIT_MS // 1000} s"
+    )
 
 
 async def _navigate_and_open_editor(backend: WebGuiBackend, program_name: str) -> str | None:
