@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -307,9 +308,8 @@ def test_the_final_row_of_a_table_that_fits_the_window_is_waited_for() -> None:
 
 
 class _Window:
-    def __init__(self, left: int = 24, fail: bool = False) -> None:
-        self.ScreenLeft = left
-        self.ScreenTop = left
+    def __init__(self, maximized: bool = False, fail: bool = False) -> None:
+        self.Width, self.Height = (2576, 1408) if maximized else (1045, 901)
         self.fail = fail
         self.calls: list[str] = []
 
@@ -317,55 +317,75 @@ class _Window:
         if self.fail:
             raise RuntimeError("COM error")
         self.calls.append("maximize")
-        self.ScreenLeft = self.ScreenTop = -8
+        self.Width, self.Height = 2576, 1408
 
     def restore(self) -> None:
         self.calls.append("restore")
-        self.ScreenLeft = self.ScreenTop = 24
+        self.Width, self.Height = 1045, 901
 
 
 class _WindowSession:
     busy = False
 
-    def __init__(self, window: _Window) -> None:
+    def __init__(self, window: _Window, grows: bool = True) -> None:
         self._window = window
+        self._grows = grows
 
     def find_by_id(self, element_id: str, **_: Any) -> Any:
         if element_id == "wnd[0]":
             return self._window
-        return SimpleNamespace(VisibleRowCount=20 if self._window.ScreenLeft >= 0 else 40)
+        return SimpleNamespace(VisibleRowCount=40 if self._grows and self._window.Width > 2000 else 20)
+
+
+_TABLE = "/app/con[0]/ses[0]/wnd[0]/usr/tbl"
 
 
 def test_the_main_window_is_maximized_while_reading_and_restored_afterwards() -> None:
     window = _Window()
-    with _maximized_main_window(_WindowSession(window), "/app/con[0]/ses[0]/wnd[0]/usr/tbl"):
+    with _maximized_main_window(_WindowSession(window), _TABLE):
         assert window.calls == ["maximize"]
     assert window.calls == ["maximize", "restore"]
 
 
 def test_the_main_window_is_restored_if_reading_fails() -> None:
     window = _Window()
-    with (
-        pytest.raises(ValueError, match="boom"),
-        _maximized_main_window(_WindowSession(window), "/app/con[0]/ses[0]/wnd[0]/usr/tbl"),
-    ):
+    with pytest.raises(ValueError, match="boom"), _maximized_main_window(_WindowSession(window), _TABLE):
         raise ValueError("boom")
     assert window.calls == ["maximize", "restore"]
 
 
-def test_an_already_maximized_window_and_a_popup_are_left_alone() -> None:
-    maximized = _Window(left=-8)
-    with _maximized_main_window(_WindowSession(maximized), "/wnd[0]/usr/tbl"):
+def test_an_already_maximized_window_is_left_alone() -> None:
+    window = _Window(maximized=True)
+    with _maximized_main_window(_WindowSession(window), _TABLE):
         pass
-    popup = _Window()
-    with _maximized_main_window(_WindowSession(popup), "/app/con[0]/ses[0]/wnd[1]/usr/tbl"):
+    assert window.calls == ["maximize"]  # a no-op for SAP GUI: no restore, or the user's window would shrink
+
+
+def test_a_popup_is_left_alone() -> None:
+    window = _Window()
+    with _maximized_main_window(_WindowSession(window), "/app/con[0]/ses[0]/wnd[1]/usr/tbl"):
         pass
-    assert maximized.calls == []
-    assert popup.calls == []
+    assert window.calls == []
 
 
 def test_a_window_that_cannot_be_maximized_does_not_stop_reading_and_is_not_restored() -> None:
     window = _Window(fail=True)
-    with _maximized_main_window(_WindowSession(window), "/app/con[0]/ses[0]/wnd[0]/usr/tbl"):
+    with _maximized_main_window(_WindowSession(window), _TABLE):
         pass
     assert window.calls == []
+
+
+def test_a_control_that_does_not_grow_does_not_wait_for_the_full_timeout() -> None:
+    window = _Window()
+    started = time.monotonic()
+    with _maximized_main_window(_WindowSession(window, grows=False), _TABLE):
+        pass
+    assert time.monotonic() - started < 1.5
+    assert window.calls == ["maximize", "restore"]
+
+
+def test_a_failing_restore_is_swallowed() -> None:
+    window = _Window()
+    window.restore = MagicMock(side_effect=RuntimeError("COM error"))  # type: ignore[method-assign]
+    with _maximized_main_window(_WindowSession(window), _TABLE):
+        pass

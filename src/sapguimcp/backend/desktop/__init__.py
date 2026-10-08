@@ -301,6 +301,8 @@ _TABLE_CONTROL_SETTLE_POLL_S = 0.05
 
 _WINDOW_RESIZE_TIMEOUT_S = 2.0
 _WINDOW_RESIZE_POLL_S = 0.05
+_WINDOW_UNCHANGED_TIMEOUT_S = 0.3
+_WINDOW_RELAYOUT_TIMEOUT_S = 0.5
 
 
 @contextmanager
@@ -309,21 +311,22 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
 
     A table control shows as many rows as fit into its window, and scrolling it is not safe (see
     ``_read_table_control``), so a larger window is the only way to read more of its rows. Nothing is done for a
-    control in a popup, or if the window is already maximized (its top left corner is then off screen). The main
-    window is restored in any case, also if reading fails; a failing resize only means fewer rows are read.
+    control in a popup. If maximizing does not change the window's size it already was maximized (on any monitor), and
+    it is left as it is. A window that was resized is restored in any case, also if reading fails; a failing resize
+    only means fewer rows are read.
     """
     window: Any = None
     if "/wnd[0]/" in element_id:
         try:
             candidate = session.find_by_id("wnd[0]")
             candidate = getattr(candidate, "com", getattr(candidate, "_com", candidate))
-            if int(candidate.ScreenLeft) >= 0 and int(candidate.ScreenTop) >= 0:
-                control = session.find_by_id(element_id)
-                raw = getattr(control, "com", getattr(control, "_com", control))
-                visible_before = int(raw.VisibleRowCount)
-                candidate.maximize()
+            control = session.find_by_id(element_id)
+            raw = getattr(control, "com", getattr(control, "_com", control))
+            size_before = (int(candidate.Width), int(candidate.Height))
+            visible_before = int(raw.VisibleRowCount)
+            candidate.maximize()
+            if _wait_for_window_resize(session, candidate, element_id, size_before, visible_before):
                 window = candidate
-                _wait_for_window_resize(session, window, element_id, visible_before)
         except Exception:  # pylint: disable=broad-exception-caught
             logger.warning("The main window could not be maximized, reading the table control as it is", exc_info=True)
     try:
@@ -332,24 +335,44 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
         if window is not None:
             try:
                 window.restore()
+                _wait_until_idle(session)
             except Exception:  # pylint: disable=broad-exception-caught
                 logger.warning("The main window could not be restored to its former size", exc_info=True)
 
 
-def _wait_for_window_resize(session: Any, window: Any, element_id: str, visible_before: int) -> None:
-    """Wait until the table control has taken the maximized window's size (it shows more lines than before).
-
-    A table control is laid out again after the window changed its size, which takes a round trip to the server. A
-    control that does not grow (it fills no more of the window) ends the wait at the timeout.
-    """
+def _wait_until_idle(session: Any) -> None:
+    """Wait a short time until the session is no longer busy (best effort)."""
     deadline = time.monotonic() + _WINDOW_RESIZE_TIMEOUT_S
+    while session.busy and time.monotonic() < deadline:
+        time.sleep(_WINDOW_RESIZE_POLL_S)
+
+
+def _wait_for_window_resize(
+    session: Any, window: Any, element_id: str, size_before: tuple[int, int], visible_before: int
+) -> bool:
+    """Wait for the maximized window and the table control in it to take their new size; True if the window grew.
+
+    A table control is laid out again after its window changed its size, which takes a round trip to the server. The
+    wait ends once the control shows a different number of lines, or a short while after the window changed its size
+    (a control that fills no more of the window does not grow). If the window's size has not changed at all after a
+    short while, it already was maximized.
+    """
+    start = time.monotonic()
+    deadline = start + _WINDOW_RESIZE_TIMEOUT_S
+    resized_at: float | None = None
     while time.monotonic() < deadline:
-        if int(window.ScreenLeft) < 0 and not session.busy:
+        now = time.monotonic()
+        if resized_at is None and (int(window.Width), int(window.Height)) != size_before:
+            resized_at = now
+        if resized_at is None and now - start >= _WINDOW_UNCHANGED_TIMEOUT_S:
+            return False
+        if resized_at is not None and not session.busy:
             control = session.find_by_id(element_id)
             raw = getattr(control, "com", getattr(control, "_com", control))
-            if int(raw.VisibleRowCount) != visible_before:
-                return
+            if int(raw.VisibleRowCount) != visible_before or now - resized_at >= _WINDOW_RELAYOUT_TIMEOUT_S:
+                return True
         time.sleep(_WINDOW_RESIZE_POLL_S)
+    return resized_at is not None
 
 
 def _row_filled(rows: list[dict[str, Any]], number: int) -> bool:
