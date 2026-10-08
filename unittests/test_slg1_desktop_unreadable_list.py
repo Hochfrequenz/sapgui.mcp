@@ -15,11 +15,15 @@ from sapguimcp.tools.slg1_tools import _slg1_lookup_desktop
 def _backend(status_message: str, table: TableData) -> Any:
     backend = MagicMock()
     backend.enter_transaction = AsyncMock(return_value=SimpleNamespace(success=True, error=None))
-    backend.fill_form = AsyncMock(return_value=SimpleNamespace(not_found=[]))
+    backend.fill_form = AsyncMock(return_value=SimpleNamespace(not_found=[], errors=[]))
     for name in ("wait_for_ready", "press_key"):
         setattr(backend, name, AsyncMock())
     backend.get_status_bar = AsyncMock(return_value=SimpleNamespace(type="S", message=status_message))
     backend.read_table = AsyncMock(return_value=table)
+    backend.focus_and_type = AsyncMock(return_value=True)
+    backend.require_session = MagicMock()
+    backend.com = MagicMock()
+    backend.com.run = AsyncMock(return_value=([], False))  # no log tree on screen
     return backend
 
 
