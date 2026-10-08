@@ -11,7 +11,7 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -26,6 +26,11 @@ from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.models import TableData
 from sapguimcp.models.config import get_sap_config
 from sapguimcp.models.sm37_models import SM37Job, SM37JobListResult, SM37JobLog
+from sapguimcp.tools.classic_list_helpers import (
+    read_classic_list_lines,
+    read_classic_list_table,
+    select_first_classic_list_entry,
+)
 from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
 from sapguimcp.utils import SapLanguage, as_sap_language, format_sap_date
 
@@ -39,6 +44,49 @@ logger = logging.getLogger(__name__)
 __all__ = ["register_sm37_tools"]
 
 _MAX_JOBS = 200
+_MAX_LOG_LINES = 500
+
+# Titles the header line of the classic job overview (SAP ERP 6.0) is recognised by, in German and English.
+_JOB_LIST_HEADER_TITLES = ("Jobname", "Job name")
+
+
+def _first(data: dict[str, str], *names: str, default: str | None = "") -> str | None:
+    """The value of the first column that is one of ``names`` (ignoring case), ``default`` if there is none."""
+    lowered = {key.strip().lower(): value for key, value in data.items()}
+    for name in names:
+        if name.lower() in lowered:
+            return lowered[name.lower()]
+    return default
+
+
+async def _fill_selection_field(
+    backend: "WebGuiBackend | DesktopBackend", field_name: str, labels: list[str], value: str
+) -> bool:
+    """Fill a field of the SM37 selection screen by its technical name, else by one of its labels.
+
+    The labels do not find the fields on the desktop (the screen has none next to them), so the technical name comes
+    first; a field that cannot be filled must be reported, or the lookup would return the default selection.
+    """
+    try:
+        if await backend.focus_and_type(field_name, value, delay_ms=50):
+            return True
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
+    for label in labels:
+        try:
+            if await backend.focus_and_type(label, value, delay_ms=50):
+                return True
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+    return False
+
+
+async def _read_classic_job_list(backend: "WebGuiBackend | DesktopBackend") -> TableData:
+    """Read the job overview as a classic list: SAP ERP 6.0 shows it as labels, not as an ALV grid."""
+    desktop = cast("DesktopBackend", backend)
+    session = desktop.require_session()
+    return await desktop.com.run(lambda: read_classic_list_table(session, _JOB_LIST_HEADER_TITLES, _MAX_JOBS))
+
 
 _ALL_STATUSES = ["scheduled", "released", "ready", "active", "finished", "canceled"]
 
@@ -122,9 +170,18 @@ _JOB_LOG_HEADING_DE = "Job Log Einträge"
 _JOB_LOG_HEADING_EN = "Job Log Entries"
 
 
+# Titles of the job log screen on SAP ERP 6.0 ("Job-Log zu Job <name> / <id>"), where the heading above differs.
+_JOB_LOG_TITLES_ECC = ("job-log zu job", "job log for job")
+
+
 def _is_job_log_screen(snapshot: str) -> bool:
     """Check if the snapshot shows a job log screen (not the job list)."""
-    return _JOB_LOG_HEADING_DE in snapshot or _JOB_LOG_HEADING_EN in snapshot
+    lowered = snapshot.lower()
+    return (
+        _JOB_LOG_HEADING_DE in snapshot
+        or _JOB_LOG_HEADING_EN in snapshot
+        or any(title in lowered for title in _JOB_LOG_TITLES_ECC)
+    )
 
 
 async def _fetch_job_log(backend: "WebGuiBackend | DesktopBackend", language: SapLanguage) -> SM37JobLog | None:
@@ -195,21 +252,16 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
         )
     await backend.wait_for_ready()
 
-    # Fill selection screen fields via focus_and_type
-    for label in ["Jobname", "Job name", "Job Name"]:
-        try:
-            if await backend.focus_and_type(label, job_name, delay_ms=50):
-                break
-        except Exception:  # pylint: disable=broad-exception-caught
-            pass
+    # Fill selection screen fields. A filter that cannot be applied fails the lookup: it would otherwise return the
+    # default selection (the user's own jobs of today) as if it were the answer.
+    unapplied: list[str] = []
+    if not await _fill_selection_field(backend, "BTCH2170-JOBNAME", ["Jobname", "Job name", "Job Name"], job_name):
+        unapplied.append("job_name")
 
-    if username is not None:
-        for label in ["Benutzername", "User name", "User Name"]:
-            try:
-                if await backend.focus_and_type(label, username, delay_ms=50):
-                    break
-            except Exception:  # pylint: disable=broad-exception-caught
-                pass
+    if username is not None and not await _fill_selection_field(
+        backend, "BTCH2170-USERNAME", ["Benutzername", "User name", "User Name"], username
+    ):
+        unapplied.append("username")
 
     # Status checkboxes (language-dependent labels)
     status_filter_applied = True
@@ -238,23 +290,24 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
             status_filter_applied = False
 
     # Date fields
-    if from_date:
-        sap_from = format_sap_date(from_date, language)
-        for label in ["von Datum", "From Date"]:
-            try:
-                await backend.fill_field(label, sap_from)
-                break
-            except ValueError:
-                continue
+    if from_date and not await _fill_selection_field(
+        backend, "BTCH2170-FROM_DATE", ["von Datum", "From Date"], format_sap_date(from_date, language)
+    ):
+        unapplied.append("from_date")
 
-    if to_date:
-        sap_to = format_sap_date(to_date, language)
-        for label in ["bis Datum", "To Date"]:
-            try:
-                await backend.fill_field(label, sap_to)
-                break
-            except ValueError:
-                continue
+    if to_date and not await _fill_selection_field(
+        backend, "BTCH2170-TO_DATE", ["bis Datum", "To Date"], format_sap_date(to_date, language)
+    ):
+        unapplied.append("to_date")
+
+    if unapplied:
+        return SM37JobListResult.failure(
+            error=f"Could not apply the filter(s) on the SM37 selection screen: {', '.join(unapplied)}",
+            jobs=[],
+            job_count=0,
+            filters_applied={},
+            retrieved_at=now,
+        )
 
     # Execute (F8)
     await backend.press_key("F8")
@@ -297,6 +350,8 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
 
     # Read table data
     table_data: TableData = await backend.read_table(start_row=1, max_rows=_MAX_JOBS)
+    if not table_data.headers and backend.backend_type == "desktop":
+        table_data = await _read_classic_job_list(backend)
 
     if not table_data.headers:
         return SM37JobListResult.failure(
@@ -314,14 +369,14 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
     for tr in table_data.rows:
         d = tr.data
         # Try common column name variants
-        jn = d.get("Jobname", d.get("Job Name", d.get("Job name", "")))
-        st = d.get("Status", "")
-        sd = d.get("Startdatum", d.get("Start Date", d.get("Start date", "")))
-        sz = d.get("Startzeit", d.get("Start Time", d.get("Start time", "")))
+        jn = _first(d, "Jobname", "Job Name") or ""
+        st = _first(d, "Status") or ""
+        sd = _first(d, "Startdatum", "Start Date") or ""
+        sz = _first(d, "Startzeit", "Start Time") or ""
         start_time = f"{sd} {sz}".strip() if sd or sz else None
-        dur = d.get("Dauer", d.get("Duration", d.get("Dauer(s)", None)))
-        user = d.get("Ersteller", d.get("Created By", d.get("Created by", "")))
-        mandant = d.get("Mandant", d.get("Client", ""))
+        dur = _first(d, "Dauer", "Duration", "Dauer(s)", "Dauer(sec.)", "Duration(sec.)", default=None)
+        user = _first(d, "Ersteller", "Created By", "Job-Erstelle", "Job-Ersteller", "Job Created By") or ""
+        mandant = _first(d, "Mandant", "Client") or ""
 
         jobs.append(
             SM37Job(
@@ -345,6 +400,13 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
     )
 
 
+async def _select_first_classic_job(backend: "WebGuiBackend | DesktopBackend") -> bool:
+    """Tick the first job of the classic job list (SAP ERP 6.0). False if the screen has no such list."""
+    desktop = cast("DesktopBackend", backend)
+    session = desktop.require_session()
+    return await desktop.com.run(lambda: select_first_classic_list_entry(session, _JOB_LIST_HEADER_TITLES))
+
+
 async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", language: SapLanguage) -> SM37JobLog | None:
     """Desktop-specific: select the first job row and fetch its job log.
 
@@ -353,8 +415,17 @@ async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", lang
     """
     navigated_to_log = False
     try:
-        # Re-select row 1 — desktop ALV may not retain selection after lookup
-        await backend.click_table_cell(1, 0, "click")
+        # Re-select row 1 — desktop ALV may not retain selection after lookup. SAP ERP 6.0 shows the jobs as a
+        # classic list instead of a grid: there the first entry's checkbox is ticked.
+        try:
+            selected = (await backend.click_table_cell(1, 0, "click")).success
+        except Exception:  # pylint: disable=broad-exception-caught
+            selected = False  # no grid on screen
+        if not selected:
+            selected = await _select_first_classic_job(backend)
+        if not selected:
+            logger.warning("Could not select the job to fetch its log from")
+            return None
         await backend.wait_for_ready()
 
         # Click the Job-Log button (DE: "Job-Log", EN: "Job Log")
@@ -376,6 +447,15 @@ async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", lang
         if not _is_job_log_screen(text_content):
             logger.warning("Expected job log screen but got something else on desktop")
             return None
+
+        # SAP ERP 6.0 shows the log as a classic list of labels: read that, the screen text would hold the menus. Only
+        # there: any other log screen (an ALV grid on S/4) keeps the text path below.
+        if any(title in (screen_text.title or "").lower() for title in _JOB_LOG_TITLES_ECC):
+            desktop = cast("DesktopBackend", backend)
+            session = desktop.require_session()
+            list_lines = await desktop.com.run(lambda: read_classic_list_lines(session, _MAX_LOG_LINES))
+            if list_lines:
+                return SM37JobLog(job_name="", log_lines=list_lines)
 
         # Extract log lines from main_content
         log_lines: list[str] = []
