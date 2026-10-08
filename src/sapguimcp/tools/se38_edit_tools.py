@@ -16,6 +16,7 @@ from mcp.types import ToolAnnotations
 
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.se38_edit_models import SE38EditResult
+from sapguimcp.tools.desktop_wait_predicates import editor_loaded_or_popup_open, screen_changed
 from sapguimcp.tools.edit_helpers import describe_failed_replace
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard
 
@@ -25,6 +26,12 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+# Upper bound for waiting on the screen after F6 on the desktop (#928). The former fixed wait took 2 s; a screen whose
+# title and status text stay unchanged can now wait up to 3 s, the extra second being margin for a slow system.
+_SE38_SCREEN_WAIT_MS = 3000
+# Upper bound for the editor control to exist once the report's screen is up.
+_SE38_EDITOR_WAIT_MS = 5000
 
 # DE/EN title attributes for the SE38 program name field.
 # The field has title="ABAP-Programmname" (DE) / "ABAP Program Name" (EN),
@@ -80,6 +87,11 @@ async def _fill_program_field_keyboard(backend: WebGuiBackend, program_name: str
 
 async def _navigate_and_open_editor_desktop(backend: WebGuiBackend | DesktopBackend, program_name: str) -> str | None:
     """Desktop-specific: navigate to SE38, fill program name, enter change mode."""
+    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(backend, DesktopBackend):
+        return "Requires DesktopBackend"
+
     await backend.enter_transaction("SE38")
     await backend.wait_for_ready()
 
@@ -91,9 +103,19 @@ async def _navigate_and_open_editor_desktop(backend: WebGuiBackend | DesktopBack
         return "Could not fill program name field on desktop"
 
     await asyncio.sleep(0.3)
-    # F6 (Change) works for SE38 on desktop in both DE and EN
+    # F6 (Change) works for SE38 on desktop in both DE and EN. Wait for a state change (new title, new status
+    # text or a popup) instead of a fixed time (#928).
+    before_title = (await backend.get_screen_info()).title or ""
+    before_status = (await backend.get_status_bar()).message.strip()
     await backend.press_key("F6")
-    await backend.wait(2000)
+    await backend.wait_for_ready()
+    await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=_SE38_SCREEN_WAIT_MS)
+
+    # A popup (e.g. the object is locked) is reported first: screen_changed is also true for a popup over the
+    # unchanged initial screen, and it hides the editor, so there is nothing to wait for.
+    popup = await backend.check_popup()
+    if popup is not None:
+        return f"Unexpected popup while opening '{program_name}': {popup.message or popup.popup_type}"
 
     # Verify we left the initial screen
     screen = await backend.get_screen_info()
@@ -102,7 +124,17 @@ async def _navigate_and_open_editor_desktop(backend: WebGuiBackend | DesktopBack
         # Check status bar for error
         sbar = await backend.get_status_bar()
         return sbar.message or f"Could not open '{program_name}' in change mode"
-    return None
+    # The title changes before the editor control is there: reading it earlier returns nothing.
+    editor_or_popup = await backend.wait_for_condition(editor_loaded_or_popup_open, timeout_ms=_SE38_EDITOR_WAIT_MS)
+    # A popup can also open while the editor is still being built, after the first check above.
+    popup = await backend.check_popup()
+    if popup is not None:
+        return f"Unexpected popup while opening '{program_name}': {popup.message or popup.popup_type}"
+    return (
+        None
+        if editor_or_popup
+        else f"The editor of '{program_name}' did not open within {_SE38_EDITOR_WAIT_MS // 1000} s"
+    )
 
 
 async def _navigate_and_open_editor(backend: WebGuiBackend, program_name: str) -> str | None:

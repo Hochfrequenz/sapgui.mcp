@@ -108,6 +108,15 @@ def editor_loaded(session: Any) -> bool:
     return DesktopBackend._find_editor_shell_raw(session) is not None  # pylint: disable=protected-access
 
 
+def editor_loaded_or_popup_open(session: Any) -> bool:
+    """Predicate: True once the active window holds an ABAP editor control or a popup is open.
+
+    A popup that appears while the editor is still being built hides the editor for good, so waiting for the editor
+    alone would run into its full timeout.
+    """
+    return session.find_by_id("wnd[1]", raise_error=False) is not None or editor_loaded(session)
+
+
 def editor_loaded_after(title_with_editor: str | None) -> Callable[[Any], bool]:
     """Build a predicate: True once an editor exists whose source can be read, for the step after opening a source.
 
