@@ -168,6 +168,13 @@ def test_repeated_column_titles_get_a_counter_instead_of_overwriting_each_other(
     assert _table_control_headers(raw) == ["Text", "Text (2)", "col2"]
 
 
+def test_a_generated_header_never_clashes_with_a_title_that_looks_like_one() -> None:
+    raw = SimpleNamespace(Columns=_Columns([("Text", "", "A"), ("Text", "", "B"), ("Text (2)", "", "C")]))
+    headers = _table_control_headers(raw)
+    assert len(set(headers)) == 3
+    assert headers[:2] == ["Text", "Text (2)"]
+
+
 def test_a_blank_last_line_of_the_window_is_dropped_but_not_blank_rows_in_between() -> None:
     tc = _TableControl(32, 20)
     original = tc.dump_tree

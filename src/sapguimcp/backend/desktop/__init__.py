@@ -249,13 +249,17 @@ def _table_control_columns(raw: Any) -> list[tuple[str, str]]:
     counter, so no column overwrites another.
     """
     columns: list[tuple[str, str]] = []
-    seen: dict[str, int] = {}
+    used: set[str] = set()
     for ci in range(int(raw.Columns.Count)):
         column = raw.Columns(ci)
         name = str(column.Name or "").strip()
-        header = str(column.Title or name or f"col{ci}").strip() or f"col{ci}"
-        seen[header] = seen.get(header, 0) + 1
-        columns.append((header if seen[header] == 1 else f"{header} ({seen[header]})", name))
+        base = str(column.Title or name or f"col{ci}").strip() or f"col{ci}"
+        header, counter = base, 1
+        while header in used:  # also avoids a clash with a title that already looks like a numbered one
+            counter += 1
+            header = f"{base} ({counter})"
+        used.add(header)
+        columns.append((header, name))
     return columns
 
 
@@ -290,7 +294,7 @@ def _table_control_window(tc: Any, columns: list[tuple[str, str]]) -> dict[int, 
     return window
 
 
-_TABLE_CONTROL_SETTLE_TIMEOUT_S = 2.0
+_TABLE_CONTROL_SETTLE_TIMEOUT_S = 0.5
 _TABLE_CONTROL_SETTLE_POLL_S = 0.05
 
 
