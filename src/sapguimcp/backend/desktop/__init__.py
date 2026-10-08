@@ -328,14 +328,17 @@ def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: 
     deadline = time.monotonic() + _TABLE_CONTROL_SETTLE_TIMEOUT_S
     previous: list[dict[str, Any]] | None = None
     while True:
+        window = sorted(_table_control_window(tc, columns).items())
+        # The last line of the window is only partly visible and then reads as blank although the table has more rows:
+        # blank lines that end the window are dropped (before the requested range is applied, so a blank row inside
+        # the window that merely ends the range is kept).
+        while window and not any(value.strip() for value in window[-1][1].values()):
+            window.pop()
         rows: list[dict[str, Any]] = []
-        for row_in_window, cells in sorted(_table_control_window(tc, columns).items()):
+        for row_in_window, cells in window:
             number = first + row_in_window + 1
             if start_row <= number <= wanted_end:
                 rows.append({"row": number, "data": cells})
-        # The last line of the window is only partly visible and then reads as blank although the table has more rows.
-        while rows and not any(value.strip() for value in rows[-1]["data"].values()):
-            rows.pop()
         filled = sum(1 for number in range(first + 1, first + in_window) if _row_filled(rows, number))
         expected = sum(1 for number in range(first + 1, first + in_window) if start_row <= number <= wanted_end)
         if rows == previous and filled >= expected:

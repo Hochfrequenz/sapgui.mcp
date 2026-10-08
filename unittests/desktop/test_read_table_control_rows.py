@@ -257,3 +257,20 @@ async def test_read_table_of_a_range_outside_the_window_is_valid_table_data() ->
         data = await backend.read_table(start_row=25, end_row=30)
     assert data.rows == []
     assert (data.start_row, data.end_row, data.total_rows) == (25, None, 32)
+
+
+def test_a_blank_row_that_only_ends_the_requested_range_is_kept() -> None:
+    tc = _TableControl(32, 20)
+    original = tc.dump_tree
+
+    def _blank_row_5() -> list[Any]:
+        elements = original()
+        for element in elements:
+            if element.id.endswith(",4]"):
+                element.text = ""
+        return elements
+
+    tc.dump_tree = _blank_row_5  # type: ignore[method-assign]
+    rows = _read(tc, 0, 5)  # rows 1 to 5; row 5 is blank but not the end of the window
+    assert [r["row"] for r in rows] == [1, 2, 3, 4, 5]
+    assert rows[4]["data"] == {"Method": "", "Kind": ""}
