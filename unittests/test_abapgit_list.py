@@ -365,8 +365,8 @@ async def test_a_timed_out_wait_for_the_list_does_not_stop_the_read(caplog: pyte
 
 @pytest.mark.anyio
 async def test_repositories_skipped_by_the_parser_count_towards_the_total() -> None:
-    # one repository is registered with an ssh-style URL: it cannot be listed, but the list is complete
-    lines = ["TOTAL~3~~~~~", _line(0), "Odd~git@host:org/odd~Z_ODD~refs/heads/main~~~", _line(2)]
+    # one online repository has no URL: it cannot be listed, but the list is complete
+    lines = ["TOTAL~3~~~~~", _line(0), "Odd~~Z_ODD~refs/heads/main~~~", _line(2)]
     result = await _list(_backend(), lines)
     assert result.success
     assert [r.name for r in result.repos] == ["Repo0", "Repo2"]
@@ -411,3 +411,8 @@ async def test_a_list_that_could_not_be_stitched_is_a_failure() -> None:
     assert not result.success
     assert result.error is not None
     assert "cut or damaged" in result.error
+
+
+def test_scp_style_ssh_urls_are_listed() -> None:
+    repos = parse_repo_list_output("Odd~git@host:org/odd~Z_ODD~refs/heads/main~~~")
+    assert [(r.name, r.url) for r in repos] == [("Odd", "git@host:org/odd")]

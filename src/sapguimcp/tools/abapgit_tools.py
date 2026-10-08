@@ -537,7 +537,7 @@ def _parse_repo_lines(raw_output: str) -> tuple[list[AbapGitRepoInfo], int]:
             if not name:
                 skipped += 1
                 continue
-        elif not name or not url or ("://" not in url and not url.startswith("file:")):
+        elif not name or not url:
             skipped += 1
             continue
         repos.append(
