@@ -68,10 +68,15 @@ def test_a_screen_without_a_tree_has_no_logs() -> None:
     assert _read_log_tree(_session(MagicMock()), 50) == ([], False)  # the shell is not a GuiTree
 
 
-def _backend(*, tree_logs: list[SLG1LogEntry] | None = None, not_found: list[str] | None = None) -> Any:
+def _backend(
+    *,
+    tree_logs: list[SLG1LogEntry] | None = None,
+    not_found: list[str] | None = None,
+    errors: list[Any] | None = None,
+) -> Any:
     backend = MagicMock()
     backend.enter_transaction = AsyncMock(return_value=SimpleNamespace(success=True, error=None))
-    backend.fill_form = AsyncMock(return_value=SimpleNamespace(not_found=not_found or []))
+    backend.fill_form = AsyncMock(return_value=SimpleNamespace(not_found=not_found or [], errors=errors or []))
     for name in ("wait_for_ready", "press_key"):
         setattr(backend, name, AsyncMock())
     backend.focus_and_type = AsyncMock(return_value=True)
@@ -149,3 +154,12 @@ def test_the_text_of_only_the_last_nodes_is_read() -> None:
     tree = _tree(nodes)
     _read_log_tree(_session(tree), 5)
     assert tree.get_node_text_by_key.call_count == 6  # the newest five and one more, to see whether the last is 'More'
+
+
+@pytest.mark.anyio
+async def test_a_field_that_was_found_but_did_not_accept_the_value_fails_the_lookup() -> None:
+    backend = _backend(errors=[SimpleNamespace(field="Objekt", error="value rejected")])
+    result = await _lookup(backend, "OBJ")
+    assert not result.success
+    assert "Objekt" in str(result.error)
+    backend.press_key.assert_not_awaited()

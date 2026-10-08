@@ -169,6 +169,7 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
     unapplied: list[str] = []
     fill_result = await backend.fill_form(fields)
     unapplied.extend(fill_result.not_found)
+    unapplied.extend(error.field for error in fill_result.errors)  # found, but the value was not accepted
     for value, field_name, filter_name in (
         (from_date, "BALHDR-ALDATE", "from_date"),
         (to_date, "*BALHDR-ALDATE", "to_date"),
