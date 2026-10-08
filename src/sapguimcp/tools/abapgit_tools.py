@@ -588,13 +588,15 @@ def _list_screen_rows(usr: Any) -> dict[int, str]:
 
 
 def _scrollbar_range(usr: Any, attribute: str) -> tuple[int, int]:
-    """``(maximum, page_size)`` of one of the user area's scrollbars, ``(0, 0)`` if it has none or cannot be read."""
-    try:
-        scrollbar = getattr(usr, attribute)
-        return max(int(scrollbar.maximum), 0), max(int(scrollbar.page_size), 0)
-    except Exception:  # pylint: disable=broad-exception-caught
-        logger.debug("abapGit list: no usable %s", attribute, exc_info=True)
+    """``(maximum, page_size)`` of one of the user area's scrollbars, ``(0, 0)`` if the area has none.
+
+    A scrollbar that exists but cannot be read raises: reading on without it would silently return a cut list.
+    """
+    scrollbar = getattr(usr, attribute, None)
+    if scrollbar is None:
+        logger.debug("abapGit list: no %s", attribute)
         return 0, 0
+    return max(int(scrollbar.maximum), 0), max(int(scrollbar.page_size), 0)
 
 
 def _scroll_positions(maximum: int, step: int) -> list[int]:

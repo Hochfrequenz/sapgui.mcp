@@ -416,3 +416,31 @@ async def test_a_list_that_could_not_be_stitched_is_a_failure() -> None:
 def test_scp_style_ssh_urls_are_listed() -> None:
     repos = parse_repo_list_output("Odd~git@host:org/odd~Z_ODD~refs/heads/main~~~")
     assert [(r.name, r.url) for r in repos] == [("Odd", "git@host:org/odd")]
+
+
+class _BrokenScrollbar:
+    position = 0
+    page_size = 36
+
+    @property
+    def maximum(self) -> int:
+        raise RuntimeError("COM error")
+
+
+def test_a_scrollbar_that_exists_but_cannot_be_read_is_an_error_not_an_absent_scrollbar() -> None:
+    screen = _FakeListScreen([_line(0, 200)])
+    screen._horizontal = _BrokenScrollbar()  # type: ignore[assignment]
+    with pytest.raises(RuntimeError):
+        _read_list_lines(_session(screen))
+
+
+@pytest.mark.anyio
+async def test_an_unreadable_scrollbar_makes_the_list_a_failure() -> None:
+    backend = _backend()
+    screen = _FakeListScreen([_line(0)])
+    screen._vertical = _BrokenScrollbar()  # type: ignore[assignment]
+    backend.require_session = MagicMock(return_value=_session(screen))
+    result = await _abapgit_list_repos(backend)
+    assert not result.success
+    assert result.error is not None
+    assert "COM error" in result.error
