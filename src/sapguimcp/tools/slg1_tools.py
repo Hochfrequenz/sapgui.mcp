@@ -23,6 +23,7 @@ from sapguimcp.backend.webgui.parsers.slg1_parser import (
     parse_slg1_log_list,
 )
 from sapguimcp.backend.webgui.types import AriaSnapshot
+from sapguimcp.lang import SLG1_NO_LOGS_FOUND_DE, SLG1_NO_LOGS_FOUND_EN
 from sapguimcp.models import TableData
 from sapguimcp.models.config import get_sap_config
 from sapguimcp.models.slg1_models import (
@@ -40,6 +41,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 __all__ = ["register_slg1_tools"]
+
+# Column headers that identify a row of the SLG1 log list as a log (the grid of a selected log holds messages instead)
+_SLG1_LOG_NUMBER_HEADERS = ("Protokollnr.", "Log Number", "Log number")
 
 
 def _safe_int(value: str | None) -> int:
@@ -120,7 +124,14 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
         )
 
     if sbar.message and any(
-        msg in sbar.message.lower() for msg in ["keine protokolle", "no logs", "no application log"]
+        msg.lower() in sbar.message.lower()
+        for msg in [
+            "keine protokolle",
+            "no logs",
+            "no application log",
+            SLG1_NO_LOGS_FOUND_DE,
+            SLG1_NO_LOGS_FOUND_EN,
+        ]
     ):
         return SLG1LogListResult(
             logs=[],
@@ -133,9 +144,12 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
     # Read table data
     table_data: TableData = await backend.read_table(start_row=1, max_rows=50)
 
-    if not table_data.headers:
+    # No rows without a "no logs" status message is not an empty result, and neither are rows that are no logs: the
+    # logs are listed in a tree next to a grid that stays empty until a log is selected (and then holds its messages),
+    # so there is no log list to read here.
+    if not table_data.rows or not any(h in _SLG1_LOG_NUMBER_HEADERS for h in table_data.headers):
         return SLG1LogListResult.failure(
-            "Could not read SLG1 log list table",
+            "Could not read SLG1 log list: the desktop shows the logs in a tree, which cannot be read as a table",
             logs=[],
             log_count=0,
             logs_truncated=False,

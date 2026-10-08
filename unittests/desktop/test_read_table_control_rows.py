@@ -8,6 +8,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from sapsucker.components.grid import GuiGridView
 
 from sapguimcp.backend.desktop import (
     DesktopBackend,
@@ -479,3 +480,89 @@ def test_restoring_keeps_waiting_while_the_control_still_shows_the_maximized_num
     with _maximized_main_window(session, _TABLE):
         pass
     assert time.monotonic() - started >= 1.9  # the size alone does not end the wait
+
+
+class _GridSession:
+    """Session whose window holds a tree shell before the grid shell (like the log list of SLG1).
+
+    Both are dumped as ``GuiShell``; only resolving them tells the tree from the grid.
+    """
+
+    def __init__(self) -> None:
+        self.tree = MagicMock()
+        self.grid = MagicMock(spec=GuiGridView)
+        self.grid.row_count = 2
+        self.grid.column_order = ["TEXT"]
+        self.grid.first_visible_row = 0
+        self.grid.get_cell_value.side_effect = lambda row, _column: f"message {row}"
+
+    def find_by_id(self, element_id: str, **_: Any) -> Any:
+        if element_id == "wnd[0]":
+            tree = SimpleNamespace(id="/wnd[0]/usr/shell0", type_as_number=122, type="GuiShell", children=[])
+            grid = SimpleNamespace(id="/wnd[0]/usr/shell1", type_as_number=122, type="GuiShell", children=[])
+            return SimpleNamespace(dump_tree=lambda: [tree, grid])
+        return {"/wnd[0]/usr/shell0": self.tree, "/wnd[0]/usr/shell1": self.grid}.get(element_id)
+
+
+@pytest.mark.anyio
+async def test_read_table_skips_a_tree_shell_in_front_of_the_grid() -> None:
+    backend = DesktopBackend(com_thread=MagicMock())
+
+    async def _run(function: Any, **_: Any) -> Any:
+        return function()
+
+    backend.com.run = _run  # type: ignore[method-assign]
+    session = _GridSession()
+    with patch.object(DesktopBackend, "require_session", return_value=session):
+        data = await backend.read_table()
+    assert data.headers == ["TEXT"]
+    assert [row.data for row in data.rows] == [{"TEXT": "message 0"}, {"TEXT": "message 1"}]
+    assert data.total_rows == 2
+    assert session.tree.method_calls == []  # the tree was not read
+
+
+class _ShellsSession:
+    """Session whose window holds the given shells (dumped as ``GuiShell``), then optionally a table control."""
+
+    def __init__(self, shells: dict[str, Any], table_control: _TableControl | None = None) -> None:
+        self._shells = shells
+        self._table_control = table_control
+
+    def find_by_id(self, element_id: str, **_: Any) -> Any:
+        if element_id == "wnd[0]":
+            elements = [
+                SimpleNamespace(id=shell_id, type_as_number=122, type="GuiShell", children=[])
+                for shell_id in self._shells
+            ]
+            if self._table_control is not None:
+                elements.append(SimpleNamespace(id="/wnd[0]/usr/tbl", type_as_number=80, children=[]))
+            return SimpleNamespace(dump_tree=lambda: elements)
+        if element_id == "/wnd[0]/usr/tbl":
+            return self._table_control
+        return self._shells.get(element_id)
+
+
+async def _read_table_of(session: Any) -> Any:
+    backend = DesktopBackend(com_thread=MagicMock())
+
+    async def _run(function: Any, **_: Any) -> Any:
+        return function()
+
+    backend.com.run = _run  # type: ignore[method-assign]
+    with patch.object(DesktopBackend, "require_session", return_value=session):
+        return await backend.read_table()
+
+
+@pytest.mark.anyio
+async def test_read_table_without_a_grid_or_table_control_is_empty() -> None:
+    data = await _read_table_of(_ShellsSession({"/wnd[0]/usr/shell0": MagicMock()}))
+    assert data.headers == []
+    assert data.rows == []
+    assert data.total_rows == 0
+
+
+@pytest.mark.anyio
+async def test_read_table_prefers_a_table_control_to_a_tree_shell_in_front_of_it() -> None:
+    data = await _read_table_of(_ShellsSession({"/wnd[0]/usr/shell0": MagicMock()}, _TableControl(3, 3, first=0)))
+    assert data.headers == _HEADERS
+    assert data.total_rows == 3
