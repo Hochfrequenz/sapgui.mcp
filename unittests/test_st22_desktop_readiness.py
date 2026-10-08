@@ -27,20 +27,22 @@ def _backend(pages: list[str]) -> Any:
 
 
 @pytest.mark.anyio
-async def test_capture_scrolls_until_the_page_repeats_and_waits_for_idle_not_a_fixed_time() -> None:
-    backend = _backend(["page 1", "page 2", "page 2", "page 2"])
-    text = await _capture_desktop_detail(backend)
+async def test_capture_scrolls_until_the_page_stays_the_same_and_waits_for_idle_not_a_fixed_time() -> None:
+    backend = _backend(["page 1", "page 2", "page 2", "page 2", "page 2"])
+    with patch("sapguimcp.tools.st22_tools.asyncio.sleep", AsyncMock()):
+        text = await _capture_desktop_detail(backend)
     assert text == "page 1\npage 2"
     assert backend.press_key.await_count == 2  # PageDown twice: the second one shows the same page
-    assert backend.wait_for_ready.await_count == 3  # one per PageDown, one more for the confirming read
+    assert backend.wait_for_ready.await_count == 4  # one per PageDown, two more for the confirming reads
     backend.wait.assert_not_awaited()
 
 
 @pytest.mark.anyio
-async def test_capture_reads_again_before_it_takes_a_repeated_page_for_the_bottom() -> None:
-    """A scroll that has not been painted yet shows the old page; the confirming read must not end the capture."""
-    backend = _backend(["page 1", "page 1", "page 2", "page 2", "page 2"])
-    assert await _capture_desktop_detail(backend) == "page 1\npage 2"
+async def test_capture_keeps_polling_a_repeated_page_until_the_scroll_is_painted() -> None:
+    """A scroll that is not painted yet shows the old page for a while; that must not end the capture."""
+    backend = _backend(["page 1", "page 1", "page 1", "page 2", "page 2", "page 2", "page 2"])
+    with patch("sapguimcp.tools.st22_tools.asyncio.sleep", AsyncMock()):
+        assert await _capture_desktop_detail(backend) == "page 1\npage 2"
 
 
 @pytest.mark.anyio

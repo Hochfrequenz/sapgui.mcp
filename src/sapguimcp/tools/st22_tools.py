@@ -14,6 +14,7 @@ ST22 flow:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -52,6 +53,9 @@ logger = logging.getLogger(__name__)
 
 # Upper bound for waiting on the detail screen after a dump was opened (#928); the former fixed wait took 1 s.
 _ST22_DETAIL_WAIT_MS = 1000
+# An unchanged page after PageDown is read this often, this far apart, before it is taken for the bottom (#928).
+_ST22_BOTTOM_CONFIRM_READS = 2
+_ST22_BOTTOM_CONFIRM_INTERVAL_S = 0.1
 
 __all__ = ["register_st22_tools"]
 
@@ -226,32 +230,35 @@ async def _capture_full_detail(backend: "WebGuiBackend | DesktopBackend") -> str
     return "\n".join(snapshots)
 
 
+async def _read_screen_page(backend: "WebGuiBackend | DesktopBackend") -> str:
+    """Read the text of the current screen."""
+    screen_text = await backend.get_screen_text()
+    return screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
+
+
 async def _capture_desktop_detail(backend: "WebGuiBackend | DesktopBackend") -> str:
     """Capture full ST22 dump detail text by scrolling through the detail screen.
 
     The detail screen is a long scrollable text. Read screen text, scroll down,
     and concatenate until no new content appears.
     """
-    pages: list[str] = []
-
-    screen_text = await backend.get_screen_text()
-    text = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
-    pages.append(text)
+    pages: list[str] = [await _read_screen_page(backend)]
 
     for _ in range(20):  # max 20 pages
         await backend.press_key("PageDown")
-        # Idle is enough: scrolling answers at once, and the loop stops when the page does not change (#928).
+        # Idle is enough for a page that scrolls: the loop only has to be sure about the bottom (#928).
         await backend.wait_for_ready()
-        screen_text = await backend.get_screen_text()
-        new_text = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
-        if new_text == pages[-1]:
-            # Looks like the bottom. Read once more before stopping: idle does not prove that a scroll has been
-            # painted, and the end of the capture must not rest on a read that came too early.
+        new_text = await _read_screen_page(backend)
+        # An unchanged page is the bottom only if it stays unchanged: idle does not prove that a scroll has been
+        # painted, so give the screen the time the former fixed wait gave it (once, at the end) before stopping.
+        for _ in range(_ST22_BOTTOM_CONFIRM_READS):
+            if new_text != pages[-1]:
+                break
+            await asyncio.sleep(_ST22_BOTTOM_CONFIRM_INTERVAL_S)
             await backend.wait_for_ready()
-            screen_text = await backend.get_screen_text()
-            new_text = screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
-            if new_text == pages[-1]:
-                break  # reached bottom
+            new_text = await _read_screen_page(backend)
+        if new_text == pages[-1]:
+            break  # reached bottom
         pages.append(new_text)
 
     return "\n".join(pages)
