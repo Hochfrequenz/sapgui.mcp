@@ -39,6 +39,30 @@ def screen_changed(before_title: str, before_status: str) -> Callable[[Any], boo
     return _predicate
 
 
+def popup_closed_and_screen_changed(before_title: str, before_status: str) -> Callable[[Any], bool]:
+    """Build a predicate: True once no popup is open and the window title changed or a new status text appeared.
+
+    For the step after a keypress that dismisses a popup: ``screen_changed`` is already true while that very popup
+    is still open, so it cannot tell that the dialog has gone. ``before_title`` / ``before_status`` are read right
+    before the action that led to the popup.
+    """
+    before_title = before_title.strip()
+    before_status = before_status.strip()
+
+    def _predicate(session: Any) -> bool:
+        if session.find_by_id("wnd[1]", raise_error=False) is not None:
+            return False
+        if str(session.find_by_id("wnd[0]").text).strip() != before_title:
+            return True
+        sbar = session.find_by_id("wnd[0]/sbar", raise_error=False)
+        if sbar is None:
+            return False
+        text = str(sbar.text).strip()
+        return bool(text) and text != before_status
+
+    return _predicate
+
+
 def usr_child_count_changed(before_count: int) -> Callable[[Any], bool]:
     """Build a predicate: True once the number of direct children of ``wnd[0]/usr`` differs from ``before_count``.
 

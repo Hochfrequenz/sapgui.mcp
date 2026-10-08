@@ -13,8 +13,10 @@ from sapguimcp.models.base import ToolResult
 class AbapGitRepoInfo(BaseModel):
     """Metadata for a single registered abapGit repository."""
 
-    name: str = Field(description="Repository name in SAP (e.g. Z_MY_REPO)")
-    url: str = Field(description="Remote Git URL")
+    name: str = Field(
+        description="Repository name in SAP (e.g. Z_MY_REPO); for an offline repository without a name: its package"
+    )
+    url: str = Field(description="Remote Git URL (empty for an offline repository)")
     package: str = Field(description="ABAP development package (devclass)")
     branch: str = Field(description="Git branch name (e.g. refs/heads/main)")
     last_pull_at: str | None = Field(default=None, description="Last pull timestamp (ABAP TIMESTAMPL type)")

@@ -24,7 +24,7 @@ The MCP works with both SAP R/3 and S/4.
 > **Pairs with [`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `aibap.mcp` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
 
 > [!TIP]
-> **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, the AI agent can write and execute a single Python script that loops, branches, and collects results - all in one shot. You just describe what you need; the agent generates the script automatically. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. Runs in a secure sandbox against the SAP GUI COM API. Desktop backend only. See [Desktop COM Tools](#desktop-com-tools-desktop-backend-only).
+> **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, the AI agent can write and execute a single Python script that loops, branches, and collects results - all in one shot. You just describe what you need; the agent generates the script automatically. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. Runs in a secure sandbox against the SAP GUI COM API. Desktop backend only. See [Capabilities](#capabilities).
 
 > **Developer?** See [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure, request flow diagrams, and how to add new transaction tools. The **Development Setup** section at the bottom of this page covers running from source.
 
@@ -805,136 +805,22 @@ If Claude Code still starts an old or broken registration instead of the global 
 
 </details>
 
-## Available Tools
+## Capabilities
 
-### Core SAP Tools
+<a id="capabilities"></a>
+<a id="available-tools"></a>
+<a id="desktop-com-tools-desktop-backend-only"></a>
 
-| Tool | Description |
-| --- | --- |
-| `sap_login` | Log into SAP (WebGUI: opens login page; Desktop: connects via SAP Logon) |
-| `sap_transaction` | Enter and execute a transaction code |
-| `sap_list_connections` | List configured SAP systems and SAP Logon entries |
-| `sap_screenshot` | Take a screenshot of the current SAP screen |
-| `sap_keepalive_start` | Prevent session timeout (pings every 5 minutes) |
-| `sap_keepalive_stop` | Stop the keepalive task |
-| `sap_get_capabilities` | Query which features the current backend supports |
+Your AI client automatically discovers all individual tools and their schemas dynamically upon connection. At a high level, the server gives your agent:
 
-### Screen Interaction Tools
-
-| Tool | Description |
-| --- | --- |
-| `sap_get_screen_text` | Get all readable text from the current screen |
-| `sap_get_screen_info` | Get technical screen info (program, dynpro, title) |
-| `sap_get_form_fields` | Get all form fields and their current values |
-| `sap_fill_form` | Fill multiple form fields at once |
-| `sap_set_field` | Set a single field by selector or label |
-| `sap_set_checkbox` | Toggle a checkbox |
-| `sap_set_radio_button` | Select a radio button |
-| `sap_click_button` | Click a button by label text |
-| `sap_select_tab` | Select a tab by label text |
-| `sap_select_dropdown` | Select a dropdown option by label and value |
-| `sap_press_key` | Send keyboard shortcuts (F-keys, Ctrl+S, etc.) |
-| `sap_close_popup` | Close modal popups and dialogs |
-| `sap_read_status_bar` | Read status bar messages |
-| `sap_read_table` | Read data from ALV grids and tables |
-| `sap_click_table_cell` | Click a cell in an ALV grid table |
-| `sap_session_status` | Check SAP session status |
-| `sap_lookup_fields` | Look up known field selectors for a transaction |
-| `sap_discover_fields` | Discover input fields on current screen |
-| `sap_discover_buttons` | Discover available buttons on current screen |
-| `sap_get_shortcuts` | Get available keyboard shortcuts |
-
-### Transaction-Specific Tools
-
-| Tool | Description |
-| --- | --- |
-| `sap_se09_lookup` | Search transports (SE09/SE10) |
-| `sap_se11_lookup` | Look up Data Dictionary objects (tables, structures, data elements) |
-| `sap_se16_query` | Query table contents via SE16/SE16N |
-| `sap_se24_lookup` | Look up ABAP class definitions |
-| `sap_se24_edit` | Edit ABAP class source code |
-| `sap_se37_lookup` | Look up function module definitions |
-| `sap_se37_edit` | Edit function module source code |
-| `sap_se38_edit` | Edit ABAP report source code |
-| `sap_se93_lookup` | Look up transaction code definitions |
-| `sap_slg1_lookup` | Query application logs (SLG1) |
-| `sap_sm30_lookup` | Display/maintain table views (SM30) |
-| `sap_sm37_lookup` | Search background jobs (SM37) |
-| `sap_spro_search` | Search customizing activities (SPRO) |
-| `sap_st22_lookup` | Look up ABAP short dumps |
-| `sap_quick_report` | Run SAP Quick Reports (SQVI) |
-
-### Session Management Tools (Desktop backend)
-
-| Tool | Description |
-| --- | --- |
-| `sap_session_list` | List all active SAP sessions |
-| `sap_session_bind` | Bind to a specific SAP session (for parallel agents) |
-| `sap_session_release` | Release a bound session |
-| `sap_session_close` | Close an SAP session |
-| `sap_session_reset_to_primary` | Reset to primary session |
-
-### Catalog Search Tools (offline, no SAP connection needed)
-
-| Tool | Description |
-| --- | --- |
-| `search_transactions` | Search bundled transaction catalog by keyword |
-| `search_tables` | Search bundled SAP table catalog by name or field |
-| `search_classes` | Search bundled ABAP class catalog |
-| `search_function_modules` | Search bundled function module catalog |
-
-### abapGit Tools
-
-| Tool | Description |
-| --- | --- |
-| `sap_abapgit_list_repos` | List all registered abapGit repos (names, Git URLs, packages, branches, last pull) |
-| `sap_abapgit_pull` | Pull a registered abapGit repo (uses the `Z_ABAPGIT_PULL_MCP_SHORTCUT` SAP-side report) |
-| `sap_read_se38_source` | Read ABAP report source code via SE38 |
-
-`sap_abapgit_pull` and `sap_abapgit_list_repos` require the [`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT) ABAP report installed on the SAP system.
-The report calls the abapGit ABAP API directly instead of automating the UI, which makes pulls much more reliable.
-If the tools fail with `"transaction not found"` or similar, install the report from that repo first.
-For private git repositories, set `GITHUB_PAT` or `ABAPGIT_PAT` (the latter overrides the former) in the MCP server's environment - without a PAT, pulls from private repos will fail.
-
-### Desktop COM Tools (Desktop backend only)
-
-| Tool | Description |
-| --- | --- |
-| `sap_com_snapshot` | Dump the SAP GUI control tree (object hierarchy) |
-| `sap_com_evaluate` | Execute raw COM operations on SAP GUI objects |
-| `sap_run_script` | 🚀 Run a sandboxed Python script against the SAP GUI COM API - loops, branches, and bulk reads in one call instead of many. Great token saver! Also runs vetted script files via `script_path` (+ `params`, `expected_sha256`) from directories configured in `SCRIPT_ROOTS`. |
-| `sap_tree_context_menu` | Open and interact with tree context menus |
-| `sap_breakpoint_set` | Set an ABAP breakpoint — ask the human first; there's no tool to drive the resulting debugger, only a human at the SAP GUI can dismiss it |
-| `sap_breakpoint_delete` | Delete an ABAP breakpoint |
-| `sap_breakpoint_list` | List active ABAP breakpoints |
-
-The sandbox contract (allowed builtins, injected names, version) of `sap_run_script` is also exposed as the MCP resource `sandbox://sap_run_script` (desktop backend only).
-
-### Logging Tools
-
-| Tool | Description |
-| --- | --- |
-| `log_intent` | Log what you're doing for accountability |
-| `log_feedback` | Report issues (creates GitHub issues if `GITHUB_PAT` is set) |
-
-### Browser Tools (WebGUI backend only)
-
-Low-level browser escape hatches available when using the WebGUI backend:
-
-| Tool | Description |
-| --- | --- |
-| `browser_screenshot` | Capture a PNG of the current SAP Web GUI view |
-| `browser_snapshot` | Get the accessibility tree of the current page |
-| `browser_click` | Click an element by selector |
-| `browser_fill` | Fill an input field |
-| `browser_keyboard` | Send keyboard input |
-| `browser_navigate` | Navigate to a URL |
-| `browser_evaluate` | Execute JavaScript on the page |
-| `browser_wait` | Wait for an element or a timeout |
-| `browser_get_html` | Get HTML content of the page or an element |
-| `browser_select_option` | Select a dropdown option |
-
-The SAP-specific tools above handle most interactions; reach for the browser tools when you need pixel-level control.
+- **Drive Any SAP Transaction** — Execute transaction codes, fill form fields, click buttons, navigate tabs, read and interact with ALV grids and tables, and handle modal popups and status bar messages.
+- **Transaction Shortcuts** — Built-in workflows for common developer and basis tasks: query tables (SE16/SE16N), inspect transports (SE09/SE10), search background jobs (SM37), inspect short dumps (ST22), query application logs (SLG1), maintain table views (SM30), and look up Data Dictionary objects (SE11).
+- **High-Performance Scripting (`sap_run_script`)** — For bulk operations or complex multi-step workflows, the agent can write and run sandboxed Python scripts against the SAP GUI COM API in a single round-trip instead of dozens of tool calls. (Desktop backend only; sandbox contract exposed via `sandbox://sap_run_script`).
+- **Visual Validation & Screenshots** — Capture screenshots of any SAP screen for documentation, E2E test verification, or human-in-the-loop inspection.
+- **Offline Catalogs** — Search transaction codes, tables, classes, and function modules instantly without an active SAP connection.
+- **abapGit & Source Code** — Pull abapGit repositories and inspect ABAP report source code. Pulls use the [`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT) report on the SAP system. For private repositories, set `GITHUB_PAT` or `ABAPGIT_PAT`.
+- **Multi-Session Management** — List, bind, release, and switch between parallel SAP GUI sessions across concurrent agent tasks.
+- **Browser Automation (WebGUI)** — When using the WebGUI backend, low-level browser actions (click, fill, keyboard, screenshot, DOM snapshot) are available as escape hatches for pixel-level control.
 
 ## Configuration Reference
 
