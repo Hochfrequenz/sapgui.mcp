@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, _get_com_error_code
+from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RETRYABLE_COM_ERRORS, _get_com_error_code
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se37_parser import SE37TabSnapshots, parse_se37_snapshot
 from sapguimcp.backend.webgui.types import AriaSnapshot
@@ -103,7 +103,9 @@ def _read_se37_header(session: Any, flatten_fn: Any) -> dict[str, str | bool]:
             elif name == _HEADER_REMOTE and kind == _TYPE_RADIO_BUTTON:
                 values[name] = bool(session.find_by_id(elem.id).selected)
     except Exception as exc:  # pylint: disable=broad-exception-caught
-        if _get_com_error_code(exc) == _RPC_E_DISCONNECTED:
+        # A lost connection and the errors the COM thread retries must reach it: swallowing them would return partial
+        # header data (blank fields, RFC flag false) instead of retrying
+        if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RETRYABLE_COM_ERRORS):
             raise
         logger.warning("SE37 header data could not be read from the attributes tab", exc_info=True)
     return values

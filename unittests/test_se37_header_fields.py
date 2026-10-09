@@ -5,7 +5,17 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
+from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RETRYABLE_COM_ERRORS
 from sapguimcp.tools.se37_tools import _read_se37_header
+
+
+class _ComError(Exception):
+    """A COM error as the COM thread sees it: the HRESULT is the first argument."""
+
+    def __init__(self, code: int) -> None:
+        super().__init__(code)
 
 
 def _flatten(tree: list[Any]) -> list[Any]:
@@ -60,7 +70,7 @@ def test_a_label_with_the_name_of_a_field_is_not_taken_for_the_field() -> None:
     assert _read_se37_header(_session(labels, remote=True), _flatten) == {}
 
 
-def test_a_radio_button_that_cannot_be_read_leaves_the_other_values_out_too_but_does_not_fail() -> None:
+def test_a_radio_button_that_cannot_be_read_is_left_out_while_the_other_values_are_kept() -> None:
     window = SimpleNamespace(dump_tree=lambda: _ELEMENTS)
 
     def find_by_id(element_id: str, **_: Any) -> Any:
@@ -73,3 +83,16 @@ def test_a_radio_button_that_cannot_be_read_leaves_the_other_values_out_too_but_
         "TFTIT-STEXT": "Short text of the function",
         "TADIR-DEVCLASS": "ZPACKAGE",
     }
+
+
+@pytest.mark.parametrize("code", [*RETRYABLE_COM_ERRORS, _RPC_E_DISCONNECTED])
+def test_a_com_error_the_com_thread_retries_or_a_lost_connection_is_not_swallowed(code: int) -> None:
+    window = SimpleNamespace(dump_tree=lambda: _ELEMENTS)
+
+    def find_by_id(element_id: str, **_: Any) -> Any:
+        if element_id == "wnd[0]":
+            return window
+        raise _ComError(code)
+
+    with pytest.raises(_ComError):
+        _read_se37_header(SimpleNamespace(find_by_id=find_by_id), _flatten)
