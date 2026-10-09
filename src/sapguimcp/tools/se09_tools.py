@@ -483,7 +483,8 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
     await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=5000)
 
     # Parse initial screen labels to get requests
-    screen_text = await backend.get_screen_text()
+    # Every label, in order: the owner is only printed when it changes, so a repeated owner or description must stay
+    screen_text = await backend.get_screen_text(keep_duplicate_labels=True)
     requests = _parse_labels_to_requests(screen_text.labels, username or "")
 
     if not requests:
@@ -499,7 +500,7 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
         for req in requests:
             expanded = await _expand_request_node_desktop(backend, req.request_number)
             if expanded:
-                expanded_text = await backend.get_screen_text()
+                expanded_text = await backend.get_screen_text(keep_duplicate_labels=True)
                 tasks = _parse_tasks_from_expanded_labels(expanded_text.labels, req.request_number, known_request_nums)
                 req.tasks = tasks
                 await _collapse_request_node_desktop(backend, req.request_number)

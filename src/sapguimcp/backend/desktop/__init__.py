@@ -1542,9 +1542,14 @@ class DesktopBackend:
         return ScreenInfo(success=True, url="desktop://sap", **data)
 
     async def get_screen_text(  # pylint: disable=unused-argument
-        self, include_dropdown_options: bool = False
+        self, include_dropdown_options: bool = False, keep_duplicate_labels: bool = False
     ) -> ScreenText:
-        """Get readable text from the current screen via dump_tree."""
+        """Get readable text from the current screen via dump_tree.
+
+        Labels and buttons are de-duplicated by default. Pass ``keep_duplicate_labels`` to get every label, in screen
+        order, when the position of a label carries meaning (e.g. a list whose owner is only printed when it changes:
+        a repeated value must not vanish).
+        """
         session = self.require_session()
 
         def _read() -> dict[str, Any]:
@@ -1574,7 +1579,7 @@ class DesktopBackend:
                 "title": title,
                 "status_bar": sbar_text or None,
                 "tabs": tabs,
-                "labels": list(dict.fromkeys(labels)),
+                "labels": labels if keep_duplicate_labels else list(dict.fromkeys(labels)),
                 "buttons": list(dict.fromkeys(buttons)),
                 "table_headers": [],
                 "main_content": content,
