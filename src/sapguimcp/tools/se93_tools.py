@@ -139,7 +139,8 @@ async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
     tx_type: SE93TransactionType = "dialog" if screen_number else "report"
 
     # Read GUI capability checkboxes (type 42, not returned by discover_fields)
-    gui_html = await _read_checkbox(backend, "TSTCC-S_WEBGUI")
+    # the HTML box is named with an underscore (TSTCC_S_WEBGUI), the Java and Windows boxes with a hyphen
+    gui_html = await _read_checkbox(backend, "TSTCC_S_WEBGUI")
     gui_java = await _read_checkbox(backend, "TSTCC-S_PLATIN")
     gui_windows = await _read_checkbox(backend, "TSTCC-S_WIN32")
 
