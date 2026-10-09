@@ -631,3 +631,12 @@ def test_a_short_padded_table_does_not_wait_for_lines_that_stay_empty(
     assert len(data["rows"]) == real
     assert tree_reads[0] <= 2  # a window that is complete is not read again while the settle timeout runs out
     assert "did not show all its rows" not in caplog.text
+
+
+@pytest.mark.parametrize("first", [0, 12])
+def test_a_control_that_does_not_pad_keeps_its_row_count_as_the_total(first: int) -> None:
+    """A window that shows more rows than the padded relation allows proves ``RowCount`` is exact."""
+    tc = _TableControl(32, 20, first=first)
+    data = _read_table_control(tc, 1, None, 100)
+    assert data["total_rows"] == 32
+    assert data["truncated"] is True

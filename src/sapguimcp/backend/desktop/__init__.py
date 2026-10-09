@@ -444,14 +444,17 @@ def _table_control_row_total(row_count: int, visible: int, shown: int) -> int:
     ``RowCount`` is not that number: SAP adds empty lines so that the last row can be scrolled to the top, and the
     control reports ``rows + VisibleRowCount - 1``. This was measured on several table controls (SE11 field lists,
     SE24 method and attribute lists, SM30 views) of SAP ERP 6.0 and S/4HANA 2025, with the real number from SE16 or
-    the screen; it is not documented by SAP. A control whose program sets its line count exactly would be
-    undercounted (never below what the window shows). When the table fits its window
-    (``RowCount <= VisibleRowCount``) the relation is ambiguous for no or one row, so what the window shows
-    (``shown``: the index after the last non-empty line) is the number.
+    the screen; it is not documented by SAP. A control that does not pad cannot be told from a padded one by its
+    numbers alone, but one whose window shows more rows (``shown``: the index after the last non-empty line) than
+    the padded relation allows is not padded: its ``RowCount`` is the number. A long control that does not pad and is
+    shown from its top (``RowCount >= 2 * VisibleRowCount - 1``) is undercounted. When the table fits its window
+    (``RowCount <= VisibleRowCount``) the relation is ambiguous for no or one row, so what the window shows is the
+    number.
     """
     if row_count <= visible:
         return shown
-    return max(row_count - visible + 1, shown)
+    padded_total = row_count - visible + 1
+    return padded_total if padded_total >= shown else row_count
 
 
 def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: int) -> dict[str, Any]:
