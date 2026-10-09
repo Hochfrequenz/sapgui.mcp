@@ -232,27 +232,44 @@ async def _set_se09_selection_screen(
     await _set_checkbox_bilingual(backend, "Freigegeben", "Released", rel_checked)
 
 
+# A SAP user name: up to 12 upper-case letters, digits and a few symbols (the built-in user is SAP*), no blanks. A
+# transport description that is a single such word cannot be told apart from an owner (the owner is only printed when
+# it changes, see below).
+_OWNER_LABEL = re.compile(r"^[A-Z0-9][A-Z0-9_$#.&*-]{0,11}$")
+
+
 def _parse_labels_to_requests(labels: list[str], default_owner: str) -> list[TransportRequest]:
     """Parse SE09 screen labels into TransportRequest objects.
 
-    Labels come in groups: [transport_number, owner, description] with
-    optional header/target system entries interspersed.
+    Labels come in groups: ``[transport_number, owner?, description?]`` with optional header/target system entries
+    interspersed. SE09 prints the owner only when it differs from the request before (the first request always shows
+    it), so a label after the number is the owner only if it looks like a user name and a description follows it;
+    otherwise the owner is the one of the previous request and the label is the description.
     """
     transport_re = re.compile(r"^[A-Z0-9]{3}K\d{6}$")
     requests: list[TransportRequest] = []
     seen: set[str] = set()
+    current_owner = default_owner
     i = 0
     while i < len(labels):
         lbl = labels[i]
         if transport_re.match(lbl) and lbl not in seen:
             seen.add(lbl)
-            owner = labels[i + 1] if i + 1 < len(labels) and not transport_re.match(labels[i + 1]) else default_owner
-            desc = labels[i + 2] if i + 2 < len(labels) and not transport_re.match(labels[i + 2]) else ""
+            after = [
+                labels[j] if j < len(labels) and not transport_re.match(labels[j]) else None for j in (i + 1, i + 2)
+            ]
+            # An owner is followed by the description, so a user-like label that is the last one of the request is
+            # a one-word description (except on the first request, which always prints its owner).
+            if after[0] is not None and _OWNER_LABEL.match(after[0]) and (after[1] is not None or not requests):
+                current_owner = after[0]
+                desc = after[1] or ""
+            else:
+                desc = after[0] or ""
             requests.append(
                 TransportRequest(
                     request_number=lbl,
                     description=desc,
-                    owner=owner,
+                    owner=current_owner,
                     status="",
                     request_type="",
                     target_system="",
@@ -467,7 +484,8 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
     await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=5000)
 
     # Parse initial screen labels to get requests
-    screen_text = await backend.get_screen_text()
+    # Every label, in order: the owner is only printed when it changes, so a repeated owner or description must stay
+    screen_text = await backend.get_screen_text(keep_duplicate_labels=True)
     requests = _parse_labels_to_requests(screen_text.labels, username or "")
 
     if not requests:
@@ -483,7 +501,7 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
         for req in requests:
             expanded = await _expand_request_node_desktop(backend, req.request_number)
             if expanded:
-                expanded_text = await backend.get_screen_text()
+                expanded_text = await backend.get_screen_text(keep_duplicate_labels=True)
                 tasks = _parse_tasks_from_expanded_labels(expanded_text.labels, req.request_number, known_request_nums)
                 req.tasks = tasks
                 await _collapse_request_node_desktop(backend, req.request_number)
