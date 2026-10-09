@@ -50,6 +50,12 @@ _SEARCH_POLL_INTERVAL_MS = 2_000
 _F5_POLL_INTERVAL_S = 1.0
 _F5_MAX_POLLS = 10  # 10 * 1s = 10 seconds max wait
 
+#: The desktop search reads the IMG tree itself, two levels deep; the WebGUI search covers the whole text index.
+_DESKTOP_SCOPE_NOTE = (
+    "Only the top two levels of the IMG tree (areas and their direct entries) were searched, not the activities "
+    "below them: more matches may exist than are listed."
+)
+
 # SPRO IMG tree control element ID (stable across languages)
 _SPRO_TREE_ID = "wnd[0]/usr/cntlTREE_CONTROL_CONTAINER/shellcont/shell"
 
@@ -299,6 +305,7 @@ async def _search_img_desktop(  # pylint: disable=too-many-locals
         activities=activities,
         activity_count=len(activities),
         retrieved_at=now,
+        scope_note=_DESKTOP_SCOPE_NOTE,
     )
 
 
@@ -376,7 +383,8 @@ def register_spro_tools(mcp: FastMCP) -> None:
             "Search the SAP Implementation Guide (IMG) for customizing activities by keyword. "
             "USE THIS to find where specific SAP configuration is maintained (e.g., 'country', "
             "'pricing', 'tax'). Returns matching IMG activities with their parent node and area. "
-            "The search covers all IMG text content. Results can then be used to navigate to "
+            "The WebGUI search covers all IMG text content; the desktop search only the top two levels of "
+            "the IMG tree (the result's scope_note says so). Results can then be used to navigate to "
             "specific configuration via SM30 or other transactions.\n\n"
             "Note: First search in a language may be slow (30-60s) while the text index is built. "
             "Subsequent searches are faster."
@@ -455,6 +463,7 @@ def register_spro_tools(mcp: FastMCP) -> None:
                 activity_count=result.activity_count,
                 sample_activities=result.activities[:5],
                 retrieved_at=result.retrieved_at,
+                scope_note=result.scope_note,
             )
 
         return result
