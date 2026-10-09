@@ -389,12 +389,14 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
             )
         )
 
-    if len(jobs) > _MAX_JOBS:
-        jobs = jobs[:_MAX_JOBS]
+    # Both readers stop at _MAX_JOBS: the grid says how many rows it holds (total_rows), the classic list that it
+    # stopped early (truncated; if only footer lines follow the limit it cannot tell that from a longer list)
+    jobs_truncated = table_data.truncated or table_data.total_rows > len(table_data.rows)
 
     return SM37JobListResult(
         jobs=jobs,
         job_count=len(jobs),
+        jobs_truncated=jobs_truncated,
         filters_applied=filters_applied,
         retrieved_at=now,
     )
@@ -547,7 +549,8 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
 
     jobs = parse_sm37_job_list(snapshot)
 
-    if len(jobs) > _MAX_JOBS:
+    jobs_truncated = len(jobs) > _MAX_JOBS
+    if jobs_truncated:
         logger.warning("Truncating job list total=%d max=%d", len(jobs), _MAX_JOBS)
         jobs = jobs[:_MAX_JOBS]
 
@@ -561,6 +564,7 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
     return SM37JobListResult(
         jobs=jobs,
         job_count=len(jobs),
+        jobs_truncated=jobs_truncated,
         filters_applied=filters_applied,
         job_log=job_log,
         retrieved_at=now,

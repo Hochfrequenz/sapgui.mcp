@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from sapguimcp.models import TableData
+from sapguimcp.models.sap_results import TableRow
 from sapguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop, _fetch_job_log_desktop, _is_job_log_screen
 
 
@@ -214,3 +215,22 @@ async def test_the_classic_list_reader_is_not_used_for_a_log_screen_without_the_
         log = await _fetch_job_log_desktop(backend, "EN")
     assert log is not None
     assert log.log_lines == ["08.10.2026 00:49:27 Job started"]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("table", "expected"),
+    [
+        (TableData(success=True, headers=["Jobname"], rows=[], total_rows=0), False),
+        (TableData(success=True, headers=["Jobname"], rows=[TableRow(row=1, data={})], total_rows=1), False),
+        # an ALV grid that holds more rows than were read
+        (TableData(success=True, headers=["Jobname"], rows=[TableRow(row=1, data={})], total_rows=500), True),
+        # a classic list that stopped at the limit
+        (TableData(success=True, headers=["Jobname"], rows=[TableRow(row=1, data={})], truncated=True), True),
+    ],
+)
+async def test_the_job_list_says_when_more_jobs_match_than_were_returned(table: TableData, *, expected: bool) -> None:
+    backend = _listing_backend(table, MagicMock())
+    result = await _lookup(backend, "*", None, None, None, None)
+    assert result.success
+    assert result.jobs_truncated is expected

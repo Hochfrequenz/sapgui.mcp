@@ -228,3 +228,30 @@ def test_the_first_entry_below_the_header_is_ticked() -> None:
     assert select_first_classic_list_entry(session, _TITLES)
     assert ticked == [f"{_USR}/chk[1,12]"]
     assert not select_first_classic_list_entry(_session(_Usr({0: [_label(0, 0, "no list")]})), _TITLES)
+
+
+def test_a_list_cut_at_the_row_limit_is_reported_as_truncated() -> None:
+    scrollbar = _Scrollbar(maximum=14, page_size=10)
+    pages = _tall_list_pages(4, 21, visible_rows=8, positions=[0, 6, 12, 14])
+    table = read_classic_list_table(_session(_Usr(pages, scrollbar)), _TITLES, 5)
+    assert len(table.rows) == 5
+    assert table.truncated  # more pages (and more entries) were left unread
+
+
+def test_a_list_that_fits_the_row_limit_is_not_truncated() -> None:
+    elements = [*_header_row(2), *_entry_row(4, "JOB_1", "fertig"), *_entry_row(5, "JOB_2", "fertig")]
+    assert not read_classic_list_table(_session(_Usr({0: elements})), _TITLES, 2).truncated
+    assert not read_classic_list_table(_session(_Usr({0: elements})), _TITLES, 200).truncated
+
+
+def test_a_page_with_more_entries_than_the_limit_is_truncated() -> None:
+    elements = [*_header_row(2), *(cell for row in range(4, 9) for cell in _entry_row(row, f"JOB_{row}", "fertig"))]
+    assert read_classic_list_table(_session(_Usr({0: elements})), _TITLES, 3).truncated
+
+
+def test_a_multi_page_list_with_exactly_the_limit_ending_on_its_last_page_is_not_truncated() -> None:
+    scrollbar = _Scrollbar(maximum=14, page_size=10)
+    pages = _tall_list_pages(4, 21, visible_rows=8, positions=[0, 6, 12, 14])
+    table = read_classic_list_table(_session(_Usr(pages, scrollbar)), _TITLES, 18)
+    assert len(table.rows) == 18
+    assert not table.truncated
