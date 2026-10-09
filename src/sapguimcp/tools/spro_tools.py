@@ -463,6 +463,7 @@ def register_spro_tools(mcp: FastMCP) -> None:
                 activity_count=result.activity_count,
                 sample_activities=result.activities[:5],
                 retrieved_at=result.retrieved_at,
+                scope_note=result.scope_note,
             )
 
         return result
