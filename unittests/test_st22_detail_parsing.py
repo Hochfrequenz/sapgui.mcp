@@ -73,12 +73,13 @@ def test_the_call_stack_is_listed_topmost_first_with_the_name_of_the_next_line()
     ]
 
 
-def test_the_program_include_and_line_come_from_the_topmost_call_when_the_list_entry_has_none() -> None:
-    detail = _parse_desktop_detail_lines(_GERMAN, _DUMP.model_copy(update={"program": "", "include": None}))
+def test_program_include_and_line_come_from_the_topmost_call_not_from_the_list_entry() -> None:
+    # the list entry names another program and include: the topmost call is where the program terminated
+    detail = _parse_desktop_detail_lines(_GERMAN, _DUMP.model_copy(update={"include": "ZSOME_OTHER_INCLUDE"}))
     assert (detail.program, detail.include, detail.line) == ("ZCL_TOP=============CP", "ZCL_TOP=============CM001", 42)
-    # with a program in the list entry, that one is kept; the line still comes from the call stack
-    detail = _parse_desktop_detail_lines(_GERMAN, _DUMP)
-    assert (detail.program, detail.line) == ("ZPROG", 42)
+    # a topmost call whose line is not shown (a narrow list) leaves the line empty, not the one of another call
+    lines = ["Aktive Aufrufe/Ereignisse", "1 EVENT ZPROG ZPROG", "START-OF-SELECTION"]
+    assert _parse_desktop_detail_lines(lines, _DUMP).line is None
 
 
 def test_english_headings_and_a_screen_without_a_call_stack() -> None:
@@ -157,11 +158,13 @@ def test_the_call_stack_ends_at_the_next_section_and_variable_lines_are_no_entri
     ]
 
 
-def test_the_line_is_only_used_when_the_include_is_the_one_of_the_topmost_call() -> None:
-    other_include = _DUMP.model_copy(update={"include": "ZSOME_OTHER_INCLUDE"})
-    assert _parse_desktop_detail_lines(_GERMAN, other_include).line is None
-    same_include = _DUMP.model_copy(update={"include": "ZCL_TOP=============CM001"})
-    assert _parse_desktop_detail_lines(_GERMAN, same_include).line == 42
+def test_every_advice_section_is_part_of_how_to_correct_in_german_and_english() -> None:
+    german = ["Was können Sie tun?", "tip 1", "Fehleranalyse", "analysis", "Hinweise zur Fehlerbehebung", "tip 2"]
+    assert _parse_desktop_detail_lines(german, _DUMP).how_to_correct == "tip 1\ntip 2"
+    english = ["What can you do?", "tip 1", "Error analysis", "analysis", "How to Correct the Error", "tip 2"]
+    assert _parse_desktop_detail_lines(english, _DUMP).how_to_correct == "tip 1\ntip 2"
+    # the canonical heading alone is enough
+    assert _parse_desktop_detail_lines(["How to Correct the Error", "tip"], _DUMP).how_to_correct == "tip"
 
 
 @pytest.mark.anyio

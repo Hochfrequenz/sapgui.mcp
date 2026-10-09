@@ -258,15 +258,17 @@ def _heading_key(line: str) -> str:
 
 
 _WHAT_HAPPENED_HEADINGS = frozenset({"was ist passiert", "was ist geschehen", "what happened"})
-_HOW_TO_CORRECT_HEADINGS = frozenset({"was können sie tun", "what can you do"})
+# 'What can you do?' and 'How to correct the error' (German: 'Was können Sie tun?' and 'Hinweise zur Fehlerbehebung')
+# are both advice on correcting the error: how_to_correct holds every such section.
+_HOW_TO_CORRECT_HEADINGS = frozenset(
+    {"was können sie tun", "what can you do", "how to correct the error", "hinweise zur fehlerbehebung"}
+)
 _CALL_STACK_HEADINGS = frozenset({"aktive aufrufe/ereignisse", "active calls/events"})
 # Headings that end a section; the ones above end it as well
 _OTHER_HEADINGS = frozenset(
     {
         "fehleranalyse",
         "error analysis",
-        "hinweise zur fehlerbehebung",
-        "how to correct the error",
         "systemumgebung",
         "system environment",
         "anwenderspezifische systemumgebung",
@@ -297,17 +299,16 @@ _MAX_CALL_STACK_ENTRIES = 20
 
 
 def _section_text(lines: list[str], headings: frozenset[str]) -> str:
-    """The lines below the first heading in ``headings`` up to the next known heading."""
-    for index, line in enumerate(lines):
-        if _heading_key(line) in headings:
-            body: list[str] = []
-            for following in lines[index + 1 :]:
-                if _heading_key(following) in _ALL_HEADINGS:
-                    break
-                if following.strip():
-                    body.append(following.strip())
-            return "\n".join(body)
-    return ""
+    """The lines below every heading in ``headings`` (in screen order), each up to the next known heading."""
+    body: list[str] = []
+    collecting = False
+    for line in lines:
+        key = _heading_key(line)
+        if key in _ALL_HEADINGS:
+            collecting = key in headings
+        elif collecting and line.strip():
+            body.append(line.strip())
+    return "\n".join(body)
 
 
 def _call_stack_entries(lines: list[str]) -> list[tuple[re.Match[str], str]]:
@@ -341,8 +342,8 @@ def _parse_desktop_detail_lines(lines: list[str], source_dump: "ST22Dump") -> "S
     """Parse the lines of the dump detail screen into an ST22DumpDetail model.
 
     The screen is made of sections under headings ('What happened?', 'What can you do?', 'Error analysis', ... in
-    German or English). The call stack lists the topmost call first, which is where the program terminated. Falls
-    back to the metadata of the list entry for what the screen does not show.
+    German or English). The call stack lists the topmost call first, which is where the program terminated: program,
+    include and line come from it. Without a call stack the metadata of the list entry is kept.
     """
     stack = _call_stack_entries(lines)
     program = source_dump.program
@@ -350,11 +351,10 @@ def _parse_desktop_detail_lines(lines: list[str], source_dump: "ST22Dump") -> "S
     line: int | None = None
     if stack:
         top, _top_name = stack[0]
-        # The line belongs to the include of the topmost call: it is only used if that is the include reported
-        same_include = source_dump.include in (None, "", top.group(4))
-        program = program or top.group(3)
-        include = include or top.group(4)
-        line = int(top.group(5)) if top.group(5) and same_include else None
+        # The topmost call is where the program terminated: program, include and line belong together
+        program = top.group(3)
+        include = top.group(4)
+        line = int(top.group(5)) if top.group(5) else None
     call_stack = [" ".join(part for part in (*match.groups(default=""), name) if part) for match, name in stack]
     return ST22DumpDetail(
         error_type=source_dump.error_type,
