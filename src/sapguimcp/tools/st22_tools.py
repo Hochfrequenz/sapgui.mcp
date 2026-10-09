@@ -14,13 +14,12 @@ ST22 flow:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import re
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -41,6 +40,7 @@ from sapguimcp.models.st22_models import (
     ST22DumpDetailResult,
     ST22DumpListResult,
 )
+from sapguimcp.tools.classic_list_helpers import read_classic_list_lines
 from sapguimcp.tools.desktop_wait_predicates import screen_changed
 from sapguimcp.utils import SapLanguage, as_sap_language, format_sap_date
 
@@ -53,9 +53,9 @@ logger = logging.getLogger(__name__)
 
 # Upper bound for waiting on the detail screen after a dump was opened (#928); the former fixed wait took 1 s.
 _ST22_DETAIL_WAIT_MS = 1000
-# An unchanged page after PageDown is read this often, this far apart, before it is taken for the bottom (#928).
-_ST22_BOTTOM_CONFIRM_READS = 2
-_ST22_BOTTOM_CONFIRM_INTERVAL_S = 0.1
+# The dump detail is a long list; the call stack is well within its first lines, the rest (source, system fields,
+# loaded programs) is not read.
+_ST22_DETAIL_MAX_LINES = 800
 
 __all__ = ["register_st22_tools"]
 
@@ -230,89 +230,142 @@ async def _capture_full_detail(backend: "WebGuiBackend | DesktopBackend") -> str
     return "\n".join(snapshots)
 
 
-async def _read_screen_page(backend: "WebGuiBackend | DesktopBackend") -> str:
-    """Read the text of the current screen."""
-    screen_text = await backend.get_screen_text()
-    return screen_text.full_text if hasattr(screen_text, "full_text") else str(screen_text)
+async def _capture_desktop_detail(backend: "WebGuiBackend | DesktopBackend") -> list[str]:
+    """Read the lines of the dump detail screen.
 
-
-async def _capture_desktop_detail(backend: "WebGuiBackend | DesktopBackend") -> str:
-    """Capture full ST22 dump detail text by scrolling through the detail screen.
-
-    The detail screen is a long scrollable text. Read screen text, scroll down,
-    and concatenate until no new content appears.
+    SAP ERP 6.0 and S/4HANA show the detail as a classic list of labels with a vertical scrollbar (PageDown does not
+    scroll it), so it is read with the classic list reader: line by line, page by page. Without labels in a list
+    layout, the labels of the screen are the fallback.
     """
-    pages: list[str] = [await _read_screen_page(backend)]
-
-    for _ in range(20):  # max 20 pages
-        await backend.press_key("PageDown")
-        # Idle is enough for a page that scrolls: the loop only has to be sure about the bottom (#928).
-        await backend.wait_for_ready()
-        new_text = await _read_screen_page(backend)
-        # An unchanged page is the bottom only if it stays unchanged: idle does not prove that a scroll has been
-        # painted, so give the screen the time the former fixed wait gave it (once, at the end) before stopping.
-        for _ in range(_ST22_BOTTOM_CONFIRM_READS):
-            if new_text != pages[-1]:
-                break
-            await asyncio.sleep(_ST22_BOTTOM_CONFIRM_INTERVAL_S)
-            await backend.wait_for_ready()
-            new_text = await _read_screen_page(backend)
-        if new_text == pages[-1]:
-            break  # reached bottom
-        pages.append(new_text)
-
-    return "\n".join(pages)
+    desktop = cast("DesktopBackend", backend)
+    session = desktop.require_session()
+    lines: list[str] = await desktop.com.run(lambda: read_classic_list_lines(session, _ST22_DETAIL_MAX_LINES))
+    if lines:
+        if len(lines) >= _ST22_DETAIL_MAX_LINES and not any(
+            _heading_key(line) in _CALL_STACK_HEADINGS for line in lines
+        ):
+            logger.warning(
+                "ST22 detail: read %d lines without reaching the call stack, it is not in the result", len(lines)
+            )
+        return lines
+    screen_text = await desktop.get_screen_text(keep_duplicate_labels=True)
+    return list(screen_text.labels)
 
 
-def _parse_desktop_detail_text(full_text: str, source_dump: "ST22Dump") -> "ST22DumpDetail":
-    """Parse raw dump detail text into an ST22DumpDetail model.
+def _heading_key(line: str) -> str:
+    """A line as it is compared with the section headings: trimmed, without a trailing question mark, lower case."""
+    return line.strip().rstrip("?").strip().lower()
 
-    Extracts structured fields from the free-text dump detail.
-    Falls back to metadata from the list entry if parsing fails.
+
+_WHAT_HAPPENED_HEADINGS = frozenset({"was ist passiert", "was ist geschehen", "what happened"})
+# 'What can you do?' and 'How to correct the error' (German: 'Was können Sie tun?' and 'Hinweise zur Fehlerbehebung')
+# are both advice on correcting the error: how_to_correct holds every such section.
+_HOW_TO_CORRECT_HEADINGS = frozenset(
+    {"was können sie tun", "what can you do", "how to correct the error", "hinweise zur fehlerbehebung"}
+)
+_CALL_STACK_HEADINGS = frozenset({"aktive aufrufe/ereignisse", "active calls/events"})
+# Headings that end a section; the ones above end it as well
+_OTHER_HEADINGS = frozenset(
+    {
+        "fehleranalyse",
+        "error analysis",
+        "systemumgebung",
+        "system environment",
+        "anwenderspezifische systemumgebung",
+        "informationen zur abbruchstelle",
+        "information on where terminated",
+        "quelltextauszug",
+        "source code extract",
+        "inhalte der systemfelder",
+        "contents of system fields",
+        "ausgewählte variablen",
+        "chosen variables",
+        "aktive aufrufe im sap-kernel",
+        "active calls in sap kernel",
+        "anwender und transaktion",
+        "user and transaction",
+        "kurztext",
+        "short text",
+        "interne notizen",
+        "internal notes",
+    }
+)
+_ALL_HEADINGS = _WHAT_HAPPENED_HEADINGS | _HOW_TO_CORRECT_HEADINGS | _CALL_STACK_HEADINGS | _OTHER_HEADINGS
+
+# One call stack entry: number, kind, program, include and (if the list is wide enough to show it) the line number;
+# the name of the called method or form follows on the next line.
+_CALL_STACK_ENTRY = re.compile(r"^(\d+)\s+([A-Z][A-Z_]*)\s+(\S+)\s+(\S+)(?:\s+(\d+))?$")
+_MAX_CALL_STACK_ENTRIES = 20
+
+
+def _section_text(lines: list[str], headings: frozenset[str]) -> str:
+    """The lines below every heading in ``headings`` (in screen order), each up to the next known heading."""
+    body: list[str] = []
+    collecting = False
+    for line in lines:
+        key = _heading_key(line)
+        if key in _ALL_HEADINGS:
+            collecting = key in headings
+        elif collecting and line.strip():
+            body.append(line.strip())
+    return "\n".join(body)
+
+
+def _call_stack_entries(lines: list[str]) -> list[tuple[re.Match[str], str]]:
+    """The entries (match of the first line, name of the second) of the call stack section, topmost first."""
+    entries: list[tuple[re.Match[str], str]] = []
+    for index, line in enumerate(lines):
+        if _heading_key(line) not in _CALL_STACK_HEADINGS:
+            continue
+        position = index + 1
+        while position < len(lines) and _heading_key(lines[position]) not in _ALL_HEADINGS:
+            match = _CALL_STACK_ENTRY.match(lines[position].strip())
+            if match:
+                name = ""
+                following = lines[position + 1].strip() if position + 1 < len(lines) else ""
+                if (
+                    following
+                    and not _CALL_STACK_ENTRY.match(following)
+                    and _heading_key(following) not in _ALL_HEADINGS
+                ):
+                    name = following
+                    position += 1
+                entries.append((match, name))
+                if len(entries) >= _MAX_CALL_STACK_ENTRIES:
+                    return entries
+            position += 1
+        break
+    return entries
+
+
+def _parse_desktop_detail_lines(lines: list[str], source_dump: "ST22Dump") -> "ST22DumpDetail":
+    """Parse the lines of the dump detail screen into an ST22DumpDetail model.
+
+    The screen is made of sections under headings ('What happened?', 'What can you do?', 'Error analysis', ... in
+    German or English). The call stack lists the topmost call first, which is where the program terminated: program,
+    include and line come from it. Without a call stack the metadata of the list entry is kept.
     """
-    what_happened = ""
-    how_to_correct = ""
-    call_stack: list[str] = []
+    stack = _call_stack_entries(lines)
     program = source_dump.program
-    error_type = source_dump.error_type
+    include = source_dump.include
     line: int | None = None
-
-    # Extract "What happened" section
-    wh_match = re.search(r"(?:Was ist geschehen|What happened)\??\s*\n(.*?)(?:\n\s*\n|\Z)", full_text, re.DOTALL)
-    if wh_match:
-        what_happened = wh_match.group(1).strip()
-
-    # Extract "How to correct" section
-    hc_match = re.search(
-        r"(?:Was können Sie tun|How to correct|Fehlerbehandlung)\??\s*\n(.*?)(?:\n\s*\n|\Z)", full_text, re.DOTALL
-    )
-    if hc_match:
-        how_to_correct = hc_match.group(1).strip()
-
-    # Extract source line
-    line_match = re.search(r"(?:Zeile|Line|Quelltext)[:\s]+(\d+)", full_text)
-    if line_match:
-        line = int(line_match.group(1))
-
-    # Extract call stack lines (lines starting with typical call stack patterns)
-    for stack_line in re.findall(r"^\s*\d+\s+\S+.*$", full_text, re.MULTILINE):
-        stripped = stack_line.strip()
-        if stripped and len(stripped) > 10:
-            call_stack.append(stripped)
-
-    # Truncate raw text to ~10KB
-    raw_text = full_text[:10240]
-
+    if stack:
+        top, _top_name = stack[0]
+        # The topmost call is where the program terminated: program, include and line belong together
+        program = top.group(3)
+        include = top.group(4)
+        line = int(top.group(5)) if top.group(5) else None
+    call_stack = [" ".join(part for part in (*match.groups(default=""), name) if part) for match, name in stack]
     return ST22DumpDetail(
-        error_type=error_type,
+        error_type=source_dump.error_type,
         short_text=source_dump.short_text,
-        what_happened=what_happened,
-        how_to_correct=how_to_correct,
+        what_happened=_section_text(lines, _WHAT_HAPPENED_HEADINGS),
+        how_to_correct=_section_text(lines, _HOW_TO_CORRECT_HEADINGS),
         program=program,
-        include=source_dump.include,
+        include=include,
         line=line,
-        call_stack=call_stack[:20],  # limit to 20 entries
-        raw_text=raw_text,
+        call_stack=call_stack,
+        raw_text="\n".join(lines)[:10240],  # truncated to ~10 KB
     )
 
 
@@ -444,10 +497,10 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
     # Wait for the detail screen (new title, new status text or a popup) instead of a fixed time (#928), then read
     # it by scrolling through the pages. Bounded by the former fixed wait: if nothing changes, read what is there.
     await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=_ST22_DETAIL_WAIT_MS)
-    detail_text = await _capture_desktop_detail(backend)
+    detail_lines = await _capture_desktop_detail(backend)
 
     # Parse the detail text into structured fields
-    detail = _parse_desktop_detail_text(detail_text, target_dump)
+    detail = _parse_desktop_detail_lines(detail_lines, target_dump)
 
     return ST22DumpDetailResult(detail=detail, retrieved_at=now)
 

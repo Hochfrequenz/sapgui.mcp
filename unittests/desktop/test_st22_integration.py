@@ -74,18 +74,25 @@ async def test_st22_future_date_empty(backend):
 @skip_no_sap
 @pytest.mark.anyio
 async def test_st22_dump_detail(backend):
-    """ST22: if today has dumps, fetch detail for dump_index=0."""
-    list_result = await _st22_lookup_desktop(backend, target_date=date.today().isoformat(), dump_index=None)
-    await go_home(backend)
-    if list_result.dump_count == 0:
-        pytest.skip("No dumps today to fetch detail for")
-    detail = await _st22_lookup_desktop(backend, target_date=date.today().isoformat(), dump_index=0)
+    """ST22: fetch the detail of dump_index=0 of today (or yesterday); its sections must be parsed, not just dumped."""
+    for day in (date.today(), date.today() - timedelta(days=1)):
+        list_result = await _st22_lookup_desktop(backend, target_date=day.isoformat(), dump_index=None)
+        await go_home(backend)
+        if list_result.dump_count:
+            break
+    else:
+        pytest.skip("No dumps today or yesterday to fetch detail for")
+    detail = await _st22_lookup_desktop(backend, target_date=day.isoformat(), dump_index=0)
     assert detail is not None
     assert detail.success, f"ST22 detail failed: {detail.error}"
     # Verify detail model fields
     assert hasattr(detail, "detail")
     assert detail.detail is not None
     assert detail.detail.raw_text, "raw_text should be non-empty"
+    assert detail.detail.what_happened, "the 'What happened?' section should be parsed"
+    assert detail.detail.how_to_correct, "the 'What can you do?' section should be parsed"
+    assert detail.detail.call_stack, "the call stack should be parsed"
+    assert "ScreenText(" not in detail.detail.raw_text, "raw_text must be the screen's lines, not a model repr"
     await go_home(backend)
 
 
