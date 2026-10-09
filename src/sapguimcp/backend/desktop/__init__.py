@@ -438,6 +438,25 @@ def _row_filled(rows: list[dict[str, Any]], number: int) -> bool:
     return any(row["row"] == number and any(value.strip() for value in row["data"].values()) for row in rows)
 
 
+def _table_control_row_total(row_count: int, visible: int, shown: int) -> int:
+    """The number of rows a table control really holds.
+
+    ``RowCount`` is not that number: SAP adds empty lines so that the last row can be scrolled to the top, and the
+    control reports ``rows + VisibleRowCount - 1``. This was measured on several table controls (SE11 field lists,
+    SE24 method and attribute lists, SM30 views) of SAP ERP 6.0 and S/4HANA 2025, with the real number from SE16 or
+    the screen; it is not documented by SAP. A control that does not pad cannot be told from a padded one by its
+    numbers alone, but one whose window shows more rows (``shown``: the index after the last non-empty line) than
+    the padded relation allows is not padded: its ``RowCount`` is the number. A long control that does not pad and is
+    shown from its top (``RowCount >= 2 * VisibleRowCount - 1``) is undercounted. When the table fits its window
+    (``RowCount <= VisibleRowCount``) the relation is ambiguous for no or one row, so what the window shows is the
+    number.
+    """
+    if row_count <= visible:
+        return shown
+    padded_total = row_count - visible + 1
+    return padded_total if padded_total >= shown else row_count
+
+
 def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: int) -> dict[str, Any]:
     """The ``TableData`` fields for a ``GuiTableControl``: the rows of its window within the requested range.
 
@@ -445,8 +464,10 @@ def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: 
     ``VerticalScrollbar.Position`` is a server round trip that is known to fail or crash SAP GUI when the control sits
     in a tab subscreen (#387, #937), so it is not done here: the window is read with one ``dump_tree`` call, and a
     row's absolute index is the window's first row plus its row in the window. Rows outside the window are not
-    returned; ``total_rows`` is ``RowCount``, so the gap is visible. ``start_row`` and ``end_row`` are those of the
-    rows returned (``end_row`` is ``None`` and ``start_row`` the requested one if none is in the window). The window
+    returned; ``total_rows`` is the number of rows the control really holds (not ``RowCount``, see
+    ``_table_control_row_total``), so the gap is visible and ``truncated`` is only set if rows are missing.
+    ``start_row`` and ``end_row`` are those of the rows returned (``end_row`` is ``None`` and ``start_row`` the
+    requested one if none is in the window). The window
     also shows empty lines after the last row, and a last line that is only partly visible reads as empty: empty
     lines at the end are dropped. A scrollbar that cannot be read although the table is longer than its window
     raises: the row numbers would be guesses.
@@ -454,14 +475,24 @@ def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: 
     raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
     columns = _table_control_columns(raw)
     row_count = int(raw.RowCount)
-    first = int(raw.VerticalScrollbar.Position) if row_count > int(raw.VisibleRowCount) else 0
+    visible = int(raw.VisibleRowCount)
+    first = int(raw.VerticalScrollbar.Position) if row_count > visible else 0
     wanted_end = min(end_row or (start_row + max_rows - 1), row_count)
     # SAP GUI fills a table control's cells after the screen appears: a read straight away can show only the first
     # rows. The window counts as complete when two reads in a row agree and it shows the lines it should (all but
-    # the last, which may be only partly visible and then reads as empty).
-    visible = int(raw.VisibleRowCount)
-    # the last window line may be only partly visible, unless the table ends within the window
-    checked_until = first + min(visible, row_count - first) + (1 if row_count - first <= visible else 0)
+    # the last, which may be only partly visible and then reads as empty). How many lines it should show comes from
+    # the rows the control really holds, not from RowCount, which counts empty lines: a short table would otherwise
+    # wait for lines that stay empty. A table that fits its window (RowCount <= VisibleRowCount: none or one row, or a
+    # control that does not pad) is expected to show RowCount rows, the last one included.
+    # Trade-off: a control that does not pad and is still filling can show only the padded estimate's rows twice in a
+    # row and be taken as complete. Waiting for RowCount rows instead would make every short padded table (the
+    # measured case) wait out the whole timeout, and nothing in the control tells the two apart.
+    if row_count > visible:
+        estimated_total = row_count - visible + 1
+        # the last window line may be only partly visible, unless the table ends within the window
+        checked_until = min(first + visible, estimated_total) + (1 if estimated_total <= first + visible else 0)
+    else:
+        checked_until = row_count + 1
     deadline = time.monotonic() + _TABLE_CONTROL_SETTLE_TIMEOUT_S
     previous: list[dict[str, Any]] | None = None
     while True:
@@ -481,17 +512,23 @@ def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: 
         if rows == previous and filled >= expected:
             break
         if time.monotonic() >= deadline:
-            logger.warning("The table control did not show all its rows within %.1f s", _TABLE_CONTROL_SETTLE_TIMEOUT_S)
+            if window or row_count > visible:
+                logger.warning(
+                    "The table control did not show all its rows within %.1f s", _TABLE_CONTROL_SETTLE_TIMEOUT_S
+                )
+            # else: RowCount == VisibleRowCount with nothing shown is an empty padded control, not a slow one
             break
         previous = rows
         time.sleep(_TABLE_CONTROL_SETTLE_POLL_S)
+    total_rows = _table_control_row_total(row_count, visible, first + len(window))
+    wanted_end = min(end_row or (start_row + max_rows - 1), total_rows)
     truncated = len(rows) < wanted_end - start_row + 1
     if truncated:
-        logger.info("Only %d of %d table control rows are in its window", len(rows), row_count)
+        logger.info("Only %d of %d table control rows are in its window", len(rows), total_rows)
     return {
         "headers": [header for header, _ in columns],
         "rows": rows,
-        "total_rows": row_count,
+        "total_rows": total_rows,
         "start_row": rows[0]["row"] if rows else start_row,
         "end_row": rows[-1]["row"] if rows else None,
         "truncated": truncated,
