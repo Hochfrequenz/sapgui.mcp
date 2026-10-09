@@ -38,6 +38,10 @@ class SM37JobListResult(ToolResult):
 
     jobs: list[SM37Job] = Field(default_factory=list, description="List of matching jobs")
     job_count: int = Field(default=0, description="Number of jobs returned")
+    jobs_truncated: bool = Field(
+        default=False,
+        description="True if more jobs match than were returned (the lookup returns a limited number)",
+    )
     filters_applied: dict[str, str] = Field(
         default_factory=dict,
         description="Summary of filters that were applied",

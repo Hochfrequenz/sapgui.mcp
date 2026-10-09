@@ -330,8 +330,9 @@ class TableData(ToolResult):
     end_row: int | None = Field(default=None, ge=1, description="Last row returned")
     truncated: bool = Field(
         default=False,
-        description="True if rows of the requested range are missing because a table control (e.g. SE24 methods) "
-        "only holds the rows in its window; enlarge the SAP GUI window or narrow the range",
+        description="True if rows of the requested range are missing: a table control (e.g. SE24 methods) only holds "
+        "the rows in its window (enlarge the SAP GUI window or narrow the range), or a classic list was read up to "
+        "its row limit",
     )
     alv: AlvMetadata | None = Field(
         default=None,

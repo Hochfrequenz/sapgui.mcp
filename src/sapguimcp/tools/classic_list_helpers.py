@@ -95,10 +95,12 @@ def read_classic_list_table(session: Any, header_titles: tuple[str, ...], max_ro
 
     titles: dict[int, str] | None = None
     header_line = -1  # absolute row of the header line
+    more_than_returned = False  # the list holds more entries than ``max_rows``
     entries: dict[int, dict[str, str]] = {}
     positions = _scroll_positions(maximum, page_size)
     try:
-        for wanted in dict.fromkeys(positions):
+        pages = list(dict.fromkeys(positions))
+        for page_index, wanted in enumerate(pages):
             if scrollbar is not None and maximum > 0:
                 scrollbar.position = wanted  # always, so a list that starts scrolled is read from its top
             offset = int(scrollbar.position) if scrollbar is not None and maximum > 0 else 0  # SAP clamps: where it is
@@ -116,6 +118,7 @@ def read_classic_list_table(session: Any, header_titles: tuple[str, ...], max_ro
                 if row in labels and offset + row > header_line and (offset + row) not in entries:
                     entries[offset + row] = _entry(labels[row], titles)
             if len(entries) >= max_rows:
+                more_than_returned = len(entries) > max_rows or page_index < len(pages) - 1
                 break
     finally:
         if scrollbar is not None and maximum > 0:
@@ -129,7 +132,7 @@ def read_classic_list_table(session: Any, header_titles: tuple[str, ...], max_ro
     ordered = [entries[row] for row in sorted(entries)][:max_rows]
     headers = [titles[column] for column in sorted(titles)]
     rows = [TableRow(row=index, data=entry) for index, entry in enumerate(ordered, start=1)]
-    return TableData(success=True, headers=headers, rows=rows, total_rows=len(rows))
+    return TableData(success=True, headers=headers, rows=rows, total_rows=len(rows), truncated=more_than_returned)
 
 
 def select_first_classic_list_entry(session: Any, header_titles: tuple[str, ...]) -> bool:
