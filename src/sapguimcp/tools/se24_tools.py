@@ -11,11 +11,12 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RETRYABLE_COM_ERRORS, _get_com_error_code
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se24_parser import SE24TabSnapshots, parse_se24_snapshot
 from sapguimcp.backend.webgui.types import AriaSnapshot
@@ -131,6 +132,72 @@ async def _click_tab_bilingual(backend: DesktopBackend, de_label: str, en_label:
     return None
 
 
+# The header data of a class or interface is on its properties tab ('Eigenschaften' / 'Properties'), read by field name:
+# the description and package of a class and of an interface have different names
+_HEADER_TEXT_FIELDS = {
+    "VSEOCLASS-DESCRIPT": "description",
+    "VSEOINTERF-DESCRIPT": "description",
+    "DY_0152-DEVCLASS": "package",
+    "DY_0153-DEVCLASS": "package",
+    "DY_0152-SUPERCLASS": "superclass",
+}
+_HEADER_FINAL = "VSEOCLASS-CLSFINAL"  # checkbox
+_HEADER_INSTANTIATION = "SEOX-CREATABLE"  # combo box: public / protected / private / abstract
+# The key of 'abstract' in the instantiation combo box (private is '0'): the same in every logon language
+_ABSTRACT_INSTANTIATION_KEY = "3"
+_ABSTRACT_INSTANTIATION_TEXTS = ("abstrakt", "abstract")  # the text, if the key cannot be read
+_TYPE_TEXT_FIELDS = (31, 32)  # GuiTextField, GuiCTextField
+_TYPE_COMBO_BOX = 34
+_TYPE_CHECK_BOX = 42
+
+
+def _reraise_if_transient(exc: Exception) -> None:
+    """Re-raise a lost connection and the errors the COM thread retries: swallowing them would return partial header
+    data instead of retrying."""
+    if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RETRYABLE_COM_ERRORS):
+        raise exc
+
+
+def _is_abstract_instantiation(session: Any, elem: Any) -> bool:
+    """Whether the instantiation combo box says abstract: by its key, by its text if the key cannot be read."""
+    try:
+        return str(session.find_by_id(elem.id).key).strip() == _ABSTRACT_INSTANTIATION_KEY
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        _reraise_if_transient(exc)
+        logger.debug("SE24 instantiation key not readable, using the text", exc_info=True)
+        return str(elem.text).strip().lower() in _ABSTRACT_INSTANTIATION_TEXTS
+
+
+def _read_se24_header(session: Any, flatten_fn: Any) -> dict[str, str | bool]:
+    """The header data of the class or interface from the active properties tab (COM thread), by field name.
+
+    Keys: ``description``, ``package``, ``superclass`` (only a subclass shows it), ``is_final`` and ``is_abstract``.
+    A value that cannot be read is left out and logged; the others are still read.
+    """
+    values: dict[str, str | bool] = {}
+    try:
+        wnd = session.find_by_id("wnd[0]")
+        elements = list(flatten_fn(wnd.dump_tree()))
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        _reraise_if_transient(exc)
+        logger.warning("SE24 header data could not be read from the properties tab", exc_info=True)
+        return values
+    for elem in elements:
+        name = getattr(elem, "name", "")
+        kind = getattr(elem, "type_as_number", None)
+        try:
+            if name in _HEADER_TEXT_FIELDS and kind in _TYPE_TEXT_FIELDS:
+                values[_HEADER_TEXT_FIELDS[name]] = str(elem.text).strip()
+            elif name == _HEADER_FINAL and kind == _TYPE_CHECK_BOX:
+                values["is_final"] = bool(session.find_by_id(elem.id).selected)
+            elif name == _HEADER_INSTANTIATION and kind == _TYPE_COMBO_BOX:
+                values["is_abstract"] = _is_abstract_instantiation(session, elem)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            _reraise_if_transient(exc)
+            logger.warning("SE24 header field %s could not be read", name, exc_info=True)
+    return values
+
+
 async def _read_tab_rows(
     backend: DesktopBackend, de_label: str, en_label: str, previous_rows: list[dict[str, str]]
 ) -> list[dict[str, str]]:
@@ -231,13 +298,10 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     attrs_raw = await _read_tab_rows(backend, "Attribute", "Attributes", previous_rows=methods_raw)
     intfs_raw = await _read_tab_rows(backend, "Schnittstellen", "Interfaces", previous_rows=attrs_raw)
 
-    # Read description from screen fields and detect object type from title
-    fields = await backend.discover_fields()
-    description = ""
-    for f in fields:
-        if f.name and "DESCRIPT" in f.name.upper():
-            description = f.value or ""
-            break
+    # The header data (description, package, superclass, final, abstract) is on the properties tab. It is read last:
+    # that tab has a table control of its own (type groups) that must not be taken for the methods of the class.
+    await _click_tab_bilingual(backend, "Eigenschaften", "Properties")
+    header = await com.run(lambda: _read_se24_header(session, _flatten))
 
     # Detect interface vs class from screen title
     # DE: "Class Builder: Interface IF_XXX anzeigen" / "Klasse CL_XXX anzeigen"
@@ -248,7 +312,11 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     return SE24Entry(
         class_name=class_name.upper(),
         object_type=object_type,
-        description=description,
+        description=str(header.get("description") or ""),
+        package=str(header.get("package") or ""),
+        superclass=str(header.get("superclass") or "") or None,
+        is_abstract=bool(header.get("is_abstract")),
+        is_final=bool(header.get("is_final")),
         methods=_parse_methods(methods_raw),
         attributes=_parse_attributes(attrs_raw),
         interfaces=[row.get("Interface", "") for row in intfs_raw if row.get("Interface")],
