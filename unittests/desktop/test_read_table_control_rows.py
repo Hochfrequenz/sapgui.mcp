@@ -47,8 +47,13 @@ class _TableControl:
     empty, like on SAP GUI.
     """
 
-    def __init__(self, row_count: int, visible: int = 20, first: int = 0, scrollbar: bool = True) -> None:
-        self.RowCount = row_count
+    def __init__(
+        self, row_count: int, visible: int = 20, first: int = 0, scrollbar: bool = True, *, padded: bool = False
+    ) -> None:
+        # ``padded``: ``row_count`` is the number of real rows and the control reports ``RowCount`` like SAP does,
+        # rows + VisibleRowCount - 1 (empty lines let the last row be scrolled to the top)
+        self.real_rows = row_count
+        self.RowCount = row_count + visible - 1 if padded else row_count
         self.VisibleRowCount = visible
         self._scrollbar = _Scrollbar(first)
         self._has_scrollbar = scrollbar
@@ -67,7 +72,7 @@ class _TableControl:
         for row in range(self.VisibleRowCount):
             index = self._scrollbar.Position + row
             for col, header in enumerate(_HEADERS):
-                text = f"{header}{index}" if index < self.RowCount else ""
+                text = f"{header}{index}" if index < self.real_rows else ""
                 field = f"DY-{header.upper()}"
                 shown = self.cell_columns[col]
                 elements.append(SimpleNamespace(id=f"/tbl/txt{field}[{shown},{row}]", text=text, children=[]))
@@ -131,9 +136,9 @@ def test_the_table_data_fields_describe_the_rows_returned_and_the_real_total() -
 
 
 def test_truncated_is_set_only_if_requested_rows_are_missing_from_the_window() -> None:
-    assert _read_table_control(_TableControl(32, 20), 1, None, 100)["truncated"] is True
-    assert _read_table_control(_TableControl(32, 20), 1, 10, 100)["truncated"] is False
-    assert _read_table_control(_TableControl(32, 20), 25, 30, 100)["truncated"] is True
+    assert _read_table_control(_TableControl(32, 20, padded=True), 1, None, 100)["truncated"] is True
+    assert _read_table_control(_TableControl(32, 20, padded=True), 1, 10, 100)["truncated"] is False
+    assert _read_table_control(_TableControl(32, 20, padded=True), 25, 30, 100)["truncated"] is True
     assert _read_table_control(_TableControl(5, 20, scrollbar=False), 1, None, 100)["truncated"] is False
 
 
@@ -144,7 +149,7 @@ def test_the_requested_range_limits_the_rows_and_max_rows_applies_without_an_end
 
 
 def test_nothing_in_the_window_keeps_the_requested_start_and_leaves_end_row_empty() -> None:
-    data = _read_table_control(_TableControl(32, 20), 25, 30, 100)
+    data = _read_table_control(_TableControl(32, 20, padded=True), 25, 30, 100)
     assert data["rows"] == []
     assert (data["start_row"], data["end_row"], data["total_rows"]) == (25, None, 32)
 
@@ -267,7 +272,7 @@ async def test_read_table_of_a_range_outside_the_window_is_valid_table_data() ->
         return function()
 
     backend.com.run = _run  # type: ignore[method-assign]
-    with patch.object(DesktopBackend, "require_session", return_value=_Session(_TableControl(32, 20))):
+    with patch.object(DesktopBackend, "require_session", return_value=_Session(_TableControl(32, 20, padded=True))):
         data = await backend.read_table(start_row=25, end_row=30)
     assert data.rows == []
     assert (data.start_row, data.end_row, data.total_rows) == (25, None, 32)
@@ -566,3 +571,56 @@ async def test_read_table_prefers_a_table_control_to_a_tree_shell_in_front_of_it
     data = await _read_table_of(_ShellsSession({"/wnd[0]/usr/shell0": MagicMock()}, _TableControl(3, 3, first=0)))
     assert data.headers == _HEADERS
     assert data.total_rows == 3
+
+
+# --- the number of rows of a table control: RowCount counts empty lines, rows + VisibleRowCount - 1 ----------------
+
+
+def test_a_table_shorter_than_its_window_reports_its_real_rows_not_the_padded_row_count_and_is_not_truncated() -> None:
+    # e.g. a table of 4 rows in a window of 40 lines: the control reports 43 rows
+    tc = _TableControl(4, 40, padded=True)
+    assert tc.RowCount == 43
+    data = _read_table_control(tc, 1, None, 100)
+    assert (data["total_rows"], len(data["rows"]), data["truncated"]) == (4, 4, False)
+
+
+def test_a_table_longer_than_its_window_reports_its_real_rows_and_is_truncated() -> None:
+    # e.g. 70 rows in a window of 16 lines: the control reports 85 rows
+    tc = _TableControl(70, 16, padded=True)
+    assert tc.RowCount == 85
+    data = _read_table_control(tc, 1, None, 100)
+    assert (data["total_rows"], len(data["rows"]), data["truncated"]) == (70, 16, True)
+
+
+def test_a_scrolled_window_at_the_end_of_a_padded_table_is_not_truncated_for_the_rows_it_shows() -> None:
+    tc = _TableControl(30, 20, first=10, padded=True)
+    data = _read_table_control(tc, 11, 30, 100)
+    assert (data["total_rows"], len(data["rows"]), data["truncated"]) == (30, 20, False)
+
+
+def test_a_table_without_rows_reports_none_and_is_not_truncated() -> None:
+    # the control of an empty list reports RowCount == VisibleRowCount
+    tc = _TableControl(0, 19, scrollbar=False)
+    tc.RowCount = 19
+    data = _read_table_control(tc, 1, None, 100)
+    assert (data["total_rows"], data["rows"], data["truncated"]) == (0, [], False)
+
+
+@pytest.mark.parametrize(("real", "visible"), [(13, 19), (19, 19), (20, 19), (39, 19), (64, 19), (1, 19), (2, 19)])
+def test_the_real_row_total_of_the_measured_cases(real: int, visible: int) -> None:
+    tc = _TableControl(real, visible, padded=True)
+    assert _read_table_control(tc, 1, None, 1000)["total_rows"] == real
+
+
+@pytest.mark.parametrize(("real", "visible"), [(4, 40), (13, 19), (2, 19)])
+def test_a_short_padded_table_does_not_wait_for_lines_that_stay_empty(
+    real: int, visible: int, caplog: pytest.LogCaptureFixture
+) -> None:
+    """RowCount counts empty lines: the settle loop must expect the rows the table really holds, not those."""
+    tc = _TableControl(real, visible, padded=True)
+    started = time.monotonic()
+    with caplog.at_level("WARNING", logger="sapguimcp.backend.desktop"):
+        data = _read_table_control(tc, 1, None, 100)
+    assert len(data["rows"]) == real
+    assert time.monotonic() - started < 0.3  # not the full settle timeout of 0.5 s
+    assert "did not show all its rows" not in caplog.text
