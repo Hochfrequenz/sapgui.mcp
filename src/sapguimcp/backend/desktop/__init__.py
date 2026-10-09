@@ -33,6 +33,7 @@ from sapguimcp.backend.desktop import _abap_editor
 from sapguimcp.backend.desktop._com_thread import (
     _RPC_E_DISCONNECTED,
     NO_SESSION_TARGET,
+    RETRYABLE_COM_ERRORS,
     ComThread,
     SapSessionHaltedError,
     _get_com_error_code,
@@ -431,6 +432,21 @@ def _wait_for_window_resize(
                 return True
         time.sleep(_WINDOW_RESIZE_POLL_S)
     return resized_at is not None
+
+
+def _read_selected(session: Any, element_id: str) -> bool | None:
+    """The ``Selected`` state of a checkbox or radio button, ``None`` if it cannot be read.
+
+    A transient or disconnect error is re-raised: the caller's retry handles it, and swallowing it would report a
+    state that was never read.
+    """
+    try:
+        return bool(session.find_by_id(element_id).selected)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RETRYABLE_COM_ERRORS):
+            raise
+        logger.debug("Could not read the state of %s", element_id, exc_info=True)
+        return None
 
 
 def _row_filled(rows: list[dict[str, Any]], number: int) -> bool:
@@ -1680,7 +1696,8 @@ class DesktopBackend:
                     "current_value": elem.text if elem.text else None,
                 }
                 if field_type in ("checkbox", "radio"):
-                    field_dict["checked"] = bool(elem.text)
+                    # elem.text is the caption, which every labelled box has: the state is its Selected property
+                    field_dict["checked"] = _read_selected(session, elem.id)
                 fields.append(field_dict)
             return fields, wnd_id
 
