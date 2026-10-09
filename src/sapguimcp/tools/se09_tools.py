@@ -232,9 +232,10 @@ async def _set_se09_selection_screen(
     await _set_checkbox_bilingual(backend, "Freigegeben", "Released", rel_checked)
 
 
-# A SAP user name: up to 12 upper-case letters, digits and a few symbols, no blanks. A transport description that is a
-# single such word cannot be told apart from an owner (the owner is only printed when it changes, see below).
-_OWNER_LABEL = re.compile(r"^[A-Z0-9][A-Z0-9_$#.&-]{0,11}$")
+# A SAP user name: up to 12 upper-case letters, digits and a few symbols (the built-in user is SAP*), no blanks. A
+# transport description that is a single such word cannot be told apart from an owner (the owner is only printed when
+# it changes, see below).
+_OWNER_LABEL = re.compile(r"^[A-Z0-9][A-Z0-9_$#.&*-]{0,11}$")
 
 
 def _parse_labels_to_requests(labels: list[str], default_owner: str) -> list[TransportRequest]:

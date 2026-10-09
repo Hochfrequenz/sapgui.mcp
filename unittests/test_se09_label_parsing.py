@@ -174,3 +174,11 @@ async def test_screen_text_labels_are_de_duplicated_by_default_and_complete_on_r
     labels = ["a", "b", "a", "a", "c"]
     assert (await _screen_text(labels)).labels == ["a", "b", "c"]
     assert (await _screen_text(labels, keep_duplicate_labels=True)).labels == labels
+
+
+def test_the_built_in_user_sap_star_is_an_owner() -> None:
+    labels = ["ABCK900001", "SAP*", "a description", "ABCK900002", "another"]
+    assert _owners_and_descriptions(labels) == [
+        ("ABCK900001", "SAP*", "a description"),
+        ("ABCK900002", "SAP*", "another"),
+    ]
