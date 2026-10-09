@@ -640,3 +640,11 @@ def test_a_control_that_does_not_pad_keeps_its_row_count_as_the_total(first: int
     data = _read_table_control(tc, 1, None, 100)
     assert data["total_rows"] == 32
     assert data["truncated"] is True
+
+
+def test_an_empty_padded_control_does_not_warn_about_missing_rows(caplog: pytest.LogCaptureFixture) -> None:
+    tc = _TableControl(0, 19, padded=True)  # RowCount == VisibleRowCount, nothing in the window
+    with caplog.at_level("WARNING", logger="sapguimcp.backend.desktop"):
+        data = _read_table_control(tc, 1, None, 100)
+    assert (data["total_rows"], data["rows"], data["truncated"]) == (0, [], False)
+    assert "did not show all its rows" not in caplog.text

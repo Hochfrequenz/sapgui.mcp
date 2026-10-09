@@ -509,7 +509,11 @@ def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: 
         if rows == previous and filled >= expected:
             break
         if time.monotonic() >= deadline:
-            logger.warning("The table control did not show all its rows within %.1f s", _TABLE_CONTROL_SETTLE_TIMEOUT_S)
+            if window or row_count > visible:
+                logger.warning(
+                    "The table control did not show all its rows within %.1f s", _TABLE_CONTROL_SETTLE_TIMEOUT_S
+                )
+            # else: RowCount == VisibleRowCount with nothing shown is an empty padded control, not a slow one
             break
         previous = rows
         time.sleep(_TABLE_CONTROL_SETTLE_POLL_S)
