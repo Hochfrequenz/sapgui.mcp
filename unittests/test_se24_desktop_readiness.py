@@ -191,3 +191,43 @@ async def test_lookup_class_not_found_reports_the_generic_text_not_sap_s_own_mes
     result = await _lookup_class_desktop(backend, "CL_X")
     assert isinstance(result, SE24Error)
     assert result.error == "Class/interface 'CL_X' not found"
+
+
+@pytest.mark.anyio
+async def test_lookup_class_opens_the_properties_tab_last_and_returns_its_header_data() -> None:
+    backend = _lookup_backend(popup=None)
+    header = {
+        "description": "An example class",
+        "package": "ZPACKAGE",
+        "superclass": "ZCL_BASE",
+        "is_abstract": True,
+        "is_final": False,
+    }
+    clicked: list[str] = []
+    backend.click_tab = AsyncMock(side_effect=clicked.append)
+    backend.com.run = AsyncMock(side_effect=lambda job: job())
+    waits_before_header: list[Any] = []
+
+    async def _record_wait(predicate: Any, **kwargs: Any) -> bool:
+        waits_before_header.append((predicate, kwargs))
+        return True
+
+    backend.wait_for_condition = AsyncMock(side_effect=_record_wait)
+    with (
+        patch("sapguimcp.tools.se24_tools.read_table_control_all_rows", return_value=[]),
+        patch("sapguimcp.tools.se24_tools._read_se24_header", return_value=header),
+    ):
+        result = await _lookup_class_desktop(backend, "CL_X")
+    assert isinstance(result, SE24Entry)
+    assert clicked[-1] == "Eigenschaften"  # last: the properties tab has a table control that is no method list
+    # the last wait before the header is read is for the tab's own description field, bounded
+    predicate, kwargs = waits_before_header[-1]
+    assert predicate.__qualname__.startswith("named_text_field_present.")
+    assert kwargs == {"timeout_ms": 3000, "poll_ms": 250}
+    assert (result.description, result.package, result.superclass, result.is_abstract, result.is_final) == (
+        "An example class",
+        "ZPACKAGE",
+        "ZCL_BASE",
+        True,
+        False,
+    )

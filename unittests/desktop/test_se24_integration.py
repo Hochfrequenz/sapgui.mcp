@@ -23,6 +23,11 @@ async def test_se24_lookup_class(backend):
     assert result.class_name == "CL_ABAP_CHAR_UTILITIES"
     assert len(result.methods) > 0, "Should have methods"
     assert len(result.attributes) > 0, "Should have attributes"
+    # The header data of the properties tab
+    assert result.description, "description should be read from the properties tab"
+    assert result.package, "package should be read from the properties tab"
+    assert result.is_final, "CL_ABAP_CHAR_UTILITIES is a final class"
+    assert not result.is_abstract
     # Verify JSON roundtrip
     json_str = result.model_dump_json()
     parsed = json.loads(json_str)
