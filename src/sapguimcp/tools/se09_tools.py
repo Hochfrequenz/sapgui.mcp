@@ -258,8 +258,8 @@ def _parse_labels_to_requests(labels: list[str], default_owner: str) -> list[Tra
                 labels[j] if j < len(labels) and not transport_re.match(labels[j]) else None for j in (i + 1, i + 2)
             ]
             # An owner is followed by the description, so a user-like label that is the last one of the request is
-            # a one-word description (unless no owner is known yet: the first request always prints its owner).
-            if after[0] is not None and _OWNER_LABEL.match(after[0]) and (after[1] is not None or not current_owner):
+            # a one-word description (except on the first request, which always prints its owner).
+            if after[0] is not None and _OWNER_LABEL.match(after[0]) and (after[1] is not None or not requests):
                 current_owner = after[0]
                 desc = after[1] or ""
             else:

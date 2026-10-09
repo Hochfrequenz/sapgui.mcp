@@ -70,3 +70,16 @@ def test_the_owner_of_the_first_request_is_taken_even_without_a_description() ->
         ("ABCK900001", "USER1", ""),
         ("ABCK900002", "USER1", "x"),
     ]
+
+
+def test_the_owner_of_the_first_request_is_taken_with_a_username_filter_too() -> None:
+    # a lookup for USER2: the default owner is the filter, the first request prints its owner without a description
+    assert _owners_and_descriptions(["ABCK900001", "USER2", "ABCK900002", "x"], default_owner="USER2") == [
+        ("ABCK900001", "USER2", ""),
+        ("ABCK900002", "USER2", "x"),
+    ]
+    # and with a different printed owner than the filter (a pattern filter): the printed one wins
+    assert _owners_and_descriptions(["ABCK900001", "USER3", "ABCK900002"], default_owner="USER*") == [
+        ("ABCK900001", "USER3", ""),
+        ("ABCK900002", "USER3", ""),
+    ]
