@@ -54,17 +54,20 @@ def _get_raw_tc(session: Any, element_id: str) -> Any:
 
 
 _CELL_ID_SUFFIX = re.compile(r"\[(\d+),(\d+)\]$")  # table control cell ids end in [column,row] (page-relative)
+_TYPE_CHECKBOX = 42  # GuiCheckBox
+_CHECKED = "X"
 
 
-def _read_visible_page_from_tree(
-    session: Any, element_id: str, col_titles: list[str], count: int, flatten_fn: Any
+def _read_visible_page_from_tree(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    session: Any, element_id: str, col_titles: list[str], count: int, flatten_fn: Any, read_checkboxes: bool = False
 ) -> list[dict[str, str]] | None:
     """Read *count* visible rows with one ``dump_tree()`` call instead of two COM calls per cell (#928).
 
     Cells are recognised by their ``[column,row]`` id suffix. Returns ``None`` when the dump contains no cells or
     fewer than *count* rows (e.g. a page that was not repainted yet), or fails, so the caller can fall back to
     ``_read_visible_page``. As there, a missing cell within a row leaves its column out of that row. A lost COM
-    connection is not swallowed.
+    connection is not swallowed. A checkbox has no text: with ``read_checkboxes`` its state is read (one COM call per
+    checkbox) and the cell holds ``"X"`` when it is checked, ``""`` otherwise.
     """
     try:
         tree = session.find_by_id(element_id).dump_tree()
@@ -72,7 +75,10 @@ def _read_visible_page_from_tree(
         for elem in flatten_fn(tree):
             match = _CELL_ID_SUFFIX.search(elem.id)
             if match:
-                cells[(int(match.group(2)), int(match.group(1)))] = elem.text
+                text = elem.text
+                if read_checkboxes and elem.type_as_number == _TYPE_CHECKBOX:
+                    text = _CHECKED if session.find_by_id(elem.id).selected else ""
+                cells[(int(match.group(2)), int(match.group(1)))] = text
     except Exception as exc:  # pylint: disable=broad-exception-caught
         if _get_com_error_code(exc) == _RPC_E_DISCONNECTED:
             raise
@@ -88,14 +94,20 @@ def _read_visible_page_from_tree(
     return [{title: cells[(r, c)] for c, title in enumerate(col_titles) if (r, c) in cells} for r in range(count)]
 
 
-def _read_visible_page(raw: Any, col_titles: list[str], count: int) -> list[dict[str, str]]:
-    """Read *count* visible rows from a (freshly-found) table control."""
+def _read_visible_page(
+    raw: Any, col_titles: list[str], count: int, read_checkboxes: bool = False
+) -> list[dict[str, str]]:
+    """Read *count* visible rows from a freshly-found table control (checkboxes as in the tree reader above)."""
     rows: list[dict[str, str]] = []
     for r in range(count):
         row_data: dict[str, str] = {}
         for c, title in enumerate(col_titles):
             try:
-                row_data[title] = raw.GetCell(r, c).Text
+                cell = raw.GetCell(r, c)
+                if read_checkboxes and getattr(cell, "Type", "") == "GuiCheckBox":
+                    row_data[title] = _CHECKED if cell.Selected else ""
+                else:
+                    row_data[title] = cell.Text
             except Exception:  # pylint: disable=broad-exception-caught
                 pass
         rows.append(row_data)
@@ -120,8 +132,10 @@ def read_table_control(session: Any, flatten_fn: Any) -> list[dict[str, str]]:
     return _read_visible_page(raw, col_titles, readable)
 
 
-def read_table_control_all_rows(session: Any, flatten_fn: Any) -> list[dict[str, str]]:
+def read_table_control_all_rows(session: Any, flatten_fn: Any, read_checkboxes: bool = False) -> list[dict[str, str]]:
     """Read ALL rows from the first GuiTableControl, scrolling as needed.
+
+    With ``read_checkboxes``, checkbox cells (e.g. the key flag of an SE11 field list) hold ``"X"`` when checked.
 
     After each ``VerticalScrollbar.Position`` change the table control is
     **re-found** via ``findById`` so that the COM cell references are fresh.
@@ -134,31 +148,50 @@ def read_table_control_all_rows(session: Any, flatten_fn: Any) -> list[dict[str,
     element_id, col_titles, total, visible = info
 
     if total <= visible:
-        page = _read_visible_page_from_tree(session, element_id, col_titles, total, flatten_fn)
+        page = _read_visible_page_from_tree(session, element_id, col_titles, total, flatten_fn, read_checkboxes)
         if page is not None:
             return page
         raw = _get_raw_tc(session, element_id)
-        return _read_visible_page(raw, col_titles, total)
+        return _read_visible_page(raw, col_titles, total, read_checkboxes)
 
     rows: list[dict[str, str]] = []
-    scroll_pos = 0
+    first_row = 0  # index of the first row the control shows
+    scrolled = False
     while len(rows) < total:
         # Re-find the table control to get fresh cell references
         raw = _get_raw_tc(session, element_id)
-        readable = min(visible, total - len(rows))
-        page = _read_visible_page_from_tree(session, element_id, col_titles, readable, flatten_fn)
-        rows.extend(page if page is not None else _read_visible_page(raw, col_titles, readable))
-        scroll_pos += visible
-        if scroll_pos >= total:
+        # SAP does not scroll past the last full page: the control then shows rows that were read already. They are
+        # skipped, so that the rows after the last full page are not lost and none is read twice.
+        already_read = len(rows) - first_row
+        if already_read < 0:
+            logger.warning(
+                "Table control page starts at row %d, after the first unread row %d: stopping at %d of %d rows",
+                first_row,
+                len(rows),
+                len(rows),
+                total,
+            )
+            break
+        readable = min(visible, total - first_row)
+        page = _read_visible_page_from_tree(session, element_id, col_titles, readable, flatten_fn, read_checkboxes)
+        if page is None:
+            page = _read_visible_page(raw, col_titles, readable, read_checkboxes)
+        new_rows = page[already_read:]
+        if not new_rows:
+            break
+        rows.extend(new_rows)
+        if len(rows) >= total:
             break
         try:
-            raw.VerticalScrollbar.Position = scroll_pos
+            raw.VerticalScrollbar.Position = len(rows)
+            scrolled = True
+            first_row = int(_get_raw_tc(session, element_id).VerticalScrollbar.Position)
         except Exception:  # pylint: disable=broad-exception-caught
-            logger.debug("Scrollbar position change failed", extra={"position": scroll_pos})
+            logger.debug("Scrollbar position change failed", extra={"position": len(rows)})
             break
 
     # Scroll back to top
-    if scroll_pos > visible:
+    if scrolled:
         try:
             raw = _get_raw_tc(session, element_id)
             raw.VerticalScrollbar.Position = 0
