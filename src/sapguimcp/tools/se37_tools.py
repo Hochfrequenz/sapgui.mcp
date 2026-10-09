@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RETRYABLE_COM_ERRORS, _get_com_error_code
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se37_parser import SE37TabSnapshots, parse_se37_snapshot
 from sapguimcp.backend.webgui.types import AriaSnapshot
@@ -74,6 +75,50 @@ async def _click_tab_bilingual(backend: WebGuiBackend | DesktopBackend, de_label
             continue
     logger.warning("Tab not found: %s / %s", de_label, en_label)
     return None
+
+
+# The header data of the function module is on its attributes tab ('Eigenschaften' / 'Attributes'), read by field name
+_HEADER_GROUP = "HEADER-AREA"
+_HEADER_SHORT_TEXT = "TFTIT-STEXT"
+_HEADER_PACKAGE = "TADIR-DEVCLASS"
+_HEADER_REMOTE = "RS38L-REMOTE"  # the radio button 'remote-enabled function module'
+_TYPE_TEXT_FIELDS = (31, 32)  # GuiTextField, GuiCTextField
+_TYPE_RADIO_BUTTON = 41
+
+
+def _reraise_if_transient(exc: Exception) -> None:
+    """Re-raise a lost connection and the errors the COM thread retries: swallowing them would return partial header
+    data (blank fields, RFC flag false) instead of retrying."""
+    if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RETRYABLE_COM_ERRORS):
+        raise exc
+
+
+def _read_se37_header(session: Any, flatten_fn: Any) -> dict[str, str | bool]:
+    """The header data of the function module from the active attributes tab (COM thread), by field name.
+
+    A label can carry the name of the field it labels, so the element type has to fit as well. A value that cannot
+    be read is left out and the others are still read.
+    """
+    values: dict[str, str | bool] = {}
+    try:
+        wnd = session.find_by_id("wnd[0]")
+        elements = list(flatten_fn(wnd.dump_tree()))
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        _reraise_if_transient(exc)
+        logger.warning("SE37 header data could not be read from the attributes tab", exc_info=True)
+        return values
+    for elem in elements:
+        name = getattr(elem, "name", "")
+        kind = getattr(elem, "type_as_number", None)
+        try:
+            if name in (_HEADER_GROUP, _HEADER_SHORT_TEXT, _HEADER_PACKAGE) and kind in _TYPE_TEXT_FIELDS:
+                values[name] = str(elem.text).strip()
+            elif name == _HEADER_REMOTE and kind == _TYPE_RADIO_BUTTON:
+                values[name] = bool(session.find_by_id(elem.id).selected)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            _reraise_if_transient(exc)
+            logger.warning("SE37 header field %s could not be read", name, exc_info=True)
+    return values
 
 
 async def _read_tab_rows(
@@ -204,6 +249,11 @@ async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
     session = backend.require_session()
     com = backend.com
 
+    # The header data (function group, short text, package, RFC) is on the attributes tab, whose subscreen is only
+    # instantiated once the tab is selected
+    await _click_tab_bilingual(backend, "Eigenschaften", "Attributes")
+    header = await com.run(lambda: _read_se37_header(session, _flatten))
+
     # Read Import tab: try reading first (default tab), click only if table is empty.
     # SAP lazily instantiates tab subscreen controls — the table control may not
     # exist in the widget tree until the tab is explicitly activated by a click.
@@ -224,17 +274,12 @@ async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
         if name:
             exceptions.append(SE37Exception(name=name, description=row.get("Kurztext", row.get("Short Text", ""))))
 
-    # Read description from fields
-    fields = await backend.discover_fields()
-    description = ""
-    for f in fields:
-        if f.name and "STEXT" in f.name.upper():
-            description = f.value or ""
-            break
-
     return SE37Entry(
         function_module=fm_name.upper(),
-        description=description,
+        function_group=str(header.get(_HEADER_GROUP) or "") or None,
+        description=str(header.get(_HEADER_SHORT_TEXT) or ""),
+        package=str(header.get(_HEADER_PACKAGE) or "") or None,
+        is_rfc_enabled=bool(header.get(_HEADER_REMOTE)),
         import_parameters=_parse_se37_params(import_rows, "import"),
         export_parameters=_parse_se37_params(export_rows, "export"),
         changing_parameters=_parse_se37_params(changing_rows, "changing"),
