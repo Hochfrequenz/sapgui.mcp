@@ -96,3 +96,15 @@ def test_a_com_error_the_com_thread_retries_or_a_lost_connection_is_not_swallowe
 
     with pytest.raises(_ComError):
         _read_se37_header(SimpleNamespace(find_by_id=find_by_id), _flatten)
+
+
+def test_an_unreadable_radio_button_does_not_stop_the_fields_after_it() -> None:
+    elements = [_element("RS38L-REMOTE", "Remote", kind=41), _element("TADIR-DEVCLASS", "ZPACKAGE")]
+    window = SimpleNamespace(dump_tree=lambda: elements)
+
+    def find_by_id(element_id: str, **_: Any) -> Any:
+        if element_id == "wnd[0]":
+            return window
+        raise OSError("not readable")
+
+    assert _read_se37_header(SimpleNamespace(find_by_id=find_by_id), _flatten) == {"TADIR-DEVCLASS": "ZPACKAGE"}

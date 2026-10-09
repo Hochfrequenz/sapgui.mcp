@@ -86,28 +86,38 @@ _TYPE_TEXT_FIELDS = (31, 32)  # GuiTextField, GuiCTextField
 _TYPE_RADIO_BUTTON = 41
 
 
+def _reraise_if_transient(exc: Exception) -> None:
+    """Re-raise a lost connection and the errors the COM thread retries: swallowing them would return partial header
+    data (blank fields, RFC flag false) instead of retrying."""
+    if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RETRYABLE_COM_ERRORS):
+        raise exc
+
+
 def _read_se37_header(session: Any, flatten_fn: Any) -> dict[str, str | bool]:
     """The header data of the function module from the active attributes tab (COM thread), by field name.
 
     A label can carry the name of the field it labels, so the element type has to fit as well. A value that cannot
-    be read is left out: the lookup still returns the rest.
+    be read is left out and the others are still read.
     """
     values: dict[str, str | bool] = {}
     try:
         wnd = session.find_by_id("wnd[0]")
-        for elem in flatten_fn(wnd.dump_tree()):
-            name = getattr(elem, "name", "")
-            kind = getattr(elem, "type_as_number", None)
+        elements = list(flatten_fn(wnd.dump_tree()))
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        _reraise_if_transient(exc)
+        logger.warning("SE37 header data could not be read from the attributes tab", exc_info=True)
+        return values
+    for elem in elements:
+        name = getattr(elem, "name", "")
+        kind = getattr(elem, "type_as_number", None)
+        try:
             if name in (_HEADER_GROUP, _HEADER_SHORT_TEXT, _HEADER_PACKAGE) and kind in _TYPE_TEXT_FIELDS:
                 values[name] = str(elem.text).strip()
             elif name == _HEADER_REMOTE and kind == _TYPE_RADIO_BUTTON:
                 values[name] = bool(session.find_by_id(elem.id).selected)
-    except Exception as exc:  # pylint: disable=broad-exception-caught
-        # A lost connection and the errors the COM thread retries must reach it: swallowing them would return partial
-        # header data (blank fields, RFC flag false) instead of retrying
-        if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RETRYABLE_COM_ERRORS):
-            raise
-        logger.warning("SE37 header data could not be read from the attributes tab", exc_info=True)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            _reraise_if_transient(exc)
+            logger.warning("SE37 header field %s could not be read", name, exc_info=True)
     return values
 
 
