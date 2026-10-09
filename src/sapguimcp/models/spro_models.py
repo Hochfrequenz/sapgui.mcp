@@ -31,6 +31,10 @@ class SPROSearchResult(ToolResult):
     activities: list[SPROActivity] = Field(default_factory=list, description="Matching IMG activities")
     activity_count: int = Field(default=0, description="Number of activities found")
     retrieved_at: AwareDatetime = Field(description="UTC timestamp when search was executed")
+    scope_note: str | None = Field(
+        default=None,
+        description="Set when the search covers only part of the IMG: more activities may exist than are listed",
+    )
 
 
 class SPROFileSummary(ToolResult):

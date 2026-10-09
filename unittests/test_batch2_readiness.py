@@ -339,6 +339,9 @@ async def test_search_img_desktop_waits_for_tree_after_f5() -> None:
     _record(backend, events)
     result = await _search_img_desktop(backend, "x")
     assert result.activity_count == 0
+    # the desktop search reads two tree levels only: the caller is told that more matches may exist
+    assert result.scope_note is not None
+    assert "top two levels" in result.scope_note
     assert events == ["wait_for_ready", "press_key", "wait_for_ready", "wait_for_condition", "press_key", "press_key"]
     assert [c.args for c in backend.press_key.await_args_list] == [("F5",), ("F3",), ("F3",)]
     backend.wait_for_condition.assert_awaited_once_with(_spro_img_tree_loaded)
