@@ -618,9 +618,16 @@ def test_a_short_padded_table_does_not_wait_for_lines_that_stay_empty(
 ) -> None:
     """RowCount counts empty lines: the settle loop must expect the rows the table really holds, not those."""
     tc = _TableControl(real, visible, padded=True)
-    started = time.monotonic()
+    tree_reads = [0]
+    dump_tree = tc.dump_tree
+
+    def counting_dump_tree() -> list[Any]:
+        tree_reads[0] += 1
+        return dump_tree()
+
+    tc.dump_tree = counting_dump_tree  # type: ignore[method-assign]
     with caplog.at_level("WARNING", logger="sapguimcp.backend.desktop"):
         data = _read_table_control(tc, 1, None, 100)
     assert len(data["rows"]) == real
-    assert time.monotonic() - started < 0.3  # not the full settle timeout of 0.5 s
+    assert tree_reads[0] <= 2  # a window that is complete is not read again while the settle timeout runs out
     assert "did not show all its rows" not in caplog.text
