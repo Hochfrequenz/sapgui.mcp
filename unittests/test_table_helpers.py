@@ -269,6 +269,7 @@ class _FakeScrollingTable:
         *,
         allow_cell_reads: bool = False,
         failing_dump_call: int | None = None,
+        clamp: bool = True,
     ) -> None:
         self.allow_cell_reads = allow_cell_reads
         self.failing_dump_call = failing_dump_call
@@ -278,6 +279,8 @@ class _FakeScrollingTable:
         self.position = 0
         self.dump_calls = 0
         self.positions_set: list[int] = []
+        self.clamp = clamp
+        self.scrollable = True
 
     # --- the sapsucker-style element the reader finds by id
     def dump_tree(self) -> list[Any]:
@@ -308,7 +311,9 @@ class _FakeScrollingTable:
 
             @Position.setter
             def Position(self, value: int) -> None:  # noqa: N802
-                table.position = value
+                # SAP does not scroll past the last full page
+                if table.scrollable:
+                    table.position = min(value, max(table.row_count - table.visible, 0)) if table.clamp else value
                 table.positions_set.append(value)
 
         raw.VerticalScrollbar = _Scrollbar()
@@ -381,3 +386,121 @@ class TestTreePathRobustness:
         assert [r["C0"] for r in rows] == [f"r{i}c0" for i in range(6)]
         assert [r["C1"] for r in rows] == [f"r{i}c1" for i in range(6)]
         assert table.dump_calls == 2  # page one via the tree, page two failed and was read cell by cell
+
+
+class TestPagingWithTheScrollPositionSapClamps:
+    """SAP does not scroll past the last full page, so the last page shows rows that were read already."""
+
+    @staticmethod
+    def _read(row_count: int, visible: int) -> list[dict[str, str]]:
+        table = _FakeScrollingTable(row_count, visible, columns=1)
+        session, flatten = _session_for(table)
+        return read_table_control_all_rows(session, flatten)
+
+    @pytest.mark.parametrize(("row_count", "visible"), [(5, 3), (34, 18), (23, 18), (100, 17), (36, 18), (37, 18)])
+    def test_every_row_is_read_once_and_in_order(self, row_count: int, visible: int) -> None:
+        rows = self._read(row_count, visible)
+        assert [row["C0"] for row in rows] == [f"r{i}c0" for i in range(row_count)]
+
+    def test_the_scrollbar_is_back_at_the_top_afterwards(self) -> None:
+        table = _FakeScrollingTable(23, 18, columns=1)
+        session, flatten = _session_for(table)
+        read_table_control_all_rows(session, flatten)
+        assert table.position == 0
+
+    def test_a_scrollbar_that_does_not_move_ends_the_read_without_duplicates(self) -> None:
+        table = _FakeScrollingTable(40, 10, columns=1)
+        table.scrollable = False  # the position stays 0 whatever is set
+        session, flatten = _session_for(table)
+        rows = read_table_control_all_rows(session, flatten)
+        names = [row["C0"] for row in rows]
+        assert names == [f"r{i}c0" for i in range(10)]  # the first page, once
+
+    def test_a_position_that_cannot_be_read_back_ends_the_read_and_the_control_is_scrolled_back(self) -> None:
+        table = _FakeScrollingTable(40, 10, columns=1)
+        session, flatten = _session_for(table)
+        read_calls = {"n": 0}
+        real_com = type(table).com
+
+        def com_getter(self: _FakeScrollingTable) -> Any:
+            raw = real_com.fget(self)  # type: ignore[attr-defined]
+            scrollbar = raw.VerticalScrollbar
+
+            class _Failing:
+                @property
+                def Position(self) -> int:  # noqa: N802 -- COM property name
+                    read_calls["n"] += 1
+                    if read_calls["n"] >= 1:
+                        raise OSError("position unreadable")
+                    return scrollbar.Position
+
+                @Position.setter
+                def Position(self, value: int) -> None:  # noqa: N802
+                    scrollbar.Position = value
+
+            raw.VerticalScrollbar = _Failing()
+            return raw
+
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr(type(table), "com", property(com_getter))
+            rows = read_table_control_all_rows(session, flatten)
+        assert [row["C0"] for row in rows] == [f"r{i}c0" for i in range(10)]  # the first page, nothing twice
+        assert table.positions_set[-1] == 0  # scrolled back although the position could not be read
+
+    def test_a_control_that_does_not_clamp_is_read_the_same(self) -> None:
+        table = _FakeScrollingTable(23, 18, columns=1, clamp=False)
+        session, flatten = _session_for(table)
+        rows = read_table_control_all_rows(session, flatten)
+        assert [row["C0"] for row in rows] == [f"r{i}c0" for i in range(23)]
+
+
+class TestCheckboxCells:
+    """A checkbox cell has no text: its state is read on request (e.g. the key flag of an SE11 field list)."""
+
+    @staticmethod
+    def _checkbox(column: int, row: int) -> Any:
+        return SimpleNamespace(
+            id=f"wnd[0]/usr/tblTABLE/chkFLAG[{column},{row}]", text="", children=[], type_as_number=42
+        )
+
+    def _page(self, checked_rows: set[int], *, read_checkboxes: bool) -> list[dict[str, str]]:
+        cells = [
+            *(
+                SimpleNamespace(id=f"wnd[0]/usr/tblTABLE/txtNAME[0,{r}]", text=f"F{r}", children=[], type_as_number=31)
+                for r in range(3)
+            ),
+            *(self._checkbox(1, r) for r in range(3)),
+        ]
+        element = _tc_element(cells)
+        states = {f"wnd[0]/usr/tblTABLE/chkFLAG[1,{r}]": r in checked_rows for r in range(3)}
+        session = SimpleNamespace(
+            find_by_id=lambda element_id: (
+                SimpleNamespace(dump_tree=lambda: [element])
+                if element_id == "wnd[0]/usr/tblTABLE"
+                else SimpleNamespace(selected=states[element_id])
+            )
+        )
+        page = _read_visible_page_from_tree(
+            session, "wnd[0]/usr/tblTABLE", ["Name", "Key"], 3, _flatten, read_checkboxes
+        )
+        assert page is not None
+        return page
+
+    def test_a_checked_box_reads_x_and_an_unchecked_one_empty(self) -> None:
+        page = self._page({0, 2}, read_checkboxes=True)
+        assert [row["Key"] for row in page] == ["X", "", "X"]
+        assert [row["Name"] for row in page] == ["F0", "F1", "F2"]
+
+    def test_the_state_is_not_read_unless_asked_for(self) -> None:
+        page = self._page({0, 2}, read_checkboxes=False)
+        assert [row["Key"] for row in page] == ["", "", ""]
+
+    def test_the_cell_reader_fallback_reads_the_state_too(self) -> None:
+        raw = MagicMock()
+        raw.GetCell.side_effect = lambda r, c: (
+            SimpleNamespace(Type="GuiCheckBox", Selected=(r == 1), Text="")
+            if c == 1
+            else SimpleNamespace(Type="GuiTextField", Text=f"F{r}")
+        )
+        rows = _read_visible_page(raw, ["Name", "Key"], 3, read_checkboxes=True)
+        assert [row["Key"] for row in rows] == ["", "X", ""]

@@ -460,8 +460,7 @@ _COL_DATA_TYPE = ("Datentyp", "Data Type", "Data type")
 _COL_LENGTH = ("Länge", "Length")
 _COL_DECIMALS = ("DezStellen", "Dez.St.", "Decimal Places", "Decimals", "Dec.Pl.")
 _COL_SHORT_DESC = ("Kurzbeschreibung", "Short Description", "Short text")
-# Note: Key column uses checkboxes which GetCell().Text can't read on desktop.
-# Key field detection is not supported via table control; use WebGUI for that.
+_COL_KEY = ("Key",)  # the key flag: a checkbox column (read with ``read_checkboxes``)
 
 
 def _get_col(row: dict[str, str], candidates: tuple[str, ...]) -> str:
@@ -491,9 +490,8 @@ def _parse_se11_table_rows(rows: list[dict[str, str]]) -> list[SE11Field]:
             decimals = dec_raw if dec_raw > 0 else None
         except ValueError:
             decimals = None
-        # Key column uses checkboxes — GetCell().Text returns empty.
-        # We cannot detect key fields via the desktop table control.
-        is_key = False
+        # The key column is a checkbox column: its cell holds "X" when the field is part of the key
+        is_key = bool(_get_col(row, _COL_KEY))
         description = _get_col(row, _COL_SHORT_DESC)
         fields.append(
             SE11Field(
@@ -620,7 +618,7 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
         )
 
     # Read the fields table control (SE11 shows fields on the main screen, no tabs)
-    rows = await com.run(lambda: read_table_control_all_rows(session, _flatten))
+    rows = await com.run(lambda: read_table_control_all_rows(session, _flatten, read_checkboxes=True))
 
     # Extract description from screen fields (DD02D-DDTEXT on the display screen)
     screen_fields = await backend.discover_fields()
