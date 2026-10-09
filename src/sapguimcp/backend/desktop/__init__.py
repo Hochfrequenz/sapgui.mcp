@@ -484,6 +484,9 @@ def _read_table_control(tc: Any, start_row: int, end_row: int | None, max_rows: 
     # the rows the control really holds, not from RowCount, which counts empty lines: a short table would otherwise
     # wait for lines that stay empty. A table that fits its window (RowCount <= VisibleRowCount: none or one row, or a
     # control that does not pad) is expected to show RowCount rows, the last one included.
+    # Trade-off: a control that does not pad and is still filling can show only the padded estimate's rows twice in a
+    # row and be taken as complete. Waiting for RowCount rows instead would make every short padded table (the
+    # measured case) wait out the whole timeout, and nothing in the control tells the two apart.
     if row_count > visible:
         estimated_total = row_count - visible + 1
         # the last window line may be only partly visible, unless the table ends within the window

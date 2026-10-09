@@ -53,7 +53,7 @@ class _TableControl:
         # ``padded``: ``row_count`` is the number of real rows and the control reports ``RowCount`` like SAP does,
         # rows + VisibleRowCount - 1 (empty lines let the last row be scrolled to the top)
         self.real_rows = row_count
-        self.RowCount = row_count + visible - 1 if padded else row_count
+        self.RowCount = max(row_count + visible - 1, visible) if padded else row_count  # empty: RowCount == visible
         self.VisibleRowCount = visible
         self._scrollbar = _Scrollbar(first)
         self._has_scrollbar = scrollbar
