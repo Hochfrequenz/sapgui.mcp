@@ -31,7 +31,9 @@ class FormField(BaseModel):
     current_value: str | None = Field(default=None, description="Current field value, or None if empty")
     checked: bool | None = Field(
         default=None,
-        description="True/False for checkbox/radio fields, None for text/dropdown",
+        description=(
+            "True/False for checkbox/radio fields (None if the state could not be read), None for text/dropdown"
+        ),
     )
     readonly: bool = Field(
         default=False, description="True if field cannot be edited (HTML readonly/disabled attribute)"
