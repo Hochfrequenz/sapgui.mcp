@@ -244,6 +244,30 @@ async def test_lookup_tcode_desktop_snapshots_state_and_waits_after_f7() -> None
     assert predicate(_session({"wnd[0]": _wnd("Initial"), "wnd[0]/sbar": _sbar("New")}))
 
 
+@pytest.mark.anyio
+async def test_lookup_tcode_desktop_reads_each_gui_flag_from_its_own_checkbox() -> None:
+    """The HTML box is named TSTCC_S_WEBGUI (underscore), the other two with a hyphen: each flag has its own box."""
+    backend = MagicMock(spec=DesktopBackend)
+    backend.fill_field = AsyncMock()
+    backend.get_screen_info = AsyncMock(return_value=ScreenInfo(title="Initial", url="sap://s"))
+    backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type="S", message=""))
+    backend.press_key = AsyncMock()
+    backend.wait_for_condition = AsyncMock(return_value=True)
+    backend.discover_fields = AsyncMock(
+        return_value=[
+            SimpleNamespace(name="TSTCT-TTEXT", value="Data Browser"),
+            SimpleNamespace(name="TSTC-PGMNA", value="SAPLSE16N"),
+        ]
+    )
+    states = {"TSTCC_S_WEBGUI": True, "TSTCC-S_PLATIN": False, "TSTCC-S_WIN32": True}
+    read = AsyncMock(side_effect=lambda _backend, name: states[name])
+    with patch("sapguimcp.tools.se93_tools._read_checkbox", new=read):
+        result = await _lookup_tcode_desktop(backend, "SE16")
+    assert isinstance(result, SE93Entry)
+    assert sorted(call.args[1] for call in read.await_args_list) == sorted(states)
+    assert (result.gui_html, result.gui_java, result.gui_windows) == (True, False, True)
+
+
 def _record(backend: MagicMock, events: list[str]) -> None:
     """Make the backend's action and wait methods append their names to ``events``."""
     for name in ("press_key", "click_button", "wait_for_ready", "wait_for_condition"):
