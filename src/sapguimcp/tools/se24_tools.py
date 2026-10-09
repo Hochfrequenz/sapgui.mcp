@@ -28,6 +28,7 @@ from sapguimcp.models import (
 )
 from sapguimcp.models.se24_models import SE24Attribute, SE24Method, SE24ObjectType, SE24Visibility
 from sapguimcp.tools.desktop_wait_predicates import (
+    named_text_field_present,
     popup_closed_and_screen_changed,
     screen_changed,
     tab_table_control_loaded,
@@ -141,6 +142,7 @@ _HEADER_TEXT_FIELDS = {
     "DY_0153-DEVCLASS": "package",
     "DY_0152-SUPERCLASS": "superclass",
 }
+_HEADER_DESCRIPTION_FIELDS = ("VSEOCLASS-DESCRIPT", "VSEOINTERF-DESCRIPT")
 _HEADER_FINAL = "VSEOCLASS-CLSFINAL"  # checkbox
 _HEADER_INSTANTIATION = "SEOX-CREATABLE"  # combo box: public / protected / private / abstract
 # The key of 'abstract' in the instantiation combo box (private is '0'): the same in every logon language
@@ -301,6 +303,11 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     # The header data (description, package, superclass, final, abstract) is on the properties tab. It is read last:
     # that tab has a table control of its own (type groups) that must not be taken for the methods of the class.
     await _click_tab_bilingual(backend, "Eigenschaften", "Properties")
+    # SAP instantiates the subscreen lazily and idle does not prove that it is there: wait for its description field
+    if not await backend.wait_for_condition(
+        named_text_field_present(_HEADER_DESCRIPTION_FIELDS), timeout_ms=3000, poll_ms=250
+    ):
+        logger.warning("SE24 properties tab: the description field did not appear within 3 s")
     header = await com.run(lambda: _read_se24_header(session, _flatten))
 
     # Detect interface vs class from screen title

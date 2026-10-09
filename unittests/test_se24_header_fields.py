@@ -8,7 +8,8 @@ from typing import Any
 import pytest
 
 from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RETRYABLE_COM_ERRORS
-from sapguimcp.tools.se24_tools import _read_se24_header
+from sapguimcp.tools.desktop_wait_predicates import named_text_field_present
+from sapguimcp.tools.se24_tools import _HEADER_DESCRIPTION_FIELDS, _read_se24_header
 
 _TEXT, _CTEXT, _COMBO, _CHECK, _LABEL = 31, 32, 34, 42, 30
 
@@ -25,7 +26,7 @@ def _flatten(tree: list[Any]) -> list[Any]:
 
 
 def _element(name: str, text: str, kind: int) -> Any:
-    return SimpleNamespace(id=f"/wnd[0]/usr/{name}", name=name, text=text, type_as_number=kind)
+    return SimpleNamespace(id=f"/wnd[0]/usr/{name}", name=name, text=text, type_as_number=kind, children=[])
 
 
 def _session(elements: list[Any], *, final: bool = False, key: str = "0") -> Any:
@@ -144,3 +145,20 @@ def test_an_unreadable_element_does_not_stop_the_elements_after_it() -> None:
     values = _read_se24_header(SimpleNamespace(find_by_id=find_by_id), _flatten)
     assert "is_final" not in values
     assert (values["is_abstract"], values["package"]) == (True, "ZPACKAGE")
+
+
+# --- waiting for the lazily instantiated properties subscreen -------------------------------------------------------
+
+
+def _session_with(elements: list[Any]) -> Any:
+    window = SimpleNamespace(dump_tree=lambda: elements)
+    return SimpleNamespace(find_by_id=lambda _element_id, **_: window)
+
+
+def test_the_wait_is_over_once_the_description_field_of_the_tab_exists() -> None:
+    ready = named_text_field_present(_HEADER_DESCRIPTION_FIELDS)
+    other_tab = [_element("SEOIMPLINTER-REFCLSNAME", "IF_X", _TEXT)]  # a field of the interfaces tab
+    assert not ready(_session_with(other_tab))
+    assert not ready(_session_with([_element("VSEOCLASS-DESCRIPT", "A label", _LABEL)]))  # a label is no field
+    assert ready(_session_with([*other_tab, _element("VSEOCLASS-DESCRIPT", "A class", _TEXT)]))
+    assert ready(_session_with([_element("VSEOINTERF-DESCRIPT", "An interface", _TEXT)]))

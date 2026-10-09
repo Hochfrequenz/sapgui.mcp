@@ -10,10 +10,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Collection
 
 _TYPE_TAB = 91
 _TYPE_TABLE_CONTROL = 80
+_TYPES_TEXT_FIELD = (31, 32)  # GuiTextField, GuiCTextField
 
 
 def screen_changed(before_title: str, before_status: str) -> Callable[[Any], bool]:
@@ -139,5 +140,22 @@ def window_title_changed(before_title: str) -> Callable[[Any], bool]:
 
     def _predicate(session: Any) -> bool:
         return str(session.find_by_id("wnd[0]").text).strip() != before_title
+
+    return _predicate
+
+
+def named_text_field_present(names: Collection[str]) -> Callable[[Any], bool]:
+    """Build a predicate: True once a text field (GuiTextField / GuiCTextField) whose name is one of ``names`` exists.
+
+    For the step after selecting a tab whose subscreen SAP instantiates lazily and that has no table control to wait
+    for: the tab's own header field is in the tree only once the tab is really active (idle does not prove that).
+    """
+    from sapguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
+
+    wanted = frozenset(names)
+
+    def _predicate(session: Any) -> bool:
+        flat = _flatten(session.find_by_id("wnd[0]").dump_tree())
+        return any(getattr(e, "name", "") in wanted and e.type_as_number in _TYPES_TEXT_FIELD for e in flat)
 
     return _predicate
