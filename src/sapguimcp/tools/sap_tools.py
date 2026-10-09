@@ -79,6 +79,9 @@ __all__ = ["register_sap_tools", "SELECTORS", "parse_shortcut_from_title"]
 
 logger = logging.getLogger(__name__)
 
+#: Message class and number of "Transaction & does not exist" (the status bar shows it as a success message).
+_TRANSACTION_NOT_FOUND_MESSAGE = ("S#", "343")
+
 
 # =============================================================================
 # Shortcut Extraction
@@ -424,6 +427,15 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                         tcode=tcode,
                         popup=popup,
                     )
+
+                if result.success and backend.backend_type == "desktop":
+                    # SAP stays on the screen it was on and reports the unknown code in the status bar, as a
+                    # success message: the navigation itself raised no error.
+                    status = await backend.get_status_bar()
+                    if (status.message_id, status.message_number) == _TRANSACTION_NOT_FOUND_MESSAGE:
+                        return TransactionResult.failure(
+                            status.message or f"Transaction {tcode} does not exist", tcode=tcode
+                        )
 
                 return result
 
