@@ -273,7 +273,7 @@ async def test_lookup_fm_desktop_snapshots_title_and_status_and_waits_after_f7()
     # initial wait_for_ready, then F7 followed by a ready wait and the display predicate
     assert events[:4] == ["wait_for_ready", "press_key", "wait_for_ready", "wait_for_condition"]
     backend.press_key.assert_awaited_once_with("F7")
-    predicate = backend.wait_for_condition.await_args.args[0]
+    predicate = backend.wait_for_condition.await_args_list[0].args[0]  # the wait after F7
     assert predicate.__qualname__.startswith("_se37_display_reached.")
     # Built from the pre-F7 snapshot: unchanged title and stale status are not ready, a new FM title is.
     assert not predicate(_session({"wnd[0]": _wnd("Initial"), "wnd[0]/sbar": _sbar("Old")}))
@@ -363,6 +363,10 @@ async def test_lookup_fm_desktop_opens_the_attributes_tab_first_and_returns_its_
     with patch("sapguimcp.tools.se37_tools._read_tab_rows", new=AsyncMock(return_value=[])):
         entry = await _lookup_fm_desktop(backend, "zfm")
     assert clicked[0] == "Eigenschaften"  # the attributes tab is opened before anything else is read
+    # the last wait before the header is read is for the tab's own short text field, bounded
+    predicate = backend.wait_for_condition.await_args_list[-1]
+    assert predicate.args[0].__qualname__.startswith("named_text_field_present.")
+    assert predicate.kwargs == {"timeout_ms": 3000, "poll_ms": 250}
     assert (entry.function_group, entry.description, entry.package, entry.is_rfc_enabled) == (
         "ZGROUP",
         "Short text",
