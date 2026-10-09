@@ -23,6 +23,11 @@ async def test_se37_lookup_rfc_read_table(backend):
     assert result.function_module == "RFC_READ_TABLE"
     assert len(result.import_parameters) > 0, "Should have import parameters"
     assert len(result.exceptions) > 0, "Should have exceptions"
+    # The header data of the attributes tab (RFC_READ_TABLE is a remote-enabled standard function module)
+    assert result.function_group, "function_group should be read from the attributes tab"
+    assert result.description, "description should be read from the attributes tab"
+    assert result.package, "package should be read from the attributes tab"
+    assert result.is_rfc_enabled, "RFC_READ_TABLE is remote-enabled"
     # Verify JSON roundtrip
     json_str = result.model_dump_json()
     parsed = json.loads(json_str)

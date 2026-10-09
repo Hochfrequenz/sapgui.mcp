@@ -263,14 +263,15 @@ async def test_lookup_fm_desktop_snapshots_title_and_status_and_waits_after_f7()
     backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type="S", message=" Old "))
     backend.require_session = MagicMock(return_value=MagicMock())
     backend.com = MagicMock()
-    backend.com.run = AsyncMock(return_value=[])
+    backend.click_tab = AsyncMock()
+    backend.com.run = AsyncMock(side_effect=[{}, *([[]] * 10)])  # the header of the attributes tab, then table rows
     backend.discover_fields = AsyncMock(return_value=[])
     events: list[str] = []
     _record(backend, events)
     with patch("sapguimcp.tools.se37_tools._read_tab_rows", new=AsyncMock(return_value=[])):
         await _lookup_fm_desktop(backend, "ZFM")
     # initial wait_for_ready, then F7 followed by a ready wait and the display predicate
-    assert events == ["wait_for_ready", "press_key", "wait_for_ready", "wait_for_condition"]
+    assert events[:4] == ["wait_for_ready", "press_key", "wait_for_ready", "wait_for_condition"]
     backend.press_key.assert_awaited_once_with("F7")
     predicate = backend.wait_for_condition.await_args.args[0]
     assert predicate.__qualname__.startswith("_se37_display_reached.")
@@ -340,3 +341,51 @@ def test_popup_closed_and_screen_changed_new_status_without_popup_is_ready() -> 
 def test_popup_closed_and_screen_changed_unchanged_screen_is_not_ready() -> None:
     session = _session({"wnd[0]": _wnd("Initial"), "wnd[0]/sbar": _sbar(" Old ")})
     assert not popup_closed_and_screen_changed("Initial", "Old")(session)
+
+
+@pytest.mark.anyio
+async def test_lookup_fm_desktop_opens_the_attributes_tab_first_and_returns_its_header_data() -> None:
+    backend = MagicMock(spec=DesktopBackend)
+    backend.fill_field = AsyncMock()
+    backend.press_key = AsyncMock()
+    backend.wait_for_ready = AsyncMock()
+    backend.wait_for_condition = AsyncMock(return_value=True)
+    backend.get_screen_info = AsyncMock(
+        side_effect=[ScreenInfo(title="Initial", url="sap://s"), ScreenInfo(title="Display ZFM", url="sap://s")]
+    )
+    backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type="S", message=" Old "))
+    backend.require_session = MagicMock(return_value=MagicMock())
+    backend.com = MagicMock()
+    header = {"HEADER-AREA": "ZGROUP", "TFTIT-STEXT": "Short text", "TADIR-DEVCLASS": "ZPACKAGE", "RS38L-REMOTE": True}
+    backend.com.run = AsyncMock(side_effect=[header, *([[]] * 10)])
+    clicked: list[str] = []
+    backend.click_tab = AsyncMock(side_effect=clicked.append)
+    with patch("sapguimcp.tools.se37_tools._read_tab_rows", new=AsyncMock(return_value=[])):
+        entry = await _lookup_fm_desktop(backend, "zfm")
+    assert clicked[0] == "Eigenschaften"  # the attributes tab is opened before anything else is read
+    assert (entry.function_group, entry.description, entry.package, entry.is_rfc_enabled) == (
+        "ZGROUP",
+        "Short text",
+        "ZPACKAGE",
+        True,
+    )
+
+
+@pytest.mark.anyio
+async def test_lookup_fm_desktop_without_header_data_leaves_the_header_fields_empty() -> None:
+    backend = MagicMock(spec=DesktopBackend)
+    backend.fill_field = AsyncMock()
+    backend.press_key = AsyncMock()
+    backend.wait_for_ready = AsyncMock()
+    backend.wait_for_condition = AsyncMock(return_value=True)
+    backend.get_screen_info = AsyncMock(
+        side_effect=[ScreenInfo(title="Initial", url="sap://s"), ScreenInfo(title="Display ZFM", url="sap://s")]
+    )
+    backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type="S", message=" Old "))
+    backend.require_session = MagicMock(return_value=MagicMock())
+    backend.com = MagicMock()
+    backend.com.run = AsyncMock(side_effect=[{}, *([[]] * 10)])
+    backend.click_tab = AsyncMock(side_effect=ValueError("no such tab"))
+    with patch("sapguimcp.tools.se37_tools._read_tab_rows", new=AsyncMock(return_value=[])):
+        entry = await _lookup_fm_desktop(backend, "zfm")
+    assert (entry.function_group, entry.description, entry.package, entry.is_rfc_enabled) == (None, "", None, False)
