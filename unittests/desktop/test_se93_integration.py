@@ -53,7 +53,7 @@ async def test_se93_gui_capabilities(backend):
     await backend.wait_for_ready()
     result = await _lookup_tcode_desktop(backend, "SE16")
     assert isinstance(result, SE93Entry)
-    # Verify GUI flags are booleans (actual values depend on system config)
+    # Verify GUI flags are booleans (actual values depend on system config; the field names are unit tested)
     assert isinstance(result.gui_html, bool)
     assert isinstance(result.gui_java, bool)
     assert isinstance(result.gui_windows, bool)
