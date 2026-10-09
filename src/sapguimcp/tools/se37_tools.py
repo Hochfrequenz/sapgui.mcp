@@ -27,7 +27,7 @@ from sapguimcp.models import (
     SE37Result,
 )
 from sapguimcp.models.se37_models import SE37Exception, SE37Parameter, SE37ParameterCategory, SE37TypingMethod
-from sapguimcp.tools.desktop_wait_predicates import tab_table_control_loaded
+from sapguimcp.tools.desktop_wait_predicates import named_text_field_present, tab_table_control_loaded
 from sapguimcp.tools.field_helpers import fill_and_display
 from sapguimcp.tools.table_helpers import read_table_control
 
@@ -252,6 +252,11 @@ async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
     # The header data (function group, short text, package, RFC) is on the attributes tab, whose subscreen is only
     # instantiated once the tab is selected
     await _click_tab_bilingual(backend, "Eigenschaften", "Attributes")
+    # Idle does not prove that the subscreen is there: wait for the short text field of the tab
+    if not await backend.wait_for_condition(
+        named_text_field_present((_HEADER_SHORT_TEXT,)), timeout_ms=3000, poll_ms=250
+    ):
+        logger.warning("SE37 attributes tab: the short text field did not appear within 3 s")
     header = await com.run(lambda: _read_se37_header(session, _flatten))
 
     # Read Import tab: try reading first (default tab), click only if table is empty.
