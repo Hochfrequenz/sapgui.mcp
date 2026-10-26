@@ -1,4 +1,4 @@
-FROM python:3.14-slim
+FROM python:3.15-slim
 
 # Pin the uv version (matches ebd_toolchain); the base image ships pip but no uv.
 COPY --from=ghcr.io/astral-sh/uv:0.11.32 /uv /uvx /bin/
