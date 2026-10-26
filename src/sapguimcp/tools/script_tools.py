@@ -211,10 +211,9 @@ def _is_reserved_name(path: str) -> bool:
     ``Path.is_reserved()`` is deprecated since 3.13, so use ``ntpath.isreserved``
     (3.13+, available on all platforms) and fall back to ``PureWindowsPath``.
     """
-    isreserved = getattr(ntpath, "isreserved", None)
-    if isreserved is not None:
-        return bool(isreserved(path))
-    return PureWindowsPath(path).is_reserved()
+    if sys.version_info >= (3, 13):
+        return ntpath.isreserved(path)
+    return PureWindowsPath(path).is_reserved()  # pragma: no cover  # removed in 3.15, so only reached on <3.13
 
 
 def _resolve_and_validate_script_path(script_path: str, configured_roots: list[Path]) -> Path:
