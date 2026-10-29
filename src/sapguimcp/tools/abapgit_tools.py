@@ -83,7 +83,6 @@ class PullParams:
     username: str | None
     pat: str | None
     tcode_with_params: str
-    branch: str | None = None
 
 
 # Error Detection Helpers
@@ -275,13 +274,41 @@ async def _check_screen_for_errors(backend: "WebGuiBackend | DesktopBackend") ->
 # Pull Parameter Validation
 
 
-# Anything but the OK-code separators (';', '=') and whitespace/control characters: covers abapGit names and URLs
-_OKCODE_SAFE_VALUE = re.compile(r"^[^\s;=\x00-\x1f\x7f]+$")
+# Repository selector: an abapGit name (hyphens and dots allowed, "/NS/NAME" namespaces) or an https URL
+# without userinfo, query or fragment. Allow-listed so that no OK-code separator can slip through.
+_REPO_NAME_PATTERN = re.compile(r"[A-Za-z0-9_/.-]{1,255}")
+_REPO_URL_PATTERN = re.compile(r"https://[A-Za-z0-9.-]+(:[0-9]{1,5})?/[A-Za-z0-9._/-]+")
+_MAX_REPO_LENGTH = 255
+
+# Longest OK-code the command field accepts without truncating it
+_MAX_OKCODE_LENGTH = 255
+
+
+def _display_value(value: str) -> str:
+    """Render a rejected value for an error message; values that may carry credentials are not echoed."""
+    return "<redacted>" if "@" in value else repr(value)
+
+
+def _validate_repo_selector(repo: str) -> str | None:
+    """Validate the repository name or URL. Returns an error message if invalid, None if OK."""
+    valid = (
+        len(repo) <= _MAX_REPO_LENGTH
+        and not repo.startswith("-")
+        and ".." not in repo.split("/")
+        and (_REPO_NAME_PATTERN.fullmatch(repo) is not None or _REPO_URL_PATTERN.fullmatch(repo) is not None)
+    )
+    if valid:
+        return None
+    return (
+        f"Invalid repository: {_display_value(repo)}. "
+        "Use the abapGit name (letters, digits, `_` `-` `.` `/`) or an https:// Git URL. "
+        "`;`, `=`, spaces and line breaks are not allowed."
+    )
 
 
 def _validate_param(value: str, param_name: str, pattern: str, description: str) -> str | None:
     """Validate a parameter value against a pattern. Returns error message if invalid, None if OK."""
-    if not re.match(pattern, value):
+    if not re.fullmatch(pattern, value):
         return f"Invalid {param_name}: contains forbidden characters. {description}"
     return None
 
@@ -291,47 +318,19 @@ def _validate_and_prepare_params(
     trkorr: str | None,
     username: str | None,
     pat: str | None,
-    branch: str | None = None,
 ) -> PullParams | AbapGitActionResult:
     """Validate inputs and prepare pull parameters. Returns error result if validation fails."""
-    # Validate repo name (or URL) to prevent injection: reject the OK-code separators instead of allow-listing
-    if not _OKCODE_SAFE_VALUE.match(repo):
+    # Validate repo name or URL to prevent injection
+    repo_error = _validate_repo_selector(repo)
+    if repo_error:
         return AbapGitActionResult.failure_result(
-            action="pull",
-            repo_name=repo,
-            error=(
-                f"Invalid repository name or URL: {repo!r}. "
-                "Semicolons, equals signs, whitespace and control characters are not allowed."
-            ),
-        )
-    if branch is not None and not _OKCODE_SAFE_VALUE.match(branch):
-        return AbapGitActionResult.failure_result(
-            action="pull",
-            repo_name=repo,
-            error=(
-                f"Invalid branch name: {branch!r}. "
-                "Semicolons, equals signs, whitespace and control characters are not allowed."
-            ),
+            action="pull", repo_name="<redacted>" if "@" in repo else repo, error=repo_error
         )
 
     # Validate other parameters to prevent command injection via semicolons/special chars
     if trkorr:
         # SAP transport requests: alphanumeric only (e.g., "XYZK900010")
-        error = _validate_param(trkorr, "trkorr", r"^[A-Za-z0-9]+$", "Only alphanumeric allowed.")
-        if error:
-            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
-
-    if username:
-        # GitHub usernames: alphanumeric and hyphens
-        error = _validate_param(
-            username, "username", r"^[A-Za-z0-9_-]+$", "Only alphanumeric, underscores, hyphens allowed."
-        )
-        if error:
-            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
-
-    if pat:
-        # GitHub PATs: alphanumeric and underscores (ghp_xxx, github_pat_xxx)
-        error = _validate_param(pat, "pat", r"^[A-Za-z0-9_]+$", "Only alphanumeric and underscores allowed.")
+        error = _validate_param(trkorr, "trkorr", r"[A-Za-z0-9]+", "Only alphanumeric allowed.")
         if error:
             return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
 
@@ -342,12 +341,20 @@ def _validate_and_prepare_params(
     if not effective_username and effective_pat:
         effective_username = settings.github_user or "x-access-token"
 
+    # Validate all OK-code parameters, including values that did not come from the arguments
+    for value, name, pattern, description in (
+        (effective_username, "username", r"[A-Za-z0-9_-]+", "Only alphanumeric, underscores, hyphens allowed."),
+        (effective_pat, "pat", r"[A-Za-z0-9_]+", "Only alphanumeric and underscores allowed."),
+    ):
+        if value:
+            error = _validate_param(value, name, pattern, description)
+            if error:
+                return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
+
     # Build transaction command
     # Note: All params are validated above to contain only safe characters (no semicolons/spaces)
     # so they won't break the semicolon-separated OK-Code command syntax
     params = [f"P_REPO={repo}"]
-    if branch:
-        params.append(f"P_BRANCH={branch}")
     if trkorr:
         params.append(f"P_TRKORR={trkorr}")
     if effective_username:
@@ -356,6 +363,15 @@ def _validate_and_prepare_params(
         params.append(f"P_TOKEN={effective_pat}")
 
     tcode_with_params = f"/nZ_ABAPGIT_PULL_MCP {'; '.join(params)};"
+    if len(tcode_with_params) > _MAX_OKCODE_LENGTH:
+        return AbapGitActionResult.failure_result(
+            action="pull",
+            repo_name=repo,
+            error=(
+                f"The pull command is too long ({len(tcode_with_params)} characters, maximum {_MAX_OKCODE_LENGTH}). "
+                "Use the abapGit repository name instead of the URL."
+            ),
+        )
 
     return PullParams(
         repo=repo,
@@ -363,7 +379,6 @@ def _validate_and_prepare_params(
         username=effective_username,
         pat=effective_pat,
         tcode_with_params=tcode_with_params,
-        branch=branch,
     )
 
 
@@ -790,14 +805,13 @@ async def _abapgit_pull_via_api(
     trkorr: str | None,
     username: str | None,
     pat: str | None,
-    branch: str | None = None,
 ) -> AbapGitActionResult:
     """Pull changes using the Z_ABAPGIT_PULL_MCP transaction (abapGit ABAP API)."""
     logger.info("Starting abapGit Pull via API", extra={"repo": repo})
 
     try:
         # Validate and prepare parameters
-        params_result = _validate_and_prepare_params(repo, trkorr, username, pat, branch)
+        params_result = _validate_and_prepare_params(repo, trkorr, username, pat)
         if isinstance(params_result, AbapGitActionResult):
             return params_result
         params = params_result
@@ -817,10 +831,7 @@ async def _abapgit_pull_via_api(
         if popup_error:
             return popup_error
 
-        result = await _analyze_pull_result(backend, repo)
-        if branch and result.success:
-            result.message = f"{result.message} (branch: {branch})" if result.message else f"branch: {branch}"
-        return result
+        return await _analyze_pull_result(backend, repo)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("abapGit pull via API", extra={"repo": repo})
@@ -1192,7 +1203,6 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         trkorr: str | None = None,
         username: str | None = None,
         pat: str | None = None,
-        branch: str | None = None,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> AbapGitActionResult:
@@ -1205,15 +1215,13 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         IMPORTANT: All filenames must be lowercase (e.g., zcl_my_class.clas.abap, not uppercase).
 
         Args:
-            repo: abapGit repository name (hyphens allowed, e.g. MY-PROJECT-ABAP) or its full URL;
-                  matched exactly (case-insensitive) against the registered repos
+            repo: abapGit repository name (hyphens allowed, e.g. MY-PROJECT-ABAP) or its full https URL.
+                  Matched exactly by the report, not a pattern.
             trkorr: Transport request (optional, but error if SAP requires it).
                     If pull fails with "Transport required", retry with trkorr.
             username: GitHub username (optional for public repos)
             pat: GitHub Personal Access Token (optional for public repos).
                  Falls back to ABAPGIT_PAT env var, then GITHUB_PAT.
-            branch: Branch name (optional, e.g. "feature/x"). Switches the repository to refs/heads/<branch>
-                    before pulling. Requires a current Z_ABAPGIT_PULL_MCP_SHORTCUT with the P_BRANCH parameter.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -1222,14 +1230,15 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
 
         Example:
             sap_abapgit_pull(repo="Z_PUBLIC_REPO")
-            sap_abapgit_pull(repo="MY-PROJECT-ABAP", branch="feature/x")
+            sap_abapgit_pull(repo="MY-PROJECT-ABAP")
+            sap_abapgit_pull(repo="https://github.com/org/MY-PROJECT-ABAP")
             sap_abapgit_pull(repo="Z_PUBLIC_REPO", trkorr="XYZK900010")
         """
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_abapgit_pull")
         except ValueError as e:
             return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=f"Session error: {e}")
-        return await _abapgit_pull_via_api(backend, repo, trkorr, username, pat, branch)
+        return await _abapgit_pull_via_api(backend, repo, trkorr, username, pat)
 
     @mcp.tool(
         annotations=ToolAnnotations(

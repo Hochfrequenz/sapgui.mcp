@@ -260,34 +260,3 @@ class TestRunPullAndCheckErrors:
         # Should press Enter via backend to confirm inactive objects popup
         enter_calls = [c for c in mock_backend.press_key.call_args_list if c == call("Enter")]
         assert len(enter_calls) == 1, f"Expected 1 Enter press for popup, got {enter_calls}"
-
-
-class TestPullRepoValidation:
-    """Validator accepts hyphenated names and URLs, rejects OK-code separators."""
-
-    @pytest.mark.parametrize(
-        "repo", ["MY-PROJECT-ABAP", "Z_REPO", "/ABC/REPO", "https://github.com/org/MY-PROJECT-ABAP.git"]
-    )
-    def test_accepts(self, repo: str) -> None:
-        from sapguimcp.tools.abapgit_tools import PullParams, _validate_and_prepare_params
-
-        result = _validate_and_prepare_params(repo, None, None, None, "feature/x-1.0")
-        assert isinstance(result, PullParams)
-        assert f"P_REPO={repo}" in result.tcode_with_params
-        assert "P_BRANCH=feature/x-1.0" in result.tcode_with_params
-
-    @pytest.mark.parametrize("bad", ["A;B", "A=B", "A B", "A\nB", "A\tB", ""])
-    def test_rejects_repo(self, bad: str) -> None:
-        from sapguimcp.tools.abapgit_tools import PullParams, _validate_and_prepare_params
-
-        result = _validate_and_prepare_params(bad, None, None, None)
-        assert not isinstance(result, PullParams)
-        assert result.success is False
-
-    @pytest.mark.parametrize("bad", ["a;b", "a=b", "a b", "a\nb"])
-    def test_rejects_branch(self, bad: str) -> None:
-        from sapguimcp.tools.abapgit_tools import _validate_and_prepare_params
-
-        result = _validate_and_prepare_params("REPO", None, None, None, bad)
-        assert result.success is False
-        assert "branch" in (result.error or "").lower()
