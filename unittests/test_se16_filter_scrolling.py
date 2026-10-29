@@ -15,7 +15,8 @@ from sapguimcp.tools.se16_tools import _fill_se16n_filters_desktop, _filter_fill
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-_HRESULT_BUSY = -2147417851  # 0x80010105 (RETRYLATER): a busy control, and what a stale proxy raised live
+_HRESULT_STALE = -2147417851  # 0x80010105 (RPC_E_SERVERFAULT): what a stale proxy raised live; waiting never helps
+_HRESULT_BUSY = -2147417846  # 0x8001010A (RPC_E_SERVERCALL_RETRYLATER)
 _HRESULT_INVALID_ARGUMENT = -2147352567  # DISP_E_EXCEPTION: GetCell on a row beyond the data
 
 
@@ -45,10 +46,14 @@ class _StaleAwareGrid:
         self.fail_scroll_at: int | None = None  # a write of this position raises
         self.fail_reset = False  # a write of position 0 raises
         self.retrylater_reads = 0
+        self.settle_error_code = _HRESULT_BUSY
         self.partial_reads = 0
         self.broken_rows: set[int] = set()  # absolute rows whose name cell raises (not busy)
         self.blank_window_at: int | None = None  # every name read at this position raises (not busy)
-        self.busy_writes = 0  # the first N value writes raise busy
+        self.busy_writes = 0  # the first N value writes raise busy, without storing the value
+        self.name_read_error: int | None = None  # a name read at name_read_error_at raises this code
+        self.name_read_error_at: int | None = None
+        self.landed_writes = 0  # the first N value writes store the value, then raise a server fault
         self.position_read_fails = False
         self.maximum_override: int | None = None
         self.unfillable: set[str] = set()  # listed by SE16N, but not offered for selection
@@ -59,6 +64,8 @@ class _StaleAwareGrid:
 
     def read_name(self, row: int) -> str:
         idx = self.position + row
+        if self.name_read_error is not None and self.position == self.name_read_error_at:
+            raise _ComError(self.name_read_error)
         if idx in self.broken_rows or self.position == self.blank_window_at:
             raise _ComError(_HRESULT_INVALID_ARGUMENT)
         if idx >= len(self.names) and self.row_count > len(self.names):
@@ -68,7 +75,7 @@ class _StaleAwareGrid:
             return name
         if self._settle_reads < self.retrylater_reads:
             self._settle_reads += 1
-            raise _ComError(_HRESULT_BUSY)
+            raise _ComError(self.settle_error_code)
         if self._settle_reads < self.retrylater_reads + self.partial_reads:
             if row == self.visible - 1:
                 self._settle_reads += 1
@@ -99,7 +106,7 @@ class _Scrollbar:
         grid = self._proxy.grid
         grid.position_writes.append(value)
         if grid.fail_scroll_at == value or (value == 0 and grid.fail_reset):
-            raise _ComError(_HRESULT_BUSY)
+            raise _ComError(_HRESULT_STALE)
         if 0 <= value <= grid.maximum and value != grid.position:
             grid.position = value
             grid.generation += 1
@@ -123,6 +130,10 @@ class _Cell:
         if grid.busy_writes:
             grid.busy_writes -= 1
             raise _ComError(_HRESULT_BUSY)
+        if grid.landed_writes:
+            grid.landed_writes -= 1
+            grid.values[self._name] = value
+            raise _ComError(_HRESULT_STALE)
         if self._name in grid.unfillable:
             raise _ComError(_HRESULT_INVALID_ARGUMENT)
         self._proxy.grid.values[self._name] = value
@@ -136,7 +147,7 @@ class _Proxy:
 
     def check(self) -> None:
         if self._generation != self.grid.generation:
-            raise _ComError(_HRESULT_BUSY)
+            raise _ComError(_HRESULT_STALE)
 
     @property
     def RowCount(self) -> int:  # noqa: N802
@@ -354,9 +365,9 @@ async def test_window_unreadable_before_the_known_end_of_the_data_is_a_scan_erro
 
 
 @pytest.mark.anyio
-async def test_busy_value_write_is_retried() -> None:
+async def test_failed_value_write_is_repeated_once_on_a_fresh_control() -> None:
     grid = _StaleAwareGrid(_NAMES, visible=6)
-    grid.busy_writes = 3
+    grid.busy_writes = 1
 
     result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD090": "X"})
 
@@ -365,7 +376,32 @@ async def test_busy_value_write_is_retried() -> None:
 
 
 @pytest.mark.anyio
-async def test_busy_value_write_that_never_clears_is_an_error_not_an_unoffered_field() -> None:
+async def test_value_write_that_raised_but_landed_counts_as_applied() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.landed_writes = 1
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD090": "X"})
+
+    assert result == _FilterFillResult()
+    assert grid.values == {"FLD090": "X"}
+    assert grid.landed_writes == 0  # written once, not repeated
+
+
+@pytest.mark.anyio
+async def test_non_row_error_on_a_name_read_is_not_taken_for_the_end_of_the_data() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.name_read_error = -2147417848  # RPC_E_DISCONNECTED on the first row of a later window
+    grid.name_read_error_at = 12
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD090": "X"})
+
+    assert result.unapplied_fields == []
+    assert len(result.other_errors) == 1
+    assert grid.position == 0
+
+
+@pytest.mark.anyio
+async def test_value_write_that_never_succeeds_is_an_error_not_an_unoffered_field() -> None:
     grid = _StaleAwareGrid(_NAMES, visible=6)
     grid.busy_writes = 100_000
 
@@ -421,3 +457,16 @@ async def test_window_with_a_blank_first_name_still_settles() -> None:
 
     assert result == _FilterFillResult()
     assert grid.values == {"FLD060": "X"}
+
+
+@pytest.mark.anyio
+async def test_stale_proxy_error_retry_does_not_depend_on_the_com_thread_retry_set() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.retrylater_reads = 3
+    grid.settle_error_code = _HRESULT_STALE
+
+    with patch("sapguimcp.backend.desktop._com_thread.RETRYABLE_COM_ERRORS", frozenset()):
+        result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD090": "X"})
+
+    assert result == _FilterFillResult()
+    assert grid.values == {"FLD090": "X"}

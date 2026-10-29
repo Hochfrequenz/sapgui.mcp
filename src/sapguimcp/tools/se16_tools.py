@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
 
-from sapguimcp.backend.desktop._com_thread import RETRYABLE_COM_ERRORS, _get_com_error_code
+from sapguimcp.backend.desktop._com_thread import _get_com_error_code
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
 from sapguimcp.backend.webgui.types import AriaSnapshot
@@ -443,6 +443,23 @@ _SE16N_MAX_OFFERED_FIELDS = 50
 # A grid window right after a scroll may be stale or half-refreshed: bounded re-reads, ~0.5 s in total
 _SE16N_SETTLE_ATTEMPTS = 10
 _SE16N_SETTLE_POLL_S = 0.05
+# COM errors that a fresh read of the control can get past. Deliberately local, not _com_thread's retry set: the
+# re-fetch retry must not change when that set does.
+_SE16N_STALE_PROXY_COM_ERRORS = frozenset(
+    {
+        -2147417851,  # 0x80010105 RPC_E_SERVERFAULT: what a proxy fetched before a scroll raises
+        -2147023179,  # 0x800706B5 RPC_S_UNKNOWN_IF
+    }
+)
+_SE16N_BUSY_COM_ERRORS = frozenset(
+    {
+        -2147417846,  # 0x8001010A RPC_E_SERVERCALL_RETRYLATER
+        -2147418111,  # 0x80010001 RPC_E_CALL_REJECTED
+    }
+)
+_SE16N_RETRY_CODES = _SE16N_STALE_PROXY_COM_ERRORS | _SE16N_BUSY_COM_ERRORS
+# DISP_E_EXCEPTION: what GetCell raises for a row beyond the data and for a cell that is not an input
+_COM_DISP_E_EXCEPTION = -2147352567
 
 
 @dataclass
@@ -512,10 +529,10 @@ def _read_window_names(get_tc: Callable[[], Any], count: int, settle: bool) -> l
 
     The control is re-fetched for every read. Right after a scroll the window may not be refreshed yet (#387 busy
     errors, #937 half-empty windows): with ``settle`` a window counts once two consecutive reads agree and it is not
-    half-refreshed (first row filled, all other readable rows blank). Busy errors are retried a bounded number of
-    times; any other COM error is raised at once. The grid's ``RowCount`` can exceed its data rows: a row beyond the
-    data raises a non-busy error on ``GetCell`` and reads as ``None``. ``None`` is only accepted as a contiguous tail
-    of the window; an unreadable row followed by a readable one is a scan error.
+    half-refreshed (first row filled, all other readable rows blank). Busy and stale-proxy errors are retried a
+    bounded number of times; any other COM error is raised at once. The grid's ``RowCount`` can exceed its data
+    rows: a row beyond the data raises ``DISP_E_EXCEPTION`` on ``GetCell`` and reads as ``None``. ``None`` is only
+    accepted as a contiguous tail of the window; an unreadable row followed by a readable one is a scan error.
     """
     previous: list[str | None] | None = None
     last_exc: Exception | None = None
@@ -529,11 +546,11 @@ def _read_window_names(get_tc: Callable[[], Any], count: int, settle: bool) -> l
                 try:
                     names.append(str(tc.GetCell(row, _SE16N_COL_FIELDNAME).Text).strip())
                 except Exception as cell_exc:  # pylint: disable=broad-exception-caught
-                    if _get_com_error_code(cell_exc) in RETRYABLE_COM_ERRORS:
-                        raise
+                    if _get_com_error_code(cell_exc) != _COM_DISP_E_EXCEPTION:
+                        raise  # busy, stale or a lost connection: not a row beyond the data
                     names.append(None)  # beyond the data rows
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            if _get_com_error_code(exc) not in RETRYABLE_COM_ERRORS:
+            if _get_com_error_code(exc) not in _SE16N_RETRY_CODES:
                 raise
             logger.warning("SE16N selection grid busy while reading", extra={"error": str(exc), "attempt": attempt})
             last_exc, previous = exc, None
@@ -552,22 +569,29 @@ def _read_window_names(get_tc: Callable[[], Any], count: int, settle: bool) -> l
 def _set_filter_value(get_tc: Callable[[], Any], row: int, field_upper: str, value: str) -> bool:
     """Write the From-value of a grid row through a fresh control. False if the row takes no value.
 
-    SE16N lists fields it does not offer for selection, too; their From-value cell is not an input and raises a
-    non-busy error. A busy error is retried, then raised as a scan error: that is a technical failure, not an answer.
+    SE16N lists fields it does not offer for selection, too; their From-value cell is not an input and raises
+    ``DISP_E_EXCEPTION``. Any other error on the write may still have landed: the cell is read back through a fresh
+    control, written once more if it does not hold the value, and a second failure is raised as a scan error.
     """
     last_exc: Exception | None = None
-    for attempt in range(_SE16N_SETTLE_ATTEMPTS):
-        if attempt:
-            time.sleep(_SE16N_SETTLE_POLL_S)
+    for attempt in range(2):
         try:
             get_tc().GetCell(row, _SE16N_COL_LOW).Text = value
             return True
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            if _get_com_error_code(exc) not in RETRYABLE_COM_ERRORS:
+            if _get_com_error_code(exc) == _COM_DISP_E_EXCEPTION:
                 logger.warning(
                     "SE16N field row cannot take a value", extra={"field_name": field_upper, "error": str(exc)}
                 )
                 return False
+            last_exc = exc
+            logger.warning(
+                "SE16N value write failed", extra={"field_name": field_upper, "error": str(exc), "attempt": attempt}
+            )
+        try:
+            if str(get_tc().GetCell(row, _SE16N_COL_LOW).Text).strip() == value.strip():
+                return True  # the write raised but landed
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             last_exc = exc
     raise _GridScanError(f"Setting the SE16N filter {field_upper} failed: {last_exc}")
 
