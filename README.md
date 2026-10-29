@@ -63,7 +63,8 @@ Download the binary for your platform from
 
 #### Smart App and other Security Tools
 
-> [!TIP]
+> **Tip**
+>
 > **Windows blocks the `.exe`?** Windows may block a downloaded executable ("Smart App Control").
 > If you trust the file downloaded from our GitHub Releases, right-click it → **Properties** (**Eigenschaften**) → **General** (**Allgemein**).
 > Under **Security** (**Sicherheit**), check **Unblock** (**Zulassen**), then **Apply** (**Übernehmen**) and try again.
@@ -74,8 +75,8 @@ Download the binary for your platform from
 
 ![Screenshot: the Unblock checkbox in Windows file properties](https://github.com/user-attachments/assets/a27c7638-f0b9-4819-a99e-327a27161eee)
 
-
-> [!NOTE]
+> **Note**
+>
 > The macOS binary supports the **WebGUI backend only** (browser automation). The desktop backend requires SAP GUI for Windows (COM Scripting) and is not available on macOS.
 >
 > **macOS Gatekeeper:** If macOS refuses to run the binary, clear the quarantine attribute: `xattr -c sapgui_mcp_macos_arm64_<version>`
