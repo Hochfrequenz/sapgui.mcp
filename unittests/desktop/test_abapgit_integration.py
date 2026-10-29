@@ -7,6 +7,8 @@ Mirrors the WebGUI tests in unittests/webgui/test_abapgit_tools.py.
 
 import os
 import sys
+import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -102,6 +104,42 @@ async def test_abapgit_pull_repo_not_found(backend) -> None:
     assert result.error is not None
     assert "not found" in result.error.lower() or "Repository" in result.error
     await go_home(backend)
+
+
+# The following tests never pull anything: the selectors are guaranteed not to be registered, so the report
+# stops with "Repository not found" before it touches any transport or object.
+
+
+@skip_no_sap
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "repo",
+    [
+        pytest.param(f"ZZ-MCP-NOT-REGISTERED-{uuid.uuid4().hex[:8].upper()}", id="hyphenated-name"),
+        pytest.param(f"https://github.com/example-org/zz-mcp-not-registered-{uuid.uuid4().hex[:8]}", id="https-url"),
+    ],
+)
+async def test_abapgit_pull_accepts_hyphenated_name_and_url_and_reaches_report(backend, repo: str) -> None:
+    """Hyphenated names and https URLs pass validation and reach the report, which reports them as unknown."""
+    result = await _abapgit_pull_via_api(backend, repo=repo, trkorr=None, username=None, pat=None)
+
+    assert not result.success
+    assert result.error is not None
+    assert "invalid repository" not in result.error.lower(), f"Rejected client-side: {result.error}"
+    assert "not found" in result.error.lower(), f"Unexpected report answer: {result.error}"
+    await go_home(backend)
+
+
+@pytest.mark.anyio
+async def test_abapgit_pull_injection_is_rejected_without_sap_call() -> None:
+    """An OK-code injection attempt is rejected client-side; the backend is never touched."""
+    backend = MagicMock()
+    result = await _abapgit_pull_via_api(backend, repo="REPO; DROP TABLE;", trkorr=None, username=None, pat=None)
+
+    assert not result.success
+    assert result.error is not None
+    assert result.error.startswith("Invalid repository")
+    assert backend.mock_calls == []
 
 
 @skip_no_sap
