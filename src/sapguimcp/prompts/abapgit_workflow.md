@@ -55,6 +55,8 @@ This requires the `Z_ABAPGIT_PULL_MCP_SHORTCUT` report (see Prerequisites). It p
 sap_abapgit_pull(repo="YOUR_REPO_NAME", trkorr="DEVK900123", username="github-user", pat="ghp_...")
 ```
 
+`repo` is the abapGit repository name (hyphens allowed, e.g. `MY-PROJECT-ABAP`) or its full `https://` URL. The report matches it exactly, not as a pattern.
+
 **Option B: Pull manually in SAP (slow, not recommended)**
 
 The abapGit UI is complex and hard to automate via browser. Only use this as a fallback if `Z_ABAPGIT_PULL_MCP_SHORTCUT` is not installed.

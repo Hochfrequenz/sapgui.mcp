@@ -813,7 +813,7 @@ async def test_abapgit_pull_invalid_repo_name(sap_mcp_client: ClientSession) -> 
     # Should fail with validation error
     assert not result.success, "Expected failure for invalid repo name"
     assert result.error is not None
-    assert "invalid" in result.error.lower() or "alphanumeric" in result.error.lower()
+    assert "invalid repository" in result.error.lower()
 
 
 @pytest.mark.anyio

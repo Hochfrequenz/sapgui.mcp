@@ -274,9 +274,44 @@ async def _check_screen_for_errors(backend: "WebGuiBackend | DesktopBackend") ->
 # Pull Parameter Validation
 
 
+# Repository selector: an abapGit name (hyphens and dots allowed, "/NS/NAME" namespaces) or an https URL
+# without userinfo, query or fragment. Allow-listed so that no OK-code separator can slip through.
+_REPO_NAME_PATTERN = re.compile(r"[A-Za-z0-9_/.-]{1,255}")
+_REPO_URL_PATTERN = re.compile(r"https://[A-Za-z0-9.-]+(:[0-9]{1,5})?/[A-Za-z0-9._/-]+")
+_MAX_REPO_LENGTH = 255
+
+# Cap for the whole OK-code. 255 is the cap from the implementation plan (#996), not a verified limit: the field
+# accepted 1000 characters when set via scripting, but where it truncates on send was not measured.
+_MAX_OKCODE_LENGTH = 255
+
+
+def _display_value(value: str) -> str:
+    """Render a rejected value for an error message; values that may carry credentials are not echoed."""
+    return "<redacted>" if "@" in value else repr(value)
+
+
+def _validate_repo_selector(repo: str) -> str | None:
+    """Validate the repository name or URL. Returns an error message if invalid, None if OK."""
+    if len(repo) > _MAX_REPO_LENGTH:
+        shown = "<redacted>" if "@" in repo else f"{repo[:40]!r}..."
+        return f"Invalid repository: {shown} is {len(repo)} characters long, maximum {_MAX_REPO_LENGTH}."
+    valid = (
+        not repo.startswith("-")
+        and ".." not in repo.split("/")
+        and (_REPO_NAME_PATTERN.fullmatch(repo) is not None or _REPO_URL_PATTERN.fullmatch(repo) is not None)
+    )
+    if valid:
+        return None
+    return (
+        f"Invalid repository: {_display_value(repo)}. "
+        "Use the abapGit name (letters, digits, `_` `-` `.` `/`) or an https:// Git URL. "
+        "`;`, `=`, spaces and line breaks are not allowed."
+    )
+
+
 def _validate_param(value: str, param_name: str, pattern: str, description: str) -> str | None:
     """Validate a parameter value against a pattern. Returns error message if invalid, None if OK."""
-    if not re.match(pattern, value):
+    if not re.fullmatch(pattern, value):
         return f"Invalid {param_name}: contains forbidden characters. {description}"
     return None
 
@@ -288,35 +323,17 @@ def _validate_and_prepare_params(
     pat: str | None,
 ) -> PullParams | AbapGitActionResult:
     """Validate inputs and prepare pull parameters. Returns error result if validation fails."""
-    # Validate repo name to prevent injection
-    if not re.match(r"^[A-Za-z0-9_/]+$", repo):
+    # Validate repo name or URL to prevent injection
+    repo_error = _validate_repo_selector(repo)
+    if repo_error:
         return AbapGitActionResult.failure_result(
-            action="pull",
-            repo_name=repo,
-            error=(
-                f"Invalid repository name: {repo}. "
-                "Only alphanumeric characters, underscores, and forward slashes are allowed."
-            ),
+            action="pull", repo_name="<redacted>" if "@" in repo else repo[:80], error=repo_error
         )
 
     # Validate other parameters to prevent command injection via semicolons/special chars
     if trkorr:
         # SAP transport requests: alphanumeric only (e.g., "XYZK900010")
-        error = _validate_param(trkorr, "trkorr", r"^[A-Za-z0-9]+$", "Only alphanumeric allowed.")
-        if error:
-            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
-
-    if username:
-        # GitHub usernames: alphanumeric and hyphens
-        error = _validate_param(
-            username, "username", r"^[A-Za-z0-9_-]+$", "Only alphanumeric, underscores, hyphens allowed."
-        )
-        if error:
-            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
-
-    if pat:
-        # GitHub PATs: alphanumeric and underscores (ghp_xxx, github_pat_xxx)
-        error = _validate_param(pat, "pat", r"^[A-Za-z0-9_]+$", "Only alphanumeric and underscores allowed.")
+        error = _validate_param(trkorr, "trkorr", r"[A-Za-z0-9]+", "Only alphanumeric allowed.")
         if error:
             return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
 
@@ -326,6 +343,16 @@ def _validate_and_prepare_params(
     effective_username = username
     if not effective_username and effective_pat:
         effective_username = settings.github_user or "x-access-token"
+
+    # Validate all OK-code parameters
+    for value, name, pattern, description in (
+        (effective_username, "username", r"[A-Za-z0-9_-]+", "Only alphanumeric, underscores, hyphens allowed."),
+        (effective_pat, "pat", r"[A-Za-z0-9_]+", "Only alphanumeric and underscores allowed."),
+    ):
+        if value:
+            error = _validate_param(value, name, pattern, description)
+            if error:
+                return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
 
     # Build transaction command
     # Note: All params are validated above to contain only safe characters (no semicolons/spaces)
@@ -339,6 +366,15 @@ def _validate_and_prepare_params(
         params.append(f"P_TOKEN={effective_pat}")
 
     tcode_with_params = f"/nZ_ABAPGIT_PULL_MCP {'; '.join(params)};"
+    if len(tcode_with_params) > _MAX_OKCODE_LENGTH:
+        return AbapGitActionResult.failure_result(
+            action="pull",
+            repo_name=repo,
+            error=(
+                f"The pull command is too long ({len(tcode_with_params)} characters, maximum {_MAX_OKCODE_LENGTH}). "
+                "Use the abapGit repository name instead of the URL."
+            ),
+        )
 
     return PullParams(
         repo=repo,
@@ -1182,7 +1218,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         IMPORTANT: All filenames must be lowercase (e.g., zcl_my_class.clas.abap, not uppercase).
 
         Args:
-            repo: Repository name pattern (matched against registered repos)
+            repo: abapGit repository name (hyphens allowed, e.g. MY-PROJECT-ABAP) or its full https URL.
+                  Matched exactly by the report, not a pattern.
             trkorr: Transport request (optional, but error if SAP requires it).
                     If pull fails with "Transport required", retry with trkorr.
             username: GitHub username (optional for public repos)
@@ -1196,6 +1233,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
 
         Example:
             sap_abapgit_pull(repo="Z_PUBLIC_REPO")
+            sap_abapgit_pull(repo="MY-PROJECT-ABAP")
+            sap_abapgit_pull(repo="https://github.com/org/MY-PROJECT-ABAP")
             sap_abapgit_pull(repo="Z_PUBLIC_REPO", trkorr="XYZK900010")
         """
         try:
