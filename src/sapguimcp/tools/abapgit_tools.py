@@ -293,7 +293,8 @@ def _display_value(value: str) -> str:
 def _validate_repo_selector(repo: str) -> str | None:
     """Validate the repository name or URL. Returns an error message if invalid, None if OK."""
     if len(repo) > _MAX_REPO_LENGTH:
-        return f"Invalid repository: {repo[:40]!r}... is {len(repo)} characters long, maximum {_MAX_REPO_LENGTH}."
+        shown = "<redacted>" if "@" in repo else f"{repo[:40]!r}..."
+        return f"Invalid repository: {shown} is {len(repo)} characters long, maximum {_MAX_REPO_LENGTH}."
     valid = (
         not repo.startswith("-")
         and ".." not in repo.split("/")

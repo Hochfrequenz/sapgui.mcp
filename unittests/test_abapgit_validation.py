@@ -102,6 +102,13 @@ class TestPrepareParams:
         assert "A" * 100 not in (result.error or "")
         assert len(result.repo_name or "") <= 80
 
+    def test_overlong_value_with_at_sign_is_not_echoed(self) -> None:
+        result = _validate_and_prepare_params("https://u:p@h/" + "a" * 300, None, None, None)
+        assert not isinstance(result, PullParams)
+        assert "@" not in (result.error or "")
+        assert "u:p" not in (result.error or "")
+        assert "@" not in (result.repo_name or "")
+
     def test_value_with_at_sign_is_not_echoed(self) -> None:
         repo = "https://user:pw@github.com/org/repo"
         result = _validate_and_prepare_params(repo, None, None, None)
