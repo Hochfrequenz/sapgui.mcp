@@ -65,7 +65,7 @@ Download the binary for your platform from
 
 > **Tip**
 >
-> **Windows blocks the `.exe`?** Windows may block a downloaded executable ("Smart App Control").
+> **Windows blocks the `.exe`?** Windows may flag an executable as downloaded from another computer.
 > If you trust the file downloaded from our GitHub Releases, right-click it → **Properties** (**Eigenschaften**) → **General** (**Allgemein**).
 > Under **Security** (**Sicherheit**), check **Unblock** (**Zulassen**), then **Apply** (**Übernehmen**) and try again.
 >
