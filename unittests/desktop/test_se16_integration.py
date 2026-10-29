@@ -253,6 +253,63 @@ async def test_se16_real_column_not_offered_by_se16n_fails(backend):
     await go_home(backend)
 
 
+# ---------------------------------------------------------------------------
+# SE16N selection fields below the visible rows of the grid (#988)
+# ---------------------------------------------------------------------------
+
+# BUT000 (business partner) is a standard table with ~130 selection fields: XSEXM sits far below the fold.
+_LATE_FIELD = "XSEXM"
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_se16_filter_field_below_visible_rows(backend):
+    """#988: a filter on a field far below the visible rows of the selection grid is applied."""
+    result = await _execute_se16_query(backend, "BUT000", {_LATE_FIELD: "X"}, 5)
+    await go_home(backend)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert result.filter_warnings == []
+    assert result.returned_rows >= 1
+    for row in result.rows:
+        assert row.data[_LATE_FIELD] == "X"
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_se16_unknown_field_offered_list_is_complete_and_grid_is_reset(backend):
+    """#988: the offered list covers the whole grid (not one window) and the grid is back at the top afterwards."""
+    result = await _execute_se16_query(backend, "BUT000", {"ZZZFAKEFIELD": "X"}, 5)
+    assert result.success is False
+    assert result.error is not None
+    assert "ZZZFAKEFIELD" in result.error
+    assert "without being an SE16N selection field" in result.error
+    assert "PARTNER" in result.error, f"Offered list should name the first grid rows: {result.error}"
+    assert " more)" in result.error, f"Offered list should be longer than one window (capped at 50): {result.error}"
+    # the failed call must leave the grid at the top: a field in the first rows works right away
+    follow_up = await _execute_se16_query(backend, "BUT000", {"PARTNER": "*"}, 3)
+    await go_home(backend)
+    assert follow_up.success, f"Follow-up call failed: {follow_up.error}"
+    assert follow_up.returned_rows >= 1
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_se16_filters_at_top_and_below_the_fold_in_one_call(backend):
+    """#988: one filter in the first rows plus one far below the fold are both applied in a single call."""
+    seed = await _execute_se16_query(backend, "BUT000", {_LATE_FIELD: "X"}, 1)
+    assert seed.success, f"Seed query failed: {seed.error}"
+    assert seed.returned_rows == 1
+    partner = seed.rows[0].data["PARTNER"]
+    result = await _execute_se16_query(backend, "BUT000", {"PARTNER": partner, _LATE_FIELD: "X"}, 5)
+    await go_home(backend)
+    assert result.success, f"SE16 failed: {result.error}"
+    assert result.filter_warnings == []
+    assert result.returned_rows >= 1
+    for row in result.rows:
+        assert row.data[_LATE_FIELD] == "X"
+        assert row.data["PARTNER"] == partner
+
+
 @skip_no_sap
 @pytest.mark.anyio
 async def test_se16_large_result_returns_all_requested_rows(backend):
