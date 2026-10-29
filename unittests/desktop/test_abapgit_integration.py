@@ -126,7 +126,9 @@ async def test_abapgit_pull_accepts_hyphenated_name_and_url_and_reaches_report(b
     assert not result.success
     assert result.error is not None
     assert "invalid repository" not in result.error.lower(), f"Rejected client-side: {result.error}"
-    assert "not found" in result.error.lower(), f"Unexpected report answer: {result.error}"
+    error = result.error.lower()
+    assert "transaction" not in error, f"The pull transaction is missing: {result.error}"
+    assert "repository not found" in error, f"Unexpected report answer: {result.error}"
     await go_home(backend)
 
 

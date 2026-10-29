@@ -94,6 +94,14 @@ class TestPrepareParams:
             "`;`, `=`, spaces and line breaks are not allowed."
         )
 
+    def test_overlong_repo_gets_length_message_and_is_not_echoed_in_full(self) -> None:
+        result = _validate_and_prepare_params("A" * 300, None, None, None)
+        assert not isinstance(result, PullParams)
+        assert "300 characters" in (result.error or "")
+        assert "letters, digits" not in (result.error or "")
+        assert "A" * 100 not in (result.error or "")
+        assert len(result.repo_name or "") <= 80
+
     def test_value_with_at_sign_is_not_echoed(self) -> None:
         repo = "https://user:pw@github.com/org/repo"
         result = _validate_and_prepare_params(repo, None, None, None)

@@ -280,7 +280,8 @@ _REPO_NAME_PATTERN = re.compile(r"[A-Za-z0-9_/.-]{1,255}")
 _REPO_URL_PATTERN = re.compile(r"https://[A-Za-z0-9.-]+(:[0-9]{1,5})?/[A-Za-z0-9._/-]+")
 _MAX_REPO_LENGTH = 255
 
-# Longest OK-code the command field accepts without truncating it
+# Cap for the whole OK-code. 255 is the cap from the implementation plan (#996), not a verified limit: the field
+# accepted 1000 characters when set via scripting, but where it truncates on send was not measured.
 _MAX_OKCODE_LENGTH = 255
 
 
@@ -291,9 +292,10 @@ def _display_value(value: str) -> str:
 
 def _validate_repo_selector(repo: str) -> str | None:
     """Validate the repository name or URL. Returns an error message if invalid, None if OK."""
+    if len(repo) > _MAX_REPO_LENGTH:
+        return f"Invalid repository: {repo[:40]!r}... is {len(repo)} characters long, maximum {_MAX_REPO_LENGTH}."
     valid = (
-        len(repo) <= _MAX_REPO_LENGTH
-        and not repo.startswith("-")
+        not repo.startswith("-")
         and ".." not in repo.split("/")
         and (_REPO_NAME_PATTERN.fullmatch(repo) is not None or _REPO_URL_PATTERN.fullmatch(repo) is not None)
     )
@@ -324,7 +326,7 @@ def _validate_and_prepare_params(
     repo_error = _validate_repo_selector(repo)
     if repo_error:
         return AbapGitActionResult.failure_result(
-            action="pull", repo_name="<redacted>" if "@" in repo else repo, error=repo_error
+            action="pull", repo_name="<redacted>" if "@" in repo else repo[:80], error=repo_error
         )
 
     # Validate other parameters to prevent command injection via semicolons/special chars
@@ -341,7 +343,7 @@ def _validate_and_prepare_params(
     if not effective_username and effective_pat:
         effective_username = settings.github_user or "x-access-token"
 
-    # Validate all OK-code parameters, including values that did not come from the arguments
+    # Validate all OK-code parameters
     for value, name, pattern, description in (
         (effective_username, "username", r"[A-Za-z0-9_-]+", "Only alphanumeric, underscores, hyphens allowed."),
         (effective_pat, "pat", r"[A-Za-z0-9_]+", "Only alphanumeric and underscores allowed."),
