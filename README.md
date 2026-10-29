@@ -61,12 +61,19 @@ Download the binary for your platform from
 | Windows (x64)    | `sapgui_mcp_windows_<version>.exe`        |
 | macOS (Apple Silicon) | `sapgui_mcp_macos_arm64_<version>` |
 
+#### Smart App and other Security Tools
+
 > [!TIP]
-> **Windows blocks the `.exe`?** Windows may block a downloaded executable, even when the remote-logging variant of the same release runs. If you trust the file downloaded from our GitHub Releases, right-click it → **Properties** (**Eigenschaften**) → **General** (**Allgemein**). Under **Security** (**Sicherheit**), check **Unblock** (**Zulassen**), then **Apply** (**Übernehmen**) and try again.
+> **Windows blocks the `.exe`?** Windows may block a downloaded executable ("Smart App Control").
+> If you trust the file downloaded from our GitHub Releases, right-click it → **Properties** (**Eigenschaften**) → **General** (**Allgemein**).
+> Under **Security** (**Sicherheit**), check **Unblock** (**Zulassen**), then **Apply** (**Übernehmen**) and try again.
 >
-> The checkbox only appears when Windows has marked the file as downloaded from another computer. This removes that download block; it does not override Smart App Control. If Smart App Control still blocks execution, contact your IT administrator rather than disabling protection.
+> The checkbox only appears when Windows has marked the file as downloaded from another computer. This removes that download block; it does not override Smart App Control.
+> If Smart App Control still blocks execution, contact your IT administrator rather than disabling protection.
 >
-> [Screenshot: the Unblock checkbox in Windows file properties](https://github.com/user-attachments/assets/a27c7638-f0b9-4819-a99e-327a27161eee)
+
+![Screenshot: the Unblock checkbox in Windows file properties](https://github.com/user-attachments/assets/a27c7638-f0b9-4819-a99e-327a27161eee)
+
 
 > [!NOTE]
 > The macOS binary supports the **WebGUI backend only** (browser automation). The desktop backend requires SAP GUI for Windows (COM Scripting) and is not available on macOS.
