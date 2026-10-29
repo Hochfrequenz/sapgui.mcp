@@ -15,9 +15,8 @@ from sapguimcp.tools.se16_tools import _fill_se16n_filters_desktop, _filter_fill
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-_HRESULT_STALE = -2147417851  # 0x80010105 (RETRYLATER): what a stale proxy raised live, and it never recovers
+_HRESULT_BUSY = -2147417851  # 0x80010105 (RETRYLATER): a busy control, and what a stale proxy raised live
 _HRESULT_INVALID_ARGUMENT = -2147352567  # DISP_E_EXCEPTION: GetCell on a row beyond the data
-_HRESULT_RETRYLATER = -2147417851  # 0x80010105: the same code the stale proxy raised
 
 
 class _ComError(Exception):
@@ -47,6 +46,11 @@ class _StaleAwareGrid:
         self.fail_reset = False  # a write of position 0 raises
         self.retrylater_reads = 0
         self.partial_reads = 0
+        self.broken_rows: set[int] = set()  # absolute rows whose name cell raises (not busy)
+        self.blank_window_at: int | None = None  # every name read at this position raises (not busy)
+        self.busy_writes = 0  # the first N value writes raise busy
+        self.position_read_fails = False
+        self.maximum_override: int | None = None
         self.unfillable: set[str] = set()  # listed by SE16N, but not offered for selection
         self._settle_reads = 0
 
@@ -55,6 +59,8 @@ class _StaleAwareGrid:
 
     def read_name(self, row: int) -> str:
         idx = self.position + row
+        if idx in self.broken_rows or self.position == self.blank_window_at:
+            raise _ComError(_HRESULT_INVALID_ARGUMENT)
         if idx >= len(self.names) and self.row_count > len(self.names):
             raise _ComError(_HRESULT_INVALID_ARGUMENT)
         name = self.names[idx] if idx < len(self.names) else ""
@@ -62,7 +68,7 @@ class _StaleAwareGrid:
             return name
         if self._settle_reads < self.retrylater_reads:
             self._settle_reads += 1
-            raise _ComError(_HRESULT_RETRYLATER)
+            raise _ComError(_HRESULT_BUSY)
         if self._settle_reads < self.retrylater_reads + self.partial_reads:
             if row == self.visible - 1:
                 self._settle_reads += 1
@@ -77,11 +83,14 @@ class _Scrollbar:
     @property
     def Maximum(self) -> int:  # noqa: N802
         self._proxy.check()
-        return self._proxy.grid.maximum
+        grid = self._proxy.grid
+        return grid.maximum if grid.maximum_override is None else grid.maximum_override
 
     @property
     def Position(self) -> int:  # noqa: N802  (mirrors the SAP GUI COM attribute)
         self._proxy.check()
+        if self._proxy.grid.position_read_fails:
+            raise _ComError(_HRESULT_INVALID_ARGUMENT)
         return self._proxy.grid.position
 
     @Position.setter
@@ -90,7 +99,7 @@ class _Scrollbar:
         grid = self._proxy.grid
         grid.position_writes.append(value)
         if grid.fail_scroll_at == value or (value == 0 and grid.fail_reset):
-            raise _ComError(_HRESULT_STALE)
+            raise _ComError(_HRESULT_BUSY)
         if 0 <= value <= grid.maximum and value != grid.position:
             grid.position = value
             grid.generation += 1
@@ -110,7 +119,11 @@ class _Cell:
     @Text.setter
     def Text(self, value: str) -> None:  # noqa: N802
         self._proxy.check()
-        if self._name in self._proxy.grid.unfillable:
+        grid = self._proxy.grid
+        if grid.busy_writes:
+            grid.busy_writes -= 1
+            raise _ComError(_HRESULT_BUSY)
+        if self._name in grid.unfillable:
             raise _ComError(_HRESULT_INVALID_ARGUMENT)
         self._proxy.grid.values[self._name] = value
 
@@ -123,7 +136,7 @@ class _Proxy:
 
     def check(self) -> None:
         if self._generation != self.grid.generation:
-            raise _ComError(_HRESULT_STALE)
+            raise _ComError(_HRESULT_BUSY)
 
     @property
     def RowCount(self) -> int:  # noqa: N802
@@ -290,7 +303,7 @@ async def test_leaked_start_position_is_reset_first() -> None:
 
 @pytest.mark.anyio
 async def test_rows_beyond_the_data_are_not_an_error() -> None:
-    grid = _StaleAwareGrid(_NAMES, visible=6, padding=14)  # live: RowCount 130 for 116 addressable rows
+    grid = _StaleAwareGrid(_NAMES, visible=6, padding=14)  # live: RowCount 130 for 115 data rows
 
     found = await _fill_se16n_filters_desktop(_backend(grid), {"FLD096": "X"})
     missing = await _fill_se16n_filters_desktop(_backend(grid), {"ZZZFAKE": "X"})
@@ -313,3 +326,98 @@ async def test_listed_field_that_takes_no_value_is_reported_as_not_offered() -> 
     assert result.other_errors == []
     assert result.offered_fields == _NAMES
     assert grid.position == 0
+
+
+@pytest.mark.anyio
+async def test_unreadable_row_inside_the_data_is_a_scan_error() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.broken_rows = {50}
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD090": "X"})
+
+    assert result.unapplied_fields == []
+    assert len(result.other_errors) == 1
+    assert "cannot be read" in result.other_errors[0]
+    assert grid.position == 0
+
+
+@pytest.mark.anyio
+async def test_window_unreadable_before_the_known_end_of_the_data_is_a_scan_error() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)  # last page at 91 overlaps the page at 90
+    grid.blank_window_at = 91
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"ZZZFAKE": "X"})
+
+    assert result.unapplied_fields == []  # the scan did not complete: no "not a selection field"
+    assert len(result.other_errors) == 1
+    assert grid.position == 0
+
+
+@pytest.mark.anyio
+async def test_busy_value_write_is_retried() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.busy_writes = 3
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD090": "X"})
+
+    assert result == _FilterFillResult()
+    assert grid.values == {"FLD090": "X"}
+
+
+@pytest.mark.anyio
+async def test_busy_value_write_that_never_clears_is_an_error_not_an_unoffered_field() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.busy_writes = 100_000
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD090": "X"})
+
+    assert result.unapplied_fields == []
+    assert len(result.other_errors) == 1
+    assert "FLD090" in result.other_errors[0]
+
+
+@pytest.mark.anyio
+async def test_fully_visible_grid_never_reads_the_scroll_position() -> None:
+    grid = _StaleAwareGrid(["MANDT", "MTEXT", "ORT01"], visible=8)
+    grid.position_read_fails = True
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"MTEXT": "X"})
+
+    assert result == _FilterFillResult()
+    assert grid.values == {"MTEXT": "X"}
+
+
+@pytest.mark.anyio
+async def test_unreadable_scroll_position_of_a_scrollable_grid_is_a_scan_error() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.position_read_fails = True
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD001": "X"})
+
+    assert result.unapplied_fields == []
+    assert len(result.other_errors) >= 1
+    assert "scroll position" in result.other_errors[0]
+
+
+@pytest.mark.anyio
+async def test_scrollable_grid_without_scroll_range_is_a_scan_error() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.maximum_override = 0
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"ZZZFAKE": "X"})
+
+    assert result.unapplied_fields == []
+    assert result.offered_fields == []
+    assert "no scroll range" in result.other_errors[0]
+
+
+@pytest.mark.anyio
+async def test_window_with_a_blank_first_name_still_settles() -> None:
+    names = list(_NAMES)
+    names[48] = ""  # first row of the window at position 48
+    grid = _StaleAwareGrid(names, visible=6)
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD060": "X"})
+
+    assert result == _FilterFillResult()
+    assert grid.values == {"FLD060": "X"}

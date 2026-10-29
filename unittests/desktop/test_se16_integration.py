@@ -267,13 +267,11 @@ async def test_se16_filter_field_below_visible_rows(backend):
     """#988: a filter on a field far below the visible rows of the selection grid is applied."""
     result = await _execute_se16_query(backend, "BUT000", {_LATE_FIELD: "X"}, 5)
     await go_home(backend)
-    if not result.success and result.error and "not available as SE16N selection criteria" in result.error:
-        pytest.skip(f"BUT000 / {_LATE_FIELD} not offered on this system")
     assert result.success, f"SE16 failed: {result.error}"
     assert result.filter_warnings == []
+    assert result.returned_rows >= 1
     for row in result.rows:
-        if _LATE_FIELD in row.data:
-            assert row.data[_LATE_FIELD] == "X"
+        assert row.data[_LATE_FIELD] == "X"
 
 
 @skip_no_sap
@@ -298,15 +296,18 @@ async def test_se16_unknown_field_offered_list_is_complete_and_grid_is_reset(bac
 @pytest.mark.anyio
 async def test_se16_filters_at_top_and_below_the_fold_in_one_call(backend):
     """#988: one filter in the first rows plus one far below the fold are both applied in a single call."""
-    result = await _execute_se16_query(backend, "BUT000", {"PARTNER": "*", _LATE_FIELD: "X"}, 5)
+    seed = await _execute_se16_query(backend, "BUT000", {_LATE_FIELD: "X"}, 1)
+    assert seed.success, f"Seed query failed: {seed.error}"
+    assert seed.returned_rows == 1
+    partner = seed.rows[0].data["PARTNER"]
+    result = await _execute_se16_query(backend, "BUT000", {"PARTNER": partner, _LATE_FIELD: "X"}, 5)
     await go_home(backend)
-    if not result.success and result.error and "not available as SE16N selection criteria" in result.error:
-        pytest.skip(f"BUT000 / {_LATE_FIELD} not offered on this system")
     assert result.success, f"SE16 failed: {result.error}"
     assert result.filter_warnings == []
+    assert result.returned_rows >= 1
     for row in result.rows:
-        if _LATE_FIELD in row.data:
-            assert row.data[_LATE_FIELD] == "X"
+        assert row.data[_LATE_FIELD] == "X"
+        assert row.data["PARTNER"] == partner
 
 
 @skip_no_sap
