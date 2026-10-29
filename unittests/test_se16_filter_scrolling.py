@@ -56,6 +56,10 @@ class _StaleAwareGrid:
         self.landed_writes = 0  # the first N value writes store the value, then raise a server fault
         self.position_read_fails = False
         self.maximum_override: int | None = None
+        self.transient_write_errors = 0  # the first N value writes raise DISP_E_EXCEPTION without storing
+        self.ambiguous: set[str] = set()  # writes raise DISP_E_EXCEPTION although the cell is changeable
+        self.flaky_row: int | None = None  # this absolute row raises DISP_E_EXCEPTION on its first reads ...
+        self.flaky_reads = 0  # ... this many times, then reads normally
         self.unfillable: set[str] = set()  # listed by SE16N, but not offered for selection
         self._settle_reads = 0
 
@@ -66,6 +70,9 @@ class _StaleAwareGrid:
         idx = self.position + row
         if self.name_read_error is not None and self.position == self.name_read_error_at:
             raise _ComError(self.name_read_error)
+        if idx == self.flaky_row and self.flaky_reads:
+            self.flaky_reads -= 1
+            raise _ComError(_HRESULT_INVALID_ARGUMENT)
         if idx in self.broken_rows or self.position == self.blank_window_at:
             raise _ComError(_HRESULT_INVALID_ARGUMENT)
         if idx >= len(self.names) and self.row_count > len(self.names):
@@ -123,6 +130,11 @@ class _Cell:
     def Text(self) -> str:  # noqa: N802
         return self._text
 
+    @property
+    def Changeable(self) -> bool:  # noqa: N802
+        self._proxy.check()
+        return self._name not in self._proxy.grid.unfillable
+
     @Text.setter
     def Text(self, value: str) -> None:  # noqa: N802
         self._proxy.check()
@@ -134,6 +146,11 @@ class _Cell:
             grid.landed_writes -= 1
             grid.values[self._name] = value
             raise _ComError(_HRESULT_STALE)
+        if grid.transient_write_errors:
+            grid.transient_write_errors -= 1
+            raise _ComError(_HRESULT_INVALID_ARGUMENT)
+        if self._name in grid.ambiguous:
+            raise _ComError(_HRESULT_INVALID_ARGUMENT)
         if self._name in grid.unfillable:
             raise _ComError(_HRESULT_INVALID_ARGUMENT)
         self._proxy.grid.values[self._name] = value
@@ -470,3 +487,62 @@ async def test_stale_proxy_error_retry_does_not_depend_on_the_com_thread_retry_s
 
     assert result == _FilterFillResult()
     assert grid.values == {"FLD090": "X"}
+
+
+@pytest.mark.anyio
+async def test_transient_generic_write_error_is_retried_and_applied() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.transient_write_errors = 1
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD090": "X"})
+
+    assert result == _FilterFillResult()
+    assert grid.values == {"FLD090": "X"}
+
+
+@pytest.mark.anyio
+async def test_generic_write_error_on_a_changeable_cell_is_an_error_not_an_unoffered_field() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.ambiguous = {"FLD090"}
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD090": "X"})
+
+    assert result.unapplied_fields == []
+    assert len(result.other_errors) == 1
+    assert "FLD090" in result.other_errors[0]
+    assert grid.position == 0
+
+
+@pytest.mark.anyio
+async def test_read_back_tolerates_case_and_padding() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.landed_writes = 1
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD090": " x "})
+
+    assert result == _FilterFillResult()
+
+
+@pytest.mark.anyio
+async def test_tail_that_is_only_transiently_unreadable_is_read_again() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6, padding=14)
+    grid.flaky_row = 97 - 1 + 0  # the last data row: first window read says "unreadable", the re-read works
+    grid.flaky_reads = 1
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"FLD096": "X"})
+
+    assert result == _FilterFillResult()
+    assert grid.values == {"FLD096": "X"}
+
+
+@pytest.mark.anyio
+async def test_unreadable_maximum_is_a_scan_error() -> None:
+    grid = _StaleAwareGrid(_NAMES, visible=6)
+    grid.maximum_override = "not a number"  # type: ignore[assignment]
+
+    result = await _fill_se16n_filters_desktop(_backend(grid), {"ZZZFAKE": "X"})
+
+    assert result.unapplied_fields == []
+    assert len(result.other_errors) == 1
+    assert "scroll maximum" in result.other_errors[0]
+    assert grid.position == 0
